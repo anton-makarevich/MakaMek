@@ -1579,6 +1579,23 @@ public class MechTests
         canStandup.ShouldBe(false,
             $"Mech should not stand up with walkMP={walkMp} and pilotUnconscious={pilotUnconscious}");
     }
+    
+    [Fact]
+    public void CanStandup_ShouldReturnTrue_WhenMinimumMovement()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData(50);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.SetProne();
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
+        
+        // Act
+        var canStandup = sut.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeTrue("Mech should be able to stand up when it has minimum movement");
+    }
+        
 
     [Fact]
     public void AttemptStandup_WhenCalledMultipleTimes_ShouldIncrementCounterCorrectly()

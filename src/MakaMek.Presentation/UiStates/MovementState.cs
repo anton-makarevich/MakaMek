@@ -577,6 +577,7 @@ public class MovementState : IUiState
             if (State._selectedUnit?.Position == null) return;
             if (State.CurrentMovementStep != MovementStep.SelectingMovementType) return;
             
+            State._builder.SetMovementType(movementType);
             if (movementType == MovementType.StandingStill)
             {
                 // For standing still, we create an empty movement path
@@ -589,7 +590,6 @@ public class MovementState : IUiState
             State._selectedPath = new MovementPath([
                     new PathSegment(State._selectedUnit.Position, State._selectedUnit.Position, 0)],
                 movementType);
-            State._builder.SetMovementType(movementType);
             State.HighlightReachableHexes();
             State.TransitionTo(new SelectingTargetHexStep(State));
         }
