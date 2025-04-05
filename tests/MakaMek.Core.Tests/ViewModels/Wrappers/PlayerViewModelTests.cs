@@ -1,6 +1,5 @@
 ﻿using Shouldly;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Tests.Data;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.ViewModels.Wrappers;
 
@@ -12,7 +11,7 @@ public class PlayerViewModelTests
     public void AddUnit_ShouldAddUnitToPlayer_IfSelectedUnitIsNotNull()
     {
         // Arrange
-        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),[]);
+        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
         var unit = MechFactoryTests.CreateDummyMechData(); // Create a new unit
         playerViewModel.SelectedUnit = unit;
     
@@ -27,7 +26,7 @@ public class PlayerViewModelTests
     public void AddUnit_ShouldNotAddUnitToPlayer_IfSelectedUnitIsNull()
     {
         // Arrange
-        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),[]);
+        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
     
         // Act
         playerViewModel.AddUnitCommand.Execute(null);
@@ -40,7 +39,7 @@ public class PlayerViewModelTests
     public void Name_ShouldReturnPlayerName()
     {
         // Arrange
-        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),[]);
+        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
     
         // Act
         var name = playerViewModel.Name;
@@ -53,7 +52,7 @@ public class PlayerViewModelTests
     public void CanAddUnit_ShouldReturnTrue_IfSelectedUnitIsNotNull()
     {
         // Arrange
-        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),[]);
+        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
         var unit = MechFactoryTests.CreateDummyMechData(); // Create a new unit
         playerViewModel.SelectedUnit = unit;
     
@@ -68,7 +67,7 @@ public class PlayerViewModelTests
     public void CanAddUnit_ShouldReturnFalse_IfSelectedUnitIsNull()
     {
         // Arrange
-        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),[]);
+        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
     
         // Act
         var canAddUnit = playerViewModel.CanAddUnit;
@@ -82,7 +81,7 @@ public class PlayerViewModelTests
     {
         // Arrange
         var unit = MechFactoryTests.CreateDummyMechData(); // Create a new unit
-        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),[unit]);
+        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[unit]);
     
         // Act
         var availableUnits = playerViewModel.AvailableUnits.ToList();

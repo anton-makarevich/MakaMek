@@ -308,11 +308,12 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         var mockNextPhase = Substitute.For<IGamePhase>();
         mockPhaseManager.GetNextPhase(PhaseNames.Initiative, Arg.Any<ServerGame>()).Returns(mockNextPhase);
         
-        var game = new ServerGame(battleMap, new ClassicBattletechRulesProvider(), CommandPublisher, DiceRoller,
+        var game = new ServerGame(new ClassicBattletechRulesProvider(), CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(), mockPhaseManager)
         {
             IsAutoRoll = false
         };
+        game.SetBattleMap(battleMap);
         var player3Id = Guid.NewGuid();
         var player4Id = Guid.NewGuid();
         var sut = new InitiativePhase(game);

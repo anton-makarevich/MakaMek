@@ -65,8 +65,10 @@ public class WeaponsAttackStateTests
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
         _player = new Player(playerId, "Player1");
         _game = new ClientGame(
-            battleMap, [_player], rules,
+            rules,
             _commandPublisher, _toHitCalculator);
+        _game.JoinGameWithUnits(_player,[]);
+        _game.SetBattleMap(battleMap);
 
         var expectedModifiers = new ToHitBreakdown
         {
@@ -460,7 +462,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(_unit1);
 
         // Assert
-        var highlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         highlightedHexes.ShouldNotBeEmpty();
     }
 
@@ -474,7 +476,7 @@ public class WeaponsAttackStateTests
         var unit2 = _battleMapViewModel.Units.Last(u => u.Owner!.Id == _player.Id);
         unit1.Deploy(position1);
         unit2.Deploy(position2);
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==position1.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==position1.Coordinates));
         _sut.HandleUnitSelection(unit1);
         var firstHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
 
@@ -500,7 +502,7 @@ public class WeaponsAttackStateTests
         
         // Act
         _sut.HandleUnitSelection(_unit1);
-        var firstUnitHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var firstUnitHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         _sut.HandleUnitSelection(_unit2);
         var secondUnitHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
 
@@ -517,7 +519,7 @@ public class WeaponsAttackStateTests
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         _unit1.Deploy(position);
         _sut.HandleUnitSelection(_unit1);
-        var firstHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var firstHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         
         // Act
         ((Mech)_unit1).RotateTorso(HexDirection.BottomLeft);
@@ -538,7 +540,7 @@ public class WeaponsAttackStateTests
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         _unit1.Deploy(position);
         _sut.HandleUnitSelection(_unit1);
-        var firstHighlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var firstHighlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         
         // Act
         ((Mech)_unit1).RotateTorso(HexDirection.BottomLeft);
@@ -585,7 +587,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(unitNoWeapons);
 
         // Assert
-        var highlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         highlightedHexes.ShouldBeEmpty();
     }
 
@@ -638,7 +640,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(unit);
 
         // Assert
-        var highlightedHexes = _game.BattleMap.GetHexes().Where(h => h.IsHighlighted).ToList();
+        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         highlightedHexes.ShouldNotBeEmpty();
     }
 
@@ -714,7 +716,7 @@ public class WeaponsAttackStateTests
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         unit.Deploy(position);
         
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==position.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==position.Coordinates));
         _sut.HandleUnitSelection(unit);
 
         // Act
@@ -738,7 +740,7 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
         
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
 
         // Act
@@ -763,7 +765,7 @@ public class WeaponsAttackStateTests
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -793,7 +795,7 @@ public class WeaponsAttackStateTests
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -826,7 +828,7 @@ public class WeaponsAttackStateTests
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -865,7 +867,7 @@ public class WeaponsAttackStateTests
         var target2Position = new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom);
         target2.Deploy(target2Position);
         
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -904,7 +906,7 @@ public class WeaponsAttackStateTests
         target.Deploy(targetPosition);
         
         // Select attacker and target
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -940,7 +942,7 @@ public class WeaponsAttackStateTests
         target.Deploy(targetPosition);
         
         // Select attacker and target
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -981,7 +983,7 @@ public class WeaponsAttackStateTests
         targetInOtherArc.Deploy(targetInOtherPosition);
         
         // Set up the state
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -1071,7 +1073,7 @@ public class WeaponsAttackStateTests
             .Returns(secondaryBreakdown);
         
         // Set up the state
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -1129,7 +1131,7 @@ public class WeaponsAttackStateTests
         });
         
         // Select attacker
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         
         // Select target
@@ -1175,7 +1177,7 @@ public class WeaponsAttackStateTests
         target.Deploy(targetPosition);
         
         // Set up the state
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -1213,7 +1215,7 @@ public class WeaponsAttackStateTests
         target.Deploy(targetPosition);
         
         // Set up the state
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -1265,7 +1267,7 @@ public class WeaponsAttackStateTests
         });
         
         // Select attacker
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         
         // Get the Skip Attack action
@@ -1289,7 +1291,7 @@ public class WeaponsAttackStateTests
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         
         // Act
@@ -1312,7 +1314,7 @@ public class WeaponsAttackStateTests
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -1345,7 +1347,7 @@ public class WeaponsAttackStateTests
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -1369,7 +1371,7 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
         
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var torsoRotationAction = _sut.GetAvailableActions().First(a => a.Label == "Turn Torso");
         torsoRotationAction.OnExecute();

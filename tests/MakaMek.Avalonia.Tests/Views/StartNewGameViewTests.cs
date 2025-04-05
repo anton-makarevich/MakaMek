@@ -3,6 +3,7 @@ using Sanet.MakaMek.Avalonia.Views.NewGame;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
@@ -29,7 +30,9 @@ namespace MakaMek.Avalonia.Tests.Views
             var view = new StartNewGameViewNarrow();
             var viewModel = new StartNewGameViewModel(Substitute.For<IGameManager>(), 
                 Substitute.For<IRulesProvider>(),
-                Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>());
+                Substitute.For<ICommandPublisher>(),
+                Substitute.For<IToHitCalculator>(),
+                Substitute.For<IDispatcherService>());
 
             // Act
             view.DataContext = viewModel;

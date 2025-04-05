@@ -2,11 +2,8 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.TechRules;
-using Sanet.MakaMek.Core.Utils.Generators;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.Transport;
 using Shouldly;
 
@@ -21,7 +18,6 @@ public class GameManagerTests : IDisposable
     private readonly IToHitCalculator _toHitCalculator;
     private readonly CommandTransportAdapter _transportAdapter;
     private readonly INetworkHostService _networkHostService;
-    private readonly BattleMap _battleMap;
 
     public GameManagerTests()
     {
@@ -33,15 +29,13 @@ public class GameManagerTests : IDisposable
         var initialPublisher = Substitute.For<ITransportPublisher>(); 
         _transportAdapter = new CommandTransportAdapter([initialPublisher]);
         _networkHostService = Substitute.For<INetworkHostService>();
-        _battleMap = BattleMap.GenerateMap(5, 5,
-            new SingleTerrainGenerator(5,5, new ClearTerrain())); // Use real BattleMap
 
         _sut = new GameManager(_rulesProvider, _commandPublisher, _diceRoller,
             _toHitCalculator, _transportAdapter, _networkHostService);
     }
 
     [Fact]
-    public void StartServer_WithLanEnabled_AndNotRunning_StartsNetworkHostAndAddsPublisher()
+    public async Task InitializeLobby_WithLanEnabled_AndNotRunning_StartsNetworkHostAndAddsPublisher()
     {
         // Arrange
         var networkPublisher = Substitute.For<ITransportPublisher>();
@@ -49,54 +43,55 @@ public class GameManagerTests : IDisposable
         _networkHostService.Publisher.Returns(networkPublisher);
 
         // Act
-        _sut.StartServer(_battleMap, enableLan: true);
+        await _sut.InitializeLobby();
 
         // Assert
-        _networkHostService.Received(1).Start(2439);
+        await _networkHostService.Received(1).Start(2439);
         _transportAdapter.TransportPublishers.Count.ShouldBe(2); // Initial mock + network publisher
         _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
     }
     
     [Fact]
-    public void StartServer_WithLanEnabled_AndNetworkPublisherIsNull_StartsNetworkHostButDoesNotAddPublisher()
+    public async Task InitializeLobby_WithLanEnabled_AndNetworkPublisherIsNull_StartsNetworkHostButDoesNotAddPublisher()
     {
         // Arrange
         _networkHostService.IsRunning.Returns(false);
         _networkHostService.Publisher.Returns((ITransportPublisher?)null);
 
         // Act
-        _sut.StartServer(_battleMap, enableLan: true);
+        await _sut.InitializeLobby();
 
         // Assert
-        _networkHostService.Received(1).Start(2439);
+        await _networkHostService.Received(1).Start(2439);
         _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Only the initial mock publisher
     }
 
     [Fact]
-    public void StartServer_WithLanEnabled_AndAlreadyRunning_DoesNotStartNetworkHost()
+    public async Task InitializeLobby_WithLanEnabled_AndAlreadyRunning_DoesNotStartNetworkHost()
     {
         // Arrange
         _networkHostService.IsRunning.Returns(true);
 
         // Act
-        _sut.StartServer(_battleMap, enableLan: true);
+        await _sut.InitializeLobby();
 
         // Assert
-        _networkHostService.DidNotReceive().Start(Arg.Any<int>());
+        await _networkHostService.DidNotReceive().Start(Arg.Any<int>());
         _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Only initial mock publisher
     }
 
     [Fact]
-    public void StartServer_WithLanDisabled_DoesNotStartNetworkHostOrAddPublisher()
+    public async Task StartServer_WhenNetworkHostNotSupported_DoesNotStartNetworkHostOrAddPublisher()
     {
         // Arrange
         _networkHostService.IsRunning.Returns(false);
+        _networkHostService.CanStart.Returns(false);
 
         // Act
-        _sut.StartServer(_battleMap, enableLan: false);
+        await _sut.InitializeLobby();
 
         // Assert
-        _networkHostService.DidNotReceive().Start(Arg.Any<int>());
+        await _networkHostService.DidNotReceive().Start(Arg.Any<int>());
         _transportAdapter.TransportPublishers.Count.ShouldBe(1);
     }
 
@@ -145,7 +140,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var sutWithNullHost = new GameManager(_rulesProvider, _commandPublisher, _diceRoller,
-            _toHitCalculator, _transportAdapter, null!); // Pass null host
+            _toHitCalculator, _transportAdapter); // Pass null host
 
         // Act & Assert
         sutWithNullHost.IsLanServerRunning.ShouldBeFalse();
@@ -168,27 +163,27 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var sutWithNullHost = new GameManager(_rulesProvider, _commandPublisher, _diceRoller,
-            _toHitCalculator, _transportAdapter, null!); // Pass null host
+            _toHitCalculator, _transportAdapter); // Pass null host
 
         // Act & Assert
         sutWithNullHost.CanStartLanServer.ShouldBeFalse();
     }
 
     [Fact]
-    public void StartServer_CalledMultipleTimes_StartsServerAndNetworkHostOnlyOnce()
+    public async Task StartServer_CalledMultipleTimes_StartsServerAndNetworkHostOnlyOnce()
     {
         // Arrange
         var networkPublisher = Substitute.For<ITransportPublisher>();
         _networkHostService.IsRunning.Returns(false); // Start as not running
         _networkHostService.Publisher.Returns(networkPublisher);
-        
+         
         // Act
-        _sut.StartServer(_battleMap, enableLan: true); // First call, enable LAN
+        await _sut.InitializeLobby(); // First call, enable LAN
         _networkHostService.IsRunning.Returns(true);  // Simulate network host is now running
-        _sut.StartServer(_battleMap, enableLan: true); // Second call
+        await _sut.InitializeLobby(); // Second call
 
         // Assert
-        _networkHostService.Received(1).Start(2439); // Should only be called once
+        await _networkHostService.Received(1).Start(2439); // Should only be called once
         _transportAdapter.TransportPublishers.Count.ShouldBe(2); // Publisher should only be added once
         _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
         // We can't easily verify ServerGame creation/start count directly, 
@@ -210,7 +205,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var sutWithNullHost = new GameManager(_rulesProvider, _commandPublisher, _diceRoller,
-            _toHitCalculator, _transportAdapter, null!); // Pass null host
+            _toHitCalculator, _transportAdapter); // Pass null host
 
         // Act & Assert
         Should.NotThrow(() => sutWithNullHost.Dispose());

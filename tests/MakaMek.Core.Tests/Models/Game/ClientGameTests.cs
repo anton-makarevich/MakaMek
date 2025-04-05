@@ -28,11 +28,12 @@ public class ClientGameTests
 
     public ClientGameTests()
     {
-        var battleState = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
+        var battleMap = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
-        _sut = new ClientGame(battleState,[], rulesProvider, _commandPublisher,
+        _sut = new ClientGame(rulesProvider, _commandPublisher,
             Substitute.For<IToHitCalculator>());
+        _sut.SetBattleMap(battleMap);
     }
 
     [Fact]
@@ -1179,24 +1180,24 @@ public class ClientGameTests
     }
     
     [Fact]
-    public void Constructor_ShouldSetFirstJoiningLocalPlayerAsActive_WhenLocalPlayersExist()
+    public void SetBattleMap_ShouldSetFirstJoiningLocalPlayerAsActive_WhenLocalPlayersExist()
     {
         // Arrange
-        var battleState = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var battleMap = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var rulesProvider = new ClassicBattletechRulesProvider();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         
         var localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1") { Status = PlayerStatus.Joining };
         var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2") { Status = PlayerStatus.Joining };
-        var localPlayers = new List<IPlayer> { localPlayer1, localPlayer2 };
         
         // Act
         var clientGame = new ClientGame(
-            battleState,
-            localPlayers,
             rulesProvider,
             commandPublisher,
             Substitute.For<IToHitCalculator>());
+        clientGame.JoinGameWithUnits(localPlayer1,[]);
+        clientGame.JoinGameWithUnits(localPlayer2,[]);
+        clientGame.SetBattleMap(battleMap);
         
         // Assert
         clientGame.ActivePlayer.ShouldNotBeNull();
@@ -1207,20 +1208,20 @@ public class ClientGameTests
     public void HandleCommand_ShouldSetNextJoiningLocalPlayerAsActive_WhenPlayerStatusChangesToPlaying()
     {
         // Arrange
-        var battleState = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var battleMap = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var rulesProvider = new ClassicBattletechRulesProvider();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         
         var localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1") { Status = PlayerStatus.Joining };
         var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2") { Status = PlayerStatus.Joining };
-        var localPlayers = new List<IPlayer> { localPlayer1, localPlayer2 };
         
         var clientGame = new ClientGame(
-            battleState,
-            localPlayers,
             rulesProvider,
             commandPublisher,
             Substitute.For<IToHitCalculator>());
+        clientGame.JoinGameWithUnits(localPlayer1,[]);
+        clientGame.JoinGameWithUnits(localPlayer2,[]);
+        clientGame.SetBattleMap(battleMap);
 
         clientGame.HandleCommand(new JoinGameCommand
         {
@@ -1260,19 +1261,18 @@ public class ClientGameTests
     public void HandleCommand_ShouldSetActivePlayerNull_WhenPlayerStatusChangesToPlayingAndOnlyOneLocalPlayer()
     {
         // Arrange
-        var battleState = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var battleMap = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var rulesProvider = new ClassicBattletechRulesProvider();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         
         var localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1") { Status = PlayerStatus.Joining };
-        var localPlayers = new List<IPlayer> { localPlayer1 };
         
         var clientGame = new ClientGame(
-            battleState,
-            localPlayers,
             rulesProvider,
             commandPublisher,
             Substitute.For<IToHitCalculator>());
+        clientGame.JoinGameWithUnits(localPlayer1,[]);
+        clientGame.SetBattleMap(battleMap);
 
         clientGame.HandleCommand(new JoinGameCommand
         {
@@ -1307,15 +1307,16 @@ public class ClientGameTests
         var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2");
         
         // Create a new client game with local players
-        var battleState = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
+        var battleMap = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
         var clientGame = new ClientGame(
-            battleState,
-            [localPlayer1, localPlayer2], 
             rulesProvider, 
             commandPublisher,
             Substitute.For<IToHitCalculator>());
+        clientGame.JoinGameWithUnits(localPlayer1,[]);
+        clientGame.JoinGameWithUnits(localPlayer2,[]);
+        clientGame.SetBattleMap(battleMap);
         
         // Add the local players to the game
         clientGame.HandleCommand(new JoinGameCommand
@@ -1378,15 +1379,17 @@ public class ClientGameTests
         var localPlayer3 = new Player(Guid.NewGuid(), "LocalPlayer3");
         
         // Create a new client game with local players
-        var battleState = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
+        var battleMap = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
         var clientGame = new ClientGame(
-            battleState,
-            [localPlayer1, localPlayer2, localPlayer3], 
             rulesProvider, 
             commandPublisher,
             Substitute.For<IToHitCalculator>());
+        clientGame.JoinGameWithUnits(localPlayer1,[]);
+        clientGame.JoinGameWithUnits(localPlayer2,[]);
+        clientGame.JoinGameWithUnits(localPlayer3,[]);
+        clientGame.SetBattleMap(battleMap);
         
         // Add the local players to the game
         clientGame.HandleCommand(new JoinGameCommand

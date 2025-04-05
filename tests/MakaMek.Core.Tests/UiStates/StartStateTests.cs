@@ -41,16 +41,16 @@ public class StartStateTests
         
         _localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1") { Status = PlayerStatus.Joining };
         var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2") { Status = PlayerStatus.Joining };
-        var localPlayers = new List<IPlayer> { _localPlayer1, localPlayer2 };
-        
+
         _commandPublisher = Substitute.For<ICommandPublisher>();
         
         _game = new ClientGame(
-            BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())),
-            localPlayers, 
-            rules,
+           rules,
             _commandPublisher, 
             Substitute.For<IToHitCalculator>());
+        _game.JoinGameWithUnits(_localPlayer1,[]);
+        _game.JoinGameWithUnits(localPlayer2,[]);
+        _game.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         
         _battleMapViewModel.Game = _game;
         

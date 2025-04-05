@@ -48,11 +48,11 @@ public class EndStateTests
         _commandPublisher = Substitute.For<ICommandPublisher>();
         
         _game = new ClientGame(
-            BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())),
-            [_player], 
             rules,
             _commandPublisher, 
             Substitute.For<IToHitCalculator>());
+        _game.JoinGameWithUnits(_player,[]);
+        _game.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         
         _battleMapViewModel.Game = _game;
         

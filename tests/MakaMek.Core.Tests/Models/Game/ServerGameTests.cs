@@ -41,8 +41,9 @@ public class ServerGameTests
             { PartLocation.LeftLeg, 8 },
             { PartLocation.RightLeg, 8 }
         });
-        _sut = new ServerGame(battleMap, rulesProvider, _commandPublisher, diceRoller,
+        _sut = new ServerGame(rulesProvider, _commandPublisher, diceRoller,
             Substitute.For<IToHitCalculator>());
+        _sut.SetBattleMap(battleMap);
     }
 
     [Fact]
