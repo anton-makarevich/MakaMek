@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
 using Sanet.MVVM.Core.Services;
+using Sanet.MakaMek.Core.Models.Game.Commands.Client; 
 
 namespace Sanet.MakaMek.Core.Tests.ViewModels;
 
@@ -22,6 +23,7 @@ public class StartNewGameViewModelTests
     private readonly INavigationService _navigationService;
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly IGameManager _gameManager;
+    private readonly ICommandPublisher _commandPublisher; 
 
     public StartNewGameViewModelTests()
     {
@@ -31,17 +33,21 @@ public class StartNewGameViewModelTests
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService);
         _navigationService.GetViewModel<BattleMapViewModel>().Returns(_battleMapViewModel);
         
-        var rulesProvider = Substitute.For<IRulesProvider>();
-        
+        var rulesProvider = new ClassicBattletechRulesProvider(); 
         _gameManager = Substitute.For<IGameManager>();
-        
-        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _commandPublisher = Substitute.For<ICommandPublisher>(); 
+        var toHitCalculator = Substitute.For<IToHitCalculator>(); 
+        var dispatcherService = Substitute.For<IDispatcherService>(); 
+
+        // Make dispatcher run action immediately for testing
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
 
         _sut = new StartNewGameViewModel(
-            _gameManager,rulesProvider,
-            commandPublisher,
-            Substitute.For<IToHitCalculator>(),
-            Substitute.For<IDispatcherService>());
+            _gameManager,
+            rulesProvider, // Pass mock
+            _commandPublisher, // Pass mock
+            toHitCalculator, // Pass mock
+            dispatcherService); // Pass mock
         _sut.SetNavigationService(_navigationService);
     }
 
@@ -241,5 +247,82 @@ public class StartNewGameViewModelTests
         
         // Act & Assert
         _sut.CanStartLanServer.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public async Task HandleServerCommand_JoinGameCommand_AddsRemotePlayer()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe(); // Ensure handler is subscribed and ClientGame exists
+        var playerId = Guid.NewGuid();
+        const string playerName = "RemotePlayer";
+        const string playerTint = "#00FF00";
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = playerName,
+            Units = units,
+            Tint = playerTint,
+            GameOriginId = Guid.NewGuid()
+        };
+
+        // Act
+        _sut.HandleServerCommand(joinCommand); // Simulate receiving command
+
+        // Assert
+        var addedPlayerVm = _sut.Players.FirstOrDefault(p => p.Player.Id == playerId);
+        addedPlayerVm.ShouldNotBeNull();
+        addedPlayerVm.Player.Name.ShouldBe(playerName);
+        addedPlayerVm.Player.Tint.ShouldBe(playerTint);
+        addedPlayerVm.IsLocalPlayer.ShouldBeFalse();
+        addedPlayerVm.Units.Count.ShouldBe(units.Count);
+        // Assuming UnitData has an ID property for comparison
+        addedPlayerVm.Units.First().Id.ShouldBe(units.First().Id);
+    }
+    
+    [Fact]
+    public async Task PublishJoinCommand_ForLocalPlayer_CallsJoinGameWithUnitsOnClientGame()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe(); // Initializes _localGame internally
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units); // Make units available
+        _sut.AddPlayerCommand.Execute(null); // Add a local player VM
+        var localPlayerVm = _sut.Players.First();
+        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.AddUnitCommand.Execute(null); // Add unit to the local player VM
+        localPlayerVm.JoinGameCommand.Execute(null);
+        
+        // Assert
+        _commandPublisher.Received().PublishCommand(Arg.Any<JoinGameCommand>());
+        _sut.CanStartGame.ShouldBeTrue(); 
+    }
+    
+    [Theory]
+    [InlineData("http://192.168.1.100:5000", "192.168.1.100")]
+    [InlineData(null, "LAN Disabled...")]
+    [InlineData("", "LAN Disabled...")]
+    [InlineData("invalid-url", "Invalid Address")]
+    public void ServerIpAddress_Getter_ReturnsCorrectValueBasedOnGameManager(string? serverUrl, string expectedDisplay)
+    {
+        // Arrange
+        _gameManager.GetLanServerAddress().Returns(serverUrl);
+
+        // Act
+        var result = _sut.ServerIpAddress;
+
+        // Assert
+        result.ShouldBe(expectedDisplay);
+    }
+
+    [Fact]
+    public void Dispose_ShouldDisposeGameManager()
+    {
+        // Act
+        _sut.Dispose();
+
+        // Assert
+        _gameManager.Received(1).Dispose();
     }
 }

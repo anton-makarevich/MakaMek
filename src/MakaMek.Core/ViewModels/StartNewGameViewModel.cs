@@ -62,7 +62,7 @@ public class StartNewGameViewModel : BaseViewModel
     }
 
     // Handle commands coming FROM the server/other clients
-    private void HandleServerCommand(IGameCommand command)
+    internal void HandleServerCommand(IGameCommand command)
     {
         // Ensure UI updates happen on the correct thread
         _dispatcherService.RunOnUIThread(() =>
