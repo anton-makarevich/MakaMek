@@ -35,15 +35,13 @@ public class CommandTransportAdapter
     /// <param name="publisher">The publisher to add</param>
     public void AddPublisher(ITransportPublisher? publisher)
     {
-        if (publisher != null && !TransportPublishers.Contains(publisher))
-        {
-            TransportPublishers.Add(publisher);
+        if (publisher == null || TransportPublishers.Contains(publisher)) return;
+        TransportPublishers.Add(publisher);
             
-            // If Initialize has already been called, subscribe the new publisher immediately
-            if (_onCommandReceived != null)
-            {
-                SubscribePublisher(publisher, _onCommandReceived);
-            }
+        // If Initialize has already been called, subscribe the new publisher immediately
+        if (_onCommandReceived != null)
+        {
+            SubscribePublisher(publisher, _onCommandReceived);
         }
     }
     

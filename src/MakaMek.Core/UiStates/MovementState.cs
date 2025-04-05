@@ -69,7 +69,7 @@ public class MovementState : IUiState
         _movementPoints = _selectedUnit?.GetMovementPoints(movementType) ?? 0;
 
         // Get reachable hexes and highlight them
-        if (_selectedUnit?.Position != null && _viewModel.Game != null)
+        if (_selectedUnit?.Position != null && _viewModel.Game?.BattleMap != null)
         {
             if (movementType == MovementType.Jump)
             {
@@ -211,7 +211,7 @@ public class MovementState : IUiState
             foreach (var direction in availableDirections)
             {
                 var targetPos = new HexPosition(hex.Coordinates, direction);
-                var path = _viewModel.Game.BattleMap.FindJumpPath(
+                var path = _viewModel.Game.BattleMap?.FindJumpPath(
                     _selectedUnit.Position,
                     targetPos,
                     _movementPoints);
@@ -232,7 +232,7 @@ public class MovementState : IUiState
                 if (isForwardReachable)
                 {
                     // Try forward movement
-                    path = _viewModel.Game?.BattleMap.FindPath(
+                    path = _viewModel.Game?.BattleMap?.FindPath(
                         _selectedUnit.Position,
                         targetPos,
                         _movementPoints,
@@ -245,7 +245,7 @@ public class MovementState : IUiState
                     var oppositeStartPos = _selectedUnit.Position.GetOppositeDirectionPosition();
                     var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
                     
-                    path = _viewModel.Game?.BattleMap.FindPath(
+                    path = _viewModel.Game?.BattleMap?.FindPath(
                         oppositeStartPos,
                         oppositeTargetPos,
                         _movementPoints,

@@ -1,8 +1,9 @@
 using NSubstitute;
-using Sanet.MakaMek.Avalonia.Views.NewGame;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
+using Sanet.MakaMek.Core.Models.Game.Factory;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
@@ -27,9 +28,13 @@ namespace MakaMek.Avalonia.Tests.Views
         {
             // Arrange
             var view = new StartNewGameViewNarrow();
-            var viewModel = new StartNewGameViewModel(Substitute.For<IGameManager>(), 
+            var viewModel = new StartNewGameViewModel(
+                Substitute.For<IGameManager>(), 
                 Substitute.For<IRulesProvider>(),
-                Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>());
+                Substitute.For<ICommandPublisher>(),
+                Substitute.For<IToHitCalculator>(),
+                Substitute.For<IDispatcherService>(),
+                Substitute.For<IGameFactory>());
 
             // Act
             view.DataContext = viewModel;

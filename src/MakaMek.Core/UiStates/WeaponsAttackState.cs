@@ -293,7 +293,10 @@ public class WeaponsAttackState : IUiState
                 }
 
                 // Filter out hexes without line of sight
-                weaponHexes.RemoveWhere(h => !_game.BattleMap.HasLineOfSight(unitPosition.Coordinates, h));
+                if (_game.BattleMap != null)
+                {
+                    weaponHexes.RemoveWhere(h => !_game.BattleMap.HasLineOfSight(unitPosition.Coordinates, h));
+                }
 
                 _weaponRanges[weapon] = weaponHexes;
                 reachableHexes.UnionWith(weaponHexes);
@@ -383,8 +386,10 @@ public class WeaponsAttackState : IUiState
                 var isPrimaryTarget = SelectedTarget == PrimaryTarget || PrimaryTarget==null;
                 
                 // Get modifiers breakdown, passing the primary target information
-                vm.ModifiersBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
-                    Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget);
+                vm.ModifiersBreakdown = (_game.BattleMap!=null)
+                    ? _game.ToHitCalculator.GetModifierBreakdown(
+                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget)
+                    : null;
             }
             else
             {

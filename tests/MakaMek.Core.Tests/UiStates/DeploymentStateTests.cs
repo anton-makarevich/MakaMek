@@ -46,9 +46,11 @@ public class DeploymentStateTests
         var battleMap = new BattleMap(1, 1);
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = new ClientGame(
-            battleMap, [player], rules,
+            rules,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
+        _game.JoinGameWithUnits(player,[]);
+        _game.SetBattleMap(battleMap);
         
         _battleMapViewModel.Game = _game;
         SetActivePlayer(player, unitData);

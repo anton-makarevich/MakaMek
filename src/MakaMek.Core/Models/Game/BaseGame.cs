@@ -36,7 +36,7 @@ public abstract class BaseGame : IGame
     public IObservable<PhaseNames> PhaseChanges => _phaseSubject.AsObservable();
     public IObservable<IPlayer?> ActivePlayerChanges => _activePlayerSubject.AsObservable();
     public IObservable<int> UnitsToPlayChanges => _unitsToPlaySubject.AsObservable();
-    public BattleMap BattleMap { get; }
+    public BattleMap? BattleMap { get; protected set; }
     public IToHitCalculator ToHitCalculator { get; }
     public IRulesProvider RulesProvider { get; }
     
@@ -87,13 +87,11 @@ public abstract class BaseGame : IGame
     }
 
     protected BaseGame(
-        BattleMap battleMap,
         IRulesProvider rulesProvider,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator)
     {
         Id = Guid.NewGuid(); 
-        BattleMap = battleMap;
         RulesProvider = rulesProvider;
         CommandPublisher = commandPublisher;
         _mechFactory = new MechFactory(rulesProvider);
@@ -102,9 +100,16 @@ public abstract class BaseGame : IGame
     }
 
     public IReadOnlyList<IPlayer> Players => _players;
+    
+    public virtual void SetBattleMap(BattleMap map)
+    {
+        if (BattleMap != null) return; // Prevent changing map 
+        BattleMap = map;
+    }
 
     internal void OnPlayerJoined(JoinGameCommand joinGameCommand)
     {
+        if (!ValidateJoinCommand(joinGameCommand)) return;
         var player = new Player(joinGameCommand.PlayerId, joinGameCommand.PlayerName,joinGameCommand.Tint);
         foreach (var unit in joinGameCommand.Units.Select(unitData => _mechFactory.Create(unitData)))
         {
@@ -138,7 +143,7 @@ public abstract class BaseGame : IGame
             moveCommand.MovementPath);
     }
     
-    public void OnWeaponConfiguration(WeaponConfigurationCommand configCommand)
+    internal void OnWeaponConfiguration(WeaponConfigurationCommand configCommand)
     {
         var player = _players.FirstOrDefault(p => p.Id == configCommand.PlayerId);
         if (player == null) return;
@@ -157,7 +162,7 @@ public abstract class BaseGame : IGame
         }
     }
     
-    public void OnWeaponsAttack(WeaponAttackDeclarationCommand attackCommand)
+    internal void OnWeaponsAttack(WeaponAttackDeclarationCommand attackCommand)
     {
         // Find the attacking player
         var player = _players.FirstOrDefault(p => p.Id == attackCommand.PlayerId);
@@ -178,7 +183,7 @@ public abstract class BaseGame : IGame
         attackerUnit.DeclareWeaponAttack(attackCommand.WeaponTargets, targetUnits);
     }
     
-    public void OnWeaponsAttackResolution(WeaponAttackResolutionCommand attackResolutionCommand)
+    internal void OnWeaponsAttackResolution(WeaponAttackResolutionCommand attackResolutionCommand)
     {
         // Find the attacking unit
         var attackerUnit = _players
@@ -202,7 +207,7 @@ public abstract class BaseGame : IGame
         }
     }
 
-    public void OnHeatUpdate(HeatUpdatedCommand heatUpdatedCommand)
+    internal void OnHeatUpdate(HeatUpdatedCommand heatUpdatedCommand)
     {
         // Find the unit with the given ID across all players
         var unit = _players
@@ -221,7 +226,7 @@ public abstract class BaseGame : IGame
     /// Handles a turn ended command by resetting the turn state for all units of the player
     /// </summary>
     /// <param name="turnEndedCommand">The turn ended command</param>
-    public void OnTurnEnded(TurnEndedCommand turnEndedCommand)
+    internal void OnTurnEnded(TurnEndedCommand turnEndedCommand)
     {
         var player = _players.FirstOrDefault(p => p.Id == turnEndedCommand.PlayerId);
         if (player == null) return;
@@ -233,7 +238,7 @@ public abstract class BaseGame : IGame
         }
     }
     
-    public void OnPhysicalAttack(PhysicalAttackCommand attackCommand)
+    internal void OnPhysicalAttack(PhysicalAttackCommand attackCommand)
     {
         Console.WriteLine("physical attack");
     }
@@ -269,12 +274,12 @@ public abstract class BaseGame : IGame
 
     private bool ValidateJoinCommand(JoinGameCommand joinCommand)
     {
-        return true;
-    }
+        return joinCommand.PlayerId != Guid.Empty && _players.All(p => p.Id != joinCommand.PlayerId);
+}
 
-    private bool ValidateDeployCommand(DeployUnitCommand cmd)
+    private bool ValidateDeployCommand(DeployUnitCommand deployUnitCommand)
     {
-        return true; //unit != null && !unit.Position.HasValue;
+        return deployUnitCommand.PlayerId!=Guid.Empty;
     }
     
     protected bool ValidateTurnIncrementedCommand(TurnIncrementedCommand command)

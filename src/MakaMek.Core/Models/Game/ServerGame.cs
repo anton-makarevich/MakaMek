@@ -11,32 +11,38 @@ using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
-public class ServerGame : BaseGame
+public class ServerGame : BaseGame, IDisposable
 {
     private IGamePhase _currentPhase;
     private List<IPlayer> _initiativeOrder = [];
-    public bool IsAutoRoll { get; set; } = true;
+    private bool _isGameOver;
+    private bool _isDisposed;
 
+    public bool IsAutoRoll { get; set; } = true;
     private IPhaseManager PhaseManager { get; }
+    public IDiceRoller DiceRoller { get; }
+    public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
 
     public ServerGame(
-        BattleMap battleMap, 
         IRulesProvider rulesProvider, 
         ICommandPublisher commandPublisher,
         IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
         IPhaseManager? phaseManager = null)
-        : base(battleMap, rulesProvider, commandPublisher, toHitCalculator)
+        : base(rulesProvider, commandPublisher, toHitCalculator) 
     {
         DiceRoller = diceRoller;
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
-        _currentPhase = new StartPhase(this);
+        _currentPhase = new StartPhase(this); // Starts in StartPhase
     }
 
-    public IDiceRoller DiceRoller { get; }
-
-    public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
-
+    public override void SetBattleMap(BattleMap map)
+    {
+        if (TurnPhase!= PhaseNames.Start) return; // Prevent changing map mid-game
+        BattleMap = map;
+        ((StartPhase)_currentPhase).TryTransitionToNextPhase();
+    }
+    
     public void SetInitiativeOrder(IReadOnlyList<IPlayer> order)
     {
         _initiativeOrder = order.ToList();
@@ -108,13 +114,20 @@ public class ServerGame : BaseGame
 
     public async Task Start()
     {
-        while (true)
+        // The game loop is driven by commands and phase transitions
+        // This method mainly keeps the server alive until disposed
+        while (!_isDisposed && !_isGameOver)
         {
-            await Task.Delay(16);
-            if (_isGameOver)
-                return;
+            await Task.Delay(100); // Keep the task alive but idle
         }
     }
-
-    private bool _isGameOver = false;
+    
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        _isDisposed = true;
+        _isGameOver = true; // Ensure the loop in Start() exits
+        // Add any specific cleanup for ServerGame if needed (e.g., unsubscribe from events)
+        GC.SuppressFinalize(this);
+    }
 }

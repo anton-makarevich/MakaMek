@@ -21,10 +21,7 @@ public class StartPhase(ServerGame game) : GamePhase(game)
                 broadcastStatusCommand.GameOriginId = Game.Id;
                 Game.OnPlayerStatusUpdated(playerStatusCommand);
                 Game.CommandPublisher.PublishCommand(broadcastStatusCommand);
-                if (AllPlayersReady())
-                {
-                    Game.TransitionToNextPhase(Name);
-                }
+                TryTransitionToNextPhase();
                 break;
         }
     }
@@ -36,4 +33,13 @@ public class StartPhase(ServerGame game) : GamePhase(game)
     }
 
     public override PhaseNames Name => PhaseNames.Start;
+
+    public void TryTransitionToNextPhase()
+    {
+        // Check if all players are ready AND the map is set
+        if (AllPlayersReady() && Game.BattleMap != null)
+        {
+            Game.TransitionToNextPhase(Name);
+        }
+    }
 }

@@ -5,11 +5,15 @@ namespace Sanet.MakaMek.Core.Models.Game;
 public interface IGameManager : IDisposable
 { 
     /// <summary>
-    /// Starts a game server
+    /// Initializes the lobby asynchronously
+    /// </summary>
+    Task InitializeLobby();
+    
+    /// <summary>
+    /// Sets the battle map for the game
     /// </summary>
     /// <param name="battleMap">The battle map to use</param>
-    /// <param name="enableLan">Whether to enable LAN access</param>
-    void StartServer(BattleMap battleMap, bool enableLan = false);
+    void SetBattleMap(BattleMap battleMap);
     
     /// <summary>
     /// Gets the LAN server address for clients to connect to

@@ -12,11 +12,9 @@
         
         <StackPanel Classes="formGroup">
             <TextBlock Text="Multiplayer" Classes="label"/>
-            <CheckBox Content="Enable LAN Multiplayer" 
-                     IsChecked="{Binding EnableLan}"/>
         </StackPanel>
         
-        <StackPanel Classes="formGroup" IsVisible="{Binding EnableLan}">
+        <StackPanel Classes="formGroup">
             <TextBlock Text="Server Address" Classes="label"/>
             <Border Classes="card" Background="{DynamicResource OverlayTransparentBrush}" Padding="8,4" Margin="0">
                 <SelectableTextBlock Text="{Binding ServerIpAddress}"/>

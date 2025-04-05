@@ -32,8 +32,9 @@ public abstract class GamePhaseTestsBase
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         var battleMap = BattleMap.GenerateMap(10, 10, new SingleTerrainGenerator(10,10,
             new ClearTerrain()));
-        Game = new ServerGame(battleMap, rulesProvider, CommandPublisher, DiceRoller,
+        Game = new ServerGame( rulesProvider, CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(), MockPhaseManager);
+        Game.SetBattleMap(battleMap);
     }
 
     protected void VerifyPhaseChange(PhaseNames expectedPhaseNames)

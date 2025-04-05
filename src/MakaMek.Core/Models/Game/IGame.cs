@@ -19,7 +19,8 @@ public interface IGame
     IObservable<IPlayer?> ActivePlayerChanges { get; }
     IObservable<int> UnitsToPlayChanges { get; }
     
-    BattleMap BattleMap { get; }
+    BattleMap? BattleMap { get; }
+    void SetBattleMap(BattleMap map);
     
     Guid Id { get; }
     

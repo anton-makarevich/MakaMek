@@ -10,9 +10,10 @@ MakaMek is an open-source tactical combat game featuring giant walking war machi
 
 ## Features
 ### Implemented
-- Hex map generator with the simplest terrain types (clear, light and heavy wood) (MegaMek assets)
-- [Client-Server app architecture](https://github.com/anton-makarevich/MakaMek/wiki/Game-(Protocol)-High-Level-Architecture) with RX communication for local play 
+- [Client-Server app architecture](https://github.com/anton-makarevich/MakaMek/wiki/Game-(Protocol)-High-Level-Architecture) with RX communication for local play
+- Single-player combat with up to 4 players on a single device
 - Complete Turn flow implementation with all major phases including initiative, movement, attack declaration and resolution, heat and end phase
+- Hex map generator with the simplest terrain types (clear, light and heavy wood) (MegaMek assets)
 - Cross-platform support (Windows, Linux, macOS, Web, Android, iOS)
 - Test UI built with AvaloniaUI
 - Importing mechs defined in MTF format 

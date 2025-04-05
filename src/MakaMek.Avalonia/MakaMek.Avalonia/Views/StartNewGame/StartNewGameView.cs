@@ -35,7 +35,7 @@ public abstract class StartNewGameView : BaseView<StartNewGameViewModel>
         }
 
         ViewModel.InitializeUnits(units);
-        
+        await ViewModel.InitializeLobbyAndSubscribe();
     }
 
     protected async override void OnViewModelSet()

@@ -20,11 +20,16 @@ using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
-public class BaseGameTests() : BaseGame(BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain())),
+public class BaseGameTests : BaseGame
+{
+    public BaseGameTests() : base(
         new ClassicBattletechRulesProvider(),
         Substitute.For<ICommandPublisher>(),
         Substitute.For<IToHitCalculator>())
-{
+    {
+        base.SetBattleMap(BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
+    }
+
     [Fact]
     public void AddPlayer_ShouldAddPlayer_WhenJoinGameCommandIsReceived()
     {

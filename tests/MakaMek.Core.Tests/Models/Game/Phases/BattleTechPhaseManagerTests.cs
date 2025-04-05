@@ -21,13 +21,13 @@ public class BattleTechPhaseManagerTests
     {
         _sut = new BattleTechPhaseManager();
         _game = new ServerGame(
-            BattleMap.GenerateMap(5,5, new SingleTerrainGenerator(5,5, new ClearTerrain())), // battleMap
             Substitute.For<IRulesProvider>(), // rulesProvider
             Substitute.For<ICommandPublisher>(), // commandPublisher
             Substitute.For<IDiceRoller>(), // diceRoller
             Substitute.For<IToHitCalculator>(), // toHitCalculator
             _sut  // phaseManager
         );
+        _game.SetBattleMap(BattleMap.GenerateMap(5,5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
     }
 
     [Fact]
