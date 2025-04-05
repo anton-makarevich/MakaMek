@@ -8,6 +8,10 @@
              x:DataType="viewModels:StartNewGameViewModel">
     <StackPanel Classes="verticalSpaced">
         <TextBlock Text="Players" Classes="h2" HorizontalAlignment="Center"/>
+        <Button Content="Add Player" Command="{Binding AddPlayerCommand}"
+                Classes="secondary"
+                HorizontalAlignment="Center"
+                IsEnabled="{Binding CanAddPlayer}"/>
         <ItemsControl ItemsSource="{Binding Players}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
@@ -25,7 +29,7 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-                                <StackPanel>
+                                <StackPanel Orientation="Horizontal">
                                     <Button Content="Add Unit" Command="{Binding AddUnitCommand}" 
                                                                             Classes="primary"
                                                                             IsEnabled="{Binding CanAddUnit}"/>
@@ -49,9 +53,5 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Button Content="Add Player" Command="{Binding AddPlayerCommand}"
-                Classes="secondary"
-                HorizontalAlignment="Center"
-                IsEnabled="{Binding CanAddPlayer}"/>
     </StackPanel>
 </UserControl>

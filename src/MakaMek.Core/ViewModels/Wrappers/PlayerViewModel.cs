@@ -22,7 +22,11 @@ public class PlayerViewModel : BindableBase
     public UnitData? SelectedUnit
     {
         get => _selectedUnit;
-        set=>SetProperty(ref _selectedUnit, value);
+        set
+        {
+            SetProperty(ref _selectedUnit, value); 
+            NotifyPropertyChanged(nameof(CanAddUnit));
+        }
     }
 
     public ICommand AddUnitCommand { get; }
@@ -66,6 +70,7 @@ public class PlayerViewModel : BindableBase
         var unit = SelectedUnit!.Value; 
         unit.Id = Guid.NewGuid(); 
         Units.Add(unit);
+        NotifyPropertyChanged(nameof(CanJoin));
         _onUnitChanged?.Invoke();
         SelectedUnit = null; 
         (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged(); 
@@ -82,7 +87,6 @@ public class PlayerViewModel : BindableBase
             Units.Add(unitToAdd);
         }
         _onUnitChanged?.Invoke();
-        NotifyPropertyChanged(nameof(CanJoin));
     }
     
     public bool CanSelectUnits => IsLocalPlayer; 

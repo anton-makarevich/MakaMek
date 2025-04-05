@@ -109,6 +109,7 @@ public abstract class BaseGame : IGame
 
     internal void OnPlayerJoined(JoinGameCommand joinGameCommand)
     {
+        if (!ValidateJoinCommand(joinGameCommand)) return;
         var player = new Player(joinGameCommand.PlayerId, joinGameCommand.PlayerName,joinGameCommand.Tint);
         foreach (var unit in joinGameCommand.Units.Select(unitData => _mechFactory.Create(unitData)))
         {
@@ -273,8 +274,8 @@ public abstract class BaseGame : IGame
 
     private bool ValidateJoinCommand(JoinGameCommand joinCommand)
     {
-        return joinCommand.PlayerId!=Guid.Empty;
-    }
+        return joinCommand.PlayerId != Guid.Empty && _players.All(p => p.Id != joinCommand.PlayerId);
+}
 
     private bool ValidateDeployCommand(DeployUnitCommand deployUnitCommand)
     {

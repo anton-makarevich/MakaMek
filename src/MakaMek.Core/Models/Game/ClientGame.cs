@@ -22,16 +22,11 @@ public sealed class ClientGame : BaseGame
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
     
-    public ClientGame(IReadOnlyList<IPlayer> localPlayers,
-        IRulesProvider rulesProvider, ICommandPublisher commandPublisher, IToHitCalculator toHitCalculator)
+    public ClientGame(IRulesProvider rulesProvider, ICommandPublisher commandPublisher, IToHitCalculator toHitCalculator)
         : base(rulesProvider, commandPublisher, toHitCalculator)
-    {
-        LocalPlayers = localPlayers;
-        TurnPhase = PhaseNames.Start;
-        ActivePlayer = LocalPlayers.FirstOrDefault(p => p.Status == PlayerStatus.Joining);
-    }
-    
-    public IReadOnlyList<IPlayer> LocalPlayers { get; }
+    { }
+
+    public List<IPlayer> LocalPlayers { get; } = [];
 
     public override void HandleCommand(IGameCommand command)
     {
@@ -46,8 +41,8 @@ public sealed class ClientGame : BaseGame
         // Handle specific command types
         switch (command)
         {
-            case JoinGameCommand joinCmd:
-                OnPlayerJoined(joinCmd);
+            case JoinGameCommand joinGameCommand:
+                OnPlayerJoined(joinGameCommand);
                 break;
             case UpdatePlayerStatusCommand statusCommand:
                 OnPlayerStatusUpdated(statusCommand);
@@ -139,6 +134,7 @@ public sealed class ClientGame : BaseGame
         {
             CommandPublisher.PublishCommand(joinCommand);
         }
+        LocalPlayers.Add(player);
     }
     
     public void SetPlayerReady(UpdatePlayerStatusCommand readyCommand)
@@ -177,5 +173,12 @@ public sealed class ClientGame : BaseGame
     {
         if (ActivePlayer == null) return;
         CommandPublisher.PublishCommand(command);
+    }
+
+    public override void SetBattleMap(BattleMap map)
+    {
+        base.SetBattleMap(map);
+        TurnPhase = PhaseNames.Start;
+        ActivePlayer = LocalPlayers.FirstOrDefault(p => p.Status == PlayerStatus.Joining);
     }
 }

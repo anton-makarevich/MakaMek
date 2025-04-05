@@ -33,6 +33,8 @@ public class StartNewGameViewModel : BaseViewModel
     private readonly ICommandPublisher _commandPublisher;
     private readonly IToHitCalculator _toHitCalculator;
     private readonly IDispatcherService _dispatcherService; // Assuming IDispatcherService is available for UI updates
+    
+    private ClientGame _localGame;
 
     public StartNewGameViewModel(
         IGameManager gameManager, 
@@ -52,6 +54,9 @@ public class StartNewGameViewModel : BaseViewModel
     {
         await _gameManager.InitializeLobby();
         _commandPublisher.Subscribe(HandleServerCommand);
+        _localGame = new ClientGame(
+            _rulesProvider,
+            _commandPublisher, _toHitCalculator);
         // Update server IP initially if needed
         NotifyPropertyChanged(nameof(ServerIpAddress));
     }
@@ -145,7 +150,7 @@ public class StartNewGameViewModel : BaseViewModel
 
     public bool IsLightWoodsEnabled => _forestCoverage > 0;
 
-    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Playing);
+    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0); //&& p.Player.Status == PlayerStatus.Playing);
     
     /// <summary>
     /// Gets the server address if LAN is running
@@ -190,14 +195,10 @@ public class StartNewGameViewModel : BaseViewModel
         _gameManager.SetBattleMap(map);
 
         // 3. Host Client for local player(s) 
-        var localGame = new ClientGame(
-            Players.Select(vm=>vm.Player).ToList(),
-            _rulesProvider,
-            _commandPublisher, _toHitCalculator);
-        localGame.SetBattleMap(localBattleMap);
+        _localGame.SetBattleMap(localBattleMap);
 
         var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
-        battleMapViewModel.Game = localGame;
+        battleMapViewModel.Game = _localGame;
         
         // Navigate to BattleMap view
         await NavigationService.NavigateToViewModelAsync(battleMapViewModel);
@@ -217,16 +218,7 @@ public class StartNewGameViewModel : BaseViewModel
     private void PublishJoinCommand(PlayerViewModel playerVm)
     {
         if (!playerVm.IsLocalPlayer) return; // Should only be called for local players
-        
-        var joinCommand = new JoinGameCommand
-        {
-            PlayerId = playerVm.Player.Id,
-            PlayerName = playerVm.Player.Name,
-            Tint = playerVm.Player.Tint,
-            Units = playerVm.Units.ToList() // Send currently selected units
-            // GameOriginId is handled by CommandPublisher infrastructure
-        };
-        _commandPublisher.PublishCommand(joinCommand); // Changed Publish to PublishCommand
+        _localGame.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList());
     }
     
     private Task AddPlayer()
@@ -248,9 +240,7 @@ public class StartNewGameViewModel : BaseViewModel
         _players.Add(playerViewModel);
         NotifyPropertyChanged(nameof(CanAddPlayer));
         NotifyPropertyChanged(nameof(CanStartGame)); // CanStartGame might be false until units are added
- 
-        // 4. DO NOT publish Join command here anymore. PlayerViewModel's Join button will trigger PublishJoinCommand.
- 
+        
         return Task.CompletedTask;
     }
 
@@ -269,9 +259,8 @@ public class StartNewGameViewModel : BaseViewModel
     
     public bool CanAddPlayer => _players.Count < 4; // Limit to 4 players for now
 
-    public override void DetachHandlers()
+    public void Dispose()
     {
-        base.DetachHandlers();
         // Dispose game manager if this ViewModel owns it (depends on DI lifetime)
         _gameManager.Dispose(); 
         GC.SuppressFinalize(this);
