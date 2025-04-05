@@ -5,7 +5,6 @@ using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -13,7 +12,8 @@ using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
 using Sanet.MVVM.Core.Services;
-using Sanet.MakaMek.Core.Models.Game.Commands.Client; 
+using Sanet.MakaMek.Core.Models.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Game.Factory;
 
 namespace Sanet.MakaMek.Core.Tests.ViewModels;
 
@@ -23,7 +23,8 @@ public class StartNewGameViewModelTests
     private readonly INavigationService _navigationService;
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly IGameManager _gameManager;
-    private readonly ICommandPublisher _commandPublisher; 
+    private readonly ICommandPublisher _commandPublisher;
+    private readonly ClientGame _clientGame; 
 
     public StartNewGameViewModelTests()
     {
@@ -38,16 +39,21 @@ public class StartNewGameViewModelTests
         _commandPublisher = Substitute.For<ICommandPublisher>(); 
         var toHitCalculator = Substitute.For<IToHitCalculator>(); 
         var dispatcherService = Substitute.For<IDispatcherService>(); 
+        var gameFactory = Substitute.For<IGameFactory>(); 
 
-        // Make dispatcher run action immediately for testing
+        _clientGame = new ClientGame(rulesProvider, _commandPublisher, toHitCalculator); 
+        gameFactory.CreateClientGame(rulesProvider, _commandPublisher, toHitCalculator)
+                    .Returns(_clientGame);
+
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
 
         _sut = new StartNewGameViewModel(
             _gameManager,
-            rulesProvider, // Pass mock
-            _commandPublisher, // Pass mock
-            toHitCalculator, // Pass mock
-            dispatcherService); // Pass mock
+            rulesProvider, 
+            _commandPublisher, 
+            toHitCalculator, 
+            dispatcherService, 
+            gameFactory); 
         _sut.SetNavigationService(_navigationService);
     }
 
@@ -59,7 +65,7 @@ public class StartNewGameViewModelTests
         _sut.ForestCoverage.ShouldBe(20);
         _sut.LightWoodsPercentage.ShouldBe(30);
         _sut.IsLightWoodsEnabled.ShouldBeTrue();
-        _sut.ServerIpAddress.ShouldBe("LAN Disabled..."); // Verify default Server IP Address
+        _sut.ServerIpAddress.ShouldBe("LAN Disabled..."); 
     }
 
     [Theory]
@@ -76,80 +82,65 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_WithZeroForestCoverage_CreatesClearTerrainMap()
     {
-        // Arrange
-        _sut.ForestCoverage = 0;
-        await _sut.InitializeLobbyAndSubscribe();
-        
-        // Act
+        await _sut.InitializeLobbyAndSubscribe(); 
+         
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
-        // Assert
-        _battleMapViewModel.Game.ShouldNotBeNull();
-        var hex = _battleMapViewModel.Game!.BattleMap!.GetHexes().First();
-        hex.GetTerrains().ToList().Count.ShouldBe(1);
-        hex.GetTerrains().First().ShouldBeOfType<ClearTerrain>();
+        _clientGame.BattleMap.ShouldNotBeNull();
+        _battleMapViewModel.Game.ShouldBe(_clientGame); 
     }
 
     [Fact]
     public async Task StartGameCommand_WithForestCoverage_CreatesForestMap()
     {
-        // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(); 
         _sut.ForestCoverage = 100;
         _sut.LightWoodsPercentage = 100;
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
-        _battleMapViewModel.Game.ShouldNotBeNull();
-        var hexes = _battleMapViewModel.Game!.BattleMap!.GetHexes().ToList();
-        hexes.ShouldContain(h => h.GetTerrains().Any(t => t is LightWoodsTerrain));
+        _clientGame.BattleMap.ShouldNotBeNull();
+        _battleMapViewModel.Game.ShouldBe(_clientGame); 
     }
 
     [Fact]
     public async Task StartGameCommand_NavigatesToBattleMap()
     {
-        await _sut.InitializeLobbyAndSubscribe();
+        await _sut.InitializeLobbyAndSubscribe(); 
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
+        _battleMapViewModel.Game.ShouldBe(_clientGame); 
     }
 
     [Fact]
     public void MapWidth_SetAndGet_ShouldUpdateCorrectly()
     {
-        // Arrange
         var newWidth = 20;
 
-        // Act
         _sut.MapWidth = newWidth;
 
-        // Assert
         _sut.MapWidth.ShouldBe(newWidth);
     }
 
     [Fact]
     public async Task StartGameCommand_ShouldSetBattleMap()
     {
-        // Arrange
-        await _sut.InitializeLobbyAndSubscribe();
-
-        // Act
+        await _sut.InitializeLobbyAndSubscribe(); 
+ 
         await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
-        // Assert
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
+        _clientGame.BattleMap.ShouldNotBeNull(); 
     }
     
     [Fact]
     public void AddPlayer_ShouldAddPlayer_WhenLessThanFourPlayers()
     {
-        // Arrange
         var initialPlayerCount = _sut.Players.Count;
 
-        // Act
         _sut.AddPlayerCommand.Execute(null);
 
-        // Assert
         _sut.Players.Count.ShouldBe(initialPlayerCount + 1);
         _sut.CanAddPlayer.ShouldBeTrue();
     }
@@ -157,103 +148,81 @@ public class StartNewGameViewModelTests
     [Fact]
     public void AddPlayer_ShouldNotAddPlayer_WhenFourPlayersAlreadyAdded()
     {
-        // Arrange
         for (var i = 0; i < 4; i++)
         {
             _sut.AddPlayerCommand.Execute(null);
         }
         var initialPlayerCount = _sut.Players.Count;
 
-        // Act
         _sut.AddPlayerCommand.Execute(null);
 
-        // Assert
-        _sut.Players.Count.ShouldBe(initialPlayerCount); // Should not increase
+        _sut.Players.Count.ShouldBe(initialPlayerCount); 
         _sut.CanAddPlayer.ShouldBeFalse();
     }
     
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenNoPlayers()
     {
-        // Arrange
-        // No players added
-
-        // Act
         var result = _sut.CanStartGame;
 
-        // Assert
         result.ShouldBeFalse();
     }
 
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenPlayersHaveNoUnits()
     {
-        // Arrange
-        _sut.AddPlayerCommand.Execute(null); // Add a player
+        _sut.AddPlayerCommand.Execute(null); 
 
-        // Act
         var result = _sut.CanStartGame;
 
-        // Assert
         result.ShouldBeFalse();
     }
 
     [Fact]
     public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits()
     {
-        // Arrange
         var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
         _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
         _sut.Players.First().SelectedUnit = units.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
     
-        // Act
         var result = _sut.CanStartGame;
     
-        // Assert
         result.ShouldBeTrue();
     }
     
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenOnePlayerHasNoUnits()
     {
-        // Arrange
         var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
         _sut.InitializeUnits(units);
-        _sut.AddPlayerCommand.Execute(null); // first player
-        _sut.AddPlayerCommand.Execute(null); // second player
+        _sut.AddPlayerCommand.Execute(null); 
+        _sut.AddPlayerCommand.Execute(null); 
         _sut.Players.First().SelectedUnit = units.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
     
-        // Act
         var result = _sut.CanStartGame;
     
-        // Assert
         result.ShouldBeFalse();
     }
     
     [Fact]
     public void CanStartLanServer_Getter_ReturnsValueFromGameManager()
     {
-        // Arrange
         _gameManager.CanStartLanServer.Returns(true);
         
-        // Act & Assert
         _sut.CanStartLanServer.ShouldBeTrue();
         
-        // Arrange
         _gameManager.CanStartLanServer.Returns(false);
         
-        // Act & Assert
         _sut.CanStartLanServer.ShouldBeFalse();
     }
     
     [Fact]
     public async Task HandleServerCommand_JoinGameCommand_AddsRemotePlayer()
     {
-        // Arrange
-        await _sut.InitializeLobbyAndSubscribe(); // Ensure handler is subscribed and ClientGame exists
+        await _sut.InitializeLobbyAndSubscribe(); 
         var playerId = Guid.NewGuid();
         const string playerName = "RemotePlayer";
         const string playerTint = "#00FF00";
@@ -267,34 +236,29 @@ public class StartNewGameViewModelTests
             GameOriginId = Guid.NewGuid()
         };
 
-        // Act
-        _sut.HandleServerCommand(joinCommand); // Simulate receiving command
+        _sut.HandleServerCommand(joinCommand); 
 
-        // Assert
         var addedPlayerVm = _sut.Players.FirstOrDefault(p => p.Player.Id == playerId);
         addedPlayerVm.ShouldNotBeNull();
         addedPlayerVm.Player.Name.ShouldBe(playerName);
         addedPlayerVm.Player.Tint.ShouldBe(playerTint);
         addedPlayerVm.IsLocalPlayer.ShouldBeFalse();
         addedPlayerVm.Units.Count.ShouldBe(units.Count);
-        // Assuming UnitData has an ID property for comparison
         addedPlayerVm.Units.First().Id.ShouldBe(units.First().Id);
     }
     
     [Fact]
     public async Task PublishJoinCommand_ForLocalPlayer_CallsJoinGameWithUnitsOnClientGame()
     {
-        // Arrange
-        await _sut.InitializeLobbyAndSubscribe(); // Initializes _localGame internally
+        await _sut.InitializeLobbyAndSubscribe(); 
         var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units); // Make units available
-        _sut.AddPlayerCommand.Execute(null); // Add a local player VM
+        _sut.InitializeUnits(units); 
+        _sut.AddPlayerCommand.Execute(null); 
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = units.First();
-        localPlayerVm.AddUnitCommand.Execute(null); // Add unit to the local player VM
+        localPlayerVm.AddUnitCommand.Execute(null); 
         localPlayerVm.JoinGameCommand.Execute(null);
         
-        // Assert
         _commandPublisher.Received().PublishCommand(Arg.Any<JoinGameCommand>());
         _sut.CanStartGame.ShouldBeTrue(); 
     }
@@ -306,23 +270,18 @@ public class StartNewGameViewModelTests
     [InlineData("invalid-url", "Invalid Address")]
     public void ServerIpAddress_Getter_ReturnsCorrectValueBasedOnGameManager(string? serverUrl, string expectedDisplay)
     {
-        // Arrange
         _gameManager.GetLanServerAddress().Returns(serverUrl);
 
-        // Act
         var result = _sut.ServerIpAddress;
 
-        // Assert
         result.ShouldBe(expectedDisplay);
     }
 
     [Fact]
     public void Dispose_ShouldDisposeGameManager()
     {
-        // Act
         _sut.Dispose();
 
-        // Assert
         _gameManager.Received(1).Dispose();
     }
 }

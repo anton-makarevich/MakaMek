@@ -14,7 +14,8 @@ using Sanet.MakaMek.Core.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands;
-using Sanet.MakaMek.Core.Services; 
+using Sanet.MakaMek.Core.Models.Game.Factory;
+using Sanet.MakaMek.Core.Services;
 
 namespace Sanet.MakaMek.Core.ViewModels;
 
@@ -32,7 +33,8 @@ public class StartNewGameViewModel : BaseViewModel
     private readonly IRulesProvider _rulesProvider;
     private readonly ICommandPublisher _commandPublisher;
     private readonly IToHitCalculator _toHitCalculator;
-    private readonly IDispatcherService _dispatcherService; // Assuming IDispatcherService is available for UI updates
+    private readonly IDispatcherService _dispatcherService; 
+    private readonly IGameFactory _gameFactory; 
     
     private ClientGame _localGame;
 
@@ -41,20 +43,23 @@ public class StartNewGameViewModel : BaseViewModel
         IRulesProvider rulesProvider, 
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
-        IDispatcherService dispatcherService) 
+        IDispatcherService dispatcherService,
+        IGameFactory gameFactory) // Added factory parameter
     {
         _gameManager = gameManager;
         _rulesProvider = rulesProvider;
         _commandPublisher = commandPublisher;
         _toHitCalculator = toHitCalculator;
-        _dispatcherService = dispatcherService; // Store service
+        _dispatcherService = dispatcherService; 
+        _gameFactory = gameFactory; 
     }
 
     public async Task InitializeLobbyAndSubscribe()
     {
         await _gameManager.InitializeLobby();
         _commandPublisher.Subscribe(HandleServerCommand);
-        _localGame = new ClientGame(
+        // Use the factory to create the ClientGame
+        _localGame = _gameFactory.CreateClientGame(
             _rulesProvider,
             _commandPublisher, _toHitCalculator);
         // Update server IP initially if needed

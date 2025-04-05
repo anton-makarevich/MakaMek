@@ -3,6 +3,7 @@ using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -31,6 +32,7 @@ public static class CoreServices
         services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<IToHitCalculator, ClassicToHitCalculator>();
+        services.AddSingleton<IGameFactory, GameFactory>();
         services.AddSingleton<IGameManager, GameManager>();
         services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
     }
