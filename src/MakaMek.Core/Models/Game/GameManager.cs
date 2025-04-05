@@ -36,7 +36,7 @@ public class GameManager : IGameManager
             await _networkHostService.Start(2439);
             
             // Add the network publisher to the transport adapter if successfully started
-            if (_networkHostService.IsRunning && _networkHostService.Publisher != null)
+            if (_networkHostService.Publisher != null)
             {
                 _transportAdapter.AddPublisher(_networkHostService.Publisher);
             }

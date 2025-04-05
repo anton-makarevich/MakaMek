@@ -39,6 +39,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
         _networkHostService.IsRunning.Returns(false);
         _networkHostService.Publisher.Returns(networkPublisher);
 
@@ -56,6 +57,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         _networkHostService.IsRunning.Returns(false);
+        _networkHostService.CanStart.Returns(true);
         _networkHostService.Publisher.Returns((ITransportPublisher?)null);
 
         // Act
@@ -174,6 +176,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var networkPublisher = Substitute.For<ITransportPublisher>();
+        _networkHostService.CanStart.Returns(true);
         _networkHostService.IsRunning.Returns(false); // Start as not running
         _networkHostService.Publisher.Returns(networkPublisher);
          
@@ -186,8 +189,6 @@ public class GameManagerTests : IDisposable
         await _networkHostService.Received(1).Start(2439); // Should only be called once
         _transportAdapter.TransportPublishers.Count.ShouldBe(2); // Publisher should only be added once
         _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
-        // We can't easily verify ServerGame creation/start count directly, 
-        // but ensuring network host isn't started again implies the check worked.
     }
 
     [Fact]

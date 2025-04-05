@@ -1097,7 +1097,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1");
+        var activePlayer = new Player(playerId, "Player1");
         var targetPlayerId = Guid.NewGuid();
         var targetPlayer = new Player(targetPlayerId, "Player2");
         
@@ -1109,28 +1109,19 @@ public class BattleMapViewModelTests
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
-        game.JoinGameWithUnits(player, []);
+        game.JoinGameWithUnits(activePlayer, []);
         game.JoinGameWithUnits(targetPlayer, []);
         game.SetBattleMap(BattleMap.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
         _sut.Game = game;
         
+        // Create a second attacker for the same player
+        var mechData2 = MechFactoryTests.CreateDummyMechData();
+        mechData2.Id = Guid.NewGuid();
         // Add units to the game via commands
         game.HandleCommand(new JoinGameCommand
         {
             PlayerName = "Player1",
-            Units = [mechData],
-            Tint = "#ffffff",
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId
-        });
-        
-        // Create a second attacker for the same player
-        var mechData2 = MechFactoryTests.CreateDummyMechData();
-        mechData2.Id = Guid.NewGuid();
-        game.HandleCommand(new JoinGameCommand
-        {
-            PlayerName = "Player1",
-            Units = [mechData2],
+            Units = [mechData,mechData2],
             Tint = "#ffffff",
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId
@@ -1236,14 +1227,14 @@ public class BattleMapViewModelTests
         attack1.From.ShouldBe(attacker1Position.Coordinates);
         attack1.To.ShouldBe(targetPosition.Coordinates);
         attack1.Weapon.ShouldBe(weapon1);
-        attack1.AttackerTint.ShouldBe(player.Tint);
+        attack1.AttackerTint.ShouldBe(activePlayer.Tint);
         attack1.LineOffset.ShouldBe(5);
         
         var attack2 = _sut.WeaponAttacks[1];
         attack2.From.ShouldBe(attacker2Position.Coordinates);
         attack2.To.ShouldBe(targetPosition.Coordinates);
         attack2.Weapon.ShouldBe(weapon2);
-        attack2.AttackerTint.ShouldBe(player.Tint);
+        attack2.AttackerTint.ShouldBe(activePlayer.Tint);
         attack2.LineOffset.ShouldBe(5);
     }
     

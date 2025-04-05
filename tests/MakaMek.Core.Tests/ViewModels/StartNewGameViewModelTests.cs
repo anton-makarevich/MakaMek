@@ -53,7 +53,7 @@ public class StartNewGameViewModelTests
         _sut.ForestCoverage.ShouldBe(20);
         _sut.LightWoodsPercentage.ShouldBe(30);
         _sut.IsLightWoodsEnabled.ShouldBeTrue();
-        _sut.ServerIpAddress.ShouldBeNull(); // Verify default Server IP Address
+        _sut.ServerIpAddress.ShouldBe("LAN Disabled..."); // Verify default Server IP Address
     }
 
     [Theory]
@@ -70,9 +70,14 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_WithZeroForestCoverage_CreatesClearTerrainMap()
     {
+        // Arrange
         _sut.ForestCoverage = 0;
+        await _sut.InitializeLobbyAndSubscribe();
+        
+        // Act
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
+        // Assert
         _battleMapViewModel.Game.ShouldNotBeNull();
         var hex = _battleMapViewModel.Game!.BattleMap!.GetHexes().First();
         hex.GetTerrains().ToList().Count.ShouldBe(1);
@@ -82,6 +87,8 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_WithForestCoverage_CreatesForestMap()
     {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
         _sut.ForestCoverage = 100;
         _sut.LightWoodsPercentage = 100;
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
@@ -94,6 +101,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_NavigatesToBattleMap()
     {
+        await _sut.InitializeLobbyAndSubscribe();
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
@@ -116,11 +124,7 @@ public class StartNewGameViewModelTests
     public async Task StartGameCommand_ShouldSetBattleMap()
     {
         // Arrange
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
-        _sut.AddPlayerCommand.Execute(null);
-        _sut.Players.First().SelectedUnit = units.First();
-        _sut.Players.First().AddUnitCommand.Execute(null);
+        await _sut.InitializeLobbyAndSubscribe();
 
         // Act
         await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
