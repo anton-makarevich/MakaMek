@@ -132,7 +132,7 @@ public class StartStateTests
         // Assert
         _commandPublisher.Received().PublishCommand(Arg.Is<UpdatePlayerStatusCommand>(cmd => 
             cmd.PlayerId == _localPlayer1.Id && 
-            cmd.PlayerStatus == PlayerStatus.Playing &&
+            cmd.PlayerStatus == PlayerStatus.Ready &&
             cmd.GameOriginId == _game.Id
         ));
     }

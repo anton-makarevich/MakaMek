@@ -29,7 +29,7 @@ public class StartPhase(ServerGame game) : GamePhase(game)
     private bool AllPlayersReady()
     {
         return Game.Players.Count > 0 && 
-               Game.Players.Count(p => p.Status == PlayerStatus.Playing) == Game.Players.Count;
+               Game.Players.Count(p => p.Status == PlayerStatus.Ready) == Game.Players.Count;
     }
 
     public override PhaseNames Name => PhaseNames.Start;

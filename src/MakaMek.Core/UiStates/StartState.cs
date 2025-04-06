@@ -58,7 +58,7 @@ public class StartState : IUiState
         {
             GameOriginId = clientGame.Id,
             PlayerId = clientGame.ActivePlayer.Id,
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
         };
 
         clientGame.SetPlayerReady(readyCommand);

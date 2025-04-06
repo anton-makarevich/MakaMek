@@ -33,8 +33,8 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Add two players with units
         Game.HandleCommand(CreateJoinCommand(_player1Id, "Player 1"));
         Game.HandleCommand(CreateJoinCommand(_player2Id, "Player 2"));
-        Game.HandleCommand(CreateStatusCommand(_player1Id, PlayerStatus.Playing));
-        Game.HandleCommand(CreateStatusCommand(_player2Id, PlayerStatus.Playing));
+        Game.HandleCommand(CreateStatusCommand(_player1Id, PlayerStatus.Ready));
+        Game.HandleCommand(CreateStatusCommand(_player2Id, PlayerStatus.Ready));
 
         // Get unit IDs and references
         var player1 = Game.Players[0];

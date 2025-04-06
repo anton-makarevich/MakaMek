@@ -625,7 +625,7 @@ public class BattleMapViewModelTests
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id
         });
@@ -694,7 +694,7 @@ public class BattleMapViewModelTests
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id
         });
@@ -759,13 +759,13 @@ public class BattleMapViewModelTests
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = player1.Id
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = player2.Id
         });
@@ -840,13 +840,13 @@ public class BattleMapViewModelTests
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = player1.Id
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = player2.Id
         });
@@ -928,7 +928,7 @@ public class BattleMapViewModelTests
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = player1.Id
         });
@@ -984,7 +984,7 @@ public class BattleMapViewModelTests
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = player1.Id
         });
@@ -1033,13 +1033,13 @@ public class BattleMapViewModelTests
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = targetPlayerId
         });
@@ -1142,13 +1142,13 @@ public class BattleMapViewModelTests
         // Set player statuses
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = targetPlayerId
         });
@@ -1283,13 +1283,13 @@ public class BattleMapViewModelTests
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = targetPlayerId
         });

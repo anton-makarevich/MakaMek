@@ -113,7 +113,7 @@ public class ClientGameTests
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId,
-            PlayerStatus = PlayerStatus.Playing
+            PlayerStatus = PlayerStatus.Ready
         };
 
         // Act
@@ -122,7 +122,7 @@ public class ClientGameTests
         // Assert
         var updatedPlayer = _sut.Players.FirstOrDefault(p => p.Id == playerId);
         updatedPlayer.ShouldNotBeNull();
-        updatedPlayer.Status.ShouldBe(PlayerStatus.Playing);
+        updatedPlayer.Status.ShouldBe(PlayerStatus.Ready);
     }
     
     [Fact]
@@ -132,7 +132,7 @@ public class ClientGameTests
         var player = new Player(Guid.NewGuid(), "Player1");
         var readyCommand = new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             PlayerId = player.Id
         };
         // Act
@@ -158,7 +158,7 @@ public class ClientGameTests
 
         var readyCommand = new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             PlayerId = player.Id,
             GameOriginId = _sut.Id 
         };
@@ -169,7 +169,7 @@ public class ClientGameTests
         // Assert
         _commandPublisher.Received(1).PublishCommand(Arg.Is<UpdatePlayerStatusCommand>(cmd => 
             cmd.PlayerId == player.Id && 
-            cmd.PlayerStatus == PlayerStatus.Playing &&
+            cmd.PlayerStatus == PlayerStatus.Ready &&
             cmd.GameOriginId == _sut.Id
         ));
     }
@@ -1249,7 +1249,7 @@ public class ClientGameTests
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = localPlayer1.Id,
-            PlayerStatus = PlayerStatus.Playing
+            PlayerStatus = PlayerStatus.Ready
         });
         
         // Assert - localPlayer2 should now be the active player
@@ -1292,7 +1292,7 @@ public class ClientGameTests
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = localPlayer1.Id,
-            PlayerStatus = PlayerStatus.Playing
+            PlayerStatus = PlayerStatus.Ready
         });
         
         // Assert - localPlayer2 should now be the active player

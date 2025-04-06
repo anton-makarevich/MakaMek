@@ -122,7 +122,7 @@ public class ServerGameTests
         {
             PlayerId = playerId,
             GameOriginId = Guid.NewGuid(),
-            PlayerStatus = PlayerStatus.Playing
+            PlayerStatus = PlayerStatus.Ready
         };
 
         // Act
@@ -131,7 +131,7 @@ public class ServerGameTests
         // Assert
         var updatedPlayer = _sut.Players.FirstOrDefault(p => p.Id == playerId);
         updatedPlayer.ShouldNotBeNull();
-        updatedPlayer.Status.ShouldBe(PlayerStatus.Playing);
+        updatedPlayer.Status.ShouldBe(PlayerStatus.Ready);
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class ServerGameTests
         {
             PlayerId = playerId,
             GameOriginId = Guid.NewGuid(),
-            PlayerStatus = PlayerStatus.Playing
+            PlayerStatus = PlayerStatus.Ready
         });
 
         // Assert
@@ -191,14 +191,14 @@ public class ServerGameTests
         {
             PlayerId = playerId1,
             GameOriginId = Guid.NewGuid(),
-            PlayerStatus = PlayerStatus.Playing
+            PlayerStatus = PlayerStatus.Ready
         });
 
         _sut.HandleCommand(new UpdatePlayerStatusCommand
         {
             PlayerId = playerId2,
             GameOriginId = Guid.NewGuid(),
-            PlayerStatus = PlayerStatus.Playing
+            PlayerStatus = PlayerStatus.Ready
         });
         
         // Assert
@@ -230,7 +230,7 @@ public class ServerGameTests
         {
             PlayerId = playerId,
             GameOriginId = Guid.NewGuid(),
-            PlayerStatus = PlayerStatus.Playing
+            PlayerStatus = PlayerStatus.Ready
         });
     
         // Act

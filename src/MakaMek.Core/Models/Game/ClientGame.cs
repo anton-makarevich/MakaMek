@@ -51,7 +51,7 @@ public sealed class ClientGame : BaseGame
                 if (TurnPhase == PhaseNames.Start && 
                     ActivePlayer != null && 
                     statusCommand.PlayerId == ActivePlayer.Id &&
-                    statusCommand.PlayerStatus == PlayerStatus.Playing)
+                    statusCommand.PlayerStatus == PlayerStatus.Ready)
                 {
                     // Find the first local player with Joining status
                     // We need to check both that the player is in the LocalPlayers collection

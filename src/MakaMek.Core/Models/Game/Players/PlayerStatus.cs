@@ -3,5 +3,5 @@
 public enum PlayerStatus
 {
     Joining,
-    Playing
+    Ready
 }

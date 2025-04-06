@@ -34,8 +34,8 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         // Add two players
         Game.HandleCommand(CreateJoinCommand(_player1Id, "Player 1"));
         Game.HandleCommand(CreateJoinCommand(_player2Id, "Player 2"));
-        Game.HandleCommand(CreateStatusCommand(_player1Id, PlayerStatus.Playing));
-        Game.HandleCommand(CreateStatusCommand(_player2Id, PlayerStatus.Playing));
+        Game.HandleCommand(CreateStatusCommand(_player1Id, PlayerStatus.Ready));
+        Game.HandleCommand(CreateStatusCommand(_player2Id, PlayerStatus.Ready));
     }
 
     private void SetupDiceRolls(params int[] rolls)
@@ -323,10 +323,10 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         game.HandleCommand(CreateJoinCommand(_player2Id, "Player 2"));
         game.HandleCommand(CreateJoinCommand(player3Id, "Player 3"));
         game.HandleCommand(CreateJoinCommand(player4Id, "Player 4"));
-        game.HandleCommand(CreateStatusCommand(_player1Id, PlayerStatus.Playing));
-        game.HandleCommand(CreateStatusCommand(_player2Id, PlayerStatus.Playing));
-        game.HandleCommand(CreateStatusCommand(player3Id, PlayerStatus.Playing));
-        game.HandleCommand(CreateStatusCommand(player4Id, PlayerStatus.Playing));
+        game.HandleCommand(CreateStatusCommand(_player1Id, PlayerStatus.Ready));
+        game.HandleCommand(CreateStatusCommand(_player2Id, PlayerStatus.Ready));
+        game.HandleCommand(CreateStatusCommand(player3Id, PlayerStatus.Ready));
+        game.HandleCommand(CreateStatusCommand(player4Id, PlayerStatus.Ready));
 
         sut.Enter();
 

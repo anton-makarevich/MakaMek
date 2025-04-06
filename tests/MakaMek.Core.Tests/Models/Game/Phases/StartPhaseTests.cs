@@ -56,8 +56,8 @@ public class StartPhaseTests : GamePhaseTestsBase
 
         // Act
         // Set both players ready
-        _sut.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Playing));
-        _sut.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Playing));
+        _sut.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Ready));
+        _sut.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Ready));
 
         // Assert
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.Start, Game);
@@ -74,7 +74,7 @@ public class StartPhaseTests : GamePhaseTestsBase
 
         // Act
         // Set only one player ready
-        _sut.HandleCommand(CreateStatusCommand(Guid.NewGuid(), PlayerStatus.Playing));
+        _sut.HandleCommand(CreateStatusCommand(Guid.NewGuid(), PlayerStatus.Ready));
 
         // Assert
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Start, Game);
@@ -86,7 +86,7 @@ public class StartPhaseTests : GamePhaseTestsBase
     public void HandleCommand_WhenNoPlayers_ShouldStayInStartPhase()
     {
         // Act
-        _sut.HandleCommand(CreateStatusCommand(Guid.NewGuid(), PlayerStatus.Playing));
+        _sut.HandleCommand(CreateStatusCommand(Guid.NewGuid(), PlayerStatus.Ready));
 
         // Assert
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Start, Game);

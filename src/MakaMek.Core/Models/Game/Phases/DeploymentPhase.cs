@@ -47,13 +47,13 @@ public class DeploymentPhase(ServerGame game) : GamePhase(game)
     private bool AllUnitsDeployed()
     {
         return Game.Players
-            .Where(p => p.Status == PlayerStatus.Playing)
+            .Where(p => p.Status == PlayerStatus.Ready)
             .All(p => p.Units.All(u => u.IsDeployed));
     }
 
     private void RandomizeDeploymentOrder()
     {
-        var players = Game.Players.Where(p => p.Status == PlayerStatus.Playing).ToList();
+        var players = Game.Players.Where(p => p.Status == PlayerStatus.Ready).ToList();
         var randomizedPlayers = players.OrderBy(_ => Guid.NewGuid()).ToList();
         _deploymentOrderQueue = new Queue<IPlayer>(randomizedPlayers);
     }

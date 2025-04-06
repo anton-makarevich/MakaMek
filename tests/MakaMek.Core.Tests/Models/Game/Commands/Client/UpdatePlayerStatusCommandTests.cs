@@ -25,7 +25,7 @@ public class UpdatePlayerStatusCommandTests
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
-            PlayerStatus = PlayerStatus.Playing
+            PlayerStatus = PlayerStatus.Ready
         };
     }
 
