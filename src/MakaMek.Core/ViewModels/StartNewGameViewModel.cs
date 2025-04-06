@@ -86,7 +86,8 @@ public class StartNewGameViewModel : BaseViewModel
                             if (joinCmd.GameOriginId == _gameManager.ServerGameId)
                             {
                                 // Server accepted the join request
-                                existingPlayerVm.Status = PlayerStatus.Joined;
+                                existingPlayerVm.Player.Status = PlayerStatus.Joined;
+                                existingPlayerVm.RefreshStatus();
                             }
                         }
                         // Else: Remote player sending join again? Ignore.
@@ -160,7 +161,7 @@ public class StartNewGameViewModel : BaseViewModel
 
     public bool IsLightWoodsEnabled => _forestCoverage > 0;
 
-    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0); //&& p.Player.Status == PlayerStatus.Playing);
+    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Joined);
     
     /// <summary>
     /// Gets the server address if LAN is running

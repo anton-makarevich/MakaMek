@@ -4,6 +4,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
+using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -179,13 +180,28 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits()
+    public void CanStartGame_ShouldBeFalse_WhenPlayersHaveUnits_ButDidntJoin()
     {
         var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
         _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
         _sut.Players.First().SelectedUnit = units.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
+    
+        var result = _sut.CanStartGame;
+    
+        result.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits_AndPlayerHasJoined()
+    {
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        _sut.AddPlayerCommand.Execute(null);
+        _sut.Players.First().SelectedUnit = units.First();
+        _sut.Players.First().AddUnitCommand.Execute(null);
+        _sut.Players.First().Player.Status = PlayerStatus.Joined;
     
         var result = _sut.CanStartGame;
     
@@ -260,6 +276,7 @@ public class StartNewGameViewModelTests
         localPlayerVm.JoinGameCommand.Execute(null);
         
         _commandPublisher.Received().PublishCommand(Arg.Any<JoinGameCommand>());
+        localPlayerVm.Player.Status = PlayerStatus.Joined;
         _sut.CanStartGame.ShouldBeTrue(); 
     }
     
@@ -283,5 +300,104 @@ public class StartNewGameViewModelTests
         _sut.Dispose();
 
         _gameManager.Received(1).Dispose();
+    }
+    
+    [Fact]
+    public async Task HandleServerCommand_JoinGameCommand_ShouldUpdateLocalPlayerStatus_WhenReceivedFromServer()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+        
+        // Add a local player
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        _sut.AddPlayerCommand.Execute(null);
+        var localPlayerVm = _sut.Players.First();
+        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.AddUnitCommand.Execute(null);
+        
+        // Set player status to JoinRequested
+        localPlayerVm.Player.Status = PlayerStatus.Joining;
+        
+        // Create a join command that appears to come from the server
+        var serverGameId = Guid.NewGuid();
+        _gameManager.ServerGameId.Returns(serverGameId);
+        
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = localPlayerVm.Player.Id,
+            PlayerName = localPlayerVm.Player.Name,
+            Units = localPlayerVm.Units.ToList(),
+            Tint = localPlayerVm.Player.Tint,
+            GameOriginId = serverGameId // This makes it look like it came from the server
+        };
+        
+        // Act
+        _sut.HandleServerCommand(joinCommand);
+        
+        // Assert
+        localPlayerVm.Status.ShouldBe(PlayerStatus.Joined);
+    }
+    
+    [Fact]
+    public async Task HandleServerCommand_JoinGameCommand_ShouldNotUpdateLocalPlayerStatus_WhenNotFromServer()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+        
+        // Add a local player
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        _sut.AddPlayerCommand.Execute(null);
+        var localPlayerVm = _sut.Players.First();
+        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.AddUnitCommand.Execute(null);
+        
+        // Set player status to JoinRequested
+        localPlayerVm.Player.Status = PlayerStatus.Joining;
+        
+        // Create a join command that appears to come from a client (not the server)
+        var serverGameId = Guid.NewGuid();
+        var clientGameId = Guid.NewGuid();
+        _gameManager.ServerGameId.Returns(serverGameId);
+        
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = localPlayerVm.Player.Id,
+            PlayerName = localPlayerVm.Player.Name,
+            Units = localPlayerVm.Units.ToList(),
+            Tint = localPlayerVm.Player.Tint,
+            GameOriginId = clientGameId // Different from server ID
+        };
+        
+        // Act
+        _sut.HandleServerCommand(joinCommand);
+        
+        // Assert
+        localPlayerVm.Status.ShouldBe(PlayerStatus.Joining); // Status should not change
+    }
+    
+    [Fact]
+    public async Task ExecuteJoinGame_ShouldSetPlayerStatusToJoinRequested()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+        
+        // Add a local player
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        _sut.AddPlayerCommand.Execute(null);
+        var localPlayerVm = _sut.Players.First();
+        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.AddUnitCommand.Execute(null);
+        
+        // Initial status should be NotJoined
+        localPlayerVm.Status.ShouldBe(PlayerStatus.NotJoined);
+        
+        // Act
+        localPlayerVm.JoinGameCommand.Execute(null);
+        
+        // Assert
+        localPlayerVm.Status.ShouldBe(PlayerStatus.Joining);
     }
 }

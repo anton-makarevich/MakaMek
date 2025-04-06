@@ -16,15 +16,7 @@ public class PlayerViewModel : BindableBase
     public Player Player { get; }
     public bool IsLocalPlayer { get; }
     
-    public PlayerStatus Status
-    {
-        get => Player.Status;
-        set
-        {
-            Player.Status = value;
-            NotifyPropertyChanged(nameof(CanJoin));
-        }
-    }
+    public PlayerStatus Status => Player.Status;
 
     public ObservableCollection<UnitData> Units { get; }
     public ObservableCollection<UnitData> AvailableUnits { get; }
@@ -37,6 +29,11 @@ public class PlayerViewModel : BindableBase
             SetProperty(ref _selectedUnit, value); 
             NotifyPropertyChanged(nameof(CanAddUnit));
         }
+    }
+
+    public void RefreshStatus()
+    {
+        NotifyPropertyChanged(nameof(Status));
     }
 
     public ICommand AddUnitCommand { get; }
@@ -66,7 +63,6 @@ public class PlayerViewModel : BindableBase
     {
         if (!IsLocalPlayer) return Task.CompletedTask;
         
-        Status = PlayerStatus.JoinRequested;
         _joinGameAction?.Invoke(this); 
         
         return Task.CompletedTask;

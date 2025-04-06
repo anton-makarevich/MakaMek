@@ -173,7 +173,7 @@ public class PlayerViewModelTests
         var unit = MechFactoryTests.CreateDummyMechData();
         playerViewModel.SelectedUnit = unit;
         playerViewModel.AddUnitCommand.Execute(null); // Add a unit
-        playerViewModel.Status = PlayerStatus.Joined;
+        playerViewModel.Player.Status = PlayerStatus.Joined;
 
         // Act & Assert
         playerViewModel.CanJoin.ShouldBeFalse();

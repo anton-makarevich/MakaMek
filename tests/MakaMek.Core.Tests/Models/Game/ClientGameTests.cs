@@ -1197,6 +1197,15 @@ public class ClientGameTests
             Substitute.For<IToHitCalculator>());
         clientGame.JoinGameWithUnits(localPlayer1,[]);
         clientGame.JoinGameWithUnits(localPlayer2,[]);
+        clientGame.HandleCommand(new JoinGameCommand
+                {
+                    PlayerId = localPlayer1.Id,
+                    PlayerName = localPlayer1.Name,
+                    Units = [],
+                    Tint = "#FF0000",
+                    GameOriginId = Guid.NewGuid(),
+                });
+       
         clientGame.SetBattleMap(battleMap);
         
         // Assert
@@ -1221,24 +1230,25 @@ public class ClientGameTests
             Substitute.For<IToHitCalculator>());
         clientGame.JoinGameWithUnits(localPlayer1,[]);
         clientGame.JoinGameWithUnits(localPlayer2,[]);
+        clientGame.HandleCommand(new JoinGameCommand
+                {
+                    GameOriginId = Guid.NewGuid(),
+                    PlayerId = localPlayer1.Id,
+                    PlayerName = localPlayer1.Name,
+                    Units = [],
+                    Tint = "#ffffff"
+                });
+                clientGame.HandleCommand(new JoinGameCommand
+                {
+                    GameOriginId = Guid.NewGuid(),
+                    PlayerId = localPlayer2.Id,
+                    PlayerName = localPlayer2.Name,
+                    Units = [],
+                    Tint = "#fff0ff"
+                });
         clientGame.SetBattleMap(battleMap);
 
-        clientGame.HandleCommand(new JoinGameCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = localPlayer1.Id,
-            PlayerName = localPlayer1.Name,
-            Units = [],
-            Tint = "#ffffff"
-        });
-        clientGame.HandleCommand(new JoinGameCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = localPlayer2.Id,
-            PlayerName = localPlayer2.Name,
-            Units = [],
-            Tint = "#fff0ff"
-        });
+        
         
         // Verify initial active player is localPlayer1
         clientGame.ActivePlayer.ShouldNotBeNull();
@@ -1265,23 +1275,22 @@ public class ClientGameTests
         var rulesProvider = new ClassicBattletechRulesProvider();
         var commandPublisher = Substitute.For<ICommandPublisher>();
         
-        var localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1") { Status = PlayerStatus.Joining };
+        var localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1") { Status = PlayerStatus.NotJoined };
         
         var clientGame = new ClientGame(
             rulesProvider,
             commandPublisher,
             Substitute.For<IToHitCalculator>());
         clientGame.JoinGameWithUnits(localPlayer1,[]);
-        clientGame.SetBattleMap(battleMap);
-
         clientGame.HandleCommand(new JoinGameCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = localPlayer1.Id,
-            PlayerName = localPlayer1.Name,
-            Units = [],
-            Tint = "#ffffff"
-        });
+                {
+                    GameOriginId = Guid.NewGuid(),
+                    PlayerId = localPlayer1.Id,
+                    PlayerName = localPlayer1.Name,
+                    Units = [],
+                    Tint = "#ffffff"
+                });
+        clientGame.SetBattleMap(battleMap);
         
         // Verify initial active player is localPlayer1
         clientGame.ActivePlayer.ShouldNotBeNull();

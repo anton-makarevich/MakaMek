@@ -1464,9 +1464,16 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
         clientGame.JoinGameWithUnits(player, []);
+        clientGame.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = player.Name,
+            Units = [],
+            Tint = "#FF0000",
+            GameOriginId = Guid.NewGuid(),
+        });
         clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
-
         // Set up the game state for Start phase
         clientGame.HandleCommand(new ChangePhaseCommand
         {
@@ -1532,7 +1539,16 @@ public class BattleMapViewModelTests
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
-        clientGame.JoinGameWithUnits(new Player(Guid.NewGuid(), "Player1"),[]);
+        var player = new Player(Guid.NewGuid(), "Player1");
+        clientGame.JoinGameWithUnits(player,[]);
+        clientGame.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            Units = [],
+            Tint = "#FF0000",
+            GameOriginId = Guid.NewGuid(),
+        });
         clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
         clientGame.HandleCommand(new ChangePhaseCommand
