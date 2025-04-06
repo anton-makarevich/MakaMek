@@ -1,7 +1,11 @@
-﻿namespace Sanet.MakaMek.Core.Models.Game.Players;
+namespace Sanet.MakaMek.Core.Models.Game.Players;
 
 public enum PlayerStatus
 {
+    NotJoined,
     Joining,
-    Ready
+    JoinRequested,
+    Ready,
+    Joined,
+    JoinFailed
 }
