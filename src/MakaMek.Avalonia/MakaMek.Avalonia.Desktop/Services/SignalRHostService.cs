@@ -15,6 +15,8 @@ public class SignalRHostService : INetworkHostService
 {
     private SignalRHostManager? _hostManager;
     private bool _isDisposed;
+    private const int MakaMekPort = 2439;
+    private const string MakaMekHubName = "makamekhub";
     
     /// <summary>
     /// Gets the transport publisher associated with this host
@@ -29,14 +31,13 @@ public class SignalRHostService : INetworkHostService
     /// <summary>
     /// Starts the SignalR host on the specified port
     /// </summary>
-    /// <param name="port">Port to host the SignalR hub on</param>
     /// <returns>A task representing the asynchronous operation</returns>
-    public async Task Start(int port = 2439)
+    public async Task Start()
     {
         if (_hostManager != null)
             return; // Already started
             
-        _hostManager = new SignalRHostManager(port);
+        _hostManager = new SignalRHostManager(MakaMekPort, MakaMekHubName);
         await _hostManager.Start();
         
         // No need to extract IP address anymore, we'll use the full hub URL

@@ -25,7 +25,7 @@ public class DummyNetworkHostService : INetworkHostService
     /// <summary>
     /// No-op implementation that returns a completed task
     /// </summary>
-    public Task Start(int port = 2439)
+    public Task Start()
     {
         // No-op implementation
         return Task.CompletedTask;
