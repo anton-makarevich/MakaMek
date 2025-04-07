@@ -38,6 +38,7 @@ public static class CoreServices
     }
     public static void RegisterViewModels(this IServiceCollection services)
     {
+        services.AddTransient<MainMenuViewModel, MainMenuViewModel>();
         services.AddTransient<StartNewGameViewModel, StartNewGameViewModel>();
         services.AddTransient<BattleMapViewModel, BattleMapViewModel>();
     }

@@ -6,8 +6,8 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.DI;
 using Sanet.MakaMek.Avalonia.Views;
-using Sanet.MakaMek.Avalonia.Views.NewGame;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
+using Sanet.MakaMek.Avalonia.Views.MainMenu;
 using Sanet.MakaMek.Core.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Sanet.MVVM.Navigation.Avalonia.Services;
@@ -35,21 +35,16 @@ public partial class App : Application
         var serviceProvider = services.BuildServiceProvider();
         INavigationService navigationService;
 
-        StartNewGameViewModel? viewModel;
+        MainMenuViewModel? viewModel;
         switch (ApplicationLifetime)
         {
             case IClassicDesktopStyleApplicationLifetime desktop:
                 navigationService = new NavigationService(desktop, serviceProvider);
                 RegisterViews(navigationService);
-                viewModel = navigationService.GetViewModel<StartNewGameViewModel>();
+                viewModel = navigationService.GetViewModel<MainMenuViewModel>();
                 desktop.MainWindow = new MainWindow
                 {
-                    Content = IsMobile()
-                    ? new StartNewGameViewNarrow()
-                    {
-                        ViewModel = viewModel
-                    }
-                    : new StartNewGameViewWide
+                    Content = new MainMenuView()
                     {
                         ViewModel = viewModel
                     }
@@ -61,17 +56,11 @@ public partial class App : Application
                 navigationService =
                     new SingleViewNavigationService(singleViewPlatform, mainViewWrapper, serviceProvider);
                 RegisterViews(navigationService);
-                viewModel = navigationService.GetViewModel<StartNewGameViewModel>();
-                mainViewWrapper.Content = IsMobile()
-                    ? new StartNewGameViewNarrow
-                    {
-                        ViewModel = viewModel
-                    }
-                    : new StartNewGameViewWide
-                    {
-
-                        ViewModel = viewModel
-                    };
+                viewModel = navigationService.GetViewModel<MainMenuViewModel>();
+                mainViewWrapper.Content = new MainMenuView()
+                {
+                    ViewModel = viewModel
+                };
                 break;
         }
 
@@ -80,6 +69,9 @@ public partial class App : Application
 
     private void RegisterViews(INavigationService navigationService)
     {
+        // Register Main Menu view (using the single view for all platforms)
+        navigationService.RegisterViews(typeof(MainMenuView), typeof(MainMenuViewModel));
+
         if (IsMobile())
         {
             navigationService.RegisterViews(typeof(StartNewGameViewNarrow), typeof(StartNewGameViewModel));

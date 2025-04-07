@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Sanet.MakaMek.Core.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
+             x:DataType="vm:MainMenuViewModel"
+             x:Class="Sanet.MakaMek.Avalonia.Views.MainMenu.MainMenuView">
+
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
+        <Button Content="Start New Game" 
+                Command="{Binding StartNewGameCommand}" 
+                HorizontalAlignment="Stretch" 
+                MinWidth="200"/>
+        <Button Content="Join Game" 
+                Command="{Binding JoinGameCommand}" 
+                HorizontalAlignment="Stretch" 
+                MinWidth="200"/>
+    </StackPanel>
+
+</UserControl>
