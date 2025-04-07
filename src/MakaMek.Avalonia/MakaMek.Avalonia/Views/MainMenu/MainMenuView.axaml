@@ -6,18 +6,27 @@
              mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
              x:DataType="vm:MainMenuViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Views.MainMenu.MainMenuView">
-
-    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
-        <Button Content="Start New Game"
-                Classes="main-menu"
-                Command="{Binding StartNewGameCommand}" 
-                HorizontalAlignment="Stretch" 
-                MinWidth="200"/>
-        <Button Content="Join Game"
-                Classes="main-menu"
-                Command="{Binding JoinGameCommand}" 
-                HorizontalAlignment="Stretch" 
-                MinWidth="200"/>
-    </StackPanel>
-
+ 
+    <Grid>
+        <!-- Centered Button Panel -->
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
+            <Button Content="Start New Game" 
+                    Classes="main-menu" 
+                    Command="{Binding StartNewGameCommand}" 
+                    HorizontalAlignment="Stretch" 
+                    MinWidth="200"/>
+            <Button Content="Join Game" 
+                    Classes="main-menu" 
+                    Command="{Binding JoinGameCommand}" 
+                    HorizontalAlignment="Stretch" 
+                    MinWidth="200"/>
+        </StackPanel>
+        <!-- Version TextBlock -->
+        <TextBlock Classes="body" 
+                   HorizontalAlignment="Right" 
+                   VerticalAlignment="Bottom" 
+                   Margin="10"
+                   Text="{Binding Version}"/>
+        
+    </Grid>
 </UserControl>
