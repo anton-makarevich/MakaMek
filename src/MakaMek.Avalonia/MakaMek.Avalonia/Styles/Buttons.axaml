@@ -24,6 +24,31 @@
         <Setter Property="Opacity" Value="0.5"/>
     </Style>
     
+    <!-- Main Menu Button (based on primary) -->
+    <Style Selector="Button.main-menu">
+        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="25,15"/> <!-- Slightly larger padding -->
+        <Setter Property="FontSize" Value="18"/> <!-- Larger font size -->
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FontWeight" Value="SemiBold"/> <!-- Make it slightly bolder -->
+    </Style>
+    
+    <Style Selector="Button.main-menu:pointerover">
+        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+    </Style>
+    
+    <Style Selector="Button.main-menu:pressed">
+        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+        <Setter Property="Opacity" Value="0.8"/>
+    </Style>
+    
+    <Style Selector="Button.main-menu:disabled">
+        <Setter Property="Opacity" Value="0.5"/>
+    </Style>
+    
     <!-- Secondary Button -->
     <Style Selector="Button.secondary">
         <Setter Property="Background" Value="{DynamicResource SecondaryBrush}"/>
