@@ -113,6 +113,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
     private AttackResolutionData ResolveAttack(Unit attacker, Unit target, Weapon weapon)
     {
+        
+        if (Game.BattleMap == null)
+        {
+            throw new Exception("Battle map is null");
+        }
         // Calculate to-hit number
         var toHitNumber = Game.ToHitCalculator.GetToHitNumber(
             attacker,
@@ -123,12 +128,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Roll 2D6 for attack
         var attackRoll = Game.DiceRoller.Roll2D6();
         var totalRoll = attackRoll.Sum(d => d.Result);
-        
+
         var isHit = totalRoll >= toHitNumber;
-        
+
         // Determine attack direction (will be null if not a hit)
         FiringArc? attackDirection = null;
-        
+
         // If hit, determine location and damage
         AttackHitLocationsData? hitLocationsData = null;
 
@@ -161,7 +166,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
     }
-    
+
     private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon, FiringArc attackDirection)
     {
         // Roll for cluster hits

@@ -66,6 +66,16 @@ public class GameManagerTests : IDisposable
         _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
         _gameFactory.Received(1).CreateServerGame(_rulesProvider, _commandPublisher, _diceRoller, _toHitCalculator);
     }
+    
+    [Fact]
+    public async Task InitializeLobby_CreatesServerGame()
+    {
+        // Act
+        await _sut.InitializeLobby();
+
+        // Assert
+        _sut.ServerGameId.ShouldNotBeNull();
+    }
 
     [Fact]
     public async Task InitializeLobby_WithLanEnabled_AndNetworkPublisherIsNull_StartsNetworkHostButDoesNotAddPublisher()
@@ -100,7 +110,7 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task StartServer_WhenNetworkHostNotSupported_DoesNotStartNetworkHostOrAddPublisher()
+    public async Task InitializeLobby_WhenNetworkHostNotSupported_DoesNotStartNetworkHostOrAddPublisher()
     {
         // Arrange
         _networkHostService.IsRunning.Returns(false);

@@ -30,4 +30,6 @@ public interface IGameManager : IDisposable
     /// Gets a value indicating whether the LAN server can be started
     /// </summary>
     bool CanStartLanServer { get; }
+
+    Guid? ServerGameId { get; }
 }

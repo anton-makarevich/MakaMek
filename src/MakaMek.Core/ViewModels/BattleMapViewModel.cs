@@ -294,7 +294,7 @@ public class BattleMapViewModel : BaseViewModel
 
     internal void HighlightHexes(List<HexCoordinates> coordinates, bool isHighlighted)
     {
-        var hexesToHighlight = Game?.BattleMap.GetHexes().Where(h => coordinates.Contains(h.Coordinates)).ToList();
+        var hexesToHighlight = Game?.BattleMap?.GetHexes().Where(h => coordinates.Contains(h.Coordinates)).ToList();
         if (hexesToHighlight == null) return;
         foreach (var hex in hexesToHighlight)
         {

@@ -11,10 +11,12 @@ public class PlayerViewModel : BindableBase
 {
     private UnitData? _selectedUnit;
     private readonly Action? _onUnitChanged; 
-    private readonly Action<PlayerViewModel>? _joinGameAction; 
+    private readonly Action<PlayerViewModel>? _joinGameAction;
 
     public Player Player { get; }
     public bool IsLocalPlayer { get; }
+    
+    public PlayerStatus Status => Player.Status;
 
     public ObservableCollection<UnitData> Units { get; }
     public ObservableCollection<UnitData> AvailableUnits { get; }
@@ -27,6 +29,13 @@ public class PlayerViewModel : BindableBase
             SetProperty(ref _selectedUnit, value); 
             NotifyPropertyChanged(nameof(CanAddUnit));
         }
+    }
+
+    public void RefreshStatus()
+    {
+        NotifyPropertyChanged(nameof(Status));
+        NotifyPropertyChanged(nameof(CanAddUnit));
+        NotifyPropertyChanged(nameof(CanJoin));
     }
 
     public ICommand AddUnitCommand { get; }
@@ -54,14 +63,14 @@ public class PlayerViewModel : BindableBase
 
     private Task ExecuteJoinGame()
     {
-        if (!IsLocalPlayer) return Task.CompletedTask;
+        if (!CanJoin) return Task.CompletedTask;
         
         _joinGameAction?.Invoke(this); 
         
         return Task.CompletedTask;
     }
     
-    public bool CanAddUnit => IsLocalPlayer && SelectedUnit != null;
+    public bool CanAddUnit => IsLocalPlayer && SelectedUnit != null && Status == PlayerStatus.NotJoined;
 
     private Task AddUnit()
     {
@@ -92,6 +101,5 @@ public class PlayerViewModel : BindableBase
     public bool CanSelectUnits => IsLocalPlayer; 
     public bool ShowAddUnitControls => IsLocalPlayer; 
     public bool ShowUnitListReadOnly => !IsLocalPlayer; 
-    public bool ShowJoinButton => IsLocalPlayer;
-    public bool CanJoin => Units.Count > 0;
+    public bool CanJoin => IsLocalPlayer && Units.Count > 0 && Status != PlayerStatus.Joined;
 }

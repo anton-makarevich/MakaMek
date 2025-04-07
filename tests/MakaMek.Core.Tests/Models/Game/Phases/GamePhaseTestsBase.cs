@@ -30,10 +30,15 @@ public abstract class GamePhaseTestsBase
         DiceRoller = Substitute.For<IDiceRoller>();
         MockPhaseManager = Substitute.For<IPhaseManager>();
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
-        var battleMap = BattleMap.GenerateMap(10, 10, new SingleTerrainGenerator(10,10,
-            new ClearTerrain()));
+        
         Game = new ServerGame( rulesProvider, CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(), MockPhaseManager);
+    }
+
+    protected void SetMap()
+    {
+        var battleMap = BattleMap.GenerateMap(10, 10, new SingleTerrainGenerator(10,10,
+            new ClearTerrain()));
         Game.SetBattleMap(battleMap);
     }
 

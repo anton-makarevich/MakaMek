@@ -43,6 +43,11 @@ public sealed class ClientGame : BaseGame
         {
             case JoinGameCommand joinGameCommand:
                 OnPlayerJoined(joinGameCommand);
+                var localPlayer = LocalPlayers.FirstOrDefault(p => p.Id == joinGameCommand.PlayerId);
+                if (localPlayer != null)
+                {
+                    localPlayer.Status = PlayerStatus.Joined;
+                }
                 break;
             case UpdatePlayerStatusCommand statusCommand:
                 OnPlayerStatusUpdated(statusCommand);
@@ -51,13 +56,13 @@ public sealed class ClientGame : BaseGame
                 if (TurnPhase == PhaseNames.Start && 
                     ActivePlayer != null && 
                     statusCommand.PlayerId == ActivePlayer.Id &&
-                    statusCommand.PlayerStatus == PlayerStatus.Playing)
+                    statusCommand.PlayerStatus == PlayerStatus.Ready)
                 {
-                    // Find the first local player with Joining status
+                    // Find the first local player with Joined status
                     // We need to check both that the player is in the LocalPlayers collection
-                    // and that their status is Joining in the Players collection
+                    // and that their status is Joined in the Players collection
                     ActivePlayer = Players
-                        .Where(p => p.Status == PlayerStatus.Joining)
+                        .Where(p => p.Status == PlayerStatus.Joined)
                         .FirstOrDefault(p => LocalPlayers.Any(lp => lp.Id == p.Id));
                 }
                 break;
@@ -130,11 +135,12 @@ public sealed class ClientGame : BaseGame
             Tint = player.Tint,
             Units = units
         };
+        player.Status = PlayerStatus.Joining;
+        LocalPlayers.Add(player);
         if (ValidateCommand(joinCommand))
         {
             CommandPublisher.PublishCommand(joinCommand);
         }
-        LocalPlayers.Add(player);
     }
     
     public void SetPlayerReady(UpdatePlayerStatusCommand readyCommand)
@@ -179,6 +185,6 @@ public sealed class ClientGame : BaseGame
     {
         base.SetBattleMap(map);
         TurnPhase = PhaseNames.Start;
-        ActivePlayer = LocalPlayers.FirstOrDefault(p => p.Status == PlayerStatus.Joining);
+        ActivePlayer = LocalPlayers.FirstOrDefault(p => p.Status == PlayerStatus.Joined);
     }
 }

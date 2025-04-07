@@ -133,9 +133,12 @@ public class PlayerViewModelTests
     {
         // Arrange
         var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), isLocal, []);
+        var unit = MechFactoryTests.CreateDummyMechData();
+        playerViewModel.SelectedUnit = unit;
+        playerViewModel.AddUnitCommand.Execute(null); // Add a unit
 
         // Act & Assert
-        playerViewModel.ShowJoinButton.ShouldBe(expected);
+        playerViewModel.CanJoin.ShouldBe(expected);
     }
 
     [Fact]
@@ -160,5 +163,35 @@ public class PlayerViewModelTests
 
         // Act & Assert
         playerViewModel.CanJoin.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanJoin_ShouldBeFalse_WhenAlreadyJoined()
+    {
+        // Arrange
+        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true, []);
+        var unit = MechFactoryTests.CreateDummyMechData();
+        playerViewModel.SelectedUnit = unit;
+        playerViewModel.AddUnitCommand.Execute(null); // Add a unit
+        playerViewModel.Player.Status = PlayerStatus.Joined;
+
+        // Act & Assert
+        playerViewModel.CanJoin.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanAddUnit_ShouldReturnFalse_IfPlayerHasJoined()
+    {
+        // Arrange
+        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
+        var unit = MechFactoryTests.CreateDummyMechData(); // Create a new unit
+        playerViewModel.SelectedUnit = unit;
+        playerViewModel.Player.Status = PlayerStatus.Joined;
+    
+        // Act
+        var canAddUnit = playerViewModel.CanAddUnit;
+    
+        // Assert
+        canAddUnit.ShouldBeFalse();
     }
 }

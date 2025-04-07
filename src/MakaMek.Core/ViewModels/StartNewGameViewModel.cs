@@ -36,7 +36,7 @@ public class StartNewGameViewModel : BaseViewModel
     private readonly IDispatcherService _dispatcherService; 
     private readonly IGameFactory _gameFactory; 
     
-    private ClientGame _localGame;
+    private ClientGame? _localGame;
 
     public StartNewGameViewModel(
         IGameManager gameManager, 
@@ -82,9 +82,16 @@ public class StartNewGameViewModel : BaseViewModel
                         // Player exists - likely the echo for a local player who just clicked Join
                         if (existingPlayerVm.IsLocalPlayer)
                         {
-                            //TODO: mar as joined
+                            // Check if this is a server response (echo)
+                            if (joinCmd.GameOriginId == _gameManager.ServerGameId)
+                            {
+                                // Server accepted the join request
+                                existingPlayerVm.Player.Status = PlayerStatus.Joined;
+                                existingPlayerVm.RefreshStatus();
+                                NotifyPropertyChanged(nameof(CanStartGame));
+                            }
                         }
-                        // Else: Remote player sending join again? Ignore or log warning.
+                        // Else: Remote player sending join again? Ignore.
                     }
                     else
                     {   // Player doesn't exist - must be a remote player joining
@@ -155,7 +162,7 @@ public class StartNewGameViewModel : BaseViewModel
 
     public bool IsLightWoodsEnabled => _forestCoverage > 0;
 
-    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0); //&& p.Player.Status == PlayerStatus.Playing);
+    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Joined);
     
     /// <summary>
     /// Gets the server address if LAN is running
@@ -200,7 +207,7 @@ public class StartNewGameViewModel : BaseViewModel
         _gameManager.SetBattleMap(map);
 
         // 3. Host Client for local player(s) 
-        _localGame.SetBattleMap(localBattleMap);
+        _localGame?.SetBattleMap(localBattleMap);
 
         var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
         battleMapViewModel.Game = _localGame;
@@ -223,7 +230,7 @@ public class StartNewGameViewModel : BaseViewModel
     private void PublishJoinCommand(PlayerViewModel playerVm)
     {
         if (!playerVm.IsLocalPlayer) return; // Should only be called for local players
-        _localGame.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList());
+        _localGame?.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList());
     }
     
     private Task AddPlayer()

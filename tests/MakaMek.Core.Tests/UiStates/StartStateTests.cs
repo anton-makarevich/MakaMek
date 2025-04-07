@@ -50,6 +50,14 @@ public class StartStateTests
             Substitute.For<IToHitCalculator>());
         _game.JoinGameWithUnits(_localPlayer1,[]);
         _game.JoinGameWithUnits(localPlayer2,[]);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = _localPlayer1.Id,
+            PlayerName = _localPlayer1.Name,
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#ffffff"
+        });
         _game.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         
         _battleMapViewModel.Game = _game;
@@ -125,6 +133,7 @@ public class StartStateTests
             Units = [],
             Tint = "#FF0000"
         });
+        _game.SetBattleMap(_game.BattleMap!);
         
         // Act
         _sut.ExecutePlayerAction();
@@ -132,7 +141,7 @@ public class StartStateTests
         // Assert
         _commandPublisher.Received().PublishCommand(Arg.Is<UpdatePlayerStatusCommand>(cmd => 
             cmd.PlayerId == _localPlayer1.Id && 
-            cmd.PlayerStatus == PlayerStatus.Playing &&
+            cmd.PlayerStatus == PlayerStatus.Ready &&
             cmd.GameOriginId == _game.Id
         ));
     }

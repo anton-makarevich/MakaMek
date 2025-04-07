@@ -115,6 +115,8 @@ public abstract class BaseGame : IGame
         {
             player.AddUnit(unit);
         }
+
+        player.Status = PlayerStatus.Joined;
         _players.Add(player);
     }
     

@@ -118,13 +118,13 @@ public class MovementStateTests
         });
         _game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = _player.Id
         });
         _game.HandleCommand(new UpdatePlayerStatusCommand
         {
-            PlayerStatus = PlayerStatus.Playing,
+            PlayerStatus = PlayerStatus.Ready,
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId2
         });

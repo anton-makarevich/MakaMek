@@ -32,9 +32,9 @@ public class EndPhaseTests : GamePhaseTestsBase
         Game.HandleCommand(CreateJoinCommand(_player3Id, "Player 3"));
         
         // Set all players to Playing status
-        Game.HandleCommand(CreateStatusCommand(_player1Id, PlayerStatus.Playing));
-        Game.HandleCommand(CreateStatusCommand(_player2Id, PlayerStatus.Playing));
-        Game.HandleCommand(CreateStatusCommand(_player3Id, PlayerStatus.Playing));
+        Game.HandleCommand(CreateStatusCommand(_player1Id, PlayerStatus.Ready));
+        Game.HandleCommand(CreateStatusCommand(_player2Id, PlayerStatus.Ready));
+        Game.HandleCommand(CreateStatusCommand(_player3Id, PlayerStatus.Ready));
         
         // Set initiative order
         var players = Game.Players.ToList();

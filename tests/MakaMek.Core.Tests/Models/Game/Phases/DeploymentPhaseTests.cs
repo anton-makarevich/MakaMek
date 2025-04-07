@@ -38,8 +38,8 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
         // Add two players
         Game.HandleCommand(CreateJoinCommand(player1Id, "Player 1"));
         Game.HandleCommand(CreateJoinCommand(player2Id, "Player 2"));
-        Game.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Playing));
-        Game.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Playing));
+        Game.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Ready));
+        Game.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Ready));
 
         // Act
         _sut.Enter();
@@ -59,7 +59,7 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
 
         // Add a player with a unit
         Game.HandleCommand(CreateJoinCommand(playerId, "Player 1"));
-        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Playing));
+        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
         _sut.Enter();
 
         // Act
@@ -85,8 +85,8 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
         // Add two players with one unit each
         Game.HandleCommand(CreateJoinCommand(player1Id, "Player 1"));
         Game.HandleCommand(CreateJoinCommand(player2Id, "Player 2"));
-        Game.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Playing));
-        Game.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Playing));
+        Game.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Ready));
+        Game.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Ready));
         _sut.Enter();
 
         // Deploy first player's unit
@@ -121,7 +121,7 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
             Tint = "#FF0000"
         };
         Game.HandleCommand(joinCommand);
-        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Playing));
+        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
         _sut.Enter();
 
         var initialActivePlayer = Game.ActivePlayer;
@@ -148,8 +148,8 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
         // Add two players
         Game.HandleCommand(CreateJoinCommand(player1Id, "Player 1"));
         Game.HandleCommand(CreateJoinCommand(player2Id, "Player 2"));
-        Game.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Playing));
-        Game.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Playing));
+        Game.HandleCommand(CreateStatusCommand(player1Id, PlayerStatus.Ready));
+        Game.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Ready));
         _sut.Enter();
 
         var initialActivePlayer = Game.ActivePlayer;
