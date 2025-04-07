@@ -37,6 +37,7 @@ public class PlayerViewModel : BindableBase
         NotifyPropertyChanged(nameof(Status));
         NotifyPropertyChanged(nameof(CanAddUnit));
         NotifyPropertyChanged(nameof(CanJoin));
+        NotifyPropertyChanged(nameof(CanSetReady));
     }
 
     public ICommand AddUnitCommand { get; }
