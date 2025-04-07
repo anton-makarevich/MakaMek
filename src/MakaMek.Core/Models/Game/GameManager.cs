@@ -38,7 +38,7 @@ public class GameManager : IGameManager
         // Start the network host if supported and not already running
         if (CanStartLanServer && !IsLanServerRunning && _networkHostService != null)
         {
-            await _networkHostService.Start(2439);
+            await _networkHostService.Start();
             
             // Add the network publisher to the transport adapter if successfully started
             if (_networkHostService.Publisher != null)

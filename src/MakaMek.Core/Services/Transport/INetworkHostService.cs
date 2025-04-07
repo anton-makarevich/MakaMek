@@ -25,9 +25,8 @@ public interface INetworkHostService : IDisposable
     /// <summary>
     /// Starts the network host on the specified port
     /// </summary>
-    /// <param name="port">Port to host the hub on</param>
     /// <returns>A task representing the asynchronous operation</returns>
-    Task Start(int port);
+    Task Start();
     
     /// <summary>
     /// Stops the network host if it is running

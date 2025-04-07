@@ -61,7 +61,7 @@ public class GameManagerTests : IDisposable
         await _sut.InitializeLobby();
 
         // Assert
-        await _networkHostService.Received(1).Start(2439);
+        await _networkHostService.Received(1).Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(2); // Initial mock + network publisher
         _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
         _gameFactory.Received(1).CreateServerGame(_rulesProvider, _commandPublisher, _diceRoller, _toHitCalculator);
@@ -89,7 +89,7 @@ public class GameManagerTests : IDisposable
         await _sut.InitializeLobby();
 
         // Assert
-        await _networkHostService.Received(1).Start(2439);
+        await _networkHostService.Received(1).Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Only the initial mock publisher
         _gameFactory.Received(1).CreateServerGame(_rulesProvider, _commandPublisher, _diceRoller, _toHitCalculator);
     }
@@ -104,7 +104,7 @@ public class GameManagerTests : IDisposable
         await _sut.InitializeLobby();
 
         // Assert
-        await _networkHostService.DidNotReceive().Start(Arg.Any<int>());
+        await _networkHostService.DidNotReceive().Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Only initial mock publisher
         _gameFactory.Received(1).CreateServerGame(_rulesProvider, _commandPublisher, _diceRoller, _toHitCalculator);
     }
@@ -120,7 +120,7 @@ public class GameManagerTests : IDisposable
         await _sut.InitializeLobby();
 
         // Assert
-        await _networkHostService.DidNotReceive().Start(Arg.Any<int>());
+        await _networkHostService.DidNotReceive().Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1);
         _gameFactory.Received(1).CreateServerGame(_rulesProvider, _commandPublisher, _diceRoller, _toHitCalculator);
     }
@@ -214,7 +214,7 @@ public class GameManagerTests : IDisposable
         await _sut.InitializeLobby(); // Second call
 
         // Assert
-        await _networkHostService.Received(1).Start(2439); // Should only be called once
+        await _networkHostService.Received(1).Start(); // Should only be called once
         _transportAdapter.TransportPublishers.Count.ShouldBe(2); // Publisher should only be added once
         _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
         _gameFactory.Received(1).CreateServerGame(_rulesProvider, _commandPublisher, _diceRoller, _toHitCalculator);
