@@ -53,6 +53,7 @@ public class StartPhaseTests : GamePhaseTestsBase
         // Add two players
         _sut.HandleCommand(CreateJoinCommand(player1Id, "Player 1"));
         _sut.HandleCommand(CreateJoinCommand(player2Id, "Player 2"));
+        SetMap();
 
         // Act
         // Set both players ready

@@ -66,7 +66,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange - Setup weapon targets
         SetupWeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
-
+        SetMap();
+        
         // Act
         _sut.Enter();
 
@@ -90,6 +91,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange - Setup weapon targets
         SetupWeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        SetMap();
 
         // Act
         _sut.Enter();
@@ -109,6 +111,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange - Setup weapon targets
         SetupWeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        SetMap();
 
         // Act
         _sut.Enter();
@@ -146,6 +149,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange - Setup weapon targets
         SetupWeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        SetMap();
 
         // Act
         _sut.Enter();
@@ -162,6 +166,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange - Setup weapon targets (including one without a target)
         SetupWeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        SetMap();
 
         // Act
         _sut.Enter();
@@ -188,6 +193,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange - Setup weapon targets
         SetupWeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        SetMap();
 
         // Act
         _sut.Enter();
@@ -203,6 +209,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange - Setup weapon targets
         SetupWeaponTargets();
         SetupDiceRolls(8, 6); // First roll is for attack (8), second is for hit location (6)
+        SetMap();
 
         // Act
         _sut.Enter();
@@ -218,6 +225,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange - Setup weapon targets
         SetupWeaponTargets();
         SetupDiceRolls(5, 6); // First roll is for attack (5), which is less than to-hit number (7)
+        SetMap();
 
         // Act
         _sut.Enter();
@@ -306,6 +314,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         SetupWeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        SetMap();
         
         // Get initial values for verification
         var initialArmor = _unit2.TotalCurrentArmor;
@@ -336,6 +345,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldRollForClusterHits_WhenClusterWeaponHits()
     {
         // Arrange
+        SetMap();
         // Add a cluster weapon to unit1
         var clusterWeapon = new TestClusterWeapon(10,5); 
         var part1 = _unit1.Parts[0];
@@ -381,6 +391,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         // Add a cluster weapon to unit1 (SRM-6 with 1 damage per missile)
+        SetMap();
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); // 6 missiles, 1 damage per missile
         var part1 = _unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
@@ -416,6 +427,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         // Add a cluster weapon to unit1
+        SetMap();
         var clusterWeapon = new TestClusterWeapon(1010,5); // LRM-10
         var part1 = _unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
@@ -449,4 +461,27 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
     
     #endregion
+
+    [Fact]
+    public void Enter_WhenBattleMapIsNull_ShouldThrowException()
+    {
+        // Arrange
+        // Ensure BattleMap is null (default state after ServerGame creation in test base)
+        Game.BattleMap.ShouldBeNull(); 
+        
+        // Setup weapon targets - necessary to reach the ResolveAttack call
+        SetupWeaponTargets(); 
+        SetupDiceRolls(8, 6); // Set up dice rolls, values don't matter much here
+
+        // Act
+        var act = () => _sut.Enter();
+
+        // Assert
+        // Verify that calling Enter throws the specific exception because BattleMap is null
+        var exception = Should.Throw<Exception>(act);
+        exception.Message.ShouldBe("Battle map is null");
+        
+        // Verify no commands were published as the exception happens before that
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackResolutionCommand>());
+    }
 }
