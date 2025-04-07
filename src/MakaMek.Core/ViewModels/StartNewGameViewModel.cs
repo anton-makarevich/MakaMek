@@ -265,6 +265,8 @@ public class StartNewGameViewModel : BaseViewModel
         
         return Task.CompletedTask;
     }
+    
+    internal ClientGame? LocalGame => _localGame;
 
     private string GetNextTilt()
     {

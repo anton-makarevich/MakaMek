@@ -26,6 +26,7 @@ public class StartNewGameViewModelTests
     private readonly IGameManager _gameManager;
     private readonly ICommandPublisher _commandPublisher;
     private readonly ClientGame _clientGame; 
+    private readonly Guid _serverGameId = Guid.NewGuid();
 
     public StartNewGameViewModelTests()
     {
@@ -45,6 +46,9 @@ public class StartNewGameViewModelTests
         _clientGame = new ClientGame(rulesProvider, _commandPublisher, toHitCalculator); 
         gameFactory.CreateClientGame(rulesProvider, _commandPublisher, toHitCalculator)
                     .Returns(_clientGame);
+        
+        // Set up server game ID
+        _gameManager.ServerGameId.Returns(_serverGameId);
 
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
 
@@ -414,5 +418,176 @@ public class StartNewGameViewModelTests
         
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Joining);
+    }
+    
+    [Fact]
+    public async Task ExecuteSetReady_ShouldCallSetPlayerReadyOnClientGame()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+        
+        // Add a local player
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        _sut.AddPlayerCommand.Execute(null);
+        var localPlayerVm = _sut.Players.First();
+        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.AddUnitCommand.Execute(null);
+        
+        // Set player status to Joined so they can set ready
+        localPlayerVm.Player.Status = PlayerStatus.Joined;
+        localPlayerVm.RefreshStatus();
+        // Add player to client game
+        _sut.LocalGame.ShouldNotBeNull();
+        _sut.LocalGame?.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = localPlayerVm.Player.Id,
+            PlayerName = localPlayerVm.Player.Name,
+            Units = [],
+            Tint = localPlayerVm.Player.Tint,
+            GameOriginId = Guid.NewGuid()
+        });
+        
+        // Act
+        localPlayerVm.SetReadyCommand.Execute(null);
+        
+        // Assert - verify the command was published with correct parameters
+        _commandPublisher.Received().PublishCommand(Arg.Is<UpdatePlayerStatusCommand>(cmd => 
+            cmd.PlayerId == localPlayerVm.Player.Id && 
+            cmd.PlayerStatus == PlayerStatus.Ready && 
+            cmd.GameOriginId == _clientGame.Id));
+    }
+    
+    [Fact]
+    public async Task HandleServerCommand_UpdatePlayerStatusCommand_ShouldUpdateLocalPlayerStatus_WhenReceivedFromServer()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+        
+        // Add a local player
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        _sut.AddPlayerCommand.Execute(null);
+        var localPlayerVm = _sut.Players.First();
+        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.AddUnitCommand.Execute(null);
+        
+        // Set player status to Joined
+        localPlayerVm.Player.Status = PlayerStatus.Joined;
+        localPlayerVm.RefreshStatus();
+        
+        // Create a status update command that appears to come from the server
+        var statusCommand = new UpdatePlayerStatusCommand
+        {
+            PlayerId = localPlayerVm.Player.Id,
+            PlayerStatus = PlayerStatus.Ready,
+            GameOriginId = _serverGameId // This makes it look like it came from the server
+        };
+        
+        // Act
+        _sut.HandleServerCommand(statusCommand);
+        
+        // Assert
+        localPlayerVm.Status.ShouldBe(PlayerStatus.Ready);
+        _sut.CanStartGame.ShouldBeTrue(); // With one ready player, game should be startable
+    }
+    
+    [Fact]
+    public async Task HandleServerCommand_UpdatePlayerStatusCommand_ShouldNotUpdateLocalPlayerStatus_WhenNotFromServer()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+        
+        // Add a local player
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        _sut.AddPlayerCommand.Execute(null);
+        var localPlayerVm = _sut.Players.First();
+        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.AddUnitCommand.Execute(null);
+        
+        // Set player status to Joined
+        localPlayerVm.Player.Status = PlayerStatus.Joined;
+        localPlayerVm.RefreshStatus();
+        
+        // Create a status update command that appears to come from a client (not the server)
+        var clientGameId = Guid.NewGuid();
+        var statusCommand = new UpdatePlayerStatusCommand
+        {
+            PlayerId = localPlayerVm.Player.Id,
+            PlayerStatus = PlayerStatus.Ready,
+            GameOriginId = clientGameId // Different from server ID
+        };
+        
+        // Act
+        _sut.HandleServerCommand(statusCommand);
+        
+        // Assert
+        localPlayerVm.Status.ShouldBe(PlayerStatus.Joined); // Status should not change
+        _sut.CanStartGame.ShouldBeFalse(); // Game should not be startable
+    }
+    
+    [Fact]
+    public async Task CanStartGame_ShouldBeTrue_WhenAllPlayersAreReady()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+        
+        // Add two players
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        
+        // Add first player
+        _sut.AddPlayerCommand.Execute(null);
+        var player1 = _sut.Players.First();
+        player1.SelectedUnit = units.First();
+        player1.AddUnitCommand.Execute(null);
+        
+        // Add second player
+        _sut.AddPlayerCommand.Execute(null);
+        var player2 = _sut.Players.Last();
+        player2.SelectedUnit = units.First();
+        player2.AddUnitCommand.Execute(null);
+        
+        // Set both players to Ready
+        player1.Player.Status = PlayerStatus.Ready;
+        player1.RefreshStatus();
+        player2.Player.Status = PlayerStatus.Ready;
+        player2.RefreshStatus();
+        
+        // Assert
+        _sut.CanStartGame.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public async Task CanStartGame_ShouldBeFalse_WhenSomePlayersAreNotReady()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+        
+        // Add two players
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        
+        // Add first player
+        _sut.AddPlayerCommand.Execute(null);
+        var player1 = _sut.Players.First();
+        player1.SelectedUnit = units.First();
+        player1.AddUnitCommand.Execute(null);
+        
+        // Add second player
+        _sut.AddPlayerCommand.Execute(null);
+        var player2 = _sut.Players.Last();
+        player2.SelectedUnit = units.First();
+        player2.AddUnitCommand.Execute(null);
+        
+        // Set only one player to Ready
+        player1.Player.Status = PlayerStatus.Ready;
+        player1.RefreshStatus();
+        player2.Player.Status = PlayerStatus.Joined; // Not ready
+        player2.RefreshStatus();
+        
+        // Assert
+        _sut.CanStartGame.ShouldBeFalse();
     }
 }
