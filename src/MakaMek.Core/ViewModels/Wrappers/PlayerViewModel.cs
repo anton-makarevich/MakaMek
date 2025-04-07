@@ -12,6 +12,7 @@ public class PlayerViewModel : BindableBase
     private UnitData? _selectedUnit;
     private readonly Action? _onUnitChanged; 
     private readonly Action<PlayerViewModel>? _joinGameAction;
+    private readonly Action<PlayerViewModel>? _setReadyAction;
 
     public Player Player { get; }
     public bool IsLocalPlayer { get; }
@@ -40,6 +41,7 @@ public class PlayerViewModel : BindableBase
 
     public ICommand AddUnitCommand { get; }
     public ICommand JoinGameCommand { get; }
+    public ICommand SetReadyCommand { get; }
 
     public string Name => Player.Name;
     
@@ -48,17 +50,20 @@ public class PlayerViewModel : BindableBase
         bool isLocalPlayer, 
         IEnumerable<UnitData> availableUnits, 
         Action<PlayerViewModel>? joinGameAction = null, 
+        Action<PlayerViewModel>? setReadyAction = null,
         Action? onUnitChanged = null) 
     {
         Player = player;
         IsLocalPlayer = isLocalPlayer;
         _joinGameAction = joinGameAction;
+        _setReadyAction = setReadyAction;
         _onUnitChanged = onUnitChanged;
         
         Units = [];
         AvailableUnits = new ObservableCollection<UnitData>(availableUnits);
         AddUnitCommand = new AsyncCommand(AddUnit);
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
+        SetReadyCommand = new AsyncCommand(ExecuteSetReady);
     }
 
     private Task ExecuteJoinGame()
@@ -66,6 +71,15 @@ public class PlayerViewModel : BindableBase
         if (!CanJoin) return Task.CompletedTask;
         
         _joinGameAction?.Invoke(this); 
+        
+        return Task.CompletedTask;
+    }
+    
+    private Task ExecuteSetReady()
+    {
+        if (!CanSetReady) return Task.CompletedTask;
+        
+        _setReadyAction?.Invoke(this);
         
         return Task.CompletedTask;
     }
@@ -102,4 +116,5 @@ public class PlayerViewModel : BindableBase
     public bool ShowAddUnitControls => IsLocalPlayer; 
     public bool ShowUnitListReadOnly => !IsLocalPlayer; 
     public bool CanJoin => IsLocalPlayer && Units.Count > 0 && Status != PlayerStatus.Joined;
+    public bool CanSetReady => IsLocalPlayer && Status == PlayerStatus.Joined;
 }

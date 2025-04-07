@@ -234,27 +234,23 @@ public class BattleMapViewModel : BaseViewModel
 
         switch (TurnPhaseName)
         {
-            case PhaseNames.Start:
-                TransitionToState(new StartState(this));
-                break;
-                
             case PhaseNames.Deployment when clientGame.ActivePlayer.Units.Any(u => !u.IsDeployed):
                 TransitionToState(new DeploymentState(this));
                 ShowUnitsToDeploy();
                 break;
-            
+        
             case PhaseNames.Movement when clientGame.UnitsToPlayCurrentStep > 0:
                 TransitionToState(new MovementState(this));
                 break;
-            
+        
             case PhaseNames.WeaponsAttack when clientGame.UnitsToPlayCurrentStep > 0:
                 TransitionToState(new WeaponsAttackState(this));
                 break;
-            
+        
             case PhaseNames.End:
                 TransitionToState(new EndState(this));
                 break;
-            
+        
             default:
                 TransitionToState(new IdleState());
                 break;

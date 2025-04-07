@@ -56,7 +56,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer.Units.Single(u => u.Id == _unit1Id);
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id);
         unit.Deploy(new HexPosition(1,2,HexDirection.Top));
         
         // Act
@@ -99,7 +99,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         });
     
         // Assert
-        foreach (var unit in Game.ActivePlayer.Units)
+        foreach (var unit in Game.ActivePlayer!.Units)
         {
             unit.Position.ShouldBeNull();
         }
@@ -114,7 +114,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         CommandPublisher.ClearReceivedCalls();
     
         // Move all units of first player
-        foreach (var unit in Game.ActivePlayer.Units)
+        foreach (var unit in Game.ActivePlayer!.Units)
         {
             unit.Deploy(new HexPosition(1,2,HexDirection.Top));
             _sut.HandleCommand(new MoveUnitCommand

@@ -1,7 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
@@ -51,20 +50,6 @@ public sealed class ClientGame : BaseGame
                 break;
             case UpdatePlayerStatusCommand statusCommand:
                 OnPlayerStatusUpdated(statusCommand);
-                
-                // If we're in the Start phase and the player who just got updated was the active player
-                if (TurnPhase == PhaseNames.Start && 
-                    ActivePlayer != null && 
-                    statusCommand.PlayerId == ActivePlayer.Id &&
-                    statusCommand.PlayerStatus == PlayerStatus.Ready)
-                {
-                    // Find the first local player with Joined status
-                    // We need to check both that the player is in the LocalPlayers collection
-                    // and that their status is Joined in the Players collection
-                    ActivePlayer = Players
-                        .Where(p => p.Status == PlayerStatus.Joined)
-                        .FirstOrDefault(p => LocalPlayers.Any(lp => lp.Id == p.Id));
-                }
                 break;
             case TurnIncrementedCommand turnIncrementedCommand:
                 // Use the validation method from BaseGame
@@ -147,6 +132,7 @@ public sealed class ClientGame : BaseGame
     {
         if (ValidateCommand(readyCommand))
         {
+            readyCommand.GameOriginId = Id;
             CommandPublisher.PublishCommand(readyCommand);
         }
     }
@@ -179,12 +165,5 @@ public sealed class ClientGame : BaseGame
     {
         if (ActivePlayer == null) return;
         CommandPublisher.PublishCommand(command);
-    }
-
-    public override void SetBattleMap(BattleMap map)
-    {
-        base.SetBattleMap(map);
-        TurnPhase = PhaseNames.Start;
-        ActivePlayer = LocalPlayers.FirstOrDefault(p => p.Status == PlayerStatus.Joined);
     }
 }

@@ -194,7 +194,7 @@ public class StartNewGameViewModelTests
     }
     
     [Fact]
-    public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits_AndPlayerHasJoined()
+    public void CanStartGame_ShouldBeFalse_WhenPlayersHaveUnits_AndPlayerHasJoined()
     {
         var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
         _sut.InitializeUnits(units);
@@ -202,6 +202,21 @@ public class StartNewGameViewModelTests
         _sut.Players.First().SelectedUnit = units.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
         _sut.Players.First().Player.Status = PlayerStatus.Joined;
+    
+        var result = _sut.CanStartGame;
+    
+        result.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits_AndPlayerIsReady()
+    {
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        _sut.InitializeUnits(units);
+        _sut.AddPlayerCommand.Execute(null);
+        _sut.Players.First().SelectedUnit = units.First();
+        _sut.Players.First().AddUnitCommand.Execute(null);
+        _sut.Players.First().Player.Status = PlayerStatus.Ready;
     
         var result = _sut.CanStartGame;
     
@@ -277,7 +292,7 @@ public class StartNewGameViewModelTests
         
         _commandPublisher.Received().PublishCommand(Arg.Any<JoinGameCommand>());
         localPlayerVm.Player.Status = PlayerStatus.Joined;
-        _sut.CanStartGame.ShouldBeTrue(); 
+        _sut.CanStartGame.ShouldBeFalse(); 
     }
     
     [Theory]
