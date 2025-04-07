@@ -75,21 +75,28 @@ public class StartNewGameViewModel : BaseViewModel
             switch (command)
             {
                 // Handle player joining (potentially echo of local or a remote player)
+                case UpdatePlayerStatusCommand statusCmd:
+                    var playerWithStatusUpdate = _players.FirstOrDefault(p => p.Player.Id == statusCmd.PlayerId);
+                    if (playerWithStatusUpdate != null && statusCmd.GameOriginId == _gameManager.ServerGameId)
+                    {
+                        // Update player status
+                        playerWithStatusUpdate.Player.Status = statusCmd.PlayerStatus;
+                        playerWithStatusUpdate.RefreshStatus();
+                        NotifyPropertyChanged(nameof(CanStartGame));
+                    }
+                    break;
+                
                 case JoinGameCommand joinCmd:
                     var existingPlayerVm = _players.FirstOrDefault(p => p.Player.Id == joinCmd.PlayerId);
                     if (existingPlayerVm != null)
                     {
                         // Player exists - likely the echo for a local player who just clicked Join
-                        if (existingPlayerVm.IsLocalPlayer)
+                        if (existingPlayerVm.IsLocalPlayer && joinCmd.GameOriginId == _gameManager.ServerGameId)
                         {
-                            // Check if this is a server response (echo)
-                            if (joinCmd.GameOriginId == _gameManager.ServerGameId)
-                            {
-                                // Server accepted the join request
-                                existingPlayerVm.Player.Status = PlayerStatus.Joined;
-                                existingPlayerVm.RefreshStatus();
-                                NotifyPropertyChanged(nameof(CanStartGame));
-                            }
+                            // Server accepted the join request
+                            existingPlayerVm.Player.Status = PlayerStatus.Joined;
+                            existingPlayerVm.RefreshStatus();
+                            NotifyPropertyChanged(nameof(CanStartGame));
                         }
                         // Else: Remote player sending join again? Ignore.
                     }
@@ -101,25 +108,13 @@ public class StartNewGameViewModel : BaseViewModel
                             isLocalPlayer: false, // Mark as remote
                             [], 
                             null, // No join action needed for remote
+                            null, // No set ready action needed for remote
                             () => NotifyPropertyChanged(nameof(CanStartGame))); 
                         
                         remotePlayerVm.AddUnits(joinCmd.Units); // Add units received from command
                         _players.Add(remotePlayerVm);
                         NotifyPropertyChanged(nameof(CanAddPlayer));
                         NotifyPropertyChanged(nameof(CanStartGame));
-                    }
-                    break;
-                    
-                // Handle player status updates (e.g., Ready state)
-                case UpdatePlayerStatusCommand statusCmd:
-                    var playerToUpdate = _players.FirstOrDefault(p => p.Player.Id == statusCmd.PlayerId);
-                    if (playerToUpdate != null)
-                    {
-                        // Assuming PlayerViewModel has a way to update status, or direct access to Player.Status
-                        // This might require PlayerViewModel changes if Player property is not directly settable/updatable
-                        playerToUpdate.Player.Status = statusCmd.PlayerStatus; 
-                        // We might need a more robust way to trigger UI updates in PlayerViewModel if Status change doesn't auto-notify
-                        NotifyPropertyChanged(nameof(CanStartGame)); // Re-evaluate if game can start
                     }
                     break;
             }
@@ -162,7 +157,7 @@ public class StartNewGameViewModel : BaseViewModel
 
     public bool IsLightWoodsEnabled => _forestCoverage > 0;
 
-    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Joined);
+    public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Ready);
     
     /// <summary>
     /// Gets the server address if LAN is running
@@ -233,6 +228,20 @@ public class StartNewGameViewModel : BaseViewModel
         _localGame?.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList());
     }
     
+    // Method to be passed to local PlayerViewModel instances to set player as ready
+    private void PublishSetReadyCommand(PlayerViewModel playerVm)
+    {
+        if (!playerVm.IsLocalPlayer) return; // Should only be called for local players
+        
+        var readyCommand = new UpdatePlayerStatusCommand
+        {
+            PlayerId = playerVm.Player.Id,
+            PlayerStatus = PlayerStatus.Ready
+        };
+        
+        _localGame?.SetPlayerReady(readyCommand);
+    }
+    
     private Task AddPlayer()
     {
         if (!CanAddPlayer) return Task.CompletedTask; 
@@ -246,6 +255,7 @@ public class StartNewGameViewModel : BaseViewModel
             isLocalPlayer: true, // Mark as local
             _availableUnits,
             PublishJoinCommand, // Pass the action to publish the Join command
+            PublishSetReadyCommand, // Pass the action to set player as ready
             () => NotifyPropertyChanged(nameof(CanStartGame)));
         
         // 3. Add to Local UI Collection
@@ -255,6 +265,8 @@ public class StartNewGameViewModel : BaseViewModel
         
         return Task.CompletedTask;
     }
+    
+    internal ClientGame? LocalGame => _localGame;
 
     private string GetNextTilt()
     {

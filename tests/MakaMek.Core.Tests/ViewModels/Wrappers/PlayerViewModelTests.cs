@@ -1,4 +1,5 @@
 using Shouldly;
+using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.ViewModels.Wrappers;
@@ -193,5 +194,146 @@ public class PlayerViewModelTests
     
         // Assert
         canAddUnit.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanSetReady_ShouldBeTrue_WhenPlayerIsJoined()
+    {
+        // Arrange
+        var playerViewModel = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true, 
+            availableUnits: []);
+        playerViewModel.Player.Status = PlayerStatus.Joined;
+    
+        // Act
+        var canSetReady = playerViewModel.CanSetReady;
+    
+        // Assert
+        canSetReady.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void CanSetReady_ShouldBeFalse_WhenPlayerIsNotJoined()
+    {
+        // Arrange
+        var playerViewModel = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true, 
+            availableUnits: []);
+        playerViewModel.Player.Status = PlayerStatus.NotJoined;
+    
+        // Act
+        var canSetReady = playerViewModel.CanSetReady;
+    
+        // Assert
+        canSetReady.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanSetReady_ShouldBeFalse_WhenPlayerIsAlreadyReady()
+    {
+        // Arrange
+        var playerViewModel = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true, 
+            availableUnits: []);
+        playerViewModel.Player.Status = PlayerStatus.Ready;
+    
+        // Act
+        var canSetReady = playerViewModel.CanSetReady;
+    
+        // Assert
+        canSetReady.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanSetReady_ShouldBeFalse_WhenPlayerIsNotLocal()
+    {
+        // Arrange
+        var playerViewModel = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: false, 
+            availableUnits: []);
+        playerViewModel.Player.Status = PlayerStatus.Joined;
+    
+        // Act
+        var canSetReady = playerViewModel.CanSetReady;
+    
+        // Assert
+        canSetReady.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void ExecuteSetReady_ShouldInvokeSetReadyAction_WhenCanSetReadyIsTrue()
+    {
+        // Arrange
+        var setReadyActionCalled = false;
+        PlayerViewModel? passedViewModel = null;
+        
+        Action<PlayerViewModel> setReadyAction = (playerVm) => {
+            setReadyActionCalled = true;
+            passedViewModel = playerVm;
+        };
+        
+        var playerViewModel = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true, 
+            availableUnits: [],
+            setReadyAction: setReadyAction);
+        playerViewModel.Player.Status = PlayerStatus.Joined;
+    
+        // Act
+        playerViewModel.SetReadyCommand.Execute(null);
+    
+        // Assert
+        setReadyActionCalled.ShouldBeTrue();
+        passedViewModel.ShouldBe(playerViewModel);
+    }
+    
+    [Fact]
+    public void ExecuteSetReady_ShouldNotInvokeSetReadyAction_WhenCanSetReadyIsFalse()
+    {
+        // Arrange
+        var setReadyActionCalled = false;
+        
+        Action<PlayerViewModel> setReadyAction = (playerVm) => {
+            setReadyActionCalled = true;
+        };
+        
+        var playerViewModel = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true, 
+            availableUnits: [],
+            setReadyAction: setReadyAction);
+        playerViewModel.Player.Status = PlayerStatus.NotJoined; // Not joined, so can't set ready
+    
+        // Act
+        playerViewModel.SetReadyCommand.Execute(null);
+    
+        // Assert
+        setReadyActionCalled.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void RefreshStatus_ShouldNotifyCanSetReadyPropertyChanged()
+    {
+        // Arrange
+        var playerViewModel = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true, 
+            availableUnits: []);
+        
+        var propertyChanged = false;
+        playerViewModel.PropertyChanged += (sender, args) => {
+            if (args.PropertyName == nameof(PlayerViewModel.CanSetReady))
+                propertyChanged = true;
+        };
+    
+        // Act
+        playerViewModel.RefreshStatus();
+    
+        // Assert
+        propertyChanged.ShouldBeTrue();
     }
 }

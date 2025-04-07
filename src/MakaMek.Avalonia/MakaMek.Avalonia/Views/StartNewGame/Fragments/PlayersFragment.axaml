@@ -35,7 +35,10 @@
                                                                             IsEnabled="{Binding CanAddUnit}"/>
                                     <Button Content="Join Game" Command="{Binding JoinGameCommand}" 
                                             Classes="primary"
-                                            IsEnabled="{Binding CanJoin}"/>
+                                            IsVisible="{Binding CanJoin}"/>
+                                    <Button Content="Set Ready" Command="{Binding SetReadyCommand}" 
+                                            Classes="primary"
+                                            IsVisible="{Binding CanSetReady}"/>
                                 </StackPanel>
                                 
                             </StackPanel>

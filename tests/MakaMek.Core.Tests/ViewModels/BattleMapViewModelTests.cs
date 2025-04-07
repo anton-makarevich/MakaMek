@@ -22,17 +22,20 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
+using Xunit.Abstractions;
 
 namespace Sanet.MakaMek.Core.Tests.ViewModels;
 
 public class BattleMapViewModelTests
 {
+    private readonly ITestOutputHelper _testOutputHelper;
     private readonly BattleMapViewModel _sut;
     private IGame _game;
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
-    public BattleMapViewModelTests()
+    public BattleMapViewModelTests(ITestOutputHelper testOutputHelper)
     {
+        _testOutputHelper = testOutputHelper;
         var imageService = Substitute.For<IImageService>();
         _sut = new BattleMapViewModel(imageService, _localizationService);
         
@@ -40,7 +43,7 @@ public class BattleMapViewModelTests
         _localizationService.GetString("Action_SelectUnitToFire").Returns("Select unit to fire weapons");
         _localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
         _localizationService.GetString("Action_SelectUnitToDeploy").Returns("Select Unit");
-        _localizationService.GetString("StartPhase_PlayerActionLabel").Returns("Ready to play");
+        _localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End turn");
         _game = Substitute.For<IGame>();
         _sut.Game = _game;
     }
@@ -1454,38 +1457,6 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public void IsPlayerActionButtonVisible_ShouldReturnTrue_WhenInStartPhase()
-    {
-        // Arrange
-        var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1");
-        var clientGame = new ClientGame(
-            new ClassicBattletechRulesProvider(),
-            Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
-        clientGame.JoinGameWithUnits(player, []);
-        clientGame.HandleCommand(new JoinGameCommand
-        {
-            PlayerId = playerId,
-            PlayerName = player.Name,
-            Units = [],
-            Tint = "#FF0000",
-            GameOriginId = Guid.NewGuid(),
-        });
-        clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
-        _sut.Game = clientGame;
-        // Set up the game state for Start phase
-        clientGame.HandleCommand(new ChangePhaseCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            Phase = PhaseNames.Start
-        });
-
-        // Assert
-        _sut.IsPlayerActionButtonVisible.ShouldBeTrue();
-    }
-
-    [Fact]
     public void IsPlayerActionButtonVisible_ShouldReturnFalse_WhenNotInEndOrStartPhase()
     {
         // Arrange
@@ -1551,16 +1522,21 @@ public class BattleMapViewModelTests
         });
         clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
+        clientGame.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
         clientGame.HandleCommand(new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
-            Phase = PhaseNames.Start
+            Phase = PhaseNames.End
         });
         
         // Act
         var result = _sut.PlayerActionLabel;
         
-        // Assert - we expect Start state and its action label
-        result.ShouldBe("Ready to play");
+        // Assert - we expect action label for End phase
+        result.ShouldBe("End turn");
     }
 }
