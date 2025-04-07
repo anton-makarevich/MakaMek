@@ -8,11 +8,13 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.MainMenu.MainMenuView">
 
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
-        <Button Content="Start New Game" 
+        <Button Content="Start New Game"
+                Classes="main-menu"
                 Command="{Binding StartNewGameCommand}" 
                 HorizontalAlignment="Stretch" 
                 MinWidth="200"/>
-        <Button Content="Join Game" 
+        <Button Content="Join Game"
+                Classes="main-menu"
                 Command="{Binding JoinGameCommand}" 
                 HorizontalAlignment="Stretch" 
                 MinWidth="200"/>
