@@ -135,13 +135,12 @@ public sealed class ClientGame : BaseGame
             Tint = player.Tint,
             Units = units
         };
+        player.Status = PlayerStatus.Joining;
+        LocalPlayers.Add(player);
         if (ValidateCommand(joinCommand))
         {
             CommandPublisher.PublishCommand(joinCommand);
         }
-
-        player.Status = PlayerStatus.Joining;
-        LocalPlayers.Add(player);
     }
     
     public void SetPlayerReady(UpdatePlayerStatusCommand readyCommand)

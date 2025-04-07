@@ -88,6 +88,7 @@ public class StartNewGameViewModel : BaseViewModel
                                 // Server accepted the join request
                                 existingPlayerVm.Player.Status = PlayerStatus.Joined;
                                 existingPlayerVm.RefreshStatus();
+                                NotifyPropertyChanged(nameof(CanStartGame));
                             }
                         }
                         // Else: Remote player sending join again? Ignore.

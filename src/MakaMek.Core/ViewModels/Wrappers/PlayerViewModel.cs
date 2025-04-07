@@ -34,6 +34,8 @@ public class PlayerViewModel : BindableBase
     public void RefreshStatus()
     {
         NotifyPropertyChanged(nameof(Status));
+        NotifyPropertyChanged(nameof(CanAddUnit));
+        NotifyPropertyChanged(nameof(CanJoin));
     }
 
     public ICommand AddUnitCommand { get; }
@@ -61,14 +63,14 @@ public class PlayerViewModel : BindableBase
 
     private Task ExecuteJoinGame()
     {
-        if (!IsLocalPlayer) return Task.CompletedTask;
+        if (!CanJoin) return Task.CompletedTask;
         
         _joinGameAction?.Invoke(this); 
         
         return Task.CompletedTask;
     }
     
-    public bool CanAddUnit => IsLocalPlayer && SelectedUnit != null;
+    public bool CanAddUnit => IsLocalPlayer && SelectedUnit != null && Status == PlayerStatus.NotJoined;
 
     private Task AddUnit()
     {
