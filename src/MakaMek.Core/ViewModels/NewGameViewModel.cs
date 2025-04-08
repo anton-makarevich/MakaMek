@@ -60,7 +60,7 @@ public abstract class NewGameViewModel : BaseViewModel
     protected abstract void HandleCommandInternal(IGameCommand command);
 
     // Common player management
-    protected virtual void PublishJoinCommand(PlayerViewModel playerVm)
+    protected void PublishJoinCommand(PlayerViewModel playerVm)
     {
         if (!playerVm.IsLocalPlayer || !CanPublishCommands || _localGame == null) return;
         _localGame.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList());
@@ -84,7 +84,7 @@ public abstract class NewGameViewModel : BaseViewModel
     internal ClientGame? LocalGame => _localGame;
 
     // Abstract/virtual properties to be implemented by derived classes
-    protected abstract bool CanPublishCommands { get; }
+    public abstract bool CanPublishCommands { get; }
     public abstract bool CanAddPlayer { get; }
 
     // Common utility methods

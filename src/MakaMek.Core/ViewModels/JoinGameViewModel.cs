@@ -165,6 +165,5 @@ public class JoinGameViewModel : NewGameViewModel
     public override bool CanAddPlayer => IsConnected && _players.Count < 4;
     
     // Implementation of abstract property from base class
-    protected override bool CanPublishCommands => IsConnected; 
-
+    public override bool CanPublishCommands => IsConnected; 
 }

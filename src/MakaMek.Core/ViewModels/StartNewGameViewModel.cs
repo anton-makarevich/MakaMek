@@ -228,7 +228,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override bool CanAddPlayer => _players.Count < 4; // Limit to 4 players for now
     
     // Implementation of abstract property from base class
-    protected override bool CanPublishCommands => true; // Always true for host
+    public override bool CanPublishCommands => true; // TODO: is it actually always true?
 
     public void Dispose()
     {

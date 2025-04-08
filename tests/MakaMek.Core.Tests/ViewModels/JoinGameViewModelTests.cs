@@ -93,6 +93,7 @@ public class JoinGameViewModelTests
         
         // Assert
         _viewModel.IsConnected.ShouldBeTrue();
+        _viewModel.CanPublishCommands.ShouldBeTrue();
     }
     
     [Fact]
