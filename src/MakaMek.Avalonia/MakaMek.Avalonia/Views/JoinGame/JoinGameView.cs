@@ -10,6 +10,6 @@ public abstract class JoinGameView : BaseView<JoinGameViewModel>
     {
         base.OnViewModelSet();
         // Initialize the client-side logic (create ClientGame, subscribe to commands)
-        ViewModel?.InitializeClientAsync();
+        ViewModel?.InitializeClient();
     }
 }

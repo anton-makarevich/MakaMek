@@ -34,7 +34,7 @@ public class JoinGameViewModel : NewGameViewModel
     }
 
     // Call this method when the ViewModel becomes active
-    public void InitializeClientAsync()
+    public void InitializeClient()
     {
         _localGame ??= _gameFactory.CreateClientGame(
             _rulesProvider,
