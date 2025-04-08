@@ -15,7 +15,6 @@ using Sanet.MakaMek.Core.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Models.Game.Factory;
 
 namespace Sanet.MakaMek.Core.Tests.ViewModels;
 

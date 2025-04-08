@@ -1,6 +1,6 @@
 using Sanet.Transport;
 
-namespace Sanet.MakaMek.Core.Models.Game.Factory;
+namespace Sanet.MakaMek.Core.Models.Game.Factories;
 
 /// <summary>
 /// Factory interface for creating transport publishers
