@@ -33,6 +33,7 @@ public static class CoreServices
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<IToHitCalculator, ClassicToHitCalculator>();
         services.AddSingleton<IGameFactory, GameFactory>();
+        services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
         services.AddSingleton<IGameManager, GameManager>();
         services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
     }
