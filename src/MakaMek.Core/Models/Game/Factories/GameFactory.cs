@@ -1,9 +1,10 @@
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Factory;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
-namespace Sanet.MakaMek.Core.Models.Game.Factory;
+namespace Sanet.MakaMek.Core.Models.Game.Factories;
 
 /// <summary>
 /// Concrete implementation for creating game instances.

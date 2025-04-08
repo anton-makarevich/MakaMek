@@ -10,10 +10,10 @@ using Sanet.MakaMek.Core.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands;
+using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Utils.TechRules;
-using Sanet.Transport.SignalR.Client.Publishers;
 
 namespace Sanet.MakaMek.Core.ViewModels;
 
@@ -27,6 +27,7 @@ public class JoinGameViewModel : BaseViewModel
     private readonly IToHitCalculator _toHitCalculator;
     private readonly IDispatcherService _dispatcherService;
     private readonly IGameFactory _gameFactory;
+    private readonly ITransportFactory _transportFactory;
 
     private ClientGame? _localGame;
     private string _serverAddress = string.Empty;
@@ -37,13 +38,15 @@ public class JoinGameViewModel : BaseViewModel
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IDispatcherService dispatcherService,
-        IGameFactory gameFactory)
+        IGameFactory gameFactory,
+        ITransportFactory transportFactory)
     {
         _rulesProvider = rulesProvider;
         _commandPublisher = commandPublisher;
         _toHitCalculator = toHitCalculator;
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
+        _transportFactory = transportFactory;
 
         AddPlayerCommand = new AsyncCommand(AddPlayer);
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
@@ -145,10 +148,9 @@ public class JoinGameViewModel : BaseViewModel
             // Clear any existing publishers and prepare for new connection
             adapter.ClearPublishers();
             
-            // Create SignalR client publisher and connect
-            var client = new SignalRClientPublisher(ServerAddress);
+            // Create network client publisher using the factory and connect
+            var client = await _transportFactory.CreateAndStartClientPublisher(ServerAddress);
             adapter.AddPublisher(client);
-            await client.StartAsync();
             
             IsConnected = true;
             (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged(); // Disable connect button

@@ -46,10 +46,24 @@ public class CommandTransportAdapter
     }
     
     /// <summary>
-    /// Clears all transport publishers from the adapter
+    /// Clears all transport publishers from the adapter and disposes them if they implement IDisposable
     /// </summary>
     public void ClearPublishers()
     {
+        // Properly dispose publishers if they implement IDisposable
+        foreach (var publisher in TransportPublishers)
+        {
+            if (publisher is not IDisposable disposable) continue;
+            try
+            {
+                disposable.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error disposing publisher: {ex.Message}");
+            }
+        }
+        _onCommandReceived = null;
         TransportPublishers.Clear();
     }
     
