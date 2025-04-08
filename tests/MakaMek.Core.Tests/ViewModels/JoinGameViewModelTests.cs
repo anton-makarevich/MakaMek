@@ -18,7 +18,7 @@ namespace Sanet.MakaMek.Core.Tests.ViewModels;
 public class JoinGameViewModelTests
 {
     private readonly JoinGameViewModel _viewModel;
-    private readonly IRulesProvider _rulesProvider = Substitute.For<IRulesProvider>();
+    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
     private readonly IGameFactory _gameFactory = Substitute.For<IGameFactory>();
@@ -26,10 +26,10 @@ public class JoinGameViewModelTests
     private readonly CommandTransportAdapter _adapter = Substitute.For<CommandTransportAdapter>();
     private readonly ITransportPublisher _transportPublisher = Substitute.For<ITransportPublisher>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
-    private readonly ClientGame _clientGame = Substitute.For<ClientGame>();
 
     public JoinGameViewModelTests()
     {
+        var clientGame = new ClientGame(_rulesProvider, _commandPublisher, _toHitCalculator);
         // Configure the adapter to be accessible from the command publisher
         _commandPublisher.Adapter.Returns(_adapter);
         
@@ -39,7 +39,7 @@ public class JoinGameViewModelTests
             
         // Configure the game factory to return our mock client game
         _gameFactory.CreateClientGame(_rulesProvider, _commandPublisher, _toHitCalculator)
-            .Returns(_clientGame);
+            .Returns(clientGame);
         
         // Configure dispatcher to execute actions immediately
         _dispatcherService.RunOnUIThread(Arg.Do<Action>(action => action()));
