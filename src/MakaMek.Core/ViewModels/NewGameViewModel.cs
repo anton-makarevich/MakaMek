@@ -22,7 +22,7 @@ public abstract class NewGameViewModel : BaseViewModel
     protected readonly IRulesProvider _rulesProvider;
     protected readonly ICommandPublisher _commandPublisher;
     protected readonly IToHitCalculator _toHitCalculator;
-    protected readonly IDispatcherService _dispatcherService;
+    private readonly IDispatcherService _dispatcherService;
     protected readonly IGameFactory _gameFactory;
     
     protected ClientGame? _localGame;
@@ -66,7 +66,7 @@ public abstract class NewGameViewModel : BaseViewModel
         _localGame.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList());
     }
 
-    protected virtual void PublishSetReadyCommand(PlayerViewModel playerVm)
+    protected void PublishSetReadyCommand(PlayerViewModel playerVm)
     {
         if (!playerVm.IsLocalPlayer || !CanPublishCommands || _localGame == null) return;
         

@@ -1,5 +1,4 @@
 using Shouldly;
-using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.ViewModels.Wrappers;
@@ -161,6 +160,20 @@ public class PlayerViewModelTests
         // Arrange
         var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true, []);
         // No units added
+
+        // Act & Assert
+        playerViewModel.CanJoin.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanJoin_ShouldBeFalse_WhenPlayerIsReady()
+    {
+        // Arrange
+        var playerViewModel = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true, []);
+        var unit = MechFactoryTests.CreateDummyMechData();
+        playerViewModel.SelectedUnit = unit;
+        playerViewModel.AddUnitCommand.Execute(null); // Add a unit
+        playerViewModel.Player.Status = PlayerStatus.Ready;
 
         // Act & Assert
         playerViewModel.CanJoin.ShouldBeFalse();
