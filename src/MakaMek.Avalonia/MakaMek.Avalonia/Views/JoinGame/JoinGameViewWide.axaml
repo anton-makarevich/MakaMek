@@ -10,13 +10,18 @@
              xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.NewGame.Fragments">
 
     <Grid ColumnDefinitions="*,*" Margin="10" RowDefinitions="Auto, *">
+        <TextBlock Text="Join Game"
+                   Grid.ColumnSpan="2"
+                   Classes="h1" 
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,10"/>
         <!-- Connect Fragment -->
-        <Border Classes="card" Grid.Column="0" Grid.Row="0" Margin="0,0,5,10">
+        <Border Classes="card" Grid.Column="0" Grid.Row="1" Margin="0,0,5,10">
             <fragments:ConnectFragment DataContext="{Binding}"/>
         </Border>
 
         <!-- Players Fragment (Reused) -->
-        <Border Classes="card" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Margin="5,0,0,0">
+        <Border Classes="card" Grid.Column="1" Grid.Row="1" Margin="5,0,0,0">
             <fragments1:PlayersFragment DataContext="{Binding}"/>
         </Border>
     </Grid>

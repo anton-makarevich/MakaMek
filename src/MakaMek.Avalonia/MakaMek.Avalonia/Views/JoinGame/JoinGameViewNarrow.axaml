@@ -3,24 +3,30 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments"
-             xmlns:startNewGameFragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments;assembly=MakaMek.Avalonia"
+             xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.NewGame.Fragments"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewNarrow"
              x:DataType="vm:JoinGameViewModel" 
-             xmlns:vm="using:Sanet.MakaMek.Core.ViewModels"
-             xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.NewGame.Fragments">
+             xmlns:vm="using:Sanet.MakaMek.Core.ViewModels">
 
-  <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-    <StackPanel Spacing="15" Margin="10">
-      <!-- Connect Fragment -->
-      <Border Classes="card">
-        <fragments:ConnectFragment DataContext="{Binding}"/>
-      </Border>
+  <DockPanel Classes="pageContainer">
+    <TextBlock Text="Join Game" 
+               Classes="h1" 
+               HorizontalAlignment="Center"
+               DockPanel.Dock="Top"
+               Margin="0,0,0,10"/>
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="15" Margin="10">
+        <!-- Connect Fragment -->
+        <Border Classes="card">
+          <fragments:ConnectFragment DataContext="{Binding}"/>
+        </Border>
 
-      <!-- Players Fragment (Reused) -->
-      <Border Classes="card">
-          <fragments1:PlayersFragment DataContext="{Binding}"/>
-      </Border>
-    </StackPanel>
-  </ScrollViewer>
+        <!-- Players Fragment (Reused) -->
+        <Border Classes="card">
+            <fragments1:PlayersFragment DataContext="{Binding}"/>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
 </UserControl>
