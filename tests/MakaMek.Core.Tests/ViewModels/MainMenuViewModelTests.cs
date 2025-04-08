@@ -23,7 +23,7 @@ public class MainMenuViewModelTests
     {
         // Assert
         _sut.StartNewGameCommand.ShouldNotBeNull();
-        _sut.JoinGameCommand.ShouldBeNull(); // Not implemented for now
+        _sut.JoinGameCommand.ShouldNotBeNull(); 
         _sut.Version.ShouldStartWith("v");
     }
 

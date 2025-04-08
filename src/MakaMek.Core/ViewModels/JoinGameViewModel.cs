@@ -139,7 +139,7 @@ public class JoinGameViewModel : BaseViewModel
             Console.WriteLine($"Attempting to connect to {ServerAddress}...");
             
             // Get access to the adapter from the command publisher
-            var adapter = (_commandPublisher as CommandPublisher)?.Adapter;
+            var adapter = _commandPublisher.Adapter;
             if (adapter == null)
             {
                 throw new InvalidOperationException("Command publisher adapter not available");

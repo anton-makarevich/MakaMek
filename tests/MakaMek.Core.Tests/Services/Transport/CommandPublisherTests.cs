@@ -12,7 +12,7 @@ public class CommandPublisherTests
     private readonly CommandPublisher _publisher;
     private readonly ITransportPublisher _transportPublisher = Substitute.For<ITransportPublisher>();
     private Action<TransportMessage>? _transportCallback; // Capture the callback passed to the *transport* mock
-
+    private readonly CommandTransportAdapter _adapter;
     public CommandPublisherTests()
     {
         // Capture the Subscribe callback given to the mock transport publisher
@@ -20,10 +20,11 @@ public class CommandPublisherTests
             .Do(x => _transportCallback = x.Arg<Action<TransportMessage>>());
 
         // Create a real adapter instance using the mock publisher
-        var adapter = new CommandTransportAdapter(_transportPublisher);
+        
+        _adapter = new CommandTransportAdapter(_transportPublisher);
 
         // Create the publisher using the real adapter
-        _publisher = new CommandPublisher(adapter); 
+        _publisher = new CommandPublisher(_adapter); 
         
         // Publisher constructor calls adapter.Initialize, which should call _transportPublisher.Subscribe
         _transportPublisher.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
@@ -141,7 +142,11 @@ public class CommandPublisherTests
         receivedBySubscriber2.ShouldBeTrue();
     }
 
-    // Tests for UnknownCommandTypeException and JsonException are removed 
-    // as they primarily test the adapter's deserialization logic, which is covered 
-    // in CommandTransportAdapterTests.cs
+    [Fact]
+
+
+    public void Adapter_ReturnsCorrectValue()
+    {
+        _publisher.Adapter.ShouldBe(_adapter);
+    }
 }

@@ -79,7 +79,7 @@ public class CommandTransportAdapterTests
     public void AddPublisher_AddsNewPublisherAndSubscribes()
     {
         // Arrange
-        SetupAdapter(1); // Start with one publisher
+        SetupAdapter(); // Start with one publisher
         var newPublisher = Substitute.For<ITransportPublisher>();
         var command = new RollDiceCommand { GameOriginId = Guid.NewGuid() };
         _adapter.Initialize(_ => { }); // Initialize to enable subscription on add
@@ -101,7 +101,7 @@ public class CommandTransportAdapterTests
         SetupAdapter();
         var command = new RollDiceCommand { GameOriginId = Guid.NewGuid() };
         Action<IGameCommand>? callback = null;
-        _adapter.Initialize(cmd => callback = _ => { });
+        _adapter.Initialize(_ => callback = _ => { });
         var initialPublishCount = 0;
         _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
             .Do(_ => initialPublishCount++);
@@ -118,10 +118,10 @@ public class CommandTransportAdapterTests
     public void AddPublisher_DoesNotAddExisting()
     {
         // Arrange
-        SetupAdapter(1);
+        SetupAdapter();
         var command = new RollDiceCommand { GameOriginId = Guid.NewGuid() };
         Action<IGameCommand>? callback = null;
-        _adapter.Initialize(cmd => callback = _ => { });
+        _adapter.Initialize(_ => callback = _ => { });
         var initialPublishCount = 0;
         _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
             .Do(_ => initialPublishCount++);
@@ -171,7 +171,7 @@ public class CommandTransportAdapterTests
         IGameCommand? receivedCommand = null;
         
         // Act
-        _adapter.Initialize(cmd => receivedCommand = cmd); // Call Initialize AFTER setting up When..Do
+        _adapter.Initialize(cmd => receivedCommand = cmd); // Call Initialize AFTER setting up When…Do
         
         // Assert Initialization subscribed to both
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
@@ -194,14 +194,7 @@ public class CommandTransportAdapterTests
     public void Initialize_WithUnknownCommandType_CallbackInvokesAndThrowsException()
     {
         // Arrange
-        SetupAdapter(1);
-        var message = new TransportMessage
-        {
-            MessageType = "UnknownCommand",
-            SourceId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow,
-            Payload = "{}"
-        };
+        SetupAdapter();
 
         Action<TransportMessage>? subscribedCallback = null;
         _mockPublisher1.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
@@ -221,14 +214,7 @@ public class CommandTransportAdapterTests
     public void Initialize_WithInvalidJson_CallbackInvokesAndThrowsJsonException()
     {
         // Arrange
-        SetupAdapter(1);
-        var message = new TransportMessage
-        {
-            MessageType = nameof(TurnIncrementedCommand),
-            SourceId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow,
-            Payload = "{ invalid json }"
-        };
+        SetupAdapter();
 
         Action<TransportMessage>? subscribedCallback = null;
         _mockPublisher1.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
@@ -249,7 +235,7 @@ public class CommandTransportAdapterTests
     public void DeserializeCommand_WithInvalidJson_ThrowsJsonExceptionDirectly()
     {
         // Arrange
-        SetupAdapter(1); // Adapter needed for its internal command type dictionary
+        SetupAdapter(); // Adapter needed for its internal command type dictionary
         var message = new TransportMessage
         {
             MessageType = nameof(TurnIncrementedCommand),
@@ -267,7 +253,7 @@ public class CommandTransportAdapterTests
     public void DeserializeCommand_WithUnknownCommandType_ThrowsExceptionDirectly()
     {
         // Arrange
-        SetupAdapter(1); // Adapter needed for its internal command type dictionary
+        SetupAdapter(); // Adapter needed for its internal command type dictionary
         var message = new TransportMessage
         {
             MessageType = "ThisCommandDoesNotExist",
@@ -291,5 +277,47 @@ public class CommandTransportAdapterTests
             adapter.Initialize(_ => { }); // Initialize should be safe
             adapter.PublishCommand(new TurnIncrementedCommand()); // Publish should be safe (no-op)
         });
+    }
+    
+    [Fact]
+    public void ClearPublishers_DisposesAndClearsAllPublishers()
+    {
+        // Arrange
+        var disposablePublisher1 = Substitute.For<ITransportPublisher, IDisposable>();
+        var disposablePublisher2 = Substitute.For<ITransportPublisher, IDisposable>();
+        var nonDisposablePublisher = Substitute.For<ITransportPublisher>();
+        
+        var adapter = new CommandTransportAdapter(disposablePublisher1, disposablePublisher2, nonDisposablePublisher);
+        Action<IGameCommand> commandCallback = _ => {};
+        adapter.Initialize(commandCallback);
+        
+        // Act
+        adapter.ClearPublishers();
+        
+        // Assert
+        // Verify Dispose was called on disposable publishers
+        ((IDisposable)disposablePublisher1).Received(1).Dispose();
+        ((IDisposable)disposablePublisher2).Received(1).Dispose();
+        
+        // Verify publishers list is empty by publishing a command (should not be received)
+        var command = new TurnIncrementedCommand();
+        adapter.PublishCommand(command);
+        
+        disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
+        
+        // Re-add a publisher and verify we need to re-initialize
+        adapter.AddPublisher(nonDisposablePublisher);
+        
+        // Verify we need to re-initialize since the callback was cleared
+        Action<TransportMessage>? capturedCallback = null;
+        nonDisposablePublisher.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
+            .Do(x => capturedCallback = x.Arg<Action<TransportMessage>>());
+            
+        // Re-initialize with a new callback
+        adapter.Initialize(_ => {});
+        
+        capturedCallback.ShouldNotBeNull();
     }
 }
