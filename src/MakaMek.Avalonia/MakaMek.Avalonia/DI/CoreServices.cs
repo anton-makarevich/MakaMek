@@ -40,6 +40,7 @@ public static class CoreServices
     {
         services.AddTransient<MainMenuViewModel, MainMenuViewModel>();
         services.AddTransient<StartNewGameViewModel, StartNewGameViewModel>();
+        services.AddTransient<JoinGameViewModel, JoinGameViewModel>();
         services.AddTransient<BattleMapViewModel, BattleMapViewModel>();
     }
 }

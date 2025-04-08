@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Sanet.MakaMek.Core.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="100"
+             x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments.ConnectFragment"
+             x:DataType="vm:JoinGameViewModel">
+
+  <StackPanel Spacing="10">
+    <TextBlock Text="Server Address:" FontWeight="Bold"/>
+    <TextBox Text="{Binding ServerAddress, Mode=TwoWay}"
+             Watermark="Enter Server IP or Hostname"/>
+    <Button Content="Connect"
+            Command="{Binding ConnectCommand}"
+            IsEnabled="{Binding CanConnect}" 
+            HorizontalAlignment="Stretch"/>
+     <!-- Optional: Add a status indicator -->
+     <TextBlock Text="Connected" 
+                IsVisible="{Binding IsConnected}" 
+                Foreground="Green"/> 
+  </StackPanel>
+
+</UserControl>

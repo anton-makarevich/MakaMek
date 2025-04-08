@@ -6,6 +6,7 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.DI;
 using Sanet.MakaMek.Avalonia.Views;
+using Sanet.MakaMek.Avalonia.Views.JoinGame;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Avalonia.Views.MainMenu;
 using Sanet.MakaMek.Core.ViewModels;
@@ -75,10 +76,12 @@ public partial class App : Application
         if (IsMobile())
         {
             navigationService.RegisterViews(typeof(StartNewGameViewNarrow), typeof(StartNewGameViewModel));
+            navigationService.RegisterViews(typeof(JoinGameViewNarrow), typeof(JoinGameViewModel));
         }
         else
         {
             navigationService.RegisterViews(typeof(StartNewGameViewWide), typeof(StartNewGameViewModel));
+            navigationService.RegisterViews(typeof(JoinGameViewWide), typeof(JoinGameViewModel));
         }
         
         navigationService.RegisterViews(typeof(BattleMapView), typeof(BattleMapViewModel));
