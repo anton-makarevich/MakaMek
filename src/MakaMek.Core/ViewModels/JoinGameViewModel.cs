@@ -13,13 +13,14 @@ using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Utils.TechRules;
+using Sanet.Transport.SignalR.Client.Publishers;
 
 namespace Sanet.MakaMek.Core.ViewModels;
 
 public class JoinGameViewModel : BaseViewModel
 {
     private readonly ObservableCollection<PlayerViewModel> _players = [];
-    private IEnumerable<UnitData> _availableUnits = []; // Assuming units might be needed later or defined by server
+    private IEnumerable<UnitData> _availableUnits = []; // Assuming units might be later defined by server
 
     private readonly IRulesProvider _rulesProvider;
     private readonly ICommandPublisher _commandPublisher;
@@ -130,16 +131,34 @@ public class JoinGameViewModel : BaseViewModel
     {
         if (!CanConnect) return;
 
-        // *** Placeholder for actual connection logic ***
-        // This would involve client implementation of IServerManager
-        
-        Console.WriteLine($"Attempting to connect to {ServerAddress}...");
-        await Task.Delay(500); // Simulate network delay
-
-        // Assume connection is successful for UI purposes
-        IsConnected = true;
-        (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged(); // Disable connect button
-        NotifyPropertyChanged(nameof(CanAddPlayer)); // Enable Add Player once connected
+        try
+        {
+            Console.WriteLine($"Attempting to connect to {ServerAddress}...");
+            
+            // Get access to the adapter from the command publisher
+            var adapter = (_commandPublisher as CommandPublisher)?.Adapter;
+            if (adapter == null)
+            {
+                throw new InvalidOperationException("Command publisher adapter not available");
+            }
+            
+            // Clear any existing publishers and prepare for new connection
+            adapter.ClearPublishers();
+            
+            // Create SignalR client publisher and connect
+            var client = new SignalRClientPublisher(ServerAddress);
+            adapter.AddPublisher(client);
+            await client.StartAsync();
+            
+            IsConnected = true;
+            (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged(); // Disable connect button
+            NotifyPropertyChanged(nameof(CanAddPlayer)); // Enable Add Player once connected
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error connecting to server: {ex.Message}");
+            IsConnected = false;
+        }
     }
 
     public void InitializeUnits(List<UnitData> units)

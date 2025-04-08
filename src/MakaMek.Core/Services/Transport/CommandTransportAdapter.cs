@@ -46,6 +46,14 @@ public class CommandTransportAdapter
     }
     
     /// <summary>
+    /// Clears all transport publishers from the adapter
+    /// </summary>
+    public void ClearPublishers()
+    {
+        TransportPublishers.Clear();
+    }
+    
+    /// <summary>
     /// Converts an IGameCommand to a TransportMessage and publishes it to all publishers
     /// </summary>
     /// <param name="command">The command to publish</param>
