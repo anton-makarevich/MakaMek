@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
@@ -26,6 +27,8 @@ public abstract class NewGameViewModel : BaseViewModel
     protected readonly IGameFactory _gameFactory;
     
     protected ClientGame? _localGame;
+    
+    public ICommand AddPlayerCommand { get; protected set; }
 
     protected NewGameViewModel(
         IRulesProvider rulesProvider,

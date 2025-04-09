@@ -92,6 +92,9 @@ public class JoinGameViewModel : NewGameViewModel
         {
             SetProperty(ref _serverIp, value);
             (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+            NotifyPropertyChanged(nameof(CanConnect));
+            NotifyPropertyChanged(nameof(ServerAddress));
+            NotifyPropertyChanged(nameof(CanAddPlayer));
         }
     }
     
@@ -140,7 +143,7 @@ public class JoinGameViewModel : NewGameViewModel
 
     // This property is now in the base class
 
-    public ICommand AddPlayerCommand { get; private set; }
+    
 
     // These methods are now in the base class with CanPublishCommands abstraction
 

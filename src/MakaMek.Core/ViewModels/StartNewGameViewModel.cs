@@ -191,14 +191,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // Navigate to BattleMap view
         await NavigationService.NavigateToViewModelAsync(battleMapViewModel);
     });
-
-    // This method is now in the base class
-
-    // This property is now in the base class
-
-    public ICommand AddPlayerCommand { get; private set; }
-
-    // These methods are now in the base class with CanPublishCommands abstraction
     
     // Implementation of template method from base class
     protected override PlayerViewModel CreatePlayerViewModel(Player player)
@@ -219,10 +211,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         NotifyPropertyChanged(nameof(CanStartGame)); // CanStartGame might be false until units are added
         return result;
     }
-    
-    // This property is now in the base class
-
-    // This method is now in the base class
     
     // Implementation of abstract property from base class
     public override bool CanAddPlayer => _players.Count < 4; // Limit to 4 players for now
