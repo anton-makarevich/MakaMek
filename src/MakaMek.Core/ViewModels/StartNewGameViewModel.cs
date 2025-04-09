@@ -225,4 +225,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager.Dispose(); 
         GC.SuppressFinalize(this);
     }
+
+    public override async void AttachHandlers()
+    {
+        base.AttachHandlers();
+        await InitializeLobbyAndSubscribe();
+    }
 }
