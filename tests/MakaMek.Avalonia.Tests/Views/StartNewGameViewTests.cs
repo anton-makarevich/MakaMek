@@ -30,6 +30,7 @@ namespace MakaMek.Avalonia.Tests.Views
             var view = new StartNewGameViewNarrow();
             var viewModel = new StartNewGameViewModel(
                 Substitute.For<IGameManager>(), 
+                Substitute.For<IUnitsLoader>(),
                 Substitute.For<IRulesProvider>(),
                 Substitute.For<ICommandPublisher>(),
                 Substitute.For<IToHitCalculator>(),

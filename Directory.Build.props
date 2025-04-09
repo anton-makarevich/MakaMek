@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
     <PropertyGroup>
-        <Version>0.34.1-alpha</Version>
+        <Version>0.34.2-alpha</Version>
         <Authors>Anton Makarevich</Authors>
         <Company>Anton Makarevich</Company>
         <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>

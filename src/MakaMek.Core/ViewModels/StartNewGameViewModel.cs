@@ -27,12 +27,13 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     
     public StartNewGameViewModel(
         IGameManager gameManager, 
+        IUnitsLoader unitsLoader,
         IRulesProvider rulesProvider, 
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory)
-        : base(rulesProvider, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
+        : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
     {
         _gameManager = gameManager;
         AddPlayerCommand = new AsyncCommand(AddPlayer);
@@ -223,5 +224,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // Dispose game manager if this ViewModel owns it (depends on DI lifetime)
         _gameManager.Dispose(); 
         GC.SuppressFinalize(this);
+    }
+
+    public override async void AttachHandlers()
+    {
+        base.AttachHandlers();
+        await InitializeLobbyAndSubscribe();
     }
 }

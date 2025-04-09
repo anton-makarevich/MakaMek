@@ -27,6 +27,7 @@ public class StartNewGameViewModelTests
     private readonly ICommandPublisher _commandPublisher;
     private readonly ClientGame _clientGame; 
     private readonly Guid _serverGameId = Guid.NewGuid();
+    private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
 
     public StartNewGameViewModelTests()
     {
@@ -35,6 +36,7 @@ public class StartNewGameViewModelTests
         var imageService = Substitute.For<IImageService>();
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService);
         _navigationService.GetViewModel<BattleMapViewModel>().Returns(_battleMapViewModel);
+        _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
         
         var rulesProvider = new ClassicBattletechRulesProvider(); 
         _gameManager = Substitute.For<IGameManager>();
@@ -54,11 +56,13 @@ public class StartNewGameViewModelTests
 
         _sut = new StartNewGameViewModel(
             _gameManager,
+            _unitsLoader,
             rulesProvider, 
             _commandPublisher, 
             toHitCalculator, 
             dispatcherService, 
             gameFactory); 
+        _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
 
@@ -188,7 +192,6 @@ public class StartNewGameViewModelTests
     public void CanStartGame_ShouldBeFalse_WhenPlayersHaveUnits_ButDidntJoin()
     {
         var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
         _sut.Players.First().SelectedUnit = units.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
@@ -201,10 +204,8 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenPlayersHaveUnits_AndPlayerHasJoined()
     {
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
-        _sut.Players.First().SelectedUnit = units.First();
+        _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
         _sut.Players.First().Player.Status = PlayerStatus.Joined;
     
@@ -216,10 +217,8 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits_AndPlayerIsReady()
     {
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
-        _sut.Players.First().SelectedUnit = units.First();
+        _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
         _sut.Players.First().Player.Status = PlayerStatus.Ready;
     
@@ -231,11 +230,9 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenOnePlayerHasNoUnits()
     {
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null); 
         _sut.AddPlayerCommand.Execute(null); 
-        _sut.Players.First().SelectedUnit = units.First();
+        _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
     
         var result = _sut.CanStartGame;
@@ -287,11 +284,10 @@ public class StartNewGameViewModelTests
     public async Task PublishJoinCommand_ForLocalPlayer_CallsJoinGameWithUnitsOnClientGame()
     {
         await _sut.InitializeLobbyAndSubscribe(); 
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units); 
+
         _sut.AddPlayerCommand.Execute(null); 
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null); 
         localPlayerVm.JoinGameCommand.Execute(null);
         
@@ -329,11 +325,9 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
         
         // Set player status to JoinRequested
@@ -366,11 +360,9 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
         
         // Set player status to JoinRequested
@@ -404,11 +396,9 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
         
         // Initial status should be NotJoined
@@ -428,11 +418,9 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
         
         // Set player status to Joined so they can set ready
@@ -466,11 +454,9 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
         
         // Set player status to Joined
@@ -500,11 +486,9 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
         _sut.AddPlayerCommand.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = units.First();
+        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
         
         // Set player status to Joined
@@ -535,19 +519,16 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add two players
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
-        
         // Add first player
         _sut.AddPlayerCommand.Execute(null);
         var player1 = _sut.Players.First();
-        player1.SelectedUnit = units.First();
+        player1.SelectedUnit = _sut.AvailableUnits.First();
         player1.AddUnitCommand.Execute(null);
         
         // Add second player
         _sut.AddPlayerCommand.Execute(null);
         var player2 = _sut.Players.Last();
-        player2.SelectedUnit = units.First();
+        player2.SelectedUnit = _sut.AvailableUnits.First();
         player2.AddUnitCommand.Execute(null);
         
         // Set both players to Ready
@@ -567,19 +548,16 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add two players
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.InitializeUnits(units);
-        
         // Add first player
         _sut.AddPlayerCommand.Execute(null);
         var player1 = _sut.Players.First();
-        player1.SelectedUnit = units.First();
+        player1.SelectedUnit = _sut.AvailableUnits.First();
         player1.AddUnitCommand.Execute(null);
         
         // Add second player
         _sut.AddPlayerCommand.Execute(null);
         var player2 = _sut.Players.Last();
-        player2.SelectedUnit = units.First();
+        player2.SelectedUnit = _sut.AvailableUnits.First();
         player2.AddUnitCommand.Execute(null);
         
         // Set only one player to Ready

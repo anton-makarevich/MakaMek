@@ -21,6 +21,7 @@ public abstract class NewGameViewModel : BaseViewModel
     protected IEnumerable<UnitData> _availableUnits = [];
 
     protected readonly IRulesProvider _rulesProvider;
+    private readonly IUnitsLoader _unitsLoader;
     protected readonly ICommandPublisher _commandPublisher;
     protected readonly IToHitCalculator _toHitCalculator;
     private readonly IDispatcherService _dispatcherService;
@@ -32,22 +33,18 @@ public abstract class NewGameViewModel : BaseViewModel
 
     protected NewGameViewModel(
         IRulesProvider rulesProvider,
+        IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory)
     {
         _rulesProvider = rulesProvider;
+        _unitsLoader = unitsLoader;
         _commandPublisher = commandPublisher;
         _toHitCalculator = toHitCalculator;
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
-    }
-
-    // Common methods
-    public void InitializeUnits(List<UnitData> units)
-    {
-        _availableUnits = units;
     }
 
     // Common command handlers with template method pattern
@@ -124,4 +121,12 @@ public abstract class NewGameViewModel : BaseViewModel
 
     // Template method for creating player view models with appropriate callbacks
     protected abstract PlayerViewModel CreatePlayerViewModel(Player player);
+
+    public override async void AttachHandlers()
+    {
+        base.AttachHandlers();
+        _availableUnits = await _unitsLoader.LoadUnits();
+    }
+    
+    public List<UnitData> AvailableUnits => _availableUnits.ToList();
 }

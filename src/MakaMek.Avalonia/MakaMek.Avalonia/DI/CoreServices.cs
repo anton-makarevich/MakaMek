@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.Services;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -32,6 +33,8 @@ public static class CoreServices
         services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<IToHitCalculator, ClassicToHitCalculator>();
+        services.AddSingleton<IMechDataProvider, MtfDataProvider>();
+        services.AddSingleton<IUnitsLoader, EmbeddedResourcesUnitsLoader>();
         services.AddSingleton<IGameFactory, GameFactory>();
         services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
         services.AddSingleton<IGameManager, GameManager>();
