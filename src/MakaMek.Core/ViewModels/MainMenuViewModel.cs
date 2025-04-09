@@ -15,7 +15,7 @@ public class MainMenuViewModel : BaseViewModel
         Version = $"v{assembly?.GetName().Version?.ToString()}"; 
 
         StartNewGameCommand = new AsyncCommand(NavigateToNewGame);
-        // JoinGameCommand can be left empty or show a message for now
+        JoinGameCommand = new AsyncCommand(NavigateToJoinGame); 
     }
 
     public ICommand StartNewGameCommand { get; }
@@ -24,7 +24,11 @@ public class MainMenuViewModel : BaseViewModel
 
     private async Task NavigateToNewGame()
     {
-        // Assuming StartNewGameViewModel is registered and NavigationService can resolve it
         await NavigationService.NavigateToViewModelAsync<StartNewGameViewModel>();
+    }
+
+    private async Task NavigateToJoinGame()
+    {
+        await NavigationService.NavigateToViewModelAsync<JoinGameViewModel>();
     }
 }

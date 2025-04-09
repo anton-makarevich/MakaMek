@@ -28,8 +28,8 @@
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.6" />
         <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.2.0.14" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.3" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.4" />
         <PackageReference Include="Sanet.MVVM.DI.Avalonia" Version="1.1.1.1113" />
         <PackageReference Include="Sanet.MVVM.Navigation.Avalonia" Version="1.1.1.1113" />
         <PackageReference Include="Sanet.MVVM.Views.Avalonia" Version="1.1.1.1113" />

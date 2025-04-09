@@ -1,57 +1,41 @@
-using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
+using Sanet.MakaMek.Core.Models.Game.Commands;
+using Sanet.MakaMek.Core.Models.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels.Wrappers;
-using Sanet.MVVM.Core.ViewModels;
-using Sanet.MakaMek.Core.Models.Game.Commands.Client;
-using Sanet.MakaMek.Core.Models.Game.Commands;
-using Sanet.MakaMek.Core.Models.Game.Factory;
-using Sanet.MakaMek.Core.Services;
 
 namespace Sanet.MakaMek.Core.ViewModels;
 
-public class StartNewGameViewModel : BaseViewModel
+public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {
     private int _mapWidth = 15;
     private int _mapHeight = 17;
     private int _forestCoverage = 20;
     private int _lightWoodsPercentage = 30;
 
-    private readonly ObservableCollection<PlayerViewModel> _players = [];
-    private IEnumerable<UnitData> _availableUnits = [];
-
     private readonly IGameManager _gameManager;
-    private readonly IRulesProvider _rulesProvider;
-    private readonly ICommandPublisher _commandPublisher;
-    private readonly IToHitCalculator _toHitCalculator;
-    private readonly IDispatcherService _dispatcherService; 
-    private readonly IGameFactory _gameFactory; 
     
-    private ClientGame? _localGame;
-
     public StartNewGameViewModel(
         IGameManager gameManager, 
         IRulesProvider rulesProvider, 
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IDispatcherService dispatcherService,
-        IGameFactory gameFactory) // Added factory parameter
+        IGameFactory gameFactory)
+        : base(rulesProvider, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
     {
         _gameManager = gameManager;
-        _rulesProvider = rulesProvider;
-        _commandPublisher = commandPublisher;
-        _toHitCalculator = toHitCalculator;
-        _dispatcherService = dispatcherService; 
-        _gameFactory = gameFactory; 
+        AddPlayerCommand = new AsyncCommand(AddPlayer);
     }
 
     public async Task InitializeLobbyAndSubscribe()
@@ -66,59 +50,56 @@ public class StartNewGameViewModel : BaseViewModel
         NotifyPropertyChanged(nameof(ServerIpAddress));
     }
 
-    // Handle commands coming FROM the server/other clients
-    internal void HandleServerCommand(IGameCommand command)
+    // Implementation of the abstract method from base class
+    protected override void HandleCommandInternal(IGameCommand command)
     {
-        // Ensure UI updates happen on the correct thread
-        _dispatcherService.RunOnUIThread(() =>
+        switch (command)
         {
-            switch (command)
-            {
-                // Handle player joining (potentially echo of local or a remote player)
-                case UpdatePlayerStatusCommand statusCmd:
-                    var playerWithStatusUpdate = _players.FirstOrDefault(p => p.Player.Id == statusCmd.PlayerId);
-                    if (playerWithStatusUpdate != null && statusCmd.GameOriginId == _gameManager.ServerGameId)
+            // Handle player joining (potentially echo of local or a remote player)
+            case UpdatePlayerStatusCommand statusCmd:
+                var playerWithStatusUpdate = _players.FirstOrDefault(p => p.Player.Id == statusCmd.PlayerId);
+                if (playerWithStatusUpdate != null && statusCmd.GameOriginId == _gameManager.ServerGameId)
+                {
+                    // Update player status
+                    playerWithStatusUpdate.Player.Status = statusCmd.PlayerStatus;
+                    playerWithStatusUpdate.RefreshStatus();
+                    NotifyPropertyChanged(nameof(CanStartGame));
+                }
+                break;
+            
+            case JoinGameCommand joinCmd:
+                var existingPlayerVm = _players.FirstOrDefault(p => p.Player.Id == joinCmd.PlayerId);
+                if (existingPlayerVm != null)
+                {
+                    // Player exists - likely the echo for a local player who just clicked Join
+                    if (existingPlayerVm.IsLocalPlayer && joinCmd.GameOriginId == _gameManager.ServerGameId)
                     {
-                        // Update player status
-                        playerWithStatusUpdate.Player.Status = statusCmd.PlayerStatus;
-                        playerWithStatusUpdate.RefreshStatus();
+                        // Server accepted the join request
+                        existingPlayerVm.Player.Status = PlayerStatus.Joined;
+                        existingPlayerVm.RefreshStatus();
                         NotifyPropertyChanged(nameof(CanStartGame));
                     }
-                    break;
-                
-                case JoinGameCommand joinCmd:
-                    var existingPlayerVm = _players.FirstOrDefault(p => p.Player.Id == joinCmd.PlayerId);
-                    if (existingPlayerVm != null)
-                    {
-                        // Player exists - likely the echo for a local player who just clicked Join
-                        if (existingPlayerVm.IsLocalPlayer && joinCmd.GameOriginId == _gameManager.ServerGameId)
-                        {
-                            // Server accepted the join request
-                            existingPlayerVm.Player.Status = PlayerStatus.Joined;
-                            existingPlayerVm.RefreshStatus();
-                            NotifyPropertyChanged(nameof(CanStartGame));
-                        }
-                        // Else: Remote player sending join again? Ignore.
-                    }
-                    else
-                    {   // Player doesn't exist - must be a remote player joining
-                        var remotePlayer = new Player(joinCmd.PlayerId, joinCmd.PlayerName, joinCmd.Tint);
-                        var remotePlayerVm = new PlayerViewModel(
-                            remotePlayer, 
-                            isLocalPlayer: false, // Mark as remote
-                            [], 
-                            null, // No join action needed for remote
-                            null, // No set ready action needed for remote
-                            () => NotifyPropertyChanged(nameof(CanStartGame))); 
-                        
-                        remotePlayerVm.AddUnits(joinCmd.Units); // Add units received from command
-                        _players.Add(remotePlayerVm);
-                        NotifyPropertyChanged(nameof(CanAddPlayer));
-                        NotifyPropertyChanged(nameof(CanStartGame));
-                    }
-                    break;
-            }
-        });
+                    // Else: Remote player sending join again? Ignore.
+                }
+                else
+                {
+                    // Player doesn't exist - must be a remote player joining
+                    var remotePlayer = new Player(joinCmd.PlayerId, joinCmd.PlayerName, joinCmd.Tint);
+                    var remotePlayerVm = new PlayerViewModel(
+                        remotePlayer, 
+                        isLocalPlayer: false, // Mark as remote
+                        _availableUnits, 
+                        _ => {}, // No join action needed for remote
+                        _ => {}, // No set ready action needed for remote
+                        () => NotifyPropertyChanged(nameof(CanStartGame))); 
+                    
+                    remotePlayerVm.AddUnits(joinCmd.Units); // Add units received from command
+                    _players.Add(remotePlayerVm);
+                    NotifyPropertyChanged(nameof(CanAddPlayer));
+                    NotifyPropertyChanged(nameof(CanStartGame));
+                }
+                break;
+        }
     }
 
 
@@ -210,78 +191,32 @@ public class StartNewGameViewModel : BaseViewModel
         // Navigate to BattleMap view
         await NavigationService.NavigateToViewModelAsync(battleMapViewModel);
     });
-
-    public void InitializeUnits(List<UnitData> units)
-    {
-        // Logic to load available units for selection
-        _availableUnits =units;
-    }
-
-    public ObservableCollection<PlayerViewModel> Players => _players;
-
-    public ICommand AddPlayerCommand => new AsyncCommand(AddPlayer);
-
-    // Method to be passed to local PlayerViewModel instances
-    private void PublishJoinCommand(PlayerViewModel playerVm)
-    {
-        if (!playerVm.IsLocalPlayer) return; // Should only be called for local players
-        _localGame?.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList());
-    }
     
-    // Method to be passed to local PlayerViewModel instances to set player as ready
-    private void PublishSetReadyCommand(PlayerViewModel playerVm)
+    // Implementation of template method from base class
+    protected override PlayerViewModel CreatePlayerViewModel(Player player)
     {
-        if (!playerVm.IsLocalPlayer) return; // Should only be called for local players
-        
-        var readyCommand = new UpdatePlayerStatusCommand
-        {
-            PlayerId = playerVm.Player.Id,
-            PlayerStatus = PlayerStatus.Ready
-        };
-        
-        _localGame?.SetPlayerReady(readyCommand);
-    }
-    
-    private Task AddPlayer()
-    {
-        if (!CanAddPlayer) return Task.CompletedTask; 
- 
-        // 1. Create Local Player Object
-        var newPlayer = new Player(Guid.NewGuid(), $"Player {_players.Count + 1}", GetNextTilt());
-        
-        // 2. Create Local ViewModel Wrapper
-        var playerViewModel = new PlayerViewModel(
-            newPlayer,
-            isLocalPlayer: true, // Mark as local
+        return new PlayerViewModel(
+            player,
+            isLocalPlayer: true,
             _availableUnits,
-            PublishJoinCommand, // Pass the action to publish the Join command
-            PublishSetReadyCommand, // Pass the action to set player as ready
+            PublishJoinCommand,
+            PublishSetReadyCommand,
             () => NotifyPropertyChanged(nameof(CanStartGame)));
-        
-        // 3. Add to Local UI Collection
-        _players.Add(playerViewModel);
-        NotifyPropertyChanged(nameof(CanAddPlayer));
-        NotifyPropertyChanged(nameof(CanStartGame)); // CanStartGame might be false until units are added
-        
-        return Task.CompletedTask;
     }
     
-    internal ClientGame? LocalGame => _localGame;
-
-    private string GetNextTilt()
+    // Override the base AddPlayer to add additional notification
+    protected override Task AddPlayer()
     {
-        // Simple color cycling based on player count
-        return Players.Count switch
-        {
-            0 => "#FFFFFF", // White
-            1 => "#FF0000", // Red
-            2 => "#0000FF", // Blue
-            3 => "#FFFF00", // Yellow
-            _ => "#FFFFFF"
-        };
+        var result = base.AddPlayer();
+        NotifyPropertyChanged(nameof(CanStartGame)); // CanStartGame might be false until units are added
+        return result;
     }
     
-    public bool CanAddPlayer => _players.Count < 4; // Limit to 4 players for now
+    // Implementation of abstract property from base class
+    public override bool CanAddPlayer => _players.Count < 4; // Limit to 4 players for now
+    
+    // Implementation of abstract property from base class
+    public override bool CanPublishCommands => true; // TODO: is it actually always true?
 
     public void Dispose()
     {

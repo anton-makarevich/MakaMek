@@ -8,17 +8,21 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 /// </summary>
 public class CommandPublisher : ICommandPublisher
 {
-    private readonly CommandTransportAdapter _adapter;
     private readonly List<Action<IGameCommand>> _subscribers = new();
     
+    /// <summary>
+    /// Gets the command transport adapter used by this publisher
+    /// </summary>
+    public CommandTransportAdapter Adapter { get; }
+
     /// <summary>
     /// Creates a new instance of the CommandPublisher
     /// </summary>
     /// <param name="adapter">The command transport adapter to use</param>
     public CommandPublisher(CommandTransportAdapter adapter)
     {
-        _adapter = adapter;
-        _adapter.Initialize(OnCommandReceived);
+        Adapter = adapter;
+        Adapter.Initialize(OnCommandReceived);
     }
     
     /// <summary>
@@ -27,7 +31,7 @@ public class CommandPublisher : ICommandPublisher
     /// <param name="command">The command to publish</param>
     public void PublishCommand(IGameCommand command)
     {
-        _adapter.PublishCommand(command);
+        Adapter.PublishCommand(command);
     }
     
     /// <summary>

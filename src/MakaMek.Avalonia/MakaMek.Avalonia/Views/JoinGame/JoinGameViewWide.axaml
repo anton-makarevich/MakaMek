@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
+             x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewWide"
+             x:DataType="vm:JoinGameViewModel" 
+             xmlns:vm="using:Sanet.MakaMek.Core.ViewModels"
+             xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.NewGame.Fragments">
+
+    <Grid ColumnDefinitions="*,*" Margin="10" RowDefinitions="Auto, *">
+        <TextBlock Text="Join Game"
+                   Grid.ColumnSpan="2"
+                   Classes="h1" 
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,10"/>
+        <!-- Connect Fragment -->
+        <Border Classes="card" Grid.Column="0" Grid.Row="1" Margin="0,0,5,10">
+            <fragments:ConnectFragment DataContext="{Binding}"/>
+        </Border>
+
+        <!-- Players Fragment (Reused) -->
+        <Border Classes="card" Grid.Column="1" Grid.Row="1" Margin="5,0,0,0">
+            <fragments1:PlayersFragment DataContext="{Binding}"/>
+        </Border>
+    </Grid>
+</UserControl>

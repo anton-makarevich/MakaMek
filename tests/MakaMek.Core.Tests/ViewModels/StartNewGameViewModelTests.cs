@@ -14,7 +14,7 @@ using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
-using Sanet.MakaMek.Core.Models.Game.Factory;
+using Sanet.MakaMek.Core.Models.Game.Factories;
 
 namespace Sanet.MakaMek.Core.Tests.ViewModels;
 
@@ -71,6 +71,7 @@ public class StartNewGameViewModelTests
         _sut.LightWoodsPercentage.ShouldBe(30);
         _sut.IsLightWoodsEnabled.ShouldBeTrue();
         _sut.ServerIpAddress.ShouldBe("LAN Disabled..."); 
+        _sut.CanPublishCommands.ShouldBeTrue(); 
     }
 
     [Theory]

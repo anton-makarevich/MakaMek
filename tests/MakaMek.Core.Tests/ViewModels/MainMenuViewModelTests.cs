@@ -23,7 +23,7 @@ public class MainMenuViewModelTests
     {
         // Assert
         _sut.StartNewGameCommand.ShouldNotBeNull();
-        _sut.JoinGameCommand.ShouldBeNull(); // Not implemented for now
+        _sut.JoinGameCommand.ShouldNotBeNull(); 
         _sut.Version.ShouldStartWith("v");
     }
 
@@ -39,5 +39,19 @@ public class MainMenuViewModelTests
 
         // Assert
         await _navigationService.Received(1).NavigateToViewModelAsync<StartNewGameViewModel>();
+    }
+    
+    [Fact]
+    public async Task JoinGameCommand_WhenExecuted_NavigatesToJoinGameViewModel()
+    {
+        // Arrange
+        var command = _sut.JoinGameCommand as IAsyncCommand;
+        command.ShouldNotBeNull();
+
+        // Act
+        await command.ExecuteAsync();
+
+        // Assert
+        await _navigationService.Received(1).NavigateToViewModelAsync<JoinGameViewModel>();
     }
 }

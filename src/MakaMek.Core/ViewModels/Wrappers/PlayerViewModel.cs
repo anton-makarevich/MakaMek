@@ -116,6 +116,6 @@ public class PlayerViewModel : BindableBase
     public bool CanSelectUnits => IsLocalPlayer; 
     public bool ShowAddUnitControls => IsLocalPlayer; 
     public bool ShowUnitListReadOnly => !IsLocalPlayer; 
-    public bool CanJoin => IsLocalPlayer && Units.Count > 0 && Status != PlayerStatus.Joined;
+    public bool CanJoin => IsLocalPlayer && Units.Count > 0 && Status == PlayerStatus.NotJoined;
     public bool CanSetReady => IsLocalPlayer && Status == PlayerStatus.Joined;
 }

@@ -1,7 +1,7 @@
 using Sanet.Transport;
 using System.Threading.Tasks;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.Transport.SignalR.Infrastructure;
+using Sanet.Transport.SignalR.Server.Infrastructure;
 
 namespace Sanet.MakaMek.Avalonia.Desktop.Services;
 
