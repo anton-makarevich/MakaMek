@@ -26,9 +26,11 @@ public class JoinGameViewModelTests
     private readonly CommandTransportAdapter _adapter = Substitute.For<CommandTransportAdapter>();
     private readonly ITransportPublisher _transportPublisher = Substitute.For<ITransportPublisher>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
+    private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
 
     public JoinGameViewModelTests()
     {
+        _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
         var clientGame = new ClientGame(_rulesProvider, _commandPublisher, _toHitCalculator);
         // Configure the adapter to be accessible from the command publisher
         _commandPublisher.Adapter.Returns(_adapter);
@@ -47,11 +49,13 @@ public class JoinGameViewModelTests
         // Create the view model with our mocks
         _sut = new JoinGameViewModel(
             _rulesProvider,
+            _unitsLoader,
             _commandPublisher,
             _toHitCalculator,
             _dispatcherService,
             _gameFactory,
             _transportFactory);
+        _sut.AttachHandlers();
     }
 
     [Fact]
@@ -211,7 +215,6 @@ public class JoinGameViewModelTests
     {
         // Arrange
         _sut.InitializeClient();
-        _sut.InitializeUnits([MechFactoryTests.CreateDummyMechData()]);
         
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
@@ -240,7 +243,6 @@ public class JoinGameViewModelTests
     {
         // Arrange
         _sut.InitializeClient();
-        _sut.InitializeUnits([MechFactoryTests.CreateDummyMechData()]);
         
         // Connect
         _sut.ServerIp = "http://localhost:5000";
@@ -270,7 +272,6 @@ public class JoinGameViewModelTests
     {
         // Arrange
         _sut.InitializeClient();
-        _sut.InitializeUnits([MechFactoryTests.CreateDummyMechData()]);
         
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";

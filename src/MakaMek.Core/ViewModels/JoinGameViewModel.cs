@@ -20,12 +20,13 @@ public class JoinGameViewModel : NewGameViewModel
 
     public JoinGameViewModel(
         IRulesProvider rulesProvider,
+        IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         ITransportFactory transportFactory)
-        : base(rulesProvider, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
+        : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
     {
         _transportFactory = transportFactory;
 

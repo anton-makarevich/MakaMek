@@ -27,12 +27,13 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     
     public StartNewGameViewModel(
         IGameManager gameManager, 
+        IUnitsLoader unitsLoader,
         IRulesProvider rulesProvider, 
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory)
-        : base(rulesProvider, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
+        : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
     {
         _gameManager = gameManager;
         AddPlayerCommand = new AsyncCommand(AddPlayer);
