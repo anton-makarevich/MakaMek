@@ -22,7 +22,7 @@ public class CommandPublisher : ICommandPublisher
     public CommandPublisher(CommandTransportAdapter adapter)
     {
         Adapter = adapter;
-        Adapter.Initialize(OnCommandReceived);
+        
     }
     
     /// <summary>
@@ -40,6 +40,7 @@ public class CommandPublisher : ICommandPublisher
     /// <param name="onCommandReceived">Action to call when a command is received</param>
     public void Subscribe(Action<IGameCommand> onCommandReceived)
     {
+        Adapter.Initialize(OnCommandReceived);
         _subscribers.Add(onCommandReceived);
     }
     
