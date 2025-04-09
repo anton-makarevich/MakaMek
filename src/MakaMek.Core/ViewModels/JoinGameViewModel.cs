@@ -15,7 +15,7 @@ namespace Sanet.MakaMek.Core.ViewModels;
 public class JoinGameViewModel : NewGameViewModel
 {
     private readonly ITransportFactory _transportFactory;
-    private string _serverAddress = string.Empty;
+    private string _serverIp = string.Empty;
     private bool _isConnected; // Track connection status
 
     public JoinGameViewModel(
@@ -85,15 +85,17 @@ public class JoinGameViewModel : NewGameViewModel
         NotifyPropertyChanged(nameof(Players));
     }
     
-    public string ServerAddress
+    public string ServerIp
     {
-        get => _serverAddress;
+        get => _serverIp;
         set
         {
-            SetProperty(ref _serverAddress, value);
+            SetProperty(ref _serverIp, value);
             (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         }
     }
+    
+    public string ServerAddress => $"http://{ServerIp}:2439/makamekhub";
     
     public bool IsConnected
     {
@@ -103,7 +105,7 @@ public class JoinGameViewModel : NewGameViewModel
 
     public ICommand ConnectCommand { get; private set; }
 
-    public bool CanConnect => !string.IsNullOrWhiteSpace(ServerAddress) && !IsConnected;
+    public bool CanConnect => !string.IsNullOrWhiteSpace(ServerIp) && !IsConnected;
 
     private async Task ConnectToServer()
     {
@@ -111,14 +113,10 @@ public class JoinGameViewModel : NewGameViewModel
 
         try
         {
-            Console.WriteLine($"Attempting to connect to {ServerAddress}...");
+            Console.WriteLine($"Attempting to connect to {ServerIp}...");
             
             // Get access to the adapter from the command publisher
             var adapter = _commandPublisher.Adapter;
-            if (adapter == null)
-            {
-                throw new InvalidOperationException("Command publisher adapter not available");
-            }
             
             // Clear any existing publishers and prepare for new connection
             adapter.ClearPublishers();

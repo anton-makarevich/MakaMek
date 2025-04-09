@@ -71,6 +71,7 @@ public class StartNewGameViewModelTests
         _sut.LightWoodsPercentage.ShouldBe(30);
         _sut.IsLightWoodsEnabled.ShouldBeTrue();
         _sut.ServerIpAddress.ShouldBe("LAN Disabled..."); 
+        _sut.CanPublishCommands.ShouldBeTrue(); 
     }
 
     [Theory]

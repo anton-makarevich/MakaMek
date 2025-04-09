@@ -9,7 +9,7 @@
 
   <StackPanel Spacing="10">
     <TextBlock Text="Server Address:" FontWeight="Bold"/>
-    <TextBox Text="{Binding ServerAddress, Mode=TwoWay}"
+    <TextBox Text="{Binding ServerIp, Mode=TwoWay}"
              Watermark="Enter Server IP"/>
     <Button Content="Connect"
             Command="{Binding ConnectCommand}"

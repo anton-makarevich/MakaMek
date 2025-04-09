@@ -17,7 +17,7 @@ namespace Sanet.MakaMek.Core.Tests.ViewModels;
 
 public class JoinGameViewModelTests
 {
-    private readonly JoinGameViewModel _viewModel;
+    private readonly JoinGameViewModel _sut;
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
@@ -45,7 +45,7 @@ public class JoinGameViewModelTests
         _dispatcherService.RunOnUIThread(Arg.Do<Action>(action => action()));
         
         // Create the view model with our mocks
-        _viewModel = new JoinGameViewModel(
+        _sut = new JoinGameViewModel(
             _rulesProvider,
             _commandPublisher,
             _toHitCalculator,
@@ -58,10 +58,10 @@ public class JoinGameViewModelTests
     public async Task ConnectToServer_ClearsExistingPublishers()
     {
         // Arrange
-        _viewModel.ServerAddress = "http://localhost:5000"; // Set a valid server address
+        _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Act
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
         
         // Assert
         // Verify that ClearPublishers was called on the adapter
@@ -72,10 +72,10 @@ public class JoinGameViewModelTests
     public async Task ConnectToServer_AddsNewPublisherAfterClearing()
     {
         // Arrange
-        _viewModel.ServerAddress = "http://localhost:5000"; // Set a valid server address
+        _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Act
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
         
         // Assert
         // Verify that the new publisher was added to the adapter
@@ -86,38 +86,38 @@ public class JoinGameViewModelTests
     public async Task ConnectToServer_SetsIsConnectedToTrue_OnSuccess()
     {
         // Arrange
-        _viewModel.ServerAddress = "http://localhost:5000"; // Set a valid server address
+        _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Act
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
         
         // Assert
-        _viewModel.IsConnected.ShouldBeTrue();
-        _viewModel.CanPublishCommands.ShouldBeTrue();
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.CanPublishCommands.ShouldBeTrue();
     }
     
     [Fact]
     public async Task ConnectToServer_SetsIsConnectedToFalse_OnError()
     {
         // Arrange
-        _viewModel.ServerAddress = "http://localhost:5000"; // Set a valid server address
+        _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Configure the factory to throw an exception
         _transportFactory.CreateAndStartClientPublisher(Arg.Any<string>())
             .Returns<Task<ITransportPublisher>>(_ => throw new Exception("Connection failed"));
         
         // Act
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
         
         // Assert
-        _viewModel.IsConnected.ShouldBeFalse();
+        _sut.IsConnected.ShouldBeFalse();
     }
     
     [Fact]
     public void InitializeClientAsync_CreatesClientGame_WhenLocalGameIsNull()
     {
         // Act
-        _viewModel.InitializeClient();
+        _sut.InitializeClient();
         
         // Assert
         _gameFactory.Received(1).CreateClientGame(_rulesProvider, _commandPublisher, _toHitCalculator);
@@ -127,11 +127,11 @@ public class JoinGameViewModelTests
     public void InitializeClientAsync_DoesNotCreateClientGame_WhenLocalGameExists()
     {
         // Arrange - call once to create the game
-        _viewModel.InitializeClient();
+        _sut.InitializeClient();
         _gameFactory.ClearReceivedCalls();
         
         // Act - call again
-        _viewModel.InitializeClient();
+        _sut.InitializeClient();
         
         // Assert - should not create a new game
         _gameFactory.DidNotReceive().CreateClientGame(Arg.Any<IRulesProvider>(), Arg.Any<ICommandPublisher>(), Arg.Any<IToHitCalculator>());
@@ -141,84 +141,84 @@ public class JoinGameViewModelTests
     public void CanAddPlayer_ReturnsFalse_WhenNotConnected()
     {
         // Arrange
-        _viewModel.IsConnected.ShouldBeFalse(); // Default state
+        _sut.IsConnected.ShouldBeFalse(); // Default state
         
         // Assert
-        _viewModel.CanAddPlayer.ShouldBeFalse();
+        _sut.CanAddPlayer.ShouldBeFalse();
     }
     
     [Fact]
     public async Task CanAddPlayer_ReturnsTrue_WhenConnectedAndLessThanFourPlayers()
     {
         // Arrange
-        _viewModel.ServerAddress = "http://localhost:5000";
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
+        _sut.ServerIp = "http://localhost:5000";
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
         
         // Assert
-        _viewModel.CanAddPlayer.ShouldBeTrue();
+        _sut.CanAddPlayer.ShouldBeTrue();
     }
     
     [Fact]
     public async Task CanAddPlayer_ReturnsFalse_WhenConnectedButFourPlayersExist()
     {
         // Arrange
-        _viewModel.ServerAddress = "http://localhost:5000";
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
+        _sut.ServerIp = "http://localhost:5000";
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
         
         // Add 4 players
         for (int i = 0; i < 4; i++)
         {
-            await ((AsyncCommand)_viewModel.AddPlayerCommand).ExecuteAsync();
+            await ((AsyncCommand)_sut.AddPlayerCommand).ExecuteAsync();
         }
         
         // Assert
-        _viewModel.CanAddPlayer.ShouldBeFalse();
+        _sut.CanAddPlayer.ShouldBeFalse();
     }
     
     [Fact]
     public void CanConnect_ReturnsTrue_WhenServerAddressIsSetAndNotConnected()
     {
         // Arrange
-        _viewModel.ServerAddress = "http://localhost:5000";
+        _sut.ServerIp = "http://localhost:5000";
         
         // Assert
-        _viewModel.CanConnect.ShouldBeTrue();
+        _sut.CanConnect.ShouldBeTrue();
     }
     
     [Fact]
     public void CanConnect_ReturnsFalse_WhenServerAddressIsEmpty()
     {
         // Arrange
-        _viewModel.ServerAddress = "";
+        _sut.ServerIp = "";
         
         // Assert
-        _viewModel.CanConnect.ShouldBeFalse();
+        _sut.CanConnect.ShouldBeFalse();
     }
     
     [Fact]
     public async Task CanConnect_ReturnsFalse_WhenAlreadyConnected()
     {
         // Arrange
-        _viewModel.ServerAddress = "http://localhost:5000";
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
+        _sut.ServerIp = "http://localhost:5000";
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
         
         // Assert
-        _viewModel.CanConnect.ShouldBeFalse();
+        _sut.CanConnect.ShouldBeFalse();
     }
     
     [Fact]
     public async Task HandleCommandInternal_UpdatePlayerStatusCommand_UpdatesPlayerStatus()
     {
         // Arrange
-        _viewModel.InitializeClient();
-        _viewModel.InitializeUnits([MechFactoryTests.CreateDummyMechData()]);
+        _sut.InitializeClient();
+        _sut.InitializeUnits([MechFactoryTests.CreateDummyMechData()]);
         
         // Connect and add a player
-        _viewModel.ServerAddress = "http://localhost:5000";
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
-        await ((AsyncCommand)_viewModel.AddPlayerCommand).ExecuteAsync();
+        _sut.ServerIp = "http://localhost:5000";
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.AddPlayerCommand).ExecuteAsync();
         
-        var player = _viewModel.Players.First();
+        var player = _sut.Players.First();
         var playerId = player.Player.Id;
         
         // Create status update command
@@ -229,7 +229,7 @@ public class JoinGameViewModelTests
         };
         
         // Act - call the method through HandleServerCommand which will call HandleCommandInternal
-        _viewModel.HandleServerCommand(statusCommand);
+        _sut.HandleServerCommand(statusCommand);
         
         // Assert
         player.Player.Status.ShouldBe(PlayerStatus.Ready);
@@ -239,12 +239,12 @@ public class JoinGameViewModelTests
     public async Task HandleCommandInternal_JoinGameCommand_AddsNewRemotePlayer()
     {
         // Arrange
-        _viewModel.InitializeClient();
-        _viewModel.InitializeUnits([MechFactoryTests.CreateDummyMechData()]);
+        _sut.InitializeClient();
+        _sut.InitializeUnits([MechFactoryTests.CreateDummyMechData()]);
         
         // Connect
-        _viewModel.ServerAddress = "http://localhost:5000";
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
+        _sut.ServerIp = "http://localhost:5000";
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
         
         // Create join command for a new remote player
         var remotePlayerId = Guid.NewGuid();
@@ -257,27 +257,27 @@ public class JoinGameViewModelTests
         };
         
         // Act
-        _viewModel.HandleServerCommand(joinCommand);
+        _sut.HandleServerCommand(joinCommand);
         
         // Assert
-        _viewModel.Players.Count.ShouldBe(1);
-        _viewModel.Players.First().Player.Id.ShouldBe(remotePlayerId);
-        _viewModel.Players.First().IsLocalPlayer.ShouldBeFalse();
+        _sut.Players.Count.ShouldBe(1);
+        _sut.Players.First().Player.Id.ShouldBe(remotePlayerId);
+        _sut.Players.First().IsLocalPlayer.ShouldBeFalse();
     }
     
     [Fact]
     public async Task HandleCommandInternal_JoinGameCommand_UpdatesExistingLocalPlayer()
     {
         // Arrange
-        _viewModel.InitializeClient();
-        _viewModel.InitializeUnits([MechFactoryTests.CreateDummyMechData()]);
+        _sut.InitializeClient();
+        _sut.InitializeUnits([MechFactoryTests.CreateDummyMechData()]);
         
         // Connect and add a player
-        _viewModel.ServerAddress = "http://localhost:5000";
-        await ((AsyncCommand)_viewModel.ConnectCommand).ExecuteAsync();
-        await ((AsyncCommand)_viewModel.AddPlayerCommand).ExecuteAsync();
+        _sut.ServerIp = "http://localhost:5000";
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.AddPlayerCommand).ExecuteAsync();
         
-        var player = _viewModel.Players.First();
+        var player = _sut.Players.First();
         var playerId = player.Player.Id;
         
         // Create join command for the existing local player
@@ -290,10 +290,22 @@ public class JoinGameViewModelTests
         };
         
         // Act
-        _viewModel.HandleServerCommand(joinCommand);
+        _sut.HandleServerCommand(joinCommand);
         
         // Assert
-        _viewModel.Players.Count.ShouldBe(1); // No new player added
-        _viewModel.Players.First().Player.Status.ShouldBe(PlayerStatus.Joined);
+        _sut.Players.Count.ShouldBe(1); // No new player added
+        _sut.Players.First().Player.Status.ShouldBe(PlayerStatus.Joined);
+    }
+
+    [Fact]
+    public void ServerAddress_ShouldIncludeIP_AndPort()
+    {
+        const string ip = "127.0.0.1";
+        const int port = 2439;
+        const string hub = "makamekhub";
+        
+        _sut.ServerIp = ip;
+        
+        _sut.ServerAddress.ShouldBe($"http://{ip}:{port}/{hub}");
     }
 }
