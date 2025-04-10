@@ -91,42 +91,6 @@ public class PlayerViewModelTests
     }
 
     [Theory]
-    [InlineData(true, true)]  // Local player can select units
-    [InlineData(false, false)] // Remote player cannot select units
-    public void CanSelectUnits_ShouldReflectLocalPlayerStatus(bool isLocal, bool expected)
-    {
-        // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), isLocal, []);
-
-        // Act & Assert
-        sut.CanSelectUnits.ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(true, true)]  // Local player shows add unit controls
-    [InlineData(false, false)] // Remote player does not show add unit controls
-    public void ShowAddUnitControls_ShouldReflectLocalPlayerStatus(bool isLocal, bool expected)
-    {
-        // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), isLocal, []);
-
-        // Act & Assert
-        sut.ShowAddUnitControls.ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(true, false)] // Local player does not show read-only list
-    [InlineData(false, true)]  // Remote player shows read-only list
-    public void ShowUnitListReadOnly_ShouldBeInverseOfLocalPlayerStatus(bool isLocal, bool expected)
-    {
-        // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), isLocal, []);
-
-        // Act & Assert
-        sut.ShowUnitListReadOnly.ShouldBe(expected);
-    }
-
-    [Theory]
     [InlineData(true, true)]  // Local player shows join button
     [InlineData(false, false)] // Remote player does not show join button
     public void ShowJoinButton_ShouldReflectLocalPlayerStatus(bool isLocal, bool expected)
@@ -378,5 +342,50 @@ public class PlayerViewModelTests
     
         // Assert
         propertyChanged.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void CanSelectUnit_ShouldReturnFalse_IfPlayerHasJoined()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[])
+        {
+            Player =
+            {
+                Status = PlayerStatus.Joined
+            }
+        };
+
+        // Act
+        var canSelectUnit = sut.CanSelectUnit;
+    
+        // Assert
+        canSelectUnit.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanSelectUnit_ShouldReturnFalse_IfPlayerIsNotLocal()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),false,[]);
+
+        // Act
+        var canSelectUnit = sut.CanSelectUnit;
+    
+        // Assert
+        canSelectUnit.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanSelectUnit_ShouldReturnTrue_IfPlayerIsLocal()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
+
+        // Act
+        var canSelectUnit = sut.CanSelectUnit;
+    
+        // Assert
+        canSelectUnit.ShouldBeTrue();
     }
 }
