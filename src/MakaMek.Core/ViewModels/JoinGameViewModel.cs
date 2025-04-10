@@ -34,15 +34,6 @@ public class JoinGameViewModel : NewGameViewModel
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
     }
 
-    // Call this method when the ViewModel becomes active
-    public void InitializeClient()
-    {
-        _localGame ??= _gameFactory.CreateClientGame(
-            _rulesProvider,
-            _commandPublisher,
-            _toHitCalculator);
-    }
-
     // Implementation of the abstract method from base class
     protected override void HandleCommandInternal(IGameCommand command)
     {
@@ -128,7 +119,11 @@ public class JoinGameViewModel : NewGameViewModel
             // Create network client publisher using the factory and connect
             var client = await _transportFactory.CreateAndStartClientPublisher(ServerAddress);
             adapter.AddPublisher(client);
-            
+            _commandPublisher.Subscribe(HandleServerCommand);
+            _localGame ??= _gameFactory.CreateClientGame(
+                _rulesProvider,
+                _commandPublisher,
+                _toHitCalculator);
             IsConnected = true;
             (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged(); // Disable connect button
             NotifyPropertyChanged(nameof(CanAddPlayer)); // Enable Add Player once connected
@@ -140,14 +135,6 @@ public class JoinGameViewModel : NewGameViewModel
         }
     }
 
-    // This method is now in the base class
-
-    // This property is now in the base class
-
-    
-
-    // These methods are now in the base class with CanPublishCommands abstraction
-
     // Implementation of template method from base class
     protected override PlayerViewModel CreatePlayerViewModel(Player player)
     {
@@ -158,10 +145,6 @@ public class JoinGameViewModel : NewGameViewModel
             PublishJoinCommand,
             PublishSetReadyCommand);
     }
-
-    // This property is now in the base class
-
-    // This method is now in the base class
 
     // Implementation of abstract property from base class
     public override bool CanAddPlayer => IsConnected && _players.Count < 4;

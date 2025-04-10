@@ -118,24 +118,27 @@ public class JoinGameViewModelTests
     }
     
     [Fact]
-    public void InitializeClientAsync_CreatesClientGame_WhenLocalGameIsNull()
+    public void ConnectCommand_CreatesClientGame_WhenLocalGameIsNull()
     {
+        // Arrange
+        _sut.ServerIp="127.0.0.1";
         // Act
-        _sut.InitializeClient();
+        _sut.ConnectCommand.Execute(null);
         
         // Assert
         _gameFactory.Received(1).CreateClientGame(_rulesProvider, _commandPublisher, _toHitCalculator);
     }
     
     [Fact]
-    public void InitializeClientAsync_DoesNotCreateClientGame_WhenLocalGameExists()
+    public void ConnectCommand_DoesNotCreateClientGame_WhenLocalGameExists()
     {
         // Arrange - call once to create the game
-        _sut.InitializeClient();
+        _sut.ServerIp="127.0.0.1";
+        _sut.ConnectCommand.Execute(null);
         _gameFactory.ClearReceivedCalls();
         
         // Act - call again
-        _sut.InitializeClient();
+        _sut.ConnectCommand.Execute(null);
         
         // Assert - should not create a new game
         _gameFactory.DidNotReceive().CreateClientGame(Arg.Any<IRulesProvider>(), Arg.Any<ICommandPublisher>(), Arg.Any<IToHitCalculator>());
@@ -213,9 +216,6 @@ public class JoinGameViewModelTests
     [Fact]
     public async Task HandleCommandInternal_UpdatePlayerStatusCommand_UpdatesPlayerStatus()
     {
-        // Arrange
-        _sut.InitializeClient();
-        
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
         await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
@@ -241,9 +241,6 @@ public class JoinGameViewModelTests
     [Fact]
     public async Task HandleCommandInternal_JoinGameCommand_AddsNewRemotePlayer()
     {
-        // Arrange
-        _sut.InitializeClient();
-        
         // Connect
         _sut.ServerIp = "http://localhost:5000";
         await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
@@ -270,9 +267,6 @@ public class JoinGameViewModelTests
     [Fact]
     public async Task HandleCommandInternal_JoinGameCommand_UpdatesExistingLocalPlayer()
     {
-        // Arrange
-        _sut.InitializeClient();
-        
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
         await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
