@@ -38,6 +38,7 @@ public class PlayerViewModel : BindableBase
         NotifyPropertyChanged(nameof(CanAddUnit));
         NotifyPropertyChanged(nameof(CanJoin));
         NotifyPropertyChanged(nameof(CanSetReady));
+        NotifyPropertyChanged(nameof(CanSelectUnit));
     }
 
     public ICommand AddUnitCommand { get; }
@@ -86,6 +87,8 @@ public class PlayerViewModel : BindableBase
     }
     
     public bool CanAddUnit => IsLocalPlayer && SelectedUnit != null && Status == PlayerStatus.NotJoined;
+    
+    public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     private Task AddUnit()
     {
@@ -112,10 +115,6 @@ public class PlayerViewModel : BindableBase
         }
         _onUnitChanged?.Invoke();
     }
-    
-    public bool CanSelectUnits => IsLocalPlayer; 
-    public bool ShowAddUnitControls => IsLocalPlayer; 
-    public bool ShowUnitListReadOnly => !IsLocalPlayer; 
     public bool CanJoin => IsLocalPlayer && Units.Count > 0 && Status == PlayerStatus.NotJoined;
     public bool CanSetReady => IsLocalPlayer && Status == PlayerStatus.Joined;
 }

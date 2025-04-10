@@ -37,7 +37,6 @@ public class JoinGameViewModel : NewGameViewModel
     // Implementation of the abstract method from base class
     protected override void HandleCommandInternal(IGameCommand command)
     {
-        // Placeholder: Similar logic to StartNewGameViewModel.HandleServerCommand
         switch (command)
         {
             case UpdatePlayerStatusCommand statusCmd:
@@ -61,7 +60,7 @@ public class JoinGameViewModel : NewGameViewModel
                         _availableUnits,
                         _ => {}, // Remote players don't publish join
                         _ => {}); // No callback for ready state
-                     
+                     remotePlayerViewModel.AddUnits(joinCmd.Units); // Add units received from command
                      _players.Add(remotePlayerViewModel);
                 }
                 else if (existingPlayerVm.IsLocalPlayer)

@@ -88,10 +88,10 @@ public abstract class NewGameViewModel : BaseViewModel
     public abstract bool CanAddPlayer { get; }
 
     // Common utility methods
-    protected string GetNextTilt()
+    private string GetNextTilt()
     {
         // Simple color cycling based on player count
-        return _players.Count(p => p.IsLocalPlayer) switch
+        return _players.Count switch
         {
             0 => "#FFFFFF", // White
             1 => "#FF0000", // Red
@@ -107,7 +107,7 @@ public abstract class NewGameViewModel : BaseViewModel
         if (!CanAddPlayer) return Task.CompletedTask;
 
         // Create Local Player Object
-        var newPlayer = new Player(Guid.NewGuid(), $"Player {_players.Count(p => p.IsLocalPlayer) + 1}", GetNextTilt());
+        var newPlayer = new Player(Guid.NewGuid(), $"Player {_players.Count + 1}", GetNextTilt());
         
         // Create Local ViewModel Wrapper with customizable callbacks
         var playerViewModel = CreatePlayerViewModel(newPlayer);

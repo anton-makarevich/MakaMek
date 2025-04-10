@@ -21,7 +21,10 @@
                             <StackPanel Grid.Row="1" Grid.Column="0" Classes="verticalSpaced" Margin="10,5">
                                 <TextBlock Text="{Binding Name}" Classes="h3" />
                                 <TextBlock Text="Available Units:" Classes="label" Margin="5"/>
-                                <ComboBox ItemsSource="{Binding AvailableUnits}"
+                                <ComboBox 
+                                    IsVisible="{Binding IsLocalPlayer}"
+                                    IsEnabled="{Binding CanSelectUnit}"
+                                    ItemsSource="{Binding AvailableUnits}"
                                           SelectedItem="{Binding SelectedUnit, Mode=TwoWay}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
@@ -30,7 +33,9 @@
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
                                 <StackPanel Orientation="Horizontal">
-                                    <Button Content="Add Unit" Command="{Binding AddUnitCommand}" 
+                                    <Button Content="Add Unit" 
+                                            IsVisible="{Binding IsLocalPlayer}"
+                                            Command="{Binding AddUnitCommand}" 
                                                                             Classes="primary"
                                                                             IsEnabled="{Binding CanAddUnit}"/>
                                     <Button Content="Join Game" Command="{Binding JoinGameCommand}" 
