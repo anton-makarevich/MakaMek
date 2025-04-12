@@ -1,5 +1,6 @@
 using Shouldly;
 using NSubstitute;
+using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -93,5 +94,69 @@ public class StartPhaseTests : GamePhaseTestsBase
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Start, Game);
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangePhaseCommand>());
         Game.ActivePlayer.ShouldBeNull();
+    }
+    
+    [Fact]
+    public void HandleCommand_WhenRequestingLobbyStatus_ShouldSendJoinCommandsForAllPlayers()
+    {
+        // Arrange
+        var player1Id = Guid.NewGuid();
+        var player2Id = Guid.NewGuid();
+        
+        // Add two players
+        _sut.HandleCommand(CreateJoinCommand(player1Id, "Player 1"));
+        _sut.HandleCommand(CreateJoinCommand(player2Id, "Player 2"));
+        
+        // Reset the command publisher to clear previous calls
+        CommandPublisher.ClearReceivedCalls();
+        
+        // Create the request command
+        var requestCommand = new RequestGameLobbyStatusCommand
+        {
+            GameOriginId = Game.Id,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        // Act
+        _sut.HandleCommand(requestCommand);
+        
+        // Assert
+        // Verify that a JoinGameCommand was published for each player
+        CommandPublisher.Received(2).PublishCommand(Arg.Is<JoinGameCommand>(cmd => 
+            cmd.GameOriginId == Game.Id && 
+            (cmd.PlayerId == player1Id || cmd.PlayerId == player2Id)));
+        
+        // Verify specific details for each player
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<JoinGameCommand>(cmd => 
+            cmd.PlayerId == player1Id && 
+            cmd.PlayerName == "Player 1" && 
+            cmd.Units.Count == 1));
+        
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<JoinGameCommand>(cmd => 
+            cmd.PlayerId == player2Id && 
+            cmd.PlayerName == "Player 2" && 
+            cmd.Units.Count == 1));
+    }
+    
+    [Fact]
+    public void HandleCommand_WhenRequestingLobbyStatusWithNoPlayers_ShouldNotSendAnyJoinCommands()
+    {
+        // Arrange
+        // Reset the command publisher to clear previous calls
+        CommandPublisher.ClearReceivedCalls();
+        
+        // Create the request command
+        var requestCommand = new RequestGameLobbyStatusCommand
+        {
+            GameOriginId = Game.Id,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        // Act
+        _sut.HandleCommand(requestCommand);
+        
+        // Assert
+        // Verify that no JoinGameCommand was published since there are no players
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<JoinGameCommand>());
     }
 }

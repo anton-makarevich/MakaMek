@@ -31,6 +31,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_HitLocation" => "{0}: {1} damage (Roll: {2})",
             "Command_TurnEnded" => "{0} has ended their turn.",
             "Command_TurnIncremented" => "Turn {0} has started.",
+            "Command_RequestGameLobbyStatus" => "Client {0} requested game lobby status for game.",
             "Direction_Forward" => "forward",
             "Direction_Backward" => "backward",
             
