@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 namespace MakaMek.Avalonia.Tests.TestHelpers;
@@ -21,4 +22,6 @@ public class TestWeapon : Weapon
             battleValue: 1)
     {
     }
+
+    public override MakaMekComponent ComponentType => MakaMekComponent.MachineGun;
 }

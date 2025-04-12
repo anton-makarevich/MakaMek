@@ -44,5 +44,6 @@ public enum MakaMekComponent
     Hip,
     UpperLegActuator,
     LowerLegActuator,
-    FootActuator
+    FootActuator,
+    Masc
 }

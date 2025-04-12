@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components;
 
 public class HeatSink : Component
@@ -18,4 +20,6 @@ public class HeatSink : Component
     {
         base.Hit();
     }
+    
+    public override MakaMekComponent ComponentType => MakaMekComponent.HeatSink;
 }

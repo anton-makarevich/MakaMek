@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components;
 
 public class JumpJets : Component
@@ -12,4 +14,6 @@ public class JumpJets : Component
     }
 
     public int JumpMp { get; }
+    
+    public override MakaMekComponent ComponentType => MakaMekComponent.JumpJet;
 }

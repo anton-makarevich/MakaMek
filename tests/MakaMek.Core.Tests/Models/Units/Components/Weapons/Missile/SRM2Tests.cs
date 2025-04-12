@@ -10,7 +10,7 @@ public class SRM2Tests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var srm2 = new SRM2();
+        var srm2 = new Srm2();
 
         // Assert
         srm2.Name.ShouldBe("SRM-2");
@@ -33,7 +33,7 @@ public class SRM2Tests
     public void Hit_DestroysSRM2()
     {
         // Arrange
-        var srm2 = new SRM2();
+        var srm2 = new Srm2();
 
         // Act
         srm2.Hit();

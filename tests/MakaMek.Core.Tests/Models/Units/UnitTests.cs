@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Map;
@@ -12,8 +13,11 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units;
 
 public class UnitTests
 {
-    private class TestComponent(string name, int size = 1) : Component(name, [], size);
-    
+    private class TestComponent(string name, int size = 1) : Component(name, [], size)
+    {
+        public override MakaMekComponent ComponentType => throw new NotImplementedException();
+    }
+
     private class TestWeapon : Weapon
     {
         public TestWeapon(string name, int[] slots, WeaponType type = WeaponType.Energy, AmmoType ammoType = AmmoType.None) : base(
@@ -21,6 +25,8 @@ public class UnitTests
         {
             Mount(slots, null!); // Will be properly mounted later
         }
+
+        public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
     
     private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)

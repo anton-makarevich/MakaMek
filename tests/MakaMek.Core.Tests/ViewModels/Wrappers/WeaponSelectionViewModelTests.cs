@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
 using Sanet.MakaMek.Core.Models.Units;
@@ -529,11 +530,9 @@ public class WeaponSelectionViewModelTests
         };
     }
 
-    private class TestBallisticWeapon : Weapon
+    private class TestBallisticWeapon()
+        : Weapon("AC/5", 5, 1, 0, 3, 6, 9, WeaponType.Ballistic, 10, 1, 1, 1, AmmoType.AC5)
     {
-        public TestBallisticWeapon() : base(
-            "AC/5", 5, 1, 0, 3, 6, 9, WeaponType.Ballistic, 10, 1, 1, 1,AmmoType.AC5)
-        {
-        }
+        public override MakaMekComponent ComponentType => MakaMekComponent.AC5;
     }
 }

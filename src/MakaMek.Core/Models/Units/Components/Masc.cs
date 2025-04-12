@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components;
 
 public class Masc : Component
@@ -6,6 +8,8 @@ public class Masc : Component
     {
         Deactivate(); // MASC starts deactivated
     }
+
+    public override MakaMekComponent ComponentType=> MakaMekComponent.Masc;
 
     public override void Hit()
     {

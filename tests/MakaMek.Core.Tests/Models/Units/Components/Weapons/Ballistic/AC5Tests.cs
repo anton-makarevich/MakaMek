@@ -10,7 +10,7 @@ public class Ac5Tests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var ac5 = new AC5();
+        var ac5 = new Ac5();
 
         // Assert
         ac5.Name.ShouldBe("AC/5");
@@ -26,7 +26,7 @@ public class Ac5Tests
     public void Hit_DestroysAC5()
     {
         // Arrange
-        var ac5 = new AC5();
+        var ac5 = new Ac5();
 
         // Act
         ac5.Hit();

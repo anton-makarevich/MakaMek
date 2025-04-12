@@ -1,8 +1,9 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
-public class Gyro : Component
+public class Gyro() : Component("Gyro", [3, 4, 5, 6])
 {
-    public Gyro() : base("Gyro", [3, 4, 5, 6])
-    {
-    }
+    public override MakaMekComponent ComponentType => MakaMekComponent.Gyro;
+    public override bool IsRemovable => false;
 }

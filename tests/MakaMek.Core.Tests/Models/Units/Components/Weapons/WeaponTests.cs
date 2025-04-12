@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
@@ -11,7 +12,7 @@ public class WeaponTests
 
     public WeaponTests()
     {
-        _weapon = new LRM5();
+        _weapon = new Lrm5();
     }
 
     [Theory]
@@ -36,7 +37,7 @@ public class WeaponTests
     public void Target_ShouldBeNull_ByDefault()
     {
         // Arrange
-        var weapon = new LRM5();
+        var weapon = new Lrm5();
         
         // Assert
         weapon.Target.ShouldBeNull();
@@ -46,7 +47,7 @@ public class WeaponTests
     public void Target_ShouldBeSettable()
     {
         // Arrange
-        var weapon = new LRM5();
+        var weapon = new Lrm5();
         var mockUnit = new MockUnit();
         
         // Act
@@ -60,7 +61,7 @@ public class WeaponTests
     public void Target_ShouldBeResettable()
     {
         // Arrange
-        var weapon = new LRM5();
+        var weapon = new Lrm5();
         var mockUnit = new MockUnit();
         weapon.Target = mockUnit;
         
@@ -75,7 +76,7 @@ public class WeaponTests
     public void Target_CanBeChanged()
     {
         // Arrange
-        var weapon = new LRM5();
+        var weapon = new Lrm5();
         var mockUnit1 = new MockUnit();
         var mockUnit2 = new MockUnit();
         
@@ -102,12 +103,10 @@ public class WeaponTests
         weapon.RequiresAmmo.ShouldBe(expected);
     }
     
-    private class TestWeapon : Weapon
+    private class TestWeapon(WeaponType type, AmmoType ammoType)
+        : Weapon("Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1, 1, ammoType)
     {
-        public TestWeapon(WeaponType type, AmmoType ammoType) : base(
-            "Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1,1, ammoType)
-        {
-        }
+        public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
     
     private class MockUnit : Unit

@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
 public class LifeSupport : Component
@@ -8,4 +10,7 @@ public class LifeSupport : Component
     public LifeSupport() : base("Life Support", LifeSupportSlots)
     {
     }
+
+    public override MakaMekComponent ComponentType => MakaMekComponent.LifeSupport;
+    public override bool IsRemovable => false;
 }

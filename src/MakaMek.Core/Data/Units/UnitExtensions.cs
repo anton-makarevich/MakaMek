@@ -1,12 +1,7 @@
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Data.Units;
@@ -50,11 +45,11 @@ public static class UnitExtensions
         // Create equipment dictionary
         var locationEquipment = new Dictionary<PartLocation, List<MakaMekComponent>>();
         
-        // Define components to exclude (automatically added by part constructors)
-        var excludedComponents = new HashSet<Type>
-        {
-            typeof(Shoulder) // Shoulder actuators are automatically added to arms
-        };
+        // // Define components to exclude (automatically added by part constructors)
+        // var excludedComponents = new HashSet<Type>
+        // {
+        //     typeof(Shoulder) // Shoulder actuators are automatically added to arms
+        // };
         
         foreach (var part in unit.Parts)
         {
@@ -62,16 +57,14 @@ public static class UnitExtensions
             
             // Filter out automatically added components
             var filteredComponents = part.Components
-                .Where(c => !excludedComponents.Contains(c.GetType()))
+                .Where(c => c.IsRemovable)
                 .ToList();
                 
             foreach (var component in filteredComponents)
             {
-                var componentType = GetMakaMekComponentType(component);
-                if (componentType == null) continue;
-                
-                // Add each component exactly once, regardless of how many slots it occupies
-                equipment.Add(componentType.Value);
+                // Use the ComponentType property directly
+                    // Add each component exactly once, regardless of how many slots it occupies
+                equipment.Add(component.ComponentType);
             }
             
             // Only add the location if it has equipment
@@ -94,45 +87,6 @@ public static class UnitExtensions
             LocationEquipment = locationEquipment,
             AdditionalAttributes = new Dictionary<string, string>(),
             Quirks = new Dictionary<string, string>()
-        };
-    }
-    
-    /// <summary>
-    /// Maps a Component to its corresponding MakaMekComponent enum value
-    /// </summary>
-    private static MakaMekComponent? GetMakaMekComponentType(Component component)
-    {
-        return component switch
-        {
-            Engine => MakaMekComponent.Engine,
-            MediumLaser => MakaMekComponent.MediumLaser,
-            LRM5 => MakaMekComponent.LRM5,
-            SRM2 => MakaMekComponent.SRM2,
-            MachineGun => MakaMekComponent.MachineGun,
-            AC5 => MakaMekComponent.AC5,
-            HeatSink => MakaMekComponent.HeatSink,
-            JumpJets => MakaMekComponent.JumpJet,
-            Shoulder => MakaMekComponent.Shoulder,
-            UpperArmActuator => MakaMekComponent.UpperArmActuator,
-            LowerArmActuator => MakaMekComponent.LowerArmActuator,
-            HandActuator => MakaMekComponent.HandActuator,
-            Ammo ammo => GetAmmoComponentType(ammo),
-            _ => null
-        };
-    }
-    
-    /// <summary>
-    /// Maps an Ammo component to its corresponding MakaMekComponent enum value
-    /// </summary>
-    private static MakaMekComponent? GetAmmoComponentType(Ammo ammo)
-    {
-        return ammo.Type switch
-        {
-            AmmoType.AC5 => MakaMekComponent.ISAmmoAC5,
-            AmmoType.SRM2 => MakaMekComponent.ISAmmoSRM2,
-            AmmoType.MachineGun => MakaMekComponent.ISAmmoMG,
-            AmmoType.LRM5 => MakaMekComponent.ISAmmoLRM5,
-            _ => null
         };
     }
 }

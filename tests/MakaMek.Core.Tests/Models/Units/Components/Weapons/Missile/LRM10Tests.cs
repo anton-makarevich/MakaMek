@@ -10,7 +10,7 @@ public class Lrm10Tests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var lrm10 = new LRM10();
+        var lrm10 = new Lrm10();
 
         // Assert
         lrm10.Name.ShouldBe("LRM-10");
@@ -29,7 +29,7 @@ public class Lrm10Tests
     public void Hit_DestroysLRM10()
     {
         // Arrange
-        var lrm10 = new LRM10();
+        var lrm10 = new Lrm10();
 
         // Act
         lrm10.Hit();
