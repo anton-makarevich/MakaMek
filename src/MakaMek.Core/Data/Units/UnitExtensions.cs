@@ -8,7 +8,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using System.Reflection;
 
 namespace Sanet.MakaMek.Core.Data.Units;
 
@@ -71,11 +70,8 @@ public static class UnitExtensions
                 var componentType = GetMakaMekComponentType(component);
                 if (componentType == null) continue;
                 
-                // For components that take multiple slots, add one entry per slot
-                for (var i = 0; i < component.Size; i++)
-                {
-                    equipment.Add(componentType.Value);
-                }
+                // Add each component exactly once, regardless of how many slots it occupies
+                equipment.Add(componentType.Value);
             }
             
             // Only add the location if it has equipment
