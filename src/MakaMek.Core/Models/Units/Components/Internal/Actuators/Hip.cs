@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 public class Hip : Component
@@ -6,4 +8,7 @@ public class Hip : Component
     public Hip() : base("Hip", HipSlots)
     {
     }
+
+    public override MakaMekComponent ComponentType => MakaMekComponent.Hip;
+    public override bool IsRemovable => false;
 }

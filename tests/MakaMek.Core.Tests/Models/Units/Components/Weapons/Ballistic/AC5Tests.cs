@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
@@ -10,28 +11,30 @@ public class Ac5Tests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var ac5 = new AC5();
+        var sut = new Ac5();
 
         // Assert
-        ac5.Name.ShouldBe("AC/5");
-        ac5.Size.ShouldBe(4);
-        ac5.Heat.ShouldBe(1);
-        ac5.Damage.ShouldBe(5);
-        ac5.BattleValue.ShouldBe(123);
-        ac5.AmmoType.ShouldBe(AmmoType.AC5);
-        ac5.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("AC/5");
+        sut.Size.ShouldBe(4);
+        sut.Heat.ShouldBe(1);
+        sut.Damage.ShouldBe(5);
+        sut.BattleValue.ShouldBe(123);
+        sut.AmmoType.ShouldBe(AmmoType.AC5);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.AC5);
+        sut.IsRemovable.ShouldBeTrue();
     }
 
     [Fact]
     public void Hit_DestroysAC5()
     {
         // Arrange
-        var ac5 = new AC5();
+        var sut = new Ac5();
 
         // Act
-        ac5.Hit();
+        sut.Hit();
 
         // Assert
-        ac5.IsDestroyed.ShouldBeTrue();
+        sut.IsDestroyed.ShouldBeTrue();
     }
 }

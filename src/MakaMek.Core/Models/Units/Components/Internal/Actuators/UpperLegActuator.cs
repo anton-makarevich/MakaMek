@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 public class UpperLegActuator : Component
@@ -6,4 +8,7 @@ public class UpperLegActuator : Component
     public UpperLegActuator() : base("Upper Leg", UpperLegSlots)
     {
     }
+
+    public override MakaMekComponent ComponentType => MakaMekComponent.UpperLegActuator;
+    public override bool IsRemovable => false;
 }

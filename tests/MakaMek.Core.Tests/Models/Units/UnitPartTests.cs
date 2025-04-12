@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -181,5 +182,8 @@ public class UnitPartTests
         part.TryAddComponent(component).ShouldBeFalse();
     }
 
-    private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size);
+    private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size)
+    {
+        public override MakaMekComponent ComponentType => throw new NotImplementedException();
+    }
 }

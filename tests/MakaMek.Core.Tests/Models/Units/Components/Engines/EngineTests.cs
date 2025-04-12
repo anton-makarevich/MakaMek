@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
@@ -9,13 +10,15 @@ public class EngineTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var engine = new Engine(100);
+        var sut = new Engine(100);
 
         // Assert
-        engine.Name.ShouldBe("Fusion Engine 100");
-        engine.Rating.ShouldBe(100);
-        engine.MountedAtSlots.ToList().Count.ShouldBe(6);
-        engine.MountedAtSlots.ShouldBe([0,1,2,7,8,9]);
-        engine.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("Fusion Engine 100");
+        sut.Rating.ShouldBe(100);
+        sut.MountedAtSlots.ToList().Count.ShouldBe(6);
+        sut.MountedAtSlots.ShouldBe([0,1,2,7,8,9]);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.Engine);
+        sut.IsRemovable.ShouldBeTrue();
     }
 }

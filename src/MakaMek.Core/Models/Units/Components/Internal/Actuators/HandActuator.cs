@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 public class HandActuator : Component
@@ -6,4 +8,6 @@ public class HandActuator : Component
     public HandActuator() : base("Hand Actuator", HandSlots)
     {
     }
+
+    public override MakaMekComponent ComponentType => MakaMekComponent.HandActuator;
 }

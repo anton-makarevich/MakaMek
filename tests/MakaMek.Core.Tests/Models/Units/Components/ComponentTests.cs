@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Units;
@@ -7,20 +8,13 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Components;
 
 public class ComponentTests
 {
-    private class TestComponent : Component
+    private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size)
     {
-        public TestComponent(string name, int[] slots, int size=1) : base(name, slots, size)
-        {
-        }
+        public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
     
-    private class TestUnitPart : UnitPart
-    {
-        public TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots) 
-            : base(name, location, maxArmor, maxStructure, slots)
-        {
-        }
-    }
+    private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)
+        : UnitPart(name, location, maxArmor, maxStructure, slots);
 
     [Fact]
     public void Constructor_InitializesCorrectly()

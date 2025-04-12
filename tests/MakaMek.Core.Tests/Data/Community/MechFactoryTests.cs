@@ -163,7 +163,7 @@ public class MechFactoryTests
 
         // Assert
         var leftTorso = mech.Parts.First(p => p.Location == PartLocation.LeftTorso);
-        var weapon = leftTorso.GetComponents<AC5>();
+        var weapon = leftTorso.GetComponents<Ac5>();
         weapon.Count().ShouldBe(1); 
     }
     [Fact]
@@ -188,7 +188,7 @@ public class MechFactoryTests
 
         // Assert
         var leftTorso = mech.Parts.First(p => p.Location == PartLocation.LeftTorso);
-        var weapon = leftTorso.GetComponents<AC5>();
+        var weapon = leftTorso.GetComponents<Ac5>();
         weapon.Count().ShouldBe(2); 
     }
 }

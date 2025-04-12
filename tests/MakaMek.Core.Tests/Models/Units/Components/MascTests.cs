@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -9,27 +10,29 @@ public class MascTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var masc = new Masc("MASC");
+        var sut = new Masc("MASC");
 
         // Assert
-        masc.Name.ShouldBe("MASC");
-        masc.Size.ShouldBe(1);
-        masc.IsDestroyed.ShouldBeFalse();
-        masc.IsActive.ShouldBeFalse(); // MASC starts deactivated
+        sut.Name.ShouldBe("MASC");
+        sut.Size.ShouldBe(1);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.IsActive.ShouldBeFalse(); // MASC starts deactivated
+        sut.ComponentType.ShouldBe(MakaMekComponent.Masc);
+        sut.IsRemovable.ShouldBeTrue();
     }
 
     [Fact]
     public void Hit_DestroysAndDeactivatesComponent()
     {
         // Arrange
-        var masc = new Masc("MASC");
-        masc.Activate();
+        var sut = new Masc("MASC");
+        sut.Activate();
 
         // Act
-        masc.Hit();
+        sut.Hit();
 
         // Assert
-        masc.IsDestroyed.ShouldBeTrue();
-        masc.IsActive.ShouldBeFalse();
+        sut.IsDestroyed.ShouldBeTrue();
+        sut.IsActive.ShouldBeFalse();
     }
 }

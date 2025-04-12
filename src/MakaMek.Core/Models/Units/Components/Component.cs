@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Exceptions;
+using Sanet.MakaMek.Core.Data.Community;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -27,6 +28,9 @@ public abstract class Component : IManufacturedItem
 
     // Reference to the part this component is mounted on
     public UnitPart? MountedOn { get; private set; }
+
+    // Component type property for mapping to MakaMekComponent enum
+    public abstract MakaMekComponent ComponentType { get; }
 
     // Slot positioning
     public bool IsMounted => MountedAtSlots.Length > 0 && MountedOn != null;
@@ -68,4 +72,6 @@ public abstract class Component : IManufacturedItem
     
     // Helper method to get the location of this component
     public PartLocation? GetLocation() => MountedOn?.Location;
+    
+    public virtual bool IsRemovable => true;
 }

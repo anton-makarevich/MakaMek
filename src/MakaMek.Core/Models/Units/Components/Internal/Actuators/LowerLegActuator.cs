@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 public class LowerLegActuator : Component
@@ -6,4 +8,7 @@ public class LowerLegActuator : Component
     public LowerLegActuator() : base("Lower Leg", LowerLegSlots)
     {
     }
+
+    public override MakaMekComponent ComponentType => MakaMekComponent.LowerLegActuator;
+    public override bool IsRemovable => false;
 }

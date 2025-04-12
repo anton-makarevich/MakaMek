@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Community;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
 public class Engine : Component
@@ -14,4 +16,6 @@ public class Engine : Component
         Rating = rating;
         Type = type;
     }
+    
+    public override MakaMekComponent ComponentType => MakaMekComponent.Engine;
 }

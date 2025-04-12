@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
@@ -328,8 +329,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     private class TestWeapon(WeaponType type = WeaponType.Energy, AmmoType ammoType = AmmoType.None)
-        : Weapon("Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1, 1,ammoType);
-        
+        : Weapon("Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1, 1,ammoType)
+    {
+        public override MakaMekComponent ComponentType => throw new NotImplementedException();
+    }
+
     // Custom cluster weapon class that allows setting damage for testing
     private class TestClusterWeapon(
         int damage =10,
@@ -337,8 +341,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         int clusters = 2,
         WeaponType type = WeaponType.Missile,
         AmmoType ammoType = AmmoType.None)
-        : Weapon("Test Cluster Weapon", damage, 3, 0, 3, 6, 9, type, 10, 1, clusters, clusterSize, ammoType);
-        
+        : Weapon("Test Cluster Weapon", damage, 3, 0, 3, 6, 9, type, 10, 1, clusters, clusterSize, ammoType)
+    {
+        public override MakaMekComponent ComponentType => throw new NotImplementedException();
+    }
+
     #region Cluster Weapon Tests
     
     [Fact]

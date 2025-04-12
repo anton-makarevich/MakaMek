@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
@@ -10,30 +11,32 @@ public class SRM2Tests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var srm2 = new SRM2();
+        var sut = new Srm2();
 
         // Assert
-        srm2.Name.ShouldBe("SRM-2");
-        srm2.Size.ShouldBe(1);
-        srm2.Heat.ShouldBe(1);
-        srm2.Damage.ShouldBe(4); // Total damage for all missiles
-        srm2.BattleValue.ShouldBe(25);
-        srm2.AmmoType.ShouldBe(AmmoType.SRM2);
-        srm2.MinimumRange.ShouldBe(0);
-        srm2.ShortRange.ShouldBe(3);
-        srm2.MediumRange.ShouldBe(6);
-        srm2.LongRange.ShouldBe(9);
-        srm2.Clusters.ShouldBe(2);
-        srm2.ClusterSize.ShouldBe(1);
-        srm2.WeaponSize.ShouldBe(2); // 2 clusters * 1 missile per cluster
-        srm2.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("SRM-2");
+        sut.Size.ShouldBe(1);
+        sut.Heat.ShouldBe(1);
+        sut.Damage.ShouldBe(4); // Total damage for all missiles
+        sut.BattleValue.ShouldBe(25);
+        sut.AmmoType.ShouldBe(AmmoType.SRM2);
+        sut.MinimumRange.ShouldBe(0);
+        sut.ShortRange.ShouldBe(3);
+        sut.MediumRange.ShouldBe(6);
+        sut.LongRange.ShouldBe(9);
+        sut.Clusters.ShouldBe(2);
+        sut.ClusterSize.ShouldBe(1);
+        sut.WeaponSize.ShouldBe(2); // 2 clusters * 1 missile per cluster
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.SRM2);
+        sut.IsRemovable.ShouldBeTrue();
     }
 
     [Fact]
     public void Hit_DestroysSRM2()
     {
         // Arrange
-        var srm2 = new SRM2();
+        var srm2 = new Srm2();
 
         // Act
         srm2.Hit();

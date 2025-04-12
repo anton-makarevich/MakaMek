@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
@@ -9,12 +10,14 @@ public class FootActuatorTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var actuator = new FootActuator();
+        var sut = new FootActuator();
 
         // Assert
-        actuator.Name.ShouldBe("Foot Actuator");
-        actuator.MountedAtSlots.ToList().Count.ShouldBe(1);
-        actuator.MountedAtSlots.ShouldBe([3]);
-        actuator.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("Foot Actuator");
+        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
+        sut.MountedAtSlots.ShouldBe([3]);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.FootActuator);
+        sut.IsRemovable.ShouldBeFalse();
     }
 }
