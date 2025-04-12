@@ -26,7 +26,7 @@ public class StartPhase(ServerGame game) : GamePhase(game)
                 break;
             case RequestGameLobbyStatusCommand requestCommand:
                 // Send information about all currently joined players to the requesting client
-                SendLobbyStatusToClients();
+                //SendLobbyStatusToClients();
                 break;
         }
     }
