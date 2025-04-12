@@ -14,6 +14,7 @@ public class AmmoTests
     [InlineData(AmmoType.AC20,"AC20 Ammo", MakaMekComponent.ISAmmoAC20)]
     [InlineData(AmmoType.LRM5,"LRM5 Ammo", MakaMekComponent.ISAmmoLRM5)]
     [InlineData(AmmoType.LRM10,"LRM10 Ammo", MakaMekComponent.ISAmmoLRM10)]
+    [InlineData(AmmoType.LRM15,"LRM15 Ammo", MakaMekComponent.ISAmmoLRM15)]
     [InlineData(AmmoType.LRM20,"LRM20 Ammo", MakaMekComponent.ISAmmoLRM20)]
     [InlineData(AmmoType.SRM2,"SRM2 Ammo", MakaMekComponent.ISAmmoSRM2)]
     [InlineData(AmmoType.SRM4,"SRM4 Ammo", MakaMekComponent.ISAmmoSRM4)]
