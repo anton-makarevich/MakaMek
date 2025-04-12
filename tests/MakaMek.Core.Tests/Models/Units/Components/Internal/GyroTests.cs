@@ -1,4 +1,5 @@
-﻿using Shouldly;
+﻿using Sanet.MakaMek.Core.Data.Community;
+using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Internal;
@@ -10,12 +11,14 @@ public class GyroTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var gyro = new Gyro();
+        var sut = new Gyro();
 
         // Assert
-        gyro.Name.ShouldBe("Gyro");
-        gyro.MountedAtSlots.ToList().Count.ShouldBe(4);
-        gyro.MountedAtSlots.ShouldBe([3, 4, 5, 6]);
-        gyro.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("Gyro");
+        sut.MountedAtSlots.ToList().Count.ShouldBe(4);
+        sut.MountedAtSlots.ShouldBe([3, 4, 5, 6]);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.Gyro);
+        sut.IsRemovable.ShouldBeFalse();
     }
 }

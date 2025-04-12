@@ -1,4 +1,5 @@
-﻿using Shouldly;
+﻿using Sanet.MakaMek.Core.Data.Community;
+using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Internal;
@@ -9,12 +10,14 @@ public class SensorsTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var sensors = new Sensors();
+        var sut = new Sensors();
 
         // Assert
-        sensors.Name.ShouldBe("Sensors");
-        sensors.MountedAtSlots.ToList().Count.ShouldBe(2);
-        sensors.MountedAtSlots.ShouldBe([1,4]);
-        sensors.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("Sensors");
+        sut.MountedAtSlots.ToList().Count.ShouldBe(2);
+        sut.MountedAtSlots.ShouldBe([1,4]);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.Sensors);
+        sut.IsRemovable.ShouldBeFalse();
     }
 }

@@ -1,4 +1,5 @@
-﻿using Shouldly;
+﻿using Sanet.MakaMek.Core.Data.Community;
+using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Internal.Actuators;
@@ -9,12 +10,14 @@ public class LowerLegActuatorTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var actuator = new LowerLegActuator();
+        var sut = new LowerLegActuator();
 
         // Assert
-        actuator.Name.ShouldBe("Lower Leg");
-        actuator.MountedAtSlots.ToList().Count.ShouldBe(1);
-        actuator.MountedAtSlots.ShouldBe([2]);
-        actuator.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("Lower Leg");
+        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
+        sut.MountedAtSlots.ShouldBe([2]);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.LowerLegActuator);
+        sut.IsRemovable.ShouldBeFalse();
     }
 }

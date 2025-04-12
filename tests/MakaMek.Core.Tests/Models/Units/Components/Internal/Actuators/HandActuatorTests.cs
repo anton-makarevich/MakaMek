@@ -1,4 +1,5 @@
-﻿using Shouldly;
+﻿using Sanet.MakaMek.Core.Data.Community;
+using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Internal.Actuators;
@@ -9,12 +10,14 @@ public class HandActuatorTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var actuator = new HandActuator();
+        var sut = new HandActuator();
 
         // Assert
-        actuator.Name.ShouldBe("Hand Actuator");
-        actuator.MountedAtSlots.ToList().Count.ShouldBe(1);
-        actuator.MountedAtSlots.ShouldBe([3]);
-        actuator.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("Hand Actuator");
+        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
+        sut.MountedAtSlots.ShouldBe([3]);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.HandActuator);
+        sut.IsRemovable.ShouldBeTrue();
     }
 }

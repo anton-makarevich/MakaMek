@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
@@ -10,31 +11,33 @@ public class Lrm10Tests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var lrm10 = new Lrm10();
+        var sut = new Lrm10();
 
         // Assert
-        lrm10.Name.ShouldBe("LRM-10");
-        lrm10.Size.ShouldBe(1);
-        lrm10.Heat.ShouldBe(4);
-        lrm10.Damage.ShouldBe(10); // Total damage for all missiles
-        lrm10.BattleValue.ShouldBe(90);
-        lrm10.AmmoType.ShouldBe(AmmoType.LRM10);
-        lrm10.Clusters.ShouldBe(2);
-        lrm10.ClusterSize.ShouldBe(5);
-        lrm10.WeaponSize.ShouldBe(10); // 2 clusters * 5 missiles per cluster
-        lrm10.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("LRM-10");
+        sut.Size.ShouldBe(1);
+        sut.Heat.ShouldBe(4);
+        sut.Damage.ShouldBe(10); // Total damage for all missiles
+        sut.BattleValue.ShouldBe(90);
+        sut.AmmoType.ShouldBe(AmmoType.LRM10);
+        sut.Clusters.ShouldBe(2);
+        sut.ClusterSize.ShouldBe(5);
+        sut.WeaponSize.ShouldBe(10); // 2 clusters * 5 missiles per cluster
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.LRM10);
+        sut.IsRemovable.ShouldBeTrue();
     }
 
     [Fact]
     public void Hit_DestroysLRM10()
     {
         // Arrange
-        var lrm10 = new Lrm10();
+        var sut = new Lrm10();
 
         // Act
-        lrm10.Hit();
+        sut.Hit();
 
         // Assert
-        lrm10.IsDestroyed.ShouldBeTrue();
+        sut.IsDestroyed.ShouldBeTrue();
     }
 }

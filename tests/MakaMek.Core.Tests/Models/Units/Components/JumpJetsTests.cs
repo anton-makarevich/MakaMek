@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -9,38 +10,40 @@ public class JumpJetsFacts
     public void Constructor_SetsDefaultValues()
     {
         // Arrange & Act
-        var jumpJets = new JumpJets();
+        var sut = new JumpJets();
 
         // Assert
-        jumpJets.Name.ShouldBe("Jump Jets");
-        jumpJets.Size.ShouldBe(1);
-        jumpJets.JumpMp.ShouldBe(1);
-        jumpJets.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("Jump Jets");
+        sut.Size.ShouldBe(1);
+        sut.JumpMp.ShouldBe(1);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.JumpJet);
+        sut.IsRemovable.ShouldBeTrue();
     }
 
     [Fact]
     public void Constructor_WithCustomJumpMp_SetsCorrectValues()
     {
         // Arrange & Act
-        var jumpJets = new JumpJets(2);
+        var sut = new JumpJets(2);
 
         // Assert
-        jumpJets.Name.ShouldBe("Jump Jets");
-        jumpJets.Size.ShouldBe(1);
-        jumpJets.JumpMp.ShouldBe(2);
-        jumpJets.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("Jump Jets");
+        sut.Size.ShouldBe(1);
+        sut.JumpMp.ShouldBe(2);
+        sut.IsDestroyed.ShouldBeFalse();
     }
 
     [Fact]
     public void Hit_SetsIsDestroyedToTrue()
     {
         // Arrange
-        var jumpJets = new JumpJets();
+        var sut = new JumpJets();
 
         // Act
-        jumpJets.Hit();
+        sut.Hit();
 
         // Assert
-        jumpJets.IsDestroyed.ShouldBeTrue();
+        sut.IsDestroyed.ShouldBeTrue();
     }
 }

@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
@@ -10,50 +11,52 @@ public class MachineGunTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var machineGun = new MachineGun();
+        var sut = new MachineGun();
 
         // Assert
-        machineGun.Name.ShouldBe("Machine Gun");
-        machineGun.Size.ShouldBe(1);
-        machineGun.Damage.ShouldBe(2);
-        machineGun.Heat.ShouldBe(0);
-        machineGun.MinimumRange.ShouldBe(0);
-        machineGun.ShortRange.ShouldBe(1);
-        machineGun.MediumRange.ShouldBe(2);
-        machineGun.LongRange.ShouldBe(3);
-        machineGun.Type.ShouldBe(WeaponType.Ballistic);
-        machineGun.BattleValue.ShouldBe(5);
-        machineGun.AmmoType.ShouldBe(AmmoType.MachineGun);
-        machineGun.IsDestroyed.ShouldBeFalse();
-        machineGun.IsActive.ShouldBeTrue();
+        sut.Name.ShouldBe("Machine Gun");
+        sut.Size.ShouldBe(1);
+        sut.Damage.ShouldBe(2);
+        sut.Heat.ShouldBe(0);
+        sut.MinimumRange.ShouldBe(0);
+        sut.ShortRange.ShouldBe(1);
+        sut.MediumRange.ShouldBe(2);
+        sut.LongRange.ShouldBe(3);
+        sut.Type.ShouldBe(WeaponType.Ballistic);
+        sut.BattleValue.ShouldBe(5);
+        sut.AmmoType.ShouldBe(AmmoType.MachineGun);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.IsActive.ShouldBeTrue();
+        sut.ComponentType.ShouldBe(MakaMekComponent.MachineGun);
+        sut.IsRemovable.ShouldBeTrue();
     }
 
     [Fact]
     public void Hit_SetsIsDestroyedToTrue()
     {
         // Arrange
-        var machineGun = new MachineGun();
+        var sut = new MachineGun();
 
         // Act
-        machineGun.Hit();
+        sut.Hit();
 
         // Assert
-        machineGun.IsDestroyed.ShouldBeTrue();
+        sut.IsDestroyed.ShouldBeTrue();
     }
 
     [Fact]
     public void Activate_Deactivate_TogglesIsActive()
     {
         // Arrange
-        var machineGun = new MachineGun();
+        var sut = new MachineGun();
 
         // Act & Assert
-        machineGun.IsActive.ShouldBeTrue(); // Default state
+        sut.IsActive.ShouldBeTrue(); // Default state
 
-        machineGun.Deactivate();
-        machineGun.IsActive.ShouldBeFalse();
+        sut.Deactivate();
+        sut.IsActive.ShouldBeFalse();
 
-        machineGun.Activate();
-        machineGun.IsActive.ShouldBeTrue();
+        sut.Activate();
+        sut.IsActive.ShouldBeTrue();
     }
 }

@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
@@ -10,15 +11,17 @@ public class MediumLaserTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var laser = new MediumLaser();
+        var sut = new MediumLaser();
 
         // Assert
-        laser.Name.ShouldBe("Medium Laser");
-        laser.Size.ShouldBe(1);
-        laser.Heat.ShouldBe(3);
-        laser.Damage.ShouldBe(5);
-        laser.BattleValue.ShouldBe(46);
-        laser.AmmoType.ShouldBe(AmmoType.None);
+        sut.Name.ShouldBe("Medium Laser");
+        sut.Size.ShouldBe(1);
+        sut.Heat.ShouldBe(3);
+        sut.Damage.ShouldBe(5);
+        sut.BattleValue.ShouldBe(46);
+        sut.AmmoType.ShouldBe(AmmoType.None);
+        sut.ComponentType.ShouldBe(MakaMekComponent.MediumLaser);
+        sut.IsRemovable.ShouldBeTrue();
     }
 
     [Fact]

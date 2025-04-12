@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
@@ -9,12 +10,14 @@ public class LifeSupportTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var lifeSupport = new LifeSupport();
+        var sut = new LifeSupport();
 
         // Assert
-        lifeSupport.Name.ShouldBe("Life Support");
-        lifeSupport.MountedAtSlots.ToList().Count.ShouldBe(2);
-        lifeSupport.MountedAtSlots.ShouldBe([0, 5]);
-        lifeSupport.IsDestroyed.ShouldBeFalse();
+        sut.Name.ShouldBe("Life Support");
+        sut.MountedAtSlots.ToList().Count.ShouldBe(2);
+        sut.MountedAtSlots.ShouldBe([0, 5]);
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.ComponentType.ShouldBe(MakaMekComponent.LifeSupport);
+        sut.IsRemovable.ShouldBeFalse();
     }
 }
