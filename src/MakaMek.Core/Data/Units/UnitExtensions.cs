@@ -45,12 +45,6 @@ public static class UnitExtensions
         // Create equipment dictionary
         var locationEquipment = new Dictionary<PartLocation, List<MakaMekComponent>>();
         
-        // // Define components to exclude (automatically added by part constructors)
-        // var excludedComponents = new HashSet<Type>
-        // {
-        //     typeof(Shoulder) // Shoulder actuators are automatically added to arms
-        // };
-        
         foreach (var part in unit.Parts)
         {
             var equipment = new List<MakaMekComponent>();
