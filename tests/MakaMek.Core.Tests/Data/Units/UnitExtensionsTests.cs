@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units;
@@ -17,6 +18,7 @@ public class UnitExtensionsTests
     public UnitExtensionsTests()
     {
         _originalUnitData = MechFactoryTests.CreateDummyMechData();
+        _originalUnitData.Id = Guid.NewGuid();
         _mechFactory = new MechFactory(_rulesProvider);
     }
 
@@ -132,5 +134,20 @@ public class UnitExtensionsTests
         // Verify that the engine is in the center torso
         convertedUnitData.LocationEquipment.ContainsKey(PartLocation.CenterTorso).ShouldBeTrue();
         convertedUnitData.LocationEquipment[PartLocation.CenterTorso].ShouldContain(MakaMekComponent.Engine);
+    }
+    
+    [Fact]
+    public void ToData_ConvertsMechToOriginalUnitData()
+    {
+        // Arrange
+        var originalDataJson = JsonSerializer.Serialize(_originalUnitData);
+        var mech = _mechFactory.Create(_originalUnitData);
+
+        // Act
+        var convertedUnitData = mech.ToData();
+        var convertedUnitDataJson = JsonSerializer.Serialize(convertedUnitData);
+
+        // Assert
+        convertedUnitDataJson.ShouldBe(originalDataJson);
     }
 }

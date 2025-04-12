@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using System.Reflection;
 
 namespace Sanet.MakaMek.Core.Data.Units;
 
@@ -51,19 +52,20 @@ public static class UnitExtensions
             {
                 var componentType = GetMakaMekComponentType(component);
                 if (componentType == null) continue;
-                // For components that take multiple slots, add multiple entries
+                
+                // For components that take multiple slots, add one entry per slot
                 for (var i = 0; i < component.Size; i++)
                 {
                     equipment.Add(componentType.Value);
                 }
             }
-            locationEquipment[part.Location] = equipment;
+            
+            // Only add the location if it has equipment
+            if (equipment.Count > 0)
+            {
+                locationEquipment[part.Location] = equipment;
+            }
         }
-        
-        // Get engine data
-        var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
-        var engineRating = engine?.Rating ?? 0;
-        var engineType = engine?.Type.ToString() ?? "Fusion";
         
         return new UnitData
         {
