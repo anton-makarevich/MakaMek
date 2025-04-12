@@ -43,12 +43,30 @@ public static class UnitExtensions
             armorValues[part.Location] = armorLocation;
         }
         
+        // Get engine data
+        var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
+        var engineRating = engine?.Rating ?? 0;
+        var engineType = engine?.Type.ToString() ?? "Fusion";
+        
         // Create equipment dictionary
         var locationEquipment = new Dictionary<PartLocation, List<MakaMekComponent>>();
+        
+        // Define components to exclude (automatically added by part constructors)
+        var excludedComponents = new HashSet<Type>
+        {
+            typeof(Shoulder) // Shoulder actuators are automatically added to arms
+        };
+        
         foreach (var part in unit.Parts)
         {
             var equipment = new List<MakaMekComponent>();
-            foreach (var component in part.Components)
+            
+            // Filter out automatically added components
+            var filteredComponents = part.Components
+                .Where(c => !excludedComponents.Contains(c.GetType()))
+                .ToList();
+                
+            foreach (var component in filteredComponents)
             {
                 var componentType = GetMakaMekComponentType(component);
                 if (componentType == null) continue;
