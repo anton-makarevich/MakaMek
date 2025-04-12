@@ -26,12 +26,12 @@ public class StartPhase(ServerGame game) : GamePhase(game)
                 break;
             case RequestGameLobbyStatusCommand requestCommand:
                 // Send information about all currently joined players to the requesting client
-                //SendLobbyStatusToClients();
+                SendLobbyStatusToClients();
                 break;
         }
     }
 
-    private void SendLobbyStatusToClient()
+    private void SendLobbyStatusToClients()
     {
         // For each player in the game, send a JoinGameCommand to the requesting client
         foreach (var player in Game.Players)
