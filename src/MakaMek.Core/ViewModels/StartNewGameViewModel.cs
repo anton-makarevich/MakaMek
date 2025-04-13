@@ -6,7 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -24,7 +24,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private int _lightWoodsPercentage = 30;
 
     private readonly IGameManager _gameManager;
-    
+    private readonly IBattleMapFactory _mapFactory;
+
     public StartNewGameViewModel(
         IGameManager gameManager, 
         IUnitsLoader unitsLoader,
@@ -32,10 +33,12 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IDispatcherService dispatcherService,
-        IGameFactory gameFactory)
+        IGameFactory gameFactory,
+        IBattleMapFactory mapFactory)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
     {
         _gameManager = gameManager;
+        _mapFactory = mapFactory;
         AddPlayerCommand = new AsyncCommand(AddPlayer);
     }
 
@@ -170,15 +173,15 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     {
         // 1. Generate Map
         var map = ForestCoverage == 0
-            ? BattleMap.GenerateMap(MapWidth, MapHeight, new SingleTerrainGenerator(
+            ? _mapFactory.GenerateMap(MapWidth, MapHeight, new SingleTerrainGenerator(
                 MapWidth, MapHeight, new ClearTerrain()))
-            : BattleMap.GenerateMap(MapWidth, MapHeight, new ForestPatchesGenerator(
+            : _mapFactory.GenerateMap(MapWidth, MapHeight, new ForestPatchesGenerator(
                 MapWidth, MapHeight,
                 forestCoverage: ForestCoverage / 100.0,
                 lightWoodsProbability: LightWoodsPercentage / 100.0));
         
         var hexDataList = map.GetHexes().Select(hex => hex.ToData()).ToList();
-        var localBattleMap = BattleMap.CreateFromData(hexDataList);
+        var localBattleMap = _mapFactory.CreateFromData(hexDataList);
         
         // 2. Set BattleMap on GameManager/ServerGame
         _gameManager.SetBattleMap(map);
