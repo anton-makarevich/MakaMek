@@ -32,7 +32,7 @@ public class HeavyWoodsTerrainTests
         var terrain = new HeavyWoodsTerrain();
 
         // Act & Assert
-        terrain.Id.ShouldBe("HeavyWoods");
+        terrain.Id.ShouldBe(MakaMekTerrains.HeavyWoods);
     }
 
     [Fact]

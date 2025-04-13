@@ -236,7 +236,7 @@ public class BattleMapTests
             for (var r = 1; r < height+1; r++)
             {
                 var hex = map.GetHex(new HexCoordinates(q, r));
-                hex!.HasTerrain("Clear").ShouldBeTrue();
+                hex!.HasTerrain(MakaMekTerrains.Clear).ShouldBeTrue();
             }
         }
 
@@ -288,7 +288,7 @@ public class BattleMapTests
         foreach (var (q, r) in heavyWoodsCoords)
         {
             var hex = map.GetHex(new HexCoordinates(q, r));
-            hex!.RemoveTerrain("Clear");
+            hex!.RemoveTerrain(MakaMekTerrains.Clear);
             hex.AddTerrain(new HeavyWoodsTerrain());
         }
 
@@ -300,7 +300,7 @@ public class BattleMapTests
         foreach (var (q, r) in lightWoodsCoords)
         {
             var hex = map.GetHex(new HexCoordinates(q, r));
-            hex!.RemoveTerrain("Clear");
+            hex!.RemoveTerrain(MakaMekTerrains.Clear);
             hex.AddTerrain(new LightWoodsTerrain());
         }
 
@@ -734,11 +734,11 @@ public class BattleMapTests
         
         // Set two light woods (factor 1 each) in between
         var hex1 = map.GetHex(new HexCoordinates(1, 2))!;
-        hex1.RemoveTerrain("Clear");
+        hex1.RemoveTerrain(MakaMekTerrains.Clear);
         hex1.AddTerrain(new LightWoodsTerrain());
         
         var hex2 = map.GetHex(new HexCoordinates(1, 3))!;
-        hex2.RemoveTerrain("Clear");
+        hex2.RemoveTerrain(MakaMekTerrains.Clear);
         hex2.AddTerrain(new LightWoodsTerrain());
 
         // Act & Assert
@@ -755,11 +755,11 @@ public class BattleMapTests
         
         // Set terrain with total factor of 3 (HeavyWoods=2, LightWoods=1)
         var hex1 = map.GetHex(new HexCoordinates(1, 2))!;
-        hex1.RemoveTerrain("Clear");
+        hex1.RemoveTerrain(MakaMekTerrains.Clear);
         hex1.AddTerrain(new HeavyWoodsTerrain());
         
         var hex2 = map.GetHex(new HexCoordinates(1, 3))!;
-        hex2.RemoveTerrain("Clear");
+        hex2.RemoveTerrain(MakaMekTerrains.Clear);
         hex2.AddTerrain(new LightWoodsTerrain());
 
         // Act & Assert
@@ -776,11 +776,11 @@ public class BattleMapTests
         
         // Set terrain with total factor of 4 (HeavyWoods=2 each)
         var hex1 = map.GetHex(new HexCoordinates(1, 2))!;
-        hex1.RemoveTerrain("Clear");
+        hex1.RemoveTerrain(MakaMekTerrains.Clear);
         hex1.AddTerrain(new HeavyWoodsTerrain());
         
         var hex2 = map.GetHex(new HexCoordinates(1, 3))!;
-        hex2.RemoveTerrain("Clear");
+        hex2.RemoveTerrain(MakaMekTerrains.Clear);
         hex2.AddTerrain(new HeavyWoodsTerrain());
 
         // Act & Assert
@@ -797,16 +797,16 @@ public class BattleMapTests
         
         // Set HeavyWoods (factor 2) at start and end - should be ignored
         var fromHex = map.GetHex(from)!;
-        fromHex.RemoveTerrain("Clear");
+        fromHex.RemoveTerrain(MakaMekTerrains.Clear);
         fromHex.AddTerrain(new HeavyWoodsTerrain());
         
         var toHex = map.GetHex(to)!;
-        toHex.RemoveTerrain("Clear");
+        toHex.RemoveTerrain(MakaMekTerrains.Clear);
         toHex.AddTerrain(new HeavyWoodsTerrain());
         
         // Set LightWoods (factor 1) in between - not enough to block LOS
         var middleHex = map.GetHex(new HexCoordinates(1, 2))!;
-        middleHex.RemoveTerrain("Clear");
+        middleHex.RemoveTerrain(MakaMekTerrains.Clear);
         middleHex.AddTerrain(new LightWoodsTerrain());
 
         // Act & Assert
@@ -832,7 +832,7 @@ public class BattleMapTests
         foreach (var coord in heavyWoodsCoords)
         {
             var hex = map.GetHex(coord)!;
-            hex.RemoveTerrain("Clear");
+            hex.RemoveTerrain(MakaMekTerrains.Clear);
             hex.AddTerrain(new HeavyWoodsTerrain());
         }
 

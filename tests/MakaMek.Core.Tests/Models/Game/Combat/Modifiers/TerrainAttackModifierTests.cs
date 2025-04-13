@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services.Localization;
 using Shouldly;
 
@@ -18,7 +19,7 @@ public class TerrainAttackModifierTests
         var modifier = new TerrainAttackModifier
         {
             Value = 1,
-            TerrainId = "LightWoods",
+            TerrainId = MakaMekTerrains.LightWoods,
             Location = hexCoordinates
         };
         _localizationService.GetString("Modifier_Terrain").Returns("{0} at {1}: {2}");

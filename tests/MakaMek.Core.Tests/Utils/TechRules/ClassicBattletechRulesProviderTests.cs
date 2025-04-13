@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Terrains;
 
 namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
 {
@@ -130,10 +131,10 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         }
 
         [Theory]
-        [InlineData("LightWoods", 1)]
-        [InlineData("HeavyWoods", 2)]
-        [InlineData("unknown_terrain", 0)]
-        public void GetTerrainToHitModifier_ReturnsExpectedValues(string terrainId, int expectedModifier)
+        [InlineData(MakaMekTerrains.LightWoods, 1)]
+        [InlineData(MakaMekTerrains.HeavyWoods, 2)]
+        [InlineData(MakaMekTerrains.Clear, 0)]
+        public void GetTerrainToHitModifier_ReturnsExpectedValues(MakaMekTerrains terrainId, int expectedModifier)
         {
             _provider.GetTerrainToHitModifier(terrainId).ShouldBe(expectedModifier);
         }

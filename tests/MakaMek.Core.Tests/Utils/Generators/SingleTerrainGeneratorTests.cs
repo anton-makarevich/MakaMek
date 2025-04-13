@@ -21,7 +21,7 @@ public class SingleTerrainGeneratorTests
         var hex = generator.Generate(new HexCoordinates(2, 2));
 
         // Assert
-        hex.HasTerrain("Clear").ShouldBeTrue();
+        hex.HasTerrain(MakaMekTerrains.Clear).ShouldBeTrue();
     }
 
     [Theory]

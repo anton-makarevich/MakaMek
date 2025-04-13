@@ -32,7 +32,7 @@ public class LightWoodsTerrainTests
         var terrain = new LightWoodsTerrain();
 
         // Act & Assert
-        terrain.Id.ShouldBe("LightWoods");
+        terrain.Id.ShouldBe(MakaMekTerrains.LightWoods);
     }
 
     [Fact]

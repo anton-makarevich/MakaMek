@@ -24,13 +24,13 @@ public class AlternatingRowsGeneratorTests
             var hex = generator.Generate(new HexCoordinates(2, r));
             if (r % 2 == 0)
             {
-                hex.HasTerrain("Clear").ShouldBeTrue();
-                hex.HasTerrain("LightWoods").ShouldBeFalse();
+                hex.HasTerrain(MakaMekTerrains.Clear).ShouldBeTrue();
+                hex.HasTerrain((MakaMekTerrains.LightWoods)).ShouldBeFalse();
             }
             else
             {
-                hex.HasTerrain("Clear").ShouldBeFalse();
-                hex.HasTerrain("LightWoods").ShouldBeTrue();
+                hex.HasTerrain(MakaMekTerrains.Clear).ShouldBeFalse();
+                hex.HasTerrain((MakaMekTerrains.LightWoods)).ShouldBeTrue();
             }
         }
     }
@@ -66,7 +66,7 @@ public class AlternatingRowsGeneratorTests
         // Act & Assert
         for (var r = 1; r < height+1; r++)
         {
-            var expectedTerrain = r % 2 == 0 ? "Clear" : "LightWoods";
+            var expectedTerrain = r % 2 == 0 ? MakaMekTerrains.Clear : MakaMekTerrains.LightWoods;
 
             // Check all hexes in the same row have the same terrain
             for (var q = 1; q < width+1; q++)
