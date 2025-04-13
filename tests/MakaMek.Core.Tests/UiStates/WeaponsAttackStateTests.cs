@@ -18,6 +18,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.UiStates;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
@@ -60,7 +61,7 @@ public class WeaponsAttackStateTests
         _unit1 = new MechFactory(rules).Create(_unitData);
         _unit2 = new MechFactory(rules).Create(_unitData);
 
-        var battleMap = BattleMap.GenerateMap(
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
         _player = new Player(playerId, "Player1");

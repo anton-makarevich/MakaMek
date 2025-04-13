@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -36,6 +37,7 @@ public static class CoreServices
         services.AddSingleton<IMechDataProvider, MtfDataProvider>();
         services.AddSingleton<IUnitsLoader, EmbeddedResourcesUnitsLoader>();
         services.AddSingleton<IGameFactory, GameFactory>();
+        services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
         services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
         services.AddSingleton<IGameManager, GameManager>();
         services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();

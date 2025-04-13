@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -37,7 +38,7 @@ public abstract class GamePhaseTestsBase
 
     protected void SetMap()
     {
-        var battleMap = BattleMap.GenerateMap(10, 10, new SingleTerrainGenerator(10,10,
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10,10,
             new ClearTerrain()));
         Game.SetBattleMap(battleMap);
     }

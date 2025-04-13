@@ -352,48 +352,18 @@ public class BattleMap(int width, int height)
         return (int)Math.Round(startHeight + (endHeight - startHeight) * t);
     }
 
-    /// <summary>
-    /// Generate a rectangular map with the specified terrain generator
-    /// </summary>
-    public static BattleMap GenerateMap(int width, int height, ITerrainGenerator generator)
-    {
-        var map = new BattleMap(width, height);
-
-        for (var q = 1; q < width+1; q++)
-        {
-            for (var r = 1; r < height+1; r++)
-            {
-                var coordinates = new HexCoordinates(q, r);
-                var hex = generator.Generate(coordinates);
-                map._hexes[coordinates] = hex;
-            }
-        }
-
-        return map;
-    }
-
-    public static BattleMap CreateFromData(IList<HexData> hexData)
-    {
-        var map = new BattleMap(
-            hexData.Max(h => h.Coordinates.Q) + 1,
-            hexData.Max(h => h.Coordinates.R) + 1);
-        foreach (var hex in hexData)
-        {
-            var newHex = new Hex(new HexCoordinates(hex.Coordinates), hex.Level);
-            foreach (var terrainType in hex.TerrainTypes)
-            {
-                // Map terrain type strings to terrain classes
-                var terrain = Terrain.GetTerrainType(terrainType);
-                newHex.AddTerrain(terrain);
-            }
-            map.AddHex(newHex);
-        }
-        return map;
-    }
-
     public IEnumerable<Hex> GetHexes()
     {
         return _hexes.Values;
+    }
+
+    /// <summary>
+    /// Converts the battle map to a list of hex data objects
+    /// </summary>
+    /// <returns>List of hex data objects representing the map</returns>
+    public List<HexData> ToData()
+    {
+        return GetHexes().Select(hex => hex.ToData()).ToList();
     }
 
     public List<PathSegment>? FindJumpPath(HexPosition from, HexPosition to, int movementPoints)
