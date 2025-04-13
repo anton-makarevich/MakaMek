@@ -843,4 +843,60 @@ public class BattleMapTests
         losWithCache.ShouldBeTrue("Should still have LOS when using cached path");
         losWithCache.ShouldBe(initialLos, "LOS result should not change without cache clear");
     }
+
+    [Fact]
+    public void ToData_ReturnsCorrectHexDataList()
+    {
+        // Arrange
+        var map = new BattleMap(3, 3);
+        
+        // Add hexes with different terrains and levels
+        var hex1 = new Hex(new HexCoordinates(1, 1), 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 2), 1);
+        hex2.AddTerrain(new LightWoodsTerrain());
+        map.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(3, 3), 2);
+        hex3.AddTerrain(new HeavyWoodsTerrain());
+        map.AddHex(hex3);
+
+        // Act
+        var hexDataList = map.ToData();
+
+        // Assert
+        hexDataList.Count.ShouldBe(3);
+        
+        // Verify first hex data
+        var hexData1 = hexDataList.First(h => h.Coordinates.Q == 1 && h.Coordinates.R == 1);
+        hexData1.Level.ShouldBe(0);
+        hexData1.TerrainTypes.ShouldContain(MakaMekTerrains.Clear);
+        
+        // Verify second hex data
+        var hexData2 = hexDataList.First(h => h.Coordinates.Q == 2 && h.Coordinates.R == 2);
+        hexData2.Level.ShouldBe(1);
+        hexData2.TerrainTypes.ShouldContain(MakaMekTerrains.LightWoods);
+        
+        // Verify third hex data
+        var hexData3 = hexDataList.First(h => h.Coordinates.Q == 3 && h.Coordinates.R == 3);
+        hexData3.Level.ShouldBe(2);
+        hexData3.TerrainTypes.ShouldContain(MakaMekTerrains.HeavyWoods);
+    }
+
+    private BattleMap CreateTestMap()
+    {
+        var map = new BattleMap(5, 5);
+        for (var q = 1; q <= 5; q++)
+        {
+            for (var r = 1; r <= 5; r++)
+            {
+                var hex = new Hex(new HexCoordinates(q, r));
+                hex.AddTerrain(new ClearTerrain());
+                map.AddHex(hex);
+            }
+        }
+        return map;
+    }
 }

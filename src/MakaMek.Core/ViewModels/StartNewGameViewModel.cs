@@ -180,7 +180,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                 forestCoverage: ForestCoverage / 100.0,
                 lightWoodsProbability: LightWoodsPercentage / 100.0));
         
-        var hexDataList = map.GetHexes().Select(hex => hex.ToData()).ToList();
+        var hexDataList = map.ToData();
         var localBattleMap = _mapFactory.CreateFromData(hexDataList);
         
         // 2. Set BattleMap on GameManager/ServerGame

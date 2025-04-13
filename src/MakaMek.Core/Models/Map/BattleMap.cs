@@ -357,6 +357,15 @@ public class BattleMap(int width, int height)
         return _hexes.Values;
     }
 
+    /// <summary>
+    /// Converts the battle map to a list of hex data objects
+    /// </summary>
+    /// <returns>List of hex data objects representing the map</returns>
+    public List<HexData> ToData()
+    {
+        return GetHexes().Select(hex => hex.ToData()).ToList();
+    }
+
     public List<PathSegment>? FindJumpPath(HexPosition from, HexPosition to, int movementPoints)
     {
         if (!IsOnMap(from.Coordinates) || !IsOnMap(to.Coordinates))
