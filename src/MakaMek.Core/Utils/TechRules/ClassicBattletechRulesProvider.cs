@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
@@ -264,12 +265,12 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         };
     }
 
-    public int GetTerrainToHitModifier(string terrainId)
+    public int GetTerrainToHitModifier(MakaMekTerrains terrainId)
     {
         return terrainId switch
         {
-            "LightWoods" => 1,
-            "HeavyWoods" => 2,
+            MakaMekTerrains.LightWoods => 1,
+            MakaMekTerrains.HeavyWoods => 2,
             _ => 0 // Default no modifier
         };
     }

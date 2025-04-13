@@ -8,9 +8,9 @@ public abstract class Terrain
     /// <summary>
     /// Unique identifier for this terrain type
     /// </summary>
-    public abstract string Id { get; }
+    public abstract MakaMekTerrains Id { get; }
 
-        /// <summary>
+    /// <summary>
     /// Fixed height of this terrain type
     /// </summary>
     public abstract int Height { get; }
@@ -27,13 +27,13 @@ public abstract class Terrain
     /// </summary>
     public abstract int MovementCost { get; }
 
-    public static Terrain GetTerrainType(string terrainType)
+    public static Terrain GetTerrainType(MakaMekTerrains terrainType)
     {
         return terrainType switch
         {
-            "Clear" => new ClearTerrain(),
-            "LightWoods" => new LightWoodsTerrain(),
-            "HeavyWoods" => new HeavyWoodsTerrain(),
+            MakaMekTerrains.Clear => new ClearTerrain(),
+            MakaMekTerrains.LightWoods => new LightWoodsTerrain(),
+            MakaMekTerrains.HeavyWoods => new HeavyWoodsTerrain(),
             _ => throw new ArgumentException($"Unknown terrain type: {terrainType}")
         };
     }

@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
@@ -32,7 +33,7 @@ public interface IRulesProvider
     /// <summary>
     /// Gets the to-hit modifier for a specific terrain type
     /// </summary>
-    int GetTerrainToHitModifier(string terrainType);
+    int GetTerrainToHitModifier(MakaMekTerrains terrainType);
 
     /// <summary>
     /// Gets the modifier for firing at a secondary target

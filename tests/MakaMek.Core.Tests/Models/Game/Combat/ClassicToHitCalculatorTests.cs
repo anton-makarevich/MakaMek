@@ -110,7 +110,7 @@ public class ClassicToHitCalculatorTests
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
         var map = BattleMap.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
-        _rules.GetTerrainToHitModifier("LightWoods").Returns(1);
+        _rules.GetTerrainToHitModifier((MakaMekTerrains.LightWoods)).Returns(1);
 
         // Act
         var result = _sut.GetToHitNumber(_attacker!, _target!, _weapon, map);
@@ -145,7 +145,7 @@ public class ClassicToHitCalculatorTests
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
         var map = BattleMap.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
-        _rules.GetTerrainToHitModifier("LightWoods").Returns(1);
+        _rules.GetTerrainToHitModifier((MakaMekTerrains.LightWoods)).Returns(1);
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
@@ -171,7 +171,7 @@ public class ClassicToHitCalculatorTests
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(4, 2), HexDirection.Bottom));
         var map = BattleMap.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new LightWoodsTerrain()));
-        _rules.GetTerrainToHitModifier("LightWoods").Returns(1);
+        _rules.GetTerrainToHitModifier((MakaMekTerrains.LightWoods)).Returns(1);
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
@@ -185,7 +185,7 @@ public class ClassicToHitCalculatorTests
         result.RangeModifier.Range.ShouldBe(WeaponRange.Short);
         result.TerrainModifiers.Count.ShouldBe(2); // Hexes between units (3,2) + target hex (4,2)
         result.TerrainModifiers.All(t => t.Value == 1).ShouldBeTrue();
-        result.TerrainModifiers.All(t => t.TerrainId == "LightWoods").ShouldBeTrue();
+        result.TerrainModifiers.All(t => t.TerrainId == (MakaMekTerrains.LightWoods)).ShouldBeTrue();
         result.Total.ShouldBe(6); // Base (4) + terrain (2)
     }
 

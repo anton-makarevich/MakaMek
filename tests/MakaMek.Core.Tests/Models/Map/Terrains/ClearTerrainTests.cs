@@ -32,7 +32,7 @@ public class ClearTerrainTests
         var terrain = new ClearTerrain();
 
         // Act & Assert
-        terrain.Id.ShouldBe("Clear");
+        terrain.Id.ShouldBe(MakaMekTerrains.Clear);
     }
 
     [Fact]

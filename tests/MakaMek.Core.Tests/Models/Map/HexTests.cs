@@ -41,8 +41,8 @@ public class HexTests
         hex.AddTerrain(heavyWoods);
 
         // Assert
-        hex.HasTerrain("HeavyWoods").ShouldBeTrue();
-        hex.GetTerrain("HeavyWoods").ShouldBe(heavyWoods);
+        hex.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeTrue();
+        hex.GetTerrain(MakaMekTerrains.HeavyWoods).ShouldBe(heavyWoods);
     }
 
     [Fact]
@@ -53,11 +53,11 @@ public class HexTests
         hex.AddTerrain(new HeavyWoodsTerrain());
 
         // Act
-        hex.RemoveTerrain("HeavyWoods");
+        hex.RemoveTerrain(MakaMekTerrains.HeavyWoods);
 
         // Assert
-        hex.HasTerrain("HeavyWoods").ShouldBeFalse();
-        hex.GetTerrain("HeavyWoods").ShouldBeNull();
+        hex.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeFalse();
+        hex.GetTerrain(MakaMekTerrains.HeavyWoods).ShouldBeNull();
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class HexTests
         hex.AddTerrain(new HeavyWoodsTerrain()); // TerrainFactor = 3
 
         // Act
-        hex.RemoveTerrain("HeavyWoods");
+        hex.RemoveTerrain(MakaMekTerrains.HeavyWoods);
 
         // Assert
         hex.MovementCost.ShouldBe(2);
@@ -161,8 +161,8 @@ public class HexTests
         hex.AddTerrain(new HeavyWoodsTerrain());
 
         // Act
-        hex.RemoveTerrain("LightWoods");
-        hex.RemoveTerrain("HeavyWoods");
+        hex.RemoveTerrain((MakaMekTerrains.LightWoods));
+        hex.RemoveTerrain(MakaMekTerrains.HeavyWoods);
 
         // Assert
         hex.MovementCost.ShouldBe(1);

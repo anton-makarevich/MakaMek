@@ -10,7 +10,7 @@ public class Hex
 {
     public HexCoordinates Coordinates { get; }
     public int Level { get; private set; }
-    private readonly Dictionary<string, Terrain> _terrains = new();
+    private readonly Dictionary<MakaMekTerrains, Terrain> _terrains = new();
     public string? Theme { get; set; }
 
     public Hex(HexCoordinates coordinates, int level = 0)
@@ -24,14 +24,14 @@ public class Hex
         _terrains[terrain.Id] = terrain;
     }
 
-    public void RemoveTerrain(string terrainId)
+    public void RemoveTerrain(MakaMekTerrains terrainId)
     {
         _terrains.Remove(terrainId);
     }
 
-    public bool HasTerrain(string terrainId) => _terrains.ContainsKey(terrainId);
+    public bool HasTerrain(MakaMekTerrains terrainId) => _terrains.ContainsKey(terrainId);
 
-    public Terrain? GetTerrain(string terrainId) =>
+    public Terrain? GetTerrain(MakaMekTerrains terrainId) =>
         _terrains.GetValueOrDefault(terrainId);
 
     public IEnumerable<Terrain> GetTerrains() => _terrains.Values;
@@ -53,7 +53,7 @@ public class Hex
 
     public bool IsHighlighted { get; set; }
 
-    public string[] GetTerrainTypes()
+    public MakaMekTerrains[] GetTerrainTypes()
     {
         return _terrains.Values.Select(t => t.Id).ToArray(); 
     }

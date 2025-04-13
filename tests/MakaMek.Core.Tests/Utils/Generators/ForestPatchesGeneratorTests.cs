@@ -2,6 +2,7 @@ using Shouldly;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Terrains;
 
 namespace Sanet.MakaMek.Core.Tests.Utils.Generators;
 
@@ -21,9 +22,9 @@ public class ForestPatchesGeneratorTests
             for (var r = 1; r < height+1; r++)
             {
                 var hex = generator.Generate(new HexCoordinates(q, r));
-                hex.HasTerrain("Clear").ShouldBeTrue();
-                hex.HasTerrain("LightWoods").ShouldBeFalse();
-                hex.HasTerrain("HeavyWoods").ShouldBeFalse();
+                hex.HasTerrain(MakaMekTerrains.Clear).ShouldBeTrue();
+                hex.HasTerrain(MakaMekTerrains.LightWoods).ShouldBeFalse();
+                hex.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeFalse();
             }
         }
     }
@@ -46,8 +47,8 @@ public class ForestPatchesGeneratorTests
             for (var r = 1; r < height+1; r++)
             {
                 var hex = generator.Generate(new HexCoordinates(q, r));
-                hex.HasTerrain("Clear").ShouldBeFalse();
-                if (hex.HasTerrain("LightWoods") || hex.HasTerrain("HeavyWoods"))
+                hex.HasTerrain(MakaMekTerrains.Clear).ShouldBeFalse();
+                if (hex.HasTerrain((MakaMekTerrains.LightWoods)) || hex.HasTerrain(MakaMekTerrains.HeavyWoods))
                 {
                     hasAnyWoods = true;
                 }
@@ -101,7 +102,7 @@ public class ForestPatchesGeneratorTests
 
         // Assert
         // Count hexes with woods
-        var woodsHexes = hexes.Count(h => h.HasTerrain("LightWoods") || h.HasTerrain("HeavyWoods"));
+        var woodsHexes = hexes.Count(h => h.HasTerrain((MakaMekTerrains.LightWoods)) || h.HasTerrain(MakaMekTerrains.HeavyWoods));
         woodsHexes.ShouldBeGreaterThan(0);
 
         // Verify that woods appear in patches by checking for adjacent woods hexes
@@ -111,7 +112,7 @@ public class ForestPatchesGeneratorTests
             for (var r = 1; r < height - 1; r++)
             {
                 var currentHex = hexes[q * height + r];
-                if (currentHex.HasTerrain("LightWoods") || currentHex.HasTerrain("HeavyWoods"))
+                if (currentHex.HasTerrain((MakaMekTerrains.LightWoods)) || currentHex.HasTerrain(MakaMekTerrains.HeavyWoods))
                 {
                     // Check adjacent hexes
                     var coords = new HexCoordinates(q, r);
@@ -121,7 +122,7 @@ public class ForestPatchesGeneratorTests
                             neighbor.R is >= 1 and < height+1)
                         {
                             var neighborHex = hexes[neighbor.Q * (height+1) + neighbor.R];
-                            if (neighborHex.HasTerrain("LightWoods") || neighborHex.HasTerrain("HeavyWoods"))
+                            if (neighborHex.HasTerrain((MakaMekTerrains.LightWoods)) || neighborHex.HasTerrain(MakaMekTerrains.HeavyWoods))
                             {
                                 hasAdjacentWoods = true;
                                 break;
