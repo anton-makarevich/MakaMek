@@ -259,6 +259,7 @@ public abstract class BaseGame : IGame
             WeaponAttackResolutionCommand => true,
             HeatUpdatedCommand => true,
             TurnEndedCommand => true,
+            RequestGameLobbyStatusCommand => true,
             _ => false
         };
     }

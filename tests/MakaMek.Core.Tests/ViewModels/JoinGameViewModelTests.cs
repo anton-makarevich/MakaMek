@@ -73,6 +73,19 @@ public class JoinGameViewModelTests
     }
     
     [Fact]
+    public async Task ConnectToServer_RequestsLobbyStatus()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
+        
+        // Act
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        
+        // Assert
+        _commandPublisher.Received().PublishCommand(Arg.Any<RequestGameLobbyStatusCommand>());
+    }
+    
+    [Fact]
     public async Task ConnectToServer_AddsNewPublisherAfterClearing()
     {
         // Arrange

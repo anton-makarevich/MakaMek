@@ -166,4 +166,9 @@ public sealed class ClientGame : BaseGame
         if (ActivePlayer == null) return;
         CommandPublisher.PublishCommand(command);
     }
+
+    public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
+    {
+        CommandPublisher.PublishCommand(statusCommand);
+    }
 }

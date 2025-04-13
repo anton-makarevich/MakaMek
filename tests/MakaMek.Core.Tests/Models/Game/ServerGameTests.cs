@@ -258,4 +258,46 @@ public class ServerGameTests
         // Assert
         _sut.Turn.ShouldBe(2);
     }
+
+    [Fact]
+    public void HandleCommand_ShouldProcessRequestGameLobbyStatusCommand_WhenReceived()
+    {
+        // Arrange
+        var mockPhase = Substitute.For<IGamePhase>();
+        mockPhase.Name.Returns(PhaseNames.Start);
+        
+        var phaseManager = Substitute.For<IPhaseManager>();
+        
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        var diceRoller = Substitute.For<IDiceRoller>();
+        var rulesProvider = new ClassicBattletechRulesProvider();
+        
+        // Set up the phase manager to return our mock phase
+                phaseManager.GetNextPhase(PhaseNames.Start, Arg.Any<ServerGame>()).Returns(mockPhase);
+        
+        // Create the game with mocked phase manager
+        var sut = new ServerGame(
+            rulesProvider, 
+            commandPublisher, 
+            diceRoller,
+            Substitute.For<IToHitCalculator>(),
+            phaseManager);
+        
+        sut.TransitionToNextPhase(PhaseNames.Start);
+
+        // Create the command to test
+        var requestCommand = new RequestGameLobbyStatusCommand
+        {
+            GameOriginId = Guid.NewGuid(), // Different from the game's ID
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        sut.HandleCommand(requestCommand);
+
+        // Assert
+        // Verify that the command was passed to the current phase
+        mockPhase.Received(1).HandleCommand(Arg.Is<RequestGameLobbyStatusCommand>(cmd => 
+            cmd.GameOriginId == requestCommand.GameOriginId));
+    }
 }

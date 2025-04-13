@@ -67,7 +67,7 @@ public class ServerGame : BaseGame, IDisposable
 
     public override void HandleCommand(IGameCommand command)
     {
-        if (command is not IClientCommand) return;
+        if (command is not IClientCommand and not RequestGameLobbyStatusCommand) return;
         if (!ShouldHandleCommand(command)) return;
         if (!ValidateCommand(command)) return;
 

@@ -124,6 +124,10 @@ public class JoinGameViewModel : NewGameViewModel
                 _commandPublisher,
                 _toHitCalculator);
             IsConnected = true;
+            _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
+            {
+                GameOriginId = _localGame.Id
+            });
             (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged(); // Disable connect button
             NotifyPropertyChanged(nameof(CanAddPlayer)); // Enable Add Player once connected
         }
