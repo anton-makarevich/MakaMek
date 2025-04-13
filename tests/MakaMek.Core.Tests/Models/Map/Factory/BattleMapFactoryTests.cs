@@ -78,15 +78,21 @@ public class BattleMapFactoryTests
     public void CreateFromData_ShouldCloneHexesCorrectly()
     {
         // Arrange
-        var originalMap = new BattleMap(2, 2);
-        var woodHex = new Hex(new HexCoordinates(1, 1), 1);
-        woodHex.AddTerrain(new HeavyWoodsTerrain());
-        originalMap.AddHex(woodHex);
-        originalMap.AddHex(new Hex(new HexCoordinates(1, 1),2));
-        originalMap.AddHex(new Hex(new HexCoordinates(1, 2)));
-        originalMap.AddHex(new Hex(new HexCoordinates(2, 1)));
+        var originalMap = new BattleMap(3, 3);
+        // Add hexes with different terrains and levels
+        var hex1 = new Hex(new HexCoordinates(1, 1), 0);
+        hex1.AddTerrain(new ClearTerrain());
+        originalMap.AddHex(hex1);
         
-        var hexDataList = originalMap.GetHexes().Select(hex => hex.ToData()).ToList();
+        var hex2 = new Hex(new HexCoordinates(2, 2), 1);
+        hex2.AddTerrain(new LightWoodsTerrain());
+        originalMap.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(3, 3), 2);
+        hex3.AddTerrain(new HeavyWoodsTerrain());
+        originalMap.AddHex(hex3);
+        
+        var hexDataList = originalMap.ToData();
 
         // Act
         var clonedMap = _sut.CreateFromData(hexDataList);
