@@ -16,6 +16,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -28,7 +29,7 @@ public class ClientGameTests
 
     public ClientGameTests()
     {
-        var battleMap = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
         _sut = new ClientGame(rulesProvider, _commandPublisher,
@@ -1187,7 +1188,7 @@ public class ClientGameTests
         var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2");
         
         // Create a new client game with local players
-        var battleMap = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
         var clientGame = new ClientGame(
@@ -1259,7 +1260,7 @@ public class ClientGameTests
         var localPlayer3 = new Player(Guid.NewGuid(), "LocalPlayer3");
         
         // Create a new client game with local players
-        var battleMap = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
         var clientGame = new ClientGame(

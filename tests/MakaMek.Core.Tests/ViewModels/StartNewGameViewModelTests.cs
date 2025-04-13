@@ -1,6 +1,7 @@
 using AsyncAwaitBestPractices.MVVM;
 using Shouldly;
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
@@ -15,6 +16,10 @@ using Sanet.MakaMek.Core.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Factories;
+using Sanet.MakaMek.Core.Models.Map.Factory;
+using Sanet.MakaMek.Core.Models.Map.Terrains;
+using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Utils.Generators;
 
 namespace Sanet.MakaMek.Core.Tests.ViewModels;
 
@@ -44,6 +49,7 @@ public class StartNewGameViewModelTests
         var toHitCalculator = Substitute.For<IToHitCalculator>(); 
         var dispatcherService = Substitute.For<IDispatcherService>(); 
         var gameFactory = Substitute.For<IGameFactory>(); 
+        var mapFactory = Substitute.For<IBattleMapFactory>();
 
         _clientGame = new ClientGame(rulesProvider, _commandPublisher, toHitCalculator); 
         gameFactory.CreateClientGame(rulesProvider, _commandPublisher, toHitCalculator)
@@ -51,6 +57,11 @@ public class StartNewGameViewModelTests
         
         // Set up server game ID
         _gameManager.ServerGameId.Returns(_serverGameId);
+
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(5, 5,
+            new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>()).Returns(map);
+        mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
 
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
 
@@ -61,7 +72,8 @@ public class StartNewGameViewModelTests
             _commandPublisher, 
             toHitCalculator, 
             dispatcherService, 
-            gameFactory); 
+            gameFactory,
+            mapFactory); 
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }

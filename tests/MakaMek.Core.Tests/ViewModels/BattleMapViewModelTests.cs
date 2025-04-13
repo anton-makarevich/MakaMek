@@ -17,6 +17,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.UiStates;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
@@ -80,7 +81,7 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
         ((ClientGame)_game).JoinGameWithUnits(player,[unitData]);
-        ((ClientGame)_game).SetBattleMap(BattleMap.GenerateMap(2, 2,
+        ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
                                                          new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
 
@@ -165,7 +166,7 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
         clientGame.JoinGameWithUnits(player, []);
-        clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())) );
+        clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())) );
         _sut.Game = clientGame;
 
         var joinCommand = new JoinGameCommand
@@ -196,7 +197,7 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
         clientGame.JoinGameWithUnits(player,[]);
-        clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
         var joinCommand = new JoinGameCommand
@@ -262,7 +263,7 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
         ((ClientGame)_game).JoinGameWithUnits(player,[]);
-        ((ClientGame)_game).SetBattleMap(BattleMap.GenerateMap(2, 2,
+        ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
                                                          new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
 
@@ -303,7 +304,7 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
         ((ClientGame)_game).JoinGameWithUnits(player,[]);
-        ((ClientGame)_game).SetBattleMap(BattleMap.GenerateMap(2, 2,
+        ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
         ((ClientGame)_game).HandleCommand(new JoinGameCommand()
@@ -344,7 +345,7 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
         ((ClientGame)_game).JoinGameWithUnits(player,[]);
-        ((ClientGame)_game).SetBattleMap(BattleMap.GenerateMap(2, 2,
+        ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
 
@@ -608,7 +609,7 @@ public class BattleMapViewModelTests
         // Arrange
         var rules = new ClassicBattletechRulesProvider();
         var mechData = MechFactoryTests.CreateDummyMechData();
-        var battleMap = BattleMap.GenerateMap(
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player = new Player(Guid.NewGuid(), "Player1");
@@ -677,7 +678,7 @@ public class BattleMapViewModelTests
         // Arrange
         var rules = new ClassicBattletechRulesProvider();
         var mechData = MechFactoryTests.CreateDummyMechData();
-        var battleMap = BattleMap.GenerateMap(
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player = new Player(Guid.NewGuid(), "Player1");
@@ -731,7 +732,7 @@ public class BattleMapViewModelTests
         // Arrange
         var rules = new ClassicBattletechRulesProvider();
         var mechData = MechFactoryTests.CreateDummyMechData();
-        var battleMap = BattleMap.GenerateMap(
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player1 = new Player(Guid.NewGuid(), "Player1");
@@ -812,7 +813,7 @@ public class BattleMapViewModelTests
         // Arrange
         var rules = new ClassicBattletechRulesProvider();
         var mechData = MechFactoryTests.CreateDummyMechData();
-        var battleMap = BattleMap.GenerateMap(
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player1 = new Player(Guid.NewGuid(), "Player1");
@@ -910,7 +911,7 @@ public class BattleMapViewModelTests
         // Arrange
         var rules = new ClassicBattletechRulesProvider();
         var mechData = MechFactoryTests.CreateDummyMechData();
-        var battleMap = BattleMap.GenerateMap(
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player1 = new Player(Guid.NewGuid(), "Player1");
@@ -966,7 +967,7 @@ public class BattleMapViewModelTests
         // Arrange
         var rules = new ClassicBattletechRulesProvider();
         var mechData = MechFactoryTests.CreateDummyMechData();
-        var battleMap = BattleMap.GenerateMap(
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player1 = new Player(Guid.NewGuid(), "Player1");
@@ -1014,7 +1015,7 @@ public class BattleMapViewModelTests
             Substitute.For<IToHitCalculator>());
         game.JoinGameWithUnits(player, []);
         game.JoinGameWithUnits(targetPlayer, []);
-        game.SetBattleMap(BattleMap.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
         
         _sut.Game = game;
         game.HandleCommand(new JoinGameCommand
@@ -1114,7 +1115,7 @@ public class BattleMapViewModelTests
             Substitute.For<IToHitCalculator>());
         game.JoinGameWithUnits(activePlayer, []);
         game.JoinGameWithUnits(targetPlayer, []);
-        game.SetBattleMap(BattleMap.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
         _sut.Game = game;
         
         // Create a second attacker for the same player
@@ -1260,7 +1261,7 @@ public class BattleMapViewModelTests
             Substitute.For<IToHitCalculator>());
         game.JoinGameWithUnits(player, [mechData]);
         game.JoinGameWithUnits(targetPlayer, []);
-        game.SetBattleMap(BattleMap.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
         _sut.Game = game;
         
         // Add units to the game via commands
@@ -1391,7 +1392,7 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
         clientGame.JoinGameWithUnits(player, []);
-        clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
         _localizationService.GetString("EndPhase_ActionLabel").Returns("End your turn");
@@ -1434,7 +1435,7 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>());
         clientGame.JoinGameWithUnits(player, []);
-        clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
         // Set up the game state for End phase
@@ -1468,7 +1469,7 @@ public class BattleMapViewModelTests
             commandPublisher,
             Substitute.For<IToHitCalculator>());
         clientGame.JoinGameWithUnits(player, []);
-        clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
         _localizationService.GetString("EndPhase_ActionLabel").Returns("End your turn");
@@ -1520,7 +1521,7 @@ public class BattleMapViewModelTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
         });
-        clientGame.SetBattleMap(BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
         clientGame.HandleCommand(new ChangeActivePlayerCommand
         {

@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
+using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -302,7 +303,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
     public void HandleCommand_WhenTieOccurs_ShouldOnlyReRollTiedPlayers()
     {
         // Arrange
-        var battleMap = BattleMap.GenerateMap(10, 10,
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(10, 10,
             new SingleTerrainGenerator(10,10, new ClearTerrain()));
         var mockPhaseManager = Substitute.For<IPhaseManager>();
         var mockNextPhase = Substitute.For<IGamePhase>();

@@ -2,6 +2,7 @@ using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Utils.Generators;
 
@@ -9,6 +10,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Map;
 
 public class BattleMapTests
 {
+    public static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     [Fact]
     public void Constructor_SetsWidthAndHeight()
     {
@@ -91,7 +93,7 @@ public class BattleMapTests
     public void GetReachableHexes_WithClearTerrain_ReturnsCorrectHexes()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5,
+        var map = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
 
@@ -192,7 +194,7 @@ public class BattleMapTests
             .Returns(c => new Hex(c.Arg<HexCoordinates>()));
 
         // Act
-        var map = BattleMap.GenerateMap(width, height, generator);
+        var map = BattleMapFactory.GenerateMap(width, height, generator);
 
         // Assert
         map.Width.ShouldBe(width);
@@ -227,7 +229,7 @@ public class BattleMapTests
             });
 
         // Act
-        var map = BattleMap.GenerateMap(width, height, generator);
+        var map = BattleMapFactory.GenerateMap(width, height, generator);
 
         // Assert
         // Check all hexes have clear terrain
@@ -259,7 +261,7 @@ public class BattleMapTests
         var hexDataList = originalMap.GetHexes().Select(hex => hex.ToData()).ToList();
 
         // Act
-        var clonedMap = BattleMap.CreateFromData(hexDataList);
+        var clonedMap = BattleMapFactory.CreateFromData(hexDataList);
 
         // Assert
         foreach (var hex in originalMap.GetHexes())
@@ -275,7 +277,7 @@ public class BattleMapTests
     public void GetReachableHexes_WithComplexTerrainAndFacing_ReachesHexThroughClearPath()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(11, 9,
+        var map = BattleMapFactory.GenerateMap(11, 9,
             new SingleTerrainGenerator(11, 9, new ClearTerrain())); // Size to fit all hexes (0-10, 0-8)
 
         // Heavy Woods
@@ -338,7 +340,7 @@ public class BattleMapTests
     public void GetReachableHexes_WithProhibitedHexes_ExcludesProhibitedHexes()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(3, 3,
+        var map = BattleMapFactory.GenerateMap(3, 3,
             new SingleTerrainGenerator(3,3, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
 
@@ -362,7 +364,7 @@ public class BattleMapTests
     public void FindPath_WithProhibitedHexes_FindsAlternativePath()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(3, 3,
+        var map = BattleMapFactory.GenerateMap(3, 3,
             new SingleTerrainGenerator(3,3, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
@@ -392,7 +394,7 @@ public class BattleMapTests
     public void FindPath_WithTerrainCosts_ShouldConsiderMovementCosts()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(2, 5, 
+        var map = BattleMapFactory.GenerateMap(2, 5, 
             new SingleTerrainGenerator(2,5, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var target = new HexPosition(new HexCoordinates(1, 5), HexDirection.Bottom);
@@ -456,7 +458,7 @@ public class BattleMapTests
     {
         // Arrange
         var terrain = (Terrain)Activator.CreateInstance(terrainType)!;
-        var map = BattleMap.GenerateMap(5, 5,
+        var map = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, terrain));
         var start = new HexCoordinates(3, 3);
         const int movementPoints = 2; 
@@ -483,7 +485,7 @@ public class BattleMapTests
     public void GetJumpReachableHexes_WithProhibitedHexes_ExcludesProhibitedHexes()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5,
+        var map = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var start = new HexCoordinates(3, 3);
         const int movementPoints = 2;
@@ -503,7 +505,7 @@ public class BattleMapTests
     public void GetJumpReachableHexes_AtMapEdge_ReturnsOnlyValidHexes()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(3, 3,
+        var map = BattleMapFactory.GenerateMap(3, 3,
             new SingleTerrainGenerator(3, 3, new ClearTerrain()));
         var start = new HexCoordinates(1, 1); // Corner hex
         const int movementPoints = 2;
@@ -529,7 +531,7 @@ public class BattleMapTests
     public void FindJumpPath_ReturnsCorrectPath(int fromQ, int fromR, int toQ, int toR, int mp, bool shouldFindPath)
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new HeavyWoodsTerrain()));
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new HeavyWoodsTerrain()));
         var from = new HexPosition(new HexCoordinates(fromQ, fromR), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(toQ, toR), HexDirection.Bottom);
 
@@ -564,7 +566,7 @@ public class BattleMapTests
     public void FindJumpPath_IgnoresTerrainCosts()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new HeavyWoodsTerrain()));
+        var map = BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new HeavyWoodsTerrain()));
         var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var to = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
 
@@ -581,7 +583,7 @@ public class BattleMapTests
     public void FindJumpPath_ReturnsNullForInvalidPositions()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain()));
         var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var invalidTo = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
 
@@ -596,7 +598,7 @@ public class BattleMapTests
     public void IsOnMap_ReturnsTrueForValidCoordinates()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5,
+        var map = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
 
         // Act
@@ -610,7 +612,7 @@ public class BattleMapTests
     public void IsOnMap_ReturnsFalseForInvalidCoordinates()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5,
+        var map = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
 
         // Act
@@ -680,7 +682,7 @@ public class BattleMapTests
     public void HasLineOfSight_ReturnsFalse_WhenCoordinatesAreInvalid()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var invalidCoord = new HexCoordinates(0, 0);
         var validCoord = new HexCoordinates(1, 1);
 
@@ -693,7 +695,7 @@ public class BattleMapTests
     public void HasLineOfSight_ReturnsTrue_WhenSameHex()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var coord = new HexCoordinates(1, 1);
 
         // Act & Assert
@@ -704,7 +706,7 @@ public class BattleMapTests
     public void HasLineOfSight_ReturnsTrue_WhenNoInterveningTerrain()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 3);
 
@@ -716,7 +718,7 @@ public class BattleMapTests
     public void HasLineOfSight_ReturnsTrue_WhenAdjacentHexes()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 2);
 
@@ -728,7 +730,7 @@ public class BattleMapTests
     public void HasLineOfSight_ReturnsTrue_WhenInterveningFactorLessThanThree()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 4);
         
@@ -749,7 +751,7 @@ public class BattleMapTests
     public void HasLineOfSight_ReturnsFalse_WhenInterveningFactorEqualsThree()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 4);
         
@@ -770,7 +772,7 @@ public class BattleMapTests
     public void HasLineOfSight_ReturnsFalse_WhenInterveningFactorGreaterThanThree()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 4);
         
@@ -791,7 +793,7 @@ public class BattleMapTests
     public void HasLineOfSight_IgnoresStartAndEndHexTerrain()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 3);
         
@@ -817,7 +819,7 @@ public class BattleMapTests
     public void HasLineOfSight_WithHeavyWoodsCluster_ShouldBlockLOS()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var attacker = new HexCoordinates(2, 3);
         var target = new HexCoordinates(7, 3);
         
@@ -849,7 +851,7 @@ public class BattleMapTests
     public void HasLineOfSight_DividedLine_ShouldPreferDefenderOption()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var start = new HexCoordinates(2, 2);
         var end = new HexCoordinates(6, 2);
         
@@ -866,7 +868,7 @@ public class BattleMapTests
     public void HasLineOfSight_DividedLine_ShouldPreferDefenderSecondaryOption()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(10, 10, 
+        var map = BattleMapFactory.GenerateMap(10, 10, 
             new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var start = new HexCoordinates(2, 2);
         var end = new HexCoordinates(6, 2);
@@ -884,7 +886,7 @@ public class BattleMapTests
     public void HasLineOfSight_CacheCleared_ShouldRecalculatePath()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(10, 10, 
+        var map = BattleMapFactory.GenerateMap(10, 10, 
             new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var from = new HexCoordinates(2, 2);
         var to = new HexCoordinates(6, 2);
@@ -911,7 +913,7 @@ public class BattleMapTests
     public void HasLineOfSight_CacheNotCleared_ShouldUseCachedPath()
     {
         // Arrange
-        var map = BattleMap.GenerateMap(10, 10, 
+        var map = BattleMapFactory.GenerateMap(10, 10, 
             new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var from = new HexCoordinates(2, 2);
         var to = new HexCoordinates(6, 2);

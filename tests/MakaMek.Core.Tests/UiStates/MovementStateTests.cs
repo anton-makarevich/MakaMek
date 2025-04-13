@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.UiStates;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
@@ -65,7 +66,7 @@ public class MovementStateTests
         // Create two adjacent hexes
         _hex1 = new Hex(new HexCoordinates(1, 1));
         
-        var battleMap = BattleMap.GenerateMap(
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2,11, new ClearTerrain()));
          _player = new Player(playerId, "Player1");

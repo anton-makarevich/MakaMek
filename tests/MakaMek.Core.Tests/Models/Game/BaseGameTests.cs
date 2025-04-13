@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -27,7 +28,7 @@ public class BaseGameTests : BaseGame
         Substitute.For<ICommandPublisher>(),
         Substitute.For<IToHitCalculator>())
     {
-        base.SetBattleMap(BattleMap.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
+        base.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
     }
 
     [Fact]

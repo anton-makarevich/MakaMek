@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
@@ -27,7 +28,7 @@ public class BattleTechPhaseManagerTests
             Substitute.For<IToHitCalculator>(), // toHitCalculator
             _sut  // phaseManager
         );
-        _game.SetBattleMap(BattleMap.GenerateMap(5,5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
+        _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(5,5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
     }
 
     [Fact]

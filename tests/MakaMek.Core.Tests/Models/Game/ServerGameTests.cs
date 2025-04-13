@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -24,7 +25,7 @@ public class ServerGameTests
     private readonly ICommandPublisher _commandPublisher;
     public ServerGameTests()
     {
-        var battleMap = BattleMap.GenerateMap(5, 5,
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5,5, new ClearTerrain()));
         
         _commandPublisher = Substitute.For<ICommandPublisher>();
