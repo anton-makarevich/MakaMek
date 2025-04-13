@@ -49,7 +49,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // Use the factory to create the ClientGame
         _localGame = _gameFactory.CreateClientGame(
             _rulesProvider,
-            _commandPublisher, _toHitCalculator);
+            _commandPublisher, 
+            _toHitCalculator,
+            _mapFactory);
         // Update server IP initially if needed
         NotifyPropertyChanged(nameof(ServerIpAddress));
     }
@@ -180,15 +182,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                 forestCoverage: ForestCoverage / 100.0,
                 lightWoodsProbability: LightWoodsPercentage / 100.0));
         
-        var hexDataList = map.ToData();
-        var localBattleMap = _mapFactory.CreateFromData(hexDataList);
-        
         // 2. Set BattleMap on GameManager/ServerGame
+        // This will automatically propagate to clients via the command system
         _gameManager.SetBattleMap(map);
 
         // 3. Host Client for local player(s) 
-        _localGame?.SetBattleMap(localBattleMap);
-
         var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
         battleMapViewModel.Game = _localGame;
         

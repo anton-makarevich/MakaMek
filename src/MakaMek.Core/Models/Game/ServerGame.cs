@@ -40,6 +40,16 @@ public class ServerGame : BaseGame, IDisposable
     {
         if (TurnPhase!= PhaseNames.Start) return; // Prevent changing map mid-game
         BattleMap = map;
+        
+        // Create and publish a command to send the map to all clients
+        var mapCommand = new Commands.Server.SetBattleMapCommand
+        {
+            GameOriginId = Id,
+            MapData = map.ToData()
+        };
+        
+        CommandPublisher.PublishCommand(mapCommand);
+        
         ((StartPhase)_currentPhase).TryTransitionToNextPhase();
     }
     

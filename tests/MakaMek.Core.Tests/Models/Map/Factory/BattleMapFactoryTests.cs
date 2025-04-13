@@ -80,7 +80,7 @@ public class BattleMapFactoryTests
         // Arrange
         var originalMap = new BattleMap(3, 3);
         // Add hexes with different terrains and levels
-        var hex1 = new Hex(new HexCoordinates(1, 1), 0);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
         hex1.AddTerrain(new ClearTerrain());
         originalMap.AddHex(hex1);
         
