@@ -13,5 +13,5 @@ public interface IDispatcherService
 
     Task InvokeOnUIThread(Action action);
 
-    Task<TResult> InvokeOnUIThread<TResult>(Func<TResult> callback);
+    void RunOnUIThread<TResult>(Func<TResult> callback);
 }

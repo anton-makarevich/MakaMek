@@ -50,7 +50,7 @@ public abstract class NewGameViewModel : BaseViewModel
     // Common command handlers with template method pattern
     internal void HandleServerCommand(IGameCommand command)
     {
-        _dispatcherService.InvokeOnUIThread(async () =>
+        _dispatcherService.RunOnUIThread(async () =>
         {
             await HandleCommandInternal(command);
         });

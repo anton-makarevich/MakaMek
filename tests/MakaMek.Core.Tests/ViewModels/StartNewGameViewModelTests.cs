@@ -63,7 +63,7 @@ public class StartNewGameViewModelTests
         mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>()).Returns(map);
         mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
 
-        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
 
         _sut = new StartNewGameViewModel(
             _gameManager,

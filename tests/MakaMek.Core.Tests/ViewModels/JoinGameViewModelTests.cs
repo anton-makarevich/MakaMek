@@ -3,14 +3,17 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
+using Sanet.MVVM.Core.Services;
 using Sanet.Transport;
 using Shouldly;
 
@@ -50,7 +53,7 @@ public class JoinGameViewModelTests
             .Returns(clientGame);
         
         // Configure dispatcher to execute actions immediately
-        _dispatcherService.RunOnUIThread(Arg.Do<Action>(action => action()));
+        _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
         
         // Create the view model with our mocks
         _sut = new JoinGameViewModel(
@@ -314,6 +317,34 @@ public class JoinGameViewModelTests
         // Assert
         _sut.Players.Count.ShouldBe(1); // No new player added
         _sut.Players.First().Player.Status.ShouldBe(PlayerStatus.Joined);
+    }
+
+    [Fact]
+    public async Task HandleCommandInternal_SetBattleMapCommand_SetsBattleMapAndNavigates()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        var navigationService = Substitute.For<INavigationService>();
+        var localizationService = Substitute.For<ILocalizationService>();
+        var imageService = Substitute.For<IImageService>();
+        var battleMapViewModel = new BattleMapViewModel(imageService, localizationService);
+        navigationService.GetViewModel<BattleMapViewModel>()
+            .Returns(battleMapViewModel);
+ 
+        _sut.SetNavigationService(navigationService);
+
+        // Act
+        _sut.HandleServerCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = []
+        });
+
+        // Assert
+        navigationService.Received(1).GetViewModel<BattleMapViewModel>();
+        battleMapViewModel.Game.ShouldNotBeNull();
+        await navigationService.Received(1).NavigateToViewModelAsync(battleMapViewModel);
     }
 
     [Fact]
