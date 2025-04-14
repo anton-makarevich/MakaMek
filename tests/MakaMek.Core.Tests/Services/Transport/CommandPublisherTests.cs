@@ -33,7 +33,8 @@ public class CommandPublisherTests
         // Arrange
         var command = new TurnIncrementedCommand
         {
-            GameOriginId = Guid.NewGuid()
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
         };
 
         // Act
@@ -57,7 +58,11 @@ public class CommandPublisherTests
         _sut.Subscribe(cmd => receivedCommand = cmd);
         
         // Prepare a message as it would come from the transport
-        var commandToSend = new TurnIncrementedCommand { GameOriginId = sourceId, Timestamp = timestamp };
+        var commandToSend = new TurnIncrementedCommand
+        {
+            GameOriginId = sourceId,
+            TurnNumber = 1
+        };
         var payload = System.Text.Json.JsonSerializer.Serialize(commandToSend);
         var message = new TransportMessage
         {
@@ -102,8 +107,12 @@ public class CommandPublisherTests
         
         _sut.Subscribe(_ => receivedBySubscriber1 = true);
         _sut.Subscribe(_ => receivedBySubscriber2 = true);
-        
-        var commandToSend = new TurnIncrementedCommand { GameOriginId = sourceId, Timestamp = timestamp };
+
+        var commandToSend = new TurnIncrementedCommand
+        {
+            GameOriginId = sourceId,
+            TurnNumber = 1
+        };
         var payload = System.Text.Json.JsonSerializer.Serialize(commandToSend);
         var message = new TransportMessage
         {
@@ -134,8 +143,13 @@ public class CommandPublisherTests
         
         // Second subscriber should still be called
         _sut.Subscribe(_ => receivedBySubscriber2 = true);
-        
-        var commandToSend = new TurnIncrementedCommand { GameOriginId = sourceId, Timestamp = timestamp };
+
+        var commandToSend = new TurnIncrementedCommand
+        {
+            GameOriginId = sourceId,
+            Timestamp = timestamp,
+            TurnNumber = 1
+        };
         var payload = System.Text.Json.JsonSerializer.Serialize(commandToSend);
         var message = new TransportMessage
         {

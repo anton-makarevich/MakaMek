@@ -308,9 +308,11 @@ public class BattleMapViewModel : BaseViewModel
         }
     }
 
-    public bool AreUnitsToDeployVisible => CurrentState is DeploymentState
-                                          && UnitsToDeploy.Count > 0
-                                          && SelectedUnit == null;
+    public bool AreUnitsToDeployVisible => Game is not null
+                                           && Game.CanActivePlayerAct
+                                           && CurrentState is DeploymentState
+                                           && UnitsToDeploy.Count > 0
+                                           && SelectedUnit == null;
 
     public int Turn => Game?.Turn ?? 0;
 
