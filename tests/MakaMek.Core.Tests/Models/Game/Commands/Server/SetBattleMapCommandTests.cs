@@ -12,13 +12,15 @@ public class SetBattleMapCommandTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
+    private readonly DateTime _timestamp = DateTime.UtcNow;
 
     private SetBattleMapCommand CreateCommand()
     {
         return new SetBattleMapCommand
         {
             GameOriginId = _gameId,
-            MapData = new List<HexData>()
+            Timestamp = _timestamp,
+            MapData = []
         };
     }
 
@@ -26,14 +28,22 @@ public class SetBattleMapCommandTests
     public void Format_ShouldFormatCorrectly()
     {
         // Arrange
-        var command = CreateCommand();
+        var sut = CreateCommand();
         _localizationService.GetString("Command_SetBattleMap").Returns("Battle map has been set.");
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = sut.Format(_localizationService, _game);
 
         // Assert
         result.ShouldBe("Battle map has been set.");
         _localizationService.Received(1).GetString("Command_SetBattleMap");
+    }
+
+    [Fact]
+    public void Init_SetsTimestamp()
+    {
+        var sut = CreateCommand();
+        
+        sut.Timestamp.ShouldBe(_timestamp);
     }
 }
