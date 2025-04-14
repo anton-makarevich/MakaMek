@@ -12,7 +12,8 @@ public class SetBattleMapCommand : IGameCommand
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string Format(ILocalizationService localizationService, IGame game)
     {
-        throw new NotImplementedException();
+        var localizedTemplate = localizationService.GetString("Command_SetBattleMap");
+        return string.Format(localizedTemplate);
     }
 
     public required List<HexData> MapData { get; init; } = [];
