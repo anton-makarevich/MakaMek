@@ -32,6 +32,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_TurnEnded", "{0} has ended their turn.")]
     [InlineData("Command_TurnIncremented", "Turn {0} has started.")]
     [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game.")]
+    [InlineData("Command_SetBattleMap", "Battle map has been set.")]
     [InlineData("Direction_Forward", "forward")]
     [InlineData("Direction_Backward", "backward")]
     // Attack modifiers

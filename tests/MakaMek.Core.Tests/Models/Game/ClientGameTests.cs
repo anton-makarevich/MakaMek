@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -26,15 +27,16 @@ public class ClientGameTests
 {
     private readonly ClientGame _sut;
     private readonly ICommandPublisher _commandPublisher;
-
+    private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     public ClientGameTests()
     {
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
+        
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(battleMap); 
         _sut = new ClientGame(rulesProvider, _commandPublisher,
-            Substitute.For<IToHitCalculator>());
-        _sut.SetBattleMap(battleMap);
+            Substitute.For<IToHitCalculator>(),_mapFactory);
     }
 
     [Fact]
@@ -1194,7 +1196,8 @@ public class ClientGameTests
         var clientGame = new ClientGame(
             rulesProvider, 
             commandPublisher,
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),
+            _mapFactory);
         clientGame.JoinGameWithUnits(localPlayer1,[]);
         clientGame.JoinGameWithUnits(localPlayer2,[]);
         clientGame.SetBattleMap(battleMap);
@@ -1266,7 +1269,8 @@ public class ClientGameTests
         var clientGame = new ClientGame(
             rulesProvider, 
             commandPublisher,
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),
+            _mapFactory);
         clientGame.JoinGameWithUnits(localPlayer1,[]);
         clientGame.JoinGameWithUnits(localPlayer2,[]);
         clientGame.JoinGameWithUnits(localPlayer3,[]);
@@ -1389,5 +1393,48 @@ public class ClientGameTests
 
         // Assert
         _sut.Turn.ShouldBe(initialTurn); // Turn should not change
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldSetBattleMap_WhenSetBattleMapCommandIsReceived()
+    {
+        // Arrange
+        List<HexData> mapData =
+        [
+            new()
+            {
+                Coordinates = new HexCoordinateData(1, 1),
+                TerrainTypes = [MakaMekTerrains.LightWoods]
+            },
+            new()
+            {
+                Coordinates = new HexCoordinateData(2, 2),
+                TerrainTypes = [MakaMekTerrains.Clear]
+            },
+            new()
+            {
+                Coordinates = new HexCoordinateData(3, 3),
+                TerrainTypes = [MakaMekTerrains.HeavyWoods]
+            }
+        ];
+        
+        var newBattleMap = BattleMapTests.BattleMapFactory.CreateFromData(mapData);
+        
+        _mapFactory.CreateFromData(Arg.Is<List<HexData>>(data => 
+            data.Count == mapData.Count)).Returns(newBattleMap);
+        
+        var setBattleMapCommand = new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(), // Different from client game ID
+            MapData = mapData
+        };
+        
+        // Act
+        _sut.HandleCommand(setBattleMapCommand);
+        
+        // Assert
+        _sut.BattleMap.ShouldBe(newBattleMap);
+        _mapFactory.Received(1).CreateFromData(Arg.Is<List<HexData>>(data => 
+            data.Count == mapData.Count));
     }
 }

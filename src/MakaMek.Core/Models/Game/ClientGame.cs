@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -17,13 +18,16 @@ public sealed class ClientGame : BaseGame
     private readonly Subject<IGameCommand> _commandSubject = new();
     private readonly List<IGameCommand> _commandLog = [];
     private readonly HashSet<Guid> _playersEndedTurn = [];
+    private readonly IBattleMapFactory _mapFactory;
 
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
     
-    public ClientGame(IRulesProvider rulesProvider, ICommandPublisher commandPublisher, IToHitCalculator toHitCalculator)
+    public ClientGame(IRulesProvider rulesProvider, ICommandPublisher commandPublisher, IToHitCalculator toHitCalculator, IBattleMapFactory mapFactory)
         : base(rulesProvider, commandPublisher, toHitCalculator)
-    { }
+    {
+        _mapFactory = mapFactory;
+    }
 
     public List<IPlayer> LocalPlayers { get; } = [];
 
@@ -40,6 +44,11 @@ public sealed class ClientGame : BaseGame
         // Handle specific command types
         switch (command)
         {
+            case SetBattleMapCommand setBattleMapCommand:
+                // Create a new BattleMap from the received data
+                var battleMap = _mapFactory.CreateFromData(setBattleMapCommand.MapData);
+                SetBattleMap(battleMap);
+                break;
             case JoinGameCommand joinGameCommand:
                 OnPlayerJoined(joinGameCommand);
                 var localPlayer = LocalPlayers.FirstOrDefault(p => p.Id == joinGameCommand.PlayerId);

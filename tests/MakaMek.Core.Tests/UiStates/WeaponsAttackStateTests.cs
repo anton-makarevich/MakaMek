@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -67,7 +68,9 @@ public class WeaponsAttackStateTests
         _player = new Player(playerId, "Player1");
         _game = new ClientGame(
             rules,
-            _commandPublisher, _toHitCalculator);
+            _commandPublisher,
+            _toHitCalculator,
+            Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[]);
         _game.SetBattleMap(battleMap);
 

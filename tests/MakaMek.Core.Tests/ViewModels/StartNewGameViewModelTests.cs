@@ -51,8 +51,8 @@ public class StartNewGameViewModelTests
         var gameFactory = Substitute.For<IGameFactory>(); 
         var mapFactory = Substitute.For<IBattleMapFactory>();
 
-        _clientGame = new ClientGame(rulesProvider, _commandPublisher, toHitCalculator); 
-        gameFactory.CreateClientGame(rulesProvider, _commandPublisher, toHitCalculator)
+        _clientGame = new ClientGame(rulesProvider, _commandPublisher, toHitCalculator,mapFactory); 
+        gameFactory.CreateClientGame(rulesProvider, _commandPublisher, toHitCalculator,mapFactory)
                     .Returns(_clientGame);
         
         // Set up server game ID
@@ -102,29 +102,6 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public async Task StartGameCommand_WithZeroForestCoverage_CreatesClearTerrainMap()
-    {
-        await _sut.InitializeLobbyAndSubscribe(); 
-         
-        await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
-
-        _clientGame.BattleMap.ShouldNotBeNull();
-        _battleMapViewModel.Game.ShouldBe(_clientGame); 
-    }
-
-    [Fact]
-    public async Task StartGameCommand_WithForestCoverage_CreatesForestMap()
-    {
-        await _sut.InitializeLobbyAndSubscribe(); 
-        _sut.ForestCoverage = 100;
-        _sut.LightWoodsPercentage = 100;
-        await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
-
-        _clientGame.BattleMap.ShouldNotBeNull();
-        _battleMapViewModel.Game.ShouldBe(_clientGame); 
-    }
-
-    [Fact]
     public async Task StartGameCommand_NavigatesToBattleMap()
     {
         await _sut.InitializeLobbyAndSubscribe(); 
@@ -153,7 +130,6 @@ public class StartNewGameViewModelTests
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
-        _clientGame.BattleMap.ShouldNotBeNull(); 
     }
     
     [Fact]
@@ -488,7 +464,7 @@ public class StartNewGameViewModelTests
         
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Ready);
-        _sut.CanStartGame.ShouldBeTrue(); // With one ready player, game should be startable
+        _sut.CanStartGame.ShouldBeTrue(); // With one ready player, game should be able to start
     }
     
     [Fact]
@@ -521,7 +497,7 @@ public class StartNewGameViewModelTests
         
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Joined); // Status should not change
-        _sut.CanStartGame.ShouldBeFalse(); // Game should not be startable
+        _sut.CanStartGame.ShouldBeFalse(); // Game should not be able to start
     }
     
     [Fact]

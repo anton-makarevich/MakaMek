@@ -8,7 +8,6 @@ using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -300,5 +299,22 @@ public class ServerGameTests
         // Verify that the command was passed to the current phase
         mockPhase.Received(1).HandleCommand(Arg.Is<RequestGameLobbyStatusCommand>(cmd => 
             cmd.GameOriginId == requestCommand.GameOriginId));
+    }
+
+    [Fact]
+    public void SetBattleMap_ShouldPublishSetBattleMapCommand_WhenCalled()
+    {
+        // Arrange
+        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5,
+            new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        _commandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.SetBattleMap(battleMap);
+        
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<SetBattleMapCommand>(cmd => 
+            cmd.GameOriginId == _sut.Id && 
+            cmd.MapData.Count == battleMap.ToData().Count));
     }
 }

@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.TechRules;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 
 namespace Sanet.MakaMek.Core.Models.Game.Factories;
 
@@ -25,5 +26,6 @@ public interface IGameFactory
     ClientGame CreateClientGame(
         IRulesProvider rulesProvider, 
         ICommandPublisher commandPublisher, 
-        IToHitCalculator toHitCalculator);
+        IToHitCalculator toHitCalculator,
+        IBattleMapFactory mapFactory);
 }

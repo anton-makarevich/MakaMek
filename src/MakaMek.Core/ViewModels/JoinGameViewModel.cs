@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -15,6 +16,7 @@ namespace Sanet.MakaMek.Core.ViewModels;
 public class JoinGameViewModel : NewGameViewModel
 {
     private readonly ITransportFactory _transportFactory;
+    private readonly IBattleMapFactory _mapFactory;
     private string _serverIp = string.Empty;
     private bool _isConnected; // Track connection status
 
@@ -25,10 +27,12 @@ public class JoinGameViewModel : NewGameViewModel
         IToHitCalculator toHitCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
-        ITransportFactory transportFactory)
+        ITransportFactory transportFactory,
+        IBattleMapFactory mapFactory)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
     {
         _transportFactory = transportFactory;
+        _mapFactory = mapFactory;
 
         AddPlayerCommand = new AsyncCommand(AddPlayer);
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
@@ -122,7 +126,8 @@ public class JoinGameViewModel : NewGameViewModel
             _localGame ??= _gameFactory.CreateClientGame(
                 _rulesProvider,
                 _commandPublisher,
-                _toHitCalculator);
+                _toHitCalculator,
+                _mapFactory);
             IsConnected = true;
             _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
             {

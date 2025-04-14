@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
@@ -51,7 +52,8 @@ public class EndStateTests
         _game = new ClientGame(
             rules,
             _commandPublisher, 
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         
