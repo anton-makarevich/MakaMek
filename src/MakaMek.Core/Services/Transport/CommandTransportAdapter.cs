@@ -174,6 +174,7 @@ public class CommandTransportAdapter
             { nameof(DiceRolledCommand), typeof(DiceRolledCommand) },
             { nameof(ChangePhaseCommand), typeof(ChangePhaseCommand) },
             { nameof(ChangeActivePlayerCommand), typeof(ChangeActivePlayerCommand) },
+            { nameof(SetBattleMapCommand), typeof(SetBattleMapCommand) },
         };
     }
     

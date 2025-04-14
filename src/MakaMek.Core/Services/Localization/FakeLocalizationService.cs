@@ -32,6 +32,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_TurnEnded" => "{0} has ended their turn.",
             "Command_TurnIncremented" => "Turn {0} has started.",
             "Command_RequestGameLobbyStatus" => "Client {0} requested game lobby status for game.",
+            "Command_SetBattleMap" => "Battle map has been set.",
             "Direction_Forward" => "forward",
             "Direction_Backward" => "backward",
             
