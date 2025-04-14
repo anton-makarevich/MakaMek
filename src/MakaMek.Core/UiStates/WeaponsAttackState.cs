@@ -31,18 +31,25 @@ public class WeaponsAttackState : IUiState
         _ => string.Empty
     };
 
-    public bool IsActionRequired => true;
+    public bool IsActionRequired => _viewModel.Game is {CanActivePlayerAct:true};
 
     public bool CanExecutePlayerAction => CurrentStep == WeaponsAttackStep.ActionSelection || CurrentStep == WeaponsAttackStep.TargetSelection;
 
-    public string PlayerActionLabel => CurrentStep switch
+    public string PlayerActionLabel
     {
-        WeaponsAttackStep.ActionSelection => _viewModel.LocalizationService.GetString("Action_SkipAttack"),
-        WeaponsAttackStep.TargetSelection => _weaponTargets.Count > 0 
-            ? _viewModel.LocalizationService.GetString("Action_DeclareAttack") 
-            : _viewModel.LocalizationService.GetString("Action_SkipAttack"),
-        _ => string.Empty
-    };
+        get
+        {
+            if (!IsActionRequired) return string.Empty;
+            return CurrentStep switch
+            {
+                WeaponsAttackStep.ActionSelection => _viewModel.LocalizationService.GetString("Action_SkipAttack"),
+                WeaponsAttackStep.TargetSelection => _weaponTargets.Count > 0
+                    ? _viewModel.LocalizationService.GetString("Action_DeclareAttack")
+                    : _viewModel.LocalizationService.GetString("Action_SkipAttack"),
+                _ => string.Empty
+            };
+        }
+    }
 
     public void ExecutePlayerAction()
     {

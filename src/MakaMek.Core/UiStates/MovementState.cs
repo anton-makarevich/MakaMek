@@ -307,7 +307,9 @@ public class MovementState : IUiState
         _ => string.Empty
     };
 
-    public bool IsActionRequired => CurrentMovementStep != MovementStep.Completed;
+    public bool IsActionRequired =>
+        _viewModel.Game is { CanActivePlayerAct: true } &&
+        CurrentMovementStep != MovementStep.Completed;
     
     public bool CanExecutePlayerAction => CurrentMovementStep == MovementStep.ConfirmMovement;
     
