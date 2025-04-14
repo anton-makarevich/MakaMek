@@ -57,7 +57,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     }
 
     // Implementation of the abstract method from base class
-    protected override void HandleCommandInternal(IGameCommand command)
+    protected override Task HandleCommandInternal(IGameCommand command)
     {
         switch (command)
         {
@@ -106,6 +106,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                 }
                 break;
         }
+        return Task.CompletedTask; 
     }
 
 

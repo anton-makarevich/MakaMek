@@ -40,7 +40,7 @@ public class JoinGameViewModel : NewGameViewModel
     }
 
     // Implementation of the abstract method from base class
-    protected override async void HandleCommandInternal(IGameCommand command)
+    protected override async Task HandleCommandInternal(IGameCommand command)
     {
         switch (command)
         {

@@ -50,14 +50,14 @@ public abstract class NewGameViewModel : BaseViewModel
     // Common command handlers with template method pattern
     internal void HandleServerCommand(IGameCommand command)
     {
-        _dispatcherService.RunOnUIThread(() =>
+        _dispatcherService.RunOnUIThread(async () =>
         {
-            HandleCommandInternal(command);
+            await HandleCommandInternal(command);
         });
     }
 
     // Template method to be implemented by derived classes
-    protected abstract void HandleCommandInternal(IGameCommand command);
+    protected abstract Task HandleCommandInternal(IGameCommand command);
 
     // Common player management
     protected void PublishJoinCommand(PlayerViewModel playerVm)
