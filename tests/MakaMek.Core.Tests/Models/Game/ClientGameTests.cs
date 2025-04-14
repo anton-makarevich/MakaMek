@@ -37,7 +37,6 @@ public class ClientGameTests
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(battleMap); 
         _sut = new ClientGame(rulesProvider, _commandPublisher,
             Substitute.For<IToHitCalculator>(),_mapFactory);
-        _sut.SetBattleMap(battleMap);
     }
 
     [Fact]
@@ -1394,5 +1393,48 @@ public class ClientGameTests
 
         // Assert
         _sut.Turn.ShouldBe(initialTurn); // Turn should not change
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldSetBattleMap_WhenSetBattleMapCommandIsReceived()
+    {
+        // Arrange
+        List<HexData> mapData =
+        [
+            new()
+            {
+                Coordinates = new HexCoordinateData(1, 1),
+                TerrainTypes = [MakaMekTerrains.LightWoods]
+            },
+            new()
+            {
+                Coordinates = new HexCoordinateData(2, 2),
+                TerrainTypes = [MakaMekTerrains.Clear]
+            },
+            new()
+            {
+                Coordinates = new HexCoordinateData(3, 3),
+                TerrainTypes = [MakaMekTerrains.HeavyWoods]
+            }
+        ];
+        
+        var newBattleMap = BattleMapTests.BattleMapFactory.CreateFromData(mapData);
+        
+        _mapFactory.CreateFromData(Arg.Is<List<HexData>>(data => 
+            data.Count == mapData.Count)).Returns(newBattleMap);
+        
+        var setBattleMapCommand = new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(), // Different from client game ID
+            MapData = mapData
+        };
+        
+        // Act
+        _sut.HandleCommand(setBattleMapCommand);
+        
+        // Assert
+        _sut.BattleMap.ShouldBe(newBattleMap);
+        _mapFactory.Received(1).CreateFromData(Arg.Is<List<HexData>>(data => 
+            data.Count == mapData.Count));
     }
 }
