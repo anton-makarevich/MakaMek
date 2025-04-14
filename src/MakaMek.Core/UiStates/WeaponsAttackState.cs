@@ -46,6 +46,7 @@ public class WeaponsAttackState : IUiState
 
     public void ExecutePlayerAction()
     {
+        if (_game is { CanActivePlayerAct: false }) return;
         if (CurrentStep == WeaponsAttackStep.ActionSelection || CurrentStep == WeaponsAttackStep.TargetSelection)
         {
             ConfirmWeaponSelections();
@@ -54,7 +55,7 @@ public class WeaponsAttackState : IUiState
 
     public WeaponsAttackState(BattleMapViewModel viewModel)
     {
-        _game = viewModel.Game! as ClientGame ?? throw new InvalidOperationException("Game is not client game");
+        _game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
         if (_game.ActivePlayer == null)
         {
@@ -64,6 +65,7 @@ public class WeaponsAttackState : IUiState
 
     public void HandleUnitSelection(Unit? unit)
     {
+        if (_game is { CanActivePlayerAct: false }) return;
         if (unit == null) return;
 
         if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
@@ -131,6 +133,7 @@ public class WeaponsAttackState : IUiState
 
     public void HandleFacingSelection(HexDirection direction)
     {
+        if (_game is { CanActivePlayerAct: false }) return;
         if (CurrentStep != WeaponsAttackStep.WeaponsConfiguration 
             || Attacker is not Mech mech 
             || !_availableDirections.Contains(direction)) return;

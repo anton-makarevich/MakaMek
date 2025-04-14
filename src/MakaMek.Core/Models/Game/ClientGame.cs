@@ -119,6 +119,8 @@ public sealed class ClientGame : BaseGame
         }
     }
 
+    public bool CanActivePlayerAct => ActivePlayer != null && LocalPlayers.Any(lp => lp.Id == ActivePlayer.Id);
+
     public void JoinGameWithUnits(IPlayer player, List<UnitData> units)
     {
         var joinCommand = new JoinGameCommand
@@ -148,31 +150,31 @@ public sealed class ClientGame : BaseGame
 
     public void DeployUnit(DeployUnitCommand command)
     {
-        if (ActivePlayer == null) return;
+        if (!CanActivePlayerAct) return;
         CommandPublisher.PublishCommand(command);
     }
 
     public void MoveUnit(MoveUnitCommand command)
     {
-        if (ActivePlayer == null) return;
+        if (!CanActivePlayerAct) return;
         CommandPublisher.PublishCommand(command);
     }
 
     public void ConfigureUnitWeapons(WeaponConfigurationCommand command)
     {
-        if (ActivePlayer == null) return;
+        if (!CanActivePlayerAct) return;
         CommandPublisher.PublishCommand(command);
     }
 
     public void DeclareWeaponAttack(WeaponAttackDeclarationCommand command)
     {
-        if (ActivePlayer == null) return;
+        if (!CanActivePlayerAct) return;
         CommandPublisher.PublishCommand(command);
     }
 
     public void EndTurn(TurnEndedCommand command)
     {
-        if (ActivePlayer == null) return;
+        if (!CanActivePlayerAct) return;
         CommandPublisher.PublishCommand(command);
     }
 

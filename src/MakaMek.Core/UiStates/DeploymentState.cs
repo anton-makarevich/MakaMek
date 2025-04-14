@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -41,6 +40,7 @@ public class DeploymentState : IUiState
 
     public void HandleUnitSelection(Unit? unit)
     {
+        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
         if (_currentSubState != SubState.SelectingUnit) return;
         
         if (unit == null) return;
@@ -52,12 +52,14 @@ public class DeploymentState : IUiState
 
     public void HandleHexSelection(Hex hex)
     {
+        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
         if (_currentSubState is SubState.SelectingHex 
                              or SubState.SelectingDirection) HandleHexForDeployment(hex);
     }
 
     public void HandleFacingSelection(HexDirection direction)
     {
+        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
         if (_currentSubState != SubState.SelectingDirection) return;
         _builder.SetDirection(direction);
         _viewModel.HideDirectionSelector();
@@ -97,7 +99,7 @@ public class DeploymentState : IUiState
     private void CompleteDeployment()
     {
         var command = _builder.Build();
-        if (command != null && _viewModel.Game is ClientGame clientGame)
+        if (command != null && _viewModel.Game is { } clientGame)
         {
             clientGame.DeployUnit(command.Value);
         }
@@ -128,7 +130,7 @@ public class DeploymentState : IUiState
     {
         get
         {
-            if (_viewModel.Game is not ClientGame clientGame)
+            if (_viewModel.Game is not { } clientGame)
                 return false;
             return clientGame is { ActivePlayer: not null, UnitsToPlayCurrentStep: > 0 }
                    && clientGame.LocalPlayers.FirstOrDefault(p=>p.Id==clientGame.ActivePlayer.Id)!=null;
