@@ -1,4 +1,3 @@
-using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
@@ -10,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -23,20 +23,19 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
-using Xunit.Abstractions;
+using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.ViewModels;
 
 public class BattleMapViewModelTests
 {
-    private readonly ITestOutputHelper _testOutputHelper;
     private readonly BattleMapViewModel _sut;
     private IGame _game;
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
 
-    public BattleMapViewModelTests(ITestOutputHelper testOutputHelper)
+    public BattleMapViewModelTests()
     {
-        _testOutputHelper = testOutputHelper;
         var imageService = Substitute.For<IImageService>();
         _sut = new BattleMapViewModel(imageService, _localizationService);
         
@@ -79,7 +78,7 @@ public class BattleMapViewModelTests
         _game = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         ((ClientGame)_game).JoinGameWithUnits(player,[unitData]);
         ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
                                                          new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -164,7 +163,7 @@ public class BattleMapViewModelTests
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         clientGame.JoinGameWithUnits(player, []);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())) );
         _sut.Game = clientGame;
@@ -195,7 +194,7 @@ public class BattleMapViewModelTests
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         clientGame.JoinGameWithUnits(player,[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
@@ -261,7 +260,7 @@ public class BattleMapViewModelTests
         _game = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         ((ClientGame)_game).JoinGameWithUnits(player,[]);
         ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
                                                          new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -302,7 +301,7 @@ public class BattleMapViewModelTests
         _game = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         ((ClientGame)_game).JoinGameWithUnits(player,[]);
         ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -343,7 +342,7 @@ public class BattleMapViewModelTests
         _game = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         ((ClientGame)_game).JoinGameWithUnits(player,[]);
         ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -615,7 +614,8 @@ public class BattleMapViewModelTests
         var player = new Player(Guid.NewGuid(), "Player1");
         var game = new ClientGame(
             rules,
-            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>());
+            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),
+            _mapFactory);
         game.JoinGameWithUnits(player,[]);
         game.SetBattleMap(battleMap);
         _sut.Game = game;
@@ -684,7 +684,8 @@ public class BattleMapViewModelTests
         var player = new Player(Guid.NewGuid(), "Player1");
         var game = new ClientGame(
             rules,
-            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>());
+            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),
+            _mapFactory);
         game.JoinGameWithUnits(player,[]);
         game.SetBattleMap(battleMap);
         _sut.Game = game;
@@ -739,7 +740,7 @@ public class BattleMapViewModelTests
         var player2 = new Player(Guid.NewGuid(), "Player2");
         var game = new ClientGame(
             rules,
-            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>());
+            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player1,[]);
         game.JoinGameWithUnits(player2,[]);
         game.SetBattleMap(battleMap);
@@ -820,7 +821,7 @@ public class BattleMapViewModelTests
         var player2 = new Player(Guid.NewGuid(), "Player2");
         var game = new ClientGame(
             rules,
-            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>());
+            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player1,[]);
         game.JoinGameWithUnits(player2,[]);
         game.SetBattleMap(battleMap);
@@ -917,7 +918,7 @@ public class BattleMapViewModelTests
         var player1 = new Player(Guid.NewGuid(), "Player1");
         var game = new ClientGame(
             rules,
-            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>());
+            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player1,[]);
         game.SetBattleMap(battleMap);
 
@@ -973,7 +974,7 @@ public class BattleMapViewModelTests
         var player1 = new Player(Guid.NewGuid(), "Player1");
         var game = new ClientGame(
             rules,
-            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>());
+            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player1, []);
         game.SetBattleMap(battleMap);
 
@@ -1012,7 +1013,7 @@ public class BattleMapViewModelTests
         var game = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player, []);
         game.JoinGameWithUnits(targetPlayer, []);
         game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
@@ -1112,7 +1113,7 @@ public class BattleMapViewModelTests
         var game = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(activePlayer, []);
         game.JoinGameWithUnits(targetPlayer, []);
         game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
@@ -1258,7 +1259,7 @@ public class BattleMapViewModelTests
         var game = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player, [mechData]);
         game.JoinGameWithUnits(targetPlayer, []);
         game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
@@ -1390,7 +1391,7 @@ public class BattleMapViewModelTests
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         clientGame.JoinGameWithUnits(player, []);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
@@ -1433,7 +1434,8 @@ public class BattleMapViewModelTests
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),
+            _mapFactory);
         clientGame.JoinGameWithUnits(player, []);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
@@ -1467,7 +1469,8 @@ public class BattleMapViewModelTests
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
             commandPublisher,
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),
+            _mapFactory);
         clientGame.JoinGameWithUnits(player, []);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
@@ -1510,7 +1513,8 @@ public class BattleMapViewModelTests
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),
+            _mapFactory);
         var player = new Player(Guid.NewGuid(), "Player1");
         clientGame.JoinGameWithUnits(player,[]);
         clientGame.HandleCommand(new JoinGameCommand

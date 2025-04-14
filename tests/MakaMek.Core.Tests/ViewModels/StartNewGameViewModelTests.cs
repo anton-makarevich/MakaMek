@@ -51,8 +51,8 @@ public class StartNewGameViewModelTests
         var gameFactory = Substitute.For<IGameFactory>(); 
         var mapFactory = Substitute.For<IBattleMapFactory>();
 
-        _clientGame = new ClientGame(rulesProvider, _commandPublisher, toHitCalculator); 
-        gameFactory.CreateClientGame(rulesProvider, _commandPublisher, toHitCalculator)
+        _clientGame = new ClientGame(rulesProvider, _commandPublisher, toHitCalculator,mapFactory); 
+        gameFactory.CreateClientGame(rulesProvider, _commandPublisher, toHitCalculator,mapFactory)
                     .Returns(_clientGame);
         
         // Set up server game ID
@@ -488,7 +488,7 @@ public class StartNewGameViewModelTests
         
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Ready);
-        _sut.CanStartGame.ShouldBeTrue(); // With one ready player, game should be startable
+        _sut.CanStartGame.ShouldBeTrue(); // With one ready player, game should be able to start
     }
     
     [Fact]
@@ -521,7 +521,7 @@ public class StartNewGameViewModelTests
         
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Joined); // Status should not change
-        _sut.CanStartGame.ShouldBeFalse(); // Game should not be startable
+        _sut.CanStartGame.ShouldBeFalse(); // Game should not be able to start
     }
     
     [Fact]

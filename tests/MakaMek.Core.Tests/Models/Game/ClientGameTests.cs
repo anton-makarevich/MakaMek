@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -26,14 +27,16 @@ public class ClientGameTests
 {
     private readonly ClientGame _sut;
     private readonly ICommandPublisher _commandPublisher;
-
+    private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     public ClientGameTests()
     {
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
+        
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(battleMap); 
         _sut = new ClientGame(rulesProvider, _commandPublisher,
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),_mapFactory);
         _sut.SetBattleMap(battleMap);
     }
 
@@ -1194,7 +1197,8 @@ public class ClientGameTests
         var clientGame = new ClientGame(
             rulesProvider, 
             commandPublisher,
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),
+            _mapFactory);
         clientGame.JoinGameWithUnits(localPlayer1,[]);
         clientGame.JoinGameWithUnits(localPlayer2,[]);
         clientGame.SetBattleMap(battleMap);
@@ -1266,7 +1270,8 @@ public class ClientGameTests
         var clientGame = new ClientGame(
             rulesProvider, 
             commandPublisher,
-            Substitute.For<IToHitCalculator>());
+            Substitute.For<IToHitCalculator>(),
+            _mapFactory);
         clientGame.JoinGameWithUnits(localPlayer1,[]);
         clientGame.JoinGameWithUnits(localPlayer2,[]);
         clientGame.JoinGameWithUnits(localPlayer3,[]);

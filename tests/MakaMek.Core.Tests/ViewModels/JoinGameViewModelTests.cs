@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
@@ -27,11 +28,16 @@ public class JoinGameViewModelTests
     private readonly ITransportPublisher _transportPublisher = Substitute.For<ITransportPublisher>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
+    private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
 
     public JoinGameViewModelTests()
     {
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
-        var clientGame = new ClientGame(_rulesProvider, _commandPublisher, _toHitCalculator);
+        var clientGame = new ClientGame(
+            _rulesProvider,
+            _commandPublisher, 
+            _toHitCalculator,
+            _mapFactory);
         // Configure the adapter to be accessible from the command publisher
         _commandPublisher.Adapter.Returns(_adapter);
         
@@ -40,7 +46,7 @@ public class JoinGameViewModelTests
             .Returns(Task.FromResult(_transportPublisher));
             
         // Configure the game factory to return our mock client game
-        _gameFactory.CreateClientGame(_rulesProvider, _commandPublisher, _toHitCalculator)
+        _gameFactory.CreateClientGame(_rulesProvider, _commandPublisher, _toHitCalculator,_mapFactory)
             .Returns(clientGame);
         
         // Configure dispatcher to execute actions immediately
@@ -54,7 +60,8 @@ public class JoinGameViewModelTests
             _toHitCalculator,
             _dispatcherService,
             _gameFactory,
-            _transportFactory);
+            _transportFactory,
+            _mapFactory);
         _sut.AttachHandlers();
     }
 
@@ -139,7 +146,7 @@ public class JoinGameViewModelTests
         _sut.ConnectCommand.Execute(null);
         
         // Assert
-        _gameFactory.Received(1).CreateClientGame(_rulesProvider, _commandPublisher, _toHitCalculator);
+        _gameFactory.Received(1).CreateClientGame(_rulesProvider, _commandPublisher, _toHitCalculator,_mapFactory);
     }
     
     [Fact]
@@ -154,7 +161,11 @@ public class JoinGameViewModelTests
         _sut.ConnectCommand.Execute(null);
         
         // Assert - should not create a new game
-        _gameFactory.DidNotReceive().CreateClientGame(Arg.Any<IRulesProvider>(), Arg.Any<ICommandPublisher>(), Arg.Any<IToHitCalculator>());
+        _gameFactory.DidNotReceive().CreateClientGame(
+            Arg.Any<IRulesProvider>(),
+            Arg.Any<ICommandPublisher>(), 
+            Arg.Any<IToHitCalculator>(),
+            Arg.Any<IBattleMapFactory>());
     }
     
     [Fact]

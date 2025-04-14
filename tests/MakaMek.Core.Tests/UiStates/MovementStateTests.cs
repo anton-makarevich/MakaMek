@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
@@ -72,7 +73,9 @@ public class MovementStateTests
          _player = new Player(playerId, "Player1");
         _game = new ClientGame(
             rules,
-            Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>());
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<IBattleMapFactory>());
         
         _game.JoinGameWithUnits(_player,[]);
         _game.SetBattleMap(battleMap);
