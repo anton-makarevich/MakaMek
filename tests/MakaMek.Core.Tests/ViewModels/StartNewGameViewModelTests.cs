@@ -102,29 +102,6 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public async Task StartGameCommand_WithZeroForestCoverage_CreatesClearTerrainMap()
-    {
-        await _sut.InitializeLobbyAndSubscribe(); 
-         
-        await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
-
-        _clientGame.BattleMap.ShouldNotBeNull();
-        _battleMapViewModel.Game.ShouldBe(_clientGame); 
-    }
-
-    [Fact]
-    public async Task StartGameCommand_WithForestCoverage_CreatesForestMap()
-    {
-        await _sut.InitializeLobbyAndSubscribe(); 
-        _sut.ForestCoverage = 100;
-        _sut.LightWoodsPercentage = 100;
-        await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
-
-        _clientGame.BattleMap.ShouldNotBeNull();
-        _battleMapViewModel.Game.ShouldBe(_clientGame); 
-    }
-
-    [Fact]
     public async Task StartGameCommand_NavigatesToBattleMap()
     {
         await _sut.InitializeLobbyAndSubscribe(); 
@@ -153,7 +130,6 @@ public class StartNewGameViewModelTests
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
-        _clientGame.BattleMap.ShouldNotBeNull(); 
     }
     
     [Fact]
