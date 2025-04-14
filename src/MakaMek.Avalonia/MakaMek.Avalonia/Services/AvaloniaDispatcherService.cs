@@ -37,4 +37,15 @@ public class AvaloniaDispatcherService : IDispatcherService
             await Dispatcher.UIThread.InvokeAsync(action);
         }
     }
+
+    public void RunOnUIThread<TResult>(Func<TResult> callback)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            callback();
+        }
+
+        // Post the action to the UI thread's dispatcher queue
+        Dispatcher.UIThread.InvokeAsync(callback);
+    }
 }

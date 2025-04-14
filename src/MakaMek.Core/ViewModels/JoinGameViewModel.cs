@@ -3,6 +3,7 @@ using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map.Factory;
@@ -39,7 +40,7 @@ public class JoinGameViewModel : NewGameViewModel
     }
 
     // Implementation of the abstract method from base class
-    protected override void HandleCommandInternal(IGameCommand command)
+    protected override async Task HandleCommandInternal(IGameCommand command)
     {
         switch (command)
         {
@@ -73,6 +74,18 @@ public class JoinGameViewModel : NewGameViewModel
                      existingPlayerVm.Player.Status = PlayerStatus.Joined;
                      existingPlayerVm.RefreshStatus();
                 }
+                break;
+                
+            case SetBattleMapCommand:
+                // Handle navigation to BattleMapViewModel when battle map is set
+                
+                // Get the BattleMapViewModel and set the game
+                var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
+                battleMapViewModel.Game = _localGame;
+                
+                // Navigate to BattleMap view
+                await NavigationService.NavigateToViewModelAsync(battleMapViewModel);
+                
                 break;
         }
         
