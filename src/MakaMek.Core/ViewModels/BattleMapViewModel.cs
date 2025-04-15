@@ -113,6 +113,7 @@ public class BattleMapViewModel : BaseViewModel
         if (Game is null) return;
 
         _commandSubscription = Game.Commands
+            .ObserveOn(SynchronizationContext.Current)
             .Subscribe(ProcessCommand);
         
         _gameSubscription = Game.TurnChanges
