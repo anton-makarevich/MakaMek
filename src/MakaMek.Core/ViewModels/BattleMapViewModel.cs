@@ -19,7 +19,7 @@ namespace Sanet.MakaMek.Core.ViewModels;
 
 public class BattleMapViewModel : BaseViewModel
 {
-    private IGame? _game;
+    private ClientGame? _game;
     private IDisposable? _gameSubscription;
     private IDisposable? _commandSubscription;
     private List<Unit> _unitsToDeploy = [];
@@ -77,7 +77,7 @@ public class BattleMapViewModel : BaseViewModel
         CurrentState = new IdleState();
     }
 
-    public IGame? Game
+    public ClientGame? Game
     {
         get => _game;
         set
@@ -110,16 +110,16 @@ public class BattleMapViewModel : BaseViewModel
         _gameSubscription?.Dispose();
         _commandSubscription?.Dispose();
         
-        if (Game is not ClientGame localGame) return;
+        if (Game is null) return;
 
-        _commandSubscription = localGame.Commands
+        _commandSubscription = Game.Commands
             .Subscribe(ProcessCommand);
         
-        _gameSubscription = localGame.TurnChanges
-            .StartWith(localGame.Turn)
-            .CombineLatest<int, PhaseNames, IPlayer?, int, (int Turn, PhaseNames Phase, IPlayer? Player, int UnitsToPlay)>(localGame.PhaseChanges.StartWith(localGame.TurnPhase),
-                localGame.ActivePlayerChanges.StartWith(localGame.ActivePlayer),
-                localGame.UnitsToPlayChanges.StartWith(localGame.UnitsToPlayCurrentStep),
+        _gameSubscription = Game.TurnChanges
+            .StartWith(Game.Turn)
+            .CombineLatest<int, PhaseNames, IPlayer?, int, (int Turn, PhaseNames Phase, IPlayer? Player, int UnitsToPlay)>(Game.PhaseChanges.StartWith(Game.TurnPhase),
+                Game.ActivePlayerChanges.StartWith(Game.ActivePlayer),
+                Game.UnitsToPlayChanges.StartWith(Game.UnitsToPlayCurrentStep),
                 (turn, phase, player, units) => (turn, phase, player, units))
             .Subscribe(_ =>
             {
@@ -227,7 +227,7 @@ public class BattleMapViewModel : BaseViewModel
 
     private void UpdateGamePhase()
     {
-        if (Game is not ClientGame { ActivePlayer: not null } clientGame)
+        if (Game is not { ActivePlayer: not null } clientGame)
         {
             return;
         }
@@ -308,9 +308,11 @@ public class BattleMapViewModel : BaseViewModel
         }
     }
 
-    public bool AreUnitsToDeployVisible => CurrentState is DeploymentState
-                                          && UnitsToDeploy.Count > 0
-                                          && SelectedUnit == null;
+    public bool AreUnitsToDeployVisible => Game is not null
+                                           && Game.CanActivePlayerAct
+                                           && CurrentState is DeploymentState
+                                           && UnitsToDeploy.Count > 0
+                                           && SelectedUnit == null;
 
     public int Turn => Game?.Turn ?? 0;
 

@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -40,6 +39,7 @@ public class MovementState : IUiState
 
     public void HandleUnitSelection(Unit? unit)
     {
+        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
         if (unit == null) return;
         if (unit.HasMoved) return;
         
@@ -51,6 +51,7 @@ public class MovementState : IUiState
 
     public void HandleMovementTypeSelection(MovementType movementType)
     {
+        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
         if (_selectedUnit == null) return;
         if (CurrentMovementStep != MovementStep.SelectingMovementType) return;
         _selectedMovementType = movementType;
@@ -279,7 +280,7 @@ public class MovementState : IUiState
     private void CompleteMovement()
     {
         var command = _builder.Build();
-        if (command != null && _viewModel.Game is ClientGame clientGame)
+        if (command != null && _viewModel.Game is { } clientGame)
         {
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
@@ -306,7 +307,9 @@ public class MovementState : IUiState
         _ => string.Empty
     };
 
-    public bool IsActionRequired => CurrentMovementStep != MovementStep.Completed;
+    public bool IsActionRequired =>
+        _viewModel.Game is { CanActivePlayerAct: true } &&
+        CurrentMovementStep != MovementStep.Completed;
     
     public bool CanExecutePlayerAction => CurrentMovementStep == MovementStep.ConfirmMovement;
     

@@ -19,7 +19,6 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.UiStates;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
@@ -30,7 +29,7 @@ namespace Sanet.MakaMek.Core.Tests.ViewModels;
 public class BattleMapViewModelTests
 {
     private readonly BattleMapViewModel _sut;
-    private IGame _game;
+    private ClientGame _game;
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
 
@@ -44,7 +43,7 @@ public class BattleMapViewModelTests
         _localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
         _localizationService.GetString("Action_SelectUnitToDeploy").Returns("Select Unit");
         _localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End turn");
-        _game = Substitute.For<IGame>();
+        _game = new ClientGame(new ClassicBattletechRulesProvider(), Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         _sut.Game = _game;
     }
 
@@ -53,11 +52,35 @@ public class BattleMapViewModelTests
     {
 
         // Act and Assert
-        _game.Turn.Returns(1);
+        _game.HandleCommand(new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = 1
+        });
         _sut.Turn.ShouldBe(1);
-        _game.TurnPhase.Returns(PhaseNames.Start);
-        _sut.TurnPhaseName.ShouldBe(PhaseNames.Start);
-        _game.ActivePlayer.Returns(new Player(Guid.Empty, "Player1", "#FF0000"));
+        _game.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Deployment
+        });
+        _sut.TurnPhaseName.ShouldBe(PhaseNames.Deployment);
+        var player = new Player(Guid.NewGuid(), "Player1", "#FF0000");
+        _game.JoinGameWithUnits(player, []);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            Units = [],
+            Tint = player.Tint
+        });
+
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 0
+        });
         _sut.ActivePlayerName.ShouldBe("Player1");
         _sut.ActivePlayerTint.ShouldBe("#FF0000");
     }
@@ -79,17 +102,17 @@ public class BattleMapViewModelTests
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
-        ((ClientGame)_game).JoinGameWithUnits(player,[unitData]);
-        ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
+        _game.JoinGameWithUnits(player,[unitData]);
+        _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
                                                          new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
 
-        ((ClientGame)_game).HandleCommand(new ChangePhaseCommand()
+        _game.HandleCommand(new ChangePhaseCommand()
         {
             Phase = PhaseNames.Deployment,
             GameOriginId = Guid.NewGuid()
         });
-        ((ClientGame)_game).HandleCommand(new JoinGameCommand()
+        _game.HandleCommand(new JoinGameCommand()
         {
             PlayerId = player.Id,
             Units = [unitData],
@@ -99,7 +122,7 @@ public class BattleMapViewModelTests
         });
 
         // Act
-        ((ClientGame)_game).HandleCommand(new ChangeActivePlayerCommand
+        _game.HandleCommand(new ChangeActivePlayerCommand
         {
             PlayerId = player.Id,
             GameOriginId = Guid.NewGuid(),
@@ -128,23 +151,31 @@ public class BattleMapViewModelTests
         var player2 = new Player(Guid.NewGuid(), "Player2");
 
         var mechData = MechFactoryTests.CreateDummyMechData();
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider());
-        var unit1 = mechFactory.Create(mechData); 
-        var unit2 = mechFactory.Create(mechData); 
     
-        player1.AddUnit(unit1);
-        player2.AddUnit(unit1);
-        player2.AddUnit(unit2);
-    
-        _game.Players.Returns(new List<Player> { player1, player2 });
+        _game.JoinGameWithUnits(player1, [mechData]);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player1.Id,
+            PlayerName = player1.Name,
+            Units = [mechData],
+            Tint = player1.Tint
+        });
+        _game.JoinGameWithUnits(player2, [mechData,mechData]);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player2.Id,
+            PlayerName = player2.Name,
+            Units = [mechData,mechData],
+            Tint = player2.Tint
+        });
 
         // Act
         var units = _sut.Units.ToList();
 
         // Assert
         units.Count.ShouldBe(3);
-        units.ShouldContain(unit1);
-        units.ShouldContain(unit2);
     }
 
     [Fact]
@@ -261,17 +292,17 @@ public class BattleMapViewModelTests
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
-        ((ClientGame)_game).JoinGameWithUnits(player,[]);
-        ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
+        _game.JoinGameWithUnits(player,[]);
+        _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
                                                          new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
 
-        ((ClientGame)_game).HandleCommand(new ChangePhaseCommand()
+        _game.HandleCommand(new ChangePhaseCommand()
         {
             Phase = PhaseNames.Movement,
             GameOriginId = Guid.NewGuid()
         });
-        ((ClientGame)_game).HandleCommand(new JoinGameCommand()
+        _game.HandleCommand(new JoinGameCommand()
         {
             PlayerId = player.Id,
             Units = [],
@@ -281,7 +312,7 @@ public class BattleMapViewModelTests
         });
         
         // Act
-        ((ClientGame)_game).HandleCommand(new ChangeActivePlayerCommand
+        _game.HandleCommand(new ChangeActivePlayerCommand
         {
             PlayerId = player.Id,
             GameOriginId = Guid.NewGuid(),
@@ -302,11 +333,11 @@ public class BattleMapViewModelTests
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
-        ((ClientGame)_game).JoinGameWithUnits(player,[]);
-        ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
+        _game.JoinGameWithUnits(player,[]);
+        _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
-        ((ClientGame)_game).HandleCommand(new JoinGameCommand()
+        _game.HandleCommand(new JoinGameCommand()
         {
             PlayerId = player.Id,
             Units = [],
@@ -314,7 +345,7 @@ public class BattleMapViewModelTests
             GameOriginId = Guid.NewGuid(),
             Tint = "#FF0000"
         });
-        ((ClientGame)_game).HandleCommand(new ChangePhaseCommand()
+        _game.HandleCommand(new ChangePhaseCommand()
         {
             Phase = PhaseNames.WeaponsAttack,
             GameOriginId = Guid.NewGuid()
@@ -322,7 +353,7 @@ public class BattleMapViewModelTests
         
         
         // Act
-        ((ClientGame)_game).HandleCommand(new ChangeActivePlayerCommand
+        _game.HandleCommand(new ChangeActivePlayerCommand
         {
             PlayerId = player.Id,
             GameOriginId = Guid.NewGuid(),
@@ -343,17 +374,17 @@ public class BattleMapViewModelTests
             new ClassicBattletechRulesProvider(),
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
-        ((ClientGame)_game).JoinGameWithUnits(player,[]);
-        ((ClientGame)_game).SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
+        _game.JoinGameWithUnits(player,[]);
+        _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
 
-        ((ClientGame)_game).HandleCommand(new ChangePhaseCommand()
+        _game.HandleCommand(new ChangePhaseCommand()
         {
             Phase = PhaseNames.WeaponsAttack,
             GameOriginId = Guid.NewGuid()
         });
-        ((ClientGame)_game).HandleCommand(new JoinGameCommand()
+        _game.HandleCommand(new JoinGameCommand()
         {
             PlayerId = player.Id,
             Units = [],
@@ -363,7 +394,7 @@ public class BattleMapViewModelTests
         });
         
         // Act
-        ((ClientGame)_game).HandleCommand(new ChangeActivePlayerCommand
+        _game.HandleCommand(new ChangeActivePlayerCommand
         {
             PlayerId = player.Id,
             GameOriginId = Guid.NewGuid(),
@@ -592,9 +623,6 @@ public class BattleMapViewModelTests
     [Fact]
     public void WeaponSelectionItems_WhenNotInWeaponsAttackState_ReturnsEmptyList()
     {
-        // Arrange
-        _game.TurnPhase.Returns(PhaseNames.Movement);
-        
         // Act
         var items = _sut.WeaponSelectionItems;
 
@@ -665,9 +693,6 @@ public class BattleMapViewModelTests
     [Fact]
     public void IsWeaponSelectionVisible_WhenNotInWeaponsAttackState_ReturnsFalse()
     {
-        // Arrange
-        _game.TurnPhase.Returns(PhaseNames.Movement);
-        
         // Act & Assert
         _sut.IsWeaponSelectionVisible.ShouldBeFalse();
     }

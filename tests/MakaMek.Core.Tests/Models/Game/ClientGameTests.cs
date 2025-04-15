@@ -288,13 +288,19 @@ public class ClientGameTests
         receivedCommands.First().ShouldBeEquivalentTo(joinCommand);
     }
 
-    [Fact]
-    public void DeployUnit_ShouldPublishCommand_WhenActivePlayerExists()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DeployUnit_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id= Guid.NewGuid();
+        if (isLocalPlayer)
+        {
+            _sut.JoinGameWithUnits(player,[]);
+        }
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -323,10 +329,17 @@ public class ClientGameTests
         _sut.DeployUnit(deployCommand);
 
         // Assert
-        _commandPublisher.Received(1).PublishCommand(Arg.Is<DeployUnitCommand>(cmd =>
-            cmd.PlayerId == player.Id &&
-            cmd.Position == deployCommand.Position &&
-            cmd.GameOriginId == _sut.Id));
+        if (isLocalPlayer)
+        {
+            _commandPublisher.Received(1).PublishCommand(Arg.Is<DeployUnitCommand>(cmd =>
+                cmd.PlayerId == player.Id &&
+                cmd.Position == deployCommand.Position &&
+                cmd.GameOriginId == _sut.Id));
+        }
+        else
+        {
+            _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<DeployUnitCommand>());
+        }
     }
 
     [Fact]
@@ -349,13 +362,19 @@ public class ClientGameTests
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<DeployUnitCommand>());
     }
     
-    [Fact]
-    public void MoveUnit_ShouldPublishCommand_WhenActivePlayerExists()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MoveUnit_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
+        if (isLocalPlayer)
+        {
+            _sut.JoinGameWithUnits(player, []);
+        }
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -384,10 +403,17 @@ public class ClientGameTests
         _sut.MoveUnit(moveCommand);
 
         // Assert
-        _commandPublisher.Received(1).PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
-            cmd.PlayerId == player.Id &&
-            cmd.MovementType == moveCommand.MovementType &&
-            cmd.GameOriginId == _sut.Id));
+        if (isLocalPlayer)
+        {
+            _commandPublisher.Received(1).PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+                cmd.PlayerId == player.Id &&
+                cmd.MovementType == moveCommand.MovementType &&
+                cmd.GameOriginId == _sut.Id));
+        }
+        else
+        {
+            _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<MoveUnitCommand>());
+        }
     }
     
     [Fact]
@@ -564,13 +590,20 @@ public class ClientGameTests
         Should.NotThrow(() => _sut.HandleCommand(moveCommand));
     }
 
-    [Fact]
-    public void ConfigureUnitWeapons_ShouldPublishCommand_WhenActivePlayerExists()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConfigureUnitWeapons_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
+        if (isLocalPlayer)
+        {
+            _sut.JoinGameWithUnits(player, []);
+        }
+
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -603,7 +636,14 @@ public class ClientGameTests
         _sut.ConfigureUnitWeapons(command);
 
         // Assert
-        _commandPublisher.Received(1).PublishCommand(command);
+        if (isLocalPlayer)
+        {
+            _commandPublisher.Received(1).PublishCommand(command);
+        }
+        else
+        {
+            _commandPublisher.DidNotReceive().PublishCommand(command);
+        }
     }
 
     [Fact]
@@ -676,13 +716,19 @@ public class ClientGameTests
         (unit as Mech)!.TorsoDirection.ShouldBe(HexDirection.TopRight);
     }
 
-    [Fact]
-    public void DeclareWeaponAttack_ShouldPublishCommand_WhenActivePlayerExists()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DeclareWeaponAttack_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
+        if (isLocalPlayer)
+        {
+            _sut.JoinGameWithUnits(player,[]);
+        }
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -736,7 +782,14 @@ public class ClientGameTests
         _sut.DeclareWeaponAttack(command);
 
         // Assert
-        _commandPublisher.Received(1).PublishCommand(command);
+        if (isLocalPlayer)
+        {
+            _commandPublisher.Received(1).PublishCommand(command);
+        }
+        else
+        {
+            _commandPublisher.DidNotReceive().PublishCommand(command);
+        }
     }
 
     [Fact]
@@ -1120,18 +1173,24 @@ public class ClientGameTests
         unit.CurrentHeat.ShouldBe(5); //0+25-20
     }
 
-    [Fact]
-    public void EndTurn_ShouldPublishCommand_WhenActivePlayerExists()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void EndTurn_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
-        var playerId = Guid.NewGuid();
+        var player = new Player(Guid.NewGuid(), "Player1");
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
+        if (isLocalPlayer)
+        {
+            _sut.JoinGameWithUnits(player,[]);
+        }
         _sut.HandleCommand(new JoinGameCommand
         {
-            PlayerId = playerId,
+            PlayerId = player.Id,
             GameOriginId = Guid.NewGuid(),
-            PlayerName = "player",
+            PlayerName = player.Name,
             Units = [unitData],
             Tint = "#FF0000"
         });
@@ -1143,7 +1202,7 @@ public class ClientGameTests
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId,
+            PlayerId = player.Id,
             UnitsToPlay = 0
         });
 
@@ -1151,7 +1210,7 @@ public class ClientGameTests
         var turnEndedCommand = new TurnEndedCommand
         {
             GameOriginId = _sut.Id,
-            PlayerId = playerId,
+            PlayerId = player.Id,
             Timestamp = DateTime.UtcNow
         };
 
@@ -1159,9 +1218,16 @@ public class ClientGameTests
         _sut.EndTurn(turnEndedCommand);
 
         // Assert
-        _commandPublisher.Received(1).PublishCommand(Arg.Is<TurnEndedCommand>(cmd =>
-            cmd.PlayerId == playerId &&
-            cmd.GameOriginId == _sut.Id));
+        if (isLocalPlayer)
+        {
+            _commandPublisher.Received(1).PublishCommand(Arg.Is<TurnEndedCommand>(cmd =>
+                cmd.PlayerId == player.Id &&
+                cmd.GameOriginId == _sut.Id));
+        }
+        else
+        {
+            _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<TurnEndedCommand>());
+        }
     }
 
     [Fact]

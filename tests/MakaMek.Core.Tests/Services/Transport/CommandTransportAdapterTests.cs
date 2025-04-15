@@ -43,7 +43,7 @@ public class CommandTransportAdapterTests
         var command = new TurnIncrementedCommand
         {
             GameOriginId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow
+            TurnNumber = 1
         };
         
         TransportMessage? capturedMessage1 = null;
@@ -272,10 +272,14 @@ public class CommandTransportAdapterTests
     public void Initialize_WithNoPublishers_DoesNotThrow()
     {
         // Arrange & Act
-        Should.NotThrow(() => {
+        Should.NotThrow(() =>
+        {
             var sut = new CommandTransportAdapter(); // No publishers
             sut.Initialize(_ => { }); // Initialize should be safe
-            sut.PublishCommand(new TurnIncrementedCommand()); // Publish should be safe (no-op)
+            sut.PublishCommand(new TurnIncrementedCommand
+            {
+                TurnNumber = 1
+            }); // Publish should be safe (no-op)
         });
     }
     
@@ -300,7 +304,7 @@ public class CommandTransportAdapterTests
         ((IDisposable)disposablePublisher2).Received(1).Dispose();
         
         // Verify publishers list is empty by publishing a command (should not be received)
-        var command = new TurnIncrementedCommand();
+        var command = new TurnIncrementedCommand{ TurnNumber = 1};
         sut.PublishCommand(command);
         
         disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
@@ -344,7 +348,7 @@ public class CommandTransportAdapterTests
         ((IDisposable)normalPublisher).Received(1).Dispose();
         
         // Verify that the publishers list was cleared
-        var command = new TurnIncrementedCommand();
+        var command = new TurnIncrementedCommand {TurnNumber = 1};
         sut.PublishCommand(command);
         
         throwingPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());

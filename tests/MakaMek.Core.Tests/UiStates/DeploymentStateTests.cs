@@ -63,23 +63,7 @@ public class DeploymentStateTests
         localizationService.GetString("Action_SelectDeploymentHex").Returns("Select Hex");
         localizationService.GetString("Action_SelectFacingDirection").Returns("Select facing direction");
     }
-
-    [Fact]
-    public void InitialState_HasSelectUnitAction()
-    {
-        // Assert
-        _sut.ActionLabel.ShouldBe("Select Unit");
-        _sut.IsActionRequired.ShouldBeTrue();
-    }
     
-    [Fact]
-    public void InitialState_CannotExecutePlayerAction()
-    {
-        // Assert
-        ((IUiState)_sut).CanExecutePlayerAction.ShouldBeFalse();
-        ((IUiState)_sut).PlayerActionLabel.ShouldBe("");
-    }
-
     private void SetActivePlayer(Player player, UnitData unitData)
     {
         _game.HandleCommand(new JoinGameCommand
@@ -99,13 +83,53 @@ public class DeploymentStateTests
     }
 
     [Fact]
-    public void HandleUnitSelection_TransitionsToHexSelection()
+    public void InitialState_HasSelectUnitAction_IfActivePlayer_IsLocal()
+    {
+        // Assert
+        _sut.ActionLabel.ShouldBe("Select Unit");
+        _sut.IsActionRequired.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void InitialState_DoesNotHaveSelectUnitAction_IfActivePlayer_IsNotLocal()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player2");
+        SetActivePlayer(player, MechFactoryTests.CreateDummyMechData());
+        // Assert
+        _sut.ActionLabel.ShouldBe("");
+        _sut.IsActionRequired.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void InitialState_CannotExecutePlayerAction()
+    {
+        // Assert
+        ((IUiState)_sut).CanExecutePlayerAction.ShouldBeFalse();
+        ((IUiState)_sut).PlayerActionLabel.ShouldBe("");
+    }
+
+    [Fact]
+    public void HandleUnitSelection_TransitionsToHexSelection_IfActivePlayerIsLocal()
     {
         // Act
         _sut.HandleUnitSelection(_unit);
 
         // Assert
         _sut.ActionLabel.ShouldBe("Select Hex");
+    }
+    
+    [Fact]
+    public void HandleUnitSelection_DoesNotTransitionsToHexSelection_IfActivePlayerIsNotLocal()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player2");
+        SetActivePlayer(player, MechFactoryTests.CreateDummyMechData());
+        // Act
+        _sut.HandleUnitSelection(_unit);
+
+        // Assert
+        _sut.ActionLabel.ShouldBe("");
     }
 
     [Fact]
@@ -119,6 +143,19 @@ public class DeploymentStateTests
 
         // Assert
         _sut.ActionLabel.ShouldBe("Select facing direction");
+    }
+    
+    [Fact]
+    public void HandleHexSelection_ForDeployment_DoesNotUpdateStepToSelectDirection_IfActivePlayerIsNotLocal()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player2");
+        SetActivePlayer(player, MechFactoryTests.CreateDummyMechData());
+        // Act
+        _sut.HandleHexSelection(_hex1);
+
+        // Assert
+        _sut.ActionLabel.ShouldBe("");
     }
     
     [Fact]
