@@ -1,7 +1,7 @@
 using Sanet.Transport;
 using Sanet.Transport.SignalR.Client.Publishers;
 
-namespace Sanet.MakaMek.Core.Models.Game.Factories;
+namespace Sanet.MakaMek.Core.Services.Transport;
 
 /// <summary>
 /// Implementation of ITransportFactory that creates SignalR transport publishers
