@@ -15,6 +15,7 @@ public class CommandTransportAdapter
     internal readonly List<ITransportPublisher> TransportPublishers = new();
     private readonly Dictionary<string, Type> _commandTypes;
     private Action<IGameCommand>? _onCommandReceived;
+    private bool _isInitialized = false;
     
     /// <summary>
     /// Creates a new instance of the CommandTransportAdapter with multiple publishers
@@ -64,6 +65,7 @@ public class CommandTransportAdapter
             }
         }
         _onCommandReceived = null;
+        _isInitialized = false;
         TransportPublishers.Clear();
     }
     
@@ -94,6 +96,9 @@ public class CommandTransportAdapter
     /// <param name="onCommandReceived">Callback for received commands</param>
     public void Initialize(Action<IGameCommand> onCommandReceived)
     {
+        if (_isInitialized)
+            return; // Already initialized, do nothing
+
         _onCommandReceived = onCommandReceived;
         
         // Subscribe to all publishers
@@ -101,6 +106,7 @@ public class CommandTransportAdapter
         {
             SubscribePublisher(publisher, onCommandReceived);
         }
+        _isInitialized = true;
     }
     
     /// <summary>

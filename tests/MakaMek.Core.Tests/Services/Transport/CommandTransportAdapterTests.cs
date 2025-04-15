@@ -354,4 +354,18 @@ public class CommandTransportAdapterTests
         throwingPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
         normalPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
     }
+    
+    [Fact]
+    public void Initialize_CalledMultipleTimes_SubscribesOnlyOnce()
+    {
+        // Arrange
+        SetupAdapter(1);
+
+        // Act
+        _sut.Initialize(_=>{ });
+        _sut.Initialize(_=>{ }); // Should be ignored
+
+        // Assert
+        _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
+    }
 }

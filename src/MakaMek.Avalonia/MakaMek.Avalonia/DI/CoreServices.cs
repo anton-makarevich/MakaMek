@@ -27,10 +27,10 @@ public static class CoreServices
 
         // Register CommandTransportAdapter with just the RxTransportPublisher initially
         // The network publisher will be added dynamically when needed
-        services.AddSingleton<CommandTransportAdapter>(sp => 
+        services.AddTransient<CommandTransportAdapter>(sp => 
             new CommandTransportAdapter(sp.GetRequiredService<RxTransportPublisher>()));
             
-        services.AddSingleton<ICommandPublisher, CommandPublisher>();
+        services.AddTransient<ICommandPublisher, CommandPublisher>();
         services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<IToHitCalculator, ClassicToHitCalculator>();
