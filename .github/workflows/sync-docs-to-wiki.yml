@@ -17,7 +17,7 @@ jobs:
 
       - name: Clone Wiki repository
         run: |
-          git clone https://github.com/anton-makarevich/MakaMek.wiki.git wiki
+          git clone https://x-access-token:${{ secrets.GH_WIKI_TOKEN }}@github.com/anton-makarevich/MakaMek.wiki.git wiki
 
       - name: Sync docs to wiki
         run: |
@@ -28,3 +28,4 @@ jobs:
           git add .
           git commit -m "Sync docs from main repo [skip ci]" || echo "No changes to commit"
           git push
+  
