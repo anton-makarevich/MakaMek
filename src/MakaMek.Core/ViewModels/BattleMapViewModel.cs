@@ -34,6 +34,7 @@ public class BattleMapViewModel : BaseViewModel
     private List<PathSegmentViewModel>? _movementPath;
     private List<WeaponAttackViewModel>? _weaponAttacks;
     private bool _isWeaponSelectionVisible;
+    private readonly IDispatcherService _dispatcherService;
 
     public HexCoordinates? DirectionSelectorPosition
     {
@@ -70,10 +71,11 @@ public class BattleMapViewModel : BaseViewModel
         CurrentState.HandleFacingSelection(direction);
     }
 
-    public BattleMapViewModel(IImageService imageService, ILocalizationService localizationService)
+    public BattleMapViewModel(IImageService imageService, ILocalizationService localizationService, IDispatcherService dispatcherService)
     {
         ImageService = imageService;
         _localizationService = localizationService;
+        _dispatcherService = dispatcherService;
         CurrentState = new IdleState();
     }
 
@@ -113,8 +115,7 @@ public class BattleMapViewModel : BaseViewModel
         if (Game is null) return;
 
         _commandSubscription = Game.Commands
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(ProcessCommand);
+            .Subscribe( ProcessCommand );
         
         _gameSubscription = Game.TurnChanges
             .StartWith(Game.Turn)
@@ -132,20 +133,23 @@ public class BattleMapViewModel : BaseViewModel
 
     private void ProcessCommand(IGameCommand command)
     {
-        if (Game == null) return;
-        var formattedCommand = command.Format(_localizationService, Game);
-        _commandLog.Add(formattedCommand);
-        NotifyPropertyChanged(nameof(CommandLog));
-
-        switch (command)
+        _dispatcherService.RunOnUIThread(() =>
         {
-            case WeaponAttackDeclarationCommand weaponCommand:
-                ProcessWeaponAttackDeclaration(weaponCommand);
-                break;
-            case WeaponAttackResolutionCommand resolutionCommand:
-                ProcessWeaponAttackResolution(resolutionCommand);
-                break;
-        }
+            if (Game == null) return;
+            var formattedCommand = command.Format(_localizationService, Game);
+            _commandLog.Add(formattedCommand);
+            NotifyPropertyChanged(nameof(CommandLog));
+
+            switch (command)
+            {
+                case WeaponAttackDeclarationCommand weaponCommand:
+                    ProcessWeaponAttackDeclaration(weaponCommand);
+                    break;
+                case WeaponAttackResolutionCommand resolutionCommand:
+                    ProcessWeaponAttackResolution(resolutionCommand);
+                    break;
+            }
+        });
     }
 
     private void ProcessWeaponAttackDeclaration(WeaponAttackDeclarationCommand command)

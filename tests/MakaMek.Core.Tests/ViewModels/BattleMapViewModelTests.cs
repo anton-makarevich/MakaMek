@@ -36,7 +36,11 @@ public class BattleMapViewModelTests
     public BattleMapViewModelTests()
     {
         var imageService = Substitute.For<IImageService>();
-        _sut = new BattleMapViewModel(imageService, _localizationService);
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        _sut = new BattleMapViewModel(imageService, _localizationService,dispatcherService);
+        
+        // Configure dispatcher to execute actions immediately
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
         
         _localizationService.GetString("Action_SelectTarget").Returns("Select Target");
         _localizationService.GetString("Action_SelectUnitToFire").Returns("Select unit to fire weapons");
