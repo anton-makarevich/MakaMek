@@ -13,14 +13,13 @@ public class GameManager : IGameManager
     private readonly ICommandPublisher _commandPublisher;
     private readonly IDiceRoller _diceRoller;
     private readonly IToHitCalculator _toHitCalculator;
-    private readonly CommandTransportAdapter _transportAdapter;
     private readonly IGameFactory _gameFactory;
     private ServerGame? _serverGame;
     private readonly INetworkHostService? _networkHostService;
     private bool _isDisposed;
 
     public GameManager(IRulesProvider rulesProvider, ICommandPublisher commandPublisher, IDiceRoller diceRoller,
-        IToHitCalculator toHitCalculator, CommandTransportAdapter transportAdapter, 
+        IToHitCalculator toHitCalculator, 
         IGameFactory gameFactory, 
         INetworkHostService? networkHostService = null)
     {
@@ -28,13 +27,13 @@ public class GameManager : IGameManager
         _commandPublisher = commandPublisher;
         _diceRoller = diceRoller;
         _toHitCalculator = toHitCalculator;
-        _transportAdapter = transportAdapter;
         _gameFactory = gameFactory;
         _networkHostService = networkHostService;
     }
 
     public async Task InitializeLobby()
     {
+        var transportAdapter = _commandPublisher.Adapter;
         // Start the network host if supported and not already running
         if (CanStartLanServer && !IsLanServerRunning && _networkHostService != null)
         {
@@ -43,7 +42,7 @@ public class GameManager : IGameManager
             // Add the network publisher to the transport adapter if successfully started
             if (_networkHostService.Publisher != null)
             {
-                _transportAdapter.AddPublisher(_networkHostService.Publisher);
+                transportAdapter.AddPublisher(_networkHostService.Publisher);
             }
         }
         

@@ -37,13 +37,13 @@ public class GameManagerTests : IDisposable
 
         _serverGame = new ServerGame(_rulesProvider, _commandPublisher, _diceRoller, _toHitCalculator);
         _gameFactory.CreateServerGame(_rulesProvider, _commandPublisher, _diceRoller, _toHitCalculator).Returns(_serverGame);
+        _commandPublisher.Adapter.Returns(_transportAdapter);
 
         _sut = new GameManager(
             _rulesProvider,
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _transportAdapter,
             _gameFactory,
             _networkHostService);
     }
@@ -170,7 +170,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var sutWithNullHost = new GameManager(_rulesProvider, _commandPublisher, _diceRoller,
-            _toHitCalculator, _transportAdapter, _gameFactory);
+            _toHitCalculator, _gameFactory);
 
         // Act & Assert
         sutWithNullHost.IsLanServerRunning.ShouldBeFalse();
@@ -193,7 +193,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var sutWithNullHost = new GameManager(_rulesProvider, _commandPublisher, _diceRoller,
-            _toHitCalculator, _transportAdapter, _gameFactory);
+            _toHitCalculator, _gameFactory);
 
         // Act & Assert
         sutWithNullHost.CanStartLanServer.ShouldBeFalse();
@@ -235,7 +235,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var sutWithNullHost = new GameManager(_rulesProvider, _commandPublisher, _diceRoller,
-            _toHitCalculator, _transportAdapter, _gameFactory);
+            _toHitCalculator, _gameFactory);
 
         // Act & Assert
         Should.NotThrow(() => sutWithNullHost.Dispose());
