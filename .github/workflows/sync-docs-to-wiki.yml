@@ -21,11 +21,11 @@ jobs:
 
       - name: Sync docs to wiki
         run: |
-          rsync -av --delete docs/ wiki/
+          rsync -av --delete --exclude .git docs/ wiki/
           cd wiki
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "Sync docs from main repo [skip ci]" || echo "No changes to commit"
+          git remote set-url origin https://x-access-token:${{ secrets.GH_WIKI_TOKEN }}@github.com/anton-makarevich/MakaMek.wiki.git
           git push
-  
