@@ -40,7 +40,7 @@ public class EndStateTests
         localizationService.GetString("EndPhase_ActionLabel").Returns("End your turn");
         localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End your turn");
         
-        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService);
+        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
         
         var rules = new ClassicBattletechRulesProvider();

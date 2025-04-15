@@ -53,7 +53,7 @@ public class MovementStateTests
         localizationService.GetString("MovementType_Run").Returns("Run");
         localizationService.GetString("MovementType_Jump").Returns("Jump");
         
-        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService);
+        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
         
         

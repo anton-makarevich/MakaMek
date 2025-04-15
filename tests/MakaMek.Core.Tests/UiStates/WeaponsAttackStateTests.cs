@@ -54,7 +54,7 @@ public class WeaponsAttackStateTests
         localizationService.GetString("Action_SkipAttack").Returns("Skip Attack");
         localizationService.GetString("Action_DeclareAttack").Returns("Declare Attack");
         
-        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService);
+        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
 
         var rules = new ClassicBattletechRulesProvider();

@@ -35,7 +35,7 @@ public class DeploymentStateTests
         var imageService = Substitute.For<IImageService>();
         var localizationService = Substitute.For<ILocalizationService>();
         
-        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService);
+        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
 
         var rules = new ClassicBattletechRulesProvider();
         var unitData = MechFactoryTests.CreateDummyMechData();
