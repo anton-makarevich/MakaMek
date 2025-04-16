@@ -524,6 +524,40 @@ public class WeaponSelectionViewModelTests
         _sut.HitProbability.ShouldBe(0);
     }
 
+    [Fact]
+    public void AttackPossibilityDescription_HandlesWeaponDestroyed()
+    {
+        // Arrange
+        CreateSut();
+        _weapon.Hit();
+        _localizationService.GetString("Attack_WeaponDestroyed").Returns("Weapon is destroyed");
+
+        // Act
+        var result = _sut.AttackPossibilityDescription;
+
+        // Assert
+        result.ShouldBe("Weapon is destroyed");
+        _localizationService.Received().GetString("Attack_WeaponDestroyed");
+    }
+
+    [Fact]
+    public void AttackPossibilityDescription_HandlesLocationDestroyed()
+    {
+        // Arrange
+        CreateSut();
+        var part = _weapon.MountedOn;
+        if (part == null) throw new Exception("Weapon must be mounted on a part for this test.");
+        part.ApplyDamage(1000);
+        _localizationService.GetString("Attack_LocationDestroyed").Returns("Location is destroyed");
+
+        // Act
+        var result = _sut.AttackPossibilityDescription;
+
+        // Assert
+        result.ShouldBe("Location is destroyed");
+        _localizationService.Received().GetString("Attack_LocationDestroyed");
+    }
+
     private void CreateSut(
         bool isInRange = true,
         bool isSelected = false,
