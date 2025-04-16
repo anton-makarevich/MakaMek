@@ -4,24 +4,24 @@ A cross-platform implementation of turn-based tabletop tactics BattleTech, built
 
 ## Overview
 
-MakaMek is an open-source tactical combat game featuring giant walking war machines. The game is inspired by another computer implementation of BattleTech called MegaMek but focusing on simplicity and accessibility for all the players. We try to keep gameplay as simple as possible and focus on mobile-first and web-first user experience.
+MakaMek is an open-source tactical combat game featuring giant walking war machines. The game is inspired by another computer implementation of BattleTech called [MegaMek](https://megamek.org/) but focusing on simplicity and accessibility for all players. We aim to keep gameplay simple and prioritize a mobile-first and web-first user experience.
 
 ![MakaMek](docs/screenshots/win/150425.png)
 
 ## Features
 ### Implemented
 - [Client-Server app architecture](https://github.com/anton-makarevich/MakaMek/wiki/Game-(Protocol)-High-Level-Architecture) with RX communication for local play
-- LAN Multiplayer with SignalR (only Desktop app can host the game, mobile clients could connect)
+- LAN multiplayer with SignalR (only Desktop app can host the game, mobile clients could connect)
 - Single-player combat with up to 4 players on a single device
 - Complete Turn flow implementation with all major phases including initiative, movement, attack declaration and resolution, heat and end phase
 - Hex map generator with the simplest terrain types (clear, light and heavy wood) (MegaMek assets)
 - Cross-platform support (Windows, Linux, macOS, Web, Android, iOS)
-- Test UI built with AvaloniaUI
+- Prototype UI built with AvaloniaUI
 - Importing mechs defined in MTF format 
 
 ### Planned
 - Single-player combat against AI opponents
-- Multiplayer support (LAN and Internet, WebSockets/SignalR)
+- Multiplayer over the Internet (WebSockets/SignalR)
 - Unit customization and management
 - Compatible with common community data formats
 - Monogame version with 3D graphics and possible VR/AR support
@@ -39,12 +39,13 @@ MakaMek/
 ├── src/
 │   ├── MakaMek.Core/        # Core game engine and logic
 │   └── MakaMek.Avalonia/    # UI implementation
-└── tests/                    # Unit tests
+├── tests/                   # Unit tests
+└── docs/                    # Documentation (also synced to GitHub Wiki)
 ```
 
 ### Project Status
 
-| Component                  | Build                                                                                                                                                                                                    | Package/Download |
+| Component                  | Build Status                                                                                                                                                                                             | Package/Download |
 |----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
 | **Test Coverage (non-ui)** | [![codecov](https://codecov.io/github/anton-makarevich/MakaMek/graph/badge.svg?token=SAQTXWFA21)](https://codecov.io/github/anton-makarevich/MakaMek)                                                    | |
 | **MakaMek.Core**           | [![build](https://github.com/anton-makarevich/MakaMek/actions/workflows/core.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/core.yml)                                     | [![NuGet Version](https://img.shields.io/nuget/vpre/Sanet.MakaMek.Core?logo=nuget)](https://www.nuget.org/packages/Sanet.MakaMek.Core) |
