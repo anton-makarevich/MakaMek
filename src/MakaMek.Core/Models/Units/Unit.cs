@@ -64,7 +64,7 @@ public abstract class Unit
             MovementType.Run => (int)Math.Ceiling(BaseMovement * 1.5),
             MovementType.Jump => GetAllComponents<JumpJets>().Sum(j => j.JumpMp),
             MovementType.Sprint => BaseMovement * 2,
-            MovementType.Masc => HasActiveComponent<Masc>() ? BaseMovement * 2 : (int)(BaseMovement * 1.5),
+            MovementType.Masc => HasAvailableComponent<Masc>() ? BaseMovement * 2 : (int)(BaseMovement * 1.5),
             _ => 0
         };
     }
@@ -296,9 +296,9 @@ public abstract class Unit
         return Parts.SelectMany(p => p.GetComponents<T>());
     }
 
-    public bool HasActiveComponent<T>() where T : Component
+    public bool HasAvailableComponent<T>() where T : Component
     {
-        return GetAllComponents<T>().Any(c => c is { IsActive: true, IsDestroyed: false });
+        return GetAllComponents<T>().Any(c => c is { IsActive: true, IsAvailable: true });
     }
     
     /// <summary>
@@ -312,7 +312,7 @@ public abstract class Unit
             return [];
             
         return GetAllComponents<Ammo>()
-            .Where(a => a.Type == weapon.AmmoType && !a.IsDestroyed);
+            .Where(a => a.Type == weapon.AmmoType && a.IsAvailable);
     }
     
     /// <summary>
@@ -413,7 +413,7 @@ public abstract class Unit
             weaponData.Location, 
             weaponData.Slots);
             
-        if (weapon == null || weapon.IsDestroyed)
+        if (weapon is not { IsAvailable: true })
             return;
         
         // If the weapon requires ammo, find and use ammo

@@ -59,7 +59,7 @@ public class WeaponSelectionViewModel : BindableBase
 
     public bool IsEnabled
     {
-        get => _isEnabled && HitProbability > 0 && HasSufficientAmmo;
+        get => _isEnabled && HitProbability > 0 && HasSufficientAmmo && Weapon.IsAvailable;
         set => SetProperty(ref _isEnabled, value);
     }
 
@@ -120,33 +120,33 @@ public class WeaponSelectionViewModel : BindableBase
     {
         get
         {
+            // Check if weapon is destroyed
+            if (Weapon.IsDestroyed)
+                return _localizationService.GetString("Attack_WeaponDestroyed");
+            // Check if weapon's location is destroyed
+            if (Weapon.MountedOn?.IsDestroyed == true)
+                return _localizationService.GetString("Attack_LocationDestroyed");
             // Check if weapon is out of ammo
             if (RequiresAmmo && RemainingAmmoShots <= 0)
                 return _localizationService.GetString("Attack_NoAmmo");
-                
             // Check if weapon is in range
             if (!IsInRange)
                 return _localizationService.GetString("Attack_OutOfRange");
-                
             // Check if weapon is targetting different target
             if (!IsEnabled && Target != null)
                 return string.Format(_localizationService.GetString("Attack_Targeting"),Target.Name);
-            
             // Check if we have modifiers breakdown
             if (ModifiersBreakdown == null)
                 return _localizationService.GetString("Attack_NoModifiersCalculated");
-
             // Check line of sight
             if (!ModifiersBreakdown.HasLineOfSight)
                 return _localizationService.GetString("Attack_NoLineOfSight");
-            
             // If we get here, show the modifiers breakdown
             var lines = new List<string>
             {
                 $"{_localizationService.GetString("Attack_TargetNumber")}: {ModifiersBreakdown.Total}"
             };
             lines.AddRange(ModifiersBreakdown.AllModifiers.Select(modifier => modifier.Format(_localizationService)));
-
             // Add all modifiers using their Format method
             return string.Join(Environment.NewLine, lines);
         }

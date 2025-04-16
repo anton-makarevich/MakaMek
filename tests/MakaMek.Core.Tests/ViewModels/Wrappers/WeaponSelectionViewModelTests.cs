@@ -7,7 +7,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -27,6 +26,8 @@ public class WeaponSelectionViewModelTests
     public WeaponSelectionViewModelTests()
     {
         _weapon = new MediumLaser();
+        var part = new Arm(PartLocation.LeftArm, 1, 1);
+        part.TryAddComponent(_weapon);
         
         // Create a test mech using MechFactory
         var structureValueProvider = Substitute.For<IRulesProvider>();
@@ -204,6 +205,8 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         var ballisticWeapon = new TestBallisticWeapon();
+        var part = new Arm(PartLocation.LeftArm, 1, 1);
+        part.TryAddComponent(ballisticWeapon);
         _sut = new WeaponSelectionViewModel(
             ballisticWeapon,
             true,
@@ -212,15 +215,42 @@ public class WeaponSelectionViewModelTests
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
             _localizationService,
-            0);
-        
-        // Set a valid hit probability
-        _sut.ModifiersBreakdown = CreateTestBreakdown(5);
+            0)
+        {
+            // Set a valid hit probability
+            ModifiersBreakdown = CreateTestBreakdown(5)
+        };
 
         // Act & Assert
         _sut.IsEnabled.ShouldBeFalse();
     }
 
+    [Fact]
+    public void IsEnabled_ReturnsFalse_WhenWeaponIsNotAvailable()
+    {
+        // Arrange
+        var ballisticWeapon = new TestBallisticWeapon();
+        var part = new Arm(PartLocation.LeftArm, 1, 1);
+        part.TryAddComponent(ballisticWeapon);
+        ballisticWeapon.Hit();
+        _sut = new WeaponSelectionViewModel(
+            ballisticWeapon,
+            true,
+            false,
+            true,
+            null,
+            (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _localizationService,
+            5)
+        {
+            // Set a valid hit probability
+            ModifiersBreakdown = CreateTestBreakdown(5)
+        };
+
+        // Act & Assert
+        _sut.IsEnabled.ShouldBeFalse();
+    }
+    
     [Fact]
     public void AttackPossibilityDescription_ReturnsNoAmmoMessage_WhenWeaponRequiresAmmoButHasNone()
     {
@@ -492,6 +522,40 @@ public class WeaponSelectionViewModelTests
         
         // Act & Assert
         _sut.HitProbability.ShouldBe(0);
+    }
+
+    [Fact]
+    public void AttackPossibilityDescription_HandlesWeaponDestroyed()
+    {
+        // Arrange
+        CreateSut();
+        _weapon.Hit();
+        _localizationService.GetString("Attack_WeaponDestroyed").Returns("Weapon is destroyed");
+
+        // Act
+        var result = _sut.AttackPossibilityDescription;
+
+        // Assert
+        result.ShouldBe("Weapon is destroyed");
+        _localizationService.Received().GetString("Attack_WeaponDestroyed");
+    }
+
+    [Fact]
+    public void AttackPossibilityDescription_HandlesLocationDestroyed()
+    {
+        // Arrange
+        CreateSut();
+        var part = _weapon.MountedOn;
+        if (part == null) throw new Exception("Weapon must be mounted on a part for this test.");
+        part.ApplyDamage(1000);
+        _localizationService.GetString("Attack_LocationDestroyed").Returns("Location is destroyed");
+
+        // Act
+        var result = _sut.AttackPossibilityDescription;
+
+        // Assert
+        result.ShouldBe("Location is destroyed");
+        _localizationService.Received().GetString("Attack_LocationDestroyed");
     }
 
     private void CreateSut(

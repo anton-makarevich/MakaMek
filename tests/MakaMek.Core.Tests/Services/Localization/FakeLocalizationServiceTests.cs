@@ -53,6 +53,8 @@ public class FakeLocalizationServiceTests
     [InlineData("Attack_NoModifiersCalculated", "Attack modifiers not calculated")]
     [InlineData("Attack_Targeting", "Already targeting {0}")]
     [InlineData("Attack_NoAmmo", "No ammunition")]
+    [InlineData("Attack_WeaponDestroyed", "Weapon is destroyed")]
+    [InlineData("Attack_LocationDestroyed", "Location is destroyed")]
     // Secondary target modifiers
     [InlineData("Attack_SecondaryTargetFrontArc", "Secondary target (front arc): +{0}")]
     [InlineData("Attack_SecondaryTargetOtherArc", "Secondary target (other arc): +{0}")]

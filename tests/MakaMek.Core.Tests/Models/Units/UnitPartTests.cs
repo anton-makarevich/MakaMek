@@ -73,6 +73,7 @@ public class UnitPartTests
         // Assert
         part.IsDestroyed.ShouldBeTrue();
         masc.IsDestroyed.ShouldBeFalse(); // Component should not be automatically destroyed
+        masc.IsAvailable.ShouldBeFalse(); // not destroyed but not available to be used
         masc.IsActive.ShouldBeTrue(); // Components start active by default
     }
 
