@@ -1391,36 +1391,39 @@ public class WeaponsAttackStateTests
     public void UpdateWeaponViewModels_SkipsUnavailableWeapons_ForToHitCalculation()
     {
         // Arrange
-        SetPhase(PhaseNames.WeaponsAttack);
-        SetActivePlayer();
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
-        _sut.HandleUnitSelection(attacker);
-        
-        // Place a target unit in range
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
-        target.Deploy(targetPosition);
-        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
-        _sut.HandleUnitSelection(target);
 
-        // Set up two weapons: one available, one unavailable
-        var allWeapons = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).ToList();
-        allWeapons[1].Hit();
-        
-        // Act
-        // This will call UpdateWeaponViewModels internally
-        _sut.HandleUnitSelection(attacker); // Triggers view model update
+        // Position units on the map
+        var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        target.Deploy(targetPosition);
+
+        // Set up the state (mirroring the reference test)
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+
+        // Get two different weapons
+        var weapons = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
+        // Make one weapon unavailable
+        weapons[1].Hit(); 
+
+        // Select target and both weapons
+        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+        var weaponSelection1 = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapons[0]);
+        var weaponSelection2 = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapons[1]);
+        weaponSelection1.IsSelected = true;
+        weaponSelection2.IsSelected = true;
 
         // Assert
-        var vmAvailable = _sut.WeaponSelectionItems.First(vm => vm.Weapon == allWeapons[0]);
-        var vmUnavailable = _sut.WeaponSelectionItems.First(vm => vm.Weapon == allWeapons[1]);
-        
-        vmAvailable.Weapon.IsAvailable.ShouldBeTrue();
-        vmAvailable.ModifiersBreakdown.ShouldNotBeNull();
-        
-        vmUnavailable.Weapon.IsAvailable.ShouldBeFalse();
-        vmUnavailable.ModifiersBreakdown.ShouldBeNull();
+        weaponSelection1.Weapon.IsAvailable.ShouldBeTrue();
+        weaponSelection1.ModifiersBreakdown.ShouldNotBeNull();
+
+        weaponSelection2.Weapon.IsAvailable.ShouldBeFalse();
+        weaponSelection2.ModifiersBreakdown.ShouldBeNull();
     }
 }
