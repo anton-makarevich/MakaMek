@@ -8,6 +8,7 @@
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitWeaponsPanel">
     <UserControl.Resources>
         <converters:WeaponRangeConverter x:Key="WeaponRangeConverter"/>
+        <converters:WeaponStatusBackgroundConverter x:Key="WeaponStatusBackgroundConverter"/>
     </UserControl.Resources>
     <ScrollViewer Classes="gameScrollViewer">
         <StackPanel Classes="verticalSpaced">
@@ -23,7 +24,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="weapons:Weapon">
                         <Border Classes="listItem" Margin="2">
-                            <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2">
+                            <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2" Background="{Binding ., Converter={StaticResource WeaponStatusBackgroundConverter}}">
                                 <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="1" Text="{Binding Damage}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="{Binding Heat}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>

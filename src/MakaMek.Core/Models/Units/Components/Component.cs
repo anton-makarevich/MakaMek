@@ -21,6 +21,11 @@ public abstract class Component : IManufacturedItem
     public bool IsDestroyed { get; private set; }
     public bool IsActive { get; protected set; } = true;
     
+    public bool IsAvailable => IsActive 
+                               && !IsDestroyed 
+                               && IsMounted 
+                               && !MountedOn!.IsDestroyed;
+    
     public int Size { get; }
     public string Manufacturer { get; }
     public bool IsFixed { get; }

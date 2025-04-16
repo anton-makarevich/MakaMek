@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 
 public class ContrastingForegroundConverter : IValueConverter
 {
-    public object? Convert(
+    public object Convert(
         object? value, Type targetType, 
         object? parameter,
         System.Globalization.CultureInfo culture)
