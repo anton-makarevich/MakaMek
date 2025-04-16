@@ -991,6 +991,51 @@ public class UnitTests
         heatData.TotalHeatDissipationPoints.ShouldBe(unit.HeatDissipation);
     }
     
+    [Fact]
+    public void HasAvailableComponent_WithAvailableComponent_ReturnsTrue()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var testComponent = new TestComponent("Test Component");
+        var part = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        part.TryAddComponent(testComponent);
+        
+        // Act
+        var result = unit.HasAvailableComponent<TestComponent>();
+        
+        // Assert
+        result.ShouldBeTrue();
+    }
+    
+    [Theory]
+    [InlineData(true, false)]  // Destroyed component
+    [InlineData(false, true)]  // Deactivated component
+    public void HasAvailableComponent_WithUnavailableComponent_ReturnsFalse(bool isDestroyed, bool deactivate)
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var testComponent = new TestComponent("Test Component");
+        var part = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        part.TryAddComponent(testComponent);
+        
+        // Make the component unavailable
+        if (isDestroyed)
+        {
+            testComponent.Hit();
+        }
+        
+        if (deactivate)
+        {
+            testComponent.Deactivate();
+        }
+        
+        // Act
+        var result = unit.HasAvailableComponent<TestComponent>();
+        
+        // Assert
+        result.ShouldBeFalse();
+    }
+    
     // Helper class for testing generic methods
     private class TestDerivedComponent(string name, int size = 1) : TestComponent(name, size);
 }
