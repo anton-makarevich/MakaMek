@@ -1386,4 +1386,41 @@ public class WeaponsAttackStateTests
         // Assert
         result.ShouldBe(string.Empty);
     }
+
+    [Fact]
+    public void UpdateWeaponViewModels_SkipsUnavailableWeapons_ForToHitCalculation()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        _sut.HandleUnitSelection(attacker);
+        
+        // Place a target unit in range
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
+        target.Deploy(targetPosition);
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Set up two weapons: one available, one unavailable
+        var allWeapons = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).ToList();
+        allWeapons[1].Hit();
+        
+        // Act
+        // This will call UpdateWeaponViewModels internally
+        _sut.HandleUnitSelection(attacker); // Triggers view model update
+
+        // Assert
+        var vmAvailable = _sut.WeaponSelectionItems.First(vm => vm.Weapon == allWeapons[0]);
+        var vmUnavailable = _sut.WeaponSelectionItems.First(vm => vm.Weapon == allWeapons[1]);
+        
+        vmAvailable.Weapon.IsAvailable.ShouldBeTrue();
+        vmAvailable.ModifiersBreakdown.ShouldNotBeNull();
+        
+        vmUnavailable.Weapon.IsAvailable.ShouldBeFalse();
+        vmUnavailable.ModifiersBreakdown.ShouldBeNull();
+    }
 }

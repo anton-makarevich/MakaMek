@@ -8,7 +8,6 @@
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitWeaponsPanel">
     <UserControl.Resources>
         <converters:WeaponRangeConverter x:Key="WeaponRangeConverter"/>
-        <converters:WeaponStatusBackgroundConverter x:Key="WeaponStatusBackgroundConverter"/>
     </UserControl.Resources>
     <ScrollViewer Classes="gameScrollViewer">
         <StackPanel Classes="verticalSpaced">

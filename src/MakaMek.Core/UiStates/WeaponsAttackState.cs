@@ -381,6 +381,12 @@ public class WeaponsAttackState : IUiState
         var targetCoords = SelectedTarget.Position.Coordinates;
         foreach (var vm in _weaponViewModels)
         {
+            // Only process available weapons
+            if (!vm.Weapon.IsAvailable)
+            {
+                vm.ModifiersBreakdown = null;
+                continue;
+            }
             var isInRange = IsWeaponInRange(vm.Weapon, targetCoords);
             var target = _weaponTargets.GetValueOrDefault(vm.Weapon);
             var isSelected = _weaponTargets.ContainsKey(vm.Weapon) && _weaponTargets[vm.Weapon] == target;
