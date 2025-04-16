@@ -215,10 +215,11 @@ public class WeaponSelectionViewModelTests
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
             _localizationService,
-            0);
-        
-        // Set a valid hit probability
-        _sut.ModifiersBreakdown = CreateTestBreakdown(5);
+            0)
+        {
+            // Set a valid hit probability
+            ModifiersBreakdown = CreateTestBreakdown(5)
+        };
 
         // Act & Assert
         _sut.IsEnabled.ShouldBeFalse();
@@ -240,10 +241,11 @@ public class WeaponSelectionViewModelTests
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
             _localizationService,
-            5);
-        
-        // Set a valid hit probability
-        _sut.ModifiersBreakdown = CreateTestBreakdown(5);
+            5)
+        {
+            // Set a valid hit probability
+            ModifiersBreakdown = CreateTestBreakdown(5)
+        };
 
         // Act & Assert
         _sut.IsEnabled.ShouldBeFalse();
