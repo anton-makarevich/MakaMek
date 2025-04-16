@@ -7,7 +7,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -27,6 +26,8 @@ public class WeaponSelectionViewModelTests
     public WeaponSelectionViewModelTests()
     {
         _weapon = new MediumLaser();
+        var part = new Arm(PartLocation.LeftArm, 1, 1);
+        part.TryAddComponent(_weapon);
         
         // Create a test mech using MechFactory
         var structureValueProvider = Substitute.For<IRulesProvider>();
@@ -204,6 +205,8 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         var ballisticWeapon = new TestBallisticWeapon();
+        var part = new Arm(PartLocation.LeftArm, 1, 1);
+        part.TryAddComponent(ballisticWeapon);
         _sut = new WeaponSelectionViewModel(
             ballisticWeapon,
             true,
@@ -221,6 +224,31 @@ public class WeaponSelectionViewModelTests
         _sut.IsEnabled.ShouldBeFalse();
     }
 
+    [Fact]
+    public void IsEnabled_ReturnsFalse_WhenWeaponIsNotAvailable()
+    {
+        // Arrange
+        var ballisticWeapon = new TestBallisticWeapon();
+        var part = new Arm(PartLocation.LeftArm, 1, 1);
+        part.TryAddComponent(ballisticWeapon);
+        ballisticWeapon.Hit();
+        _sut = new WeaponSelectionViewModel(
+            ballisticWeapon,
+            true,
+            false,
+            true,
+            null,
+            (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _localizationService,
+            5);
+        
+        // Set a valid hit probability
+        _sut.ModifiersBreakdown = CreateTestBreakdown(5);
+
+        // Act & Assert
+        _sut.IsEnabled.ShouldBeFalse();
+    }
+    
     [Fact]
     public void AttackPossibilityDescription_ReturnsNoAmmoMessage_WhenWeaponRequiresAmmoButHasNone()
     {

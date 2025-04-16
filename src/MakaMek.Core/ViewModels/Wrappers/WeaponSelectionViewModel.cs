@@ -59,7 +59,7 @@ public class WeaponSelectionViewModel : BindableBase
 
     public bool IsEnabled
     {
-        get => _isEnabled && HitProbability > 0 && HasSufficientAmmo;
+        get => _isEnabled && HitProbability > 0 && HasSufficientAmmo && Weapon.IsAvailable;
         set => SetProperty(ref _isEnabled, value);
     }
 
