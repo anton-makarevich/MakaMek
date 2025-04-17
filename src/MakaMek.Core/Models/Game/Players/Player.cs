@@ -10,6 +10,10 @@ public class Player(Guid id, string name, string tint = "#ffffff") : IPlayer
     public string Name { get; } = name;
     public string Tint { get; } = tint;
     public IReadOnlyList<Unit> Units => _units;
+    public IReadOnlyList<Unit> AliveUnits => Units.Where(u => u.Status != UnitStatus.Destroyed).ToList();
+    /// <summary>
+    /// Returns only units that are not destroyed
+    /// </summary>
     public PlayerStatus Status { get; set; } = PlayerStatus.NotJoined;
 
     public void AddUnit(Unit unit)

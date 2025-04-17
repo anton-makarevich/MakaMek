@@ -273,7 +273,7 @@ public abstract class Unit
         }
     }
 
-    public virtual void ApplyDamage(int damage, UnitPart targetPart)
+    internal virtual void ApplyDamage(int damage, UnitPart targetPart)
     {
         var remainingDamage = targetPart.ApplyDamage(damage);
         

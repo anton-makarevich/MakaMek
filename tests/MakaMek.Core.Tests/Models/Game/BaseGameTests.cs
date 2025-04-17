@@ -1,5 +1,5 @@
-using Shouldly;
 using NSubstitute;
+using Shouldly;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Phases;
+using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
@@ -16,6 +17,7 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -220,7 +222,7 @@ public class BaseGameTests : BaseGame
         var attackerMech = attackerPlayer.Units.First() as Mech;
         attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         
-        // Add target player and unit
+        // Add a target player and unit
         var targetPlayerId = Guid.NewGuid();
         var targetUnitData = MechFactoryTests.CreateDummyMechData();
         targetUnitData.Id = Guid.NewGuid();
@@ -527,7 +529,7 @@ public class BaseGameTests : BaseGame
         var attackerMech = attackerPlayer.Units.First() as Mech;
         attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         
-        // Add target player and unit
+        // Add a target player and unit
         var targetPlayerId = Guid.NewGuid();
         var targetUnitData = MechFactoryTests.CreateDummyMechData();
         targetUnitData.Id = Guid.NewGuid();
@@ -556,7 +558,6 @@ public class BaseGameTests : BaseGame
         };
         
         // Get initial values for verification
-        var initialAttackerHeat = attackerMech.CurrentHeat;
         var centerTorsoPart = targetMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
         var leftArmPart = targetMech.Parts.First(p => p.Location == PartLocation.LeftArm);
         var initialCenterTorsoArmor = centerTorsoPart.CurrentArmor;
@@ -592,6 +593,47 @@ public class BaseGameTests : BaseGame
         leftArmPart.CurrentArmor.ShouldBe(initialLeftArmArmor - 3);
     }
     
+    [Fact]
+    public void AlivePlayers_ShouldReturnOnlyReadyPlayersWithAliveUnits()
+    {
+        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider());
+        // Create alive and destroyed mechs
+        var aliveMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
+        var destroyedMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
+        var headPart = destroyedMech.Parts.FirstOrDefault(p => p.Location == PartLocation.Head);
+        destroyedMech.ApplyDamage(100, headPart!);
+
+        // Player 1: Ready, has alive unit
+        var player1 = new Player(Guid.NewGuid(), "Player1")
+        {
+            Status = PlayerStatus.Ready
+        };
+        player1.AddUnit(aliveMech);
+
+        // Player 2: Ready, only destroyed unit
+        var player2 = new Player(Guid.NewGuid(), "Player2")
+        {
+            Status = PlayerStatus.Ready
+        };
+        player2.AddUnit(destroyedMech);
+
+        // Player 3: Not ready, has alive unit
+        var player3 = new Player(Guid.NewGuid(), "Player3")
+        {
+            Status = PlayerStatus.Joined
+        };
+        player3.AddUnit(mechFactory.Create(MechFactoryTests.CreateDummyMechData()));
+
+        // Use reflection to add players to the protected _players list
+        var playersField = typeof(BaseGame).GetField("_players", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var playersList = (List<IPlayer>)playersField!.GetValue(this)!;
+        playersList.Add(player1);
+        playersList.Add(player2);
+        playersList.Add(player3);
+
+        AlivePlayers.ShouldBe([player1]);
+    }
+
     public override void HandleCommand(IGameCommand command)
     {
         throw new NotImplementedException();

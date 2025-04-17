@@ -28,7 +28,7 @@ public class InitiativePhase : GamePhase
 
     private void AutoRollForAllPlayers()
     {
-        var playersToRoll = Game.Players.Where(p => p.Status == PlayerStatus.Ready).ToList();
+        var playersToRoll = Game.AlivePlayers.Where(p => p.Status == PlayerStatus.Ready).ToList();
         
         while (playersToRoll.Any())
         {
@@ -78,7 +78,7 @@ public class InitiativePhase : GamePhase
         });
 
         // Get all players who still need to roll in this round
-        var unrolledPlayers = Game.Players
+        var unrolledPlayers = Game.AlivePlayers
             .Where(p => p.Status == PlayerStatus.Ready)
             .Where(p => !_initiativeOrder.HasPlayerRolledInCurrentRound(p))
             .ToList();
