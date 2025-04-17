@@ -20,7 +20,7 @@ public class InitiativePhase : GamePhase
         
         if (!Game.IsAutoRoll)
         {
-            Game.SetActivePlayer(Game.Players[0],0);
+            Game.SetActivePlayer(Game.AlivePlayers[0],0);
             return;
         }
         AutoRollForAllPlayers();
