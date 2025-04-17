@@ -27,9 +27,9 @@ public class TurnOrderTests
 
         // Setup unit counts
         
-        _player1.Units.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 2 units
-        _player2.Units.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 3 units
-        _player3.Units.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 3 units
+        _player1.AliveUnits.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 2 units
+        _player2.AliveUnits.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 3 units
+        _player3.AliveUnits.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 3 units
     }
 
     [Fact]
@@ -68,8 +68,8 @@ public class TurnOrderTests
     public void CalculateOrder_WithEqualUnits_ShouldMoveOneByOne()
     {
         // Arrange
-        _player1.Units.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 2 units
-        _player2.Units.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 2 units
+        _player1.AliveUnits.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 2 units
+        _player2.AliveUnits.Returns([_mechFactory.Create(_unitData), _mechFactory.Create(_unitData)]); // 2 units
         var initiativeOrder = new List<IPlayer> { _player2, _player1 };
 
         // Act

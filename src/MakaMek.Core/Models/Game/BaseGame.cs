@@ -90,7 +90,7 @@ public abstract class BaseGame : IGame
     /// Returns only players who are ready and have at least one alive unit
     /// </summary>
     public IReadOnlyList<IPlayer> AlivePlayers => _players
-        .Where(p => p.Status == PlayerStatus.Ready && p.AliveUnits.Any())
+        .Where(p => p.AliveUnits.Any())
         .ToList();
 
     protected BaseGame(

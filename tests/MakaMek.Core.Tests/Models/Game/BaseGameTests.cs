@@ -616,20 +616,13 @@ public class BaseGameTests : BaseGame
             Status = PlayerStatus.Ready
         };
         player2.AddUnit(destroyedMech);
-
-        // Player 3: Not ready, has alive unit
-        var player3 = new Player(Guid.NewGuid(), "Player3")
-        {
-            Status = PlayerStatus.Joined
-        };
-        player3.AddUnit(mechFactory.Create(MechFactoryTests.CreateDummyMechData()));
+        
 
         // Use reflection to add players to the protected _players list
         var playersField = typeof(BaseGame).GetField("_players", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         var playersList = (List<IPlayer>)playersField!.GetValue(this)!;
         playersList.Add(player1);
         playersList.Add(player2);
-        playersList.Add(player3);
 
         AlivePlayers.ShouldBe([player1]);
     }
