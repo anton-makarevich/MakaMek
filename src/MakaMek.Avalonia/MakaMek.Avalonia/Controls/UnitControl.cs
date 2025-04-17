@@ -186,8 +186,10 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     _unit.TotalCurrentStructure
                 })
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
-                .Subscribe(state => 
+                .Subscribe(state =>
                 {
+                    _healthBars.IsVisible = _unit.Status != UnitStatus.Destroyed;
+                    torsoArrow.IsVisible = _unit.Status != UnitStatus.Destroyed;
                     if (state.Position == null) return; // unit is not deployed, no need to display
                     
                     Render();
