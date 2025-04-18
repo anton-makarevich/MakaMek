@@ -18,10 +18,12 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private readonly WeaponAttackResolutionPhase _sut;
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
-    private readonly Guid _unit1Id;
-    private readonly Guid _unit2Id;
-    private readonly Unit _unit1;
-    private readonly Unit _unit2;
+    private readonly Guid _player1Unit1Id;
+    private readonly Unit _player1Unit1;
+    private readonly Guid _player1Unit2Id;
+    private readonly Unit _player1Unit2;
+    private readonly Guid _player2Unit1Id;
+    private readonly Unit _player2Unit1;
     private readonly IGamePhase _mockNextPhase;
 
     public WeaponAttackResolutionPhaseTests()
@@ -40,12 +42,14 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Get unit IDs and references
         var player1 = Game.Players[0];
-        _unit1 = player1.Units[0];
-        _unit1Id = _unit1.Id;
+        _player1Unit1 = player1.Units[0];
+        _player1Unit1Id = _player1Unit1.Id;
+        _player1Unit2 = player1.Units[1];
+        _player1Unit2Id = player1.Units[1].Id;
 
         var player2 = Game.Players[1];
-        _unit2 = player2.Units[0];
-        _unit2Id = _unit2.Id;
+        _player2Unit1 = player2.Units[0];
+        _player2Unit1Id = _player2Unit1.Id;
 
         // Set initiative order
         Game.SetInitiativeOrder(new List<IPlayer> { player2, player1 });
@@ -65,7 +69,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldProcessAttacksInInitiativeOrder()
     {
         // Arrange - Setup weapon targets
-        SetupWeaponTargets();
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
         
@@ -90,7 +94,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldCalculateToHitNumbersForAllWeapons()
     {
         // Arrange - Setup weapon targets
-        SetupWeaponTargets();
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
 
@@ -110,7 +114,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldPublishAttackResolutionCommands()
     {
         // Arrange - Setup weapon targets
-        SetupWeaponTargets();
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
 
@@ -122,12 +126,12 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(
             Arg.Is<WeaponAttackResolutionCommand>(cmd => 
                 cmd.GameOriginId == Game.Id && 
-                cmd.AttackerId == _unit1Id));
+                cmd.AttackerId == _player1Unit1Id));
         
         CommandPublisher.Received().PublishCommand(
             Arg.Is<WeaponAttackResolutionCommand>(cmd => 
                 cmd.GameOriginId == Game.Id && 
-                cmd.AttackerId == _unit2Id));
+                cmd.AttackerId == _player2Unit1Id));
     }
 
     [Fact]
@@ -148,7 +152,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_AfterProcessingAllAttacks_ShouldTransitionToNextPhase()
     {
         // Arrange - Setup weapon targets
-        SetupWeaponTargets();
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
 
@@ -165,7 +169,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldSkipWeaponsWithoutTargets()
     {
         // Arrange - Setup weapon targets (including one without a target)
-        SetupWeaponTargets();
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
 
@@ -192,7 +196,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldRollDiceForAttackResolution()
     {
         // Arrange - Setup weapon targets
-        SetupWeaponTargets();
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
 
@@ -208,7 +212,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldRollForHitLocation_WhenAttackHits()
     {
         // Arrange - Setup weapon targets
-        SetupWeaponTargets();
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // First roll is for attack (8), second is for hit location (6)
         SetMap();
 
@@ -224,7 +228,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldNotRollForHitLocation_WhenAttackMisses()
     {
         // Arrange - Setup weapon targets
-        SetupWeaponTargets();
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(5, 6); // First roll is for attack (5), which is less than to-hit number (7)
         SetMap();
 
@@ -244,7 +248,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         {
             GameOriginId = Game.Id,
             PlayerId = _player1Id,
-            AttackerId = _unit1Id,
+            AttackerId = _player1Unit1Id,
             WeaponTargets = new List<WeaponTargetData>()
         };
 
@@ -256,22 +260,48 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackResolutionCommand>());
     }
 
-    private void SetupWeaponTargets()
+    [Fact]
+    public void Enter_ShouldNotGetStuck_WhenUnitIsDestroyedDuringAttackResolution()
+    {
+        // Arrange: Setup weapon targets so that unit1 attacks unit2's head with lethal damage
+        SetupPlayer1WeaponTargets();
+        SetupPlayer2WeaponTargets();
+        SetupDiceRolls(5, 6); // First roll is for attack (5), which is less than to-hit number (7)
+        SetMap();
+
+        // Make sure the attack will hit and deal enough damage to destroy the head
+        // Assume unit2's head is the first part and get its max armor/structure
+        var head = _player1Unit2.Parts.First(p => p.Location == PartLocation.Head);
+        var lethalDamage = head.MaxArmor + head.MaxStructure + 1;
+        
+        _player1Unit2.ApplyDamage(lethalDamage, head); // Apply lethal damage();
+
+        // Act
+        _sut.Enter();
+
+        // Assert: Should transition to next phase and not get stuck
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.WeaponAttackResolution, Game);
+        _mockNextPhase.Received(1).Enter();
+        // Unit2 should be destroyed
+        _player1Unit2.Status.ShouldBe(UnitStatus.Destroyed);
+    }
+
+    private void SetupPlayer1WeaponTargets()
     {
         // Add a weapon to each unit
         var weapon1 = new TestWeapon();
-        var part1 = _unit1.Parts[0];
+        var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(weapon1,[1]);
-        weapon1.Target = _unit2; // Set target for weapon1
+        weapon1.Target = _player2Unit1; // Set target for weapon1
 
         var weapon2 = new TestWeapon();
-        var part2 = _unit2.Parts[0];
+        var part2 = _player2Unit1.Parts[0];
         part2.TryAddComponent(weapon2,[1]);
-        weapon2.Target = _unit1; // Set target for weapon2
+        weapon2.Target = _player1Unit1; // Set target for weapon2
         
         // Add a third weapon without a target to test that it's properly skipped
         var weaponWithoutTarget = new TestWeapon();
-        var part3 = _unit1.Parts[1]; // Using the second part of unit1
+        var part3 = _player1Unit1.Parts[1]; // Using the second part of unit1
         part3.TryAddComponent(weaponWithoutTarget,[2]);
         // Deliberately not setting a target for this weapon
 
@@ -282,6 +312,20 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Any<Weapon>(), 
             Arg.Any<BattleMap>())
             .Returns(7); // Return a default to-hit number of 7
+    }
+    private void SetupPlayer2WeaponTargets()
+    {
+        // Add a weapon to each unit
+        var weapon1 = new TestWeapon();
+        var part1 = _player2Unit1.Parts[0];
+        part1.TryAddComponent(weapon1,[1]);
+        weapon1.Target = _player1Unit1; // Set target for weapon1
+        
+        // Add a third weapon without a target to test that it's properly skipped
+        var weaponWithoutTarget = new TestWeapon();
+        var part3 = _player2Unit1.Parts[1]; // Using the second part of unit1
+        part3.TryAddComponent(weaponWithoutTarget,[2]);
+        // Deliberately not setting a target for this weapon// Return a default to-hit number of 7
     }
 
     private void SetupDiceRolls(params int[] rolls)
@@ -313,19 +357,19 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void PublishCommand_ShouldFireWeaponAndApplyDamage()
     {
         // Arrange
-        SetupWeaponTargets();
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
         
         // Get initial values for verification
-        var initialArmor = _unit2.TotalCurrentArmor;
+        var initialArmor = _player2Unit1.TotalCurrentArmor;
         
         // Act
         _sut.Enter();
 
         // Assert
         // Verify that damage was applied to the target
-        _unit2.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
+        _player2Unit1.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
     }
 
     private class TestWeapon(WeaponType type = WeaponType.Energy, AmmoType ammoType = AmmoType.None)
@@ -355,9 +399,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetMap();
         // Add a cluster weapon to unit1
         var clusterWeapon = new TestClusterWeapon(10,5); 
-        var part1 = _unit1.Parts[0];
+        var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
-        clusterWeapon.Target = _unit2; // Set target for the cluster weapon
+        clusterWeapon.Target = _player2Unit1; // Set target for the cluster weapon
         
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
@@ -381,7 +425,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(
             Arg.Is<WeaponAttackResolutionCommand>(cmd => 
                 cmd.GameOriginId == Game.Id && 
-                cmd.AttackerId == _unit1Id &&
+                cmd.AttackerId == _player1Unit1Id &&
                 cmd.ResolutionData.IsHit &&
                 cmd.ResolutionData.HitLocationsData != null &&
                 cmd.ResolutionData.HitLocationsData.ClusterRoll.Count == 2 && // 2 dice for cluster roll
@@ -400,9 +444,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Add a cluster weapon to unit1 (SRM-6 with 1 damage per missile)
         SetMap();
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); // 6 missiles, 1 damage per missile
-        var part1 = _unit1.Parts[0];
+        var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
-        clusterWeapon.Target = _unit2; // Set target for the cluster weapon
+        clusterWeapon.Target = _player2Unit1; // Set target for the cluster weapon
         
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
@@ -423,7 +467,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(
             Arg.Is<WeaponAttackResolutionCommand>(cmd => 
                 cmd.GameOriginId == Game.Id && 
-                cmd.AttackerId == _unit1Id &&
+                cmd.AttackerId == _player1Unit1Id &&
                 cmd.ResolutionData.IsHit &&
                 cmd.ResolutionData.HitLocationsData != null &&
                 cmd.ResolutionData.HitLocationsData.TotalDamage == 5)); // 5 hits * 1 damage per missile = 5 damage
@@ -436,9 +480,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Add a cluster weapon to unit1
         SetMap();
         var clusterWeapon = new TestClusterWeapon(1010,5); // LRM-10
-        var part1 = _unit1.Parts[0];
+        var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
-        clusterWeapon.Target = _unit2; // Set target for the cluster weapon
+        clusterWeapon.Target = _player2Unit1; // Set target for the cluster weapon
         
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
@@ -462,7 +506,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(
             Arg.Is<WeaponAttackResolutionCommand>(cmd => 
                 cmd.GameOriginId == Game.Id && 
-                cmd.AttackerId == _unit1Id &&
+                cmd.AttackerId == _player1Unit1Id &&
                 !cmd.ResolutionData.IsHit &&
                 cmd.ResolutionData.HitLocationsData == null));
     }
@@ -477,7 +521,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         Game.BattleMap.ShouldBeNull(); 
         
         // Setup weapon targets - necessary to reach the ResolveAttack call
-        SetupWeaponTargets(); 
+        SetupPlayer1WeaponTargets(); 
         SetupDiceRolls(8, 6); // Set up dice rolls, values don't matter much here
 
         // Act

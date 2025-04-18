@@ -189,7 +189,6 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 .Subscribe(state =>
                 {
                     _healthBars.IsVisible = _unit.Status != UnitStatus.Destroyed;
-                    torsoArrow.IsVisible = _unit.Status != UnitStatus.Destroyed;
                     if (state.Position == null) return; // unit is not deployed, no need to display
                     
                     Render();
@@ -212,8 +211,10 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     // Update direction indicator for mechs
                     if (isMech)
                     {
-                        torsoArrow.IsVisible = state.IsWeaponsPhase && state.TorsoDirection.HasValue &&
-                                               state.Position!=null;
+                        torsoArrow.IsVisible = state.IsWeaponsPhase 
+                                               && _unit.Status != UnitStatus.Destroyed
+                                               && state.TorsoDirection.HasValue 
+                                               && state.Position!=null;
                         if (!torsoArrow.IsVisible) return;
                         // Since control is rotated to torso direction, we need opposite delta
                         var deltaAngle = (unitFacing - torsoFacing + 6) % 6 * 60;
