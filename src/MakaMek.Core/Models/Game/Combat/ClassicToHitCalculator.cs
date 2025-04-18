@@ -42,6 +42,11 @@ public class ClassicToHitCalculator : IToHitCalculator
         var otherModifiers = GetDetailedOtherModifiers(attacker, target, isPrimaryTarget);
         var terrainModifiers = GetTerrainModifiers(attacker, target, map);
 
+        if (attacker.MovementTypeUsed == null)
+        {
+            Console.WriteLine("That's bad");
+        }
+
         return new ToHitBreakdown
         {
             GunneryBase = new GunneryAttackModifier

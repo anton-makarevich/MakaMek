@@ -205,6 +205,17 @@ public abstract class Unit
     {
         ResetMovement();
         HasAppliedHeat = false;
+        ResetWeaponsTargets();
+        
+    }
+
+    private void ResetWeaponsTargets()
+    {
+        var weapons = GetAllComponents<Weapon>();
+        foreach (var weapon in weapons)
+        {
+            weapon.Target = null;
+        }
         HasDeclaredWeaponAttack = false;
     }
 

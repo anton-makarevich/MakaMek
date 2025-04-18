@@ -110,7 +110,7 @@ public class MechTests
     }
     
     [Fact]
-    public void ResetMovement_ShouldResetMovementTracking()
+    public void ResetTurnState_ShouldResetMovementTracking()
     {
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
@@ -571,6 +571,28 @@ public class MechTests
         {
             torso.Facing.ShouldBe(HexDirection.BottomRight, "Torso should be reset to match unit facing");
         }
+    }
+
+    [Fact]
+    public void ResetTurnState_ShouldResetWeaponTargets()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var weapon = new MediumLaser();
+        // Attach weapon to a part (e.g., right arm)
+        var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
+        rightArm.TryAddComponent(weapon);
+        // Set a dummy target
+        var dummyTarget = new Mech("Dummy", "DMY-1A", 50, 4, CreateBasicPartsData());
+        weapon.Target = dummyTarget;
+        weapon.Target.ShouldNotBeNull();
+        
+        // Act
+        sut.ResetTurnState();
+
+        // Assert
+        sut.HasDeclaredWeaponAttack.ShouldBeFalse();
+        weapon.Target.ShouldBeNull();
     }
 }
 
