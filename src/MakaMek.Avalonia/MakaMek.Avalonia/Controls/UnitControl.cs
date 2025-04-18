@@ -31,6 +31,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly StackPanel _healthBars;
         private readonly ProgressBar _armorBar;
         private readonly ProgressBar _structureBar;
+        private readonly Path _destroyedCross;
 
         public UnitControl(Unit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel)
         {
@@ -164,10 +165,36 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 context.SetFillRule(FillRule.NonZero);
             }
 
+            // Create destroyed indicator (cross)
+            _destroyedCross = new Path
+            {
+                Data = new StreamGeometry(),
+                Stroke = new SolidColorBrush(color),
+                StrokeThickness = 4,
+                Opacity = 0.8,
+                IsVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Width = Width * 0.3,
+                Height = Height * 0.3
+            };
+            // Draw cross geometry
+            var crossSize = _destroyedCross.Width;
+            using (var context = ((StreamGeometry)_destroyedCross.Data).Open())
+            {
+                // Diagonal line 1
+                context.BeginFigure(new Point(0, 0), true);
+                context.LineTo(new Point(crossSize, crossSize));
+                // Diagonal line 2
+                context.BeginFigure(new Point(crossSize, 0), true);
+                context.LineTo(new Point(0, crossSize));
+            }
+
             Children.Add(selectionBorder);
             Children.Add(_unitImage);
             Children.Add(_tintBorder);
             Children.Add(torsoArrow);
+            Children.Add(_destroyedCross);
 
             // Create an observable that polls the unit's position and selection state
             Observable
@@ -188,6 +215,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
                 .Subscribe(state =>
                 {
+                    // Show/hide destroyed indicator
+                    _destroyedCross.IsVisible = _unit.Status == UnitStatus.Destroyed;
                     _healthBars.IsVisible = _unit.Status != UnitStatus.Destroyed;
                     if (state.Position == null) return; // unit is not deployed, no need to display
                     
