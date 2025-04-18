@@ -106,4 +106,18 @@ public class PlayerTests
         // Assert
         player.Units.ShouldBeAssignableTo<IReadOnlyList<Unit>>();
     }
+
+    [Fact]
+    public void AliveUnits_ShouldReturnOnlyUnitsThatAreNotDestroyed()
+    {
+        var player = new Player(Guid.NewGuid(), "Test Player");
+        var aliveUnit = CreateMech();
+        var destroyedUnit = CreateMech();
+        // Destroy the head of the destroyed unit
+        var headPart = destroyedUnit.Parts.FirstOrDefault(p => p.Location == PartLocation.Head);
+        destroyedUnit.ApplyDamage(100, headPart!);
+        player.AddUnit(aliveUnit);
+        player.AddUnit(destroyedUnit);
+        player.AliveUnits.ShouldBe([aliveUnit]);
+    }
 }

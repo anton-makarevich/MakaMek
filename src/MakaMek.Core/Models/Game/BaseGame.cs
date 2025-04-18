@@ -86,6 +86,13 @@ public abstract class BaseGame : IGame
         }
     }
 
+    /// <summary>
+    /// Returns only players who are ready and have at least one alive unit
+    /// </summary>
+    public IReadOnlyList<IPlayer> AlivePlayers => _players
+        .Where(p => p.AliveUnits.Any())
+        .ToList();
+
     protected BaseGame(
         IRulesProvider rulesProvider,
         ICommandPublisher commandPublisher,

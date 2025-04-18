@@ -398,7 +398,7 @@ public class BattleMapViewModel : BaseViewModel
         IsRecordSheetExpanded = !IsRecordSheetExpanded;
     }
 
-    public IEnumerable<Unit> Units => Game?.Players.SelectMany(p => p.Units) ?? [];
+    public IEnumerable<Unit> Units => Game?.AlivePlayers.SelectMany(p => p.AliveUnits) ?? [];
     public IUiState CurrentState { get; private set; }
 
     public void ShowDirectionSelector(HexCoordinates position, IEnumerable<HexDirection> availableDirections)

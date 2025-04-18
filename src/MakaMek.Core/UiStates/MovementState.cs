@@ -41,6 +41,7 @@ public class MovementState : IUiState
     {
         if (_viewModel.Game is { CanActivePlayerAct: false }) return;
         if (unit == null) return;
+        if (unit.Status == UnitStatus.Destroyed) return;
         if (unit.HasMoved) return;
         
         _selectedUnit = unit;

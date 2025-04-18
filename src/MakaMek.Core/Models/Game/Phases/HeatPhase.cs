@@ -44,7 +44,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         }
 
         var currentPlayer = _playersInOrder[_currentPlayerIndex];
-        var units = currentPlayer.Units;
+        var units = currentPlayer.AliveUnits;
 
         // Check if we've processed all units for the current player
         if (_currentUnitIndex >= units.Count)

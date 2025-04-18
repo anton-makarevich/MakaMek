@@ -44,7 +44,7 @@ public class EndPhase(ServerGame game) : GamePhase(game)
     private bool HaveAllPlayersEndedTurn()
     {
         // Check if all players in the game have ended their turn
-        return Game.Players.All(player => _playersEndedTurn.Contains(player.Id));
+        return Game.AlivePlayers.All(player => _playersEndedTurn.Contains(player.Id));
     }
 
     public override PhaseNames Name => PhaseNames.End;

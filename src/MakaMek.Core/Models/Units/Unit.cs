@@ -205,6 +205,17 @@ public abstract class Unit
     {
         ResetMovement();
         HasAppliedHeat = false;
+        ResetWeaponsTargets();
+        
+    }
+
+    private void ResetWeaponsTargets()
+    {
+        var weapons = GetAllComponents<Weapon>();
+        foreach (var weapon in weapons)
+        {
+            weapon.Target = null;
+        }
         HasDeclaredWeaponAttack = false;
     }
 
@@ -273,7 +284,7 @@ public abstract class Unit
         }
     }
 
-    public virtual void ApplyDamage(int damage, UnitPart targetPart)
+    internal virtual void ApplyDamage(int damage, UnitPart targetPart)
     {
         var remainingDamage = targetPart.ApplyDamage(damage);
         

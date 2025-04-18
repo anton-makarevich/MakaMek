@@ -21,7 +21,7 @@ public class TurnOrder
 
         // Get unit counts for each player
         var unitCounts = initiativeOrder
-            .ToDictionary(p => p, p => p.Units.Count);
+            .ToDictionary(p => p, p => p.AliveUnits.Count);
 
         // If only one player, move all units
         if (unitCounts.Count == 1)

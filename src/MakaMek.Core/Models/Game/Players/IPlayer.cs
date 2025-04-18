@@ -7,6 +7,7 @@ public interface IPlayer
     Guid Id { get; }
     string Name { get; }
     IReadOnlyList<Unit> Units { get; }
+    IReadOnlyList<Unit> AliveUnits { get; }
     
     PlayerStatus Status { get; set; }
     

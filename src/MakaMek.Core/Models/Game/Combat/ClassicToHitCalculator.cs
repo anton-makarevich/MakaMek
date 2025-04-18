@@ -41,7 +41,7 @@ public class ClassicToHitCalculator : IToHitCalculator
         };
         var otherModifiers = GetDetailedOtherModifiers(attacker, target, isPrimaryTarget);
         var terrainModifiers = GetTerrainModifiers(attacker, target, map);
-
+        
         return new ToHitBreakdown
         {
             GunneryBase = new GunneryAttackModifier
