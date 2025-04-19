@@ -4,8 +4,8 @@ namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
 public class Head : UnitPart
 {
-    public Head(int maxArmor, int maxStructure) 
-        : base("Head", PartLocation.Head, maxArmor, maxStructure, 12)
+    public Head(string name, int maxArmor, int maxStructure) 
+        : base(name, PartLocation.Head, maxArmor, maxStructure, 12)
     {
         // Add default components
         TryAddComponent(new LifeSupport());

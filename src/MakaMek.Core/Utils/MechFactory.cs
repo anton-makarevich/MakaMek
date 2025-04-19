@@ -10,21 +10,23 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
+using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Utils;
 
 public class MechFactory
 {
     private readonly IRulesProvider _rulesProvider;
+    private readonly ILocalizationService _localizationService;
 
-    public MechFactory(IRulesProvider rulesProvider)
+    public MechFactory(IRulesProvider rulesProvider, ILocalizationService localizationService)
     {
         _rulesProvider = rulesProvider;
+        _localizationService = localizationService;
     }
 
     public Mech Create(UnitData unitData)
     {
-        
         // Create parts with appropriate armor and structure
         var parts = CreateParts(unitData.ArmorValues, _rulesProvider, unitData.Mass);
         
@@ -50,13 +52,26 @@ public class MechFactory
         var parts = new List<UnitPart>();
         foreach (var (location, armor) in armorValues)
         {
+            string name = location switch
+            {
+                PartLocation.LeftArm => _localizationService.GetString("MechPart_LeftArm"),
+                PartLocation.RightArm => _localizationService.GetString("MechPart_RightArm"),
+                PartLocation.LeftTorso => _localizationService.GetString("MechPart_LeftTorso"),
+                PartLocation.RightTorso => _localizationService.GetString("MechPart_RightTorso"),
+                PartLocation.CenterTorso => _localizationService.GetString("MechPart_CenterTorso"),
+                PartLocation.Head => _localizationService.GetString("MechPart_Head"),
+                PartLocation.LeftLeg => _localizationService.GetString("MechPart_LeftLeg"),
+                PartLocation.RightLeg => _localizationService.GetString("MechPart_RightLeg"),
+                _ => location.ToString()
+            };
+
             UnitPart part = location switch
             {
-                PartLocation.LeftArm or PartLocation.RightArm => new Arm(location, armor.FrontArmor, structureValues[location]),
-                PartLocation.LeftTorso or PartLocation.RightTorso => new SideTorso(location, armor.FrontArmor, armor.RearArmor, structureValues[location]),
-                PartLocation.CenterTorso => new CenterTorso(armor.FrontArmor, armor.RearArmor, structureValues[location]),
-                PartLocation.Head => new Head(armor.FrontArmor, structureValues[location]),
-                PartLocation.LeftLeg or PartLocation.RightLeg => new Leg(location, armor.FrontArmor, structureValues[location]),
+                PartLocation.LeftArm or PartLocation.RightArm => new Arm(name, location, armor.FrontArmor, structureValues[location]),
+                PartLocation.LeftTorso or PartLocation.RightTorso => new SideTorso(name, location, armor.FrontArmor, armor.RearArmor, structureValues[location]),
+                PartLocation.CenterTorso => new CenterTorso(name, armor.FrontArmor, armor.RearArmor, structureValues[location]),
+                PartLocation.Head => new Head(name, armor.FrontArmor, structureValues[location]),
+                PartLocation.LeftLeg or PartLocation.RightLeg => new Leg(name, location, armor.FrontArmor, structureValues[location]),
                 _ => throw new ArgumentException($"Unknown location: {location}")
             };
             parts.Add(part);

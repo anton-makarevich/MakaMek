@@ -1,4 +1,9 @@
-﻿namespace Sanet.MakaMek.Core.Models.Units.Mechs;
+namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
-public class SideTorso(PartLocation location, int maxArmor, int maxRearArmor, int maxStructure)
-    : Torso($"{location} Torso", location, maxArmor, maxRearArmor, maxStructure);
+public class SideTorso : Torso
+{
+    public SideTorso(string name, PartLocation location, int maxArmor, int maxRearArmor, int maxStructure)
+        : base(name, location, maxArmor, maxRearArmor, maxStructure)
+    {
+    }
+}
