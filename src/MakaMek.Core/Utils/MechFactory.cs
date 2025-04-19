@@ -14,7 +14,7 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Utils;
 
-public class MechFactory
+public class MechFactory : IMechFactory
 {
     private readonly IRulesProvider _rulesProvider;
     private readonly ILocalizationService _localizationService;
@@ -52,19 +52,7 @@ public class MechFactory
         var parts = new List<UnitPart>();
         foreach (var (location, armor) in armorValues)
         {
-            string name = location switch
-            {
-                PartLocation.LeftArm => _localizationService.GetString("MechPart_LeftArm"),
-                PartLocation.RightArm => _localizationService.GetString("MechPart_RightArm"),
-                PartLocation.LeftTorso => _localizationService.GetString("MechPart_LeftTorso"),
-                PartLocation.RightTorso => _localizationService.GetString("MechPart_RightTorso"),
-                PartLocation.CenterTorso => _localizationService.GetString("MechPart_CenterTorso"),
-                PartLocation.Head => _localizationService.GetString("MechPart_Head"),
-                PartLocation.LeftLeg => _localizationService.GetString("MechPart_LeftLeg"),
-                PartLocation.RightLeg => _localizationService.GetString("MechPart_RightLeg"),
-                _ => location.ToString()
-            };
-
+            var name = _localizationService.GetString($"MechPart_{location}");
             UnitPart part = location switch
             {
                 PartLocation.LeftArm or PartLocation.RightArm => new Arm(name, location, armor.FrontArmor, structureValues[location]),

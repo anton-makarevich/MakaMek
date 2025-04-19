@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Models.Game;
@@ -25,15 +26,16 @@ public class ServerGame : BaseGame, IDisposable
 
     public ServerGame(
         IRulesProvider rulesProvider, 
+        IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
         IPhaseManager? phaseManager = null)
-        : base(rulesProvider, commandPublisher, toHitCalculator) 
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator) 
     {
         DiceRoller = diceRoller;
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
-        _currentPhase = new StartPhase(this); // Starts in StartPhase
+        _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }
 
     public override void SetBattleMap(BattleMap map)
@@ -42,7 +44,7 @@ public class ServerGame : BaseGame, IDisposable
         BattleMap = map;
         
         // Create and publish a command to send the map to all clients
-        var mapCommand = new Commands.Server.SetBattleMapCommand
+        var mapCommand = new SetBattleMapCommand
         {
             GameOriginId = Id,
             MapData = map.ToData()
@@ -114,7 +116,7 @@ public class ServerGame : BaseGame, IDisposable
         Turn++;
         _initiativeOrder.Clear(); // Clear initiative order at the start of new turn
 
-        // Send turn increment command to all clients
+        // Send a turn increment command to all clients
         CommandPublisher.PublishCommand(new TurnIncrementedCommand
         {
             GameOriginId = Id,

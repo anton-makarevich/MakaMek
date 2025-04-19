@@ -10,43 +10,45 @@
     <UserControl.Resources>
         <converters:WeaponRangeConverter x:Key="WeaponRangeConverter"/>
     </UserControl.Resources>
-    <ScrollViewer Classes="gameScrollViewer">
-        <StackPanel Classes="verticalSpaced">
-            <!-- Headers -->
-            <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5">
-                <TextBlock Grid.Column="0" Text="Weapon" Classes="h3"/>
-                <TextBlock Grid.Column="1" Text="DMG" Classes="h3" Margin="5,0"/>
-                <TextBlock Grid.Column="2" Text="HT" Classes="h3" Margin="5,0"/>
-                <TextBlock Grid.Column="3" Text="Range" Classes="h3" Margin="5,0"/>
-            </Grid>
-            
-            <ItemsControl Name="WeaponsGroup">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="controls:WeaponGroup">
-                        <StackPanel>
-                            <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
-                            <ItemsControl Name="WeaponsList" ItemsSource="{Binding Weapons}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="weapons:Weapon">
-                                        <Border Margin="2">
-                                            <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2" Background="{Binding ., Converter={StaticResource WeaponStatusBackgroundConverter}}">
-                                                <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding Damage}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="2" Text="{Binding Heat}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="3" 
-                                                        Text="{Binding ., Converter={StaticResource WeaponRangeConverter}}" 
-                                                        Classes="body"
-                                                        Margin="5,0" 
-                                                        VerticalAlignment="Center"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
-    </ScrollViewer>
+    <!-- Headers -->
+    <Grid ColumnDefinitions="4*,2*,*,3*"
+          RowDefinitions="Auto,*"
+          Margin="5">
+        <TextBlock Grid.Column="0" Text="Weapon" Classes="h4"/>
+        <TextBlock Grid.Column="1" Text="DMG" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Column="2" Text="HT" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Column="3" Text="Range" Classes="h4" Margin="5,0"/>
+        <ScrollViewer
+            Grid.ColumnSpan="4"
+            Grid.Row="1"
+            Classes="gameScrollViewer">
+                    <ItemsControl Name="WeaponsGroup">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="controls:WeaponGroup">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
+                                        <ItemsControl Name="WeaponsList" ItemsSource="{Binding Weapons}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="weapons:Weapon">
+                                                    <Border Margin="2">
+                                                        <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2" Background="{Binding ., Converter={StaticResource WeaponStatusBackgroundConverter}}">
+                                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="1" Text="{Binding Damage}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="2" Text="{Binding Heat}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="3" 
+                                                                    Text="{Binding ., Converter={StaticResource WeaponRangeConverter}}" 
+                                                                    Classes="body"
+                                                                    Margin="5,0" 
+                                                                    VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                </ScrollViewer>
+    </Grid>
 </UserControl>

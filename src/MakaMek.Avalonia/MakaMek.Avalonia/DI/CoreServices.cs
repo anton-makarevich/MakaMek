@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
 using Sanet.Transport.Rx;
@@ -32,6 +33,7 @@ public static class CoreServices
             
         services.AddTransient<ICommandPublisher, CommandPublisher>();
         services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
+        services.AddSingleton<IMechFactory, MechFactory>();
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<IToHitCalculator, ClassicToHitCalculator>();
         services.AddSingleton<IMechDataProvider, MtfDataProvider>();
