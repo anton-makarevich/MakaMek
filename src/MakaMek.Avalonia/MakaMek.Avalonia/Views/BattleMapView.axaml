@@ -272,7 +272,10 @@
             Title="{Binding SelectedUnit.Name}"
             CloseCommand="{Binding ToggleRecordSheet}">
             <TabControl>
-                <TabItem Header="Info">
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
+                    </TabItem.Header>
                     <StackPanel Margin="10">
                         <!-- Basic Info -->
                         <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,0,10">
@@ -339,10 +342,16 @@
                         </Border>
                     </StackPanel>
                 </TabItem>
-                <TabItem Header="Armor">
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
+                    </TabItem.Header>
                     <controls:UnitHealthIndicator Unit="{Binding SelectedUnit}"/>
                 </TabItem>
-                <TabItem Header="Weapons">
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
+                    </TabItem.Header>
                     <controls:UnitWeaponsPanel Unit="{Binding SelectedUnit}"/>
                 </TabItem>
             </TabControl>
