@@ -19,7 +19,7 @@ public abstract class BaseGame : IGame
     
     internal readonly ICommandPublisher CommandPublisher;
     private readonly List<IPlayer> _players = [];
-    private readonly MechFactory _mechFactory;
+    private readonly IMechFactory _mechFactory;
     
     private PhaseNames _turnPhases = PhaseNames.Start;
     private int _turn = 1;
@@ -95,13 +95,14 @@ public abstract class BaseGame : IGame
 
     protected BaseGame(
         IRulesProvider rulesProvider,
+        IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator)
     {
         Id = Guid.NewGuid(); 
         RulesProvider = rulesProvider;
         CommandPublisher = commandPublisher;
-        _mechFactory = new MechFactory(rulesProvider);
+        _mechFactory = mechFactory;
         ToHitCalculator = toHitCalculator;
         CommandPublisher.Subscribe(HandleCommand);
     }
@@ -202,7 +203,7 @@ public abstract class BaseGame : IGame
         if (attackerUnit == null) return;
         // Fire the weapon from the attacker unit
         attackerUnit.FireWeapon(attackResolutionCommand.WeaponData);
-        // Find the target unit with the target Id
+        // Find the target unit with the target ID
         var targetUnit = _players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == attackResolutionCommand.TargetId);

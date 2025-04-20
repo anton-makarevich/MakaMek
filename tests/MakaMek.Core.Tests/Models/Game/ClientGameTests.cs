@@ -15,9 +15,11 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -33,9 +35,12 @@ public class ClientGameTests
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
-        
+        var mechFactory = new MechFactory(rulesProvider,Substitute.For<ILocalizationService>());
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(battleMap); 
-        _sut = new ClientGame(rulesProvider, _commandPublisher,
+        _sut = new ClientGame(
+            rulesProvider,
+            mechFactory,
+            _commandPublisher,
             Substitute.For<IToHitCalculator>(),_mapFactory);
     }
 
@@ -1261,6 +1266,7 @@ public class ClientGameTests
         var rulesProvider = new ClassicBattletechRulesProvider();
         var clientGame = new ClientGame(
             rulesProvider, 
+            Substitute.For<IMechFactory>(),
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
             _mapFactory);
@@ -1305,9 +1311,9 @@ public class ClientGameTests
         // Assert
         clientGame.TurnPhase.ShouldBe(PhaseNames.End);
         clientGame.ActivePlayer.ShouldNotBeNull();
-        clientGame.ActivePlayer!.Id.ShouldBe(localPlayer1.Id); // First local player should be active
+        clientGame.ActivePlayer!.Id.ShouldBe(localPlayer1.Id); // The first local player should be active
         
-        // Verify that player can end turn again (previous end turn state was cleared)
+        // Verify that the player can end turn again (previous end turn state was cleared)
         clientGame.HandleCommand(new TurnEndedCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -1315,7 +1321,7 @@ public class ClientGameTests
             Timestamp = DateTime.UtcNow
         });
         
-        // After first local player ends turn, second local player should become active
+        // After the first local player ends turn, the second local player should become active
         clientGame.ActivePlayer.ShouldNotBeNull();
         clientGame.ActivePlayer!.Id.ShouldBe(localPlayer2.Id);
     }
@@ -1334,6 +1340,7 @@ public class ClientGameTests
         var rulesProvider = new ClassicBattletechRulesProvider();
         var clientGame = new ClientGame(
             rulesProvider, 
+            Substitute.For<IMechFactory>(),
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
             _mapFactory);
@@ -1377,7 +1384,7 @@ public class ClientGameTests
             Phase = PhaseNames.End
         });
         
-        // Set first local player as active
+        // Set the first local player as active
         clientGame.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -1451,7 +1458,7 @@ public class ClientGameTests
         var turnIncrementedCommand = new TurnIncrementedCommand
         {
             GameOriginId = Guid.NewGuid(), // Different from client game ID
-            TurnNumber = initialTurn + 2 // Skipping a turn, should be rejected
+            TurnNumber = initialTurn + 2 // Skipping a turn should be rejected
         };
 
         // Act

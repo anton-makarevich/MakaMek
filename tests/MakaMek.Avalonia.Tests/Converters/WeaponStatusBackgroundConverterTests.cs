@@ -17,7 +17,7 @@ public class WeaponStatusBackgroundConverterTests
     {
         // Arrange
         var weapon = new TestWeapon();
-        var unitPart = new Arm(PartLocation.LeftArm,1,1);
+        var unitPart = new Arm("Left Arm",PartLocation.LeftArm,1,1);
         weapon.Mount([1], unitPart);
         // Act
         var result = _sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
@@ -32,7 +32,7 @@ public class WeaponStatusBackgroundConverterTests
     {
         // Arrange
         var weapon = new TestWeapon();
-        var unitPart = new Arm(PartLocation.LeftArm,1,1);
+        var unitPart = new Arm("Left Arm",PartLocation.LeftArm,1,1);
         unitPart.ApplyDamage(5);
         weapon.Mount([1], unitPart);
         // Act

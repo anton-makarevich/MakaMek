@@ -1,4 +1,3 @@
-using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
@@ -7,11 +6,13 @@ using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
+using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
@@ -26,7 +27,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
     {
         Game.IsAutoRoll = false;
         
-        // Create mock next phase and configure the phase manager
+        // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.Initiative, Game).Returns(_mockNextPhase);
         
@@ -245,7 +246,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<DiceRolledCommand>());
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Initiative, Game);
-        Game.ActivePlayer.ShouldBe(Game.Players[0]); // First player should be active
+        Game.ActivePlayer.ShouldBe(Game.Players[0]); // The first player should be active
     }
 
     [Fact]
@@ -277,14 +278,14 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         // Second round - 8 and 6
         SetupDiceRolls(8, 6);
 
-        // Player 1 rolls in second round
+        // Player 1 rolls in the second round
         _sut.HandleCommand(new RollDiceCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = player1.Id
         });
 
-        // Player 2 rolls in second round
+        // Player 2 rolls in the second round
         _sut.HandleCommand(new RollDiceCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -295,8 +296,8 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         CommandPublisher.Received(4).PublishCommand(Arg.Any<DiceRolledCommand>()); // Should receive 4 roll commands (2 initial + 2 re-rolls)
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.Initiative, Game);
         _mockNextPhase.Received(1).Enter();
-        Game.InitiativeOrder[0].ShouldBe(player1); // Player who rolled 8 in second round should be first
-        Game.InitiativeOrder[1].ShouldBe(player2); // Player who rolled 6 in second round should be second
+        Game.InitiativeOrder[0].ShouldBe(player1); // Player who rolled 8 in the second round should be first
+        Game.InitiativeOrder[1].ShouldBe(player2); // Player who rolled 6 in the second round should be second
     }
 
     [Fact]
@@ -309,7 +310,9 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         var mockNextPhase = Substitute.For<IGamePhase>();
         mockPhaseManager.GetNextPhase(PhaseNames.Initiative, Arg.Any<ServerGame>()).Returns(mockNextPhase);
         
-        var game = new ServerGame(new ClassicBattletechRulesProvider(), CommandPublisher, DiceRoller,
+        var game = new ServerGame(new ClassicBattletechRulesProvider(),
+            new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
+            CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(), mockPhaseManager)
         {
             IsAutoRoll = false
@@ -349,7 +352,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         SetupDiceRolls(4);
         sut.HandleCommand(new RollDiceCommand { GameOriginId = Guid.NewGuid(), PlayerId = player4Id });
 
-        // After tie is detected, should only activate players with tied rolls (player1 and player4)
+        // After a tie is detected, should only activate players with tied rolls (player1 and player4)
         game.ActivePlayer!.Id.ShouldBe(_player1Id);
     }
 }

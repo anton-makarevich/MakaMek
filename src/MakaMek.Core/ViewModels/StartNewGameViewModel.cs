@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels.Wrappers;
@@ -24,12 +25,14 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private int _lightWoodsPercentage = 30;
 
     private readonly IGameManager _gameManager;
+    private readonly IMechFactory _mechFactory;
     private readonly IBattleMapFactory _mapFactory;
 
     public StartNewGameViewModel(
         IGameManager gameManager, 
         IUnitsLoader unitsLoader,
         IRulesProvider rulesProvider, 
+        IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IDispatcherService dispatcherService,
@@ -38,6 +41,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
     {
         _gameManager = gameManager;
+        _mechFactory = mechFactory;
         _mapFactory = mapFactory;
         AddPlayerCommand = new AsyncCommand(AddPlayer);
     }
@@ -49,6 +53,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         // Use the factory to create the ClientGame
         _localGame = _gameFactory.CreateClientGame(
             _rulesProvider,
+            _mechFactory,
             _commandPublisher, 
             _toHitCalculator,
             _mapFactory);

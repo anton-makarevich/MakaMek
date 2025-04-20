@@ -61,8 +61,9 @@ public class MovementStateTests
         _unitData = MechFactoryTests.CreateDummyMechData();
         var ct = _unitData.LocationEquipment[PartLocation.CenterTorso];
         ct.AddRange(MakaMekComponent.JumpJet,MakaMekComponent.JumpJet);
-        _unit1 = new MechFactory(rules).Create(_unitData);
-        _unit2 = new MechFactory(rules).Create(_unitData);
+        var mechFactory = new MechFactory(rules,localizationService);
+        _unit1 = mechFactory.Create(_unitData);
+        _unit2 = mechFactory.Create(_unitData);
         
         // Create two adjacent hexes
         _hex1 = new Hex(new HexCoordinates(1, 1));
@@ -73,6 +74,7 @@ public class MovementStateTests
          _player = new Player(playerId, "Player1");
         _game = new ClientGame(
             rules,
+            mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IBattleMapFactory>());
@@ -616,7 +618,7 @@ public class MovementStateTests
 
         // Assert
         _battleMapViewModel.SelectedUnit.ShouldBeNull(); // Selection should be reset
-        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit); // Back to initial step
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit); // Back to an initial step
         _battleMapViewModel.Game.BattleMap.GetHexes()
             .Any(h => h.IsHighlighted)
             .ShouldBeFalse(); // No highlighted hexes
@@ -656,7 +658,7 @@ public class MovementStateTests
         var actions = _sut.GetAvailableActions().ToList();
 
         // Assert
-        actions.Count.ShouldBe(4); // Stand Still, Walk, Run, Jump (since unit has jump jets)
+        actions.Count.ShouldBe(4); // Stand Still, Walk, Run, Jump (since the unit has jump jets)
         actions[0].Label.ShouldBe("Stand Still");
         actions[1].Label.ShouldBe($"Walk | MP: {_unit1.GetMovementPoints(MovementType.Walk)}");
         actions[2].Label.ShouldBe($"Run | MP: {_unit1.GetMovementPoints(MovementType.Run)}");
@@ -669,7 +671,8 @@ public class MovementStateTests
         // Arrange
         var unitData = MechFactoryTests.CreateDummyMechData();
         var rules = new ClassicBattletechRulesProvider();
-        var unitWithoutJumpJets = new MechFactory(rules).Create(unitData);
+        var unitWithoutJumpJets = new MechFactory(rules, Substitute.For<ILocalizationService>())
+            .Create(unitData);
         _sut.HandleUnitSelection(unitWithoutJumpJets);
 
         // Act

@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Map.Factory;
+using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -23,8 +24,8 @@ public sealed class ClientGame : BaseGame
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
     
-    public ClientGame(IRulesProvider rulesProvider, ICommandPublisher commandPublisher, IToHitCalculator toHitCalculator, IBattleMapFactory mapFactory)
-        : base(rulesProvider, commandPublisher, toHitCalculator)
+    public ClientGame(IRulesProvider rulesProvider, IMechFactory mechFactory, ICommandPublisher commandPublisher, IToHitCalculator toHitCalculator, IBattleMapFactory mapFactory)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator)
     {
         _mapFactory = mapFactory;
     }

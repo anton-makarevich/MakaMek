@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
 using Sanet.MVVM.Core.Services;
@@ -32,12 +33,14 @@ public class JoinGameViewModelTests
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
+    private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
 
     public JoinGameViewModelTests()
     {
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
         var clientGame = new ClientGame(
             _rulesProvider,
+            _mechFactory,
             _commandPublisher, 
             _toHitCalculator,
             _mapFactory);
@@ -49,7 +52,9 @@ public class JoinGameViewModelTests
             .Returns(Task.FromResult(_transportPublisher));
             
         // Configure the game factory to return our mock client game
-        _gameFactory.CreateClientGame(_rulesProvider, _commandPublisher, _toHitCalculator,_mapFactory)
+        _gameFactory.CreateClientGame(_rulesProvider,
+                _mechFactory,
+                _commandPublisher, _toHitCalculator,_mapFactory)
             .Returns(clientGame);
         
         // Configure dispatcher to execute actions immediately
@@ -58,6 +63,7 @@ public class JoinGameViewModelTests
         // Create the view model with our mocks
         _sut = new JoinGameViewModel(
             _rulesProvider,
+            _mechFactory,
             _unitsLoader,
             _commandPublisher,
             _toHitCalculator,
@@ -149,7 +155,9 @@ public class JoinGameViewModelTests
         _sut.ConnectCommand.Execute(null);
         
         // Assert
-        _gameFactory.Received(1).CreateClientGame(_rulesProvider, _commandPublisher, _toHitCalculator,_mapFactory);
+        _gameFactory.Received(1).CreateClientGame(_rulesProvider,
+            _mechFactory,
+            _commandPublisher, _toHitCalculator,_mapFactory);
     }
     
     [Fact]
@@ -166,6 +174,7 @@ public class JoinGameViewModelTests
         // Assert - should not create a new game
         _gameFactory.DidNotReceive().CreateClientGame(
             Arg.Any<IRulesProvider>(),
+            Arg.Any<IMechFactory>(),
             Arg.Any<ICommandPublisher>(), 
             Arg.Any<IToHitCalculator>(),
             Arg.Any<IBattleMapFactory>());

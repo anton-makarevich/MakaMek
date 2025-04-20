@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels.Wrappers;
 
@@ -16,6 +17,7 @@ namespace Sanet.MakaMek.Core.ViewModels;
 
 public class JoinGameViewModel : NewGameViewModel
 {
+    private readonly IMechFactory _mechFactory;
     private readonly ITransportFactory _transportFactory;
     private readonly IBattleMapFactory _mapFactory;
     private string _serverIp = string.Empty;
@@ -23,6 +25,7 @@ public class JoinGameViewModel : NewGameViewModel
 
     public JoinGameViewModel(
         IRulesProvider rulesProvider,
+        IMechFactory mechFactory,
         IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
@@ -32,6 +35,7 @@ public class JoinGameViewModel : NewGameViewModel
         IBattleMapFactory mapFactory)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
     {
+        _mechFactory = mechFactory;
         _transportFactory = transportFactory;
         _mapFactory = mapFactory;
 
@@ -138,6 +142,7 @@ public class JoinGameViewModel : NewGameViewModel
             _commandPublisher.Subscribe(HandleServerCommand);
             _localGame ??= _gameFactory.CreateClientGame(
                 _rulesProvider,
+                _mechFactory,
                 _commandPublisher,
                 _toHitCalculator,
                 _mapFactory);

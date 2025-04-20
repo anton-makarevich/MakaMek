@@ -3,10 +3,10 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
@@ -17,12 +17,14 @@ public class BattleTechPhaseManagerTests
 {
     private readonly BattleTechPhaseManager _sut;
     private readonly ServerGame _game;
+    private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
 
     public BattleTechPhaseManagerTests()
     {
         _sut = new BattleTechPhaseManager();
         _game = new ServerGame(
             Substitute.For<IRulesProvider>(), // rulesProvider
+            _mechFactory,
             Substitute.For<ICommandPublisher>(), // commandPublisher
             Substitute.For<IDiceRoller>(), // diceRoller
             Substitute.For<IToHitCalculator>(), // toHitCalculator

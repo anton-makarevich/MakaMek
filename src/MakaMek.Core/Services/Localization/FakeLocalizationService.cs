@@ -107,6 +107,16 @@ public class FakeLocalizationService: ILocalizationService
             "EndPhase_ActionLabel" => "End your turn",
             "EndPhase_PlayerActionLabel" => "End Turn",
             
+            // Mech part names
+            "MechPart_LeftArm" => "Left Arm",
+            "MechPart_RightArm" => "Right Arm",
+            "MechPart_LeftTorso" => "Left Torso",
+            "MechPart_RightTorso" => "Right Torso",
+            "MechPart_CenterTorso" => "Center Torso",
+            "MechPart_Head" => "Head",
+            "MechPart_LeftLeg" => "Left Leg",
+            "MechPart_RightLeg" => "Right Leg",
+            
             _ => key
         };
     }

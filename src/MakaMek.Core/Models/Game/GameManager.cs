@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Models.Game;
@@ -10,6 +11,7 @@ namespace Sanet.MakaMek.Core.Models.Game;
 public class GameManager : IGameManager
 {
     private readonly IRulesProvider _rulesProvider;
+    private readonly IMechFactory _mechFactory;
     private readonly ICommandPublisher _commandPublisher;
     private readonly IDiceRoller _diceRoller;
     private readonly IToHitCalculator _toHitCalculator;
@@ -18,12 +20,16 @@ public class GameManager : IGameManager
     private readonly INetworkHostService? _networkHostService;
     private bool _isDisposed;
 
-    public GameManager(IRulesProvider rulesProvider, ICommandPublisher commandPublisher, IDiceRoller diceRoller,
+    public GameManager(IRulesProvider rulesProvider,
+        IMechFactory mechFactory,
+        ICommandPublisher commandPublisher, IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator, 
         IGameFactory gameFactory, 
         INetworkHostService? networkHostService = null)
     {
         _rulesProvider = rulesProvider;
+        _mechFactory = mechFactory;
+
         _commandPublisher = commandPublisher;
         _diceRoller = diceRoller;
         _toHitCalculator = toHitCalculator;
@@ -50,7 +56,9 @@ public class GameManager : IGameManager
         if (_serverGame == null)
         {
             _serverGame = _gameFactory.CreateServerGame(
-                _rulesProvider, _commandPublisher, _diceRoller, _toHitCalculator);
+                _rulesProvider,
+                _mechFactory,
+                _commandPublisher, _diceRoller, _toHitCalculator);
             // Start server listening loop in background
             _ = Task.Run(() => _serverGame?.Start());
         }

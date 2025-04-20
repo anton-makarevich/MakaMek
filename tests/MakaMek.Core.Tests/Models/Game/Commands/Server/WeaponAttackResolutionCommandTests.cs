@@ -33,7 +33,7 @@ public class WeaponAttackResolutionCommandTests
         var player2 = new Player(Guid.NewGuid(), "Player 2");
 
         // Create units using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider());
+        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
         var attackerData = MechFactoryTests.CreateDummyMechData();
         attackerData.Id = Guid.NewGuid();
         var targetData = MechFactoryTests.CreateDummyMechData();
@@ -55,7 +55,7 @@ public class WeaponAttackResolutionCommandTests
         {
             Name = weapon.Name, // Added Name property
             Location = weapon.MountedOn!.Location,
-            Slots = weapon.MountedAtSlots  // This might need adjustment based on actual slot position
+            Slots = weapon.MountedAtSlots  // This might need adjustment based on the actual slot position
         };
         
         // Setup localization service
@@ -87,7 +87,7 @@ public class WeaponAttackResolutionCommandTests
 
     private WeaponAttackResolutionCommand CreateHitCommand()
     {
-        // Create a hit with single location
+        // Create a hit with a single location
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.CenterTorso, 5, [new(6)])

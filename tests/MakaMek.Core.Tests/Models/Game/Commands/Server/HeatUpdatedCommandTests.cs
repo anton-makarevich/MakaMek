@@ -25,8 +25,8 @@ public class HeatUpdatedCommandTests
             // Create player
             new Player(Guid.NewGuid(), "Player 1");
 
-        // Create unit using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider());
+        // Create a unit using MechFactory
+        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),_localizationService);
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = Guid.NewGuid();
         

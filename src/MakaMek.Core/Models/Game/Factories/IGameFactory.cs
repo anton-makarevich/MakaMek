@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
+using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game.Factories;
 
@@ -16,6 +17,7 @@ public interface IGameFactory
     /// </summary>
     ServerGame CreateServerGame(
         IRulesProvider rulesProvider, 
+        IMechFactory mechFactory,
         ICommandPublisher commandPublisher, 
         IDiceRoller diceRoller, 
         IToHitCalculator toHitCalculator);
@@ -25,6 +27,7 @@ public interface IGameFactory
     /// </summary>
     ClientGame CreateClientGame(
         IRulesProvider rulesProvider, 
+        IMechFactory mechFactory,
         ICommandPublisher commandPublisher, 
         IToHitCalculator toHitCalculator,
         IBattleMapFactory mapFactory);

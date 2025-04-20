@@ -19,6 +19,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.UiStates;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
@@ -33,21 +34,27 @@ public class BattleMapViewModelTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
 
+    private readonly IMechFactory _mechFactory;
+
     public BattleMapViewModelTests()
     {
         var imageService = Substitute.For<IImageService>();
         var dispatcherService = Substitute.For<IDispatcherService>();
         _sut = new BattleMapViewModel(imageService, _localizationService,dispatcherService);
         
-        // Configure dispatcher to execute actions immediately
+        // Configure the dispatcher to execute actions immediately
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        var rules = new ClassicBattletechRulesProvider();
         
         _localizationService.GetString("Action_SelectTarget").Returns("Select Target");
         _localizationService.GetString("Action_SelectUnitToFire").Returns("Select unit to fire weapons");
         _localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
         _localizationService.GetString("Action_SelectUnitToDeploy").Returns("Select Unit");
         _localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End turn");
-        _game = new ClientGame(new ClassicBattletechRulesProvider(), Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
+        _mechFactory = new MechFactory(rules, _localizationService);
+        _game = new ClientGame(
+            rules,
+            _mechFactory, Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         _sut.Game = _game;
     }
 
@@ -104,6 +111,7 @@ public class BattleMapViewModelTests
 
         _game = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         _game.JoinGameWithUnits(player,[unitData]);
@@ -197,6 +205,7 @@ public class BattleMapViewModelTests
         var player = new Player(playerId, "Player1");
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         clientGame.JoinGameWithUnits(player, []);
@@ -228,6 +237,7 @@ public class BattleMapViewModelTests
         var player = new Player(playerId, "Player1");
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         clientGame.JoinGameWithUnits(player,[]);
@@ -278,7 +288,7 @@ public class BattleMapViewModelTests
         _sut.IsCommandLogExpanded.ShouldBeTrue();
         propertyChangedEvents.ShouldContain(nameof(BattleMapViewModel.IsCommandLogExpanded));
 
-        // Clear events for second test
+        // Clear events for the second test
         propertyChangedEvents.Clear();
 
         // Act & Assert - Second toggle
@@ -294,6 +304,7 @@ public class BattleMapViewModelTests
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         _game.JoinGameWithUnits(player,[]);
@@ -335,6 +346,7 @@ public class BattleMapViewModelTests
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         _game.JoinGameWithUnits(player,[]);
@@ -376,6 +388,7 @@ public class BattleMapViewModelTests
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         _game.JoinGameWithUnits(player,[]);
@@ -646,6 +659,7 @@ public class BattleMapViewModelTests
         var player = new Player(Guid.NewGuid(), "Player1");
         var game = new ClientGame(
             rules,
+            _mechFactory,
             Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),
             _mapFactory);
         game.JoinGameWithUnits(player,[]);
@@ -713,6 +727,7 @@ public class BattleMapViewModelTests
         var player = new Player(Guid.NewGuid(), "Player1");
         var game = new ClientGame(
             rules,
+            _mechFactory,
             Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),
             _mapFactory);
         game.JoinGameWithUnits(player,[]);
@@ -769,6 +784,7 @@ public class BattleMapViewModelTests
         var player2 = new Player(Guid.NewGuid(), "Player2");
         var game = new ClientGame(
             rules,
+            _mechFactory,
             Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player1,[]);
         game.JoinGameWithUnits(player2,[]);
@@ -850,6 +866,7 @@ public class BattleMapViewModelTests
         var player2 = new Player(Guid.NewGuid(), "Player2");
         var game = new ClientGame(
             rules,
+            _mechFactory,
             Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player1,[]);
         game.JoinGameWithUnits(player2,[]);
@@ -947,6 +964,7 @@ public class BattleMapViewModelTests
         var player1 = new Player(Guid.NewGuid(), "Player1");
         var game = new ClientGame(
             rules,
+            _mechFactory,
             Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player1,[]);
         game.SetBattleMap(battleMap);
@@ -1003,6 +1021,7 @@ public class BattleMapViewModelTests
         var player1 = new Player(Guid.NewGuid(), "Player1");
         var game = new ClientGame(
             rules,
+            _mechFactory,
             Substitute.For<ICommandPublisher>(), Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player1, []);
         game.SetBattleMap(battleMap);
@@ -1041,6 +1060,7 @@ public class BattleMapViewModelTests
         // Create a game with the players
         var game = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player, []);
@@ -1141,6 +1161,7 @@ public class BattleMapViewModelTests
         // Create a game with the players
         var game = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(activePlayer, []);
@@ -1161,7 +1182,7 @@ public class BattleMapViewModelTests
             PlayerId = playerId
         });
         
-        // Create target unit
+        // Create a target unit
         var targetMechData = MechFactoryTests.CreateDummyMechData();
         targetMechData.Id = Guid.NewGuid();
         game.HandleCommand(new JoinGameCommand
@@ -1287,6 +1308,7 @@ public class BattleMapViewModelTests
         // Create a game with the players
         var game = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         game.JoinGameWithUnits(player, [mechData]);
@@ -1304,7 +1326,7 @@ public class BattleMapViewModelTests
             PlayerId = playerId
         });
         
-        // Create target unit
+        // Create a target unit
         var targetMechData = MechFactoryTests.CreateDummyMechData();
         targetMechData.Id = Guid.NewGuid();
         game.HandleCommand(new JoinGameCommand
@@ -1419,6 +1441,7 @@ public class BattleMapViewModelTests
         var player = new Player(playerId, "Player1");
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),_mapFactory);
         clientGame.JoinGameWithUnits(player, []);
@@ -1441,7 +1464,7 @@ public class BattleMapViewModelTests
             GameOriginId = Guid.NewGuid(),
             Phase = PhaseNames.End
         });
-        // Set the player as active player
+        // Set the player as an active player
         clientGame.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -1462,6 +1485,7 @@ public class BattleMapViewModelTests
         var player = new Player(playerId, "Player1");
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
             _mapFactory);
@@ -1469,14 +1493,14 @@ public class BattleMapViewModelTests
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
-        // Set up the game state for End phase
+        // Set up the game state for the End phase
         clientGame.HandleCommand(new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
             Phase = PhaseNames.End
         });
         
-        // Set the player as active player
+        // Set the player as an active player
         clientGame.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -1497,6 +1521,7 @@ public class BattleMapViewModelTests
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
             _mapFactory);
@@ -1513,14 +1538,14 @@ public class BattleMapViewModelTests
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId
         });
-        // Set up the game state for End phase
+        // Set up the game state for the End phase
         clientGame.HandleCommand(new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
             Phase = PhaseNames.Movement
         });
         
-        // Set the player as active player
+        // Set the player as an active player
         clientGame.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -1541,6 +1566,7 @@ public class BattleMapViewModelTests
         // Arrange
         var clientGame = new ClientGame(
             new ClassicBattletechRulesProvider(),
+            _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
             _mapFactory);

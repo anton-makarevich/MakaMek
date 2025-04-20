@@ -8,7 +8,7 @@ public class CenterTorsoTests
     [Fact]
     public void CenterTorso_ShouldBeInitializedCorrectly()
     {
-        var centerTorso = new CenterTorso(10, 2, 6);
+        var centerTorso = new CenterTorso("CenterTorso", 10, 2, 6);
 
         Assert.Equal(PartLocation.CenterTorso, centerTorso.Location);
         Assert.Equal(10, centerTorso.MaxArmor);

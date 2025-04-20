@@ -1,11 +1,11 @@
-﻿namespace Sanet.MakaMek.Core.Models.Units.Mechs;
+namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
 using Components.Internal.Actuators;
 
 public class Leg : UnitPart
 {
-    public Leg(PartLocation location, int maxArmor, int maxStructure) 
-        : base($"{location} Leg", location, maxArmor, maxStructure, 12)
+    public Leg(string name, PartLocation location, int maxArmor, int maxStructure) 
+        : base(name, location, maxArmor, maxStructure, 12)
     {
         // Add default components
         TryAddComponent(new Hip());

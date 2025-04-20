@@ -14,14 +14,14 @@ public class MechTests
     {
         return
         [
-            new Head(9, 3),
-            new CenterTorso(31, 10, 6),
-            new SideTorso(PartLocation.LeftTorso, 25, 8, 6),
-            new SideTorso(PartLocation.RightTorso, 25, 8, 6),
-            new Arm(PartLocation.RightArm, 17, 6),
-            new Arm(PartLocation.LeftArm, 17, 6),
-            new Leg(PartLocation.RightLeg, 25, 8),
-            new Leg(PartLocation.LeftLeg, 25, 8)
+            new Head( "Head", 9, 3),
+            new CenterTorso("CenterTorso", 31, 10, 6),
+            new SideTorso("LeftTorso", PartLocation.LeftTorso, 25, 8, 6),
+            new SideTorso("RightTorso", PartLocation.RightTorso, 25, 8, 6),
+            new Arm("RightArm", PartLocation.RightArm, 17, 6),
+            new Arm("LeftArm", PartLocation.LeftArm, 17, 6),
+            new Leg("RightLeg", PartLocation.RightLeg, 25, 8),
+            new Leg("LeftLeg", PartLocation.LeftLeg, 25, 8)
         ];
     }
     

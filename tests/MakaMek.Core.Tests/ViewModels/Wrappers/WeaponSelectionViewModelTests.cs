@@ -26,7 +26,7 @@ public class WeaponSelectionViewModelTests
     public WeaponSelectionViewModelTests()
     {
         _weapon = new MediumLaser();
-        var part = new Arm(PartLocation.LeftArm, 1, 1);
+        var part = new Arm("Left Arm", PartLocation.LeftArm, 1, 1);
         part.TryAddComponent(_weapon);
         
         // Create a test mech using MechFactory
@@ -42,7 +42,7 @@ public class WeaponSelectionViewModelTests
             { PartLocation.LeftLeg, 8 },
             { PartLocation.RightLeg, 8 }
         });
-        var mechFactory = new MechFactory(structureValueProvider);
+        var mechFactory = new MechFactory(structureValueProvider, Substitute.For<ILocalizationService>());
         var mechData = MechFactoryTests.CreateDummyMechData();
         _target = mechFactory.Create(mechData);
     }
@@ -205,7 +205,7 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         var ballisticWeapon = new TestBallisticWeapon();
-        var part = new Arm(PartLocation.LeftArm, 1, 1);
+        var part = new Arm("Left Arm", PartLocation.LeftArm, 1, 1);
         part.TryAddComponent(ballisticWeapon);
         _sut = new WeaponSelectionViewModel(
             ballisticWeapon,
@@ -230,7 +230,7 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         var ballisticWeapon = new TestBallisticWeapon();
-        var part = new Arm(PartLocation.LeftArm, 1, 1);
+        var part = new Arm("Left Arm", PartLocation.LeftArm, 1, 1);
         part.TryAddComponent(ballisticWeapon);
         ballisticWeapon.Hit();
         _sut = new WeaponSelectionViewModel(

@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
 using Shouldly;
@@ -33,6 +34,7 @@ namespace MakaMek.Avalonia.Tests.Views
                 Substitute.For<IGameManager>(), 
                 Substitute.For<IUnitsLoader>(),
                 Substitute.For<IRulesProvider>(),
+                Substitute.For<IMechFactory>(),
                 Substitute.For<ICommandPublisher>(),
                 Substitute.For<IToHitCalculator>(),
                 Substitute.For<IDispatcherService>(),

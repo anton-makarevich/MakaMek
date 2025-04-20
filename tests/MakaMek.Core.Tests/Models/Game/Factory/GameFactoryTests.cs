@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
@@ -18,6 +19,7 @@ public class GameFactoryTests
     private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();
     private readonly IToHitCalculator _toHitCalculator= Substitute.For<IToHitCalculator>();
     private readonly IBattleMapFactory _mapFactory= Substitute.For<IBattleMapFactory>();
+    private readonly IMechFactory _mechFactory= Substitute.For<IMechFactory>();
 
     [Fact]
     public void CreateServerGame_ReturnsServerGameInstance()
@@ -25,6 +27,7 @@ public class GameFactoryTests
         // Act
         var serverGame = _sut.CreateServerGame(
             _rulesProvider, 
+            _mechFactory,
             _commandPublisher, 
             _diceRoller, 
             _toHitCalculator);
@@ -40,7 +43,8 @@ public class GameFactoryTests
     {
         // Act
         var clientGame = _sut.CreateClientGame(
-            _rulesProvider, 
+            _rulesProvider,
+            _mechFactory,
             _commandPublisher, 
             _toHitCalculator,
             _mapFactory);
