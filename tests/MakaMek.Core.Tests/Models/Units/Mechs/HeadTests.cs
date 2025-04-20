@@ -11,7 +11,7 @@ public class HeadTests
     public void Head_ShouldBeInitializedCorrectly()
     {
         // Arrange & Act
-        var head = new Head( 8, 3);
+        var head = new Head("Head",  8, 3);
 
         // Assert
         head.Name.ShouldBe("Head");

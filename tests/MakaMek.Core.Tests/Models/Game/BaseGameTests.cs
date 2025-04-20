@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -27,6 +28,7 @@ public class BaseGameTests : BaseGame
 {
     public BaseGameTests() : base(
         new ClassicBattletechRulesProvider(),
+        new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
         Substitute.For<ICommandPublisher>(),
         Substitute.For<IToHitCalculator>())
     {
@@ -596,7 +598,7 @@ public class BaseGameTests : BaseGame
     [Fact]
     public void AlivePlayers_ShouldReturnOnlyReadyPlayersWithAliveUnits()
     {
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider());
+        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),Substitute.For<ILocalizationService>());
         // Create alive and destroyed mechs
         var aliveMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
         var destroyedMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());

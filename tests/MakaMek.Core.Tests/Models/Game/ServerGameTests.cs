@@ -10,9 +10,11 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -41,7 +43,9 @@ public class ServerGameTests
             { PartLocation.LeftLeg, 8 },
             { PartLocation.RightLeg, 8 }
         });
-        _sut = new ServerGame(rulesProvider, _commandPublisher, diceRoller,
+        _sut = new ServerGame(rulesProvider,
+            new MechFactory(rulesProvider, Substitute.For<ILocalizationService>()),
+            _commandPublisher, diceRoller,
             Substitute.For<IToHitCalculator>());
         _sut.SetBattleMap(battleMap);
     }
@@ -275,9 +279,10 @@ public class ServerGameTests
         // Set up the phase manager to return our mock phase
                 phaseManager.GetNextPhase(PhaseNames.Start, Arg.Any<ServerGame>()).Returns(mockPhase);
         
-        // Create the game with mocked phase manager
+        // Create the game with a mocked phase manager
         var sut = new ServerGame(
-            rulesProvider, 
+            rulesProvider,
+            Substitute.For<IMechFactory>(),
             commandPublisher, 
             diceRoller,
             Substitute.For<IToHitCalculator>(),

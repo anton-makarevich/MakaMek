@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
@@ -32,7 +33,7 @@ public class MechFactoryTests
             { PartLocation.RightLeg, 8 }
         });
         _unitData = CreateDummyMechData();
-        _mechFactory = new MechFactory(structureValueProvider);
+        _mechFactory = new MechFactory(structureValueProvider, Substitute.For<ILocalizationService>());
     }
 
     public static UnitData CreateDummyMechData(Tuple<PartLocation, List<MakaMekComponent>>? locationEquipment = null)

@@ -48,6 +48,7 @@ public class DeploymentStateTests
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = new ClientGame(
             rules,
+            new MechFactory(rules,localizationService),
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IBattleMapFactory>());
@@ -248,8 +249,8 @@ public class DeploymentStateTests
         _sut.HandleFacingSelection(HexDirection.Top);
         _unit.Deploy(new HexPosition(_hex1.Coordinates,HexDirection.Top));
         
-        // Try to deploy second unit to the same hex
-        var secondUnit = new MechFactory(new ClassicBattletechRulesProvider()).Create(MechFactoryTests.CreateDummyMechData());
+        // Try to deploy the second unit to the same hex
+        var secondUnit = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(MechFactoryTests.CreateDummyMechData());
         _sut = new DeploymentState(_battleMapViewModel);
         _sut.HandleUnitSelection(secondUnit);
         

@@ -19,6 +19,7 @@ using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 
 namespace Sanet.MakaMek.Core.Tests.ViewModels;
@@ -33,6 +34,7 @@ public class StartNewGameViewModelTests
     private readonly ClientGame _clientGame; 
     private readonly Guid _serverGameId = Guid.NewGuid();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
+    private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
 
     public StartNewGameViewModelTests()
     {
@@ -51,8 +53,8 @@ public class StartNewGameViewModelTests
         var gameFactory = Substitute.For<IGameFactory>(); 
         var mapFactory = Substitute.For<IBattleMapFactory>();
 
-        _clientGame = new ClientGame(rulesProvider, _commandPublisher, toHitCalculator,mapFactory); 
-        gameFactory.CreateClientGame(rulesProvider, _commandPublisher, toHitCalculator,mapFactory)
+        _clientGame = new ClientGame(rulesProvider, _mechFactory, _commandPublisher, toHitCalculator,mapFactory); 
+        gameFactory.CreateClientGame(rulesProvider, _mechFactory, _commandPublisher, toHitCalculator,mapFactory)
                     .Returns(_clientGame);
         
         // Set up server game ID
@@ -69,6 +71,7 @@ public class StartNewGameViewModelTests
             _gameManager,
             _unitsLoader,
             rulesProvider, 
+            _mechFactory,
             _commandPublisher, 
             toHitCalculator, 
             dispatcherService, 
@@ -464,7 +467,7 @@ public class StartNewGameViewModelTests
         
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Ready);
-        _sut.CanStartGame.ShouldBeTrue(); // With one ready player, game should be able to start
+        _sut.CanStartGame.ShouldBeTrue(); // With one ready player, the game should be able to start
     }
     
     [Fact]
@@ -513,7 +516,7 @@ public class StartNewGameViewModelTests
         player1.SelectedUnit = _sut.AvailableUnits.First();
         player1.AddUnitCommand.Execute(null);
         
-        // Add second player
+        // Add a second player
         _sut.AddPlayerCommand.Execute(null);
         var player2 = _sut.Players.Last();
         player2.SelectedUnit = _sut.AvailableUnits.First();
@@ -542,7 +545,7 @@ public class StartNewGameViewModelTests
         player1.SelectedUnit = _sut.AvailableUnits.First();
         player1.AddUnitCommand.Execute(null);
         
-        // Add second player
+        // Add a second player
         _sut.AddPlayerCommand.Execute(null);
         var player2 = _sut.Players.Last();
         player2.SelectedUnit = _sut.AvailableUnits.First();

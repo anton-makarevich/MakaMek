@@ -8,11 +8,12 @@ using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -24,6 +25,7 @@ public abstract class GamePhaseTestsBase
     protected readonly ICommandPublisher CommandPublisher;
     protected readonly IDiceRoller DiceRoller;
     protected readonly IPhaseManager MockPhaseManager;
+    private readonly IMechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),Substitute.For<ILocalizationService>());
 
     protected GamePhaseTestsBase()
     {
@@ -32,7 +34,7 @@ public abstract class GamePhaseTestsBase
         MockPhaseManager = Substitute.For<IPhaseManager>();
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         
-        Game = new ServerGame( rulesProvider, CommandPublisher, DiceRoller,
+        Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(), MockPhaseManager);
     }
 

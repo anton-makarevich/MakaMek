@@ -1,6 +1,8 @@
+using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -19,7 +21,8 @@ public class MoveUnitCommandBuilderTests
     {
         _playerId = Guid.NewGuid();
         _builder = new MoveUnitCommandBuilder(_gameId, _playerId);
-        _unit = new MechFactory(new ClassicBattletechRulesProvider()).Create(MechFactoryTests.CreateDummyMechData());
+        _unit = new MechFactory(new ClassicBattletechRulesProvider(),
+            Substitute.For<ILocalizationService>()).Create(MechFactoryTests.CreateDummyMechData());
     }
     
     [Fact]

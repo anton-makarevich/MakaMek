@@ -28,16 +28,17 @@ public class WeaponAttackDeclarationCommandTests
     {
         _game.Players.Returns([_player1, _player2]);
         
-        // Create attacker unit
+        // Create an attacker unit
         var attackerData = MechFactoryTests.CreateDummyMechData();
         attackerData.Id=Guid.NewGuid();
-        _attacker = new MechFactory(new ClassicBattletechRulesProvider()).Create(attackerData);
+        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),_localizationService);
+        _attacker = mechFactory.Create(attackerData);
         _player1.AddUnit(_attacker);
         
-        // Create target unit
+        // Create a target unit
         var targetData = MechFactoryTests.CreateDummyMechData();
         targetData.Id = Guid.NewGuid();
-        _target = new MechFactory(new ClassicBattletechRulesProvider()).Create(targetData);
+        _target = mechFactory.Create(targetData);
         _player2.AddUnit(_target);
 
         _localizationService.GetString("Command_WeaponAttackDeclaration_NoAttacks")

@@ -1,6 +1,8 @@
+using NSubstitute;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -9,7 +11,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Players;
 
 public class PlayerTests
 {
-    private readonly MechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider());
+    private readonly MechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),
+        Substitute.For<ILocalizationService>());
     
     private Unit CreateMech()
     {
@@ -84,11 +87,12 @@ public class PlayerTests
     public void Status_ShouldBeSettable()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Test Player");
-        
-        // Act
-        player.Status = PlayerStatus.Joined;
-        
+        var player = new Player(Guid.NewGuid(), "Test Player")
+        {
+            // Act
+            Status = PlayerStatus.Joined
+        };
+
         // Assert
         player.Status.ShouldBe(PlayerStatus.Joined);
     }

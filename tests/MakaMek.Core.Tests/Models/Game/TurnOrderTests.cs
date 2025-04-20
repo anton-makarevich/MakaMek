@@ -3,6 +3,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -16,7 +17,8 @@ public class TurnOrderTests
     private readonly IPlayer _player2;
     private readonly IPlayer _player3;
     private readonly UnitData _unitData = MechFactoryTests.CreateDummyMechData();
-    private readonly MechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider());
+    private readonly MechFactory _mechFactory = new(new ClassicBattletechRulesProvider(), 
+        new FakeLocalizationService());
     
     public TurnOrderTests()
     {

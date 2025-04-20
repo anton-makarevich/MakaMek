@@ -8,8 +8,8 @@ public class SideTorsoTests
     [Fact]
     public void SideTorso_ShouldBeInitializedCorrectly()
     {
-        var leftTorso = new SideTorso(PartLocation.LeftTorso, 8, 2, 5);
-        var rightTorso = new SideTorso(PartLocation.RightTorso, 8, 2, 5);
+        var leftTorso = new SideTorso("Left Torso", PartLocation.LeftTorso, 8, 2, 5);
+        var rightTorso = new SideTorso("Right Torso", PartLocation.RightTorso, 8, 2, 5);
 
         Assert.Equal(PartLocation.LeftTorso, leftTorso.Location);
         Assert.Equal(8, leftTorso.MaxArmor);

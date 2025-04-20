@@ -8,8 +8,8 @@ public class ArmTests
     [Fact]
     public void Arm_ShouldBeInitializedCorrectly()
     {
-        var leftArm = new Arm(PartLocation.LeftArm, 4, 3);
-        var rightArm = new Arm(PartLocation.RightArm, 4, 3);
+        var leftArm = new Arm("Left Arm", PartLocation.LeftArm, 4, 3);
+        var rightArm = new Arm("Right Arm", PartLocation.RightArm, 4, 3);
 
         Assert.Equal(PartLocation.LeftArm, leftArm.Location);
         Assert.Equal(4, leftArm.MaxArmor);

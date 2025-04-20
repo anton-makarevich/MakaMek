@@ -16,6 +16,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.UiStates;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels;
@@ -51,6 +52,7 @@ public class EndStateTests
         
         _game = new ClientGame(
             rules,
+            new MechFactory(rules,localizationService),
             _commandPublisher, 
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IBattleMapFactory>());

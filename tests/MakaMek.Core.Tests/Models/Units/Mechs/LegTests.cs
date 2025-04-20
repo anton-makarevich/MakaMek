@@ -9,8 +9,8 @@ public class LegTests
     [Fact]
     public void Leg_ShouldBeInitializedCorrectly()
     {
-        var leftLeg = new Leg(PartLocation.LeftLeg, 8, 4);
-        var rightLeg = new Leg(PartLocation.RightLeg, 8, 4);
+        var leftLeg = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
+        var rightLeg = new Leg("RightLeg", PartLocation.RightLeg, 8, 4);
 
         leftLeg.Location.ShouldBe(PartLocation.LeftLeg);
         leftLeg.MaxArmor.ShouldBe(8);

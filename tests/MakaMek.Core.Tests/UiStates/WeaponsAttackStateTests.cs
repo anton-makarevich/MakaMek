@@ -39,28 +39,31 @@ public class WeaponsAttackStateTests
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>(); 
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly MechFactory _mechFactory;
 
     public WeaponsAttackStateTests()
     {
         var imageService = Substitute.For<IImageService>();
-        var localizationService = Substitute.For<ILocalizationService>();
         
         // Mock localization service responses
-        localizationService.GetString("Action_SelectUnitToFire").Returns("Select unit to fire weapons");
-        localizationService.GetString("Action_SelectAction").Returns("Select action");
-        localizationService.GetString("Action_ConfigureWeapons").Returns("Configure weapons");
-        localizationService.GetString("Action_SelectTarget").Returns("Select Target");
-        localizationService.GetString("Action_TurnTorso").Returns("Turn Torso");
-        localizationService.GetString("Action_SkipAttack").Returns("Skip Attack");
-        localizationService.GetString("Action_DeclareAttack").Returns("Declare Attack");
+        _localizationService.GetString("Action_SelectUnitToFire").Returns("Select unit to fire weapons");
+        _localizationService.GetString("Action_SelectAction").Returns("Select action");
+        _localizationService.GetString("Action_ConfigureWeapons").Returns("Configure weapons");
+        _localizationService.GetString("Action_SelectTarget").Returns("Select Target");
+        _localizationService.GetString("Action_TurnTorso").Returns("Turn Torso");
+        _localizationService.GetString("Action_SkipAttack").Returns("Skip Attack");
+        _localizationService.GetString("Action_DeclareAttack").Returns("Declare Attack");
         
-        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
+        _battleMapViewModel = new BattleMapViewModel(imageService, _localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
 
         var rules = new ClassicBattletechRulesProvider();
+        _mechFactory = new MechFactory(rules, _localizationService);
+        
         _unitData = MechFactoryTests.CreateDummyMechData();
-        _unit1 = new MechFactory(rules).Create(_unitData);
-        _unit2 = new MechFactory(rules).Create(_unitData);
+        _unit1 = _mechFactory.Create(_unitData);
+        _unit2 = _mechFactory.Create(_unitData);
 
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             11, 11,
@@ -68,6 +71,7 @@ public class WeaponsAttackStateTests
         _player = new Player(playerId, "Player1");
         _game = new ClientGame(
             rules,
+            _mechFactory,
             _commandPublisher,
             _toHitCalculator,
             Substitute.For<IBattleMapFactory>());
@@ -251,7 +255,7 @@ public class WeaponsAttackStateTests
             .First(a => a.Label == "Select Target");
         targetSelectionAction.OnExecute();
         
-        // Create hex with enemy unit
+        // Create hex with an enemy unit
         var targetHex = new Hex(targetPosition.Coordinates);
 
         // Act
@@ -278,7 +282,7 @@ public class WeaponsAttackStateTests
         attacker.Deploy(attackerPosition);
         _sut.HandleUnitSelection(attacker);
         
-        // Setup another friendly unit
+        // Set up another friendly unit
         var friendlyPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
         var friendlyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id && u != attacker);
         friendlyUnit.Deploy(friendlyPosition);
@@ -288,7 +292,7 @@ public class WeaponsAttackStateTests
             .First(a => a.Label == "Select Target");
         targetSelectionAction.OnExecute();
         
-        // Create hex with friendly unit
+        // Create hex with a friendly unit
         var friendlyHex = new Hex(friendlyPosition.Coordinates);
 
         // Act
@@ -308,12 +312,12 @@ public class WeaponsAttackStateTests
         SetPhase(PhaseNames.WeaponsAttack);
         SetActivePlayer();
         
-        // Setup enemy unit
+        // Set up an enemy unit
         var enemyPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
         var enemyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         enemyUnit.Deploy(enemyPosition);
         
-        // Create hex with enemy unit
+        // Create hex with an enemy unit
         var enemyHex = new Hex(enemyPosition.Coordinates);
 
         // Act
@@ -338,7 +342,7 @@ public class WeaponsAttackStateTests
         attacker.Deploy(attackerPosition);
         _sut.HandleUnitSelection(attacker);
         
-        // Setup enemy unit far away (out of weapon range)
+        // Set up an enemy unit far away (out of weapon range)
         var enemyPosition = new HexPosition(new HexCoordinates(10, 10), HexDirection.Bottom);
         var enemyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         enemyUnit.Deploy(enemyPosition);
@@ -348,7 +352,7 @@ public class WeaponsAttackStateTests
             .First(a => a.Label == "Select Target");
         targetSelectionAction.OnExecute();
         
-        // Create hex with enemy unit
+        // Create hex with an enemy unit
         var enemyHex = new Hex(enemyPosition.Coordinates);
 
         // Act
@@ -379,7 +383,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(_unit1);
         IEnumerable<StateAction> actions = _sut.GetAvailableActions().ToList();
         var torsoAction = actions.First(a => a.Label == "Turn Torso");
-        torsoAction.OnExecute(); // This puts us in WeaponsConfiguration step
+        torsoAction.OnExecute(); // This puts us in the WeaponsConfiguration step
 
         // Act
         actions = _sut.GetAvailableActions();
@@ -584,7 +588,7 @@ public class WeaponsAttackStateTests
                 or MakaMekComponent.AC10
                 or MakaMekComponent.AC20);
         }
-        var unitNoWeapons = new MechFactory(new ClassicBattletechRulesProvider()).Create(unitDataNoWeapons);
+        var unitNoWeapons = _mechFactory.Create(unitDataNoWeapons);
         unitNoWeapons.Deploy(position);
 
         // Act
@@ -609,7 +613,7 @@ public class WeaponsAttackStateTests
                 unitData.LocationEquipment[location] = new List<MakaMekComponent>();
         }
         
-        // First remove all weapons
+        // First, remove all weapons
         foreach (var (_, equipment) in unitData.LocationEquipment)
         {
             equipment.RemoveAll(e => e is MakaMekComponent.MachineGun 
@@ -637,7 +641,7 @@ public class WeaponsAttackStateTests
         unitData.LocationEquipment[PartLocation.LeftLeg].Add(MakaMekComponent.MediumLaser);
         unitData.LocationEquipment[PartLocation.RightLeg].Add(MakaMekComponent.MediumLaser);
 
-        var unit = new MechFactory(new ClassicBattletechRulesProvider()).Create(unitData);
+        var unit = _mechFactory.Create(unitData);
         unit.Deploy(position);
 
         // Act
@@ -844,7 +848,7 @@ public class WeaponsAttackStateTests
             .First();
         var weaponSelection = _sut.WeaponSelectionItems.First(i => i.Weapon == weapon);
 
-        // Select weapon first
+        // Select a weapon first
         weaponSelection.IsSelected=true;
 
         // Act
@@ -882,11 +886,11 @@ public class WeaponsAttackStateTests
             .SelectMany(p => p.GetComponents<Weapon>())
             .First();
 
-        // Select weapon for first target
+        // Select a weapon for the first target
         var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
         weaponSelection.IsSelected = true;
 
-        // Act - select second target
+        // Act - select a second target
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==target2Position.Coordinates));
         _sut.HandleUnitSelection(target2);
 
@@ -924,7 +928,7 @@ public class WeaponsAttackStateTests
         weaponItems.ShouldNotBeEmpty();
         foreach (var item in weaponItems.Where(i => i.IsInRange))
         {
-            // Expected probability for target number 4 is 92%
+            // The expected probability for target number 4 is 92%
             var expectedProbability = DiceUtils.Calculate2d6Probability(item.ModifiersBreakdown!.Total);
             item.HitProbability.ShouldBeEquivalentTo(expectedProbability);
             item.HitProbabilityText.ShouldBe($"{expectedProbability:F0}%");
@@ -995,13 +999,13 @@ public class WeaponsAttackStateTests
         // Get two different weapons to target different enemies
         var weapons = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
         
-        // Select first target and weapon
+        // Select the first target and weapon
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetInForwardPosition.Coordinates));
         _sut.HandleUnitSelection(targetInForwardArc);
         var weaponSelection1 = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapons[0]);
         weaponSelection1.IsSelected = true;
         
-        // Select second target and weapon
+        // Select a second target and weapon
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetInOtherPosition.Coordinates));
         _sut.HandleUnitSelection(targetInOtherArc);
         var weaponSelection2 = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapons[1]);
@@ -1085,7 +1089,7 @@ public class WeaponsAttackStateTests
         // Get two different weapons to target different enemies
         var weapons = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
         
-        // Select primary target and first weapon
+        // Select the primary target and first weapon
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == primaryTargetPosition.Coordinates));
         _sut.HandleUnitSelection(primaryTarget);
         var weaponSelection1 = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapons[0]);
@@ -1093,10 +1097,10 @@ public class WeaponsAttackStateTests
         // Assert
         var primaryWeaponBreakdown = weaponSelection1.ModifiersBreakdown;
         primaryWeaponBreakdown.ShouldNotBeNull();
-        // Primary target should NOT have a secondary target modifier
+        // A primary target should NOT have a secondary target modifier
         primaryWeaponBreakdown.AllModifiers.Any(m => m is SecondaryTargetModifier).ShouldBeFalse();
         
-        // Select secondary target and second weapon
+        // Select a secondary target and second weapon
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == secondaryTargetPosition.Coordinates));
         _sut.HandleUnitSelection(secondaryTarget);
         var weaponSelection2 = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapons[1]);

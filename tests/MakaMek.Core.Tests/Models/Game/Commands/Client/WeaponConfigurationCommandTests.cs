@@ -24,7 +24,7 @@ public class WeaponConfigurationCommandTests
     {
         _game.Players.Returns([_player1]);
         var unitData = MechFactoryTests.CreateDummyMechData();
-        _unit = new MechFactory(new ClassicBattletechRulesProvider()).Create(unitData);
+        _unit = new MechFactory(new ClassicBattletechRulesProvider(),_localizationService).Create(unitData);
         _player1.AddUnit(_unit);
 
         _localizationService.GetString("Command_WeaponConfiguration_TorsoRotation")

@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils;
@@ -42,7 +43,7 @@ public class ClassicToHitCalculatorTests
             { PartLocation.RightLeg, 8 }
         });
 
-        _mechFactory = new MechFactory(_rules);
+        _mechFactory = new MechFactory(_rules, Substitute.For<ILocalizationService>());
 
         // Setup weapon
         _weapon = new MediumLaser();
@@ -234,7 +235,7 @@ public class ClassicToHitCalculatorTests
             new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         
-        // Setup rules for secondary target modifier
+        // Setup rules for a secondary target modifier
         _rules.GetSecondaryTargetModifier(true).Returns(expectedModifier);
 
         // Act
@@ -259,7 +260,7 @@ public class ClassicToHitCalculatorTests
             new HexPosition(new HexCoordinates(7, 5), HexDirection.Bottom));
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         
-        // Setup rules for secondary target modifier
+        // Setup rules for a secondary target modifier
         _rules.GetSecondaryTargetModifier(false).Returns(expectedModifier);
 
         // Act
