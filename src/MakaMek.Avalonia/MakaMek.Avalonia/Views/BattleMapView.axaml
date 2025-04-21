@@ -13,8 +13,6 @@
              x:CompileBindings="True"
              x:DataType="viewModels:BattleMapViewModel">
     <UserControl.Resources>
-        <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter"/>
-        <converters:ContrastingForegroundConverter x:Key="ContrastingForegroundConverter"/>
         <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
         <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
     </UserControl.Resources>
@@ -277,69 +275,9 @@
                         <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05a;"/>
                     </TabItem.Header>
                     <StackPanel Margin="10">
-                        <!-- Basic Info -->
-                        <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,0,10">
-                            <TextBlock Text="{Binding SelectedUnit.Class}" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding SelectedUnit.Tonnage}" VerticalAlignment="Center"/>
-                            <TextBlock Text="T" VerticalAlignment="Center"/>
-                            <Border Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}"
-                                    VerticalAlignment="Center"
-                                    CornerRadius="4"
-                                    BorderBrush="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
-                                    BorderThickness="1"
-                                    Padding="5,2">
-                                <TextBlock Text="{Binding SelectedUnit.Status}"
-                                         Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Heat Level -->
-                        <TextBlock Text="Heat Level" Margin="0,0,0,5"/>
-                        <Grid Height="20" Margin="0,0,0,10">
-                            <ProgressBar Value="{Binding SelectedUnit.CurrentHeat}" 
-                                       Maximum="30"
-                                       Height="20"
-                                       MinHeight="0">
-                                <ProgressBar.Foreground>
-                                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                                        <GradientStop Offset="0" Color="#ADD8E6"/>
-                                        <GradientStop Offset="0.5" Color="#FFA500"/>
-                                        <GradientStop Offset="1" Color="#8B0000"/>
-                                    </LinearGradientBrush>
-                                </ProgressBar.Foreground>
-                            </ProgressBar>
-                            <TextBlock Text="{Binding SelectedUnit.CurrentHeat}"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Center"/>
-                        </Grid>
-
-                        <!-- Movement Info -->
-                        <Border Background="#20000000" 
-                                CornerRadius="4" 
-                                Padding="10" 
-                                IsVisible="{Binding SelectedUnit.HasMoved}">
-                            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
-                                <TextBlock Grid.Row="0" Grid.Column="0" 
-                                         Text="Type" 
-                                         HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" 
-                                         Text="Points" 
-                                         HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Row="0" Grid.Column="2" 
-                                         Text="Distance" 
-                                         HorizontalAlignment="Center"/>
-                                
-                                <TextBlock Grid.Row="1" Grid.Column="0" 
-                                         Text="{Binding SelectedUnit.MovementTypeUsed}"
-                                         HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" 
-                                         Text="{Binding SelectedUnit.MovementPointsSpent}"
-                                         HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Row="1" Grid.Column="2" 
-                                         Text="{Binding SelectedUnit.DistanceCovered}"
-                                         HorizontalAlignment="Center"/>
-                            </Grid>
-                        </Border>
+                        <controls:UnitBasicInfoPanel DataContext="{Binding SelectedUnit}" />
+                        <controls:UnitHeatLevelPanel DataContext="{Binding SelectedUnit}" />
+                        <controls:UnitMovementInfoPanel DataContext="{Binding SelectedUnit}" />
                     </StackPanel>
                 </TabItem>
                 <TabItem>

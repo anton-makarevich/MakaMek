@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:units="clr-namespace:Sanet.MakaMek.Core.Models.Units;assembly=Sanet.MakaMek.Core"
+             x:DataType="units:Unit"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitHeatLevelPanel"
+             mc:Ignorable="d">
+    <StackPanel>
+        <TextBlock Text="Heat Level" Margin="0,0,0,5"/>
+        <Grid Height="20" Margin="0,0,0,10">
+            <ProgressBar Value="{Binding CurrentHeat}" 
+                       Maximum="30"
+                       Height="20"
+                       MinHeight="0">
+                <ProgressBar.Foreground>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                        <GradientStop Offset="0" Color="#ADD8E6"/>
+                        <GradientStop Offset="0.5" Color="#FFA500"/>
+                        <GradientStop Offset="1" Color="#8B0000"/>
+                    </LinearGradientBrush>
+                </ProgressBar.Foreground>
+            </ProgressBar>
+            <TextBlock Text="{Binding CurrentHeat}"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"/>
+        </Grid>
+    </StackPanel>
+</UserControl>
