@@ -2,6 +2,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
@@ -46,10 +47,10 @@ public partial class UnitWeaponsPanel : UserControl
 
         var grouped = weapons
             .GroupBy(w => w.MountedOn)
-            .Select(g => new WeaponGroup
+            .Select(g => new ComponentGroup
             {
                 MountedOn = g.Key?.Name??"NA",
-                Weapons = g.ToList()
+                Components = g.Select(w=>w as Component).ToList()
             })
             .ToList();
 

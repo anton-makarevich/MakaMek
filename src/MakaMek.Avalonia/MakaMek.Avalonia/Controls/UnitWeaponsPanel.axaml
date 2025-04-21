@@ -24,10 +24,10 @@
             Classes="gameScrollViewer">
                     <ItemsControl Name="WeaponsGroup">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="controls:WeaponGroup">
+                                <DataTemplate DataType="controls:ComponentGroup">
                                     <StackPanel>
                                         <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
-                                        <ItemsControl Name="WeaponsList" ItemsSource="{Binding Weapons}">
+                                        <ItemsControl Name="WeaponsList" ItemsSource="{Binding Components}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="weapons:Weapon">
                                                     <Border Margin="2">

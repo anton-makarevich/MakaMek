@@ -292,6 +292,12 @@
                     </TabItem.Header>
                     <controls:UnitWeaponsPanel Unit="{Binding SelectedUnit}"/>
                 </TabItem>
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf085;"/>
+                    </TabItem.Header>
+                    <controls:UnitComponentsPanel Unit="{Binding SelectedUnit}" />
+                </TabItem>
             </TabControl>
         </templatedControls:GamePanel>
 
