@@ -263,7 +263,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             {
                 result.Add(availableSlots[0]);
                 availableSlots.RemoveAt(0);
-                continue;
+                break;
             }
             var slot = -1;
             // Roll for slot as per 6/12 slot logic

@@ -21,7 +21,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public abstract class GamePhaseTestsBase
 {
-    protected readonly ServerGame Game;
+    protected ServerGame Game;
     protected readonly ICommandPublisher CommandPublisher;
     protected readonly IDiceRoller DiceRoller;
     protected readonly IPhaseManager MockPhaseManager;
@@ -34,6 +34,12 @@ public abstract class GamePhaseTestsBase
         MockPhaseManager = Substitute.For<IPhaseManager>();
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         
+        Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
+            Substitute.For<IToHitCalculator>(), MockPhaseManager);
+    }
+    
+    protected void SetGameWithRulesProvider(IRulesProvider rulesProvider)
+    {
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(), MockPhaseManager);
     }
