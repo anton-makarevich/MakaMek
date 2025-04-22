@@ -20,7 +20,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private readonly Guid _player2Id = Guid.NewGuid();
     private readonly Guid _player1Unit1Id;
     private readonly Unit _player1Unit1;
-    private readonly Guid _player1Unit2Id;
     private readonly Unit _player1Unit2;
     private readonly Guid _player2Unit1Id;
     private readonly Unit _player2Unit1;
@@ -45,7 +44,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         _player1Unit1 = player1.Units[0];
         _player1Unit1Id = _player1Unit1.Id;
         _player1Unit2 = player1.Units[1];
-        _player1Unit2Id = player1.Units[1].Id;
 
         var player2 = Game.Players[1];
         _player2Unit1 = player2.Units[0];
@@ -389,8 +387,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
-
-    #region Cluster Weapon Tests
     
     [Fact]
     public void Enter_ShouldRollForClusterHits_WhenClusterWeaponHits()
@@ -510,8 +506,106 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 !cmd.ResolutionData.IsHit &&
                 cmd.ResolutionData.HitLocationsData == null));
     }
-    
-    #endregion
+
+    [Fact]
+    public void DetermineHitLocation_ShouldSetCriticalHits_WhenDamageExceedsArmorAndCritsRolled()
+    {
+        // Arrange
+        SetMap();
+        var part = _player2Unit1.Parts[0];
+        part.CurrentArmor = 0;
+        part.CurrentStructure = 10;
+        // Mock rules provider to return 2 crits for crit roll of 10
+        Game.RulesProvider.GetNumCriticalHits(10, part.Location).Returns(2);
+        // Mock dice: location roll (any valid), crit roll (10), slot rolls (1, 2)
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(5), new(5) }, // location roll (10)
+            new List<DiceResult> { new(4), new(6) }  // crit roll (10)
+        );
+        DiceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3)); // slots 1, 2
+        // Act
+        var data = InvokeDetermineHitLocation(_sut, FiringArc.Front, 5, _player2Unit1);
+        // Assert
+        data.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.Length.ShouldBe(2);
+        data.CriticalHits.ShouldContain(1);
+        data.CriticalHits.ShouldContain(2);
+    }
+
+    [Fact]
+    public void DetermineHitLocation_ShouldNotSetCriticalHits_WhenNoCritsRolled()
+    {
+        // Arrange
+        SetMap();
+        var part = _player2Unit1.Parts[0];
+        part.CurrentArmor = 0;
+        part.CurrentStructure = 10;
+        Game.RulesProvider.GetNumCriticalHits(8, part.Location).Returns(0);
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(4), new(4) }, // location roll (8)
+            new List<DiceResult> { new(5), new(3) }  // crit roll (8)
+        );
+        // Act
+        var data = InvokeDetermineHitLocation(_sut, FiringArc.Front, 5, _player2Unit1);
+        // Assert
+        data.CriticalHits.ShouldBeNull();
+    }
+
+    [Fact]
+    public void DetermineHitLocation_ShouldAutoPickOnlyAvailableSlot()
+    {
+        // Arrange
+        SetMap();
+        var part = _player2Unit1.Parts[0];
+        part.CurrentArmor = 0;
+        part.CurrentStructure = 10;
+        // Only slot 3 is available
+        for (int i = 0; i < part.TotalSlots; i++)
+            if (i != 3) part.TryAddComponent(new TestComponent(), [i]);
+        Game.RulesProvider.GetNumCriticalHits(9, part.Location).Returns(1);
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(6), new(3) }, // location roll (9)
+            new List<DiceResult> { new(4), new(5) }  // crit roll (9)
+        );
+        // Act
+        var data = InvokeDetermineHitLocation(_sut, FiringArc.Front, 5, _player2Unit1);
+        // Assert
+        data.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.Length.ShouldBe(1);
+        data.CriticalHits[0].ShouldBe(3);
+    }
+
+    [Fact]
+    public void DetermineHitLocation_ShouldNotSetCriticalHits_WhenDamageDoesNotExceedArmor()
+    {
+        // Arrange
+        SetMap();
+        var part = _player2Unit1.Parts[0];
+        part.CurrentArmor = 5;
+        part.CurrentStructure = 10;
+        // Even if crits would be rolled, damage is not enough
+        Game.RulesProvider.GetNumCriticalHits(12, part.Location).Returns(3);
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(6), new(6) }, // location roll (12)
+            new List<DiceResult> { new(6), new(6) }  // crit roll (12)
+        );
+        // Act
+        var data = InvokeDetermineHitLocation(_sut, FiringArc.Front, 3, _player2Unit1);
+        // Assert
+        data.CriticalHits.ShouldBeNull();
+    }
+
+    // Helper to invoke private method
+    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg, Unit? target)
+    {
+        var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        return (HitLocationData)method.Invoke(phase, new object[] { arc, dmg, target });
+    }
+
+    private class TestComponent : Sanet.MakaMek.Core.Models.Units.Components.Component
+    {
+        public TestComponent() : base("Test", 1) { }
+    }
 
     [Fact]
     public void Enter_WhenBattleMapIsNull_ShouldThrowException()
