@@ -10,6 +10,8 @@
             <di:ServiceCollection x:Key="ServiceCollection"/>
             <FontFamily x:Key="AwesomeFontSolid">avares://Sanet.MakaMek.Avalonia/Assets/Fonts/#Font Awesome 6 Free Solid</FontFamily>
             <converters:WeaponStatusBackgroundConverter x:Key="WeaponStatusBackgroundConverter"/>
+            <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter"/>
+            <converters:ContrastingForegroundConverter x:Key="ContrastingForegroundConverter"/>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Colors.axaml"/>
             </ResourceDictionary.MergedDictionaries>

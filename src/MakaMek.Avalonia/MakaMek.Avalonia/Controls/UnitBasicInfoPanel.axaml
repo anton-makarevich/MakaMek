@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:units="clr-namespace:Sanet.MakaMek.Core.Models.Units;assembly=Sanet.MakaMek.Core"
+             x:DataType="units:Unit"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitBasicInfoPanel"
+             mc:Ignorable="d">
+    <StackPanel Orientation="Horizontal" Spacing="5">
+        <TextBlock Text="{Binding Class}" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding Tonnage}" VerticalAlignment="Center"/>
+        <TextBlock Text="T" VerticalAlignment="Center"/>
+        <Border Background="{Binding Owner.Tint, Converter={StaticResource HexColorToBrushConverter}}"
+                VerticalAlignment="Center"
+                CornerRadius="4"
+                BorderBrush="{Binding Owner.Tint, Converter={StaticResource ContrastingForegroundConverter}}"
+                BorderThickness="1"
+                Padding="5,2">
+            <TextBlock Text="{Binding Status}"
+                     Foreground="{Binding Owner.Tint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+        </Border>
+    </StackPanel>
+</UserControl>

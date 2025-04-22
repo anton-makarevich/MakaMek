@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
-public class WeaponGroup
+public class ComponentGroup
 {
     public string MountedOn { get; set; } = string.Empty;
-    public List<Weapon> Weapons { get; set; } = [];
+    public List<Component> Components { get; set; } = [];
 }

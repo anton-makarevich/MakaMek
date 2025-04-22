@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:units="clr-namespace:Sanet.MakaMek.Core.Models.Units;assembly=Sanet.MakaMek.Core"
+             x:DataType="units:Unit"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitMovementInfoPanel"
+             mc:Ignorable="d">
+    <Border Background="#20000000" 
+            CornerRadius="4" 
+            Padding="10" 
+            IsVisible="{Binding HasMoved}">
+        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
+            <TextBlock Grid.Row="0" Grid.Column="0" 
+                     Text="Type" 
+                     HorizontalAlignment="Center"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" 
+                     Text="Points" 
+                     HorizontalAlignment="Center"/>
+            <TextBlock Grid.Row="0" Grid.Column="2" 
+                     Text="Distance" 
+                     HorizontalAlignment="Center"/>
+            
+            <TextBlock Grid.Row="1" Grid.Column="0" 
+                     Text="{Binding MovementTypeUsed}"
+                     HorizontalAlignment="Center"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" 
+                     Text="{Binding MovementPointsSpent}"
+                     HorizontalAlignment="Center"/>
+            <TextBlock Grid.Row="1" Grid.Column="2" 
+                     Text="{Binding DistanceCovered}"
+                     HorizontalAlignment="Center"/>
+        </Grid>
+    </Border>
+</UserControl>

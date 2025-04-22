@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:components="clr-namespace:Sanet.MakaMek.Core.Models.Units.Components;assembly=Sanet.MakaMek.Core"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitComponentsPanel">
+    <UserControl.Resources>
+        <converters:SlotsRangeConverter x:Key="SlotsRangeConverter"/>
+    </UserControl.Resources>
+    <Grid ColumnDefinitions="6*,2*,3*" RowDefinitions="Auto,*" Margin="5">
+        <TextBlock Grid.Column="0" Text="Component" Classes="h4"/>
+        <TextBlock Grid.Column="1" Text="Slots" Classes="h4" Margin="5,0"/>
+        <TextBlock Grid.Column="2" Text="Status" Classes="h4" Margin="5,0"/>
+        <ScrollViewer Grid.ColumnSpan="4" Grid.Row="1">
+            <ItemsControl x:Name="ComponentsGroup">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="controls:ComponentGroup">
+                        <StackPanel>
+                            <TextBlock Text="{Binding MountedOn}" Classes="h4"/>
+                            <ItemsControl ItemsSource="{Binding Components}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="components:Component">
+                                        <Border Margin="2">
+                                            <Grid ColumnDefinitions="6*,2*,3*" Margin="5,2">
+                                                <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding MountedAtSlots, Converter={StaticResource SlotsRangeConverter}}"
+                                                           Classes="body" Margin="5,0" 
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"
+                                                           TextWrapping="Wrap"/>
+                                                <TextBlock Grid.Column="2"
+                                                           Text="{Binding Status}" 
+                                                           Classes="body" Margin="5,0"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Right"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
