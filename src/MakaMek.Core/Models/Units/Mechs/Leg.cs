@@ -5,7 +5,7 @@ using Components.Internal.Actuators;
 public class Leg : UnitPart
 {
     public Leg(string name, PartLocation location, int maxArmor, int maxStructure) 
-        : base(name, location, maxArmor, maxStructure, 12)
+        : base(name, location, maxArmor, maxStructure, 6)
     {
         // Add default components
         TryAddComponent(new Hip());
