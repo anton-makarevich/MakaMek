@@ -137,32 +137,30 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // If hit, determine location and damage
         AttackHitLocationsData? hitLocationsData = null;
 
-        if (isHit)
+        if (!isHit) return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
+        // Determine an attack direction once for this weapon attack
+        attackDirection = DetermineAttackDirection(attacker, target);
+
+        // Check if it's a cluster weapon
+        if (weapon.WeaponSize > 1)
         {
-            // Determine attack direction once for this weapon attack
-            attackDirection = DetermineAttackDirection(attacker, target);
+            // It's a cluster weapon, handle multiple hits
+            hitLocationsData = ResolveClusterWeaponHit(weapon, attackDirection.Value);
 
-            // Check if it's a cluster weapon
-            if (weapon.WeaponSize > 1)
-            {
-                // It's a cluster weapon, handle multiple hits
-                hitLocationsData = ResolveClusterWeaponHit(weapon, attackDirection.Value);
-
-                // Create hit locations data with multiple hits
-                return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
-            }
-
-            // Standard weapon, single hit location
-            var hitLocationData = DetermineHitLocation(attackDirection.Value, weapon.Damage);
-
-            // Create hit locations data with a single hit
-            hitLocationsData = new AttackHitLocationsData(
-                [hitLocationData],
-                weapon.Damage,
-                [], // No cluster roll for standard weapons
-                1 // Single hit
-            );
+            // Create hit locations data with multiple hits
+            return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
         }
+
+        // Standard weapon, single hit location
+        var hitLocationData = DetermineHitLocation(attackDirection.Value, weapon.Damage);
+
+        // Create hit locations data with a single hit
+        hitLocationsData = new AttackHitLocationsData(
+            [hitLocationData],
+            weapon.Damage,
+            [], // No cluster roll for standard weapons
+            1 // Single hit
+        );
 
         return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
     }
@@ -201,7 +199,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
         
         // If there are remaining missiles (partial cluster)
-        if (remainingMissiles > 0)
+        if (remainingMissiles <= 0)
+            return new AttackHitLocationsData(hitLocations, totalDamage, clusterRoll, missilesHit);
         {
             // Calculate damage for the partial cluster
             var partialClusterDamage = remainingMissiles * damagePerMissile;
@@ -213,7 +212,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             hitLocations.Add(hitLocationData);
             totalDamage += partialClusterDamage;
         }
-        
+
         return new AttackHitLocationsData(hitLocations, totalDamage, clusterRoll, missilesHit);
     }
 
