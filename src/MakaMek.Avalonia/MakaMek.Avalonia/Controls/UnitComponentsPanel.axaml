@@ -24,7 +24,8 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="components:Component">
                                         <Border Margin="2">
-                                            <Grid ColumnDefinitions="6*,2*,3*" Margin="5,2">
+                                            <Grid ColumnDefinitions="6*,2*,3*" Margin="5,2"
+                                                  Background="{Binding ., Converter={StaticResource ComponentStatusBackgroundConverter}}">
                                                 <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="1"
                                                            Text="{Binding MountedAtSlots, Converter={StaticResource SlotsRangeConverter}}"

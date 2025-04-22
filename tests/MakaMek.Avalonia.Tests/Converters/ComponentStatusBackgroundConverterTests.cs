@@ -4,13 +4,14 @@ using Sanet.MakaMek.Avalonia.Converters;
 using Shouldly;
 using MakaMek.Avalonia.Tests.TestHelpers;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class WeaponStatusBackgroundConverterTests
+public class ComponentStatusBackgroundConverterTests
 {
-    private readonly WeaponStatusBackgroundConverter _sut = new();
+    private readonly ComponentStatusBackgroundConverter _sut = new();
 
     [Fact]
     public void Convert_AvailableWeapon_ReturnsTransparent()
@@ -93,6 +94,17 @@ public class WeaponStatusBackgroundConverterTests
         // Assert
         result.ShouldNotBeNull();
         result.Color.ShouldBe(Colors.Transparent);
+    }
+    
+    [Fact]
+    public void Convert_Status_ToColor()
+    {
+        // Act
+        var result = _sut.Convert(ComponentStatus.Destroyed, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Color.ShouldBe(Colors.Red);
     }
 
     [Fact]
