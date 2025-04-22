@@ -79,4 +79,20 @@ public abstract class Component : IManufacturedItem
     public PartLocation? GetLocation() => MountedOn?.Location;
     
     public virtual bool IsRemovable => true;
+
+    public ComponentStatus Status
+    {
+        get
+        {
+            if (IsDestroyed)
+                return ComponentStatus.Destroyed;
+            if (!IsMounted)
+                return ComponentStatus.Removed;
+            if (!IsActive)
+                return ComponentStatus.Deactivated;
+            if (MountedOn is { IsDestroyed: true })
+                return ComponentStatus.Lost;
+            return ComponentStatus.Active;
+        }
+    }
 }
