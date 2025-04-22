@@ -485,6 +485,27 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         #endregion
 
         [Theory]
+        // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
+        [InlineData(2, PartLocation.CenterTorso, 0)]
+        [InlineData(7, PartLocation.RightLeg, 0)]
+        [InlineData(8, PartLocation.LeftArm, 1)]
+        [InlineData(9, PartLocation.Head, 1)]
+        [InlineData(10, PartLocation.RightTorso, 2)]
+        [InlineData(11, PartLocation.LeftLeg, 2)]
+        [InlineData(12, PartLocation.CenterTorso, 3)]
+        [InlineData(12, PartLocation.LeftTorso, 3)]
+        [InlineData(12, PartLocation.RightTorso, 3)]
+        [InlineData(12, PartLocation.Head, 1)]
+        [InlineData(12, PartLocation.LeftLeg, 1)]
+        [InlineData(12, PartLocation.RightLeg, 1)]
+        [InlineData(12, PartLocation.LeftArm, 1)]
+        [InlineData(12, PartLocation.RightArm, 1)]
+        public void GetNumCriticalHits_ReturnsExpected(int roll, PartLocation location, int expected)
+        {
+            _provider.GetNumCriticalHits(roll, location).ShouldBe(expected);
+        }
+
+        [Theory]
         [InlineData(MovementType.StandingStill, 0, 0)]
         [InlineData(MovementType.Walk, 5, 1)]
         [InlineData(MovementType.Run, 5, 2)]
