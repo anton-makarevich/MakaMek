@@ -500,6 +500,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [InlineData(12, PartLocation.RightLeg, 1)]
         [InlineData(12, PartLocation.LeftArm, 1)]
         [InlineData(12, PartLocation.RightArm, 1)]
+        [InlineData(13, PartLocation.RightArm, 0)]
         public void GetNumCriticalHits_ReturnsExpected(int roll, PartLocation location, int expected)
         {
             _provider.GetNumCriticalHits(roll, location).ShouldBe(expected);

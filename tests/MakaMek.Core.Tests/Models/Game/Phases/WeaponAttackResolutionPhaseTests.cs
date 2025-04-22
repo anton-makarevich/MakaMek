@@ -553,12 +553,43 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         data.CriticalHits.ShouldBeNull();
     }
 
+    [Theory]
+    [InlineData(PartLocation.LeftArm)]
+    [InlineData(PartLocation.RightLeg)]
+    public void DetermineHitLocation_ShouldAutoPickOnlyAvailableSlot(PartLocation location)
+    {
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+        UnitPart part = (location == PartLocation.LeftArm) 
+            ?new Arm("TestArm", location, 0, 10)
+            : new Leg("TestLeg", location, 0, 10);
+        foreach (var component in part.Components)
+        {
+            if (component.MountedAtSlots[0]!=0)
+                component.Hit(); //destroy all components but first
+        }
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        // Only slot 0 is available
+        mockRulesProvider.GetNumCriticalHits(9, part.Location).Returns(2);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(location);
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(6), new(3) },
+            new List<DiceResult> { new(4), new(5) }
+        );
+        var sut = new WeaponAttackResolutionPhase(Game);
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
+        data.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.Length.ShouldBe(1);
+        data.CriticalHits[0].ShouldBe(0);
+    }
+    
     [Fact]
-    public void DetermineHitLocation_ShouldAutoPickOnlyAvailableSlot()
+    public void DetermineHitLocation_ShouldReturnNull_WhenNoSlotsAvailable()
     {
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         SetGameWithRulesProvider(mockRulesProvider);
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
+        part.Components[0].Hit(); //destroy shoulder
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         // Only slot 0 is available
         mockRulesProvider.GetNumCriticalHits(9, part.Location).Returns(1);
@@ -569,9 +600,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         );
         var sut = new WeaponAttackResolutionPhase(Game);
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
-        data.CriticalHits.ShouldNotBeNull();
-        data.CriticalHits.Length.ShouldBe(1);
-        data.CriticalHits[0].ShouldBe(0);
+        data.CriticalHits.ShouldBeNull();
     }
 
     [Fact]
