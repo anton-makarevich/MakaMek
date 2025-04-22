@@ -4,8 +4,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:components="clr-namespace:Sanet.MakaMek.Core.Models.Units.Components;assembly=Sanet.MakaMek.Core"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitComponentsPanel">
+    <UserControl.Resources>
+        <converters:SlotsRangeConverter x:Key="SlotsRangeConverter"/>
+    </UserControl.Resources>
     <Grid ColumnDefinitions="4*,2*,2*" RowDefinitions="Auto,*" Margin="5">
         <TextBlock Grid.Column="0" Text="Component" Classes="h4"/>
         <TextBlock Grid.Column="1" Text="Slots" Classes="h4" Margin="5,0"/>
@@ -23,7 +27,7 @@
                                             <Grid ColumnDefinitions="4*,*,2*" Margin="5,2">
                                                 <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="1"
-                                                           Text="{Binding MountedAtSlots, StringFormat='{}{0}'}"
+                                                           Text="{Binding MountedAtSlots, Converter={StaticResource SlotsRangeConverter}}"
                                                            Classes="body" Margin="5,0" 
                                                            VerticalAlignment="Center"
                                                            HorizontalAlignment="Center"/>
