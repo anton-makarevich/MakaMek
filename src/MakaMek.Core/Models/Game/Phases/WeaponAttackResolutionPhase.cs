@@ -25,7 +25,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     {
         base.Enter();
         
-        // Initialize attack resolution process
+        // Initialize the attack resolution process
         _playersInOrder = Game.InitiativeOrder.ToList();
         _currentPlayerIndex = 0;
         _currentUnitIndex = 0;
@@ -131,7 +131,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         var isHit = totalRoll >= toHitNumber;
 
-        // Determine attack direction (will be null if not a hit)
+        // Determine an attack direction (will be null if not a hit)
         FiringArc? attackDirection = null;
 
         // If hit, determine location and damage
@@ -228,35 +228,36 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var locationRoll = Game.DiceRoller.Roll2D6();
         var locationRollTotal = locationRoll.Sum(d => d.Result);
         
-        // Get hit location based on roll and attack direction
+        // Get hit location based on the roll and attack direction
         var hitLocation = Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
         
         int[]? crits = null;
-        if (target != null)
+        if (target == null) return new HitLocationData(hitLocation, damage, locationRoll, crits);
         {
             var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
-            int armor = part?.CurrentArmor ?? 0;
-            if (part != null && damage > armor && part.CurrentStructure > 0)
+            var armor = part?.CurrentArmor ?? 0;
+            if (part == null || damage <= armor || part.CurrentStructure <= 0)
+                return new HitLocationData(hitLocation, damage, locationRoll, crits);
+            var critRoll = Game.DiceRoller.Roll2D6().Sum(d => d.Result);
+            var numCrits = Game.RulesProvider.GetNumCriticalHits(critRoll, part.Location);
+            if (numCrits > 0)
             {
-                var critRoll = Game.DiceRoller.Roll2D6().Sum(d => d.Result);
-                int numCrits = GetNumCriticalsFromRoll(critRoll, part.Location);
                 crits = DetermineCriticalHitSlots(part, numCrits);
             }
         }
         return new HitLocationData(hitLocation, damage, locationRoll, crits);
     }
 
-    private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticals)
+    private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits)
     {
         var availableSlots = Enumerable.Range(0, part.TotalSlots)
             .Where(slot =>
                 part.GetComponentAtSlot(slot) is { IsDestroyed: false, IsActive: true })
             .ToList();
-        if (availableSlots.Count == 0 || numCriticals == 0)
+        if (availableSlots.Count == 0 || numCriticalHits == 0)
             return null;
-        var rng = new Random();
         var result = new List<int>();
-        for (int i = 0; i < numCriticals; i++)
+        for (var i = 0; i < numCriticalHits; i++)
         {
             if (availableSlots.Count == 1)
             {
@@ -264,20 +265,20 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 availableSlots.RemoveAt(0);
                 continue;
             }
-            int slot = -1;
+            var slot = -1;
             // Roll for slot as per 6/12 slot logic
-            if (part.TotalSlots == 6)
+            if (part.TotalSlots <= 6)
             {
                 // 1d6, map 1-6 to 0-5
                 do {
-                    slot = rng.Next(1, 7) - 1;
+                    slot = Game.DiceRoller.RollD6().Result - 1;
                 } while (!availableSlots.Contains(slot));
             }
-            else if (part.TotalSlots == 12)
+            else
             {
-                int group = -1;
+                int group;
                 do {
-                    int groupRoll = rng.Next(1, 7); // 1d6
+                    var groupRoll = Game.DiceRoller.RollD6().Result; // 1d6
                     group = groupRoll <= 3 ? 0 : 1;
                     var groupSlots = availableSlots.Where(s => group == 0 ? s < 6 : s >= 6).ToList();
                     if (groupSlots.Count == 1)
@@ -286,37 +287,20 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                     }
                     else if (groupSlots.Count > 1)
                     {
-                        int slotRoll;
-                        do {
-                            slotRoll = rng.Next(1, 7) - 1;
+                        do
+                        {
+                            var slotRoll = Game.DiceRoller.RollD6().Result - 1;
                             slot = group == 0 ? slotRoll : slotRoll + 6;
                         } while (!groupSlots.Contains(slot));
                     }
-                    else {
-                        continue;
-                    }
                 } while (!availableSlots.Contains(slot));
             }
-            if (slot != -1)
-            {
-                result.Add(slot);
-                availableSlots.Remove(slot);
-            }
+
+            if (slot == -1) continue;
+            result.Add(slot);
+            availableSlots.Remove(slot);
         }
         return result.Count > 0 ? result.ToArray() : null;
-    }
-
-    private int GetNumCriticalsFromRoll(int roll, PartLocation location)
-    {
-        // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
-        return roll switch
-        {
-            <= 7 => 0,
-            8 or 9 => 1,
-            10 or 11 => 2,
-            12 => location is PartLocation.CenterTorso or PartLocation.LeftTorso or PartLocation.RightTorso ? 3 : 1,
-            _ => 0
-        };
     }
 
     /// <summary>
