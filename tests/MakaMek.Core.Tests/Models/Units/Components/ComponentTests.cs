@@ -160,6 +160,50 @@ public class ComponentTests
         component.IsMounted.ShouldBeFalse();
     }
     
+    [Fact]
+    public void Status_ReturnsDestroyed_WhenIsDestroyed()
+    {
+        var component = new TestComponent("Test", []);
+        typeof(Component).GetProperty("IsDestroyed")!.SetValue(component, true);
+        component.Status.ShouldBe(ComponentStatus.Destroyed);
+    }
+
+    [Fact]
+    public void Status_ReturnsRemoved_WhenNotMounted()
+    {
+        var component = new TestComponent("Test", []);
+        component.Status.ShouldBe(ComponentStatus.Removed);
+    }
+
+    [Fact]
+    public void Status_ReturnsDeactivated_WhenNotActive()
+    {
+        var component = new TestComponent("Test", []);
+        typeof(Component).GetProperty("IsActive")!.SetValue(component, false);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+        component.Mount([0], unitPart);
+        component.Status.ShouldBe(ComponentStatus.Deactivated);
+    }
+
+    [Fact]
+    public void Status_ReturnsLost_WhenMountedOnDestroyed()
+    {
+        var component = new TestComponent("Test", []);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+        component.Mount([0], unitPart);
+        unitPart.ApplyDamage(20);
+        component.Status.ShouldBe(ComponentStatus.Lost);
+    }
+
+    [Fact]
+    public void Status_ReturnsActive_WhenAllOk()
+    {
+        var component = new TestComponent("Test", []);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+        component.Mount([0], unitPart);
+        component.Status.ShouldBe(ComponentStatus.Active);
+    }
+    
     #region Component Location Tests
     
     [Fact]

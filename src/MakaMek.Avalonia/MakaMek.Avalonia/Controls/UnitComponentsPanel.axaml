@@ -33,7 +33,7 @@
                                                            HorizontalAlignment="Center"
                                                            TextWrapping="Wrap"/>
                                                 <TextBlock Grid.Column="2"
-                                                           Text="{Binding IsActive}" 
+                                                           Text="{Binding Status}" 
                                                            Classes="body" Margin="5,0"
                                                            VerticalAlignment="Center"
                                                            HorizontalAlignment="Right"/>
