@@ -152,7 +152,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
 
         // Standard weapon, single hit location
-        var hitLocationData = DetermineHitLocation(attackDirection.Value, weapon.Damage);
+        var hitLocationData = DetermineHitLocation(attackDirection.Value, weapon.Damage, target);
 
         // Create hit locations data with a single hit
         hitLocationsData = new AttackHitLocationsData(
@@ -191,7 +191,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var clusterDamage = weapon.ClusterSize * damagePerMissile;
             
             // Determine hit location for this cluster
-            var hitLocationData = DetermineHitLocation(attackDirection, clusterDamage);
+            var hitLocationData = DetermineHitLocation(attackDirection, clusterDamage, weapon.Target);
             
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
@@ -199,14 +199,13 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
         
         // If there are remaining missiles (partial cluster)
-        if (remainingMissiles <= 0)
-            return new AttackHitLocationsData(hitLocations, totalDamage, clusterRoll, missilesHit);
+        if (remainingMissiles > 0)
         {
             // Calculate damage for the partial cluster
             var partialClusterDamage = remainingMissiles * damagePerMissile;
             
             // Determine hit location for the partial cluster
-            var hitLocationData = DetermineHitLocation(attackDirection, partialClusterDamage);
+            var hitLocationData = DetermineHitLocation(attackDirection, partialClusterDamage, weapon.Target);
             
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
@@ -221,8 +220,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// </summary>
     /// <param name="attackDirection">The direction of the attack</param>
     /// <param name="damage">The damage to be applied to this location</param>
+    /// <param name="target">The target unit</param>
     /// <returns>Hit location data with location, damage and dice roll</returns>
-    private HitLocationData DetermineHitLocation(FiringArc attackDirection, int damage)
+    private HitLocationData DetermineHitLocation(FiringArc attackDirection, int damage, Unit? target = null)
     {
         // Roll for hit location
         var locationRoll = Game.DiceRoller.Roll2D6();
@@ -231,10 +231,94 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Get hit location based on roll and attack direction
         var hitLocation = Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
         
-        // Return hit location data
-        return new HitLocationData(hitLocation, damage, locationRoll);
+        int[]? crits = null;
+        if (target != null)
+        {
+            var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
+            int armor = part?.CurrentArmor ?? 0;
+            if (part != null && damage > armor && part.CurrentStructure > 0)
+            {
+                var critRoll = Game.DiceRoller.Roll2D6().Sum(d => d.Result);
+                int numCrits = GetNumCriticalsFromRoll(critRoll, part.Location);
+                crits = DetermineCriticalHitSlots(part, numCrits);
+            }
+        }
+        return new HitLocationData(hitLocation, damage, locationRoll, crits);
     }
-    
+
+    private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticals)
+    {
+        var availableSlots = Enumerable.Range(0, part.TotalSlots)
+            .Where(slot =>
+                part.GetComponentAtSlot(slot) is { IsDestroyed: false, IsActive: true })
+            .ToList();
+        if (availableSlots.Count == 0 || numCriticals == 0)
+            return null;
+        var rng = new Random();
+        var result = new List<int>();
+        for (int i = 0; i < numCriticals; i++)
+        {
+            if (availableSlots.Count == 1)
+            {
+                result.Add(availableSlots[0]);
+                availableSlots.RemoveAt(0);
+                continue;
+            }
+            int slot = -1;
+            // Roll for slot as per 6/12 slot logic
+            if (part.TotalSlots == 6)
+            {
+                // 1d6, map 1-6 to 0-5
+                do {
+                    slot = rng.Next(1, 7) - 1;
+                } while (!availableSlots.Contains(slot));
+            }
+            else if (part.TotalSlots == 12)
+            {
+                int group = -1;
+                do {
+                    int groupRoll = rng.Next(1, 7); // 1d6
+                    group = groupRoll <= 3 ? 0 : 1;
+                    var groupSlots = availableSlots.Where(s => group == 0 ? s < 6 : s >= 6).ToList();
+                    if (groupSlots.Count == 1)
+                    {
+                        slot = groupSlots[0];
+                    }
+                    else if (groupSlots.Count > 1)
+                    {
+                        int slotRoll;
+                        do {
+                            slotRoll = rng.Next(1, 7) - 1;
+                            slot = group == 0 ? slotRoll : slotRoll + 6;
+                        } while (!groupSlots.Contains(slot));
+                    }
+                    else {
+                        continue;
+                    }
+                } while (!availableSlots.Contains(slot));
+            }
+            if (slot != -1)
+            {
+                result.Add(slot);
+                availableSlots.Remove(slot);
+            }
+        }
+        return result.Count > 0 ? result.ToArray() : null;
+    }
+
+    private int GetNumCriticalsFromRoll(int roll, PartLocation location)
+    {
+        // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
+        return roll switch
+        {
+            <= 7 => 0,
+            8 or 9 => 1,
+            10 or 11 => 2,
+            12 => location is PartLocation.CenterTorso or PartLocation.LeftTorso or PartLocation.RightTorso ? 3 : 1,
+            _ => 0
+        };
+    }
+
     /// <summary>
     /// Determines the direction from which the attack is coming
     /// </summary>
