@@ -157,7 +157,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="wrappers:WeaponSelectionViewModel">
                                 <Grid ColumnDefinitions="Auto,*,Auto,Auto"
-                                      Background="{Binding Weapon, Converter={StaticResource WeaponStatusBackgroundConverter}}"
+                                      Background="{Binding Weapon, Converter={StaticResource ComponentStatusBackgroundConverter}}"
                                       RowDefinitions="*,*,*">
                                     <CheckBox 
                                         Grid.Row="0"

@@ -31,7 +31,7 @@
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="weapons:Weapon">
                                                     <Border Margin="2">
-                                                        <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2" Background="{Binding ., Converter={StaticResource WeaponStatusBackgroundConverter}}">
+                                                        <Grid ColumnDefinitions="4*,2*,*,3*" Margin="5,2" Background="{Binding ., Converter={StaticResource ComponentStatusBackgroundConverter}}">
                                                             <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
                                                             <TextBlock Grid.Column="1" Text="{Binding Damage}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
                                                             <TextBlock Grid.Column="2" Text="{Binding Heat}" Classes="body" Margin="5,0" VerticalAlignment="Center"/>
