@@ -8,9 +8,9 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class WeaponStatusBackgroundConverterTests
+public class ComponentStatusBackgroundConverterTests
 {
-    private readonly WeaponStatusBackgroundConverter _sut = new();
+    private readonly ComponentStatusBackgroundConverter _sut = new();
 
     [Fact]
     public void Convert_AvailableWeapon_ReturnsTransparent()
