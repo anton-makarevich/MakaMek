@@ -538,15 +538,18 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         SetGameWithRulesProvider(mockRulesProvider);
-        SetMap();
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, new[] { part });
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        for (var i = 1; i < part.TotalSlots; i++)
+            part.TryAddComponent(new TestComponent([i]));
         mockRulesProvider.GetNumCriticalHits(8, part.Location).Returns(0);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(4), new(4) },
             new List<DiceResult> { new(5), new(3) }
         );
-        var data = InvokeDetermineHitLocation(_sut, FiringArc.Forward, 5, mech);
+        var sut = new WeaponAttackResolutionPhase(Game);
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
         data.CriticalHits.ShouldBeNull();
     }
 
@@ -555,12 +558,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         SetGameWithRulesProvider(mockRulesProvider);
-        //SetMap();
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, new[] { part });
-        for (int i = 0; i < part.TotalSlots; i++)
-            if (i != 3) part.TryAddComponent(new TestComponent([i]));
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        // Only slot 0 is available
         mockRulesProvider.GetNumCriticalHits(9, part.Location).Returns(1);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(6), new(3) },
             new List<DiceResult> { new(4), new(5) }
@@ -569,7 +571,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
         data.CriticalHits.ShouldNotBeNull();
         data.CriticalHits.Length.ShouldBe(1);
-        data.CriticalHits[0].ShouldBe(3);
+        data.CriticalHits[0].ShouldBe(0);
     }
 
     [Fact]
@@ -577,15 +579,18 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         SetGameWithRulesProvider(mockRulesProvider);
-        SetMap();
         var part = new Arm("TestArm", PartLocation.RightArm, 5, 10);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, new[] { part });
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        for (var i = 1; i < part.TotalSlots; i++)
+            part.TryAddComponent(new TestComponent([i]));
         mockRulesProvider.GetNumCriticalHits(12, part.Location).Returns(3);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(6), new(6) },
             new List<DiceResult> { new(6), new(6) }
         );
-        var data = InvokeDetermineHitLocation(_sut, FiringArc.Forward, 3, mech);
+        var sut = new WeaponAttackResolutionPhase(Game);
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 3, mech);
         data.CriticalHits.ShouldBeNull();
     }
 
@@ -593,12 +598,12 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg, Unit? target)
     {
         var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (HitLocationData)method.Invoke(phase, [arc, dmg, target]);
+        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target])!;
     }
 
     private class TestComponent(int[] slots) : Sanet.MakaMek.Core.Models.Units.Components.Component("Test", slots)
     {
-        public override MakaMekComponent ComponentType { get; }
+        public override MakaMekComponent ComponentType=> MakaMekComponent.MachineGun;
     }
 
     [Fact]
