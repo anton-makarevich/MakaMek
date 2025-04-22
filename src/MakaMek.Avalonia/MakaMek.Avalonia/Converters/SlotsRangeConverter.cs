@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using Avalonia.Data.Converters;
 
 namespace Sanet.MakaMek.Avalonia.Converters;
@@ -10,20 +11,23 @@ public class SlotsRangeConverter : IValueConverter
     {
         if (value is not int[] slots || slots.Length == 0)
             return "-";
-        if (slots.Length == 1)
-            return slots[0].ToString();
-        Array.Sort(slots);
-        // If slots are consecutive, show as range
-        var consecutive = true;
-        for (var i = 1; i < slots.Length; i++)
+        var indices = slots.Select(i => i + 1).OrderBy(i => i).ToArray();
+        var result = new System.Collections.Generic.List<string>();
+        int start = indices[0], end = indices[0];
+        for (var i = 1; i < indices.Length; i++)
         {
-            if (slots[i] == slots[i - 1] + 1) continue;
-            consecutive = false;
-            break;
+            if (indices[i] == end + 1)
+            {
+                end = indices[i];
+            }
+            else
+            {
+                result.Add(start == end ? $"{start}" : $"{start}-{end}");
+                start = end = indices[i];
+            }
         }
-        return consecutive ? $"{slots[0]}-{slots[^1]}" :
-            // Otherwise, comma-separated
-            string.Join(",", slots);
+        result.Add(start == end ? $"{start}" : $"{start}-{end}");
+        return string.Join(",", result);
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

@@ -19,21 +19,36 @@ public class SlotsRangeConverterTests
     [Fact]
     public void Convert_SingleSlot_ReturnsSlot()
     {
-        _converter.Convert(new[] { 5 }, typeof(string), null, _culture).ShouldBe("5");
+        _converter.Convert((int[]) [4], typeof(string), null, _culture).ShouldBe("5");
     }
 
     [Fact]
     public void Convert_ConsecutiveSlots_ReturnsRange()
     {
-        _converter.Convert(new[] { 2, 3, 4 }, typeof(string), null, _culture).ShouldBe("2-4");
-        _converter.Convert(new[] { 4, 2, 3 }, typeof(string), null, _culture).ShouldBe("2-4");
+        _converter.Convert((int[]) [1, 2, 3], typeof(string), null, _culture).ShouldBe("2-4");
+        _converter.Convert((int[]) [3, 2, 1], typeof(string), null, _culture).ShouldBe("2-4");
     }
 
     [Fact]
     public void Convert_NonConsecutiveSlots_ReturnsCommaSeparated()
     {
-        _converter.Convert(new[] { 1, 3, 5 }, typeof(string), null, _culture).ShouldBe("1,3,5");
-        _converter.Convert(new[] { 7, 2, 5 }, typeof(string), null, _culture).ShouldBe("2,5,7");
+        _converter.Convert((int[]) [0, 2, 4], typeof(string), null, _culture).ShouldBe("1,3,5");
+        _converter.Convert((int[]) [6, 1, 4], typeof(string), null, _culture).ShouldBe("2,5,7");
+    }
+
+    [Fact]
+    public void Convert_ZeroBasedSlots_AreDisplayedAsOneBased()
+    {
+        _converter.Convert((int[]) [0], typeof(string), null, _culture).ShouldBe("1");
+        _converter.Convert((int[]) [0, 1, 2], typeof(string), null, _culture).ShouldBe("1-3");
+        _converter.Convert((int[]) [1, 2, 3], typeof(string), null, _culture).ShouldBe("2-4");
+    }
+
+    [Fact]
+    public void Convert_MultipleRanges_AreDisplayedCorrectly()
+    {
+        _converter.Convert((int[]) [0, 1, 2, 7, 8, 9], typeof(string), null, _culture).ShouldBe("1-3,8-10");
+        _converter.Convert((int[]) [0, 2, 4, 5, 6], typeof(string), null, _culture).ShouldBe("1,3,5-7");
     }
 
     [Fact]
