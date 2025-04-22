@@ -10,7 +10,7 @@
     <UserControl.Resources>
         <converters:SlotsRangeConverter x:Key="SlotsRangeConverter"/>
     </UserControl.Resources>
-    <Grid ColumnDefinitions="4*,2*,2*" RowDefinitions="Auto,*" Margin="5">
+    <Grid ColumnDefinitions="6*,2*,3*" RowDefinitions="Auto,*" Margin="5">
         <TextBlock Grid.Column="0" Text="Component" Classes="h4"/>
         <TextBlock Grid.Column="1" Text="Slots" Classes="h4" Margin="5,0"/>
         <TextBlock Grid.Column="2" Text="Status" Classes="h4" Margin="5,0"/>
@@ -24,13 +24,14 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="components:Component">
                                         <Border Margin="2">
-                                            <Grid ColumnDefinitions="4*,*,2*" Margin="5,2">
+                                            <Grid ColumnDefinitions="6*,2*,3*" Margin="5,2">
                                                 <TextBlock Grid.Column="0" Text="{Binding Name}" Classes="body" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="1"
                                                            Text="{Binding MountedAtSlots, Converter={StaticResource SlotsRangeConverter}}"
                                                            Classes="body" Margin="5,0" 
                                                            VerticalAlignment="Center"
-                                                           HorizontalAlignment="Center"/>
+                                                           HorizontalAlignment="Center"
+                                                           TextWrapping="Wrap"/>
                                                 <TextBlock Grid.Column="2"
                                                            Text="{Binding IsActive}" 
                                                            Classes="body" Margin="5,0"

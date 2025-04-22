@@ -47,8 +47,8 @@ public class SlotsRangeConverterTests
     [Fact]
     public void Convert_MultipleRanges_AreDisplayedCorrectly()
     {
-        _converter.Convert((int[]) [0, 1, 2, 7, 8, 9], typeof(string), null, _culture).ShouldBe("1-3,8-10");
-        _converter.Convert((int[]) [0, 2, 4, 5, 6], typeof(string), null, _culture).ShouldBe("1,3,5-7");
+        _converter.Convert((int[]) [0, 1, 2, 7, 8, 9], typeof(string), null, _culture).ShouldBe("1-3\n8-10");
+        _converter.Convert((int[]) [0, 2, 4, 5, 6], typeof(string), null, _culture).ShouldBe("1,3\n5-7");
     }
 
     [Fact]
