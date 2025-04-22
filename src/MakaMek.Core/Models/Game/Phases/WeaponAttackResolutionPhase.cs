@@ -233,18 +233,18 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         int[]? crits = null;
         if (target == null) return new HitLocationData(hitLocation, damage, locationRoll, crits);
+        
+        var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
+        var armor = part?.CurrentArmor ?? 0;
+        if (part == null || damage <= armor || part.CurrentStructure <= 0)
+            return new HitLocationData(hitLocation, damage, locationRoll, crits);
+        var critRoll = Game.DiceRoller.Roll2D6().Sum(d => d.Result);
+        var numCrits = Game.RulesProvider.GetNumCriticalHits(critRoll, part.Location);
+        if (numCrits > 0)
         {
-            var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
-            var armor = part?.CurrentArmor ?? 0;
-            if (part == null || damage <= armor || part.CurrentStructure <= 0)
-                return new HitLocationData(hitLocation, damage, locationRoll, crits);
-            var critRoll = Game.DiceRoller.Roll2D6().Sum(d => d.Result);
-            var numCrits = Game.RulesProvider.GetNumCriticalHits(critRoll, part.Location);
-            if (numCrits > 0)
-            {
-                crits = DetermineCriticalHitSlots(part, numCrits);
-            }
+            crits = DetermineCriticalHitSlots(part, numCrits);
         }
+        
         return new HitLocationData(hitLocation, damage, locationRoll, crits);
     }
 
