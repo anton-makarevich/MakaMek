@@ -532,6 +532,52 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         data.CriticalHits.ShouldContain(10);
         data.CriticalHits.ShouldContain(2);
     }
+    
+    [Fact]
+    public void DetermineHitLocation_ShouldReturnOnlyAvailableInSecondGroup()
+    {
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+        var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        for (var i = 1; i < 7; i++)
+            part.TryAddComponent(new TestComponent([i]));
+        mockRulesProvider.GetNumCriticalHits(10, part.Location).Returns(2);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(5), new(5) },
+            new List<DiceResult> { new(4), new(6) }
+        );
+        DiceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
+        var sut = new WeaponAttackResolutionPhase(Game);
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
+        data.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.Length.ShouldBe(2);
+        data.CriticalHits.ShouldContain(6);
+        data.CriticalHits.ShouldContain(2);
+    }
+    [Fact]
+    public void DetermineHitLocation_ShouldSetCriticalHits_InSmallPart_WhenDamageExceedsArmorAndCritsRolled()
+    {
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+        var part = new Leg("TestArm", PartLocation.RightLeg, 0, 10);
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        mockRulesProvider.GetNumCriticalHits(10, part.Location).Returns(2);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward)
+            .Returns(PartLocation.RightLeg);
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(5), new(5) },
+            new List<DiceResult> { new(4), new(6) }
+        );
+        DiceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
+        var sut = new WeaponAttackResolutionPhase(Game);
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
+        data.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.Length.ShouldBe(2);
+        data.CriticalHits.ShouldContain(1);
+        data.CriticalHits.ShouldContain(2);
+    }
 
     [Fact]
     public void DetermineHitLocation_ShouldNotSetCriticalHits_WhenNoCritsRolled()
