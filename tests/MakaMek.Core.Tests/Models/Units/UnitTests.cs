@@ -32,7 +32,7 @@ public class UnitTests
     private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)
         : UnitPart(name, location, maxArmor, maxStructure, slots);
     
-    private class TestUnit(
+    public class TestUnit(
         string chassis,
         string model,
         int tonnage,
@@ -45,7 +45,7 @@ public class UnitTests
 
         public override bool CanMoveBackward(MovementType type) => true;
 
-        protected override PartLocation? GetTransferLocation(PartLocation location) => null;
+        public override PartLocation? GetTransferLocation(PartLocation location) => PartLocation.Head;
 
         protected override void ApplyHeatEffects()
         {
@@ -53,7 +53,7 @@ public class UnitTests
         }
     }
     
-    private TestUnit CreateTestUnit(Guid? id = null)
+    public static TestUnit CreateTestUnit(Guid? id = null)
     {
         var parts = new List<UnitPart>
         {

@@ -62,7 +62,7 @@ public class Mech : Unit
         }
     }
 
-    protected override PartLocation? GetTransferLocation(PartLocation location) => location switch
+    public override PartLocation? GetTransferLocation(PartLocation location) => location switch
     {
         PartLocation.LeftArm => PartLocation.LeftTorso,
         PartLocation.RightArm => PartLocation.RightTorso,

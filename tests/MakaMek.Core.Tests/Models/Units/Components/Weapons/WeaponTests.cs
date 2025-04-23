@@ -123,6 +123,6 @@ public class WeaponTests
             throw new NotImplementedException();
         }
 
-        protected override PartLocation? GetTransferLocation(PartLocation location) => null;
+        public override PartLocation? GetTransferLocation(PartLocation location) => null;
     }
 }

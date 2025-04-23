@@ -162,4 +162,9 @@ public abstract class UnitPart
 
         return _components.Remove(component);
     }
+
+    public PartLocation? GetNextTransferLocation()
+    {
+        return Unit?.GetTransferLocation(Location);
+    }
 }
