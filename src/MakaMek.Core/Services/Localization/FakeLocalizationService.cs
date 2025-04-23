@@ -30,6 +30,8 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_HitLocations" => "Hit Locations:",
             "Command_WeaponAttackResolution_HitLocation" => "{0}: {1} damage (Roll: {2})",
             "Command_WeaponAttackResolution_CriticalHit" => "Critical hit in {0} slot {1}: {2}",
+            "Command_WeaponAttackResolution_CritRoll" => "Critical Roll: {0}",
+            "Command_WeaponAttackResolution_NumCrits" => "Num Crits: {0}",
             "Command_TurnEnded" => "{0} has ended their turn.",
             "Command_TurnIncremented" => "Turn {0} has started.",
             "Command_RequestGameLobbyStatus" => "Client {0} requested game lobby status for game.",

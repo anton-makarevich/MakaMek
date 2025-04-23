@@ -190,7 +190,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             // Calculate damage for this cluster
             var clusterDamage = weapon.ClusterSize * damagePerMissile;
             
-            // Determine hit location for this cluster
+            // Determine the hit location for this cluster
             var hitLocationData = DetermineHitLocation(attackDirection, clusterDamage, weapon.Target);
             
             // Add to hit locations and update total damage
@@ -204,7 +204,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             // Calculate damage for the partial cluster
             var partialClusterDamage = remainingMissiles * damagePerMissile;
             
-            // Determine hit location for the partial cluster
+            // Determine the hit location for the partial cluster
             var hitLocationData = DetermineHitLocation(attackDirection, partialClusterDamage, weapon.Target);
             
             // Add to hit locations and update total damage

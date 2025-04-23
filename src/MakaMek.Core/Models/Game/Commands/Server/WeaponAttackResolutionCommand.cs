@@ -48,7 +48,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                 ResolutionData.ToHitNumber,
                 rollTotal));
 
-            // Add attack direction if available
+            // Add an attack direction if available
             if (ResolutionData.AttackDirection.HasValue)
             {
                 var directionKey = $"AttackDirection_{ResolutionData.AttackDirection.Value}";
@@ -97,20 +97,19 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                     hitLocation.Damage,
                     locationRollTotal));
 
-                // Add critical hit/component info if present
-                if (hitLocation.CriticalHits is not { CriticalHits: { Length: > 0 } })
-                {
-                    // Still show crit roll and numCrits if available
-                    if (hitLocation.CriticalHits != null)
-                    {
-                        stringBuilder.AppendLine($"  Critical Roll: {hitLocation.CriticalHits.Roll}, Num Crits: {hitLocation.CriticalHits.NumCriticalHits}");
-                    }
+                // Print crit roll and number if CriticalHits is present
+                if (hitLocation.CriticalHits == null)
                     continue;
-                }
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_WeaponAttackResolution_CritRoll"),
+                    hitLocation.CriticalHits.Roll));
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_WeaponAttackResolution_NumCrits"),
+                    hitLocation.CriticalHits.NumCriticalHits));
+                if (hitLocation.CriticalHits.CriticalHits == null || hitLocation.CriticalHits.CriticalHits.Length == 0)
+                    continue;
                 var targetUnit = game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.TargetId);
                 var part = targetUnit?.Parts.FirstOrDefault(p => p.Location == hitLocation.Location);
-                // Show crit roll and numCrits
-                stringBuilder.AppendLine($"  Critical Roll: {hitLocation.CriticalHits.Roll}, Num Crits: {hitLocation.CriticalHits.NumCriticalHits}");
                 foreach (var slot in hitLocation.CriticalHits.CriticalHits)
                 {
                     var comp = part?.GetComponentAtSlot(slot);
