@@ -86,6 +86,10 @@ public class WeaponAttackResolutionCommandTests
             .Returns("{0}: {1} damage (Roll: {2})");
         _localizationService.GetString("Command_WeaponAttackResolution_CriticalHit")
             .Returns("Critical hit in {0} slot {1}: {2}");
+        _localizationService.GetString("Command_WeaponAttackResolution_CritRoll")
+            .Returns("Critical roll: {0}");
+        _localizationService.GetString("Command_WeaponAttackResolution_NumCrits")
+            .Returns("Criticals: {0}");
     }
 
     private WeaponAttackResolutionCommand CreateHitCommand()
@@ -338,6 +342,54 @@ public class WeaponAttackResolutionCommandTests
         // Assert
         result.ShouldNotBeEmpty();
         result.ShouldContain(expectedDirectionText);
+    }
+    
+    [Fact]
+    public void Format_Includes_CriticalHitsData_When_It_Present_ButNotHitSlots()
+    {
+        // Arrange: create a hit with a critical hit in slot 2, with a component
+        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var critComponent = new MachineGun();
+        leftArm.TryAddComponent(critComponent, [2]);
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.LeftArm,
+                5,
+                new List<DiceResult>(),
+                new CriticalHitsData(7, 0, null)
+            )
+        };
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("Critical roll: 7");
+        output.ShouldContain("Criticals: 0");
+        output.ShouldNotContain("Critical hit in");
     }
 
     [Fact]
