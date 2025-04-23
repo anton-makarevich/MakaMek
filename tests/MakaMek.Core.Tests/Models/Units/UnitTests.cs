@@ -30,8 +30,11 @@ public class UnitTests
     }
     
     private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)
-        : UnitPart(name, location, maxArmor, maxStructure, slots);
-    
+        : UnitPart(name, location, maxArmor, maxStructure, slots)
+    {
+        internal override bool CanBeBlownOff => true;
+    }
+
     public class TestUnit(
         string chassis,
         string model,

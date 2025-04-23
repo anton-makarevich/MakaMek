@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 
@@ -11,12 +12,16 @@ public class ArmTests
         var leftArm = new Arm("Left Arm", PartLocation.LeftArm, 4, 3);
         var rightArm = new Arm("Right Arm", PartLocation.RightArm, 4, 3);
 
-        Assert.Equal(PartLocation.LeftArm, leftArm.Location);
-        Assert.Equal(4, leftArm.MaxArmor);
-        Assert.Equal(3, leftArm.MaxStructure);
+        leftArm.Location.ShouldBe(PartLocation.LeftArm);
+        leftArm.MaxArmor.ShouldBe(4);
+        leftArm.MaxStructure.ShouldBe(3);
+        leftArm.CanBeBlownOff.ShouldBeTrue();
+        leftArm.TotalSlots.ShouldBe(12);
 
-        Assert.Equal(PartLocation.RightArm, rightArm.Location);
-        Assert.Equal(4, rightArm.MaxArmor);
-        Assert.Equal(3, rightArm.MaxStructure);
+        rightArm.Location.ShouldBe(PartLocation.RightArm);
+        rightArm.MaxArmor.ShouldBe(4);
+        rightArm.MaxStructure.ShouldBe(3);
+        rightArm.CanBeBlownOff.ShouldBeTrue();
+        rightArm.TotalSlots.ShouldBe(12);   
     }
 }

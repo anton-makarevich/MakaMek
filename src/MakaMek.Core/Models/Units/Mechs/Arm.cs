@@ -10,4 +10,6 @@ public class Arm : UnitPart
         // Add default components
         TryAddComponent(new Shoulder());
     }
+
+    internal override bool CanBeBlownOff => true;
 }
