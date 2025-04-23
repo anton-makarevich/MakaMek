@@ -486,24 +486,17 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
 
         [Theory]
         // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
-        [InlineData(2, PartLocation.CenterTorso, 0)]
-        [InlineData(7, PartLocation.RightLeg, 0)]
-        [InlineData(8, PartLocation.LeftArm, 1)]
-        [InlineData(9, PartLocation.Head, 1)]
-        [InlineData(10, PartLocation.RightTorso, 2)]
-        [InlineData(11, PartLocation.LeftLeg, 2)]
-        [InlineData(12, PartLocation.CenterTorso, 3)]
-        [InlineData(12, PartLocation.LeftTorso, 3)]
-        [InlineData(12, PartLocation.RightTorso, 3)]
-        [InlineData(12, PartLocation.Head, 1)]
-        [InlineData(12, PartLocation.LeftLeg, 1)]
-        [InlineData(12, PartLocation.RightLeg, 1)]
-        [InlineData(12, PartLocation.LeftArm, 1)]
-        [InlineData(12, PartLocation.RightArm, 1)]
-        [InlineData(13, PartLocation.RightArm, 0)]
-        public void GetNumCriticalHits_ReturnsExpected(int roll, PartLocation location, int expected)
+        [InlineData(2, 0)]
+        [InlineData(7,  0)]
+        [InlineData(8,  1)]
+        [InlineData(9,  1)]
+        [InlineData(10,  2)]
+        [InlineData(11,  2)]
+        [InlineData(12,  3)]
+        [InlineData(13,  0)]
+        public void GetNumCriticalHits_ReturnsExpected(int roll,  int expected)
         {
-            _provider.GetNumCriticalHits(roll, location).ShouldBe(expected);
+            _provider.GetNumCriticalHits(roll).ShouldBe(expected);
         }
 
         [Theory]

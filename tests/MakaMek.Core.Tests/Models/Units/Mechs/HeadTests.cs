@@ -20,7 +20,8 @@ public class HeadTests
         head.CurrentArmor.ShouldBe(8);
         head.MaxStructure.ShouldBe(3);
         head.CurrentStructure.ShouldBe(3);
-        head.TotalSlots.ShouldBe(12);
+        head.TotalSlots.ShouldBe(6);
+        head.CanBeBlownOff.ShouldBeTrue();
 
         // Verify default components
         head.GetComponent<LifeSupport>().ShouldNotBeNull();

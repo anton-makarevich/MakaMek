@@ -42,4 +42,6 @@ public abstract class Torso : UnitPart
         CurrentRearArmor = 0;
         return remainingDamage;
     }
+
+    internal override bool CanBeBlownOff => false;
 }

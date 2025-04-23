@@ -30,7 +30,15 @@ public abstract class UnitPart
     public int TotalSlots { get; }
     public int UsedSlots => _components.Sum(c => c.Size);
     public int AvailableSlots => TotalSlots - UsedSlots;
-    public bool IsDestroyed => CurrentStructure <= 0;
+    
+    // Abstract property to be implemented by derived classes
+    internal abstract bool CanBeBlownOff { get; }
+    
+    // Property to track if the part is blown off, with private setter
+    public bool IsBlownOff { get; private set; }
+    
+    // A part is destroyed if either structure is depleted or it's blown off
+    public bool IsDestroyed => CurrentStructure <= 0 || IsBlownOff;
     
     // Components installed in this part
     private readonly List<Component> _components;
@@ -166,5 +174,18 @@ public abstract class UnitPart
     public PartLocation? GetNextTransferLocation()
     {
         return Unit?.GetTransferLocation(Location);
+    }
+    
+    /// <summary>
+    /// Blows off this part as a result of a critical hit
+    /// </summary>
+    /// <returns>True if the part was successfully blown off, false otherwise</returns>
+    public bool BlowOff()
+    {
+        if (!CanBeBlownOff)
+            return false;
+            
+        IsBlownOff = true;
+        return true;
     }
 }

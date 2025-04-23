@@ -13,4 +13,6 @@ public class Leg : UnitPart
         TryAddComponent(new LowerLegActuator());
         TryAddComponent(new FootActuator());
     }
+
+    internal override bool CanBeBlownOff => true;
 }

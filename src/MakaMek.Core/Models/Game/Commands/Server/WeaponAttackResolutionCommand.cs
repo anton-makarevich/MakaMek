@@ -110,18 +110,28 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                         hitLocation.Damage,
                         locationRollTotal));
                 }
-
-                // Print crit roll and number if CriticalHits is present
                 if (hitLocation.CriticalHits == null)
                     continue;
                 stringBuilder.AppendLine(string.Format(
                     localizationService.GetString("Command_WeaponAttackResolution_CritRoll"),
                     hitLocation.CriticalHits.Roll));
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_WeaponAttackResolution_NumCrits"),
-                    hitLocation.CriticalHits.NumCriticalHits));
-                if (hitLocation.CriticalHits.CriticalHits == null || hitLocation.CriticalHits.CriticalHits.Length == 0)
+                
+                // Check if the location is blown off
+                if (hitLocation.CriticalHits.IsBlownOff)
+                {
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_BlownOff"),
+                        hitLocation.Location));
                     continue;
+                }
+                stringBuilder.AppendLine(string.Format(
+                                     localizationService.GetString("Command_WeaponAttackResolution_NumCrits"),
+                                     hitLocation.CriticalHits.NumCriticalHits));
+
+                if (hitLocation.CriticalHits.CriticalHits == null ||
+                    hitLocation.CriticalHits.CriticalHits.Length == 0)
+                    continue;
+                
                 var targetUnit = game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.TargetId);
                 var part = targetUnit?.Parts.FirstOrDefault(p => p.Location == hitLocation.Location);
                 foreach (var slot in hitLocation.CriticalHits.CriticalHits)

@@ -8,7 +8,10 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units;
 public class UnitPartTests
 {
     private class TestUnitPart(PartLocation location, int maxArmor, int maxStructure, int slots)
-        : UnitPart("Test", location, maxArmor, maxStructure, slots);
+        : UnitPart("Test", location, maxArmor, maxStructure, slots)
+    {
+        internal override bool CanBeBlownOff =>true;
+    }
 
     [Fact]
     public void Constructor_InitializesCorrectly()
@@ -191,6 +194,21 @@ public class UnitPartTests
         var sut = testUnit.Parts.First(p=>p.Location==PartLocation.LeftArm);
 
         sut.GetNextTransferLocation().ShouldBe(PartLocation.Head);
+    }
+
+    [Fact]
+    public void BlowOff_SetsIsBlownOffAndIsDestroyed_WhenCanBeBlownOffIsTrue()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        
+        // Act
+        var result = part.BlowOff();
+        
+        // Assert
+        result.ShouldBeTrue();
+        part.IsBlownOff.ShouldBeTrue();
+        part.IsDestroyed.ShouldBeTrue();
     }
 
     private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size)

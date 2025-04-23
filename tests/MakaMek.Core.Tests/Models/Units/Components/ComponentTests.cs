@@ -14,7 +14,10 @@ public class ComponentTests
     }
     
     private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)
-        : UnitPart(name, location, maxArmor, maxStructure, slots);
+        : UnitPart(name, location, maxArmor, maxStructure, slots)
+    {
+        internal override bool CanBeBlownOff => true;
+    }
 
     [Fact]
     public void Constructor_InitializesCorrectly()

@@ -263,18 +263,31 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 critsData,
                 locationTransferred ? initialLocation : null);
         var critRoll = Game.DiceRoller.Roll2D6().Sum(d => d.Result);
-        var numCrits = Game.RulesProvider.GetNumCriticalHits(critRoll, part.Location);
+        var numCrits = Game.RulesProvider.GetNumCriticalHits(critRoll);
         int[]? crits = null;
+        
+        // Check if the location can be blown off (head or limbs on a roll of 12)
+        var isBlownOff = part.CanBeBlownOff && numCrits ==3;
+        if (isBlownOff)
+        {
+            return new HitLocationData(
+                hitLocation,
+                damage,
+                locationRoll,
+                new CriticalHitsData(critRoll, 0, null, isBlownOff),
+                locationTransferred ? initialLocation : null);
+        }
+        
         if (numCrits > 0)
         {
             crits = DetermineCriticalHitSlots(part, numCrits);
         }
-        critsData = new CriticalHitsData(critRoll, numCrits, crits);
+        
         return new HitLocationData(
-            hitLocation, 
-            damage, 
-            locationRoll, 
-            critsData,
+            hitLocation,
+            damage,
+            locationRoll,
+            new CriticalHitsData(critRoll, numCrits, crits, isBlownOff),
             locationTransferred ? initialLocation : null);
     }
 

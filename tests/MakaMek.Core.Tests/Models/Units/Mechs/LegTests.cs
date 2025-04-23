@@ -15,9 +15,13 @@ public class LegTests
         leftLeg.Location.ShouldBe(PartLocation.LeftLeg);
         leftLeg.MaxArmor.ShouldBe(8);
         leftLeg.MaxStructure.ShouldBe(4);
+        leftLeg.CanBeBlownOff.ShouldBeTrue();
+        leftLeg.TotalSlots.ShouldBe(6);
 
         rightLeg.Location.ShouldBe(PartLocation.RightLeg);
         rightLeg.MaxArmor.ShouldBe(8);
         rightLeg.MaxStructure.ShouldBe(4);
+        rightLeg.CanBeBlownOff.ShouldBeTrue();
+        rightLeg.TotalSlots.ShouldBe(6);
     }
 }

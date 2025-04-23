@@ -11,5 +11,5 @@ public record HitLocationData(
     int Damage,
     List<DiceResult> LocationRoll,
     CriticalHitsData? CriticalHits = null, // Optional: detailed critical hits info, null if none
-    PartLocation? InitialLocation = null // Optional: the initial hit location before transfer, null if no transfer occurred
+    PartLocation? InitialLocation = null
 );

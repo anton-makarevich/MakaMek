@@ -518,7 +518,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
             part.TryAddComponent(new TestComponent([i]));
-        mockRulesProvider.GetNumCriticalHits(10, part.Location).Returns(2);
+        mockRulesProvider.GetNumCriticalHits(10).Returns(2);
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(5), new(5) },
@@ -543,7 +543,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         for (var i = 1; i < 7; i++)
             part.TryAddComponent(new TestComponent([i]));
-        mockRulesProvider.GetNumCriticalHits(10, part.Location).Returns(2);
+        mockRulesProvider.GetNumCriticalHits(10).Returns(2);
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(5), new(5) },
@@ -565,7 +565,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetGameWithRulesProvider(mockRulesProvider);
         var part = new Leg("TestArm", PartLocation.RightLeg, 0, 10);
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
-        mockRulesProvider.GetNumCriticalHits(10, part.Location).Returns(2);
+        mockRulesProvider.GetNumCriticalHits(10).Returns(2);
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward)
             .Returns(PartLocation.RightLeg);
         DiceRoller.Roll2D6().Returns(
@@ -591,7 +591,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
             part.TryAddComponent(new TestComponent([i]));
-        mockRulesProvider.GetNumCriticalHits(8, part.Location).Returns(0);
+        mockRulesProvider.GetNumCriticalHits(8).Returns(0);
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(4), new(4) },
@@ -621,7 +621,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         }
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         // Only slot 0 is available
-        mockRulesProvider.GetNumCriticalHits(9, part.Location).Returns(2);
+        mockRulesProvider.GetNumCriticalHits(9).Returns(2);
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(location);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(6), new(3) },
@@ -644,7 +644,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         part.Components[0].Hit(); //destroy shoulder
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         // Only slot 0 is available
-        mockRulesProvider.GetNumCriticalHits(9, part.Location).Returns(1);
+        mockRulesProvider.GetNumCriticalHits(9).Returns(1);
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(6), new(3) },
@@ -664,7 +664,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
             part.TryAddComponent(new TestComponent([i]));
-        mockRulesProvider.GetNumCriticalHits(12, part.Location).Returns(3);
+        mockRulesProvider.GetNumCriticalHits(12).Returns(3);
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(6), new(6) },
@@ -783,5 +783,76 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
         data.Location.ShouldBe(PartLocation.CenterTorso);
+    }
+
+    [Fact]
+    public void DetermineHitLocation_ShouldSetIsBlownOff_WhenCriticalRollIs12AndLocationCanBeBlownOff()
+    {
+        // Arrange
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+        
+        // Create a mech with a head part (which can be blown off)
+        var head = new Head("TestHead", 3, 5);
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [head]);
+        
+        // Configure the rules provider
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.Head);
+        mockRulesProvider.GetNumCriticalHits(12).Returns(3); // Always return 3 crits for roll of 12
+        
+        // Configure dice rolls for hit location and critical hit
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(5), new(5) }, // 10 for hit location roll
+            new List<DiceResult> { new(6), new(6) }  // 12 for critical hit roll
+        );
+        
+        var sut = new WeaponAttackResolutionPhase(Game);
+        
+        // Act - Apply damage that exceeds armor to trigger critical hit check
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, head.CurrentArmor + 1, mech);
+        
+        // Assert
+        data.CriticalHits!.IsBlownOff.ShouldBeTrue();
+        data.CriticalHits.ShouldNotBeNull(); 
+        data.CriticalHits.NumCriticalHits.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void DetermineHitLocation_ShouldNotSetIsBlownOff_WhenCriticalRollIs12AndLocationCannotBeBlownOff()
+    {
+        // Arrange
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+        
+        // Create a mech with a center torso part (which cannot be blown off)
+        var centerTorso = new CenterTorso("TestCenterTorso", 15, 10, 15);
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [centerTorso]);
+        
+        // Configure the rules provider
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.CenterTorso);
+        mockRulesProvider.GetNumCriticalHits(12).Returns(3); // Always return 3 crits for roll of 12
+        
+        // Configure dice rolls for hit location and critical hit
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(5), new(5) }, // 10 for hit location roll
+            new List<DiceResult> { new(6), new(6) }  // 12 for critical hit roll
+        );
+        DiceRoller.RollD6().Returns(
+            new DiceResult(2),
+            new DiceResult(4),
+            new DiceResult(2),
+            new DiceResult(5),
+            new DiceResult(2),
+            new DiceResult(6));
+        
+        var sut = new WeaponAttackResolutionPhase(Game);
+        
+        // Act - Apply damage that exceeds armor to trigger critical hit check
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, centerTorso.CurrentArmor + 1, mech);
+        
+        // Assert
+        data.CriticalHits!.IsBlownOff.ShouldBeFalse();
+        data.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.NumCriticalHits.ShouldBe(3);
     }
 }
