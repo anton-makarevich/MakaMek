@@ -84,6 +84,8 @@ public class WeaponAttackResolutionCommandTests
             .Returns("Hit Locations:");
         _localizationService.GetString("Command_WeaponAttackResolution_HitLocation")
             .Returns("{0}: {1} damage (Roll: {2})");
+        _localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer")
+            .Returns("{0} → {1}: {2} damage (Roll: {3})");
         _localizationService.GetString("Command_WeaponAttackResolution_CriticalHit")
             .Returns("Critical hit in {0} slot {1}: {2}");
         _localizationService.GetString("Command_WeaponAttackResolution_CritRoll")
@@ -436,5 +438,51 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 2: Machine Gun");
+    }
+
+    [Fact]
+    public void Format_Includes_HitLocationTransfer_Info_When_Transfers_Present()
+    {
+        // Arrange: create a hit with a transfer from LeftArm to LeftTorso
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.LeftTorso,  // Final location
+                5,
+                [new(6), new(4)],        // Roll total 10
+                null,                    // No crits
+                PartLocation.LeftArm     // Initial location
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            [],
+            0);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new(4), new(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("LeftArm → LeftTorso: 5 damage");
     }
 }

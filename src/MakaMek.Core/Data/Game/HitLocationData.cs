@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Data.Game;
 
 namespace Sanet.MakaMek.Core.Data.Game;
 
@@ -11,5 +10,6 @@ public record HitLocationData(
     PartLocation Location,
     int Damage,
     List<DiceResult> LocationRoll,
-    CriticalHitsData? CriticalHits = null // Optional: detailed critical hits info, null if none
+    CriticalHitsData? CriticalHits = null, // Optional: detailed critical hits info, null if none
+    PartLocation? InitialLocation = null // Optional: the initial hit location before transfer, null if no transfer occurred
 );

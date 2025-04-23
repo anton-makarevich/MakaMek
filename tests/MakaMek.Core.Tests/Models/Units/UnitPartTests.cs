@@ -27,6 +27,7 @@ public class UnitPartTests
         part.AvailableSlots.ShouldBe(12);
         part.Components.ShouldBeEmpty();
         part.IsDestroyed.ShouldBeFalse();
+        part.GetNextTransferLocation().ShouldBeNull();
     }
 
     [Theory]
@@ -181,6 +182,15 @@ public class UnitPartTests
         // Act & Assert
         part.TryAddComponent(fixedComponent).ShouldBeTrue();
         part.TryAddComponent(component).ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void GetNextTransferLocation_ReturnsCorrectLocation()
+    {
+        var testUnit = UnitTests.CreateTestUnit();
+        var sut = testUnit.Parts.First(p=>p.Location==PartLocation.LeftArm);
+
+        sut.GetNextTransferLocation().ShouldBe(PartLocation.Head);
     }
 
     private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size)

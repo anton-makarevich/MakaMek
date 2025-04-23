@@ -67,7 +67,7 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
 
         // Act
-        var transferLocation = mech.TestGetTransferLocation(from);
+        var transferLocation = mech.GetTransferLocation(from);
 
         // Assert
         transferLocation.ShouldBe(expected);
@@ -593,16 +593,5 @@ public class MechTests
         // Assert
         sut.HasDeclaredWeaponAttack.ShouldBeFalse();
         weapon.Target.ShouldBeNull();
-    }
-}
-
-// Helper extension for testing protected methods
-public static class MechTestExtensions
-{
-    public static PartLocation? TestGetTransferLocation(this Mech mech, PartLocation location)
-    {
-        var method = typeof(Mech).GetMethod("GetTransferLocation",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (PartLocation?)method?.Invoke(mech, [location]);
     }
 }
