@@ -643,8 +643,8 @@ public class UnitTests
         var unit = new TestUnit("Test", "Unit", 20, 4, parts);
         
         // Apply damage to reduce armor
-        unit.ApplyDamage(5, parts[0]); // Center Torso: 10 -> 5
-        unit.ApplyDamage(10, parts[1]); // Left Arm: 15 -> 5
+        unit.ApplyArmorAndStructureDamage(5, parts[0]); // Center Torso: 10 -> 5
+        unit.ApplyArmorAndStructureDamage(10, parts[1]); // Left Arm: 15 -> 5
         
         // Act
         var totalCurrentArmor = unit.TotalCurrentArmor;
@@ -687,8 +687,8 @@ public class UnitTests
         var unit = new TestUnit("Test", "Unit", 20, 4, parts);
         
         // Apply damage to reduce armor and structure
-        unit.ApplyDamage(15, parts[0]); // Center Torso: 10 armor -> 0, 5 structure -> 0
-        unit.ApplyDamage(20, parts[1]); // Left Arm: 15 armor -> 0, 8 structure -> 3
+        unit.ApplyArmorAndStructureDamage(15, parts[0]); // Center Torso: 10 armor -> 0, 5 structure -> 0
+        unit.ApplyArmorAndStructureDamage(20, parts[1]); // Left Arm: 15 armor -> 0, 8 structure -> 3
         
         // Act
         var totalCurrentStructure = unit.TotalCurrentStructure;
@@ -717,14 +717,14 @@ public class UnitTests
         unit.TotalCurrentStructure.ShouldBe(25);
         
         // Act - Apply damage to one part
-        unit.ApplyDamage(5, parts[0]); // Reduce Center Torso armor by 5
+        unit.ApplyArmorAndStructureDamage(5, parts[0]); // Reduce Center Torso armor by 5
         
         // Assert - Check updated values
         unit.TotalCurrentArmor.ShouldBe(40); // 5 + 15 + 20
         unit.TotalCurrentStructure.ShouldBe(25); // Structure unchanged
         
         // Act - Apply more damage to penetrate armor and damage structure
-        unit.ApplyDamage(8, parts[0]); // Reduce remaining CT armor (5) and damage structure (3)
+        unit.ApplyArmorAndStructureDamage(8, parts[0]); // Reduce remaining CT armor (5) and damage structure (3)
         
         // Assert - Check updated values
         unit.TotalCurrentArmor.ShouldBe(35); // 0 + 15 + 20

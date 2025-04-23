@@ -119,7 +119,7 @@ public class PlayerTests
         var destroyedUnit = CreateMech();
         // Destroy the head of the destroyed unit
         var headPart = destroyedUnit.Parts.FirstOrDefault(p => p.Location == PartLocation.Head);
-        destroyedUnit.ApplyDamage(100, headPart!);
+        destroyedUnit.ApplyArmorAndStructureDamage(100, headPart!);
         player.AddUnit(aliveUnit);
         player.AddUnit(destroyedUnit);
         player.AliveUnits.ShouldBe([aliveUnit]);

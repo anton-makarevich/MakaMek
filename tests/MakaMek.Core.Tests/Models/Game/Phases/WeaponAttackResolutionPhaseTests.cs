@@ -274,7 +274,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var head = _player1Unit2.Parts.First(p => p.Location == PartLocation.Head);
         var lethalDamage = head.MaxArmor + head.MaxStructure + 1;
         
-        _player1Unit2.ApplyDamage(lethalDamage, head); // Apply lethal damage();
+        _player1Unit2.ApplyArmorAndStructureDamage(lethalDamage, head); // Apply lethal damage();
 
         // Act
         _sut.Enter();

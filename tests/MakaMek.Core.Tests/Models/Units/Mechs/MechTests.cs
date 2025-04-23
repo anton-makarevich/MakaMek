@@ -294,7 +294,7 @@ public class MechTests
         var headPart = mech.Parts.First(p => p.Location == PartLocation.Head);
         
         // Act
-        mech.ApplyDamage(100, headPart);
+        mech.ApplyArmorAndStructureDamage(100, headPart);
         // Assert
         mech.Status.ShouldBe(UnitStatus.Destroyed);
 
@@ -303,7 +303,7 @@ public class MechTests
         var centerTorsoPart = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
 
         // Act
-        mech.ApplyDamage(100, centerTorsoPart);
+        mech.ApplyArmorAndStructureDamage(100, centerTorsoPart);
         // Assert
         mech.Status.ShouldBe(UnitStatus.Destroyed);
     }

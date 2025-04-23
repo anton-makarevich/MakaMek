@@ -603,7 +603,7 @@ public class BaseGameTests : BaseGame
         var aliveMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
         var destroyedMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
         var headPart = destroyedMech.Parts.FirstOrDefault(p => p.Location == PartLocation.Head);
-        destroyedMech.ApplyDamage(100, headPart!);
+        destroyedMech.ApplyArmorAndStructureDamage(100, headPart!);
 
         // Player 1: Ready, has alive unit
         var player1 = new Player(Guid.NewGuid(), "Player1")
