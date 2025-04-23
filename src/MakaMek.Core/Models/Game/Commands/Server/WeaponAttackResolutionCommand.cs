@@ -96,6 +96,22 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                     hitLocation.Location,
                     hitLocation.Damage,
                     locationRollTotal));
+
+                // Add critical hit/component info if present
+                if (hitLocation.CriticalHits is not { Length: > 0 }) continue;
+                var targetUnit = game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.TargetId);
+                var part = targetUnit?.Parts.FirstOrDefault(p => p.Location == hitLocation.Location);
+                foreach (var slot in hitLocation.CriticalHits)
+                {
+                    var comp = part?.GetComponentAtSlot(slot);
+                    if (comp == null) continue;
+                    var compName = comp.Name;
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_CriticalHit"),
+                        hitLocation.Location,
+                        slot,
+                        compName));
+                }
             }
         }
         else
