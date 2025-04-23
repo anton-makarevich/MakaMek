@@ -750,8 +750,7 @@ public class UnitTests
             Location = PartLocation.LeftArm,
             Slots = [0, 1]
         };
-        
-        var initialHeat = unit.CurrentHeat;
+
         var initialAmmoShots = ammo.RemainingShots;
         
         // Act
@@ -1034,6 +1033,24 @@ public class UnitTests
         
         // Assert
         result.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void ApplyDamage_WithCriticalHits_DestroysComponentAtSlot()
+    {
+        // Arrange
+        var leftArm = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 5);
+        var critComponent = new TestComponent("CritComp");
+        leftArm.TryAddComponent(critComponent, [2]);
+        var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
+        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], [2]);
+    
+        // Pre-assert: component is not destroyed
+        critComponent.IsDestroyed.ShouldBeFalse();
+        // Act
+        unit.ApplyDamage([hitLocation]);
+        // Assert
+        critComponent.IsDestroyed.ShouldBeTrue();
     }
     
     // Helper class for testing generic methods
