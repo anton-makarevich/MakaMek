@@ -7,13 +7,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 
 public class TorsoTests
 {
-    private class TestTorso : Torso
-    {
-        public TestTorso(string name, PartLocation location, int maxArmor, int maxRearArmor, int maxStructure) 
-            : base(name, location, maxArmor, maxRearArmor, maxStructure)
-        {
-        }
-    }
+    private class TestTorso(string name, PartLocation location, int maxArmor, int maxRearArmor, int maxStructure)
+        : Torso(name, location, maxArmor, maxRearArmor, maxStructure);
 
     [Theory]
     [InlineData(5, 10, 3, 5, 0)] // Front damage less than armor
@@ -146,5 +141,18 @@ public class TorsoTests
 
         // Assert
         torso.Facing.ShouldBe(HexDirection.TopRight, "Torso should match unit facing after reset");
+    }
+
+    [Fact]
+    public void BlowOff_ShouldReturnFalse()
+    {
+        var torso = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
+        
+        // Act
+        var isBlownOff = torso.BlowOff();
+        
+        // Assert
+        isBlownOff.ShouldBeFalse();
+        torso.IsBlownOff.ShouldBeFalse();
     }
 }
