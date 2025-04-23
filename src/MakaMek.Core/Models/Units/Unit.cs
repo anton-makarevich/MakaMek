@@ -277,14 +277,19 @@ public abstract class Unit
         foreach (var hitLocation in hitLocations)
         {
             var targetPart = _parts.Find(p => p.Location == hitLocation.Location);
-            if (targetPart != null)
+            if (targetPart == null) continue;
+            ApplyArmorAndStructureDamage(hitLocation.Damage, targetPart);
+            // Handle critical hits if present
+            if (hitLocation.CriticalHits == null) continue;
+            foreach (var slot in hitLocation.CriticalHits)
             {
-                ApplyDamage(hitLocation.Damage, targetPart);
+                var component = targetPart.GetComponentAtSlot(slot);
+                component?.Hit();
             }
         }
     }
 
-    internal virtual void ApplyDamage(int damage, UnitPart targetPart)
+    internal virtual void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart)
     {
         var remainingDamage = targetPart.ApplyDamage(damage);
         
@@ -295,7 +300,7 @@ public abstract class Unit
         var transferPart = _parts.Find(p => p.Location == transferLocation.Value);
         if (transferPart != null)
         {
-            ApplyDamage(remainingDamage, transferPart);
+            ApplyArmorAndStructureDamage(remainingDamage, transferPart);
         }
     }
 

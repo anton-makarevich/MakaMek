@@ -73,9 +73,9 @@ public class Mech : Unit
         _ => null
     };
 
-    internal override void ApplyDamage(int damage, UnitPart targetPart)
+    internal override void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart)
     {
-        base.ApplyDamage(damage, targetPart);
+        base.ApplyArmorAndStructureDamage(damage, targetPart);
         var head = _parts.Find(p => p.Location == PartLocation.Head);
         if (head is { IsDestroyed: true })
         {
