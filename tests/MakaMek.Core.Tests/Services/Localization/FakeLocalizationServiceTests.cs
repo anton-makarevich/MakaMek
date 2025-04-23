@@ -29,6 +29,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_ClusterRoll", "Cluster Roll: {0}")]
     [InlineData("Command_WeaponAttackResolution_HitLocations", "Hit Locations:")]
     [InlineData("Command_WeaponAttackResolution_HitLocation", "{0}: {1} damage (Roll: {2})")]
+    [InlineData("Command_WeaponAttackResolution_HitLocationTransfer", "{0} → {1}: {2} damage (Roll: {3})")]
     [InlineData("Command_WeaponAttackResolution_CriticalHit", "Critical hit in {0} slot {1}: {2}")]
     [InlineData("Command_WeaponAttackResolution_CritRoll", "Critical Roll: {0}")]
     [InlineData("Command_WeaponAttackResolution_NumCrits", "Num Crits: {0}")]
