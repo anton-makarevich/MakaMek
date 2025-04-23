@@ -528,9 +528,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
         data.CriticalHits.ShouldNotBeNull();
-        data.CriticalHits.Length.ShouldBe(2);
-        data.CriticalHits.ShouldContain(10);
-        data.CriticalHits.ShouldContain(2);
+        data.CriticalHits.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.CriticalHits.Length.ShouldBe(2);
+        data.CriticalHits.CriticalHits.ShouldContain(10);
+        data.CriticalHits.CriticalHits.ShouldContain(2);
     }
     
     [Fact]
@@ -552,9 +553,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
         data.CriticalHits.ShouldNotBeNull();
-        data.CriticalHits.Length.ShouldBe(2);
-        data.CriticalHits.ShouldContain(6);
-        data.CriticalHits.ShouldContain(2);
+        data.CriticalHits.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.CriticalHits.Length.ShouldBe(2);
+        data.CriticalHits.CriticalHits.ShouldContain(6);
+        data.CriticalHits.CriticalHits.ShouldContain(2);
     }
     [Fact]
     public void DetermineHitLocation_ShouldSetCriticalHits_InSmallPart_WhenDamageExceedsArmorAndCritsRolled()
@@ -574,9 +576,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
         data.CriticalHits.ShouldNotBeNull();
-        data.CriticalHits.Length.ShouldBe(2);
-        data.CriticalHits.ShouldContain(1);
-        data.CriticalHits.ShouldContain(2);
+        data.CriticalHits.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.CriticalHits.Length.ShouldBe(2);
+        data.CriticalHits.CriticalHits.ShouldContain(1);
+        data.CriticalHits.CriticalHits.ShouldContain(2);
     }
 
     [Fact]
@@ -625,8 +628,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
         data.CriticalHits.ShouldNotBeNull();
-        data.CriticalHits.Length.ShouldBe(1);
-        data.CriticalHits[0].ShouldBe(0);
+        data.CriticalHits.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.CriticalHits.Length.ShouldBe(1);
+        data.CriticalHits.CriticalHits[0].ShouldBe(0);
     }
     
     [Fact]

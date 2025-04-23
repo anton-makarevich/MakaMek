@@ -1043,7 +1043,7 @@ public class UnitTests
         var critComponent = new TestComponent("CritComp");
         leftArm.TryAddComponent(critComponent, [2]);
         var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
-        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], [2]);
+        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], new CriticalHitsData(10, 1, [2]));
     
         // Pre-assert: component is not destroyed
         critComponent.IsDestroyed.ShouldBeFalse();

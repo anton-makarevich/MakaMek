@@ -10,7 +10,6 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
-using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
@@ -342,7 +341,7 @@ public class WeaponAttackResolutionCommandTests
     }
 
     [Fact]
-    public void Format_Includes_CriticalHit_Info_When_Criticals_Present()
+    public void Format_Includes_CriticalHit_Info_When_CriticalHits_Present()
     {
         // Arrange: create a hit with a critical hit in slot 2, with a component
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -350,7 +349,12 @@ public class WeaponAttackResolutionCommandTests
         leftArm.TryAddComponent(critComponent, [2]);
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.LeftArm, 5, new List<DiceResult>(), [2])
+            new(
+                PartLocation.LeftArm,
+                5,
+                new List<DiceResult>(),
+                new CriticalHitsData(10, 1, [2])
+            )
         };
         var hitLocationsData = new AttackHitLocationsData(
             hitLocations,
