@@ -235,6 +235,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Get hit location based on the roll and attack direction
         var hitLocation = Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
         
+        // Store the initial location in case we need to transfer
+        var initialLocation = hitLocation;
+        var locationTransferred = false;
+        
         // Check if the location is already destroyed and transfer if needed
         var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
         while (part is { IsDestroyed: true })
@@ -244,6 +248,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 break;
                 
             hitLocation = nextLocation.Value;
+            locationTransferred = true;
             part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
         }
         
@@ -251,7 +256,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         var armor = part?.CurrentArmor ?? 0;
         if (part == null || damage <= armor || part.CurrentStructure <= 0)
-            return new HitLocationData(hitLocation, damage, locationRoll, critsData);
+            return new HitLocationData(
+                hitLocation, 
+                damage, 
+                locationRoll, 
+                critsData,
+                locationTransferred ? initialLocation : null);
         var critRoll = Game.DiceRoller.Roll2D6().Sum(d => d.Result);
         var numCrits = Game.RulesProvider.GetNumCriticalHits(critRoll, part.Location);
         int[]? crits = null;
@@ -260,7 +270,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             crits = DetermineCriticalHitSlots(part, numCrits);
         }
         critsData = new CriticalHitsData(critRoll, numCrits, crits);
-        return new HitLocationData(hitLocation, damage, locationRoll, critsData);
+        return new HitLocationData(
+            hitLocation, 
+            damage, 
+            locationRoll, 
+            critsData,
+            locationTransferred ? initialLocation : null);
     }
 
     private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits)

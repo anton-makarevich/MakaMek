@@ -91,11 +91,25 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             foreach (var hitLocation in ResolutionData.HitLocationsData.HitLocations)
             {
                 var locationRollTotal = hitLocation.LocationRoll.Sum(d => d.Result);
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_WeaponAttackResolution_HitLocation"),
-                    hitLocation.Location,
-                    hitLocation.Damage,
-                    locationRollTotal));
+                
+                // If there was a location transfer, show both the initial and final locations
+                if (hitLocation.InitialLocation.HasValue && hitLocation.InitialLocation.Value != hitLocation.Location)
+                {
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer"),
+                        hitLocation.InitialLocation.Value,
+                        hitLocation.Location,
+                        hitLocation.Damage,
+                        locationRollTotal));
+                }
+                else
+                {
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_HitLocation"),
+                        hitLocation.Location,
+                        hitLocation.Damage,
+                        locationRollTotal));
+                }
 
                 // Print crit roll and number if CriticalHits is present
                 if (hitLocation.CriticalHits == null)
