@@ -595,11 +595,13 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.RightArm);
         DiceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(4), new(4) },
-            new List<DiceResult> { new(5), new(3) }
+            new List<DiceResult> { new(3), new(3) }
         );
         var sut = new WeaponAttackResolutionPhase(Game);
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
-        data.CriticalHits.ShouldBeNull();
+        data.CriticalHits.ShouldNotBeNull();
+        data.CriticalHits.Roll.ShouldBe(6);
+        data.CriticalHits.NumCriticalHits.ShouldBe(0);
     }
 
     [Theory]
@@ -650,7 +652,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         );
         var sut = new WeaponAttackResolutionPhase(Game);
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
-        data.CriticalHits.ShouldBeNull();
+        data.CriticalHits?.CriticalHits.ShouldBeNull();
     }
 
     [Fact]
