@@ -94,7 +94,8 @@ public class FakeLocalizationServiceTests
     // Deployment actions
     [InlineData("Action_SelectUnitToDeploy", "Select Unit")]
     [InlineData("Action_SelectDeploymentHex", "Select Hex")]
-
+    // Weapon attack resolution
+    [InlineData("Command_WeaponAttackResolution_CriticalHit", "Critical hit in {0} slot {1}: {2}")]
     // Default
     [InlineData("Key_Not_Found", "Key_Not_Found")]
     public void GetString_ReturnsExpectedString(string key, string expected)
