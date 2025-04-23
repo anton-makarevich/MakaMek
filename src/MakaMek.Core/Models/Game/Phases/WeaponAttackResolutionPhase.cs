@@ -190,7 +190,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             // Calculate damage for this cluster
             var clusterDamage = weapon.ClusterSize * damagePerMissile;
             
-            // Determine hit location for this cluster
+            // Determine the hit location for this cluster
             var hitLocationData = DetermineHitLocation(attackDirection, clusterDamage, weapon.Target);
             
             // Add to hit locations and update total damage
@@ -204,7 +204,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             // Calculate damage for the partial cluster
             var partialClusterDamage = remainingMissiles * damagePerMissile;
             
-            // Determine hit location for the partial cluster
+            // Determine the hit location for the partial cluster
             var hitLocationData = DetermineHitLocation(attackDirection, partialClusterDamage, weapon.Target);
             
             // Add to hit locations and update total damage
@@ -231,21 +231,22 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Get hit location based on the roll and attack direction
         var hitLocation = Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
         
-        int[]? crits = null;
-        if (target == null) return new HitLocationData(hitLocation, damage, locationRoll, crits);
+        CriticalHitsData? critsData = null;
+        if (target == null) return new HitLocationData(hitLocation, damage, locationRoll, critsData);
         
         var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
         var armor = part?.CurrentArmor ?? 0;
         if (part == null || damage <= armor || part.CurrentStructure <= 0)
-            return new HitLocationData(hitLocation, damage, locationRoll, crits);
+            return new HitLocationData(hitLocation, damage, locationRoll, critsData);
         var critRoll = Game.DiceRoller.Roll2D6().Sum(d => d.Result);
         var numCrits = Game.RulesProvider.GetNumCriticalHits(critRoll, part.Location);
+        int[]? crits = null;
         if (numCrits > 0)
         {
             crits = DetermineCriticalHitSlots(part, numCrits);
         }
-        
-        return new HitLocationData(hitLocation, damage, locationRoll, crits);
+        critsData = new CriticalHitsData(critRoll, numCrits, crits);
+        return new HitLocationData(hitLocation, damage, locationRoll, critsData);
     }
 
     private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits)

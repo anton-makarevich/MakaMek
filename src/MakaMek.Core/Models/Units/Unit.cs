@@ -280,8 +280,8 @@ public abstract class Unit
             if (targetPart == null) continue;
             ApplyArmorAndStructureDamage(hitLocation.Damage, targetPart);
             // Handle critical hits if present
-            if (hitLocation.CriticalHits == null) continue;
-            foreach (var slot in hitLocation.CriticalHits)
+            if (hitLocation.CriticalHits?.CriticalHits == null) continue;
+            foreach (var slot in hitLocation.CriticalHits.CriticalHits)
             {
                 var component = targetPart.GetComponentAtSlot(slot);
                 component?.Hit();

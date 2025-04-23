@@ -29,6 +29,9 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_ClusterRoll", "Cluster Roll: {0}")]
     [InlineData("Command_WeaponAttackResolution_HitLocations", "Hit Locations:")]
     [InlineData("Command_WeaponAttackResolution_HitLocation", "{0}: {1} damage (Roll: {2})")]
+    [InlineData("Command_WeaponAttackResolution_CriticalHit", "Critical hit in {0} slot {1}: {2}")]
+    [InlineData("Command_WeaponAttackResolution_CritRoll", "Critical Roll: {0}")]
+    [InlineData("Command_WeaponAttackResolution_NumCrits", "Num Crits: {0}")]
     [InlineData("Command_TurnEnded", "{0} has ended their turn.")]
     [InlineData("Command_TurnIncremented", "Turn {0} has started.")]
     [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game.")]
@@ -94,8 +97,7 @@ public class FakeLocalizationServiceTests
     // Deployment actions
     [InlineData("Action_SelectUnitToDeploy", "Select Unit")]
     [InlineData("Action_SelectDeploymentHex", "Select Hex")]
-    // Weapon attack resolution
-    [InlineData("Command_WeaponAttackResolution_CriticalHit", "Critical hit in {0} slot {1}: {2}")]
+    
     // Default
     [InlineData("Key_Not_Found", "Key_Not_Found")]
     public void GetString_ReturnsExpectedString(string key, string expected)
