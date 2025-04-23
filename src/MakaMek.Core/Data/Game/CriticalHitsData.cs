@@ -6,5 +6,6 @@ namespace Sanet.MakaMek.Core.Data.Game;
 public record CriticalHitsData(
     int Roll,
     int NumCriticalHits,
-    int[]? CriticalHits
+    int[]? CriticalHits,
+    bool IsBlownOff = false // Indicates if the location is blown off (for head and limbs on critical roll of 12)
 );

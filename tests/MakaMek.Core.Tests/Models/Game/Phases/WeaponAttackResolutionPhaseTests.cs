@@ -812,8 +812,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, head.CurrentArmor + 1, mech);
         
         // Assert
-        data.IsBlownOff.ShouldBeTrue();
-        data.CriticalHits.ShouldBeNull(); // No critical hits when location is blown off
+        data.CriticalHits!.IsBlownOff.ShouldBeTrue();
+        data.CriticalHits.ShouldNotBeNull(); 
+        data.CriticalHits.NumCriticalHits.ShouldBe(0);
     }
     
     [Fact]
@@ -850,7 +851,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, centerTorso.CurrentArmor + 1, mech);
         
         // Assert
-        data.IsBlownOff.ShouldBeFalse();
+        data.CriticalHits!.IsBlownOff.ShouldBeFalse();
         data.CriticalHits.ShouldNotBeNull();
         data.CriticalHits.NumCriticalHits.ShouldBe(3);
     }

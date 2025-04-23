@@ -274,9 +274,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 hitLocation,
                 damage,
                 locationRoll,
-                 null,
-                locationTransferred ? initialLocation : null,
-                isBlownOff);
+                new CriticalHitsData(critRoll, 0, null, isBlownOff),
+                locationTransferred ? initialLocation : null);
         }
         
         if (numCrits > 0)
@@ -288,9 +287,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             hitLocation,
             damage,
             locationRoll,
-            crits != null ? new CriticalHitsData(critRoll, numCrits, crits) : null,
-            locationTransferred ? initialLocation : null,
-            isBlownOff);
+            new CriticalHitsData(critRoll, numCrits, crits, isBlownOff),
+            locationTransferred ? initialLocation : null);
     }
 
     private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits)

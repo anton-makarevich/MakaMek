@@ -92,6 +92,8 @@ public class WeaponAttackResolutionCommandTests
             .Returns("Critical roll: {0}");
         _localizationService.GetString("Command_WeaponAttackResolution_NumCrits")
             .Returns("Criticals: {0}");
+        _localizationService.GetString("Command_WeaponAttackResolution_BlownOff")
+            .Returns("LOCATION BLOWN OFF: {0}");
     }
 
     private WeaponAttackResolutionCommand CreateHitCommand()
@@ -484,5 +486,53 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         output.ShouldContain("LeftArm → LeftTorso: 5 damage");
+    }
+
+    [Fact]
+    public void Format_Includes_BlownOff_Message_When_Location_Is_Blown_Off()
+    {
+        // Arrange: create a hit with a blown-off location (head)
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.Head,
+                5,
+                [new DiceResult(6), new DiceResult(6)], // Roll of 12
+                new CriticalHitsData(5,0,null,true), 
+                null 
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            [],
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("LOCATION BLOWN OFF: Head");
+        output.ShouldContain("Critical roll:");
+        output.ShouldNotContain("Criticals:");
     }
 }

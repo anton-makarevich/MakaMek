@@ -31,6 +31,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_HitLocation", "{0}: {1} damage (Roll: {2})")]
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer", "{0} → {1}: {2} damage (Roll: {3})")]
     [InlineData("Command_WeaponAttackResolution_CriticalHit", "Critical hit in {0} slot {1}: {2}")]
+    [InlineData("Command_WeaponAttackResolution_BlownOff", "Critical hit in {0}, location blown off")]
     [InlineData("Command_WeaponAttackResolution_CritRoll", "Critical Roll: {0}")]
     [InlineData("Command_WeaponAttackResolution_NumCrits", "Num Crits: {0}")]
     [InlineData("Command_TurnEnded", "{0} has ended their turn.")]
