@@ -709,4 +709,79 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Verify no commands were published as the exception happens before that
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackResolutionCommand>());
     }
+
+    [Fact]
+    public void DetermineHitLocation_ShouldTransferToNextLocation_WhenInitialLocationIsDestroyed()
+    {
+        // Arrange
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+        
+        // Create a mech with multiple parts including a destroyed left arm
+        var leftArm = new Arm("LeftArm", PartLocation.LeftArm, 5, 5);
+        var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5,10);
+        var centerTorso = new CenterTorso("CenterTorso", 15, 10,15);
+        
+        // Destroy the left arm
+        leftArm.ApplyDamage(10); // Apply enough damage to destroy it
+        leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
+        
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
+        
+        // Configure the rules provider to return LeftArm as the initial hit location
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.LeftArm);
+        
+        // Configure dice rolls for hit location
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(5), new(5) } // 10 for hit location roll
+        );
+        
+        var sut = new WeaponAttackResolutionPhase(Game);
+        
+        // Act
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
+        
+        // Assert
+        // Should have transferred from LeftArm to LeftTorso (based on Mech's GetTransferLocation implementation)
+        data.Location.ShouldBe(PartLocation.LeftTorso);
+    }
+    
+    [Fact]
+    public void DetermineHitLocation_ShouldTransferMultipleTimes_WhenMultipleLocationsInChainAreDestroyed()
+    {
+        // Arrange
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+        
+        // Create a mech with multiple parts including destroyed left arm and left torso
+        var leftArm = new Arm("LeftArm", PartLocation.LeftArm, 5, 5);
+        var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5,10);
+        var centerTorso = new CenterTorso("CenterTorso", 15, 10,15);
+        
+        // Destroy the left arm and left torso
+        leftArm.ApplyDamage(10); // Apply enough damage to destroy it
+        leftTorso.ApplyDamage(20); // Apply enough damage to destroy it
+        
+        leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
+        leftTorso.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
+        
+        var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
+        
+        // Configure the rules provider to return LeftArm as the initial hit location
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.LeftArm);
+        
+        // Configure dice rolls for hit location
+        DiceRoller.Roll2D6().Returns(
+            new List<DiceResult> { new(5), new(5) } // 10 for hit location roll
+        );
+        
+        var sut = new WeaponAttackResolutionPhase(Game);
+        
+        // Act
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
+        
+        // Assert
+        // Should have transferred from LeftArm to LeftTorso to CenterTorso
+        data.Location.ShouldBe(PartLocation.CenterTorso);
+    }
 }

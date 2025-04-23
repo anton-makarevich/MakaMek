@@ -236,17 +236,16 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var hitLocation = Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
         
         // Check if the location is already destroyed and transfer if needed
-        
-            var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
-            while (part is { IsDestroyed: true })
-            {
-                var nextLocation = part.GetNextTransferLocation();
-                if (nextLocation == null || nextLocation == hitLocation)
-                    break;
-                    
-                hitLocation = nextLocation.Value;
-                part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
-            }
+        var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
+        while (part is { IsDestroyed: true })
+        {
+            var nextLocation = part.GetNextTransferLocation();
+            if (nextLocation == null || nextLocation == hitLocation)
+                break;
+                
+            hitLocation = nextLocation.Value;
+            part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
+        }
         
         CriticalHitsData? critsData = null;
         
