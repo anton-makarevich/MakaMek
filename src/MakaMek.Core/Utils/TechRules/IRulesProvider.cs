@@ -67,5 +67,5 @@ public interface IRulesProvider
     int GetMovementHeatPoints(MovementType movementType, int movementPointSpent);
 
     // Returns number of criticals for a given roll/location (BattleTech critical hit table)
-    int GetNumCriticalHits(int roll, PartLocation location);
+    int GetNumCriticalHits(int roll);
 }

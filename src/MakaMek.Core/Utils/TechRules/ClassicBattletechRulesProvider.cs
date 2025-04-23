@@ -409,15 +409,15 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         };
     }
 
-    public int GetNumCriticalHits(int roll, PartLocation location)
+    public int GetNumCriticalHits(int roll)
     {
-        // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
+        // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (always return 3 for roll of 12)
         return roll switch
         {
             <= 7 => 0,
             8 or 9 => 1,
             10 or 11 => 2,
-            12 => location is PartLocation.CenterTorso or PartLocation.LeftTorso or PartLocation.RightTorso ? 3 : 1,
+            12 => 3,
             _ => 0
         };
     }
