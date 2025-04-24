@@ -31,6 +31,7 @@ public class UnitPartTests
         part.Components.ShouldBeEmpty();
         part.IsDestroyed.ShouldBeFalse();
         part.GetNextTransferLocation().ShouldBeNull();
+        part.HitSlots.ShouldBeEmpty();
     }
 
     [Theory]
@@ -220,6 +221,72 @@ public class UnitPartTests
         var sut = testUnit.Parts.First(p=>p.Location==PartLocation.LeftArm);
 
         sut.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void CriticalHit_AddsSlotToHitSlots()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        
+        // Act
+        part.CriticalHit(3);
+        
+        // Assert
+        part.HitSlots.ShouldContain(3);
+        part.HitSlots.Count.ShouldBe(1);
+    }
+    
+    [Fact]
+    public void CriticalHit_DamagesComponentInSlot()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var component = new TestComponent("Test Component", [2, 3, 4]);
+        part.TryAddComponent(component);
+        
+        // Act
+        part.CriticalHit(3);
+        
+        // Assert
+        component.IsDestroyed.ShouldBeTrue();
+        component.Hits.ShouldBe(1);
+    }
+    
+    [Fact]
+    public void CriticalHit_DoesNotDamageAlreadyDestroyedComponent()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var component = new TestComponent("Test Component", [2, 3, 4]);
+        part.TryAddComponent(component);
+        component.Hit(); // Destroy the component first
+        
+        // Act
+        part.CriticalHit(3);
+        
+        // Assert
+        component.IsDestroyed.ShouldBeTrue();
+        component.Hits.ShouldBe(1); // Hits should still be 1, not 2
+    }
+    
+    [Fact]
+    public void CriticalHit_HandlesMultipleHitsToSameComponent()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var component = new TestComponent("Test Component", [2, 3, 4]);
+        part.TryAddComponent(component);
+        
+        // Act
+        part.CriticalHit(2);
+        part.CriticalHit(3);
+        part.CriticalHit(4);
+        
+        // Assert
+        component.IsDestroyed.ShouldBeTrue();
+        component.Hits.ShouldBe(1); // Component should only be hit once
+        part.HitSlots.Count.ShouldBe(3); // But all slots should be marked as hit
     }
 
     private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size)

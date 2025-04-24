@@ -54,7 +54,7 @@ public class UnitTests
                 ?null
                 : PartLocation.CenterTorso;
 
-        public override CriticalHitsData? CalculateCriticalHitsData(PartLocation location, int damage, IDiceRoller diceRoller)
+        public override CriticalHitsData CalculateCriticalHitsData(PartLocation location, int damage, IDiceRoller diceRoller)
         {
             throw new NotImplementedException();
         }
@@ -1020,7 +1020,6 @@ public class UnitTests
         var heatData = unit.GetHeatData(rulesProvider);
         
         // Assert
-        var expectedHeatSinks = unit.GetAllComponents<HeatSink>().Count();
         heatData.DissipationData.HeatSinks.ShouldBe(1); //another one is destroyed
         heatData.DissipationData.EngineHeatSinks.ShouldBe(10); // Default engine heat sinks
         heatData.DissipationData.DissipationPoints.ShouldBe(11);
@@ -1043,7 +1042,6 @@ public class UnitTests
         var heatData = unit.GetHeatData(rulesProvider);
         
         // Assert
-        var expectedHeatSinks = unit.GetAllComponents<HeatSink>().Count();
         heatData.DissipationData.HeatSinks.ShouldBe(0);
         heatData.DissipationData.EngineHeatSinks.ShouldBe(10); // Default engine heat sinks
         heatData.DissipationData.DissipationPoints.ShouldBe(10);
@@ -1126,6 +1124,73 @@ public class UnitTests
         leftArm.IsDestroyed.ShouldBeTrue();
     }
     
+    [Fact]
+    public void ApplyDamage_ShouldApplyCriticalHits_WhenCriticalHitsArePresent()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var component = new TestComponent("Test Component", 3);
+        targetPart.TryAddComponent(component);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 10,[new DiceResult(3),new DiceResult(5)],
+                new CriticalHitsData(10, 2, [0, 2]))
+        };
+        
+        // Act
+        unit.ApplyDamage(hitLocations);
+        
+        // Assert
+        targetPart.HitSlots.Count.ShouldBe(2);
+        targetPart.HitSlots.ShouldContain(0);
+        targetPart.HitSlots.ShouldContain(2);
+        component.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ApplyDamage_ShouldBlowOffPart_WhenCriticalHitsBlownOffIsTrue()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 10, [new DiceResult(3),new DiceResult(5)],
+                new CriticalHitsData(12, 0, null, true))
+        };
+        
+        // Act
+        unit.ApplyDamage(hitLocations);
+        
+        // Assert
+        targetPart.IsBlownOff.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ApplyDamage_ShouldNotApplyCriticalHits_WhenCriticalHitsAreNull()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var component = new TestComponent("Test Component", 3);
+        targetPart.TryAddComponent(component);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 10, [new DiceResult(3),new DiceResult(5)])
+        };
+        
+        // Act
+        unit.ApplyDamage(hitLocations);
+        
+        // Assert
+        targetPart.HitSlots.Count.ShouldBe(0);
+        component.IsDestroyed.ShouldBeFalse();
+    }
+
     // Helper class for testing generic methods
     private class TestDerivedComponent(string name, int size = 1) : TestComponent(name, size);
 }
