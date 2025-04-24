@@ -252,98 +252,15 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
         }
         
-        CriticalHitsData? critsData = null;
-        
-        var armor = part?.CurrentArmor ?? 0;
-        if (part == null || damage <= armor || part.CurrentStructure <= 0)
-            return new HitLocationData(
-                hitLocation, 
-                damage, 
-                locationRoll, 
-                critsData,
-                locationTransferred ? initialLocation : null);
-        var critRoll = Game.DiceRoller.Roll2D6().Sum(d => d.Result);
-        var numCrits = Game.RulesProvider.GetNumCriticalHits(critRoll);
-        int[]? crits = null;
-        
-        // Check if the location can be blown off (head or limbs on a roll of 12)
-        var isBlownOff = part.CanBeBlownOff && numCrits ==3;
-        if (isBlownOff)
-        {
-            return new HitLocationData(
-                hitLocation,
-                damage,
-                locationRoll,
-                new CriticalHitsData(critRoll, 0, null, isBlownOff),
-                locationTransferred ? initialLocation : null);
-        }
-        
-        if (numCrits > 0)
-        {
-            crits = DetermineCriticalHitSlots(part, numCrits);
-        }
+        // Calculate critical hits using the unit's implementation
+        var critsData = target.CalculateCriticalHitsData(hitLocation, damage, Game.DiceRoller);
         
         return new HitLocationData(
-            hitLocation,
-            damage,
-            locationRoll,
-            new CriticalHitsData(critRoll, numCrits, crits, isBlownOff),
+            hitLocation, 
+            damage, 
+            locationRoll, 
+            critsData,
             locationTransferred ? initialLocation : null);
-    }
-
-    private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits)
-    {
-        var availableSlots = Enumerable.Range(0, part.TotalSlots)
-            .Where(slot =>
-                part.GetComponentAtSlot(slot) is { IsDestroyed: false, IsActive: true })
-            .ToList();
-        if (availableSlots.Count == 0 || numCriticalHits == 0)
-            return null;
-        var result = new List<int>();
-        for (var i = 0; i < numCriticalHits; i++)
-        {
-            if (availableSlots.Count == 1)
-            {
-                result.Add(availableSlots[0]);
-                availableSlots.RemoveAt(0);
-                break;
-            }
-            var slot = -1;
-            // Roll for slot as per 6/12 slot logic
-            if (part.TotalSlots <= 6)
-            {
-                // 1d6, map 1-6 to 0-5
-                do {
-                    slot = Game.DiceRoller.RollD6().Result - 1;
-                } while (!availableSlots.Contains(slot));
-            }
-            else
-            {
-                int group;
-                do {
-                    var groupRoll = Game.DiceRoller.RollD6().Result; // 1d6
-                    group = groupRoll <= 3 ? 0 : 1;
-                    var groupSlots = availableSlots.Where(s => group == 0 ? s < 6 : s >= 6).ToList();
-                    if (groupSlots.Count == 1)
-                    {
-                        slot = groupSlots[0];
-                    }
-                    else if (groupSlots.Count > 1)
-                    {
-                        do
-                        {
-                            var slotRoll = Game.DiceRoller.RollD6().Result - 1;
-                            slot = group == 0 ? slotRoll : slotRoll + 6;
-                        } while (!groupSlots.Contains(slot));
-                    }
-                } while (!availableSlots.Contains(slot));
-            }
-
-            if (slot == -1) continue;
-            result.Add(slot);
-            availableSlots.Remove(slot);
-        }
-        return result.Count > 0 ? result.ToArray() : null;
     }
 
     /// <summary>

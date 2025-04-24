@@ -408,17 +408,4 @@ public class ClassicBattletechRulesProvider : IRulesProvider
             _ => 0 // No heat for other movement types
         };
     }
-
-    public int GetNumCriticalHits(int roll)
-    {
-        // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (always return 3 for roll of 12)
-        return roll switch
-        {
-            <= 7 => 0,
-            8 or 9 => 1,
-            10 or 11 => 2,
-            12 => 3,
-            _ => 0
-        };
-    }
 }

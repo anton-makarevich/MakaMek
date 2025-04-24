@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Models.Map;
@@ -149,5 +151,120 @@ public class Mech : Unit
         {
             torso.ResetRotation();
         }
+    }
+
+    /// <summary>
+    /// Calculates critical hit data for a specific location and damage
+    /// </summary>
+    /// <param name="location">The hit location</param>
+    /// <param name="damage">The damage applied</param>
+    /// <param name="diceRoller">The dice roller to use for critical hit determination</param>
+    /// <returns>Critical hit data or null if no critical hits</returns>
+    public override CriticalHitsData? CalculateCriticalHitsData(
+        PartLocation location, 
+        int damage, 
+        IDiceRoller diceRoller)
+    {
+        var part = _parts.FirstOrDefault(p => p.Location == location);
+        if (part == null || damage <= part.CurrentArmor || part.CurrentStructure <= 0)
+            return null;
+            
+        var critRoll = diceRoller.Roll2D6().Sum(d => d.Result);
+        var numCrits = GetNumCriticalHits(critRoll);
+        int[]? crits = null;
+        
+        // Check if the location can be blown off (head or limbs on a roll of 12)
+        var isBlownOff = part.CanBeBlownOff && numCrits == 3;
+        if (isBlownOff)
+        {
+            return new CriticalHitsData(critRoll, 0, null, isBlownOff);
+        }
+        
+        if (numCrits > 0)
+        {
+            crits = DetermineCriticalHitSlots(part, numCrits, diceRoller);
+        }
+        
+        return new CriticalHitsData(critRoll, numCrits, crits, isBlownOff);
+    }
+
+    /// <summary>
+    /// Determines the number of critical hits based on the roll
+    /// </summary>
+    /// <param name="roll">The 2d6 roll result</param>
+    /// <returns>Number of critical hits (0-3)</returns>
+    internal int GetNumCriticalHits(int roll)
+    {
+        // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (always return 3 for roll of 12)
+        return roll switch
+        {
+            <= 7 => 0,
+            8 or 9 => 1,
+            10 or 11 => 2,
+            12 => 3,
+            _ => 0
+        };
+    }
+
+    /// <summary>
+    /// Determines which specific slots are affected by critical hits
+    /// </summary>
+    /// <param name="part">The unit part receiving critical hits</param>
+    /// <param name="numCriticalHits">Number of critical hits to determine</param>
+    /// <param name="diceRoller">The dice roller to use</param>
+    /// <returns>Array of slot indices affected by critical hits, or null if none</returns>
+    private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits, IDiceRoller diceRoller)
+    {
+        var availableSlots = Enumerable.Range(0, part.TotalSlots)
+            .Where(slot =>
+                part.GetComponentAtSlot(slot) is { IsDestroyed: false, IsActive: true })
+            .ToList();
+        if (availableSlots.Count == 0 || numCriticalHits == 0)
+            return null;
+        var result = new List<int>();
+        for (var i = 0; i < numCriticalHits; i++)
+        {
+            if (availableSlots.Count == 1)
+            {
+                result.Add(availableSlots[0]);
+                availableSlots.RemoveAt(0);
+                break;
+            }
+            var slot = -1;
+            // Roll for slot as per 6/12 slot logic
+            if (part.TotalSlots <= 6)
+            {
+                // 1d6, map 1-6 to 0-5
+                do {
+                    slot = diceRoller.RollD6().Result - 1;
+                } while (!availableSlots.Contains(slot));
+            }
+            else
+            {
+                int group;
+                do {
+                    var groupRoll = diceRoller.RollD6().Result; // 1d6
+                    group = groupRoll <= 3 ? 0 : 1;
+                    var groupSlots = availableSlots.Where(s => group == 0 ? s < 6 : s >= 6).ToList();
+                    if (groupSlots.Count == 1)
+                    {
+                        slot = groupSlots[0];
+                    }
+                    else if (groupSlots.Count > 1)
+                    {
+                        do
+                        {
+                            var slotRoll = diceRoller.RollD6().Result - 1;
+                            slot = group == 0 ? slotRoll : slotRoll + 6;
+                        } while (!groupSlots.Contains(slot));
+                    }
+                } while (!availableSlots.Contains(slot));
+            }
+
+            if (slot == -1) continue;
+            result.Add(slot);
+            availableSlots.Remove(slot);
+        }
+        return result.Count > 0 ? result.ToArray() : null;
     }
 }
