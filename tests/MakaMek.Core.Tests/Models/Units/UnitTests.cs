@@ -997,6 +997,53 @@ public class UnitTests
     }
     
     [Fact]
+    public void GetHeatData_WithHeatSinks_ReturnsDissipationDataConsidderingActiveHeatSinksOnly()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var rulesProvider = Substitute.For<IRulesProvider>();
+        
+        // Add heat sinks to the unit
+        var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
+        var destroyedHeatSink = new HeatSink();
+        destroyedHeatSink.Hit();
+        rightArmPart.TryAddComponent(destroyedHeatSink);
+        rightArmPart.TryAddComponent(new HeatSink());
+        
+        // Act
+        var heatData = unit.GetHeatData(rulesProvider);
+        
+        // Assert
+        var expectedHeatSinks = unit.GetAllComponents<HeatSink>().Count();
+        heatData.DissipationData.HeatSinks.ShouldBe(1); //another one is destroyed
+        heatData.DissipationData.EngineHeatSinks.ShouldBe(10); // Default engine heat sinks
+        heatData.DissipationData.DissipationPoints.ShouldBe(11);
+    }
+    
+    [Fact]
+    public void GetHeatData_DoesNoCountHeatSinksOnDestroyedParts()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var rulesProvider = Substitute.For<IRulesProvider>();
+        
+        // Add heat sinks to the unit
+        var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
+        rightArmPart.TryAddComponent(new HeatSink());
+        rightArmPart.TryAddComponent(new HeatSink());
+        rightArmPart.BlowOff(); // destroy the part
+        
+        // Act
+        var heatData = unit.GetHeatData(rulesProvider);
+        
+        // Assert
+        var expectedHeatSinks = unit.GetAllComponents<HeatSink>().Count();
+        heatData.DissipationData.HeatSinks.ShouldBe(0);
+        heatData.DissipationData.EngineHeatSinks.ShouldBe(10); // Default engine heat sinks
+        heatData.DissipationData.DissipationPoints.ShouldBe(10);
+    }
+    
+    [Fact]
     public void HasAvailableComponent_WithAvailableComponent_ReturnsTrue()
     {
         // Arrange
