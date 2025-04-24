@@ -1,0 +1,127 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Core.ViewModels.Wrappers;assembly=Sanet.MakaMek.Core"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Core.ViewModels;assembly=Sanet.MakaMek.Core"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="450"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.WeaponSelectionPanel"
+             x:DataType="viewModels:BattleMapViewModel"
+             x:CompileBindings="True">
+    <UserControl.Resources>
+        <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
+        <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
+        <converters:ComponentStatusBackgroundConverter x:Key="ComponentStatusBackgroundConverter"/>
+    </UserControl.Resources>
+    
+    <templatedControls:GamePanel
+        IsVisible="{Binding IsWeaponSelectionVisible}"
+        Title="Select weapons to attack"
+        CloseCommand="{Binding CloseWeaponSelectionCommand}"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Center">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*"
+              ColumnDefinitions="Auto,*"
+              Width="300">
+            <TextBlock 
+                Margin="10,0,0,0"
+                Grid.Column="0"
+                Grid.Row="0"
+                FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xe19b;"/>
+            <TextBlock
+                Margin="10,0,0,0"
+                Grid.Row="0"
+                Grid.Column="1"
+                Text="{Binding Attacker.Name}"/>
+            <TextBlock 
+                    Margin="10,0,0,0"
+                    Grid.Column="0"
+                    Grid.Row="1"
+                    FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05b;"/>
+            <TextBlock
+                    Margin="10,0,0,0"
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Text="{Binding SelectedUnit.Name}"/>
+            <ScrollViewer Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
+                <ItemsControl 
+                    Margin="10"
+                    ItemsSource="{Binding WeaponSelectionItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="wrappers:WeaponSelectionViewModel">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto"
+                                  Background="{Binding Weapon, Converter={StaticResource ComponentStatusBackgroundConverter}}"
+                                  RowDefinitions="*,*,*">
+                                <CheckBox 
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    Grid.RowSpan="3"
+                                    IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                    IsEnabled="{Binding IsEnabled}"
+                                    Margin="0,0,10,0"/>
+                                
+                                <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                          FontWeight="Bold"/>
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Grid.Row="1"
+                                    Orientation="Horizontal"
+                                    Spacing="5">
+                                    <StackPanel Orientation="Horizontal" Spacing="2">
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#x26a1;"/>
+                                        <TextBlock Text="{Binding Damage}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="2">
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf06d;"/>
+                                        <TextBlock Text="{Binding Heat}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="2"
+                                              IsVisible="{Binding RequiresAmmo}">
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf1e2;"/>
+                                        <TextBlock Text="{Binding Ammo}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Grid.Row="0"
+                                    Grid.RowSpan="3"
+                                    VerticalAlignment="Center"
+                                    Text="{Binding HitProbabilityText}" 
+                                    FontSize="20"
+                                    Foreground="{Binding HitProbability, Converter={StaticResource HitProbabilityColorConverter}}"
+                                    FontWeight="Bold"/>
+                                <Button
+                                    Grid.Column="3"
+                                    Grid.Row="0"
+                                    Grid.RowSpan="3"
+                                    VerticalAlignment="Center"
+                                    Margin="2,0,0,0" 
+                                    IsVisible="{Binding AttackPossibilityDescription, Converter={StaticResource StringNotEmptyToBoolConverter}}"
+                                    Background="Transparent" 
+                                    BorderThickness="0">
+                                    <Button.Content>
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xF05A;" />
+                                    </Button.Content>
+                                    <Button.Flyout>
+                                        <Flyout Placement="TopEdgeAlignedRight">
+                                            <TextBlock Text="{Binding AttackPossibilityDescription}" 
+                                                       TextWrapping="Wrap" 
+                                                       MaxWidth="300"/>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+                                <TextBlock Grid.Row="2"
+                                           Grid.Column="1"
+                                           Text="{Binding Target.Name}"
+                                          Foreground="Gray"
+                                          FontStyle="Italic"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </templatedControls:GamePanel>
+</UserControl>
