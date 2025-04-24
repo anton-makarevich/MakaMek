@@ -11,7 +11,8 @@ public abstract class UnitPart
         CurrentArmor = MaxArmor = maxArmor;
         CurrentStructure = MaxStructure = maxStructure;
         TotalSlots = slots;
-        _components = new List<Component>();
+        _components = [];
+        _hitSlots = [];
     }
 
     public string Name { get; }
@@ -30,6 +31,10 @@ public abstract class UnitPart
     public int TotalSlots { get; }
     public int UsedSlots => _components.Sum(c => c.Size);
     public int AvailableSlots => TotalSlots - UsedSlots;
+    
+    // Track which slots have been hit by critical hits
+    private readonly HashSet<int> _hitSlots;
+    public IReadOnlySet<int> HitSlots => _hitSlots;
     
     // Abstract property to be implemented by derived classes
     internal abstract bool CanBeBlownOff { get; }
@@ -191,5 +196,19 @@ public abstract class UnitPart
             
         IsBlownOff = true;
         return true;
+    }
+    
+    /// <summary>
+    /// Records a critical hit on a specific slot and damages the component in that slot if it exists
+    /// </summary>
+    /// <param name="slot">The slot index that was hit</param>
+    public void CriticalHit(int slot)
+    {
+        _hitSlots.Add(slot);
+        var component = GetComponentAtSlot(slot);
+        if (component is { IsDestroyed: false })
+        {
+            component.Hit();
+        }
     }
 }

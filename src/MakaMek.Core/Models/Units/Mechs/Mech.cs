@@ -216,8 +216,7 @@ public class Mech : Unit
     private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits, IDiceRoller diceRoller)
     {
         var availableSlots = Enumerable.Range(0, part.TotalSlots)
-            .Where(slot =>
-                part.GetComponentAtSlot(slot) is { IsDestroyed: false, IsActive: true })
+            .Where(slot => !part.HitSlots.Contains(slot))
             .ToList();
         if (availableSlots.Count == 0 || numCriticalHits == 0)
             return null;
