@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Sanet.MakaMek.Avalonia.Utils;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
 namespace Sanet.MakaMek.Avalonia.Converters;
@@ -25,7 +26,7 @@ public class ComponentStatusBackgroundConverter : IValueConverter
 
         return status switch
         {
-            ComponentStatus.Destroyed => new SolidColorBrush(Colors.Red),
+            ComponentStatus.Destroyed => AvaloniaResourcesLocator.TryFindResource("DestroyedBrush") ??new SolidColorBrush(Colors.Red),
             ComponentStatus.Active => new SolidColorBrush(Colors.Transparent),
             _ => new SolidColorBrush(Colors.Gray)
         };

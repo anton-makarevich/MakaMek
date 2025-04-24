@@ -2,55 +2,54 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitHealthIndicator">
-    <Grid ColumnDefinitions="*,*,*,*,*,*,*,*"
-          RowDefinitions="Auto,3*,2*,2*"
-          Height="280">
-        <!-- Labels -->
-        <TextBlock Grid.Row="0" Grid.Column="0" Text="H" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
-        <TextBlock Grid.Row="0" Grid.Column="1" Text="LT" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
-        <TextBlock Grid.Row="0" Grid.Column="2" Text="CT" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
-        <TextBlock Grid.Row="0" Grid.Column="3" Text="RT" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
-        <TextBlock Grid.Row="0" Grid.Column="4" Text="LA" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
-        <TextBlock Grid.Row="0" Grid.Column="5" Text="RA" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
-        <TextBlock Grid.Row="0" Grid.Column="6" Text="LL" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
-        <TextBlock Grid.Row="0" Grid.Column="7" Text="RL" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
-
+    <Grid ColumnDefinitions="2*,2*,2*,2*,2*,*,2*,2*,2*"
+          RowDefinitions="*,*,*,*,*,*,*,*,*">
+        <TextBlock Grid.Row="0" Grid.Column="3" Text="LT" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        <TextBlock Grid.Row="0" Grid.Column="1" Text="RT" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        <TextBlock Grid.Row="6" Grid.Column="2" Text="CT" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        <TextBlock Grid.Row="8" Grid.Column="0" Text="RL" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        <TextBlock Grid.Row="8" Grid.Column="4" Text="LL" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="RA" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        <TextBlock Grid.Row="1" Grid.Column="4" Text="LA" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        <TextBlock Grid.Row="0" Grid.Column="8" Text="LT" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        <TextBlock Grid.Row="0" Grid.Column="6" Text="RT" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        <TextBlock Grid.Row="0" Grid.Column="7" Text="CT" Classes="label" HorizontalAlignment="Center" Margin="2,0"/>
+        
         <!-- Head -->
-        <ProgressBar Name="HeadArmor" Grid.Row="1" Grid.Column="0" Classes="unitPartHealthBar mechArmor"/>
-        <ProgressBar Name="HeadStructure" Grid.Row="2" Grid.Column="0" Classes="unitPartHealthBar mechStructure"/>
+        <ProgressBar Name="HeadArmor" Grid.Row="0" Grid.Column="2" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="HeadStructure" Grid.Row="1" Grid.Column="2" Classes="unitPartHealthBar mechStructure"/>
 
         <!-- Left Torso -->
-        <ProgressBar Name="LeftTorsoArmor" Grid.Row="1" Grid.Column="1" Classes="unitPartHealthBar mechArmor"/>
-        <ProgressBar Name="LeftTorsoStructure" Grid.Row="2" Grid.Column="1" Classes="unitPartHealthBar mechStructure"/>
-        <ProgressBar Name="LeftTorsoRearArmor" Grid.Row="3" Grid.Column="1" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="LeftTorsoArmor" Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="LeftTorsoStructure" Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Classes="unitPartHealthBar mechStructure"/>
+        <ProgressBar Name="LeftTorsoRearArmor" Grid.Row="1" Grid.Column="8" Grid.RowSpan="2"  Classes="unitPartHealthBar mechArmor"/>
 
         <!-- Center Torso -->
-        <ProgressBar Name="CenterTorsoArmor" Grid.Row="1" Grid.Column="2" Classes="unitPartHealthBar mechArmor"/>
-        <ProgressBar Name="CenterTorsoStructure" Grid.Row="2" Grid.Column="2" Classes="unitPartHealthBar mechStructure"/>
-        <ProgressBar Name="CenterTorsoRearArmor" Grid.Row="3" Grid.Column="2" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="CenterTorsoArmor" Grid.Row="2" Grid.Column="2" Grid.RowSpan="2" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="CenterTorsoStructure" Grid.Row="4" Grid.Column="2" Grid.RowSpan="2" Classes="unitPartHealthBar mechStructure"/>
+        <ProgressBar Name="CenterTorsoRearArmor" Grid.Row="2" Grid.Column="7" Grid.RowSpan="2" Classes="unitPartHealthBar mechArmor"/>
 
         <!-- Right Torso -->
-        <ProgressBar Name="RightTorsoArmor" Grid.Row="1" Grid.Column="3" Classes="unitPartHealthBar mechArmor"/>
-        <ProgressBar Name="RightTorsoStructure" Grid.Row="2" Grid.Column="3" Classes="unitPartHealthBar mechStructure"/>
-        <ProgressBar Name="RightTorsoRearArmor" Grid.Row="3" Grid.Column="3" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="RightTorsoArmor" Grid.Row="1" Grid.Column="1" Grid.RowSpan="2" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="RightTorsoStructure" Grid.Row="3" Grid.Column="1" Grid.RowSpan="2" Classes="unitPartHealthBar mechStructure"/>
+        <ProgressBar Name="RightTorsoRearArmor" Grid.Row="1" Grid.Column="6" Grid.RowSpan="2" Classes="unitPartHealthBar mechArmor"/>
 
         <!-- Left Arm -->
-        <ProgressBar Name="LeftArmArmor" Grid.Row="1" Grid.Column="4" Classes="unitPartHealthBar mechArmor"/>
-        <ProgressBar Name="LeftArmStructure" Grid.Row="2" Grid.Column="4" Classes="unitPartHealthBar mechStructure"/>
+        <ProgressBar Name="LeftArmArmor" Grid.Row="2" Grid.Column="4" Grid.RowSpan="2" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="LeftArmStructure" Grid.Row="4" Grid.Column="4" Grid.RowSpan="2" Classes="unitPartHealthBar mechStructure"/>
 
         <!-- Right Arm -->
-        <ProgressBar Name="RightArmArmor" Grid.Row="1" Grid.Column="5" Classes="unitPartHealthBar mechArmor"/>
-        <ProgressBar Name="RightArmStructure" Grid.Row="2" Grid.Column="5" Classes="unitPartHealthBar mechStructure"/>
+        <ProgressBar Name="RightArmArmor" Grid.Row="2" Grid.Column="0" Grid.RowSpan="2" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="RightArmStructure" Grid.Row="4" Grid.Column="0" Grid.RowSpan="2" Classes="unitPartHealthBar mechStructure"/>
 
         <!-- Left Leg -->
-        <ProgressBar Name="LeftLegArmor" Grid.Row="1" Grid.Column="6" Classes="unitPartHealthBar mechArmor"/>
-        <ProgressBar Name="LeftLegStructure" Grid.Row="2" Grid.Column="6" Classes="unitPartHealthBar mechStructure"/>
+        <ProgressBar Name="LeftLegArmor" Grid.Row="5" Grid.Column="3" Grid.RowSpan="2" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="LeftLegStructure" Grid.Row="7" Grid.Column="3" Grid.RowSpan="2" Classes="unitPartHealthBar mechStructure"/>
 
         <!-- Right Leg -->
-        <ProgressBar Name="RightLegArmor" Grid.Row="1" Grid.Column="7" Classes="unitPartHealthBar mechArmor"/>
-        <ProgressBar Name="RightLegStructure" Grid.Row="2" Grid.Column="7" Classes="unitPartHealthBar mechStructure"/>
+        <ProgressBar Name="RightLegArmor" Grid.Row="5" Grid.Column="1" Grid.RowSpan="2" Classes="unitPartHealthBar mechArmor"/>
+        <ProgressBar Name="RightLegStructure" Grid.Row="7" Grid.Column="1" Grid.RowSpan="2" Classes="unitPartHealthBar mechStructure"/>
     </Grid>
 </UserControl>
