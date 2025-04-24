@@ -50,6 +50,7 @@
     <Style Selector="TextBlock.label">
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
     </Style>
     
