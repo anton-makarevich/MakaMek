@@ -10,7 +10,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
 {
     public class ClassicBattletechRulesProviderTests
     {
-        private readonly IRulesProvider _provider = new ClassicBattletechRulesProvider();
+        private readonly IRulesProvider _sut = new ClassicBattletechRulesProvider();
 
         [Theory]
         [InlineData(20, 3, 6, 5, 5, 3, 3, 4, 4)]
@@ -33,7 +33,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetStructureValues_ValidTonnage_ReturnsExpectedValues(int tonnage, int head, int centerTorso, int leftTorso, int rightTorso, int leftArm, int rightArm, int leftLeg, int rightLeg)
         {
             // Act
-            var result = _provider.GetStructureValues(tonnage);
+            var result = _sut.GetStructureValues(tonnage);
 
             // Assert
             result[PartLocation.Head].ShouldBe(head);
@@ -50,7 +50,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetStructureValues_InvalidTonnage_ThrowsException()
         {
             // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(()=>_provider.GetStructureValues(150));
+            Should.Throw<ArgumentOutOfRangeException>(()=>_sut.GetStructureValues(150));
         }
 
         [Theory]
@@ -68,7 +68,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [InlineData(AmmoType.SRM6, 15)]
         public void GetAmmoRounds_ReturnsExpectedValues(AmmoType ammoType, int expectedRounds)
         {
-            _provider.GetAmmoRounds(ammoType).ShouldBe(expectedRounds);
+            _sut.GetAmmoRounds(ammoType).ShouldBe(expectedRounds);
         }
 
         [Theory]
@@ -79,7 +79,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [InlineData(MovementType.Prone, 2)]
         public void GetAttackerMovementModifier_ReturnsExpectedValues(MovementType movementType, int expectedModifier)
         {
-            _provider.GetAttackerMovementModifier(movementType).ShouldBe(expectedModifier);
+            _sut.GetAttackerMovementModifier(movementType).ShouldBe(expectedModifier);
         }
 
         [Theory]
@@ -99,7 +99,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [InlineData(30, 6)]
         public void GetTargetMovementModifier_ReturnsExpectedValues(int hexesMoved, int expectedModifier)
         {
-            _provider.GetTargetMovementModifier(hexesMoved).ShouldBe(expectedModifier);
+            _sut.GetTargetMovementModifier(hexesMoved).ShouldBe(expectedModifier);
         }
 
         [Theory]
@@ -111,7 +111,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [InlineData(WeaponRange.OutOfRange,1,1, ToHitBreakdown.ImpossibleRoll)]
         public void GetRangeModifier_ReturnsExpectedValues(WeaponRange range, int rangeValue, int distance, int expectedModifier)
         {
-            _provider.GetRangeModifier(range,rangeValue,distance).ShouldBe(expectedModifier);
+            _sut.GetRangeModifier(range,rangeValue,distance).ShouldBe(expectedModifier);
         }
 
         [Theory]
@@ -127,7 +127,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [InlineData(25, 4)]  // >24 heat: +4
         public void GetHeatModifier_ReturnsExpectedValues(int currentHeat, int expectedModifier)
         {
-            _provider.GetHeatModifier(currentHeat).ShouldBe(expectedModifier);
+            _sut.GetHeatModifier(currentHeat).ShouldBe(expectedModifier);
         }
 
         [Theory]
@@ -136,21 +136,21 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [InlineData(MakaMekTerrains.Clear, 0)]
         public void GetTerrainToHitModifier_ReturnsExpectedValues(MakaMekTerrains terrainId, int expectedModifier)
         {
-            _provider.GetTerrainToHitModifier(terrainId).ShouldBe(expectedModifier);
+            _sut.GetTerrainToHitModifier(terrainId).ShouldBe(expectedModifier);
         }
 
         [Fact]
         public void GetAttackerMovementModifier_InvalidMovementType_ThrowsArgumentException()
         {
             var invalidType = (MovementType)999;
-            Should.Throw<ArgumentException>(() => _provider.GetAttackerMovementModifier(invalidType));
+            Should.Throw<ArgumentException>(() => _sut.GetAttackerMovementModifier(invalidType));
         }
 
         [Fact]
         public void GetRangeModifier_InvalidRange_ThrowsArgumentException()
         {
             var invalidRange = (WeaponRange)999;
-            Should.Throw<ArgumentException>(() => _provider.GetRangeModifier(invalidRange,999,999));
+            Should.Throw<ArgumentException>(() => _sut.GetRangeModifier(invalidRange,999,999));
         }
 
         [Theory]
@@ -158,7 +158,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [InlineData(false, 2)]  // Other arc: +2 modifier
         public void GetSecondaryTargetModifier_ReturnsExpectedValues(bool isFrontArc, int expectedModifier)
         {
-            _provider.GetSecondaryTargetModifier(isFrontArc).ShouldBe(expectedModifier);
+            _sut.GetSecondaryTargetModifier(isFrontArc).ShouldBe(expectedModifier);
         }
 
         #region Hit Location Tests
@@ -178,7 +178,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetHitLocation_FrontAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
-            var result = _provider.GetHitLocation(diceResult, FiringArc.Forward);
+            var result = _sut.GetHitLocation(diceResult, FiringArc.Forward);
 
             // Assert
             result.ShouldBe(expectedLocation);
@@ -199,7 +199,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetHitLocation_RearAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
-            var result = _provider.GetHitLocation(diceResult, FiringArc.Rear);
+            var result = _sut.GetHitLocation(diceResult, FiringArc.Rear);
 
             // Assert
             result.ShouldBe(expectedLocation);
@@ -220,7 +220,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetHitLocation_LeftAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
-            var result = _provider.GetHitLocation(diceResult, FiringArc.Left);
+            var result = _sut.GetHitLocation(diceResult, FiringArc.Left);
 
             // Assert
             result.ShouldBe(expectedLocation);
@@ -241,7 +241,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetHitLocation_RightAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
-            var result = _provider.GetHitLocation(diceResult, FiringArc.Right);
+            var result = _sut.GetHitLocation(diceResult, FiringArc.Right);
 
             // Assert
             result.ShouldBe(expectedLocation);
@@ -255,17 +255,17 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetHitLocation_InvalidDiceResult_ThrowsArgumentOutOfRangeException(int invalidDiceResult)
         {
             // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(() => _provider.GetHitLocation(invalidDiceResult, FiringArc.Forward));
-            Should.Throw<ArgumentOutOfRangeException>(() => _provider.GetHitLocation(invalidDiceResult, FiringArc.Left));
-            Should.Throw<ArgumentOutOfRangeException>(() => _provider.GetHitLocation(invalidDiceResult, FiringArc.Right));
-            Should.Throw<ArgumentOutOfRangeException>(() => _provider.GetHitLocation(invalidDiceResult, FiringArc.Rear));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Forward));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Left));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Right));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Rear));
         }
 
         [Fact]
         public void GetHitLocation_InvalidAttackDirection_ThrowsArgumentOutOfRangeException()
         {
             // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(() => _provider.GetHitLocation(7, (FiringArc)999));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(7, (FiringArc)999));
         }
 
         #endregion
@@ -288,7 +288,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetClusterHits_SRM2_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
-            var result = _provider.GetClusterHits(diceResult, weaponSize);
+            var result = _sut.GetClusterHits(diceResult, weaponSize);
 
             // Assert
             result.ShouldBe(expectedHits);
@@ -310,7 +310,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetClusterHits_SRM4_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
-            var result = _provider.GetClusterHits(diceResult, weaponSize);
+            var result = _sut.GetClusterHits(diceResult, weaponSize);
 
             // Assert
             result.ShouldBe(expectedHits);
@@ -332,7 +332,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetClusterHits_LRM5_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
-            var result = _provider.GetClusterHits(diceResult, weaponSize);
+            var result = _sut.GetClusterHits(diceResult, weaponSize);
 
             // Assert
             result.ShouldBe(expectedHits);
@@ -354,7 +354,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetClusterHits_SRM6_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
-            var result = _provider.GetClusterHits(diceResult, weaponSize);
+            var result = _sut.GetClusterHits(diceResult, weaponSize);
 
             // Assert
             result.ShouldBe(expectedHits);
@@ -376,7 +376,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetClusterHits_LRM10_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
-            var result = _provider.GetClusterHits(diceResult, weaponSize);
+            var result = _sut.GetClusterHits(diceResult, weaponSize);
 
             // Assert
             result.ShouldBe(expectedHits);
@@ -398,7 +398,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetClusterHits_LRM15_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
-            var result = _provider.GetClusterHits(diceResult, weaponSize);
+            var result = _sut.GetClusterHits(diceResult, weaponSize);
 
             // Assert
             result.ShouldBe(expectedHits);
@@ -420,7 +420,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetClusterHits_LRM20_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
-            var result = _provider.GetClusterHits(diceResult, weaponSize);
+            var result = _sut.GetClusterHits(diceResult, weaponSize);
 
             // Assert
             result.ShouldBe(expectedHits);
@@ -432,7 +432,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetClusterHits_InvalidDiceResult_ThrowsArgumentOutOfRangeException(int invalidDiceResult, int weaponSize)
         {
             // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(() => _provider.GetClusterHits(invalidDiceResult, weaponSize));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetClusterHits(invalidDiceResult, weaponSize));
         }
 
         [Theory]
@@ -455,7 +455,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             // The implementation should default to the weapon size itself
             
             // Act
-            var result = _provider.GetClusterHits(diceResult, weaponSize);
+            var result = _sut.GetClusterHits(diceResult, weaponSize);
 
             // Assert
             result.ShouldBe(weaponSize);
@@ -467,7 +467,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetClusterHits_InvalidRoll_ThrowsArgumentOutOfRangeException(int diceResult, int invalidWeaponSize)
         {
             // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(() => _provider.GetClusterHits(diceResult, invalidWeaponSize));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetClusterHits(diceResult, invalidWeaponSize));
         }
 
         [Fact]
@@ -476,29 +476,14 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             // For a weapon with size 1 (non-cluster weapon), should always return 1
             
             // Act
-            var result = _provider.GetClusterHits(7, 1);
+            var result = _sut.GetClusterHits(7, 1);
 
             // Assert
             result.ShouldBe(1);
         }
 
         #endregion
-
-        [Theory]
-        // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
-        [InlineData(2, 0)]
-        [InlineData(7,  0)]
-        [InlineData(8,  1)]
-        [InlineData(9,  1)]
-        [InlineData(10,  2)]
-        [InlineData(11,  2)]
-        [InlineData(12,  3)]
-        [InlineData(13,  0)]
-        public void GetNumCriticalHits_ReturnsExpected(int roll,  int expected)
-        {
-            _provider.GetNumCriticalHits(roll).ShouldBe(expected);
-        }
-
+        
         [Theory]
         [InlineData(MovementType.StandingStill, 0, 0)]
         [InlineData(MovementType.Walk, 5, 1)]
@@ -512,7 +497,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         public void GetMovementHeatPoints_ReturnsExpectedHeatPoints(MovementType movementType, int movementPointsSpent, int expectedHeatPoints)
         {
             // Act
-            var result = _provider.GetMovementHeatPoints(movementType, movementPointsSpent);
+            var result = _sut.GetMovementHeatPoints(movementType, movementPointsSpent);
 
             // Assert
             result.ShouldBe(expectedHeatPoints);

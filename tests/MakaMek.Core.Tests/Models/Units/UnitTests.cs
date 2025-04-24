@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -52,6 +53,11 @@ public class UnitTests
             location==PartLocation.CenterTorso
                 ?null
                 : PartLocation.CenterTorso;
+
+        public override CriticalHitsData? CalculateCriticalHitsData(PartLocation location, int damage, IDiceRoller diceRoller)
+        {
+            throw new NotImplementedException();
+        }
 
         protected override void ApplyHeatEffects()
         {

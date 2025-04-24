@@ -594,4 +594,20 @@ public class MechTests
         sut.HasDeclaredWeaponAttack.ShouldBeFalse();
         weapon.Target.ShouldBeNull();
     }
+    
+    [Theory]
+    // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
+    [InlineData(2, 0)]
+    [InlineData(7,  0)]
+    [InlineData(8,  1)]
+    [InlineData(9,  1)]
+    [InlineData(10,  2)]
+    [InlineData(11,  2)]
+    [InlineData(12,  3)]
+    [InlineData(13,  0)]
+    public void GetNumCriticalHits_ReturnsExpected(int roll,  int expected)
+    {
+        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        sut.GetNumCriticalHits(roll).ShouldBe(expected);
+    }
 }
