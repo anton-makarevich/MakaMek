@@ -38,7 +38,9 @@ public abstract class UnitPart
     public bool IsBlownOff { get; private set; }
     
     // A part is destroyed if either structure is depleted or it's blown off
-    public bool IsDestroyed => CurrentStructure <= 0 || IsBlownOff;
+    public bool IsDestroyed => CurrentStructure <= 0 
+                               || IsBlownOff
+                               || DamageTransferPart?.IsDestroyed == true;
     
     // Components installed in this part
     private readonly List<Component> _components;
@@ -175,6 +177,8 @@ public abstract class UnitPart
     {
         return Unit?.GetTransferLocation(Location);
     }
+    
+    protected UnitPart? DamageTransferPart => Unit?.Parts.FirstOrDefault(p => p.Location == GetNextTransferLocation()); 
     
     /// <summary>
     /// Blows off this part as a result of a critical hit
