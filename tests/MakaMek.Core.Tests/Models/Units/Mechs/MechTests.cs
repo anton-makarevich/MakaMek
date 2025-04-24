@@ -846,5 +846,35 @@ public class MechTests
         critsData.NumCriticalHits.ShouldBe(3);
         critsData.CriticalHits.ShouldNotBeNull();
     }
+    
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldAllowHittingMultiSlotComponent_AfterOneSlotIsHit()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var diceRoller = Substitute.For<IDiceRoller>();
+        
+        // Gyro is in slots 3-6 of center torso
+        // First, hit slot 3
+        centerTorso.CriticalHit(3);
+        
+        // Setup dice roller to return values that would hit slot 1
+        diceRoller.Roll2D6().Returns(
+            [new DiceResult(5), new DiceResult(4)] // Total 9 for crit roll (1 crit)
+        );
+        diceRoller.RollD6().Returns(new DiceResult(4)); //that should go to the second group where only one slot is available (6) 
+        
+        // Act
+        var critData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, 33, diceRoller);
+        
+        // Assert
+        critData.ShouldNotBeNull();
+        critData.CriticalHits.ShouldNotBeNull();
+        critData.CriticalHits.ShouldContain(6); // Slot 6 should be available for a hit
+        
+        // Verify that slot 3 is already marked as hit
+        centerTorso.HitSlots.ShouldContain(3);
+    }
 }
 
