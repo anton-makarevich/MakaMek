@@ -142,7 +142,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                     stringBuilder.AppendLine(string.Format(
                         localizationService.GetString("Command_WeaponAttackResolution_CriticalHit"),
                         hitLocation.Location,
-                        slot,
+                        slot+1,
                         compName));
                 }
             }

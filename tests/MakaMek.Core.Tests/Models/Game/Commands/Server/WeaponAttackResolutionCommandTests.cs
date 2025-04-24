@@ -439,7 +439,7 @@ public class WeaponAttackResolutionCommandTests
         var output = command.Format(_localizationService, _game);
 
         // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 2: Machine Gun");
+        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
     }
 
     [Fact]
