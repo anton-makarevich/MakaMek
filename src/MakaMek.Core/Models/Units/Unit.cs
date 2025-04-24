@@ -90,7 +90,7 @@ public abstract class Unit
 
     // Heat management
     public int CurrentHeat { get; protected set; }
-    public int HeatDissipation => GetAllComponents<HeatSink>().Sum(hs => hs.HeatDissipation)
+    public int HeatDissipation => GetAvailableComponents<HeatSink>().Sum(hs => hs.HeatDissipation)
                                   +10; // Engine heat sinks
     
     /// <summary>
@@ -133,7 +133,7 @@ public abstract class Unit
         }
         
         // Get heat dissipation
-        var heatSinks = GetAllComponents<HeatSink>().Count();
+        var heatSinks = GetAvailableComponents<HeatSink>().Count();
         var engineHeatSinks = 10; // Always 10 engine heat sinks
         var heatDissipation = HeatDissipation;
         var dissipationData = new HeatDissipationData
@@ -316,6 +316,11 @@ public abstract class Unit
     public IEnumerable<T> GetAllComponents<T>() where T : Component
     {
         return Parts.SelectMany(p => p.GetComponents<T>());
+    }
+    
+    public IEnumerable<T> GetAvailableComponents<T>() where T : Component
+    {
+        return GetAllComponents<T>().Where(c => c.IsAvailable).ToList();
     }
 
     public bool HasAvailableComponent<T>() where T : Component
