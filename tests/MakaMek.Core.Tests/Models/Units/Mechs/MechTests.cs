@@ -724,7 +724,7 @@ public class MechTests
     }
 
     [Theory]
-    //[InlineData(PartLocation.LeftArm)]
+    [InlineData(PartLocation.LeftArm)]
     [InlineData(PartLocation.RightLeg)]
     public void CalculateCriticalHitsData_ShouldAutoPickOnlyAvailableSlot(PartLocation location)
     {
