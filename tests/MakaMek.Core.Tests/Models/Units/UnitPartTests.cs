@@ -193,7 +193,7 @@ public class UnitPartTests
         var testUnit = UnitTests.CreateTestUnit();
         var sut = testUnit.Parts.First(p=>p.Location==PartLocation.LeftArm);
 
-        sut.GetNextTransferLocation().ShouldBe(PartLocation.Head);
+        sut.GetNextTransferLocation().ShouldBe(PartLocation.CenterTorso);
     }
 
     [Fact]
@@ -209,6 +209,17 @@ public class UnitPartTests
         result.ShouldBeTrue();
         part.IsBlownOff.ShouldBeTrue();
         part.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsDestroyed_ShouldBeTrue_WhenParenPartIsDestroyed()
+    {
+        var testUnit = UnitTests.CreateTestUnit();
+        var parent = testUnit.Parts.First(p=>p.Location==PartLocation.CenterTorso);
+        parent.BlowOff();
+        var sut = testUnit.Parts.First(p=>p.Location==PartLocation.LeftArm);
+
+        sut.IsDestroyed.ShouldBeTrue();
     }
 
     private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size)

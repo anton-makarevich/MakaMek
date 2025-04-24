@@ -48,7 +48,10 @@ public class UnitTests
 
         public override bool CanMoveBackward(MovementType type) => true;
 
-        public override PartLocation? GetTransferLocation(PartLocation location) => PartLocation.Head;
+        public override PartLocation? GetTransferLocation(PartLocation location) =>
+            location==PartLocation.CenterTorso
+                ?null
+                : PartLocation.CenterTorso;
 
         protected override void ApplyHeatEffects()
         {
