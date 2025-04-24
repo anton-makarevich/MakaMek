@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -9,9 +10,9 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
 using System.Reactive.Linq;
 using System.Threading;
-using Avalonia;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
+using Sanet.MakaMek.Avalonia.Utils;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.UiStates;
@@ -86,11 +87,18 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Width = Width * 0.8
             };
 
-            // Create armor bar (yellow)
+            // Get colors from resources with fallbacks
+            var armorBrush = AvaloniaResourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush 
+                ?? new SolidColorBrush(Colors.LightBlue);
+            var structureBrush = AvaloniaResourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush 
+                ?? new SolidColorBrush(Colors.Orange);
+            var backgroundBrush = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0));
+
+            // Create an armor bar
             _armorBar = new ProgressBar
             {
-                Foreground = new SolidColorBrush(Colors.LightBlue),
-                Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)),
+                Foreground = armorBrush,
+                Background = backgroundBrush,
                 Height = 6,
                 MinWidth = 0,
                 Width = Width * 0.8,
@@ -100,11 +108,11 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Value = 1
             };
 
-            // Create structure bar (orange)
+            // Create a structure bar 
             _structureBar = new ProgressBar
             {
-                Foreground = new SolidColorBrush(Colors.Orange),
-                Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)),
+                Foreground = structureBrush,
+                Background = backgroundBrush,
                 Height = 6,
                 MinWidth = 0,
                 Width = Width * 0.8,
