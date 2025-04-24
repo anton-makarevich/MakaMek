@@ -290,8 +290,7 @@ public abstract class Unit
             if (hitLocation.CriticalHits?.CriticalHits == null) continue;
             foreach (var slot in hitLocation.CriticalHits.CriticalHits)
             {
-                var component = targetPart.GetComponentAtSlot(slot);
-                component?.Hit();
+                targetPart.CriticalHit(slot);
             }
         }
     }
