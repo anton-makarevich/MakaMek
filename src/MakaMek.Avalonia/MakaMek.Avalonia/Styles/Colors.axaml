@@ -24,7 +24,7 @@
     <Color x:Key="InfoColor">#1E88E5</Color>
     
     <!-- Game-Specific Colors -->
-    <Color x:Key="MechArmorColor">#64B5F6</Color>
+    <Color x:Key="MechArmorColor">LightBlue</Color>
     <Color x:Key="MechStructureColor">#FFB74D</Color>
     <Color x:Key="HeatColor">#F44336</Color>
     

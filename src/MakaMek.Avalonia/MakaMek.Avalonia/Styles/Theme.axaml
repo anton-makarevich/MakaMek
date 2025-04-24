@@ -7,6 +7,4 @@
     <StyleInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Panels.axaml"/>
     <StyleInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Controls.axaml"/>
     <StyleInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Layouts.axaml"/>
-    <StyleInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/MechStyles.axaml"/>
-    
 </Styles>
