@@ -20,6 +20,11 @@
         <Setter Property="Foreground" Value="{DynamicResource MechStructureBrush}"/>
     </Style>
     
+    <!-- Destroyed part styles -->
+    <Style Selector="ProgressBar.destroyed">
+        <Setter Property="Background" Value="{DynamicResource DestroyedBrush}"/>
+    </Style>
+    
     <!-- ListBox Styles -->
     <Style Selector="ListBox.gameList">
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
