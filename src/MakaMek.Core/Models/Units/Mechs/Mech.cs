@@ -54,7 +54,7 @@ public class Mech : Unit
         // Use the smaller number of steps
         var steps = Math.Min(clockwiseSteps, counterClockwiseSteps);
         
-        // Check if rotation is within allowed range
+        // Check if rotation is within the allowed range
         if (steps > PossibleTorsoRotation) return;
         foreach (var torso in _parts.OfType<Torso>())
         {
@@ -91,7 +91,7 @@ public class Mech : Unit
 
     protected override void ApplyHeatEffects()
     {
-        // Apply effects based on current heat level
+        // Apply effects based on the current heat level
         if (CurrentHeat >= 30)
         {
             // Automatic shutdown
@@ -99,7 +99,7 @@ public class Mech : Unit
         }
         else if (CurrentHeat >= 25)
         {
-            // Chance to shutdown, ammo explosion, etc.
+            // Chance to shut down, ammo explosion, etc.
             // To be implemented
         }
     }
@@ -129,7 +129,7 @@ public class Mech : Unit
         protected set
         {
             base.Position = value;
-            // Reset torso rotation when position changes
+            // Reset torso rotation when the position changes
             foreach (var torso in _parts.OfType<Torso>())
             {
                 torso.ResetRotation();
