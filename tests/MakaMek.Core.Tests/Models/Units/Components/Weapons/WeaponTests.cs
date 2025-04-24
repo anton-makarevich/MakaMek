@@ -1,4 +1,6 @@
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
@@ -124,5 +126,9 @@ public class WeaponTests
         }
 
         public override PartLocation? GetTransferLocation(PartLocation location) => null;
+        public override CriticalHitsData? CalculateCriticalHitsData(PartLocation location, int damage, IDiceRoller diceRoller)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

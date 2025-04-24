@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -289,8 +290,7 @@ public abstract class Unit
             if (hitLocation.CriticalHits?.CriticalHits == null) continue;
             foreach (var slot in hitLocation.CriticalHits.CriticalHits)
             {
-                var component = targetPart.GetComponentAtSlot(slot);
-                component?.Hit();
+                targetPart.CriticalHit(slot);
             }
         }
     }
@@ -461,4 +461,16 @@ public abstract class Unit
         // Use a shot from the ammo
         ammo.UseShot();
     }
+
+    /// <summary>
+    /// Calculates critical hit data for a specific location and damage
+    /// </summary>
+    /// <param name="location">The hit location</param>
+    /// <param name="damage">The damage applied</param>
+    /// <param name="diceRoller">The dice roller to use for critical hit determination</param>
+    /// <returns>Critical hit data or null if no critical hits</returns>
+    public abstract CriticalHitsData? CalculateCriticalHitsData(
+        PartLocation location, 
+        int damage, 
+        IDiceRoller diceRoller);
 }
