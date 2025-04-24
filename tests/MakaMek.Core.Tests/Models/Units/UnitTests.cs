@@ -1059,6 +1059,20 @@ public class UnitTests
         critComponent.IsDestroyed.ShouldBeTrue();
     }
     
+    [Fact]
+    public void ApplyDamage_WithBlownOff_DestroysTheWholePart()
+    {
+        // Arrange
+        var leftArm = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 5);
+        var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
+        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], new CriticalHitsData(10, 1, null,true));
+        
+        // Act
+        unit.ApplyDamage([hitLocation]);
+        // Assert
+        leftArm.IsDestroyed.ShouldBeTrue();
+    }
+    
     // Helper class for testing generic methods
     private class TestDerivedComponent(string name, int size = 1) : TestComponent(name, size);
 }

@@ -279,7 +279,13 @@ public abstract class Unit
             var targetPart = _parts.Find(p => p.Location == hitLocation.Location);
             if (targetPart == null) continue;
             ApplyArmorAndStructureDamage(hitLocation.Damage, targetPart);
+            
             // Handle critical hits if present
+            if (hitLocation.CriticalHits?.IsBlownOff == true)
+            {
+                targetPart.BlowOff();
+                continue;
+            }
             if (hitLocation.CriticalHits?.CriticalHits == null) continue;
             foreach (var slot in hitLocation.CriticalHits.CriticalHits)
             {
