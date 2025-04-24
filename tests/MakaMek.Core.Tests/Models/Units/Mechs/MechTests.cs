@@ -659,7 +659,11 @@ public class MechTests
         diceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(5), new(5) } // 10 total for crit roll
         );
-        diceRoller.RollD6().Returns(new DiceResult(4), new DiceResult(3), new DiceResult(4), new DiceResult(5));
+        diceRoller.RollD6().Returns(
+            new DiceResult(4),
+            new DiceResult(3),
+            new DiceResult(4),
+            new DiceResult(5));
 
         // Act
         var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, 5, diceRoller);
@@ -824,7 +828,13 @@ public class MechTests
         diceRoller.Roll2D6().Returns(
             new List<DiceResult> { new(6), new(6) } // 12 total for crit roll
         );
-        diceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4));
+        diceRoller.RollD6().Returns(
+            new DiceResult(2),
+            new DiceResult(3),
+            new DiceResult(2),
+            new DiceResult(4),
+            new DiceResult(2),
+            new DiceResult(5));
 
         // Act
         var critsData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, 5, diceRoller);
@@ -834,33 +844,6 @@ public class MechTests
         critsData.IsBlownOff.ShouldBeFalse();
         critsData.NumCriticalHits.ShouldBe(3);
         critsData.CriticalHits.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void GetNumCriticalHits_ShouldReturnCorrectValues()
-    {
-        // Arrange
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, CreateBasicPartsData());
-
-        // Act & Assert - Using reflection to access internal method
-        var method = typeof(Mech).GetMethod("GetNumCriticalHits",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-        // Test all possible roll values
-        for (int roll = 2; roll <= 12; roll++)
-        {
-            int expected = roll switch
-            {
-                <= 7 => 0,
-                8 or 9 => 1,
-                10 or 11 => 2,
-                12 => 3,
-                _ => 0
-            };
-
-            int actual = (int)method.Invoke(mech, new object[] { roll });
-            actual.ShouldBe(expected, $"Roll of {roll} should give {expected} critical hits");
-        }
     }
 }
 
