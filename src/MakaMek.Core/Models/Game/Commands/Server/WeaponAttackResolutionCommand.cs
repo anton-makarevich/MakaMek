@@ -110,40 +110,56 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                         hitLocation.Damage,
                         locationRollTotal));
                 }
-                if (hitLocation.CriticalHits == null)
-                    continue;
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_WeaponAttackResolution_CritRoll"),
-                    hitLocation.CriticalHits.Roll));
                 
-                // Check if the location is blown off
-                if (hitLocation.CriticalHits.IsBlownOff)
-                {
-                    stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_WeaponAttackResolution_BlownOff"),
-                        hitLocation.Location));
-                    continue;
-                }
-                stringBuilder.AppendLine(string.Format(
-                                     localizationService.GetString("Command_WeaponAttackResolution_NumCrits"),
-                                     hitLocation.CriticalHits.NumCriticalHits));
-
-                if (hitLocation.CriticalHits.CriticalHits == null ||
-                    hitLocation.CriticalHits.CriticalHits.Length == 0)
+                // Process all critical hits for this hit location
+                if (hitLocation.CriticalHits == null || !hitLocation.CriticalHits.Any())
                     continue;
                 
-                var targetUnit = game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.TargetId);
-                var part = targetUnit?.Parts.FirstOrDefault(p => p.Location == hitLocation.Location);
-                foreach (var slot in hitLocation.CriticalHits.CriticalHits)
+                // Process all critical hits in order
+                foreach (var criticalHit in hitLocation.CriticalHits)
                 {
-                    var comp = part?.GetComponentAtSlot(slot);
-                    if (comp == null) continue;
-                    var compName = comp.Name;
+                    // Show location if different from the primary hit location
+                    if (criticalHit.Location != hitLocation.Location)
+                    {
+                        stringBuilder.AppendLine(string.Format(
+                            localizationService.GetString("Command_WeaponAttackResolution_LocationCriticals"),
+                            criticalHit.Location));
+                    }
+                    
                     stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_WeaponAttackResolution_CriticalHit"),
-                        hitLocation.Location,
-                        slot+1,
-                        compName));
+                        localizationService.GetString("Command_WeaponAttackResolution_CritRoll"),
+                        criticalHit.Roll));
+                    
+                    // Check if the location is blown off
+                    if (criticalHit.IsBlownOff)
+                    {
+                        stringBuilder.AppendLine(string.Format(
+                            localizationService.GetString("Command_WeaponAttackResolution_BlownOff"),
+                            criticalHit.Location));
+                        continue;
+                    }
+                    
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_NumCrits"),
+                        criticalHit.NumCriticalHits));
+                    
+                    if (criticalHit.CriticalHits == null || criticalHit.CriticalHits.Length == 0)
+                        continue;
+                    
+                    var targetUnit = game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.TargetId);
+                    var part = targetUnit?.Parts.FirstOrDefault(p => p.Location == criticalHit.Location);
+                    
+                    foreach (var slot in criticalHit.CriticalHits)
+                    {
+                        var comp = part?.GetComponentAtSlot(slot);
+                        if (comp == null) continue;
+                        var compName = comp.Name;
+                        stringBuilder.AppendLine(string.Format(
+                            localizationService.GetString("Command_WeaponAttackResolution_CriticalHit"),
+                            criticalHit.Location,
+                            slot+1,
+                            compName));
+                    }
                 }
             }
         }
