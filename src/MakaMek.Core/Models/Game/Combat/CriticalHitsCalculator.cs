@@ -4,10 +4,7 @@ using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Game.Combat;
 
-/// <summary>
-/// Calculator for determining critical hits for all locations in a damage chain
-/// </summary>
-public static class DamageChainCriticalHitsCalculator
+public interface ICriticalHitsCalculator
 {
     /// <summary>
     /// Calculates critical hits for all locations in a damage chain without applying damage
@@ -15,16 +12,39 @@ public static class DamageChainCriticalHitsCalculator
     /// <param name="unit">The unit receiving damage</param>
     /// <param name="initialLocation">The initial hit location</param>
     /// <param name="damage">The total damage to apply</param>
-    /// <param name="diceRoller">The dice roller to use for critical hit determination</param>
     /// <returns>A list of LocationCriticalHitsData for all affected locations</returns>
-    public static List<LocationCriticalHitsData> CalculateDamageChainCriticalHits(
+    List<LocationCriticalHitsData> CalculateCriticalHits(
         Unit unit, 
         PartLocation initialLocation, 
-        int damage, 
-        IDiceRoller diceRoller)
+        int damage);
+}
+
+/// <summary>
+/// Calculator for determining critical hits for all locations in a damage chain
+/// </summary>
+public class CriticalHitsCalculator : ICriticalHitsCalculator
+{
+    private readonly IDiceRoller _diceRoller;
+
+    public CriticalHitsCalculator(IDiceRoller diceRoller)
+    {
+        _diceRoller = diceRoller;
+    }
+
+    /// <summary>
+    /// Calculates critical hits for all locations in a damage chain without applying damage
+    /// </summary>
+    /// <param name="unit">The unit receiving damage</param>
+    /// <param name="initialLocation">The initial hit location</param>
+    /// <param name="damage">The total damage to apply</param>
+    /// <returns>A list of LocationCriticalHitsData for all affected locations</returns>
+    public List<LocationCriticalHitsData> CalculateCriticalHits(
+        Unit unit, 
+        PartLocation initialLocation, 
+        int damage)
     {
         var criticalHits = new List<LocationCriticalHitsData>();
-        CalculateCriticalHitsRecursively(unit, initialLocation, damage, diceRoller, criticalHits);
+        CalculateCriticalHitsRecursively(unit, initialLocation, damage, criticalHits);
         return criticalHits;
     }
 
@@ -34,14 +54,12 @@ public static class DamageChainCriticalHitsCalculator
     /// <param name="unit">The unit receiving damage</param>
     /// <param name="location">The current location</param>
     /// <param name="damage">The damage to apply</param>
-    /// <param name="diceRoller">The dice roller to use</param>
     /// <param name="criticalHits">The list to collect critical hits data</param>
     /// <returns>Any remaining damage after this location</returns>
-    private static int CalculateCriticalHitsRecursively(
+    private int CalculateCriticalHitsRecursively(
         Unit unit,
         PartLocation location, 
         int damage, 
-        IDiceRoller diceRoller, 
         List<LocationCriticalHitsData> criticalHits)
     {
         var part = unit.Parts.FirstOrDefault(p => p.Location == location);
@@ -60,19 +78,10 @@ public static class DamageChainCriticalHitsCalculator
             remainingDamage -= structureDamage;
 
             // Calculate critical hits if the structure was damaged
-            var criticalHitsData = unit.CalculateCriticalHitsData(location, damage, diceRoller);
+            var criticalHitsData = unit.CalculateCriticalHitsData(location, _diceRoller);
             if (criticalHitsData != null)
             {
-                // Convert to LocationCriticalHitsData
-                var locationCriticalHits = new LocationCriticalHitsData(
-                    location,
-                    criticalHitsData.Roll,
-                    criticalHitsData.NumCriticalHits,
-                    criticalHitsData.CriticalHits,
-                    criticalHitsData.IsBlownOff
-                );
-                
-                criticalHits.Add(locationCriticalHits);
+                criticalHits.Add(criticalHitsData);
             }
         }
 
@@ -83,7 +92,7 @@ public static class DamageChainCriticalHitsCalculator
         {
             // Recursively calculate critical hits for the next location
             remainingDamage = CalculateCriticalHitsRecursively(
-                unit, nextLocation.Value, remainingDamage, diceRoller, criticalHits);
+                unit, nextLocation.Value, remainingDamage, criticalHits);
         }
 
         return remainingDamage;

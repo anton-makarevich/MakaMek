@@ -15,6 +15,7 @@ public class GameManager : IGameManager
     private readonly ICommandPublisher _commandPublisher;
     private readonly IDiceRoller _diceRoller;
     private readonly IToHitCalculator _toHitCalculator;
+    private readonly ICriticalHitsCalculator _criticalHitsCalculator;
     private readonly IGameFactory _gameFactory;
     private ServerGame? _serverGame;
     private readonly INetworkHostService? _networkHostService;
@@ -24,6 +25,7 @@ public class GameManager : IGameManager
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher, IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator, 
+        ICriticalHitsCalculator criticalHitsCalculator,
         IGameFactory gameFactory, 
         INetworkHostService? networkHostService = null)
     {
@@ -33,6 +35,7 @@ public class GameManager : IGameManager
         _commandPublisher = commandPublisher;
         _diceRoller = diceRoller;
         _toHitCalculator = toHitCalculator;
+        _criticalHitsCalculator = criticalHitsCalculator;
         _gameFactory = gameFactory;
         _networkHostService = networkHostService;
     }
@@ -58,7 +61,10 @@ public class GameManager : IGameManager
             _serverGame = _gameFactory.CreateServerGame(
                 _rulesProvider,
                 _mechFactory,
-                _commandPublisher, _diceRoller, _toHitCalculator);
+                _commandPublisher, 
+                _diceRoller,
+                _toHitCalculator,
+                _criticalHitsCalculator);
             // Start server listening loop in background
             _ = Task.Run(() => _serverGame?.Start());
         }
@@ -72,12 +78,7 @@ public class GameManager : IGameManager
     public string? GetLanServerAddress()
     {
         // Return address only if the host service is actually running
-        if (!IsLanServerRunning)
-        {
-            return null;
-        }
-        
-        return _networkHostService?.HubUrl;
+        return !IsLanServerRunning ? null : _networkHostService?.HubUrl;
     }
     
     public bool IsLanServerRunning => _networkHostService?.IsRunning ?? false;

@@ -22,6 +22,8 @@ public class ServerGame : BaseGame, IDisposable
     public bool IsAutoRoll { get; set; } = true;
     private IPhaseManager PhaseManager { get; }
     public IDiceRoller DiceRoller { get; }
+    
+    public ICriticalHitsCalculator CriticalHitsCalculator { get; }
     public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
 
     public ServerGame(
@@ -30,10 +32,12 @@ public class ServerGame : BaseGame, IDisposable
         ICommandPublisher commandPublisher,
         IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
+        ICriticalHitsCalculator criticalHitsCalculator,
         IPhaseManager? phaseManager = null)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator) 
     {
         DiceRoller = diceRoller;
+        CriticalHitsCalculator = criticalHitsCalculator;
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }

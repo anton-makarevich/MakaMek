@@ -20,7 +20,8 @@ public interface IGameFactory
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher, 
         IDiceRoller diceRoller, 
-        IToHitCalculator toHitCalculator);
+        IToHitCalculator toHitCalculator,
+        ICriticalHitsCalculator criticalHitsCalculator);
 
     /// <summary>
     /// Creates a new client-side game instance.

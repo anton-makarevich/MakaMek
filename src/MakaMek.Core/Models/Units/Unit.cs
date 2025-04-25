@@ -478,11 +478,9 @@ public abstract class Unit
     /// Calculates critical hit data for a specific location and damage
     /// </summary>
     /// <param name="location">The hit location</param>
-    /// <param name="damage">The damage applied</param>
     /// <param name="diceRoller">The dice roller to use for critical hit determination</param>
     /// <returns>Critical hit data or null if no critical hits</returns>
     public abstract LocationCriticalHitsData? CalculateCriticalHitsData(
         PartLocation location, 
-        int damage, 
         IDiceRoller diceRoller);
 }

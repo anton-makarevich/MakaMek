@@ -2,7 +2,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
-using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -254,8 +253,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
         
         // Calculate critical hits for all locations in the damage chain
-        var criticalHits = DamageChainCriticalHitsCalculator.CalculateDamageChainCriticalHits(
-            target, hitLocation, damage, Game.DiceRoller);
+        var criticalHits = Game.CriticalHitsCalculator.CalculateCriticalHits(
+            target, hitLocation, damage);
         
         return new HitLocationData(
             hitLocation, 
