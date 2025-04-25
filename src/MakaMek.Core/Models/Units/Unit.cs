@@ -282,15 +282,27 @@ public abstract class Unit
             ApplyArmorAndStructureDamage(hitLocation.Damage, targetPart);
             
             // Handle critical hits if present
-            if (hitLocation.CriticalHits?.IsBlownOff == true)
+            if (hitLocation.CriticalHits == null || !hitLocation.CriticalHits.Any()) continue;
+            
+            // Apply all critical hits for all locations in the damage chain
+            foreach (var criticalHit in hitLocation.CriticalHits)
             {
-                targetPart.BlowOff();
-                continue;
-            }
-            if (hitLocation.CriticalHits?.CriticalHits == null) continue;
-            foreach (var slot in hitLocation.CriticalHits.CriticalHits)
-            {
-                targetPart.CriticalHit(slot);
+                var criticalPart = _parts.Find(p => p.Location == criticalHit.Location);
+                if (criticalPart == null) continue;
+                
+                // Handle blown off parts
+                if (criticalHit.IsBlownOff)
+                {
+                    criticalPart.BlowOff();
+                    continue;
+                }
+                
+                // Apply critical hits to specific slots
+                if (criticalHit.CriticalHits == null) continue;
+                foreach (var slot in criticalHit.CriticalHits)
+                {
+                    criticalPart.CriticalHit(slot);
+                }
             }
         }
     }

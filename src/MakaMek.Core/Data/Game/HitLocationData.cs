@@ -10,6 +10,6 @@ public record HitLocationData(
     PartLocation Location,
     int Damage,
     List<DiceResult> LocationRoll,
-    CriticalHitsData? CriticalHits = null, // Optional: detailed critical hits info, null if none
+    List<LocationCriticalHitsData>? CriticalHits = null, // Optional: detailed critical hits info for all affected locations, null if none
     PartLocation? InitialLocation = null
 );

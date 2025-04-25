@@ -23,9 +23,9 @@ public abstract class UnitPart
     
     // Armor and Structure
     public int MaxArmor { get; }
-    public int CurrentArmor { get; protected set; }
+    public int CurrentArmor { get; private set; }
     public int MaxStructure { get; }
-    public int CurrentStructure { get; protected set; }
+    public int CurrentStructure { get; private set; }
     
     // Slots management
     public int TotalSlots { get; }
