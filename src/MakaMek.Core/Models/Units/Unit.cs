@@ -481,7 +481,7 @@ public abstract class Unit
     /// <param name="damage">The damage applied</param>
     /// <param name="diceRoller">The dice roller to use for critical hit determination</param>
     /// <returns>Critical hit data or null if no critical hits</returns>
-    public abstract CriticalHitsData? CalculateCriticalHitsData(
+    public abstract LocationCriticalHitsData? CalculateCriticalHitsData(
         PartLocation location, 
         int damage, 
         IDiceRoller diceRoller);
