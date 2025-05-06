@@ -631,7 +631,7 @@ public class MechTests
         diceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, 5, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -666,7 +666,7 @@ public class MechTests
             new DiceResult(5));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, 5, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -689,7 +689,7 @@ public class MechTests
         diceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightLeg, 5, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightLeg,  diceRoller);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -714,7 +714,7 @@ public class MechTests
         );
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, 5, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -748,7 +748,7 @@ public class MechTests
         diceRoller.RollD6().Returns(new DiceResult(1));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(location, 5, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(location, diceRoller);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -771,7 +771,7 @@ public class MechTests
         );
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, 5, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
 
         // Assert
         critsData?.CriticalHits.ShouldBeNull();
@@ -789,7 +789,7 @@ public class MechTests
         var diceRoller = Substitute.For<IDiceRoller>();
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, 3, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
 
         // Assert
         critsData.ShouldBeNull();
@@ -809,7 +809,7 @@ public class MechTests
         );
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, 5, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -838,7 +838,7 @@ public class MechTests
             new DiceResult(5));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, 5, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -866,7 +866,7 @@ public class MechTests
         diceRoller.RollD6().Returns(new DiceResult(4)); //that should go to the second group where only one slot is available (6) 
         
         // Act
-        var critData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, 33, diceRoller);
+        var critData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
         
         // Assert
         critData.ShouldNotBeNull();

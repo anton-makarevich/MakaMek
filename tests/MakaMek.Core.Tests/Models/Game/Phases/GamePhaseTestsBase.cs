@@ -35,13 +35,17 @@ public abstract class GamePhaseTestsBase
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
-            Substitute.For<IToHitCalculator>(), MockPhaseManager);
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<ICriticalHitsCalculator>(),
+            MockPhaseManager);
     }
     
     protected void SetGameWithRulesProvider(IRulesProvider rulesProvider)
     {
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
-            Substitute.For<IToHitCalculator>(), MockPhaseManager);
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<ICriticalHitsCalculator>(),
+            MockPhaseManager);
     }
 
     protected void SetMap()

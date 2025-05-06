@@ -30,7 +30,8 @@ public class GameFactoryTests
             _mechFactory,
             _commandPublisher, 
             _diceRoller, 
-            _toHitCalculator);
+            _toHitCalculator,
+            Substitute.For<ICriticalHitsCalculator>());
 
         // Assert
         serverGame.ShouldNotBeNull();

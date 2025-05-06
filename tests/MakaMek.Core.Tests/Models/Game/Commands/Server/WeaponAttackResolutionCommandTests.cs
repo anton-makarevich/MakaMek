@@ -361,7 +361,7 @@ public class WeaponAttackResolutionCommandTests
                 PartLocation.LeftArm,
                 5,
                 new List<DiceResult>(),
-                new CriticalHitsData(7, 0, null)
+                [new LocationCriticalHitsData(PartLocation.LeftArm,7, 0, null)]
             )
         };
         var hitLocationsData = new AttackHitLocationsData(
@@ -409,7 +409,7 @@ public class WeaponAttackResolutionCommandTests
                 PartLocation.LeftArm,
                 5,
                 new List<DiceResult>(),
-                new CriticalHitsData(10, 1, [2])
+                [new LocationCriticalHitsData(PartLocation.LeftArm,10, 1, [2])]
             )
         };
         var hitLocationsData = new AttackHitLocationsData(
@@ -498,8 +498,7 @@ public class WeaponAttackResolutionCommandTests
                 PartLocation.Head,
                 5,
                 [new DiceResult(6), new DiceResult(6)], // Roll of 12
-                new CriticalHitsData(5,0,null,true), 
-                null 
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 5,0,null,true)] 
             )
         };
         
