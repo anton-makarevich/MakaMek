@@ -94,6 +94,8 @@ public class WeaponAttackResolutionCommandTests
             .Returns("Criticals: {0}");
         _localizationService.GetString("Command_WeaponAttackResolution_BlownOff")
             .Returns("LOCATION BLOWN OFF: {0}");
+        _localizationService.GetString("Command_WeaponAttackResolution_LocationCriticals")
+            .Returns("Critical hits in {0}:");
     }
 
     private WeaponAttackResolutionCommand CreateHitCommand()
@@ -498,7 +500,7 @@ public class WeaponAttackResolutionCommandTests
                 PartLocation.Head,
                 5,
                 [new DiceResult(6), new DiceResult(6)], // Roll of 12
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 5,0,null,true)] 
+                [new LocationCriticalHitsData(PartLocation.Head, 5, 0, null, true)] 
             )
         };
         
@@ -533,5 +535,314 @@ public class WeaponAttackResolutionCommandTests
         output.ShouldContain("LOCATION BLOWN OFF: Head");
         output.ShouldContain("Critical roll:");
         output.ShouldNotContain("Criticals:");
+    }
+
+    [Fact]
+    public void Format_Includes_CriticalHits_In_Different_Location()
+    {
+        // Arrange: create a hit with critical hits in a different location than the primary hit
+        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var critComponent = new MachineGun();
+        leftArm.TryAddComponent(critComponent, [2]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.CenterTorso,
+                5,
+                [new DiceResult(6)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("CenterTorso: 5 damage");
+        output.ShouldContain("Critical hits in LeftArm:");
+        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
+    }
+    
+    [Fact]
+    public void Format_Handles_Multiple_Critical_Hits_In_Different_Slots()
+    {
+        // Arrange: create a hit with multiple critical hits in different slots
+        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var critComponent1 = new MachineGun();
+        var critComponent2 = new MachineGun();
+        leftArm.TryAddComponent(critComponent1, [2]);
+        leftArm.TryAddComponent(critComponent2, [3]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.LeftArm,
+                5,
+                [new DiceResult(6)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2, [2, 3])]
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("Critical roll: 10");
+        output.ShouldContain("Criticals: 2");
+        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
+        output.ShouldContain("Critical hit in LeftArm slot 4: Machine Gun");
+    }
+    
+    [Fact]
+    public void Format_Handles_Multiple_Critical_Hits_In_Different_Locations()
+    {
+        // Arrange: create a hit with critical hits in multiple locations
+        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var rightArm = _target.Parts.First(p => p.Location == PartLocation.RightArm);
+        var critComponent1 = new MachineGun();
+        var critComponent2 = new MachineGun();
+        leftArm.TryAddComponent(critComponent1, [2]);
+        rightArm.TryAddComponent(critComponent2, [3]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.CenterTorso,
+                5,
+                [new DiceResult(6)],
+                [
+                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2]),
+                    new LocationCriticalHitsData(PartLocation.RightArm, 11, 1, [3])
+                ]
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("Critical hits in LeftArm:");
+        output.ShouldContain("Critical roll: 10");
+        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
+        output.ShouldContain("Critical hits in RightArm:");
+        output.ShouldContain("Critical roll: 11");
+        output.ShouldContain("Critical hit in RightArm slot 4: Machine Gun");
+    }
+    
+    [Fact]
+    public void Format_Handles_Multiple_Blown_Off_Locations()
+    {
+        // Arrange: create a hit with multiple blown-off locations
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.CenterTorso,
+                10,
+                [new DiceResult(6)],
+                [
+                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 0, null, true),
+                    new LocationCriticalHitsData(PartLocation.RightArm, 11, 0, null, true)
+                ]
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            10,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("LOCATION BLOWN OFF: LeftArm");
+        output.ShouldContain("LOCATION BLOWN OFF: RightArm");
+    }
+    
+    [Fact]
+    public void Format_Handles_Null_CriticalHits_Array()
+    {
+        // Arrange: create a hit with null critical hits array
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.CenterTorso,
+                5,
+                [new DiceResult(6)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, null)]
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("Critical roll: 10");
+        output.ShouldContain("Criticals: 1");
+        output.ShouldNotContain("Critical hit in");
+    }
+    
+    [Fact]
+    public void Format_Handles_Component_Lookup_Failure()
+    {
+        // Arrange: create a hit with a critical hit in a slot that doesn't have a component
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.LeftArm,
+                5,
+                [new DiceResult(6)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [5])]  // Slot that doesn't exist or has no component
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("Critical roll: 10");
+        output.ShouldContain("Criticals: 1");
+        // Should not throw an exception when component lookup fails
+        output.ShouldNotContain("Critical hit in LeftArm slot 6:");
     }
 }

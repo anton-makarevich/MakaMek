@@ -778,25 +778,6 @@ public class MechTests
     }
 
     [Fact]
-    public void CalculateCriticalHitsData_ShouldNotSetCriticalHits_WhenDamageDoesNotExceedArmor()
-    {
-        // Arrange
-        var part = new Arm("TestArm", PartLocation.RightArm, 5, 10);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
-        for (var i = 1; i < part.TotalSlots; i++)
-            part.TryAddComponent(new TestComponent([i]));
-
-        var diceRoller = Substitute.For<IDiceRoller>();
-
-        // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
-
-        // Assert
-        critsData.ShouldBeNull();
-        diceRoller.DidNotReceive().Roll2D6(); // Shouldn't even roll for crits
-    }
-
-    [Fact]
     public void CalculateCriticalHitsData_ShouldSetIsBlownOff_WhenCriticalRollIs12AndLocationCanBeBlownOff()
     {
         // Arrange

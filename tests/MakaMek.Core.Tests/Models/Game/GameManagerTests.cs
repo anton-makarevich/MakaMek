@@ -24,6 +24,8 @@ public class GameManagerTests : IDisposable
     private readonly ServerGame _serverGame;
     private readonly INetworkHostService _networkHostService;
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
+    private readonly ICriticalHitsCalculator _criticalHitsCalculator = Substitute.For<ICriticalHitsCalculator>();
+    
 
     public GameManagerTests()
     {
@@ -43,14 +45,15 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            Substitute.For<ICriticalHitsCalculator>());
+            _criticalHitsCalculator
+            );
         _gameFactory.CreateServerGame(
             _rulesProvider,
             _mechFactory,
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            Substitute.For<ICriticalHitsCalculator>()).Returns(_serverGame);
+            _criticalHitsCalculator).Returns(_serverGame);
         _commandPublisher.Adapter.Returns(_transportAdapter);
 
         _sut = new GameManager(
@@ -59,7 +62,7 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            Substitute.For<ICriticalHitsCalculator>(),
+            _criticalHitsCalculator,
             _gameFactory,
             _networkHostService);
     }
@@ -86,7 +89,7 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            Substitute.For<ICriticalHitsCalculator>());
+            _criticalHitsCalculator);
     }
     
     [Fact]
@@ -119,7 +122,7 @@ public class GameManagerTests : IDisposable
             _commandPublisher, 
             _diceRoller, 
             _toHitCalculator,
-            Substitute.For<ICriticalHitsCalculator>());
+            _criticalHitsCalculator);
     }
 
     [Fact]
@@ -140,7 +143,7 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            Substitute.For<ICriticalHitsCalculator>());
+            _criticalHitsCalculator);
     }
 
     [Fact]
@@ -162,7 +165,7 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            Substitute.For<ICriticalHitsCalculator>());
+            _criticalHitsCalculator);
     }
 
     [Fact]
@@ -275,7 +278,7 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            Substitute.For<ICriticalHitsCalculator>());
+            _criticalHitsCalculator);
     }
 
     [Fact]
