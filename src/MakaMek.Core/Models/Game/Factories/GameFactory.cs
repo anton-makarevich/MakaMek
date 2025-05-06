@@ -17,9 +17,10 @@ public class GameFactory : IGameFactory
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher, 
         IDiceRoller diceRoller, 
-        IToHitCalculator toHitCalculator)
+        IToHitCalculator toHitCalculator,
+        ICriticalHitsCalculator criticalHitsCalculator)
     {
-        return new ServerGame(rulesProvider, mechFactory, commandPublisher, diceRoller, toHitCalculator);
+        return new ServerGame(rulesProvider, mechFactory, commandPublisher, diceRoller, toHitCalculator, criticalHitsCalculator);
     }
 
     public ClientGame CreateClientGame(

@@ -54,10 +54,11 @@ public class UnitTests
                 ?null
                 : PartLocation.CenterTorso;
 
-        public override CriticalHitsData CalculateCriticalHitsData(PartLocation location, int damage, IDiceRoller diceRoller)
+        public override LocationCriticalHitsData? CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)
         {
             throw new NotImplementedException();
         }
+
 
         protected override void ApplyHeatEffects()
         {
@@ -1100,7 +1101,8 @@ public class UnitTests
         var critComponent = new TestComponent("CritComp");
         leftArm.TryAddComponent(critComponent, [2]);
         var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
-        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], new CriticalHitsData(10, 1, [2]));
+        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], 
+            [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]);
     
         // Pre-assert: component is not destroyed
         critComponent.IsDestroyed.ShouldBeFalse();
@@ -1116,7 +1118,8 @@ public class UnitTests
         // Arrange
         var leftArm = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 5);
         var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
-        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], new CriticalHitsData(10, 1, null,true));
+        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [],
+            [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, null,true)]);
         
         // Act
         unit.ApplyDamage([hitLocation]);
@@ -1136,7 +1139,7 @@ public class UnitTests
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.LeftArm, 10,[new DiceResult(3),new DiceResult(5)],
-                new CriticalHitsData(10, 2, [0, 2]))
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2, [0, 2])])
         };
         
         // Act
@@ -1159,7 +1162,7 @@ public class UnitTests
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.LeftArm, 10, [new DiceResult(3),new DiceResult(5)],
-                new CriticalHitsData(12, 0, null, true))
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 12, 0, null, true)])
         };
         
         // Act

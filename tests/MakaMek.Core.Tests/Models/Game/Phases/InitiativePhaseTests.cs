@@ -313,7 +313,9 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         var game = new ServerGame(new ClassicBattletechRulesProvider(),
             new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
             CommandPublisher, DiceRoller,
-            Substitute.For<IToHitCalculator>(), mockPhaseManager)
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<ICriticalHitsCalculator>(),
+            mockPhaseManager)
         {
             IsAutoRoll = false
         };

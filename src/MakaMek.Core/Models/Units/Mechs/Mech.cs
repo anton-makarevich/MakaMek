@@ -157,16 +157,14 @@ public class Mech : Unit
     /// Calculates critical hit data for a specific location and damage
     /// </summary>
     /// <param name="location">The hit location</param>
-    /// <param name="damage">The damage applied</param>
     /// <param name="diceRoller">The dice roller to use for critical hit determination</param>
     /// <returns>Critical hit data or null if no critical hits</returns>
-    public override CriticalHitsData? CalculateCriticalHitsData(
+    public override LocationCriticalHitsData? CalculateCriticalHitsData(
         PartLocation location, 
-        int damage, 
         IDiceRoller diceRoller)
     {
         var part = _parts.FirstOrDefault(p => p.Location == location);
-        if (part == null || damage <= part.CurrentArmor || part.CurrentStructure <= 0)
+        if (part is not { CurrentStructure: > 0 })
             return null;
             
         var critRoll = diceRoller.Roll2D6().Sum(d => d.Result);
@@ -177,7 +175,7 @@ public class Mech : Unit
         var isBlownOff = part.CanBeBlownOff && numCrits == 3;
         if (isBlownOff)
         {
-            return new CriticalHitsData(critRoll, 0, null, isBlownOff);
+            return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff);
         }
         
         if (numCrits > 0)
@@ -185,7 +183,7 @@ public class Mech : Unit
             crits = DetermineCriticalHitSlots(part, numCrits, diceRoller);
         }
         
-        return new CriticalHitsData(critRoll, numCrits, crits, isBlownOff);
+        return new LocationCriticalHitsData(location, critRoll, numCrits, crits, isBlownOff);
     }
 
     /// <summary>

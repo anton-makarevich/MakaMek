@@ -28,6 +28,7 @@ public class BattleTechPhaseManagerTests
             Substitute.For<ICommandPublisher>(), // commandPublisher
             Substitute.For<IDiceRoller>(), // diceRoller
             Substitute.For<IToHitCalculator>(), // toHitCalculator
+            Substitute.For<ICriticalHitsCalculator>(),
             _sut  // phaseManager
         );
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(5,5, new SingleTerrainGenerator(5,5, new ClearTerrain())));

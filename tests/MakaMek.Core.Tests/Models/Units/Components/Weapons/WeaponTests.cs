@@ -22,7 +22,7 @@ public class WeaponTests
     [InlineData(6, WeaponRange.Minimum)] // At minimum range
     [InlineData(7, WeaponRange.Short)] // At short range boundary
     [InlineData(10, WeaponRange.Medium)] // Within short range
-    [InlineData(14, WeaponRange.Medium)] // At medium range boundary
+    [InlineData(14, WeaponRange.Medium)] // At a medium range boundary
     [InlineData(17, WeaponRange.Long)] // Within long range
     [InlineData(21, WeaponRange.Long)] // At long range boundary
     [InlineData(22, WeaponRange.OutOfRange)] // Beyond long range
@@ -113,7 +113,7 @@ public class WeaponTests
     
     private class MockUnit : Unit
     {
-        public MockUnit() : base("Mock", "Unit", 20, 4, Array.Empty<UnitPart>())
+        public MockUnit() : base("Mock", "Unit", 20, 4, [])
         {
         }
         
@@ -126,7 +126,7 @@ public class WeaponTests
         }
 
         public override PartLocation? GetTransferLocation(PartLocation location) => null;
-        public override CriticalHitsData? CalculateCriticalHitsData(PartLocation location, int damage, IDiceRoller diceRoller)
+        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)
         {
             throw new NotImplementedException();
         }

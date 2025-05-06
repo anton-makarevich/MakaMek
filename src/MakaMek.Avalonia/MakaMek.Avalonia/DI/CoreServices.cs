@@ -35,6 +35,7 @@ public static class CoreServices
         services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
         services.AddSingleton<IMechFactory, MechFactory>();
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
+        services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
         services.AddSingleton<IToHitCalculator, ClassicToHitCalculator>();
         services.AddSingleton<IMechDataProvider, MtfDataProvider>();
         services.AddSingleton<IUnitsLoader, EmbeddedResourcesUnitsLoader>();

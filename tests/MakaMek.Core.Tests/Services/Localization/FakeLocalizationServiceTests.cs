@@ -34,6 +34,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_BlownOff", "Critical hit in {0}, location blown off")]
     [InlineData("Command_WeaponAttackResolution_CritRoll", "Critical Roll: {0}")]
     [InlineData("Command_WeaponAttackResolution_NumCrits", "Num Crits: {0}")]
+    [InlineData("Command_WeaponAttackResolution_LocationCriticals", "Critical hits in {0}:")]
     [InlineData("Command_TurnEnded", "{0} has ended their turn.")]
     [InlineData("Command_TurnIncremented", "Turn {0} has started.")]
     [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game.")]

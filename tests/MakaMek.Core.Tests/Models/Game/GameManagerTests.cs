@@ -24,6 +24,8 @@ public class GameManagerTests : IDisposable
     private readonly ServerGame _serverGame;
     private readonly INetworkHostService _networkHostService;
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
+    private readonly ICriticalHitsCalculator _criticalHitsCalculator = Substitute.For<ICriticalHitsCalculator>();
+    
 
     public GameManagerTests()
     {
@@ -37,8 +39,21 @@ public class GameManagerTests : IDisposable
         _gameFactory = Substitute.For<IGameFactory>();
         _networkHostService = Substitute.For<INetworkHostService>();
 
-        _serverGame = new ServerGame(_rulesProvider, _mechFactory, _commandPublisher, _diceRoller, _toHitCalculator);
-        _gameFactory.CreateServerGame(_rulesProvider, _mechFactory, _commandPublisher, _diceRoller, _toHitCalculator).Returns(_serverGame);
+        _serverGame = new ServerGame(
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            _criticalHitsCalculator
+            );
+        _gameFactory.CreateServerGame(
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            _criticalHitsCalculator).Returns(_serverGame);
         _commandPublisher.Adapter.Returns(_transportAdapter);
 
         _sut = new GameManager(
@@ -47,6 +62,7 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
+            _criticalHitsCalculator,
             _gameFactory,
             _networkHostService);
     }
@@ -67,7 +83,13 @@ public class GameManagerTests : IDisposable
         await _networkHostService.Received(1).Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(2); // Initial mock + network publisher
         _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
-        _gameFactory.Received(1).CreateServerGame(_rulesProvider, _mechFactory, _commandPublisher, _diceRoller, _toHitCalculator);
+        _gameFactory.Received(1).CreateServerGame(
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            _criticalHitsCalculator);
     }
     
     [Fact]
@@ -94,7 +116,13 @@ public class GameManagerTests : IDisposable
         // Assert
         await _networkHostService.Received(1).Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Only the initial mock publisher
-        _gameFactory.Received(1).CreateServerGame(_rulesProvider, _mechFactory, _commandPublisher, _diceRoller, _toHitCalculator);
+        _gameFactory.Received(1).CreateServerGame(
+            _rulesProvider, 
+            _mechFactory,
+            _commandPublisher, 
+            _diceRoller, 
+            _toHitCalculator,
+            _criticalHitsCalculator);
     }
 
     [Fact]
@@ -109,7 +137,13 @@ public class GameManagerTests : IDisposable
         // Assert
         await _networkHostService.DidNotReceive().Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Only initial mock publisher
-        _gameFactory.Received(1).CreateServerGame(_rulesProvider, _mechFactory, _commandPublisher, _diceRoller, _toHitCalculator);
+        _gameFactory.Received(1).CreateServerGame(
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            _criticalHitsCalculator);
     }
 
     [Fact]
@@ -125,7 +159,13 @@ public class GameManagerTests : IDisposable
         // Assert
         await _networkHostService.DidNotReceive().Start();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1);
-        _gameFactory.Received(1).CreateServerGame(_rulesProvider, _mechFactory, _commandPublisher, _diceRoller, _toHitCalculator);
+        _gameFactory.Received(1).CreateServerGame(
+            _rulesProvider, 
+            _mechFactory,
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            _criticalHitsCalculator);
     }
 
     [Fact]
@@ -175,8 +215,11 @@ public class GameManagerTests : IDisposable
         var sutWithNullHost = new GameManager(
             _rulesProvider,
             _mechFactory,
-            _commandPublisher, _diceRoller,
-            _toHitCalculator, _gameFactory);
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            Substitute.For<ICriticalHitsCalculator>(),
+            _gameFactory);
 
         // Act & Assert
         sutWithNullHost.IsLanServerRunning.ShouldBeFalse();
@@ -198,9 +241,14 @@ public class GameManagerTests : IDisposable
     public void CanStartLanServer_WhenHostIsNull_ReturnsFalse()
     {
         // Arrange
-        var sutWithNullHost = new GameManager(_rulesProvider,
-            _mechFactory, _commandPublisher, _diceRoller,
-            _toHitCalculator, _gameFactory);
+        var sutWithNullHost = new GameManager(
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            Substitute.For<ICriticalHitsCalculator>(),
+            _gameFactory);
 
         // Act & Assert
         sutWithNullHost.CanStartLanServer.ShouldBeFalse();
@@ -224,7 +272,13 @@ public class GameManagerTests : IDisposable
         await _networkHostService.Received(1).Start(); // Should only be called once
         _transportAdapter.TransportPublishers.Count.ShouldBe(2); // Publisher should only be added once
         _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
-        _gameFactory.Received(1).CreateServerGame(_rulesProvider, _mechFactory, _commandPublisher, _diceRoller, _toHitCalculator);
+        _gameFactory.Received(1).CreateServerGame(
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            _criticalHitsCalculator);
     }
 
     [Fact]
@@ -241,10 +295,14 @@ public class GameManagerTests : IDisposable
     public void Dispose_WhenHostIsNull_DoesNotThrow()
     {
         // Arrange
-        var sutWithNullHost = new GameManager(_rulesProvider,
+        var sutWithNullHost = new GameManager(
+            _rulesProvider,
             _mechFactory,
-            _commandPublisher, _diceRoller,
-            _toHitCalculator, _gameFactory);
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            Substitute.For<ICriticalHitsCalculator>(),
+            _gameFactory);
 
         // Act & Assert
         Should.NotThrow(() => sutWithNullHost.Dispose());
