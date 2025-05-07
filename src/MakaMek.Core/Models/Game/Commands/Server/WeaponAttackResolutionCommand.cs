@@ -148,32 +148,28 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                     
                     var targetUnit = game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.TargetId);
                     var part = targetUnit?.Parts.FirstOrDefault(p => p.Location == criticalHit.Location);
-                    
+
                     foreach (var slot in criticalHit.CriticalHits)
                     {
                         var comp = part?.GetComponentAtSlot(slot);
                         if (comp == null) continue;
                         var compName = comp.Name;
-                        
-                        // Check if this component can explode
-                        if (comp is { CanExplode: true, HasExploded: false })
-                        {
-                            var damage = comp.GetExplosionDamage();
-                            if (damage > 0)
-                            {
-                                var explosionTemplate = localizationService.GetString("Command_WeaponAttackResolution_Explosion");
-                                
-                                stringBuilder.AppendLine(string.Format(explosionTemplate, 
-                                    comp, 
-                                    damage));
-                            }
-                        }
-                        
+
                         stringBuilder.AppendLine(string.Format(
                             localizationService.GetString("Command_WeaponAttackResolution_CriticalHit"),
                             criticalHit.Location,
-                            slot+1,
+                            slot + 1,
                             compName));
+                        // Check if this component can explode
+                        if (comp is not { CanExplode: true, HasExploded: false }) continue;
+                        var damage = comp.GetExplosionDamage();
+                        if (damage <= 0) continue;
+                        var explosionTemplate =
+                            localizationService.GetString("Command_WeaponAttackResolution_Explosion");
+
+                        stringBuilder.AppendLine(string.Format(explosionTemplate,
+                            compName,
+                            damage));
                     }
                 }
             }

@@ -35,6 +35,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_NumCrits" => "Num Crits: {0}",
             "Command_WeaponAttackResolution_BlownOff" => "Critical hit in {0}, location blown off",
             "Command_WeaponAttackResolution_LocationCriticals" => "Critical hits in {0}:",
+            "Command_WeaponAttackResolution_Explosion" => "{0} exploded, damage: {1}",
             "Command_TurnEnded" => "{0} has ended their turn.",
             "Command_TurnIncremented" => "Turn {0} has started.",
             "Command_RequestGameLobbyStatus" => "Client {0} requested game lobby status for game.",
