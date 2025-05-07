@@ -154,6 +154,21 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                         var comp = part?.GetComponentAtSlot(slot);
                         if (comp == null) continue;
                         var compName = comp.Name;
+                        
+                        // Check if this component can explode
+                        if (comp is { CanExplode: true, HasExploded: false })
+                        {
+                            var damage = comp.GetExplosionDamage();
+                            if (damage > 0)
+                            {
+                                var explosionTemplate = localizationService.GetString("Command_WeaponAttackResolution_Explosion");
+                                
+                                stringBuilder.AppendLine(string.Format(explosionTemplate, 
+                                    comp, 
+                                    damage));
+                            }
+                        }
+                        
                         stringBuilder.AppendLine(string.Format(
                             localizationService.GetString("Command_WeaponAttackResolution_CriticalHit"),
                             criticalHit.Location,

@@ -279,23 +279,63 @@ public abstract class Unit
         {
             var targetPart = _parts.Find(p => p.Location == hitLocation.Location);
             if (targetPart == null) continue;
-            ApplyArmorAndStructureDamage(hitLocation.Damage, targetPart);
+            
+            // Calculate total damage including any potential explosion damage
+            var totalDamage = hitLocation.Damage;
             
             // Handle critical hits if present
+            if (hitLocation.CriticalHits != null && hitLocation.CriticalHits.Count != 0)
+            {
+                // Apply all critical hits for all locations in the damage chain
+                foreach (var criticalHit in hitLocation.CriticalHits)
+                {
+                    var criticalPart = _parts.Find(p => p.Location == criticalHit.Location);
+                    if (criticalPart == null) continue;
+                    
+                    // Handle blown off parts
+                    if (criticalHit.IsBlownOff)
+                    {
+                        criticalPart.BlowOff();
+                        continue;
+                    }
+                    
+                    // Check for explodable components before applying critical hits
+                    if (criticalHit.CriticalHits != null)
+                    {
+                        var explosionDamage = 0;
+                        
+                        foreach (var slot in criticalHit.CriticalHits)
+                        {
+                            var component = criticalPart.GetComponentAtSlot(slot);
+                            if (component is { CanExplode: true, HasExploded: false })
+                            {
+                                // Add explosion damage to the total
+                                explosionDamage += component.GetExplosionDamage();
+                            }
+                        }
+                        
+                        // Add explosion damage to total damage
+                        if (explosionDamage > 0)
+                        {
+                            totalDamage += explosionDamage;
+                        }
+                    }
+                }
+            }
+            
+            // Apply the total damage (including any explosion damage)
+            ApplyArmorAndStructureDamage(totalDamage, targetPart);
+            
+            // Now apply the critical hits after calculating total damage
             if (hitLocation.CriticalHits == null || !hitLocation.CriticalHits.Any()) continue;
             
-            // Apply all critical hits for all locations in the damage chain
             foreach (var criticalHit in hitLocation.CriticalHits)
             {
                 var criticalPart = _parts.Find(p => p.Location == criticalHit.Location);
                 if (criticalPart == null) continue;
                 
-                // Handle blown off parts
-                if (criticalHit.IsBlownOff)
-                {
-                    criticalPart.BlowOff();
-                    continue;
-                }
+                // Skip blown off parts as they were already handled
+                if (criticalHit.IsBlownOff) continue;
                 
                 // Apply critical hits to specific slots
                 if (criticalHit.CriticalHits == null) continue;

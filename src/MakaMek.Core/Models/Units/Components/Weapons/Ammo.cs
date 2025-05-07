@@ -51,6 +51,19 @@ public class Ammo : Component
     public override void Hit()
     {
         base.Hit();
+        HasExploded = true;
         _remainingShots = 0;
+    }
+
+    // Explosion-related functionality
+    public override bool CanExplode => true;
+
+    public override int GetExplosionDamage()
+    {
+        if (HasExploded || RemainingShots <= 0)
+            return 0;
+            
+        // TODO Calculate explosion damage based on ammo type and remaining shots
+        return  RemainingShots;
     }
 }

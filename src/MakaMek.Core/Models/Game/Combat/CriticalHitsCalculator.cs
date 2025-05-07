@@ -71,10 +71,9 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         var remainingDamage = damage - armorDamage;
 
         // Calculate structure damage if armor is depleted
-        var structureDamage = 0;
         if (remainingDamage > 0 && part.CurrentStructure > 0)
         {
-            structureDamage = Math.Min(remainingDamage, part.CurrentStructure);
+            var structureDamage = Math.Min(remainingDamage, part.CurrentStructure);
             remainingDamage -= structureDamage;
 
             // Calculate critical hits if the structure was damaged
@@ -82,10 +81,32 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             if (criticalHitsData != null)
             {
                 criticalHits.Add(criticalHitsData);
+                
+                // Check for explodable components that would be hit by these critical hits
+                if (criticalHitsData.CriticalHits is { Length: > 0 })
+                {
+                    var explosionDamage = 0;
+                    
+                    foreach (var slot in criticalHitsData.CriticalHits)
+                    {
+                        var component = part.GetComponentAtSlot(slot);
+                        if (component is { CanExplode: true, HasExploded: false })
+                        {
+                            // Add explosion damage to the total
+                            explosionDamage += component.GetExplosionDamage();
+                        }
+                    }
+                    
+                    // Add explosion damage to remaining damage to propagate through the damage chain
+                    if (explosionDamage > 0)
+                    {
+                        remainingDamage += explosionDamage;
+                    }
+                }
             }
         }
 
-        if (remainingDamage <= 0 || (part.CurrentStructure - structureDamage > 0)) return remainingDamage;
+        if (remainingDamage <= 0) return remainingDamage;
         // If the structure is destroyed and there's still damage remaining, propagate to the next location
         var nextLocation = unit.GetTransferLocation(location);
         if (nextLocation.HasValue)
