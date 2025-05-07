@@ -82,27 +82,8 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             {
                 criticalHits.Add(criticalHitsData);
                 
-                // Check for explodable components that would be hit by these critical hits
-                if (criticalHitsData.CriticalHits is { Length: > 0 })
-                {
-                    var explosionDamage = 0;
-                    
-                    foreach (var slot in criticalHitsData.CriticalHits)
-                    {
-                        var component = part.GetComponentAtSlot(slot);
-                        if (component is { CanExplode: true, HasExploded: false })
-                        {
-                            // Add explosion damage to the total
-                            explosionDamage += component.GetExplosionDamage();
-                        }
-                    }
-                    
-                    // Add explosion damage to remaining damage to propagate through the damage chain
-                    if (explosionDamage > 0)
-                    {
-                        remainingDamage += explosionDamage;
-                    }
-                }
+                // Process critical hits and check for cascading explosions
+                ProcessCriticalHitsAndExplosions(unit, part, location, criticalHitsData, criticalHits, ref remainingDamage);
             }
         }
 
@@ -117,5 +98,59 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         }
 
         return remainingDamage;
+    }
+
+    /// <summary>
+    /// Process critical hits and check for cascading explosions
+    /// </summary>
+    /// <param name="unit">The unit receiving damage</param>
+    /// <param name="part">The part being hit</param>
+    /// <param name="location">The location of the part</param>
+    /// <param name="criticalHitsData">The critical hits data</param>
+    /// <param name="criticalHits">The list to collect critical hits data</param>
+    /// <param name="remainingDamage">Reference to the remaining damage to update</param>
+    private void ProcessCriticalHitsAndExplosions(
+        Unit unit,
+        UnitPart part,
+        PartLocation location,
+        LocationCriticalHitsData criticalHitsData,
+        List<LocationCriticalHitsData> criticalHits,
+        ref int remainingDamage)
+    {
+        // Check for explodable components that would be hit by these critical hits
+        if (criticalHitsData.CriticalHits is not { Length: > 0 })
+            return;
+            
+        var explosionDamage = 0;
+        var hasExplosion = false;
+        
+        foreach (var slot in criticalHitsData.CriticalHits)
+        {
+            var component = part.GetComponentAtSlot(slot);
+            if (component is { CanExplode: true, HasExploded: false })
+            {
+                // Add explosion damage to the total
+                explosionDamage += component.GetExplosionDamage();
+                hasExplosion = true;
+            }
+        }
+        
+        // Add explosion damage to remaining damage to propagate through the damage chain
+        if (explosionDamage <= 0) return;
+        
+        remainingDamage += explosionDamage;
+        
+        // According to the rules, ammunition explosions damage internal structure
+        // and require another critical hit roll
+        if (!hasExplosion) return;
+        
+        // Make another critical hit roll for the explosion damage
+        var explosionCriticalHitsData = unit.CalculateCriticalHitsData(location, _diceRoller);
+        if (explosionCriticalHitsData == null) return;
+        
+        criticalHits.Add(explosionCriticalHitsData);
+        
+        // Recursively process any additional explosions from this critical hit
+        ProcessCriticalHitsAndExplosions(unit, part, location, explosionCriticalHitsData, criticalHits, ref remainingDamage);
     }
 }
