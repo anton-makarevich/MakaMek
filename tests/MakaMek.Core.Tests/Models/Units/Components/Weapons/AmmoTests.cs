@@ -72,4 +72,80 @@ public class AmmoTests
         // Assert
         sut.IsDestroyed.ShouldBeTrue();
     }
+    
+    [Fact]
+    public void CanExplode_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Ammo(AmmoType.AC20, 10);
+
+        // Act & Assert
+        sut.CanExplode.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetExplosionDamage_ReturnsRemainingShots()
+    {
+        // Arrange
+        var sut = new Ammo(AmmoType.AC20, 10);
+
+        // Act
+        var damage = sut.GetExplosionDamage();
+
+        // Assert
+        damage.ShouldBe(10); // Currently returns RemainingShots directly
+    }
+
+    [Fact]
+    public void GetExplosionDamage_WhenEmpty_ReturnsZero()
+    {
+        // Arrange
+        var sut = new Ammo(AmmoType.AC20, 0);
+
+        // Act
+        var damage = sut.GetExplosionDamage();
+
+        // Assert
+        damage.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Hit_SetsHasExplodedToTrue()
+    {
+        // Arrange
+        var sut = new Ammo(AmmoType.AC20, 10);
+
+        // Act
+        sut.Hit();
+
+        // Assert
+        sut.HasExploded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Hit_SetsRemainingToZero()
+    {
+        // Arrange
+        var sut = new Ammo(AmmoType.AC20, 10);
+
+        // Act
+        sut.Hit();
+
+        // Assert
+        sut.RemainingShots.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GetExplosionDamage_AfterHit_ReturnsZero()
+    {
+        // Arrange
+        var sut = new Ammo(AmmoType.AC20, 10);
+        sut.Hit();
+
+        // Act
+        var damage = sut.GetExplosionDamage();
+
+        // Assert
+        damage.ShouldBe(0);
+    }
 }
