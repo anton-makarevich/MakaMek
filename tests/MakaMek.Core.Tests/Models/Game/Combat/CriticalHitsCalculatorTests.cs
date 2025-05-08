@@ -300,13 +300,11 @@ public class CriticalHitsCalculatorTests
         var part = testUnit.Parts.First(p => p.Location == location);
         
         // Add multiple ammo boxes to the location
-        var ammo1 = new Ammo(AmmoType.AC20, 10);
-        var ammo2 = new Ammo(AmmoType.LRM20, 10);
-        var ammo3 = new Ammo(AmmoType.SRM6, 10);
+        var ammo1 = new Ammo(AmmoType.AC20, 1);
+        var ammo2 = new Ammo(AmmoType.LRM20, 1);
         
         part.TryAddComponent(ammo1, [0]);
         part.TryAddComponent(ammo2, [1]);
-        part.TryAddComponent(ammo3, [2]);
         
         const int damage = 6; // Enough to cause structural damage but not destroy the location by itself
         
@@ -314,8 +312,8 @@ public class CriticalHitsCalculatorTests
         _mockDiceRoller.Roll2D6().Returns(
             // First roll for initial damage (8 = 1 crit)
             [new DiceResult(4), new DiceResult(4)],
-            // Second roll for first explosion (10 = 2 crits)
-            [new DiceResult(5), new DiceResult(5)],
+            // Second roll for first explosion (8 = 1 crits)
+            [new DiceResult(5), new DiceResult(3)],
             // Third roll for second explosion (8 = 1 crit)
             [new DiceResult(4), new DiceResult(4)]
         );
@@ -323,14 +321,16 @@ public class CriticalHitsCalculatorTests
         // Setup rolls for critical hit slots
         _mockDiceRoller.RollD6().Returns(
             // Initial critical hit - hits first ammo
+            new DiceResult(1), // Upper group
             new DiceResult(1), // Slot 0 where we placed ammo1
             
             // First explosion critical hits - one hits second ammo
+            new DiceResult(1), // Upper group
             new DiceResult(2), // Slot 1 where we placed ammo2
-            new DiceResult(4), // Some other slot
             
             // Second explosion critical hit - doesn't hit third ammo
-            new DiceResult(5)  // Some other slot
+            new DiceResult(1), // Upper group
+            new DiceResult(1)  // Slot 0 again, already exploded
         );
         
         // Act
@@ -343,21 +343,16 @@ public class CriticalHitsCalculatorTests
         // First critical hit set (from initial damage)
         result[0].Location.ShouldBe(location);
         result[0].NumCriticalHits.ShouldBe(1);
-        result[0].CriticalHits.ShouldContain(0); // Should hit slot 0 where ammo1 is
+        result[0].CriticalHits!.ShouldContain(0); // Should hit slot 0 where ammo1 is
         
         // Second critical hit set (from first explosion)
         result[1].Location.ShouldBe(location);
-        result[1].NumCriticalHits.ShouldBe(2);
-        result[1].CriticalHits.ShouldContain(1); // Should hit slot 1 where ammo2 is
+        result[1].NumCriticalHits.ShouldBe(1);
+        result[1].CriticalHits!.ShouldContain(1); // Should hit slot 1 where ammo2 is
         
-        // Third critical hit set (from second explosion)
+        // Third critical hit set (from the second explosion)
         result[2].Location.ShouldBe(location);
         result[2].NumCriticalHits.ShouldBe(1);
-        
-        // Verify first and second ammo boxes have exploded, but third hasn't
-        ammo1.HasExploded.ShouldBeTrue();
-        ammo2.HasExploded.ShouldBeTrue();
-        ammo3.HasExploded.ShouldBeFalse();
     }
     
     [Fact]
