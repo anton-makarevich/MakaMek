@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Game.Combat;
 
@@ -83,7 +84,8 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
                 criticalHits.Add(criticalHitsData);
                 
                 // Process critical hits and check for cascading explosions
-                ProcessCriticalHitsAndExplosions(unit, part, location, criticalHitsData, criticalHits, ref remainingDamage);
+                var explodedComponents = new HashSet<Component>();
+                ProcessCriticalHitsAndExplosions(unit, part, location, criticalHitsData, criticalHits, ref remainingDamage, explodedComponents);
             }
         }
 
@@ -109,13 +111,15 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     /// <param name="criticalHitsData">The critical hits data</param>
     /// <param name="criticalHits">The list to collect critical hits data</param>
     /// <param name="remainingDamage">Reference to the remaining damage to update</param>
+    /// <param name="explodedComponents">Set of components that have already exploded during this calculation</param>
     private void ProcessCriticalHitsAndExplosions(
         Unit unit,
         UnitPart part,
         PartLocation location,
         LocationCriticalHitsData criticalHitsData,
         List<LocationCriticalHitsData> criticalHits,
-        ref int remainingDamage)
+        ref int remainingDamage,
+        HashSet<Component> explodedComponents)
     {
         // Check for explodable components that would be hit by these critical hits
         if (criticalHitsData.CriticalHits is not { Length: > 0 })
@@ -127,11 +131,14 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         foreach (var slot in criticalHitsData.CriticalHits)
         {
             var component = part.GetComponentAtSlot(slot);
-            if (component is { CanExplode: true, HasExploded: false })
+            if (component is { CanExplode: true, HasExploded: false } && !explodedComponents.Contains(component))
             {
                 // Add explosion damage to the total
                 explosionDamage += component.GetExplosionDamage();
                 hasExplosion = true;
+                
+                // Track this component as exploded during this calculation
+                explodedComponents.Add(component);
             }
         }
         
@@ -151,6 +158,6 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         criticalHits.Add(explosionCriticalHitsData);
         
         // Recursively process any additional explosions from this critical hit
-        ProcessCriticalHitsAndExplosions(unit, part, location, explosionCriticalHitsData, criticalHits, ref remainingDamage);
+        ProcessCriticalHitsAndExplosions(unit, part, location, explosionCriticalHitsData, criticalHits, ref remainingDamage, explodedComponents);
     }
 }
