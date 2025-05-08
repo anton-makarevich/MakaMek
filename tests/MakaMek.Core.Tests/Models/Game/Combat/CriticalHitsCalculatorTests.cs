@@ -276,7 +276,7 @@ public class CriticalHitsCalculatorTests
         
         // Assert
         result.ShouldNotBeEmpty();
-        result.Count.ShouldBe(2); // Should have two sets of critical hits (initial + explosion)
+        result.Count.ShouldBe(2); // Should have two sets of critical hits (initial and explosion)
         
         // First critical hit set (from initial damage)
         result[0].Location.ShouldBe(location);
@@ -360,11 +360,11 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateCustomMech(5, 5); // Low structure to ensure transfer
-        const PartLocation initialLocation = PartLocation.RightArm;
+        const PartLocation initialLocation = PartLocation.RightTorso;
         var armPart = testUnit.Parts.First(p => p.Location == initialLocation);
         
         // Add ammo to the arm
-        var ammo = new Ammo(AmmoType.AC20, 10);
+        var ammo = new Ammo(AmmoType.AC20, 11);
         armPart.TryAddComponent(ammo, [0]);
         
         const int damage = 6; // Enough to cause structural damage but not destroy the location by itself
@@ -373,20 +373,17 @@ public class CriticalHitsCalculatorTests
         _mockDiceRoller.Roll2D6().Returns(
             // First roll for initial damage (8 = 1 crit)
             [new DiceResult(4), new DiceResult(4)],
-            // Second roll for explosion in RightArm (not used since arm is destroyed)
+            // Second roll for explosion in RightArm
             [new DiceResult(5), new DiceResult(5)],
-            // Third roll for transfer to RightTorso (10 = 2 crits)
-            [new DiceResult(5), new DiceResult(5)]
+            // Third roll for transfer to RightTorso
+            [new DiceResult(5), new DiceResult(3)]
         );
         
         // Setup rolls for critical hit slots
         _mockDiceRoller.RollD6().Returns(
-            // Initial critical hit - hits ammo
-            new DiceResult(1), // Slot 0 where we placed the ammo
-            
-            // Critical hits in RightTorso
-            new DiceResult(2),
-            new DiceResult(3)
+            // Initial critical hit - hits first ammo
+            new DiceResult(1), // Upper group
+            new DiceResult(5)
         );
         
         // Act
@@ -394,18 +391,15 @@ public class CriticalHitsCalculatorTests
         
         // Assert
         result.ShouldNotBeEmpty();
-        result.Count.ShouldBeGreaterThan(1); // Should have multiple critical hit sets
+        result.Count.ShouldBe(3); // Should have multiple critical hit sets: 2 in initial location (damage and explosion) and one in transfer
         
         // First critical hit set (from initial damage)
         result[0].Location.ShouldBe(initialLocation);
         result[0].NumCriticalHits.ShouldBe(1);
-        result[0].CriticalHits.ShouldContain(0); // Should hit slot 0 where ammo is
+        result[0].CriticalHits!.ShouldContain(0); // Should hit slot 0 where ammo is
         
-        // Last critical hit set should be in the transfer location
+        // The last critical hit set should be in the transfer location
         var lastResult = result[^1];
-        lastResult.Location.ShouldBe(PartLocation.RightTorso);
-        
-        // Verify ammo has exploded
-        ammo.HasExploded.ShouldBeTrue();
+        lastResult.Location.ShouldBe(PartLocation.CenterTorso);
     }
 }
