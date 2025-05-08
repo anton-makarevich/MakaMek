@@ -96,6 +96,8 @@ public class WeaponAttackResolutionCommandTests
             .Returns("LOCATION BLOWN OFF: {0}");
         _localizationService.GetString("Command_WeaponAttackResolution_LocationCriticals")
             .Returns("Critical hits in {0}:");
+        _localizationService.GetString("Command_WeaponAttackResolution_Explosion")
+            .Returns("{0} EXPLODES! Damage: {1}");
     }
 
     private WeaponAttackResolutionCommand CreateHitCommand()
@@ -843,6 +845,213 @@ public class WeaponAttackResolutionCommandTests
         output.ShouldContain("Critical roll: 10");
         output.ShouldContain("Criticals: 1");
         // Should not throw an exception when component lookup fails
-        output.ShouldNotContain("Critical hit in LeftArm slot 6:");
+        output.ShouldNotContain("Critical hit in LeftArm slot 11:");
+    }
+    
+    [Fact]
+    public void Format_Includes_Explosion_Message_When_Component_Can_Explode()
+    {
+        // Arrange: create a hit with a critical hit on an explodable component
+        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Create an ammo component that can explode
+        var ammoComponent = new Ammo(AmmoType.AC20, 10);
+        leftArm.TryAddComponent(ammoComponent, [2]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.LeftArm,
+                5,
+                new List<DiceResult>(),
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
+        output.ShouldContain("AC20 Ammo EXPLODES! Damage: 10");
+    }
+    
+    [Fact]
+    public void Format_DoesNotInclude_Explosion_Message_When_Component_Cannot_Explode()
+    {
+        // Arrange: create a hit with a critical hit on a non-explodable component
+        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var critComponent = new MachineGun();
+        leftArm.TryAddComponent(critComponent, [2]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.LeftArm,
+                5,
+                new List<DiceResult>(),
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
+        output.ShouldNotContain("EXPLODES!");
+    }
+    
+    [Fact]
+    public void Format_DoesNotInclude_Explosion_Message_When_Component_Has_Already_Exploded()
+    {
+        // Arrange: create a hit with a critical hit on an ammo component that has already exploded
+        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Create an ammo component that can explode but has already exploded
+        var ammoComponent = new Ammo(AmmoType.AC20, 10);
+        leftArm.TryAddComponent(ammoComponent, [2]);
+        ammoComponent.Hit(); // This will set HasExploded to true
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.LeftArm,
+                5,
+                new List<DiceResult>(),
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
+        output.ShouldNotContain("EXPLODES!");
+    }
+    
+    [Fact]
+    public void Format_DoesNotInclude_Explosion_Message_When_Component_Has_Zero_Explosion_Damage()
+    {
+        // Arrange: create a hit with a critical hit on an ammo component with no remaining shots
+        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Create an ammo component that can explode but has no ammo left
+        var ammoComponent = new Ammo(AmmoType.AC20, 0);
+        leftArm.TryAddComponent(ammoComponent, [2]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.LeftArm,
+                5,
+                new List<DiceResult>(),
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+            )
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            new List<DiceResult>(),
+            1);
+            
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new DiceResult(4), new DiceResult(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData);
+
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var output = command.Format(_localizationService, _game);
+
+        // Assert
+        output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
+        output.ShouldNotContain("EXPLODES!");
     }
 }

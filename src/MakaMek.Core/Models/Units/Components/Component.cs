@@ -95,4 +95,9 @@ public abstract class Component : IManufacturedItem
             return ComponentStatus.Active;
         }
     }
+    
+    // Explosion-related properties and methods
+    public virtual bool CanExplode => false;
+    public virtual int GetExplosionDamage() => 0;
+    public bool HasExploded { get; protected set; }
 }

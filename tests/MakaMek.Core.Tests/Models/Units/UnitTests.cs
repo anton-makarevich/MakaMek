@@ -1194,6 +1194,171 @@ public class UnitTests
         component.IsDestroyed.ShouldBeFalse();
     }
 
+    [Fact]
+    public void ApplyDamage_WithExplodableComponent_ShouldAddExplosionDamage()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Create an explodable component
+        var explodableComponent = new TestExplodableComponent("Explodable Component", 5);
+        targetPart.TryAddComponent(explodableComponent, [1]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 5, [new DiceResult(3)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1])])
+        };
+        
+        // Pre-assert: component has not exploded
+        explodableComponent.HasExploded.ShouldBeFalse();
+        targetPart.CurrentArmor.ShouldBe(10);
+        
+        // Act
+        unit.ApplyDamage(hitLocations);
+        
+        // Assert
+        explodableComponent.HasExploded.ShouldBeTrue();
+        // Verify that the total damage applied was the initial damage (5) plus the explosion damage (5)
+        targetPart.CurrentArmor.ShouldBe(0); // 10 - (5 + 5) = 0
+    }
+    
+    [Fact]
+    public void ApplyDamage_WithMultipleExplodableComponents_ShouldAddAllExplosionDamage()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Create multiple explodable components
+        var explodableComponent1 = new TestExplodableComponent("Explodable Component 1", 3);
+        var explodableComponent2 = new TestExplodableComponent("Explodable Component 2", 4);
+        targetPart.TryAddComponent(explodableComponent1, [1]);
+        targetPart.TryAddComponent(explodableComponent2, [2]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 2, [new DiceResult(3)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1, 2])])
+        };
+        
+        // Pre-assert: components have not exploded
+        explodableComponent1.HasExploded.ShouldBeFalse();
+        explodableComponent2.HasExploded.ShouldBeFalse();
+        targetPart.CurrentArmor.ShouldBe(10);
+        
+        // Act
+        unit.ApplyDamage(hitLocations);
+        
+        // Assert
+        explodableComponent1.HasExploded.ShouldBeTrue();
+        explodableComponent2.HasExploded.ShouldBeTrue();
+        // Verify that the total damage applied was the initial damage (2) plus the explosion damage (3 + 4 = 7)
+        targetPart.CurrentArmor.ShouldBe(1); // 10 - (2 + 3 + 4) = 1
+    }
+    
+    [Fact]
+    public void ApplyDamage_WithAlreadyExplodedComponent_ShouldNotAddExplosionDamageAgain()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Create an explodable component that has already exploded
+        var explodableComponent = new TestExplodableComponent("Explodable Component", 5);
+        explodableComponent.Hit(); // This will set HasExploded to true
+        targetPart.TryAddComponent(explodableComponent, [1]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 3, [new DiceResult(3)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1])])
+        };
+        
+        // Pre-assert: component has already exploded
+        explodableComponent.HasExploded.ShouldBeTrue();
+        targetPart.CurrentArmor.ShouldBe(10);
+        
+        // Act
+        unit.ApplyDamage(hitLocations);
+        
+        // Assert
+        // Verify that only the initial damage was applied, without explosion damage
+        targetPart.CurrentArmor.ShouldBe(7); // 10 - 3 = 7
+    }
+    
+    [Fact]
+    public void ApplyDamage_WithNonExplodableComponent_ShouldNotAddExplosionDamage()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Create a non-explodable component
+        var nonExplodableComponent = new TestComponent("Non-Explodable Component", 3);
+        targetPart.TryAddComponent(nonExplodableComponent, [1]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 4, [new DiceResult(3)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1])])
+        };
+        
+        targetPart.CurrentArmor.ShouldBe(10);
+        
+        // Act
+        unit.ApplyDamage(hitLocations);
+        
+        // Assert
+        // Verify that only the initial damage was applied, without explosion damage
+        targetPart.CurrentArmor.ShouldBe(6); // 10 - 4 = 6
+    }
+    
+    [Fact]
+    public void ApplyDamage_WithZeroExplosionDamage_ShouldNotAddExplosionDamage()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Create an explodable component with zero explosion damage
+        var explodableComponent = new TestExplodableComponent("Zero Explosion Component", 0);
+        targetPart.TryAddComponent(explodableComponent, [1]);
+        
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 6, [new DiceResult(3)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1])])
+        };
+        
+        // Pre-assert: component has not exploded
+        explodableComponent.HasExploded.ShouldBeFalse();
+        targetPart.CurrentArmor.ShouldBe(10);
+        
+        // Act
+        unit.ApplyDamage(hitLocations);
+        
+        // Assert
+        explodableComponent.HasExploded.ShouldBeTrue();
+        // Verify that only the initial damage was applied, without explosion damage
+        targetPart.CurrentArmor.ShouldBe(4); // 10 - 6 = 4
+    }
+    
+    // Helper class for testing explodable components
+    private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)
+    {
+        public override bool CanExplode => true;
+        
+        public override int GetExplosionDamage() => explosionDamage;
+        
+        public override void Hit()
+        {
+            base.Hit();
+            HasExploded = true;
+        }
+    }
+    
     // Helper class for testing generic methods
     private class TestDerivedComponent(string name, int size = 1) : TestComponent(name, size);
 }

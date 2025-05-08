@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Game.Combat;
 
@@ -71,10 +72,9 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         var remainingDamage = damage - armorDamage;
 
         // Calculate structure damage if armor is depleted
-        var structureDamage = 0;
         if (remainingDamage > 0 && part.CurrentStructure > 0)
         {
-            structureDamage = Math.Min(remainingDamage, part.CurrentStructure);
+            var structureDamage = Math.Min(remainingDamage, part.CurrentStructure);
             remainingDamage -= structureDamage;
 
             // Calculate critical hits if the structure was damaged
@@ -82,10 +82,14 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             if (criticalHitsData != null)
             {
                 criticalHits.Add(criticalHitsData);
+                
+                // Process critical hits and check for cascading explosions
+                var explodedComponents = new HashSet<Component>();
+                ProcessCriticalHitsAndExplosions(unit, part, location, criticalHitsData, criticalHits, ref remainingDamage, explodedComponents);
             }
         }
 
-        if (remainingDamage <= 0 || (part.CurrentStructure - structureDamage > 0)) return remainingDamage;
+        if (remainingDamage <= 0) return remainingDamage;
         // If the structure is destroyed and there's still damage remaining, propagate to the next location
         var nextLocation = unit.GetTransferLocation(location);
         if (nextLocation.HasValue)
@@ -96,5 +100,64 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         }
 
         return remainingDamage;
+    }
+
+    /// <summary>
+    /// Process critical hits and check for cascading explosions
+    /// </summary>
+    /// <param name="unit">The unit receiving damage</param>
+    /// <param name="part">The part being hit</param>
+    /// <param name="location">The location of the part</param>
+    /// <param name="criticalHitsData">The critical hits data</param>
+    /// <param name="criticalHits">The list to collect critical hits data</param>
+    /// <param name="remainingDamage">Reference to the remaining damage to update</param>
+    /// <param name="explodedComponents">Set of components that have already exploded during this calculation</param>
+    private void ProcessCriticalHitsAndExplosions(
+        Unit unit,
+        UnitPart part,
+        PartLocation location,
+        LocationCriticalHitsData criticalHitsData,
+        List<LocationCriticalHitsData> criticalHits,
+        ref int remainingDamage,
+        HashSet<Component> explodedComponents)
+    {
+        // Check for explodable components that would be hit by these critical hits
+        if (criticalHitsData.CriticalHits is not { Length: > 0 })
+            return;
+            
+        var explosionDamage = 0;
+        var hasExplosion = false;
+        
+        foreach (var slot in criticalHitsData.CriticalHits)
+        {
+            var component = part.GetComponentAtSlot(slot);
+            if (component is { CanExplode: true, HasExploded: false } && !explodedComponents.Contains(component))
+            {
+                // Add explosion damage to the total
+                explosionDamage += component.GetExplosionDamage();
+                hasExplosion = true;
+                
+                // Track this component as exploded during this calculation
+                explodedComponents.Add(component);
+            }
+        }
+        
+        // Add explosion damage to remaining damage to propagate through the damage chain
+        if (explosionDamage <= 0) return;
+        
+        remainingDamage += explosionDamage;
+        
+        // According to the rules, ammunition explosions damage internal structure
+        // and require another critical hit roll
+        if (!hasExplosion) return;
+        
+        // Make another critical hit roll for the explosion damage
+        var explosionCriticalHitsData = unit.CalculateCriticalHitsData(location, _diceRoller);
+        if (explosionCriticalHitsData == null) return;
+        
+        criticalHits.Add(explosionCriticalHitsData);
+        
+        // Recursively process any additional explosions from this critical hit
+        ProcessCriticalHitsAndExplosions(unit, part, location, explosionCriticalHitsData, criticalHits, ref remainingDamage, explodedComponents);
     }
 }

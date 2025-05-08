@@ -207,8 +207,6 @@ public class ComponentTests
         component.Status.ShouldBe(ComponentStatus.Active);
     }
     
-    #region Component Location Tests
-    
     [Fact]
     public void Mount_WithUnitPart_ShouldSetMountedOnProperty()
     {
@@ -304,5 +302,50 @@ public class ComponentTests
         fixedComponent.GetLocation().ShouldBe(PartLocation.LeftArm);
     }
     
-    #endregion
+    [Fact]
+    public void CanExplode_DefaultIsFalse()
+    {
+        // Arrange
+        var component = new TestComponent("Test Component", []);
+        
+        // Act & Assert
+        component.CanExplode.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void GetExplosionDamage_DefaultReturnsZero()
+    {
+        // Arrange
+        var component = new TestComponent("Test Component", []);
+        
+        // Act
+        var damage = component.GetExplosionDamage();
+        
+        // Assert
+        damage.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void HasExploded_DefaultIsFalse()
+    {
+        // Arrange
+        var component = new TestComponent("Test Component", []);
+        
+        // Act & Assert
+        component.HasExploded.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void Hit_DoesNotChangeHasExploded()
+    {
+        // Arrange
+        var component = new TestComponent("Test Component", []);
+        
+        // Act
+        component.Hit();
+        
+        // Assert
+        component.HasExploded.ShouldBeFalse();
+        component.IsDestroyed.ShouldBeTrue();
+    }
 }
