@@ -11,7 +11,7 @@ public class Engine : Component
     private static readonly int[] EngineSlots = [0, 1, 2, 7, 8, 9];
 
     public Engine(int rating, EngineType type = EngineType.Fusion) 
-        : base($"{type} Engine {rating}", EngineSlots)
+        : base($"{type} Engine {rating}", EngineSlots, healthPoints:3)
     {
         Rating = rating;
         Type = type;
