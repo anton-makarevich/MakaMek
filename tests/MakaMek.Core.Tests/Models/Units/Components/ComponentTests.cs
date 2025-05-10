@@ -162,14 +162,6 @@ public class ComponentTests
         component.UnMount();
         component.IsMounted.ShouldBeFalse();
     }
-    
-    [Fact]
-    public void Status_ReturnsDestroyed_WhenIsDestroyed()
-    {
-        var component = new TestComponent("Test", []);
-        typeof(Component).GetProperty("IsDestroyed")!.SetValue(component, true);
-        component.Status.ShouldBe(ComponentStatus.Destroyed);
-    }
 
     [Fact]
     public void Status_ReturnsRemoved_WhenNotMounted()

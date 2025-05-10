@@ -20,5 +20,42 @@ public class EngineTests
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.Engine);
         sut.IsRemovable.ShouldBeTrue();
+        sut.HealthPoints.ShouldBe(3);
+    }
+    
+    [Fact]
+    public void FirstHit_DoesNotDestroyComponent()
+    {
+        var sut = new Engine(100);
+        
+        sut.Hit();
+        
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.Hits.ShouldBe(1);;
+    }
+    
+    [Fact]
+    public void SecondHit_DoesNotDestroyComponent()
+    {
+        var sut = new Engine(100);
+        
+        sut.Hit();
+        sut.Hit();
+        
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.Hits.ShouldBe(2);
+    }
+    
+    [Fact]
+    public void ThirdHit_DoesDestroyComponent()
+    {
+        var sut = new Engine(100);
+        
+        sut.Hit();
+        sut.Hit();
+        sut.Hit();
+        
+        sut.IsDestroyed.ShouldBeTrue();
+        sut.Hits.ShouldBe(3);
     }
 }

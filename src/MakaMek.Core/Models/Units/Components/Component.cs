@@ -5,7 +5,7 @@ namespace Sanet.MakaMek.Core.Models.Units.Components;
 
 public abstract class Component : IManufacturedItem
 {
-    protected Component(string name, int[] slots, int size = 1, string manufacturer = "Unknown")
+    protected Component(string name, int[] slots, int size = 1, string manufacturer = "Unknown", int healthPoints = 1)
     {
         Name = name;
         MountedAtSlots = slots;
@@ -14,11 +14,11 @@ public abstract class Component : IManufacturedItem
         ? slots.Length
         : size;
         Manufacturer = manufacturer;
+        HealthPoints = healthPoints;
     }
 
     public string Name { get; }
     public int[] MountedAtSlots { get; private set; }
-    public bool IsDestroyed { get; private set; }
     public bool IsActive { get; protected set; } = true;
     
     public bool IsAvailable => IsActive 
@@ -67,10 +67,11 @@ public abstract class Component : IManufacturedItem
     public virtual void Hit()
     {
         Hits++;
-        IsDestroyed = true;
     }
 
+    public int HealthPoints { get; }
     public int Hits { get; private set; }
+    public bool IsDestroyed => Hits >= HealthPoints;
 
     public virtual void Activate() => IsActive = true;
     public virtual void Deactivate() => IsActive = false;
