@@ -28,6 +28,7 @@
     <Color x:Key="MechStructureColor">#FFB74D</Color>
     <Color x:Key="HeatColor">#F44336</Color>
     <Color x:Key="DestroyedColor">#80FF0000</Color>
+    <Color x:Key="DamagedColor">#80FFB300</Color>
     
     <!-- Overlay Colors -->
     <Color x:Key="OverlayBackgroundColor">#333333</Color>
@@ -60,6 +61,7 @@
     <SolidColorBrush x:Key="MechStructureBrush" Color="{StaticResource MechStructureColor}"/>
     <SolidColorBrush x:Key="HeatBrush" Color="{StaticResource HeatColor}"/>
     <SolidColorBrush x:Key="DestroyedBrush" Color="{StaticResource DestroyedColor}"/>
+    <SolidColorBrush x:Key="DamagedBrush" Color="{StaticResource DamagedColor}"/>
     
     <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="{StaticResource OverlayBackgroundColor}"/>
     <SolidColorBrush x:Key="OverlayTransparentBrush" Color="{StaticResource OverlayTransparentColor}"/>
