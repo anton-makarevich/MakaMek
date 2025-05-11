@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Components;
 
 public class ComponentTests
 {
-    private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size)
+    private class TestComponent(string name, int[] slots, int size = 1, int healthPoints = 1) : Component(name, slots, size, healthPoints:healthPoints)
     {
         public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
@@ -168,6 +168,18 @@ public class ComponentTests
     {
         var component = new TestComponent("Test", []);
         component.Status.ShouldBe(ComponentStatus.Removed);
+    }
+    
+    [Fact]
+    public void Status_ReturnsDamaged_WhenHitsLessThanHP()
+    {
+        var component = new TestComponent("Test", [], healthPoints:2);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+        component.Mount([0], unitPart);
+        
+        component.Hit();
+        
+        component.Status.ShouldBe(ComponentStatus.Damaged);
     }
 
     [Fact]

@@ -6,5 +6,6 @@ public enum ComponentStatus
     Destroyed,
     Removed,
     Lost,
-    Deactivated
+    Deactivated,
+    Damaged
 }

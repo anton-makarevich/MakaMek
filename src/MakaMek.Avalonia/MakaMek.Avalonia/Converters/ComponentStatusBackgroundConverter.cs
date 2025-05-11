@@ -27,6 +27,7 @@ public class ComponentStatusBackgroundConverter : IValueConverter
         return status switch
         {
             ComponentStatus.Destroyed => AvaloniaResourcesLocator.TryFindResource("DestroyedBrush") ??new SolidColorBrush(Colors.Red),
+            ComponentStatus.Damaged => AvaloniaResourcesLocator.TryFindResource("DamagedBrush") ?? new SolidColorBrush(Colors.Orange),
             ComponentStatus.Active => new SolidColorBrush(Colors.Transparent),
             _ => new SolidColorBrush(Colors.Gray)
         };

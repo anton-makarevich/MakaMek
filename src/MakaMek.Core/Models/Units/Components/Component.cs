@@ -93,6 +93,8 @@ public abstract class Component : IManufacturedItem
                 return ComponentStatus.Deactivated;
             if (MountedOn is { IsDestroyed: true })
                 return ComponentStatus.Lost;
+            if (Hits>0 && Hits<HealthPoints)
+                return ComponentStatus.Damaged;
             return ComponentStatus.Active;
         }
     }
