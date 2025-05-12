@@ -603,9 +603,13 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Get the part we want to target (left arm)
         var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
         
-        // Set the armor and structure to minimum values so it will be destroyed
-        // targetPart.CurrentArmor = 1;
-        // targetPart.CurrentStructure = 1;
+        // Apply damage to the part to leave it with minimal structure
+        // This way the next attack will destroy it
+        var initialArmor = targetPart.CurrentArmor;
+        var initialStructure = targetPart.CurrentStructure;
+        
+        // Apply damage to leave only 1 structure point
+        targetPart.ApplyDamage(initialArmor + initialStructure - 1);
         
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for attack (hit)
@@ -636,14 +640,18 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Get the part we want to target (center torso)
         var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
         
-        // Set the armor and structure to minimum values so it will be destroyed
-        // targetPart.CurrentArmor = 1;
-        // targetPart.CurrentStructure = 1;
+        // Apply damage to the center torso to leave it with minimal structure
+        // This way the next attack will destroy the unit
+        var initialArmor = targetPart.CurrentArmor;
+        var initialStructure = targetPart.CurrentStructure;
+        
+        // Apply damage to leave only 1 structure point
+        targetPart.ApplyDamage(initialArmor + initialStructure - 1);
         
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for attack (hit)
-        // Second roll (8) is for hit location (center torso)
-        SetupDiceRolls(8, 8);
+        // Second roll (7) is for hit location (center torso)
+        SetupDiceRolls(8, 7);
         SetMap();
         
         // Act
@@ -657,6 +665,25 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(
             Arg.Is<WeaponAttackResolutionCommand>(cmd => 
                 cmd.ResolutionData.UnitDestroyed));
+    }
+
+    [Fact]
+    public void PublishCommand_ShouldAndApplyDamage()
+    {
+        // Arrange
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        SetMap();
+        
+        // Get initial values for verification
+        var initialArmor = _player2Unit1.TotalCurrentArmor;
+        
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify that damage was applied to the target
+        _player2Unit1.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
     }
 
     private void SetupPlayer1WeaponTargets()
@@ -727,25 +754,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         });
     }
     
-    [Fact]
-    public void PublishCommand_ShouldFireWeaponAndApplyDamage()
-    {
-        // Arrange
-        SetupPlayer1WeaponTargets();
-        SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
-        SetMap();
-        
-        // Get initial values for verification
-        var initialArmor = _player2Unit1.TotalCurrentArmor;
-        
-        // Act
-        _sut.Enter();
-
-        // Assert
-        // Verify that damage was applied to the target
-        _player2Unit1.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
-    }
-
     private class TestWeapon(WeaponType type = WeaponType.Energy, AmmoType ammoType = AmmoType.None)
         : Weapon("Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1, 1,ammoType)
     {
