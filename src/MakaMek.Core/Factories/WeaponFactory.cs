@@ -11,27 +11,6 @@ namespace Sanet.MakaMek.Core.Factories;
 public static class WeaponFactory
 {
     /// <summary>
-    /// Creates a weapon from a weapon definition
-    /// </summary>
-    /// <param name="definition">The weapon definition</param>
-    /// <returns>A new weapon instance</returns>
-    public static Weapon CreateWeapon(WeaponDefinition definition)
-    {
-        return new Weapon(definition);
-    }
-    
-    /// <summary>
-    /// Creates ammo for a weapon definition
-    /// </summary>
-    /// <param name="definition">The weapon definition</param>
-    /// <returns>A new ammo instance</returns>
-    /// <exception cref="ArgumentException">Thrown if the definition doesn't require ammo</exception>
-    public static Ammo CreateAmmo(WeaponDefinition definition)
-    {
-        return new Ammo(definition);
-    }
-    
-    /// <summary>
     /// Helper method to create a weapon by its predefined type
     /// </summary>
     /// <param name="componentType">The MakaMekComponent type</param>
@@ -40,7 +19,7 @@ public static class WeaponFactory
     {
         // Find the definition that matches the component type
         var definition = WeaponDefinitions.GetDefinitionByWeaponType(componentType);
-        return definition != null ? CreateWeapon(definition) : null;
+        return definition != null ? new Weapon(definition) : null;
     }
     
     /// <summary>
@@ -52,6 +31,6 @@ public static class WeaponFactory
     {
         // Find the definition that matches the ammo component type
         var definition = WeaponDefinitions.GetDefinitionByAmmoType(componentType);
-        return definition != null ? CreateAmmo(definition) : null;
+        return definition != null ? new Ammo(definition) : null;
     }
 }
