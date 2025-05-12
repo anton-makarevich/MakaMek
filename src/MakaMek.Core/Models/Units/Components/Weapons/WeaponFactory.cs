@@ -22,12 +22,11 @@ public static class WeaponFactory
     /// Creates ammo for a weapon definition
     /// </summary>
     /// <param name="definition">The weapon definition</param>
-    /// <param name="initialShots">The initial number of shots</param>
     /// <returns>A new ammo instance</returns>
     /// <exception cref="ArgumentException">Thrown if the definition doesn't require ammo</exception>
-    public static Ammo CreateAmmo(WeaponDefinition definition, int initialShots)
+    public static Ammo CreateAmmo(WeaponDefinition definition)
     {
-        return new Ammo(definition, initialShots);
+        return new Ammo(definition);
     }
     
     /// <summary>
@@ -46,12 +45,11 @@ public static class WeaponFactory
     /// Helper method to create ammo by its predefined type
     /// </summary>
     /// <param name="componentType">The MakaMekComponent type</param>
-    /// <param name="initialShots">The initial number of shots</param>
     /// <returns>A new ammo instance, or null if the component type isn't ammo</returns>
-    public static Ammo? CreateAmmoByType(MakaMekComponent componentType, int initialShots)
+    public static Ammo? CreateAmmoByType(MakaMekComponent componentType)
     {
         // Find the definition that matches the ammo component type
         var definition = WeaponDefinitions.GetDefinitionByAmmoType(componentType);
-        return definition != null ? CreateAmmo(definition, initialShots) : null;
+        return definition != null ? CreateAmmo(definition) : null;
     }
 }

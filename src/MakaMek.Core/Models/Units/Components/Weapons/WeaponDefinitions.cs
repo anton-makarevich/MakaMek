@@ -69,7 +69,8 @@ public static class WeaponDefinitions
         type: WeaponType.Ballistic,
         battleValue: 5,
         weaponComponentType: MakaMekComponent.MachineGun,
-        ammoComponentType: MakaMekComponent.ISAmmoMG);
+        ammoComponentType: MakaMekComponent.ISAmmoMG,
+        initialAmmoShots: 200);
         
     public static readonly WeaponDefinition AC2 = new(
         name: "AC/2",
@@ -82,7 +83,8 @@ public static class WeaponDefinitions
         type: WeaponType.Ballistic,
         battleValue: 37,
         weaponComponentType: MakaMekComponent.AC2,
-        ammoComponentType: MakaMekComponent.ISAmmoAC2);
+        ammoComponentType: MakaMekComponent.ISAmmoAC2,
+        initialAmmoShots: 45);
         
     public static readonly WeaponDefinition AC5 = new(
         name: "AC/5",
@@ -95,7 +97,8 @@ public static class WeaponDefinitions
         type: WeaponType.Ballistic,
         battleValue: 70,
         weaponComponentType: MakaMekComponent.AC5,
-        ammoComponentType: MakaMekComponent.ISAmmoAC5);
+        ammoComponentType: MakaMekComponent.ISAmmoAC5,
+        initialAmmoShots: 20);
         
     public static readonly WeaponDefinition AC10 = new(
         name: "AC/10",
@@ -108,7 +111,8 @@ public static class WeaponDefinitions
         type: WeaponType.Ballistic,
         battleValue: 110,
         weaponComponentType: MakaMekComponent.AC10,
-        ammoComponentType: MakaMekComponent.ISAmmoAC10);
+        ammoComponentType: MakaMekComponent.ISAmmoAC10,
+        initialAmmoShots: 10);
         
     public static readonly WeaponDefinition AC20 = new(
         name: "AC/20",
@@ -121,7 +125,8 @@ public static class WeaponDefinitions
         type: WeaponType.Ballistic,
         battleValue: 178,
         weaponComponentType: MakaMekComponent.AC20,
-        ammoComponentType: MakaMekComponent.ISAmmoAC20);
+        ammoComponentType: MakaMekComponent.ISAmmoAC20,
+        initialAmmoShots: 5);
         
     // Missile weapons
     public static readonly WeaponDefinition LRM5 = new(
@@ -137,7 +142,8 @@ public static class WeaponDefinitions
         clusters: 1,
         clusterSize: 5,
         weaponComponentType: MakaMekComponent.LRM5,
-        ammoComponentType: MakaMekComponent.ISAmmoLRM5);
+        ammoComponentType: MakaMekComponent.ISAmmoLRM5,
+        initialAmmoShots: 24);
         
     public static readonly WeaponDefinition LRM10 = new(
         name: "LRM-10",
@@ -152,7 +158,8 @@ public static class WeaponDefinitions
         clusters: 2,
         clusterSize: 5,
         weaponComponentType: MakaMekComponent.LRM10,
-        ammoComponentType: MakaMekComponent.ISAmmoLRM10);
+        ammoComponentType: MakaMekComponent.ISAmmoLRM10,
+        initialAmmoShots: 12);
         
     public static readonly WeaponDefinition LRM15 = new(
         name: "LRM-15",
@@ -167,7 +174,8 @@ public static class WeaponDefinitions
         clusters: 3,
         clusterSize: 5,
         weaponComponentType: MakaMekComponent.LRM15,
-        ammoComponentType: MakaMekComponent.ISAmmoLRM15);
+        ammoComponentType: MakaMekComponent.ISAmmoLRM15,
+        initialAmmoShots: 8);
         
     public static readonly WeaponDefinition LRM20 = new(
         name: "LRM-20",
@@ -182,7 +190,8 @@ public static class WeaponDefinitions
         clusters: 4,
         clusterSize: 5,
         weaponComponentType: MakaMekComponent.LRM20,
-        ammoComponentType: MakaMekComponent.ISAmmoLRM20);
+        ammoComponentType: MakaMekComponent.ISAmmoLRM20,
+        initialAmmoShots: 6);
         
     public static readonly WeaponDefinition SRM2 = new(
         name: "SRM-2",
@@ -197,7 +206,8 @@ public static class WeaponDefinitions
         clusters: 1,
         clusterSize: 2,
         weaponComponentType: MakaMekComponent.SRM2,
-        ammoComponentType: MakaMekComponent.ISAmmoSRM2);
+        ammoComponentType: MakaMekComponent.ISAmmoSRM2,
+        initialAmmoShots: 50);
         
     public static readonly WeaponDefinition SRM4 = new(
         name: "SRM-4",
@@ -212,7 +222,8 @@ public static class WeaponDefinitions
         clusters: 1,
         clusterSize: 4,
         weaponComponentType: MakaMekComponent.SRM4,
-        ammoComponentType: MakaMekComponent.ISAmmoSRM4);
+        ammoComponentType: MakaMekComponent.ISAmmoSRM4,
+        initialAmmoShots: 25);
         
     public static readonly WeaponDefinition SRM6 = new(
         name: "SRM-6",
@@ -227,7 +238,8 @@ public static class WeaponDefinitions
         clusters: 1,
         clusterSize: 6,
         weaponComponentType: MakaMekComponent.SRM6,
-        ammoComponentType: MakaMekComponent.ISAmmoSRM6);
+        ammoComponentType: MakaMekComponent.ISAmmoSRM6,
+        initialAmmoShots: 15);
         
     // Collection of all weapon definitions for easy lookup
     private static readonly List<WeaponDefinition> AllDefinitions = new()
