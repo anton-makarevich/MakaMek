@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
@@ -14,7 +13,7 @@ public class WeaponTests
 
     public WeaponTests()
     {
-        _weapon = new Lrm5();
+        _weapon = new Weapon(WeaponDefinitions.LRM5);
     }
 
     [Theory]
@@ -39,7 +38,7 @@ public class WeaponTests
     public void Target_ShouldBeNull_ByDefault()
     {
         // Arrange
-        var weapon = new Lrm5();
+        var weapon = new Weapon(WeaponDefinitions.LRM5);
         
         // Assert
         weapon.Target.ShouldBeNull();
@@ -49,7 +48,7 @@ public class WeaponTests
     public void Target_ShouldBeSettable()
     {
         // Arrange
-        var weapon = new Lrm5();
+        var weapon = new Weapon(WeaponDefinitions.LRM5);
         var mockUnit = new MockUnit();
         
         // Act
@@ -63,7 +62,7 @@ public class WeaponTests
     public void Target_ShouldBeResettable()
     {
         // Arrange
-        var weapon = new Lrm5();
+        var weapon = new Weapon(WeaponDefinitions.LRM5);
         var mockUnit = new MockUnit();
         weapon.Target = mockUnit;
         
@@ -78,7 +77,7 @@ public class WeaponTests
     public void Target_CanBeChanged()
     {
         // Arrange
-        var weapon = new Lrm5();
+        var weapon = new Weapon(WeaponDefinitions.LRM5);
         var mockUnit1 = new MockUnit();
         var mockUnit2 = new MockUnit();
         
@@ -92,23 +91,68 @@ public class WeaponTests
     }
     
     [Theory]
-    [InlineData(WeaponType.Energy, AmmoType.None, false)]
-    [InlineData(WeaponType.Ballistic, AmmoType.AC5, true)]
-    [InlineData(WeaponType.Missile, AmmoType.LRM5, true)]
-    [InlineData(WeaponType.Energy, AmmoType.AC5, true)] // Edge case: Energy weapon with ammo type
-    public void RequiresAmmo_ReturnsCorrectValue(WeaponType weaponType, AmmoType ammoType, bool expected)
+    [InlineData(WeaponType.Energy, null, false)]
+    [InlineData(WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5, true)]
+    [InlineData(WeaponType.Missile, MakaMekComponent.ISAmmoLRM5, true)]
+    [InlineData(WeaponType.Energy, MakaMekComponent.ISAmmoAC5, true)] // Edge case: Energy weapon with ammo type
+    public void RequiresAmmo_ReturnsCorrectValue(WeaponType weaponType, MakaMekComponent? ammoComponentType, bool expected)
     {
         // Arrange
-        var weapon = new TestWeapon(weaponType, ammoType);
+        var definition = CreateTestWeaponDefinition(weaponType, ammoComponentType);
+        var weapon = new Weapon(definition);
         
         // Act & Assert
         weapon.RequiresAmmo.ShouldBe(expected);
     }
-    
-    private class TestWeapon(WeaponType type, AmmoType ammoType)
-        : Weapon("Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1, 1, ammoType)
+
+    [Fact]
+    public void Weapon_Properties_ReturnDefinitionValues()
     {
-        public override MakaMekComponent ComponentType => throw new NotImplementedException();
+        // Arrange
+        var definition = WeaponDefinitions.AC20;
+        var weapon = new Weapon(definition);
+        
+        // Assert
+        weapon.Damage.ShouldBe(definition.TotalDamage);
+        weapon.Heat.ShouldBe(definition.Heat);
+        weapon.MinimumRange.ShouldBe(definition.MinimumRange);
+        weapon.ShortRange.ShouldBe(definition.ShortRange);
+        weapon.MediumRange.ShouldBe(definition.MediumRange);
+        weapon.LongRange.ShouldBe(definition.LongRange);
+        weapon.Type.ShouldBe(definition.Type);
+        weapon.Clusters.ShouldBe(definition.Clusters);
+        weapon.ClusterSize.ShouldBe(definition.ClusterSize);
+        weapon.WeaponSize.ShouldBe(definition.WeaponSize);
+        weapon.ComponentType.ShouldBe(definition.WeaponComponentType);
+        weapon.AmmoType.ShouldBe(definition.AmmoComponentType);
+    }
+
+    [Fact]
+    public void Weapon_WithCustomSize_InitializesCorrectly()
+    {
+        // Arrange & Act
+        var weapon = new Weapon(WeaponDefinitions.LRM20, 3);
+        
+        // Assert
+        weapon.Size.ShouldBe(3);
+    }
+    
+    private static WeaponDefinition CreateTestWeaponDefinition(WeaponType type, MakaMekComponent? ammoComponentType)
+    {
+        return new WeaponDefinition(
+            name: "Test Weapon",
+            elementaryDamage: 5,
+            heat: 3,
+            minimumRange: 0,
+            shortRange: 3,
+            mediumRange: 6,
+            longRange: 9,
+            type: type,
+            battleValue: 10,
+            clusters: 1,
+            clusterSize: 1,
+            weaponComponentType: MakaMekComponent.MediumLaser,
+            ammoComponentType: ammoComponentType);
     }
     
     private class MockUnit : Unit
