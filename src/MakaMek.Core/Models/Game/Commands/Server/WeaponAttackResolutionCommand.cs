@@ -173,6 +173,30 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                     }
                 }
             }
+
+            // Add destroyed parts information
+            if (ResolutionData.DestroyedParts != null && ResolutionData.DestroyedParts.Any())
+            {
+                stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts"));
+                foreach (var location in ResolutionData.DestroyedParts)
+                {
+                    // Get the localized part name
+                    var partNameKey = $"MechPart_{location}";
+                    var partName = localizationService.GetString(partNameKey);
+                    
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
+                        partName));
+                }
+            }
+
+            // Add unit destruction information
+            if (ResolutionData.UnitDestroyed)
+            {
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
+                    target.Name));
+            }
         }
         else
         {
