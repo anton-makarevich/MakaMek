@@ -228,4 +228,33 @@ public static class WeaponDefinitions
         clusterSize: 6,
         weaponComponentType: MakaMekComponent.SRM6,
         ammoComponentType: MakaMekComponent.ISAmmoSRM6);
+        
+    // Collection of all weapon definitions for easy lookup
+    private static readonly List<WeaponDefinition> AllDefinitions = new()
+    {
+        MediumLaser, LargeLaser, SmallLaser, PPC,
+        MachineGun, AC2, AC5, AC10, AC20,
+        LRM5, LRM10, LRM15, LRM20,
+        SRM2, SRM4, SRM6
+    };
+    
+    /// <summary>
+    /// Gets a weapon definition by its weapon component type
+    /// </summary>
+    /// <param name="componentType">The MakaMekComponent type</param>
+    /// <returns>The matching weapon definition, or null if not found</returns>
+    public static WeaponDefinition? GetDefinitionByWeaponType(MakaMekComponent componentType)
+    {
+        return AllDefinitions.FirstOrDefault(d => d.WeaponComponentType == componentType);
+    }
+    
+    /// <summary>
+    /// Gets a weapon definition by its ammo component type
+    /// </summary>
+    /// <param name="componentType">The MakaMekComponent type</param>
+    /// <returns>The matching weapon definition, or null if not found</returns>
+    public static WeaponDefinition? GetDefinitionByAmmoType(MakaMekComponent componentType)
+    {
+        return AllDefinitions.FirstOrDefault(d => d.AmmoComponentType == componentType);
+    }
 }

@@ -2,9 +2,9 @@ using Sanet.MakaMek.Core.Data.Community;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
-public abstract class Weapon : Component
+public class Weapon : Component
 {
-    protected Weapon(WeaponDefinition definition, int size = 1) 
+    public Weapon(WeaponDefinition definition, int size = 1) 
         : base(definition.Name, [], size)
     {
         Definition = definition;
