@@ -286,108 +286,85 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         _player1Unit2.Status.ShouldBe(UnitStatus.Destroyed);
     }
 
-    private void SetupPlayer1WeaponTargets()
-    {
-        // Add a weapon to each unit
-        var weapon1 = new TestWeapon();
-        var part1 = _player1Unit1.Parts[0];
-        part1.TryAddComponent(weapon1,[1]);
-        weapon1.Target = _player2Unit1; // Set target for weapon1
-
-        var weapon2 = new TestWeapon();
-        var part2 = _player2Unit1.Parts[0];
-        part2.TryAddComponent(weapon2,[1]);
-        weapon2.Target = _player1Unit1; // Set target for weapon2
-        
-        // Add a third weapon without a target to test that it's properly skipped
-        var weaponWithoutTarget = new TestWeapon();
-        var part3 = _player1Unit1.Parts[1]; // Using the second part of unit1
-        part3.TryAddComponent(weaponWithoutTarget,[2]);
-        // Deliberately not setting a target for this weapon
-
-        // Setup ToHitCalculator to return a value
-        Game.ToHitCalculator.GetToHitNumber(
-            Arg.Any<Unit>(), 
-            Arg.Any<Unit>(), 
-            Arg.Any<Weapon>(), 
-            Arg.Any<BattleMap>())
-            .Returns(7); // Return a default to-hit number of 7
-    }
-    private void SetupPlayer2WeaponTargets()
-    {
-        // Add a weapon to each unit
-        var weapon1 = new TestWeapon();
-        var part1 = _player2Unit1.Parts[0];
-        part1.TryAddComponent(weapon1,[1]);
-        weapon1.Target = _player1Unit1; // Set target for weapon1
-        
-        // Add a third weapon without a target to test that it's properly skipped
-        var weaponWithoutTarget = new TestWeapon();
-        var part3 = _player2Unit1.Parts[1]; // Using the second part of unit1
-        part3.TryAddComponent(weaponWithoutTarget,[2]);
-        // Deliberately not setting a target for this weapon// Return a default to-hit number of 7
-    }
-
-    private void SetupDiceRolls(params int[] rolls)
-    {
-        var diceResults = new List<List<DiceResult>>();
-        
-        // Create dice results for each roll
-        foreach (var roll in rolls)
-        {
-            var diceResult = new List<DiceResult>
-            {
-                new(roll / 2 + roll % 2),
-                new(roll / 2)
-            };
-            diceResults.Add(diceResult);
-        }
-        
-        // Set up the dice roller to return the predefined results
-        var callCount = 0;
-        DiceRoller.Roll2D6().Returns(_ =>
-        {
-            var result = diceResults[callCount % diceResults.Count];
-            callCount++;
-            return result;
-        });
-    }
-    
     [Fact]
-    public void PublishCommand_ShouldFireWeaponAndApplyDamage()
+    public void Enter_ShouldConsiderPreviousDamage_WhenMultipleWeaponsTargetSameUnit()
     {
         // Arrange
-        SetupPlayer1WeaponTargets();
-        SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
         
-        // Get initial values for verification
-        var initialArmor = _player2Unit1.TotalCurrentArmor;
+        // Setup weapons using the existing method
+        SetupPlayer1WeaponTargets();
+        
+        // Get the target unit (player2's unit)
+        var targetUnit = _player2Unit1;
+        
+        // Remove targets for the target unit
+        var targetWeapons = targetUnit.GetAllComponents<Weapon>();
+        foreach (var targetWeapon in targetWeapons)
+        {
+            targetWeapon.Target = null;
+        }
+        
+        // Get the part we want to target (left arm)
+        var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Get the initial armor and structure values
+        var initialArmor = targetPart.CurrentArmor;
+        var initialStructure = targetPart.CurrentStructure;
+        
+        // Get the weapons from player1's unit
+        var attackingUnit = _player1Unit1;
+        var weaponWithoutTarget = attackingUnit.Parts[1].GetComponents<Weapon>().First();
+        
+        // Set target for the second weapon (same as first weapon)
+        weaponWithoutTarget.Target = targetUnit;
+        
+        // Configure dice rolls to ensure hits and specific hit locations
+        // First roll (8) is for first attack (hit)
+        // Second roll (10) is for first hit location (left arm)
+        // Third roll (8) is for second attack (hit)
+        // Fourth roll (10) is for second hit location (same location)
+        SetupDiceRolls(8, 10, 8, 10);
         
         // Act
         _sut.Enter();
-
+        
         // Assert
-        // Verify that damage was applied to the target
-        _player2Unit1.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
-    }
+        // Verify that damage was applied to the target part
+        targetPart.CurrentArmor.ShouldBeLessThan(initialArmor);
+        
+        // Capture the published commands to verify both attacks hit the same location
+        var capturedCommands = new List<WeaponAttackResolutionCommand>();
+        CommandPublisher.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "PublishCommand")
+            .Select(call => call.GetArguments()[0])
+            .OfType<WeaponAttackResolutionCommand>()
+            .Where(cmd => cmd.AttackerId == attackingUnit.Id) // Only get commands from our attacking unit
+            .ToList()
+            .ForEach(capturedCommands.Add);
+        
+        // We should have exactly 2 commands
+        capturedCommands.Count.ShouldBe(2);
+        
+        // Both commands should target the left arm
+        capturedCommands[0].ResolutionData.HitLocationsData!.HitLocations[0].Location
+            .ShouldBe(PartLocation.LeftArm);
+        capturedCommands[1].ResolutionData.HitLocationsData!.HitLocations[0].Location
+            .ShouldBe(PartLocation.LeftArm);
+        
+        // Calculate the total damage from both attacks
+        var totalDamage = capturedCommands.Sum(cmd => 
+            cmd.ResolutionData.HitLocationsData!.TotalDamage);
 
-    private class TestWeapon(WeaponType type = WeaponType.Energy, AmmoType ammoType = AmmoType.None)
-        : Weapon("Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1, 1,ammoType)
-    {
-        public override MakaMekComponent ComponentType => throw new NotImplementedException();
-    }
-
-    // Custom cluster weapon class that allows setting damage for testing
-    private class TestClusterWeapon(
-        int damage =10,
-        int clusterSize = 1,
-        int clusters = 2,
-        WeaponType type = WeaponType.Missile,
-        AmmoType ammoType = AmmoType.None)
-        : Weapon("Test Cluster Weapon", damage, 3, 0, 3, 6, 9, type, 10, 1, clusters, clusterSize, ammoType)
-    {
-        public override MakaMekComponent ComponentType => throw new NotImplementedException();
+        var nextPart = targetUnit.Parts.First(p=> p.Location == targetPart.GetNextTransferLocation());
+        
+        // The total damage should match the difference in armor/structure
+        var armorDamage = initialArmor - targetPart.CurrentArmor;
+        var structureDamage = initialStructure - targetPart.CurrentStructure;
+        var transferDamage = nextPart.MaxArmor - nextPart.CurrentArmor;
+        var totalDamageTaken = armorDamage + structureDamage + transferDamage;
+        
+        totalDamageTaken.ShouldBe(totalDamage);
     }
     
     [Fact]
@@ -601,7 +578,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(5), new(5) } // 10 for hit location roll
+            [new DiceResult(5), new DiceResult(5)] // 10 for hit location roll
         );
         
         var sut = new WeaponAttackResolutionPhase(Game);
@@ -612,5 +589,186 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
         data.Location.ShouldBe(PartLocation.CenterTorso);
+    }
+
+    [Fact]
+    public void Enter_ShouldTrackDestroyedParts_WhenApplyingDamage()
+    {
+        // Arrange - Setup weapon targets
+        SetupPlayer1WeaponTargets();
+        
+        // Get the target unit (player2's unit)
+        var targetUnit = _player2Unit1;
+        
+        // Get the part we want to target (left arm)
+        var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Apply damage to the part to leave it with minimal structure
+        // This way the next attack will destroy it
+        var initialArmor = targetPart.CurrentArmor;
+        var initialStructure = targetPart.CurrentStructure;
+        
+        // Apply damage to leave only 1 structure point
+        targetPart.ApplyDamage(initialArmor + initialStructure - 1);
+        
+        // Configure dice rolls to ensure hits and specific hit locations
+        // First roll (8) is for attack (hit)
+        // Second roll (10) is for hit location (left arm)
+        SetupDiceRolls(8, 10);
+        SetMap();
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Capture the published command to verify it includes the destroyed part
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
+                cmd.ResolutionData.DestroyedParts != null && 
+                cmd.ResolutionData.DestroyedParts.Contains(PartLocation.LeftArm)));
+    }
+    
+    [Fact]
+    public void Enter_ShouldTrackUnitDestruction_WhenUnitIsDestroyed()
+    {
+        // Arrange - Setup weapon targets
+        SetupPlayer1WeaponTargets();
+        
+        // Get the target unit (player2's unit)
+        var targetUnit = _player2Unit1;
+        
+        // Get the part we want to target (center torso)
+        var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        
+        // Apply damage to the center torso to leave it with minimal structure
+        // This way the next attack will destroy the unit
+        var initialArmor = targetPart.CurrentArmor;
+        var initialStructure = targetPart.CurrentStructure;
+        
+        // Apply damage to leave only 1 structure point
+        targetPart.ApplyDamage(initialArmor + initialStructure - 1);
+        
+        // Configure dice rolls to ensure hits and specific hit locations
+        // First roll (8) is for attack (hit)
+        // Second roll (7) is for hit location (center torso)
+        SetupDiceRolls(8, 7);
+        SetMap();
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify unit is destroyed
+        targetUnit.Status.ShouldBe(UnitStatus.Destroyed);
+        
+        // Capture the published command to verify it includes unit destruction
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
+                cmd.ResolutionData.UnitDestroyed));
+    }
+
+    [Fact]
+    public void PublishCommand_ShouldAndApplyDamage()
+    {
+        // Arrange
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        SetMap();
+        
+        // Get initial values for verification
+        var initialArmor = _player2Unit1.TotalCurrentArmor;
+        
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify that damage was applied to the target
+        _player2Unit1.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
+    }
+
+    private void SetupPlayer1WeaponTargets()
+    {
+        // Add a weapon to each unit
+        var weapon1 = new TestWeapon();
+        var part1 = _player1Unit1.Parts[0];
+        part1.TryAddComponent(weapon1,[1]);
+        weapon1.Target = _player2Unit1; // Set target for weapon1
+
+        var weapon2 = new TestWeapon();
+        var part2 = _player2Unit1.Parts[0];
+        part2.TryAddComponent(weapon2,[1]);
+        weapon2.Target = _player1Unit1; // Set target for weapon2
+        
+        // Add a third weapon without a target to test that it's properly skipped
+        var weaponWithoutTarget = new TestWeapon();
+        var part3 = _player1Unit1.Parts[1]; // Using the second part of unit1
+        part3.TryAddComponent(weaponWithoutTarget,[2]);
+        // Deliberately not setting a target for this weapon
+
+        // Setup ToHitCalculator to return a value
+        Game.ToHitCalculator.GetToHitNumber(
+            Arg.Any<Unit>(), 
+            Arg.Any<Unit>(), 
+            Arg.Any<Weapon>(), 
+            Arg.Any<BattleMap>())
+            .Returns(7); // Return a default to-hit number of 7
+    }
+    
+    private void SetupPlayer2WeaponTargets()
+    {
+        // Add a weapon to each unit
+        var weapon1 = new TestWeapon();
+        var part1 = _player2Unit1.Parts[0];
+        part1.TryAddComponent(weapon1,[1]);
+        weapon1.Target = _player1Unit1; // Set target for weapon1
+        
+        // Add a third weapon without a target to test that it's properly skipped
+        var weaponWithoutTarget = new TestWeapon();
+        var part3 = _player2Unit1.Parts[1]; // Using the second part of unit1
+        part3.TryAddComponent(weaponWithoutTarget,[2]);
+        // Deliberately not setting a target for this weapon// Return a default to-hit number of 7
+    }
+
+    private void SetupDiceRolls(params int[] rolls)
+    {
+        var diceResults = new List<List<DiceResult>>();
+        
+        // Create dice results for each roll
+        foreach (var roll in rolls)
+        {
+            var diceResult = new List<DiceResult>
+            {
+                new(roll / 2 + roll % 2),
+                new(roll / 2)
+            };
+            diceResults.Add(diceResult);
+        }
+        
+        // Set up the dice roller to return the predefined results
+        var callCount = 0;
+        DiceRoller.Roll2D6().Returns(_ =>
+        {
+            var result = diceResults[callCount % diceResults.Count];
+            callCount++;
+            return result;
+        });
+    }
+    
+    private class TestWeapon(WeaponType type = WeaponType.Energy, AmmoType ammoType = AmmoType.None)
+        : Weapon("Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1, 1,ammoType)
+    {
+        public override MakaMekComponent ComponentType => throw new NotImplementedException();
+    }
+
+    // Custom cluster weapon class that allows setting damage for testing
+    private class TestClusterWeapon(
+        int damage =10,
+        int clusterSize = 1,
+        int clusters = 2,
+        WeaponType type = WeaponType.Missile,
+        AmmoType ammoType = AmmoType.None)
+        : Weapon("Test Cluster Weapon", damage, 3, 0, 3, 6, 9, type, 10, 1, clusters, clusterSize, ammoType)
+    {
+        public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
 }

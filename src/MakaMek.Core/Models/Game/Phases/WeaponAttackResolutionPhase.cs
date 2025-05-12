@@ -304,6 +304,30 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     
     private void PublishAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target, AttackResolutionData resolution)
     {
+        // Track destroyed parts before damage
+        var destroyedPartsBefore = target.Parts.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
+        var wasDestroyedBefore = target.Status == UnitStatus.Destroyed;
+        
+        // Apply damage to the target
+        if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null })
+        {
+            target.ApplyDamage(resolution.HitLocationsData.HitLocations);
+        }
+        
+        // Check which parts are newly destroyed
+        var destroyedPartsAfter = target.Parts.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
+        var newlyDestroyedParts = destroyedPartsAfter.Except(destroyedPartsBefore).ToList();
+        
+        // Check if the unit was destroyed by this attack
+        var unitNewlyDestroyed = !wasDestroyedBefore && target.Status== UnitStatus.Destroyed;
+        
+        // Update the resolution data with destruction information
+        var updatedResolution = resolution with 
+        { 
+            DestroyedParts = newlyDestroyedParts.Any() ? newlyDestroyedParts : null,
+            UnitDestroyed = unitNewlyDestroyed
+        };
+        
         // Create and publish a command to inform clients about the attack resolution
         var command = new WeaponAttackResolutionCommand
         {
@@ -317,14 +341,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 Slots = weapon.MountedAtSlots
             },
             TargetId = target.Id,
-            ResolutionData = resolution
+            ResolutionData = updatedResolution
         };
         
         attacker.FireWeapon(command.WeaponData);
-        if (command.ResolutionData.IsHit && command.ResolutionData.HitLocationsData?.HitLocations!=null)
-        {
-            target.ApplyDamage(command.ResolutionData.HitLocationsData.HitLocations);
-        }
 
         Game.CommandPublisher.PublishCommand(command);
     }
