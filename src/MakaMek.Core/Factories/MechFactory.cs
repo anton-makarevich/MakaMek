@@ -4,10 +4,6 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -18,11 +14,16 @@ public class MechFactory : IMechFactory
 {
     private readonly IRulesProvider _rulesProvider;
     private readonly ILocalizationService _localizationService;
+    private readonly IWeaponFactory _weaponFactory;
 
-    public MechFactory(IRulesProvider rulesProvider, ILocalizationService localizationService)
+    public MechFactory(
+        IRulesProvider rulesProvider, 
+        ILocalizationService localizationService,
+        IWeaponFactory weaponFactory)
     {
         _rulesProvider = rulesProvider;
         _localizationService = localizationService;
+        _weaponFactory = weaponFactory;
     }
 
     public Mech Create(UnitData unitData)
@@ -89,18 +90,23 @@ public class MechFactory : IMechFactory
 
     private Component? CreateComponent(MakaMekComponent itemName, UnitData unitData)
     {
+        // First check if it's a weapon or ammo component
+        var weapon = _weaponFactory.CreateWeaponByType(itemName);
+        if (weapon != null)
+        {
+            return weapon;
+        }
+        
+        var ammo = _weaponFactory.CreateAmmoByType(itemName);
+        if (ammo != null)
+        {
+            return ammo;
+        }
+        
+        // Handle other component types
         return itemName switch
         {
             MakaMekComponent.Engine => new Engine(unitData.EngineRating, MapEngineType(unitData.EngineType)),
-            MakaMekComponent.ISAmmoAC5 => new Ammo(AmmoType.AC5, _rulesProvider.GetAmmoRounds(AmmoType.AC5)),
-            MakaMekComponent.ISAmmoSRM2 => new Ammo(AmmoType.SRM2, _rulesProvider.GetAmmoRounds(AmmoType.SRM2)),
-            MakaMekComponent.ISAmmoMG => new Ammo(AmmoType.MachineGun, _rulesProvider.GetAmmoRounds(AmmoType.MachineGun)),
-            MakaMekComponent.ISAmmoLRM5 => new Ammo(AmmoType.LRM5, _rulesProvider.GetAmmoRounds(AmmoType.LRM5)),
-            MakaMekComponent.MediumLaser => new MediumLaser(),
-            MakaMekComponent.LRM5 => new Lrm5(),
-            MakaMekComponent.SRM2 => new Srm2(),
-            MakaMekComponent.MachineGun => new MachineGun(),
-            MakaMekComponent.AC5 => new Ac5(),
             MakaMekComponent.HeatSink => new HeatSink(),
             MakaMekComponent.Shoulder => new Shoulder(),
             MakaMekComponent.UpperArmActuator => new UpperArmActuator(),

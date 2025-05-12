@@ -8,14 +8,14 @@ namespace Sanet.MakaMek.Core.Factories;
 /// Factory for creating weapons and ammo from weapon definitions.
 /// This allows for a data-driven approach to weapon creation without needing individual classes.
 /// </summary>
-public static class WeaponFactory
+public class WeaponFactory : IWeaponFactory
 {
     /// <summary>
     /// Helper method to create a weapon by its predefined type
     /// </summary>
     /// <param name="componentType">The MakaMekComponent type</param>
     /// <returns>A new weapon instance, or null if the component type isn't a weapon</returns>
-    public static Weapon? CreateWeaponByType(MakaMekComponent componentType)
+    public Weapon? CreateWeaponByType(MakaMekComponent componentType)
     {
         // Find the definition that matches the component type
         var definition = WeaponDefinitions.GetDefinitionByWeaponType(componentType);
@@ -27,7 +27,7 @@ public static class WeaponFactory
     /// </summary>
     /// <param name="componentType">The MakaMekComponent type</param>
     /// <returns>A new ammo instance, or null if the component type isn't ammo</returns>
-    public static Ammo? CreateAmmoByType(MakaMekComponent componentType)
+    public Ammo? CreateAmmoByType(MakaMekComponent componentType)
     {
         // Find the definition that matches the ammo component type
         var definition = WeaponDefinitions.GetDefinitionByAmmoType(componentType);

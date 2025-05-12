@@ -19,9 +19,14 @@ public class Ammo : Component
     }
 
     public WeaponDefinition Definition { get; }
+    
+    /// <summary>
+    /// Gets the ammo type
+    /// </summary>
+    public AmmoType Type => Definition.AmmoType;
 
     public int RemainingShots => _remainingShots;
-
+    
     public bool UseShot()
     {
         if (_remainingShots <= 0)

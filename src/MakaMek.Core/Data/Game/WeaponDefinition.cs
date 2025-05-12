@@ -23,7 +23,8 @@ public class WeaponDefinition
         int clusterSize = 1,
         MakaMekComponent weaponComponentType = MakaMekComponent.MachineGun,
         MakaMekComponent? ammoComponentType = null,
-        int initialAmmoShots = 0)
+        int initialAmmoShots = 0,
+        AmmoType ammoType = AmmoType.None)
     {
         Name = name;
         ElementaryDamage = elementaryDamage;
@@ -39,6 +40,7 @@ public class WeaponDefinition
         WeaponComponentType = weaponComponentType;
         AmmoComponentType = ammoComponentType;
         InitialAmmoShots = initialAmmoShots;
+        AmmoType = ammoType;
     }
 
     public string Name { get; }
@@ -55,6 +57,7 @@ public class WeaponDefinition
     public MakaMekComponent WeaponComponentType { get; }
     public MakaMekComponent? AmmoComponentType { get; }
     public int InitialAmmoShots { get; }
+    public AmmoType AmmoType { get; }
 
     /// <summary>
     /// Indicates whether this weapon requires ammunition to fire

@@ -26,6 +26,11 @@ public class Weapon : Component
     public int WeaponSize => Definition.WeaponSize;
     
     /// <summary>
+    /// Gets the ammo type required by this weapon
+    /// </summary>
+    public AmmoType AmmoType => Definition.AmmoType;
+    
+    /// <summary>
     /// Indicates whether this weapon requires ammunition to fire
     /// </summary>
     public bool RequiresAmmo => Definition.RequiresAmmo;
