@@ -9,10 +9,10 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Utils.TechRules;
 
-namespace Sanet.MakaMek.Core.Utils;
+namespace Sanet.MakaMek.Core.Factories;
 
 public class MechFactory : IMechFactory
 {

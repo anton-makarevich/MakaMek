@@ -2,6 +2,7 @@ using NSubstitute;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Factories;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Commands;

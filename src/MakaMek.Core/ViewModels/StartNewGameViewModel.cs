@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
+using Sanet.MakaMek.Core.Factories;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Commands;

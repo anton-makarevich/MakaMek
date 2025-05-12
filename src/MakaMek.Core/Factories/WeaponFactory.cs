@@ -1,6 +1,8 @@
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
-namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+namespace Sanet.MakaMek.Core.Factories;
 
 /// <summary>
 /// Factory for creating weapons and ammo from weapon definitions.
