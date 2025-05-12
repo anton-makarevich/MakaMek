@@ -28,7 +28,7 @@ public class Weapon : Component
     /// <summary>
     /// Gets the ammo type required by this weapon
     /// </summary>
-    public AmmoType AmmoType => Definition.AmmoType;
+    public MakaMekComponent? AmmoType => Definition.AmmoComponentType;
     
     /// <summary>
     /// Indicates whether this weapon requires ammunition to fire
