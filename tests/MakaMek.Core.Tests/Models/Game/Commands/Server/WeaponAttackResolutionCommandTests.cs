@@ -98,6 +98,22 @@ public class WeaponAttackResolutionCommandTests
             .Returns("Critical hits in {0}:");
         _localizationService.GetString("Command_WeaponAttackResolution_Explosion")
             .Returns("{0} EXPLODES! Damage: {1}");
+        _localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts")
+            .Returns("Destroyed parts:");
+        _localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart")
+            .Returns("- {0} destroyed");
+        _localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed")
+            .Returns("{0} has been destroyed!");
+        
+        // Setup localized part names
+        _localizationService.GetString("MechPart_LeftArm").Returns("Left Arm");
+        _localizationService.GetString("MechPart_RightArm").Returns("Right Arm");
+        _localizationService.GetString("MechPart_LeftTorso").Returns("Left Torso");
+        _localizationService.GetString("MechPart_RightTorso").Returns("Right Torso");
+        _localizationService.GetString("MechPart_CenterTorso").Returns("Center Torso");
+        _localizationService.GetString("MechPart_Head").Returns("Head");
+        _localizationService.GetString("MechPart_LeftLeg").Returns("Left Leg");
+        _localizationService.GetString("MechPart_RightLeg").Returns("Right Leg");
     }
 
     private WeaponAttackResolutionCommand CreateHitCommand()
@@ -1053,5 +1069,94 @@ public class WeaponAttackResolutionCommandTests
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
         output.ShouldNotContain("EXPLODES!");
+    }
+    
+    [Fact]
+    public void Format_ShouldIncludeDestroyedParts_WhenPartsAreDestroyed()
+    {
+        // Arrange
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.CenterTorso, 5, [new DiceResult(6)])
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            [],
+            0);
+        
+        var destroyedParts = new List<PartLocation> { PartLocation.LeftArm, PartLocation.RightLeg };
+        
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new(4), new(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData,
+            destroyedParts);
+        
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = command.Format(_localizationService, _game);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("Destroyed parts:");
+        result.ShouldContain("- Left Arm destroyed");
+        result.ShouldContain("- Right Leg destroyed");
+    }
+    
+    [Fact]
+    public void Format_ShouldIncludeUnitDestroyed_WhenUnitIsDestroyed()
+    {
+        // Arrange
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.CenterTorso, 5, [new DiceResult(6)])
+        };
+        
+        var hitLocationsData = new AttackHitLocationsData(
+            hitLocations,
+            5,
+            [],
+            0);
+        
+        var resolutionData = new AttackResolutionData(
+            8,
+            [new(4), new(5)],
+            true,
+            FiringArc.Forward,
+            hitLocationsData,
+            null,
+            true);
+        
+        var command = new WeaponAttackResolutionCommand
+        {
+            GameOriginId = _gameId,
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            WeaponData = _weaponData,
+            ResolutionData = resolutionData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = command.Format(_localizationService, _game);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("Locust LCT-1V has been destroyed!");
     }
 }

@@ -578,7 +578,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(5), new(5) } // 10 for hit location roll
+            [new DiceResult(5), new DiceResult(5)] // 10 for hit location roll
         );
         
         var sut = new WeaponAttackResolutionPhase(Game);
@@ -589,6 +589,74 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
         data.Location.ShouldBe(PartLocation.CenterTorso);
+    }
+
+    [Fact]
+    public void Enter_ShouldTrackDestroyedParts_WhenApplyingDamage()
+    {
+        // Arrange - Setup weapon targets
+        SetupPlayer1WeaponTargets();
+        
+        // Get the target unit (player2's unit)
+        var targetUnit = _player2Unit1;
+        
+        // Get the part we want to target (left arm)
+        var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        
+        // Set the armor and structure to minimum values so it will be destroyed
+        // targetPart.CurrentArmor = 1;
+        // targetPart.CurrentStructure = 1;
+        
+        // Configure dice rolls to ensure hits and specific hit locations
+        // First roll (8) is for attack (hit)
+        // Second roll (10) is for hit location (left arm)
+        SetupDiceRolls(8, 10);
+        SetMap();
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Capture the published command to verify it includes the destroyed part
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
+                cmd.ResolutionData.DestroyedParts != null && 
+                cmd.ResolutionData.DestroyedParts.Contains(PartLocation.LeftArm)));
+    }
+    
+    [Fact]
+    public void Enter_ShouldTrackUnitDestruction_WhenUnitIsDestroyed()
+    {
+        // Arrange - Setup weapon targets
+        SetupPlayer1WeaponTargets();
+        
+        // Get the target unit (player2's unit)
+        var targetUnit = _player2Unit1;
+        
+        // Get the part we want to target (center torso)
+        var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        
+        // Set the armor and structure to minimum values so it will be destroyed
+        // targetPart.CurrentArmor = 1;
+        // targetPart.CurrentStructure = 1;
+        
+        // Configure dice rolls to ensure hits and specific hit locations
+        // First roll (8) is for attack (hit)
+        // Second roll (8) is for hit location (center torso)
+        SetupDiceRolls(8, 8);
+        SetMap();
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify unit is destroyed
+        targetUnit.Status.ShouldBe(UnitStatus.Destroyed);
+        
+        // Capture the published command to verify it includes unit destruction
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
+                cmd.ResolutionData.UnitDestroyed));
     }
 
     private void SetupPlayer1WeaponTargets()
