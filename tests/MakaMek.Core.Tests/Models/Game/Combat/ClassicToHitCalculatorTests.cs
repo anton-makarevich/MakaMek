@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Factories;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
@@ -6,11 +7,9 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
@@ -43,11 +42,12 @@ public class ClassicToHitCalculatorTests
             { PartLocation.LeftLeg, 8 },
             { PartLocation.RightLeg, 8 }
         });
+        var weaponFactory = new WeaponFactory();
 
-        _mechFactory = new MechFactory(_rules, Substitute.For<ILocalizationService>());
+        _mechFactory = new MechFactory(_rules, Substitute.For<ILocalizationService>(), weaponFactory);
 
         // Setup weapon
-        _weapon = new MediumLaser();
+        _weapon = weaponFactory.CreateWeaponByType(MakaMekComponent.MediumLaser)!;
 
         // Default rules setup
         _rules.GetAttackerMovementModifier(MovementType.StandingStill).Returns(0);

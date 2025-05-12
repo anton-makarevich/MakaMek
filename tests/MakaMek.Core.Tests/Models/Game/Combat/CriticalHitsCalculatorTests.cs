@@ -1,14 +1,13 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Factories;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
@@ -19,6 +18,7 @@ public class CriticalHitsCalculatorTests
     private readonly IDiceRoller _mockDiceRoller;
     private readonly CriticalHitsCalculator _sut;
     private readonly MechFactory _mechFactory;
+    private readonly WeaponFactory _weaponFactory = new();
 
     public CriticalHitsCalculatorTests()
     {
@@ -35,7 +35,7 @@ public class CriticalHitsCalculatorTests
         var localizationService = Substitute.For<ILocalizationService>();
 
         // Setup mech factory
-        _mechFactory = new MechFactory(rules, localizationService);
+        _mechFactory = new MechFactory(rules, localizationService,_weaponFactory);
     }
 
     private Unit CreateTestMech()
@@ -156,7 +156,7 @@ public class CriticalHitsCalculatorTests
         const int totalDamage = 26; // Enough to destroy multiple locations
         
         var rightTorso = testUnit.Parts.First(p => p.Location == PartLocation.RightTorso);
-        rightTorso.TryAddComponent(new MediumLaser(),[0]);
+        rightTorso.TryAddComponent(_weaponFactory.CreateWeaponByType(MakaMekComponent.MediumLaser)!,[0]);
         
         // Setup dice rolls for critical hit checks
         _mockDiceRoller.Roll2D6().Returns(
@@ -259,7 +259,7 @@ public class CriticalHitsCalculatorTests
         var part = testUnit.Parts.First(p => p.Location == location);
         
         // Add ammo to the location
-        var ammo = new Ammo(AmmoType.AC20, 1);
+        var ammo = _weaponFactory.CreateAmmoByType(MakaMekComponent.ISAmmoAC20)!;
         part.TryAddComponent(ammo, [0]);
         
         const int damage = 6; // Enough to cause structural damage but not destroy the location
@@ -301,8 +301,8 @@ public class CriticalHitsCalculatorTests
         var part = testUnit.Parts.First(p => p.Location == location);
         
         // Add multiple ammo boxes to the location
-        var ammo1 = new Ammo(AmmoType.AC20, 1);
-        var ammo2 = new Ammo(AmmoType.LRM20, 1);
+        var ammo1 = _weaponFactory.CreateAmmoByType(MakaMekComponent.ISAmmoAC20)!;
+        var ammo2 = _weaponFactory.CreateAmmoByType(MakaMekComponent.ISAmmoLRM20)!;
         
         part.TryAddComponent(ammo1, [0]);
         part.TryAddComponent(ammo2, [1]);
@@ -365,7 +365,7 @@ public class CriticalHitsCalculatorTests
         var armPart = testUnit.Parts.First(p => p.Location == initialLocation);
         
         // Add ammo to the arm
-        var ammo = new Ammo(AmmoType.AC20, 11);
+        var ammo = _weaponFactory.CreateAmmoByType(MakaMekComponent.ISAmmoAC20)!;
         armPart.TryAddComponent(ammo, [0]);
         
         const int damage = 6; // Enough to cause structural damage but not destroy the location by itself

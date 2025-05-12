@@ -539,7 +539,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(5), new(5) } // 10 for hit location roll
+            [new DiceResult(5), new DiceResult(5)] // 10 for hit location roll
         );
         
         var sut = new WeaponAttackResolutionPhase(Game);
@@ -754,20 +754,25 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         });
     }
     
-    private class TestWeapon(WeaponType type = WeaponType.Energy, AmmoType ammoType = AmmoType.None)
-        : Weapon("Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1, 1,ammoType)
+    private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null)
+        : Weapon(new WeaponDefinition("Test Weapon", 5, 3,
+            0, 3, 6, 9,
+            type, 10, 1, 1, MakaMekComponent.MachineGun,ammoType))
     {
         public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
 
     // Custom cluster weapon class that allows setting damage for testing
     private class TestClusterWeapon(
-        int damage =10,
+        int elementaryDamage =5,
         int clusterSize = 1,
         int clusters = 2,
         WeaponType type = WeaponType.Missile,
-        AmmoType ammoType = AmmoType.None)
-        : Weapon("Test Cluster Weapon", damage, 3, 0, 3, 6, 9, type, 10, 1, clusters, clusterSize, ammoType)
+        MakaMekComponent? ammoType = MakaMekComponent.ISAmmoLRM10)
+        : Weapon(
+            new WeaponDefinition("Test Cluster Weapon", elementaryDamage, 3,
+                0, 3, 6, 9,
+                type, 10,  clusters, clusterSize, MakaMekComponent.LRM10, ammoType))
     {
         public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }

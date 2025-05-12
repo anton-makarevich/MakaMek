@@ -1,5 +1,6 @@
 using Shouldly;
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Factories;
@@ -10,10 +11,8 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Commands.Server;
@@ -27,6 +26,7 @@ public class WeaponAttackResolutionCommandTests
     private readonly Unit _attacker;
     private readonly Unit _target;
     private readonly WeaponData _weaponData;
+    private readonly WeaponFactory _weaponFactory = new();
 
     public WeaponAttackResolutionCommandTests()
     {
@@ -35,7 +35,7 @@ public class WeaponAttackResolutionCommandTests
         var player2 = new Player(Guid.NewGuid(), "Player 2");
 
         // Create units using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService, _weaponFactory);
         var attackerData = MechFactoryTests.CreateDummyMechData();
         attackerData.Id = Guid.NewGuid();
         var targetData = MechFactoryTests.CreateDummyMechData();
@@ -106,7 +106,7 @@ public class WeaponAttackResolutionCommandTests
         _localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed")
             .Returns("{0} has been destroyed!");
         
-        // Setup localized part names
+        // Set up localized part names
         _localizationService.GetString("MechPart_LeftArm").Returns("Left Arm");
         _localizationService.GetString("MechPart_RightArm").Returns("Right Arm");
         _localizationService.GetString("MechPart_LeftTorso").Returns("Left Torso");
@@ -374,7 +374,7 @@ public class WeaponAttackResolutionCommandTests
     {
         // Arrange: create a hit with a critical hit in slot 2, with a component
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent = new MachineGun();
+        var critComponent = _weaponFactory.CreateWeaponByType(MakaMekComponent.MachineGun)!;
         leftArm.TryAddComponent(critComponent, [2]);
         var hitLocations = new List<HitLocationData>
         {
@@ -422,7 +422,7 @@ public class WeaponAttackResolutionCommandTests
     {
         // Arrange: create a hit with a critical hit in slot 2, with a component
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent = new MachineGun();
+        var critComponent = _weaponFactory.CreateWeaponByType(MakaMekComponent.MachineGun)!;
         leftArm.TryAddComponent(critComponent, [2]);
         var hitLocations = new List<HitLocationData>
         {
@@ -561,7 +561,7 @@ public class WeaponAttackResolutionCommandTests
     {
         // Arrange: create a hit with critical hits in a different location than the primary hit
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent = new MachineGun();
+        var critComponent = _weaponFactory.CreateWeaponByType(MakaMekComponent.MachineGun)!;
         leftArm.TryAddComponent(critComponent, [2]);
         
         var hitLocations = new List<HitLocationData>
@@ -612,8 +612,8 @@ public class WeaponAttackResolutionCommandTests
     {
         // Arrange: create a hit with multiple critical hits in different slots
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent1 = new MachineGun();
-        var critComponent2 = new MachineGun();
+        var critComponent1 = _weaponFactory.CreateWeaponByType(MakaMekComponent.MachineGun)!;
+        var critComponent2 = _weaponFactory.CreateWeaponByType(MakaMekComponent.MachineGun)!;
         leftArm.TryAddComponent(critComponent1, [2]);
         leftArm.TryAddComponent(critComponent2, [3]);
         
@@ -667,8 +667,8 @@ public class WeaponAttackResolutionCommandTests
         // Arrange: create a hit with critical hits in multiple locations
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         var rightArm = _target.Parts.First(p => p.Location == PartLocation.RightArm);
-        var critComponent1 = new MachineGun();
-        var critComponent2 = new MachineGun();
+        var critComponent1 = _weaponFactory.CreateWeaponByType(MakaMekComponent.MachineGun)!;
+        var critComponent2 = _weaponFactory.CreateWeaponByType(MakaMekComponent.MachineGun)!;
         leftArm.TryAddComponent(critComponent1, [2]);
         rightArm.TryAddComponent(critComponent2, [3]);
         
@@ -773,7 +773,7 @@ public class WeaponAttackResolutionCommandTests
     [Fact]
     public void Format_Handles_Null_CriticalHits_Array()
     {
-        // Arrange: create a hit with null critical hits array
+        // Arrange: create a hit with a null critical hits array
         var hitLocations = new List<HitLocationData>
         {
             new(
@@ -872,7 +872,7 @@ public class WeaponAttackResolutionCommandTests
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         
         // Create an ammo component that can explode
-        var ammoComponent = new Ammo(AmmoType.AC20, 10);
+        var ammoComponent = _weaponFactory.CreateAmmoByType(MakaMekComponent.ISAmmoAC20)!;
         leftArm.TryAddComponent(ammoComponent, [2]);
         
         var hitLocations = new List<HitLocationData>
@@ -922,7 +922,7 @@ public class WeaponAttackResolutionCommandTests
     {
         // Arrange: create a hit with a critical hit on a non-explodable component
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent = new MachineGun();
+        var critComponent = _weaponFactory.CreateWeaponByType(MakaMekComponent.MachineGun)!;
         leftArm.TryAddComponent(critComponent, [2]);
         
         var hitLocations = new List<HitLocationData>
@@ -974,7 +974,7 @@ public class WeaponAttackResolutionCommandTests
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         
         // Create an ammo component that can explode but has already exploded
-        var ammoComponent = new Ammo(AmmoType.AC20, 10);
+        var ammoComponent = _weaponFactory.CreateAmmoByType(MakaMekComponent.ISAmmoAC20)!;
         leftArm.TryAddComponent(ammoComponent, [2]);
         ammoComponent.Hit(); // This will set HasExploded to true
         
@@ -1027,7 +1027,11 @@ public class WeaponAttackResolutionCommandTests
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         
         // Create an ammo component that can explode but has no ammo left
-        var ammoComponent = new Ammo(AmmoType.AC20, 0);
+        var ammoComponent = _weaponFactory.CreateAmmoByType(MakaMekComponent.ISAmmoAC20)!;
+        while (ammoComponent.RemainingShots>0)
+        {
+            ammoComponent.UseShot();
+        }
         leftArm.TryAddComponent(ammoComponent, [2]);
         
         var hitLocations = new List<HitLocationData>

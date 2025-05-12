@@ -5,11 +5,9 @@ using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.ViewModels.Wrappers;
 using Shouldly;
@@ -23,10 +21,11 @@ public class WeaponSelectionViewModelTests
     private Action<Weapon, bool>? _selectionChangedAction;
     private WeaponSelectionViewModel _sut = null!;
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly WeaponFactory _weaponFactory = new();
 
     public WeaponSelectionViewModelTests()
     {
-        _weapon = new MediumLaser();
+        _weapon = _weaponFactory.CreateWeaponByType(MakaMekComponent.MediumLaser)!;
         var part = new Arm("Left Arm", PartLocation.LeftArm, 1, 1);
         part.TryAddComponent(_weapon);
         
