@@ -10,8 +10,10 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
 using System.Reactive.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
+using Avalonia.Media.Immutable;
 using Sanet.MakaMek.Avalonia.Utils;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -33,6 +35,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly ProgressBar _armorBar;
         private readonly ProgressBar _structureBar;
         private readonly Path _destroyedCross;
+        private readonly StackPanel _eventsPanel;
+        private readonly TimeSpan _eventDisplayDuration = TimeSpan.FromSeconds(5);
 
         public UnitControl(Unit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel)
         {
@@ -85,6 +89,18 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Spacing = 2,
                 Margin = new Thickness(4),
                 Width = Width * 0.8
+            };
+            
+            // Create events panel for damage labels
+            _eventsPanel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                IsVisible = true,
+                IsHitTestVisible = false,
+                Spacing = 4,
+                Margin = new Thickness(4)
             };
 
             // Get colors from resources with fallbacks
@@ -218,7 +234,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     _unit.TotalMaxArmor,
                     _unit.TotalCurrentArmor,
                     _unit.TotalMaxStructure,
-                    _unit.TotalCurrentStructure
+                    _unit.TotalCurrentStructure,
+                    _unit.Events
                 })
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
                 .Subscribe(state =>
@@ -233,6 +250,12 @@ namespace Sanet.MakaMek.Avalonia.Controls
                                                 || _viewModel.CurrentState is WeaponsAttackState attackState && (attackState.Attacker == _unit || attackState.SelectedTarget == _unit);
                     UpdateActionButtons(state.Actions);
                     UpdateHealthBars(state.TotalCurrentArmor, state.TotalMaxArmor, state.TotalCurrentStructure, state.TotalMaxStructure);
+                    
+                    // Process any new events
+                    if (state.Events.Any())
+                    {
+                        ProcessEvents(state.Events.ToList());
+                    }
                     
                     // Calculate rotation angles
                     var isMech = _unit is Mech;
@@ -354,6 +377,100 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
             Canvas.SetLeft(_healthBars, leftPos);
             Canvas.SetTop(_healthBars, topPos - 15); // Position above the unit
+            
+            // Update events panel position to follow the unit
+            if (_eventsPanel.Parent == null && Parent is Canvas canvas3)
+            {
+                canvas3.Children.Add(_eventsPanel);
+            }
+            Canvas.SetLeft(_eventsPanel, leftPos);
+            Canvas.SetTop(_eventsPanel, topPos - 40); // Position above the health bars
+        }
+        
+        /// <summary>
+        /// Processes events from the unit and creates UI elements to display them
+        /// </summary>
+        /// <param name="events">The events to process</param>
+        private void ProcessEvents(List<UiEvent> events)
+        {
+            if (!events.Any()) return;
+            
+            foreach (var uiEvent in events)
+            {
+                if (uiEvent.Message == "Damage" && !string.IsNullOrEmpty(uiEvent.Value))
+                {
+                    CreateDamageLabel(uiEvent.Value);
+                }
+            }
+            
+            // Remove the processed events
+            _unit.RemoveEvents(events);
+        }
+        
+        /// <summary>
+        /// Creates a damage label with animation
+        /// </summary>
+        /// <param name="damageText">The damage text to display</param>
+        private void CreateDamageLabel(string damageText)
+        {
+            // Create a border with text
+            var textBlock = new TextBlock
+            {
+                Text = damageText,
+                Foreground = new ImmutableSolidColorBrush(Colors.Red),
+                FontWeight = FontWeight.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            
+            var border = new Border
+            {
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(6, 2),
+                Background = new ImmutableSolidColorBrush(Color.FromArgb(180, 0, 0, 0)),
+                Child = textBlock
+            };
+            
+            // Add to the events panel
+            _eventsPanel.Children.Add(border);
+            
+            // Start fade out animation
+            _ = AnimateDamageLabelAsync(border);
+        }
+        
+        /// <summary>
+        /// Animates a damage label to fade out and move up
+        /// </summary>
+        /// <param name="label">The label to animate</param>
+        private async Task AnimateDamageLabelAsync(Border label)
+        {
+            var startTime = DateTime.Now;
+            var endTime = startTime + _eventDisplayDuration;
+            
+            // Initial position offset
+            var initialOffset = 0.0;
+            var targetOffset = -20.0; // Move up by 20 pixels
+            
+            while (DateTime.Now < endTime)
+            {
+                var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
+                var duration = _eventDisplayDuration.TotalMilliseconds;
+                var progress = Math.Min(elapsed / duration, 1.0);
+                
+                // Calculate current opacity and position
+                var currentOpacity = 1.0 - progress;
+                var currentOffset = initialOffset + (targetOffset - initialOffset) * progress;
+                
+                // Apply opacity and transform
+                label.Opacity = currentOpacity;
+                label.RenderTransform = new TranslateTransform(0, currentOffset);
+                
+                // Wait a bit before the next frame
+                await Task.Delay(16); // ~60fps
+            }
+            
+            // Remove the label from the panel
+            _eventsPanel.Children.Remove(label);
         }
         
         private void UpdateImage()

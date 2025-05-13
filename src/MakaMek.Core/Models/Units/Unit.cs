@@ -13,6 +13,8 @@ namespace Sanet.MakaMek.Core.Models.Units;
 public abstract class Unit
 {
     protected readonly List<UnitPart> _parts; 
+    private readonly List<UiEvent> _events = new();
+    
     protected Unit(string chassis, string model, int tonnage,
         int walkMp,
         IEnumerable<UnitPart> parts,
@@ -323,6 +325,12 @@ public abstract class Unit
                 }
             }
             
+            // Create and add a damage event before applying the damage
+            if (totalDamage > 0)
+            {
+                AddEvent(new UiEvent("Damage", $"-{totalDamage}"));
+            }
+            
             // Apply the total damage (including any explosion damage)
             ApplyArmorAndStructureDamage(totalDamage, targetPart);
             
@@ -523,4 +531,28 @@ public abstract class Unit
     public abstract LocationCriticalHitsData? CalculateCriticalHitsData(
         PartLocation location, 
         IDiceRoller diceRoller);
+    
+    // UI events list for unit events (damage, etc.)
+    public IReadOnlyList<UiEvent> Events => _events.AsReadOnly();
+    
+    /// <summary>
+    /// Adds an event to the unit's events list
+    /// </summary>
+    /// <param name="uiEvent">The event to add</param>
+    public void AddEvent(UiEvent uiEvent)
+    {
+        _events.Add(uiEvent);
+    }
+    
+    /// <summary>
+    /// Removes events from the unit's events list
+    /// </summary>
+    /// <param name="eventsToRemove">The events to remove</param>
+    public void RemoveEvents(IEnumerable<UiEvent> eventsToRemove)
+    {
+        foreach (var eventToRemove in eventsToRemove)
+        {
+            _events.Remove(eventToRemove);
+        }
+    }
 }
