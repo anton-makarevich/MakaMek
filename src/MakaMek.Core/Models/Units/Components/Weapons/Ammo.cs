@@ -18,7 +18,7 @@ public class Ammo : Component
     }
 
     public WeaponDefinition Definition { get; }
-
+    
     public int RemainingShots => _remainingShots;
 
     public bool UseShot()

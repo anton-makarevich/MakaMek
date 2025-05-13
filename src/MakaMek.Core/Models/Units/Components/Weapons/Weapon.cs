@@ -24,6 +24,8 @@ public abstract class Weapon : Component
     public int ClusterSize => Definition.ClusterSize;
     public int WeaponSize => Definition.WeaponSize;
     
+    public MakaMekComponent? AmmoType => Definition.AmmoComponentType; 
+        
     /// <summary>
     /// Indicates whether this weapon requires ammunition to fire
     /// </summary>

@@ -391,7 +391,7 @@ public abstract class Unit
             return [];
             
         return GetAllComponents<Ammo>()
-            .Where(a => a.Type == weapon.AmmoType && a.IsAvailable);
+            .Where(a => a.ComponentType == weapon.AmmoType && a.IsAvailable);
     }
     
     /// <summary>
