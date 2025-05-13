@@ -10,12 +10,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 
 public class WeaponTests
 {
-    private readonly Weapon _weapon;
-
-    public WeaponTests()
-    {
-        _weapon = new Lrm5();
-    }
+    private readonly Weapon _weapon = new Lrm5();
 
     [Theory]
     [InlineData(0, WeaponRange.OutOfRange)] // Attacker's position
@@ -92,23 +87,43 @@ public class WeaponTests
     }
     
     [Theory]
-    [InlineData(WeaponType.Energy, AmmoType.None, false)]
-    [InlineData(WeaponType.Ballistic, AmmoType.AC5, true)]
-    [InlineData(WeaponType.Missile, AmmoType.LRM5, true)]
-    [InlineData(WeaponType.Energy, AmmoType.AC5, true)] // Edge case: Energy weapon with ammo type
-    public void RequiresAmmo_ReturnsCorrectValue(WeaponType weaponType, AmmoType ammoType, bool expected)
+    [InlineData(WeaponType.Energy, null, false)]
+    [InlineData(WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5, true)]
+    [InlineData(WeaponType.Missile, MakaMekComponent.ISAmmoLRM5, true)]
+    [InlineData(WeaponType.Energy, MakaMekComponent.ISAmmoAC5, true)] // Edge case: Energy weapon with an ammo type
+    public void RequiresAmmo_ReturnsCorrectValue(WeaponType weaponType, MakaMekComponent? ammoComponentType, bool expected)
     {
         // Arrange
-        var weapon = new TestWeapon(weaponType, ammoType);
+        var definition = CreateTestWeaponDefinition(weaponType, ammoComponentType);
+        var weapon = new TestWeapon(definition);
         
         // Act & Assert
         weapon.RequiresAmmo.ShouldBe(expected);
     }
     
-    private class TestWeapon(WeaponType type, AmmoType ammoType)
-        : Weapon("Test Weapon", 5, 3, 0, 3, 6, 9, type, 10, 1, 1, 1, ammoType)
+    private class TestWeapon : Weapon
     {
-        public override MakaMekComponent ComponentType => throw new NotImplementedException();
+        public TestWeapon(WeaponDefinition definition) : base(definition)
+        {
+        }
+    }
+    
+    private static WeaponDefinition CreateTestWeaponDefinition(WeaponType type, MakaMekComponent? ammoComponentType)
+    {
+        return new WeaponDefinition(
+            name: "Test Weapon",
+            elementaryDamage: 5,
+            heat: 3,
+            minimumRange: 0,
+            shortRange: 3,
+            mediumRange: 6,
+            longRange: 9,
+            type: type,
+            battleValue: 10,
+            clusters: 1,
+            clusterSize: 1,
+            weaponComponentType: MakaMekComponent.MachineGun,
+            ammoComponentType: ammoComponentType);
     }
     
     private class MockUnit : Unit
