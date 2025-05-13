@@ -6,8 +6,8 @@ public abstract class Weapon : Component
 {
     private readonly WeaponDefinition _definition;
 
-    protected Weapon(WeaponDefinition definition, int size = 1) 
-        : base(definition.Name, [], size)
+    protected Weapon(WeaponDefinition definition) 
+        : base(definition.Name, [], definition.Size)
     {
         _definition = definition;
         BattleValue = definition.BattleValue;

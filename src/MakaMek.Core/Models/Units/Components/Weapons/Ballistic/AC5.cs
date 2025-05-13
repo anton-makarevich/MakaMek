@@ -6,7 +6,7 @@ public class Ac5 : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
-        name: "AC/5",
+        name: "AC5",
         elementaryDamage: 5,
         heat: 1,
         minimumRange: 3,
@@ -15,6 +15,7 @@ public class Ac5 : Weapon
         longRange: 18,
         type: WeaponType.Ballistic,
         battleValue: 70,
+        size:4,
         weaponComponentType: MakaMekComponent.AC5,
         ammoComponentType: MakaMekComponent.ISAmmoAC5);
         

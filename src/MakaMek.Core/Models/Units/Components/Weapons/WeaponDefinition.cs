@@ -20,6 +20,7 @@ public class WeaponDefinition
         int battleValue,
         int clusters = 1,
         int clusterSize = 1,
+        int size = 1,
         MakaMekComponent weaponComponentType = MakaMekComponent.MachineGun,
         MakaMekComponent? ammoComponentType = null)
     {
@@ -34,6 +35,7 @@ public class WeaponDefinition
         BattleValue = battleValue;
         Clusters = clusters;
         ClusterSize = clusterSize;
+        Size = size;
         WeaponComponentType = weaponComponentType;
         AmmoComponentType = ammoComponentType;
     }
@@ -49,6 +51,8 @@ public class WeaponDefinition
     public int BattleValue { get; }
     public int Clusters { get; }
     public int ClusterSize { get; }
+
+    public int Size { get; }
     public MakaMekComponent WeaponComponentType { get; }
     public MakaMekComponent? AmmoComponentType { get; }
 

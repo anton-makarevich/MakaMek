@@ -27,7 +27,7 @@ public class UnitTests
             : base(new WeaponDefinition(
             name, 5, 3,
             0, 3, 6, 9, 
-            type, 10, 1,1, MakaMekComponent.MachineGun,ammoType))
+            type, 10, 1,1, slots.Length,MakaMekComponent.MachineGun,ammoType))
         {
             Mount(slots, null!); // Will be properly mounted later
         }

@@ -13,11 +13,11 @@ public class Ac5Tests
         var sut = new Ac5();
 
         // Assert
-        sut.Name.ShouldBe("AC/5");
+        sut.Name.ShouldBe("AC5");
         sut.Size.ShouldBe(4);
         sut.Heat.ShouldBe(1);
         sut.Damage.ShouldBe(5);
-        sut.BattleValue.ShouldBe(123);
+        sut.BattleValue.ShouldBe(70);
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoAC5);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.AC5);

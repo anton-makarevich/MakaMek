@@ -912,8 +912,8 @@ public class WeaponAttackResolutionCommandTests
         var output = command.Format(_localizationService, _game);
 
         // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
-        output.ShouldContain("AC20 Ammo EXPLODES! Damage: 10");
+        output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
+        output.ShouldContain("AC5 Ammo EXPLODES! Damage: 50");
     }
     
     [Fact]
@@ -1015,7 +1015,7 @@ public class WeaponAttackResolutionCommandTests
         var output = command.Format(_localizationService, _game);
 
         // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
+        output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
         output.ShouldNotContain("EXPLODES!");
     }
     
@@ -1067,7 +1067,7 @@ public class WeaponAttackResolutionCommandTests
         var output = command.Format(_localizationService, _game);
 
         // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
+        output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
         output.ShouldNotContain("EXPLODES!");
     }
     

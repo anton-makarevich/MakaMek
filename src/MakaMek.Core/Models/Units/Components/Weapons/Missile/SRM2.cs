@@ -15,8 +15,8 @@ public class Srm2 : Weapon
         longRange: 9,
         type: WeaponType.Missile,
         battleValue: 15,
-        clusters: 1,
-        clusterSize: 2,
+        clusters: 2,
+        clusterSize: 1,
         weaponComponentType: MakaMekComponent.SRM2,
         ammoComponentType: MakaMekComponent.ISAmmoSRM2);
             
