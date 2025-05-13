@@ -111,6 +111,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Events_Unit_CriticalHit", "Critical Hit at {0}")]
     [InlineData("Events_Unit_ComponentDestroyed", "{0} destroyed")]
     [InlineData("Events_Unit_LocationDestroyed", "{0} destroyed")]
+    [InlineData("Events_Unit_UnitDestroyed", "{0} has been destroyed!")]
     // Default
     [InlineData("Key_Not_Found", "Key_Not_Found")]
     public void GetString_ReturnsExpectedString(string key, string expected)

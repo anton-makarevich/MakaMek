@@ -134,6 +134,7 @@ public class FakeLocalizationService: ILocalizationService
             "Events_Unit_CriticalHit" => "Critical Hit at {0}",
             "Events_Unit_ComponentDestroyed" => "{0} destroyed",
             "Events_Unit_LocationDestroyed" => "{0} destroyed",
+            "Events_Unit_UnitDestroyed" => "{0} has been destroyed!",
             
             _ => key
         };
