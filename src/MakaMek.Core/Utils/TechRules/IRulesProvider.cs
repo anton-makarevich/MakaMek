@@ -8,7 +8,6 @@ namespace Sanet.MakaMek.Core.Utils.TechRules;
 public interface IRulesProvider
 {
     Dictionary<PartLocation, int> GetStructureValues(int tonnage);
-    int GetAmmoRounds(AmmoType ammoType);
 
     /// <summary>
     /// Gets the modifier for the attacker's movement type

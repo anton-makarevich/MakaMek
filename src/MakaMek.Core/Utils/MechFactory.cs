@@ -92,10 +92,10 @@ public class MechFactory : IMechFactory
         return itemName switch
         {
             MakaMekComponent.Engine => new Engine(unitData.EngineRating, MapEngineType(unitData.EngineType)),
-            MakaMekComponent.ISAmmoAC5 => new Ammo(AmmoType.AC5, _rulesProvider.GetAmmoRounds(AmmoType.AC5)),
-            MakaMekComponent.ISAmmoSRM2 => new Ammo(AmmoType.SRM2, _rulesProvider.GetAmmoRounds(AmmoType.SRM2)),
-            MakaMekComponent.ISAmmoMG => new Ammo(AmmoType.MachineGun, _rulesProvider.GetAmmoRounds(AmmoType.MachineGun)),
-            MakaMekComponent.ISAmmoLRM5 => new Ammo(AmmoType.LRM5, _rulesProvider.GetAmmoRounds(AmmoType.LRM5)),
+            MakaMekComponent.ISAmmoAC5 =>Ac5.CreateAmmo(),
+            MakaMekComponent.ISAmmoSRM2 => Srm2.CreateAmmo(),
+            MakaMekComponent.ISAmmoMG => MachineGun.CreateAmmo(),
+            MakaMekComponent.ISAmmoLRM5 => Lrm5.CreateAmmo(),
             MakaMekComponent.MediumLaser => new MediumLaser(),
             MakaMekComponent.LRM5 => new Lrm5(),
             MakaMekComponent.SRM2 => new Srm2(),

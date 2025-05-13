@@ -4,32 +4,32 @@ namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 public abstract class Weapon : Component
 {
+    private readonly WeaponDefinition _definition;
+
     protected Weapon(WeaponDefinition definition, int size = 1) 
         : base(definition.Name, [], size)
     {
-        Definition = definition;
+        _definition = definition;
         BattleValue = definition.BattleValue;
     }
 
-    public WeaponDefinition Definition { get; }
+    public int Damage => _definition.TotalDamage;
+    public int Heat => _definition.Heat;
+    public int MinimumRange => _definition.MinimumRange;
+    public int ShortRange => _definition.ShortRange;
+    public int MediumRange => _definition.MediumRange;
+    public int LongRange => _definition.LongRange;
+    public WeaponType Type => _definition.Type;
+    public int Clusters => _definition.Clusters;
+    public int ClusterSize => _definition.ClusterSize;
+    public int WeaponSize => _definition.WeaponSize;
     
-    public int Damage => Definition.TotalDamage;
-    public int Heat => Definition.Heat;
-    public int MinimumRange => Definition.MinimumRange;
-    public int ShortRange => Definition.ShortRange;
-    public int MediumRange => Definition.MediumRange;
-    public int LongRange => Definition.LongRange;
-    public WeaponType Type => Definition.Type;
-    public int Clusters => Definition.Clusters;
-    public int ClusterSize => Definition.ClusterSize;
-    public int WeaponSize => Definition.WeaponSize;
-    
-    public MakaMekComponent? AmmoType => Definition.AmmoComponentType; 
+    public MakaMekComponent? AmmoType => _definition.AmmoComponentType; 
         
     /// <summary>
     /// Indicates whether this weapon requires ammunition to fire
     /// </summary>
-    public bool RequiresAmmo => Definition.RequiresAmmo;
+    public bool RequiresAmmo => _definition.RequiresAmmo;
     
     /// <summary>
     /// The target unit for this weapon in the current attack declaration
@@ -39,7 +39,7 @@ public abstract class Weapon : Component
     /// <summary>
     /// Gets the range bracket for a given distance
     /// </summary>
-    public WeaponRange GetRangeBracket(int distance) => Definition.GetRangeBracket(distance);
+    public WeaponRange GetRangeBracket(int distance) => _definition.GetRangeBracket(distance);
     
-    public override MakaMekComponent ComponentType => Definition.WeaponComponentType;
+    public override MakaMekComponent ComponentType => _definition.WeaponComponentType;
 }
