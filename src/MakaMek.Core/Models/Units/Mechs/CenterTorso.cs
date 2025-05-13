@@ -10,14 +10,4 @@ public class CenterTorso : Torso
         // Add default components
         TryAddComponent(new Gyro());
     }
-
-    public override int ApplyDamage(int damage, HitDirection direction = HitDirection.Front)
-    {
-        var damageApplied = base.ApplyDamage(damage, direction);
-        if (IsDestroyed)
-        {
-            Unit?.AddEvent(new UiEvent(UiEventType.UnitDestroyed, Unit.Name));
-        }
-        return damageApplied;
-    }
 }
