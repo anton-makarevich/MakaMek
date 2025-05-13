@@ -313,6 +313,8 @@ public abstract class Unit
                             {
                                 // Add explosion damage to the total
                                 explosionDamage += component.GetExplosionDamage();
+                                // Add explosion event
+                                AddEvent(new UiEvent(UiEventType.Explosion, component.Name));
                             }
                         }
                         
@@ -323,12 +325,6 @@ public abstract class Unit
                         }
                     }
                 }
-            }
-            
-            // Create and add a damage event before applying the damage
-            if (totalDamage > 0)
-            {
-                AddEvent(new UiEvent(UiEventType.ArmorDamage, $"-{totalDamage}"));
             }
             
             // Apply the total damage (including any explosion damage)
