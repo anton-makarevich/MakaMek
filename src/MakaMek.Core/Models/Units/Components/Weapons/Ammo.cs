@@ -6,14 +6,19 @@ public class Ammo : Component
 {
     private int _remainingShots;
 
-    public Ammo(AmmoType type, int initialShots) : base($"{type} Ammo", [])
+    public Ammo(WeaponDefinition definition, int initialShots) : base($"{definition.Name} Ammo", [])
     {
-        Type = type;
+        if (!definition.RequiresAmmo)
+        {
+            throw new ArgumentException($"Cannot create ammo for weapon that doesn't require it: {definition.Name}");
+        }
+        
+        Definition = definition;
         _remainingShots = initialShots;
     }
 
-    public AmmoType Type { get; }
-
+    public WeaponDefinition Definition { get; }
+    
     public int RemainingShots => _remainingShots;
 
     public bool UseShot()
@@ -25,28 +30,7 @@ public class Ammo : Component
         return true;
     }
 
-    public override MakaMekComponent ComponentType
-    {
-        get
-        {
-            return Type switch
-            {
-                AmmoType.MachineGun => MakaMekComponent.ISAmmoMG,
-                AmmoType.AC2 => MakaMekComponent.ISAmmoAC2,
-                AmmoType.AC5 => MakaMekComponent.ISAmmoAC5,
-                AmmoType.AC10 => MakaMekComponent.ISAmmoAC10,
-                AmmoType.AC20 => MakaMekComponent.ISAmmoAC20,
-                AmmoType.LRM5 => MakaMekComponent.ISAmmoLRM5,
-                AmmoType.LRM10 => MakaMekComponent.ISAmmoLRM10,
-                AmmoType.LRM15 => MakaMekComponent.ISAmmoLRM15,
-                AmmoType.LRM20 => MakaMekComponent.ISAmmoLRM20,
-                AmmoType.SRM2 => MakaMekComponent.ISAmmoSRM2,
-                AmmoType.SRM4 => MakaMekComponent.ISAmmoSRM4,
-                AmmoType.SRM6 => MakaMekComponent.ISAmmoSRM6,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-        }
-    }
+    public override MakaMekComponent ComponentType => Definition.AmmoComponentType ?? throw new InvalidOperationException("Ammo component type not defined");
 
     public override void Hit()
     {
@@ -63,7 +47,8 @@ public class Ammo : Component
         if (HasExploded || RemainingShots <= 0)
             return 0;
             
-        // TODO Calculate explosion damage based on ammo type and remaining shots
-        return  RemainingShots;
+        // Calculate explosion damage based on ammo type and remaining shots
+        // Each shot does the weapon's total damage
+        return Definition.TotalDamage * RemainingShots;
     }
 }

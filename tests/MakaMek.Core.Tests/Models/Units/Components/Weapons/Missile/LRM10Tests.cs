@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons.Missile;
@@ -19,7 +18,7 @@ public class Lrm10Tests
         sut.Heat.ShouldBe(4);
         sut.Damage.ShouldBe(10); // Total damage for all missiles
         sut.BattleValue.ShouldBe(90);
-        sut.AmmoType.ShouldBe(AmmoType.LRM10);
+        sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoLRM10);
         sut.Clusters.ShouldBe(2);
         sut.ClusterSize.ShouldBe(5);
         sut.WeaponSize.ShouldBe(10); // 2 clusters * 5 missiles per cluster
@@ -39,5 +38,13 @@ public class Lrm10Tests
 
         // Assert
         sut.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void CreateAmmo_Returns_CorrectAmmo()
+    {
+        var sut = Lrm10.CreateAmmo();
+        sut.ComponentType.ShouldBe(MakaMekComponent.ISAmmoLRM10);
+        sut.RemainingShots.ShouldBe(12);
     }
 }

@@ -7,6 +7,8 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
@@ -21,8 +23,11 @@ public class UnitTests
 
     private class TestWeapon : Weapon
     {
-        public TestWeapon(string name, int[] slots, WeaponType type = WeaponType.Energy, AmmoType ammoType = AmmoType.None) : base(
-            name, 5, 3, 0, 3, 6, 9, type, 10, slots.Length, 1,1,ammoType)
+        public TestWeapon(string name, int[] slots, WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null) 
+            : base(new WeaponDefinition(
+            name, 5, 3,
+            0, 3, 6, 9, 
+            type, 10, 1,1, slots.Length,1,MakaMekComponent.MachineGun,ammoType))
         {
             Mount(slots, null!); // Will be properly mounted later
         }
@@ -54,7 +59,7 @@ public class UnitTests
                 ?null
                 : PartLocation.CenterTorso;
 
-        public override LocationCriticalHitsData? CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)
+        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)
         {
             throw new NotImplementedException();
         }
@@ -480,10 +485,10 @@ public class UnitTests
         var leftTorso = new TestUnitPart("Left Torso", PartLocation.LeftTorso, 10, 5, 10);
         var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso, leftTorso]);
         
-        var ac5Weapon = new TestWeapon("AC/5", [0, 1], WeaponType.Ballistic, AmmoType.AC5);
-        var ac5Ammo1 = new Ammo(AmmoType.AC5, 20);
-        var ac5Ammo2 = new Ammo(AmmoType.AC5, 20);
-        var lrm5Ammo = new Ammo(AmmoType.LRM5, 24);
+        var ac5Weapon = new TestWeapon("AC/5", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        var ac5Ammo1 = new Ammo(Ac5.Definition, 20);
+        var ac5Ammo2 = new Ammo(Ac5.Definition, 20);
+        var lrm5Ammo = new Ammo(Lrm5.Definition, 24);
         
         centerTorso.TryAddComponent(ac5Weapon);
         centerTorso.TryAddComponent(ac5Ammo1);
@@ -522,9 +527,9 @@ public class UnitTests
         var leftTorso = new TestUnitPart("Left Torso", PartLocation.LeftTorso, 10, 5, 10);
         var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso, leftTorso]);
         
-        var ac5Weapon = new TestWeapon("AC/5", [0, 1], WeaponType.Ballistic, AmmoType.AC5);
-        var ac5Ammo1 = new Ammo(AmmoType.AC5, 20);
-        var ac5Ammo2 = new Ammo(AmmoType.AC5, 15);
+        var ac5Weapon = new TestWeapon("AC/5", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        var ac5Ammo1 = new Ammo(Ac5.Definition, 20);
+        var ac5Ammo2 = new Ammo(Ac5.Definition, 15);
         
         centerTorso.TryAddComponent(ac5Weapon);
         centerTorso.TryAddComponent(ac5Ammo1);
@@ -544,7 +549,7 @@ public class UnitTests
         var centerTorso = new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10);
         var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso]);
         
-        var ac5Weapon = new TestWeapon("AC/5", [0, 1], WeaponType.Ballistic, AmmoType.AC5);
+        var ac5Weapon = new TestWeapon("AC/5", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         centerTorso.TryAddComponent(ac5Weapon);
         
         // Act
@@ -749,11 +754,11 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var ballisticWeapon = new TestWeapon("Ballistic Weapon", [0, 1], WeaponType.Ballistic, AmmoType.AC5);
+        var ballisticWeapon = new TestWeapon("Ballistic Weapon", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         MountWeaponOnUnit(unit, ballisticWeapon, PartLocation.LeftArm, [0, 1]);
         
         // Add ammo to the unit
-        var ammo = new Ammo(AmmoType.AC5, 10);
+        var ammo = new Ammo(Ac5.Definition, 10);
         var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
         rightArmPart.TryAddComponent(ammo);
         
@@ -827,13 +832,13 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var ballisticWeapon = new TestWeapon("Ballistic Weapon", [0, 1], WeaponType.Ballistic, AmmoType.AC5);
+        var ballisticWeapon = new TestWeapon("Ballistic Weapon", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         MountWeaponOnUnit(unit, ballisticWeapon, PartLocation.LeftArm, [0, 1]);
         
         // Add multiple ammo components with different shot counts
-        var ammo1 = new Ammo(AmmoType.AC5, 3);
-        var ammo2 = new Ammo(AmmoType.AC5, 8); // This one has more shots
-        var ammo3 = new Ammo(AmmoType.AC5, 5);
+        var ammo1 = new Ammo(Ac5.Definition, 3);
+        var ammo2 = new Ammo(Ac5.Definition, 8); // This one has more shots
+        var ammo3 = new Ammo(Ac5.Definition, 5);
         
         var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
         rightArmPart.TryAddComponent(ammo1);

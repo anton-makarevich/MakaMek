@@ -192,27 +192,6 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         return structureValues;
     }
 
-    public int GetAmmoRounds(AmmoType ammoType)
-    {
-        return ammoType switch
-        {
-            AmmoType.None => 0,
-            AmmoType.MachineGun => 200, 
-            AmmoType.AC2 => 45, 
-            AmmoType.AC5 => 20,
-            AmmoType.AC10 => 10,
-            AmmoType.AC20 => 5, 
-            AmmoType.LRM5 => 24, 
-            AmmoType.LRM10 => 12, 
-            AmmoType.LRM15 => 8, 
-            AmmoType.LRM20 => 6, 
-            AmmoType.SRM2 => 50, 
-            AmmoType.SRM4 => 25, 
-            AmmoType.SRM6 => 15, 
-            _ => throw new ArgumentOutOfRangeException(nameof(ammoType), "Invalid AmmoType"),
-        };
-    }
-
     public int GetAttackerMovementModifier(MovementType movementType)
     {
         return movementType switch

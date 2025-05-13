@@ -7,38 +7,62 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 public class AmmoTests
 {
     [Theory]
-    [InlineData(AmmoType.MachineGun,"MachineGun Ammo", MakaMekComponent.ISAmmoMG)]
-    [InlineData(AmmoType.AC2,"AC2 Ammo", MakaMekComponent.ISAmmoAC2)]
-    [InlineData(AmmoType.AC5,"AC5 Ammo", MakaMekComponent.ISAmmoAC5)]
-    [InlineData(AmmoType.AC10,"AC10 Ammo", MakaMekComponent.ISAmmoAC10)]
-    [InlineData(AmmoType.AC20,"AC20 Ammo", MakaMekComponent.ISAmmoAC20)]
-    [InlineData(AmmoType.LRM5,"LRM5 Ammo", MakaMekComponent.ISAmmoLRM5)]
-    [InlineData(AmmoType.LRM10,"LRM10 Ammo", MakaMekComponent.ISAmmoLRM10)]
-    [InlineData(AmmoType.LRM15,"LRM15 Ammo", MakaMekComponent.ISAmmoLRM15)]
-    [InlineData(AmmoType.LRM20,"LRM20 Ammo", MakaMekComponent.ISAmmoLRM20)]
-    [InlineData(AmmoType.SRM2,"SRM2 Ammo", MakaMekComponent.ISAmmoSRM2)]
-    [InlineData(AmmoType.SRM4,"SRM4 Ammo", MakaMekComponent.ISAmmoSRM4)]
-    [InlineData(AmmoType.SRM6,"SRM6 Ammo", MakaMekComponent.ISAmmoSRM6)]
-    public void Constructor_InitializesCorrectly(AmmoType ammoType, string name, MakaMekComponent componentType)
+    [InlineData("MachineGun", MakaMekComponent.ISAmmoMG, 200, 1)]
+    [InlineData("AC2", MakaMekComponent.ISAmmoAC2, 200, 2)]
+    [InlineData("AC5", MakaMekComponent.ISAmmoAC5, 200, 5)]
+    [InlineData("AC10", MakaMekComponent.ISAmmoAC10, 200, 10)]
+    [InlineData("AC20", MakaMekComponent.ISAmmoAC20, 200, 20)]
+    [InlineData("LRM-5", MakaMekComponent.ISAmmoLRM5, 24, 5)]
+    [InlineData("LRM-10", MakaMekComponent.ISAmmoLRM10, 24, 10)]
+    [InlineData("LRM-15", MakaMekComponent.ISAmmoLRM15, 24, 15)]
+    [InlineData("LRM-20", MakaMekComponent.ISAmmoLRM20, 24, 20)]
+    [InlineData("SRM-2", MakaMekComponent.ISAmmoSRM2, 50, 2)]
+    [InlineData("SRM-4", MakaMekComponent.ISAmmoSRM4, 50, 4)]
+    [InlineData("SRM-6", MakaMekComponent.ISAmmoSRM6, 50, 6)]
+    public void Constructor_InitializesCorrectly(string weaponName, MakaMekComponent ammoComponentType, int initialShots, int expectedDamage)
     {
-        // Arrange & Act
-        var sut = new Ammo(ammoType, 200);
+        // Arrange
+        var definition = CreateTestWeaponDefinition(weaponName, ammoComponentType, expectedDamage);
+        
+        // Act
+        var sut = new Ammo(definition, initialShots);
 
         // Assert
-        sut.Name.ShouldBe(name);
-        sut.Type.ShouldBe(ammoType);
-        sut.RemainingShots.ShouldBe(200);
+        sut.Name.ShouldBe($"{weaponName} Ammo");
+        sut.RemainingShots.ShouldBe(initialShots);
         sut.MountedAtSlots.ToList().Count.ShouldBe(0);
         sut.Size.ShouldBe(1);
         sut.IsRemovable.ShouldBeTrue();
-        sut.ComponentType.ShouldBe(componentType);
+        sut.ComponentType.ShouldBe(ammoComponentType);
+        sut.Definition.ShouldBe(definition);
+    }
+
+    [Fact]
+    public void Constructor_ThrowsException_WhenWeaponDoesNotRequireAmmo()
+    {
+        // Arrange
+        var definition = new WeaponDefinition(
+            name: "Medium Laser",
+            elementaryDamage: 5,
+            heat: 3,
+            minimumRange: 0,
+            shortRange: 3,
+            mediumRange: 6,
+            longRange: 9,
+            type: WeaponType.Energy,
+            battleValue: 46,
+            weaponComponentType: MakaMekComponent.MediumLaser);
+
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => new Ammo(definition, 200));
     }
 
     [Fact]
     public void UseShot_DecrementsRemainingShots()
     {
         // Arrange
-        var sut = new Ammo(AmmoType.MachineGun, 200);
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var sut = new Ammo(definition, 200);
 
         // Act
         sut.UseShot();
@@ -51,20 +75,23 @@ public class AmmoTests
     public void UseShot_WhenEmpty_DoesNotDecrementBelowZero()
     {
         // Arrange
-        var sut = new Ammo(AmmoType.MachineGun, 0);
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var sut = new Ammo(definition, 0);
 
         // Act
-        sut.UseShot();
+        var result = sut.UseShot();
 
         // Assert
         sut.RemainingShots.ShouldBe(0);
+        result.ShouldBeFalse();
     }
 
     [Fact]
     public void Hit_DestroysAmmo()
     {
         // Arrange
-        var sut = new Ammo(AmmoType.MachineGun, 200);
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var sut = new Ammo(definition, 200);
 
         // Act
         sut.Hit();
@@ -77,30 +104,33 @@ public class AmmoTests
     public void CanExplode_ReturnsTrue()
     {
         // Arrange
-        var sut = new Ammo(AmmoType.AC20, 10);
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var sut = new Ammo(definition, 10);
 
         // Act & Assert
         sut.CanExplode.ShouldBeTrue();
     }
 
     [Fact]
-    public void GetExplosionDamage_ReturnsRemainingShots()
+    public void GetExplosionDamage_ReturnsTotalDamageTimesRemainingShots()
     {
         // Arrange
-        var sut = new Ammo(AmmoType.AC20, 10);
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var sut = new Ammo(definition, 10);
 
         // Act
         var damage = sut.GetExplosionDamage();
 
         // Assert
-        damage.ShouldBe(10); // Currently returns RemainingShots directly
+        damage.ShouldBe(200); // 20 damage per shot * 10 remaining shots
     }
 
     [Fact]
     public void GetExplosionDamage_WhenEmpty_ReturnsZero()
     {
         // Arrange
-        var sut = new Ammo(AmmoType.AC20, 0);
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var sut = new Ammo(definition, 0);
 
         // Act
         var damage = sut.GetExplosionDamage();
@@ -113,7 +143,8 @@ public class AmmoTests
     public void Hit_SetsHasExplodedToTrue()
     {
         // Arrange
-        var sut = new Ammo(AmmoType.AC20, 10);
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var sut = new Ammo(definition, 10);
 
         // Act
         sut.Hit();
@@ -126,7 +157,8 @@ public class AmmoTests
     public void Hit_SetsRemainingToZero()
     {
         // Arrange
-        var sut = new Ammo(AmmoType.AC20, 10);
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var sut = new Ammo(definition, 10);
 
         // Act
         sut.Hit();
@@ -139,7 +171,8 @@ public class AmmoTests
     public void GetExplosionDamage_AfterHit_ReturnsZero()
     {
         // Arrange
-        var sut = new Ammo(AmmoType.AC20, 10);
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var sut = new Ammo(definition, 10);
         sut.Hit();
 
         // Act
@@ -147,5 +180,21 @@ public class AmmoTests
 
         // Assert
         damage.ShouldBe(0);
+    }
+    
+    private static WeaponDefinition CreateTestWeaponDefinition(string name, MakaMekComponent ammoComponentType, int damage)
+    {
+        return new WeaponDefinition(
+            name: name,
+            elementaryDamage: damage,
+            heat: 0,
+            minimumRange: 0,
+            shortRange: 1,
+            mediumRange: 2,
+            longRange: 3,
+            type: WeaponType.Ballistic,
+            battleValue: 1,
+            weaponComponentType: MakaMekComponent.MachineGun,
+            ammoComponentType: ammoComponentType);
     }
 }

@@ -871,7 +871,7 @@ public class WeaponAttackResolutionCommandTests
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         
         // Create an ammo component that can explode
-        var ammoComponent = new Ammo(AmmoType.AC20, 10);
+        var ammoComponent = new Ammo(Ac5.Definition, 10);
         leftArm.TryAddComponent(ammoComponent, [2]);
         
         var hitLocations = new List<HitLocationData>
@@ -912,8 +912,8 @@ public class WeaponAttackResolutionCommandTests
         var output = command.Format(_localizationService, _game);
 
         // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
-        output.ShouldContain("AC20 Ammo EXPLODES! Damage: 10");
+        output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
+        output.ShouldContain("AC5 Ammo EXPLODES! Damage: 50");
     }
     
     [Fact]
@@ -973,7 +973,7 @@ public class WeaponAttackResolutionCommandTests
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         
         // Create an ammo component that can explode but has already exploded
-        var ammoComponent = new Ammo(AmmoType.AC20, 10);
+        var ammoComponent = new Ammo(Ac5.Definition, 10);
         leftArm.TryAddComponent(ammoComponent, [2]);
         ammoComponent.Hit(); // This will set HasExploded to true
         
@@ -1015,7 +1015,7 @@ public class WeaponAttackResolutionCommandTests
         var output = command.Format(_localizationService, _game);
 
         // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
+        output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
         output.ShouldNotContain("EXPLODES!");
     }
     
@@ -1026,7 +1026,7 @@ public class WeaponAttackResolutionCommandTests
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         
         // Create an ammo component that can explode but has no ammo left
-        var ammoComponent = new Ammo(AmmoType.AC20, 0);
+        var ammoComponent = new Ammo(Ac5.Definition, 0);
         leftArm.TryAddComponent(ammoComponent, [2]);
         
         var hitLocations = new List<HitLocationData>
@@ -1067,7 +1067,7 @@ public class WeaponAttackResolutionCommandTests
         var output = command.Format(_localizationService, _game);
 
         // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: AC20 Ammo");
+        output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
         output.ShouldNotContain("EXPLODES!");
     }
     

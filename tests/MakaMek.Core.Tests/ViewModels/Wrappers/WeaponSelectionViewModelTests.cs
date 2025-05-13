@@ -595,8 +595,10 @@ public class WeaponSelectionViewModelTests
     }
 
     private class TestBallisticWeapon()
-        : Weapon("AC/5", 5, 1, 0, 3, 6, 9, WeaponType.Ballistic, 10, 1, 1, 1, AmmoType.AC5)
+        : Weapon(new WeaponDefinition(
+            "AC/5", 5, 1, 
+            0, 3, 6, 9, 
+            WeaponType.Ballistic, 10, 1, 1, 1,1,MakaMekComponent.AC5, MakaMekComponent.ISAmmoAC5))
     {
-        public override MakaMekComponent ComponentType => MakaMekComponent.AC5;
     }
 }

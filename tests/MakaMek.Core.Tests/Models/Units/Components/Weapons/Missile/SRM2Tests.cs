@@ -1,11 +1,10 @@
 using Sanet.MakaMek.Core.Data.Community;
-using Shouldly;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
+using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons.Missile;
 
-public class SRM2Tests
+public class Srm2Tests
 {
     [Fact]
     public void Constructor_InitializesCorrectly()
@@ -16,10 +15,10 @@ public class SRM2Tests
         // Assert
         sut.Name.ShouldBe("SRM-2");
         sut.Size.ShouldBe(1);
-        sut.Heat.ShouldBe(1);
+        sut.Heat.ShouldBe(2);
         sut.Damage.ShouldBe(4); // Total damage for all missiles
-        sut.BattleValue.ShouldBe(25);
-        sut.AmmoType.ShouldBe(AmmoType.SRM2);
+        sut.BattleValue.ShouldBe(15);
+        sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoSRM2);
         sut.MinimumRange.ShouldBe(0);
         sut.ShortRange.ShouldBe(3);
         sut.MediumRange.ShouldBe(6);
@@ -43,5 +42,13 @@ public class SRM2Tests
 
         // Assert
         srm2.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void CreateAmmo_Returns_CorrectAmmo()
+    {
+        var sut = Srm2.CreateAmmo();
+        sut.ComponentType.ShouldBe(MakaMekComponent.ISAmmoSRM2);
+        sut.RemainingShots.ShouldBe(50);
     }
 }

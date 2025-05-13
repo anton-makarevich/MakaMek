@@ -2,19 +2,29 @@ using Sanet.MakaMek.Core.Data.Community;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public class Lrm10() : Weapon(name: "LRM-10",
-    damage: 10, heat: 4,
-    minimumRange: 6,
-    shortRange: 7,
-    mediumRange: 14,
-    longRange: 21,
-    type: WeaponType.Missile,
-    battleValue: 90,
-    clusters: 2,
-    clusterSize: 5,
-    ammoType: AmmoType.LRM10)
+public class Lrm10() : Weapon(Definition)
 {
-    // 1 damage per missile, 10 missiles
+    // Static definition for this weapon type
+    public static readonly WeaponDefinition Definition = new(
+        name: "LRM-10",
+        elementaryDamage: 1,
+        heat: 4,
+        minimumRange: 6,
+        shortRange: 7,
+        mediumRange: 14,
+        longRange: 21,
+        type: WeaponType.Missile,
+        battleValue: 90,
+        clusters: 2,
+        clusterSize: 5,
+        fullAmmoRounds:12,
+        weaponComponentType: MakaMekComponent.LRM10,
+        ammoComponentType: MakaMekComponent.ISAmmoLRM10);
+        
+    // Constructor uses the static definition
 
-    public override MakaMekComponent ComponentType => MakaMekComponent.LRM10;
+    public static Ammo CreateAmmo()
+    {
+        return new Ammo(Definition, Definition.FullAmmoRounds);
+    }
 }
