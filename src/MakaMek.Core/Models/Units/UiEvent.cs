@@ -1,4 +1,4 @@
-﻿namespace Sanet.MakaMek.Core.Models.Units;
+namespace Sanet.MakaMek.Core.Models.Units;
 
 /// <summary>
 /// Represents a UI event that can be displayed in the UI
@@ -8,21 +8,21 @@ public class UiEvent
     /// <summary>
     /// Creates a new UI event
     /// </summary>
-    /// <param name="message">The message to display</param>
-    /// <param name="value">Optional value (e.g., damage amount)</param>
-    public UiEvent(string message, string? value = null)
+    /// <param name="type">The type of event</param>
+    /// <param name="parameters">Optional parameters for localization (e.g., damage amount)</param>
+    public UiEvent(UiEventType type, params string[] parameters)
     {
-        Message = message;
-        Value = value;
+        Type = type;
+        Parameters = parameters;
     }
 
     /// <summary>
-    /// The message to display
+    /// The type of event
     /// </summary>
-    public string Message { get; }
+    public UiEventType Type { get; }
     
     /// <summary>
-    /// Optional value (e.g., damage amount)
+    /// Parameters for localization
     /// </summary>
-    public string? Value { get; }
+    public string[] Parameters { get; }
 }

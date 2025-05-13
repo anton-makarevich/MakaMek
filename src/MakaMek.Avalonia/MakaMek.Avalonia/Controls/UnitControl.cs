@@ -254,7 +254,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     // Process any new events
                     if (state.Events.Any())
                     {
-                        ProcessEvents(state.Events.ToList());
+                        ProcessEvents(state.Events);
                     }
                     
                     // Calculate rotation angles
@@ -391,20 +391,17 @@ namespace Sanet.MakaMek.Avalonia.Controls
         /// Processes events from the unit and creates UI elements to display them
         /// </summary>
         /// <param name="events">The events to process</param>
-        private void ProcessEvents(List<UiEvent> events)
+        private void ProcessEvents(IReadOnlyCollection<UiEvent> events)
         {
-            if (!events.Any()) return;
+            if (events.Count == 0) return;
             
-            foreach (var uiEvent in events)
+            // Process all events in the queue
+            while (_unit.DequeueEvent() is { } uiEvent)
             {
-                if (uiEvent.Message == "Damage" && !string.IsNullOrEmpty(uiEvent.Value))
-                {
-                    CreateDamageLabel(uiEvent.Value);
-                }
+                string template = _viewModel.LocalizationService.GetString($"Events_Unit_{uiEvent.Type}");
+                var damageText = string.Format(template, uiEvent.Parameters);
+                CreateDamageLabel(damageText);         
             }
-            
-            // Remove the processed events
-            _unit.RemoveEvents(events);
         }
         
         /// <summary>

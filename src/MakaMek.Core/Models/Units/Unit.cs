@@ -13,7 +13,7 @@ namespace Sanet.MakaMek.Core.Models.Units;
 public abstract class Unit
 {
     protected readonly List<UnitPart> _parts; 
-    private readonly List<UiEvent> _events = new();
+    private readonly Queue<UiEvent> _events = new();
     
     protected Unit(string chassis, string model, int tonnage,
         int walkMp,
@@ -328,7 +328,7 @@ public abstract class Unit
             // Create and add a damage event before applying the damage
             if (totalDamage > 0)
             {
-                AddEvent(new UiEvent("Damage", $"-{totalDamage}"));
+                AddEvent(new UiEvent(UiEventType.ArmorDamage, $"-{totalDamage}"));
             }
             
             // Apply the total damage (including any explosion damage)
@@ -532,27 +532,32 @@ public abstract class Unit
         PartLocation location, 
         IDiceRoller diceRoller);
     
-    // UI events list for unit events (damage, etc.)
-    public IReadOnlyList<UiEvent> Events => _events.AsReadOnly();
+    // UI events queue for unit events (damage, etc.)
+    public IReadOnlyCollection<UiEvent> Events => _events.ToArray();
     
     /// <summary>
-    /// Adds an event to the unit's events list
+    /// Adds an event to the unit's events queue
     /// </summary>
     /// <param name="uiEvent">The event to add</param>
     public void AddEvent(UiEvent uiEvent)
     {
-        _events.Add(uiEvent);
+        _events.Enqueue(uiEvent);
     }
     
     /// <summary>
-    /// Removes events from the unit's events list
+    /// Dequeues and returns the next event from the unit's events queue
     /// </summary>
-    /// <param name="eventsToRemove">The events to remove</param>
-    public void RemoveEvents(IEnumerable<UiEvent> eventsToRemove)
+    /// <returns>The next event, or null if the queue is empty</returns>
+    public UiEvent? DequeueEvent()
     {
-        foreach (var eventToRemove in eventsToRemove)
-        {
-            _events.Remove(eventToRemove);
-        }
+        return _events.Count > 0 ? _events.Dequeue() : null;
+    }
+    
+    /// <summary>
+    /// Clears all events from the unit's events queue
+    /// </summary>
+    public void ClearEvents()
+    {
+        _events.Clear();
     }
 }
