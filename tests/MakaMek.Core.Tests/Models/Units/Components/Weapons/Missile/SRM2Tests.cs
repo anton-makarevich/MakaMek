@@ -1,11 +1,10 @@
 using Sanet.MakaMek.Core.Data.Community;
-using Shouldly;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
+using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons.Missile;
 
-public class SRM2Tests
+public class Srm2Tests
 {
     [Fact]
     public void Constructor_InitializesCorrectly()
@@ -19,7 +18,7 @@ public class SRM2Tests
         sut.Heat.ShouldBe(1);
         sut.Damage.ShouldBe(4); // Total damage for all missiles
         sut.BattleValue.ShouldBe(25);
-        sut.AmmoType.ShouldBe(AmmoType.SRM2);
+        sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoSRM2);
         sut.MinimumRange.ShouldBe(0);
         sut.ShortRange.ShouldBe(3);
         sut.MediumRange.ShouldBe(6);

@@ -54,24 +54,6 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         }
 
         [Theory]
-        [InlineData(AmmoType.MachineGun, 200)]
-        [InlineData(AmmoType.AC2, 45)]
-        [InlineData(AmmoType.AC5, 20)]
-        [InlineData(AmmoType.AC10, 10)]
-        [InlineData(AmmoType.AC20, 5)]
-        [InlineData(AmmoType.LRM5, 24)]
-        [InlineData(AmmoType.LRM10, 12)]
-        [InlineData(AmmoType.LRM15, 8)]
-        [InlineData(AmmoType.LRM20, 6)]
-        [InlineData(AmmoType.SRM2, 50)]
-        [InlineData(AmmoType.SRM4, 25)]
-        [InlineData(AmmoType.SRM6, 15)]
-        public void GetAmmoRounds_ReturnsExpectedValues(AmmoType ammoType, int expectedRounds)
-        {
-            _sut.GetAmmoRounds(ammoType).ShouldBe(expectedRounds);
-        }
-
-        [Theory]
         [InlineData(MovementType.StandingStill, 0)]
         [InlineData(MovementType.Walk, 1)]
         [InlineData(MovementType.Run, 2)]

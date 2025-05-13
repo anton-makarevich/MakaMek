@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Data.Community;
 using Shouldly;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons.Energy;
@@ -19,7 +18,7 @@ public class MediumLaserTests
         sut.Heat.ShouldBe(3);
         sut.Damage.ShouldBe(5);
         sut.BattleValue.ShouldBe(46);
-        sut.AmmoType.ShouldBe(AmmoType.None);
+        sut.AmmoType.ShouldBe(null);
         sut.ComponentType.ShouldBe(MakaMekComponent.MediumLaser);
         sut.IsRemovable.ShouldBeTrue();
     }

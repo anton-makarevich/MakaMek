@@ -3,7 +3,9 @@ using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
@@ -258,7 +260,7 @@ public class CriticalHitsCalculatorTests
         var part = testUnit.Parts.First(p => p.Location == location);
         
         // Add ammo to the location
-        var ammo = new Ammo(AmmoType.AC20, 1);
+        var ammo = new Ammo(Ac5.Definition, 1);
         part.TryAddComponent(ammo, [0]);
         
         const int damage = 6; // Enough to cause structural damage but not destroy the location
@@ -300,8 +302,8 @@ public class CriticalHitsCalculatorTests
         var part = testUnit.Parts.First(p => p.Location == location);
         
         // Add multiple ammo boxes to the location
-        var ammo1 = new Ammo(AmmoType.AC20, 1);
-        var ammo2 = new Ammo(AmmoType.LRM20, 1);
+        var ammo1 = new Ammo(Ac5.Definition, 1);
+        var ammo2 = new Ammo(Lrm10.Definition, 1);
         
         part.TryAddComponent(ammo1, [0]);
         part.TryAddComponent(ammo2, [1]);
@@ -364,7 +366,7 @@ public class CriticalHitsCalculatorTests
         var armPart = testUnit.Parts.First(p => p.Location == initialLocation);
         
         // Add ammo to the arm
-        var ammo = new Ammo(AmmoType.AC20, 11);
+        var ammo = new Ammo(Ac5.Definition, 11);
         armPart.TryAddComponent(ammo, [0]);
         
         const int damage = 6; // Enough to cause structural damage but not destroy the location by itself

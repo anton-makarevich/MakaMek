@@ -24,7 +24,7 @@ public class MachineGunTests
         sut.LongRange.ShouldBe(3);
         sut.Type.ShouldBe(WeaponType.Ballistic);
         sut.BattleValue.ShouldBe(5);
-        sut.AmmoType.ShouldBe(AmmoType.MachineGun);
+        sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoMG);
         sut.IsDestroyed.ShouldBeFalse();
         sut.IsActive.ShouldBeTrue();
         sut.ComponentType.ShouldBe(MakaMekComponent.MachineGun);
