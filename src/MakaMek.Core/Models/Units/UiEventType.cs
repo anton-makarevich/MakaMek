@@ -7,6 +7,8 @@ public enum UiEventType
 {
     ArmorDamage,
     StructureDamage,
+    Explosion,
     CriticalHit,
-    ComponentDestroyed
+    ComponentDestroyed,
+    LocationDestroyed
 }

@@ -127,6 +127,14 @@ public class FakeLocalizationService: ILocalizationService
             "MechPart_LeftLeg" => "Left Leg",
             "MechPart_RightLeg" => "Right Leg",
             
+            // UI Events
+            "Events_Unit_ArmorDamage" => "Damage at {0}|-{1}",
+            "Events_Unit_StructureDamage" => "Damage at {0}|-{1}",
+            "Events_Unit_Explosion" => "{0} exploded",
+            "Events_Unit_CriticalHit" => "Critical Hit at {0}",
+            "Events_Unit_ComponentDestroyed" => "{0} destroyed",
+            "Events_Unit_LocationDestroyed" => "{0} destroyed",
+            
             _ => key
         };
     }
