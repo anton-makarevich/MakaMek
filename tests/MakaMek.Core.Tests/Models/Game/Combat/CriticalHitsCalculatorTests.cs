@@ -302,7 +302,7 @@ public class CriticalHitsCalculatorTests
         var part = testUnit.Parts.First(p => p.Location == location);
         
         // Add multiple ammo boxes to the location
-        var ammo1 = new Ammo(Ac5.Definition, 1);
+        var ammo1 = new Ammo(Srm2.Definition, 1);
         var ammo2 = new Ammo(Lrm10.Definition, 1);
         
         part.TryAddComponent(ammo1, [0]);

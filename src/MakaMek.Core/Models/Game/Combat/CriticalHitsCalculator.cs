@@ -70,12 +70,14 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         // Calculate armor damage
         var armorDamage = Math.Min(damage, part.CurrentArmor);
         var remainingDamage = damage - armorDamage;
+        var remainingStructure = part.CurrentStructure;
 
         // Calculate structure damage if armor is depleted
-        if (remainingDamage > 0 && part.CurrentStructure > 0)
+        if (remainingDamage > 0 && remainingStructure > 0)
         {
-            var structureDamage = Math.Min(remainingDamage, part.CurrentStructure);
+            var structureDamage = Math.Min(remainingDamage, remainingStructure);
             remainingDamage -= structureDamage;
+            remainingStructure -= structureDamage;
 
             // Calculate critical hits if the structure was damaged
             var criticalHitsData = unit.CalculateCriticalHitsData(location, _diceRoller);
@@ -89,7 +91,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             }
         }
 
-        if (remainingDamage <= 0) return remainingDamage;
+        if (remainingDamage <= remainingStructure) return remainingDamage;
         // If the structure is destroyed and there's still damage remaining, propagate to the next location
         var nextLocation = unit.GetTransferLocation(location);
         if (nextLocation.HasValue)
