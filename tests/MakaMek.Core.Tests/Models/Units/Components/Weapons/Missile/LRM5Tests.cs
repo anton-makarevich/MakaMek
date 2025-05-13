@@ -39,4 +39,12 @@ public class Lrm5Tests
         // Assert
         sut.IsDestroyed.ShouldBeTrue();
     }
+    
+    [Fact]
+    public void CreateAmmo_Returns_CorrectAmmo()
+    {
+        var sut = Lrm5.CreateAmmo();
+        sut.ComponentType.ShouldBe(MakaMekComponent.ISAmmoLRM5);
+        sut.RemainingShots.ShouldBe(24);
+    }
 }

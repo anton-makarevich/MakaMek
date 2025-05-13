@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Community;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 
-public class Ac5 : Weapon
+public class Ac5() : Weapon(Definition)
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
@@ -16,15 +16,13 @@ public class Ac5 : Weapon
         type: WeaponType.Ballistic,
         battleValue: 70,
         size:4,
+        fullAmmoRounds: 20,
         weaponComponentType: MakaMekComponent.AC5,
         ammoComponentType: MakaMekComponent.ISAmmoAC5);
         
     // Constructor uses the static definition
-    public Ac5() : base(Definition)
-    {
-    }
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, 20);
+        return new Ammo(Definition, Definition.FullAmmoRounds);
     }
 }

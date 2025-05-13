@@ -17,6 +17,7 @@ public class Lrm5 : Weapon
         battleValue: 45,
         clusters: 1,
         clusterSize: 5,
+        fullAmmoRounds:24,
         weaponComponentType: MakaMekComponent.LRM5,
         ammoComponentType: MakaMekComponent.ISAmmoLRM5);
         
@@ -28,6 +29,6 @@ public class Lrm5 : Weapon
     
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, 24);
+        return new Ammo(Definition, Definition.FullAmmoRounds);
     }
 }

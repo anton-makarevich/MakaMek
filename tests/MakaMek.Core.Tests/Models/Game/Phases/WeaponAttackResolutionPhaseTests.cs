@@ -758,7 +758,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         : Weapon( new WeaponDefinition(
             "Test Weapon", 5, 3,
             0, 3, 6, 9, 
-            type, 10, 1, 1,1, MakaMekComponent.MachineGun,ammoType))
+            type, 10, 1, 1,1, 1,MakaMekComponent.MachineGun,ammoType))
     {
     }
 
@@ -772,7 +772,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         : Weapon( new WeaponDefinition(
             "Test Cluster Weapon", damage, 3,
             0, 3, 6, 9,
-            type, 10, clusters, clusterSize,1,MakaMekComponent.LRM10, ammoType))
+            type, 10, clusters, clusterSize,1,1,MakaMekComponent.LRM10, ammoType))
     {
     }
 }

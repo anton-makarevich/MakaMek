@@ -43,4 +43,12 @@ public class Srm2Tests
         // Assert
         srm2.IsDestroyed.ShouldBeTrue();
     }
+    
+    [Fact]
+    public void CreateAmmo_Returns_CorrectAmmo()
+    {
+        var sut = Srm2.CreateAmmo();
+        sut.ComponentType.ShouldBe(MakaMekComponent.ISAmmoSRM2);
+        sut.RemainingShots.ShouldBe(50);
+    }
 }

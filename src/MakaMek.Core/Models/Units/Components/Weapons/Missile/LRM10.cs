@@ -17,6 +17,7 @@ public class Lrm10() : Weapon(Definition)
         battleValue: 90,
         clusters: 2,
         clusterSize: 5,
+        fullAmmoRounds:12,
         weaponComponentType: MakaMekComponent.LRM10,
         ammoComponentType: MakaMekComponent.ISAmmoLRM10);
         
@@ -24,6 +25,6 @@ public class Lrm10() : Weapon(Definition)
 
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, 12);
+        return new Ammo(Definition, Definition.FullAmmoRounds);
     }
 }

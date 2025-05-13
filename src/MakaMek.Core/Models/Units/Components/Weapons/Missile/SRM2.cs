@@ -17,6 +17,7 @@ public class Srm2 : Weapon
         battleValue: 15,
         clusters: 2,
         clusterSize: 1,
+        fullAmmoRounds: 50,
         weaponComponentType: MakaMekComponent.SRM2,
         ammoComponentType: MakaMekComponent.ISAmmoSRM2);
             
@@ -28,6 +29,6 @@ public class Srm2 : Weapon
         
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, 50);
+        return new Ammo(Definition, Definition.FullAmmoRounds);
     }
 }

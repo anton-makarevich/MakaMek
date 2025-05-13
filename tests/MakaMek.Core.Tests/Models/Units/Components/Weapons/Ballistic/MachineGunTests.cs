@@ -59,4 +59,11 @@ public class MachineGunTests
         sut.Activate();
         sut.IsActive.ShouldBeTrue();
     }
+    [Fact]
+    public void CreateAmmo_Returns_CorrectAmmo()
+    {
+        var sut = MachineGun.CreateAmmo();
+        sut.ComponentType.ShouldBe(MakaMekComponent.ISAmmoMG);
+        sut.RemainingShots.ShouldBe(200);
+    }
 }

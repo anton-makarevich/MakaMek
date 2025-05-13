@@ -36,4 +36,12 @@ public class Ac5Tests
         // Assert
         sut.IsDestroyed.ShouldBeTrue();
     }
+
+    [Fact]
+    public void CreateAmmo_Returns_CorrectAmmo()
+    {
+        var sut = Ac5.CreateAmmo();
+        sut.ComponentType.ShouldBe(MakaMekComponent.ISAmmoAC5);
+        sut.RemainingShots.ShouldBe(20);
+    }
 }

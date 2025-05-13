@@ -15,6 +15,7 @@ public class MachineGun : Weapon
         longRange: 3,
         type: WeaponType.Ballistic,
         battleValue: 5,
+        fullAmmoRounds:200,
         weaponComponentType: MakaMekComponent.MachineGun,
         ammoComponentType: MakaMekComponent.ISAmmoMG);
         
@@ -25,6 +26,6 @@ public class MachineGun : Weapon
 
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, 200);
+        return new Ammo(Definition, Definition.FullAmmoRounds);
     }
 }
