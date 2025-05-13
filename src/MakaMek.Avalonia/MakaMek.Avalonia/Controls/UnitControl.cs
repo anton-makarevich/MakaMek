@@ -398,55 +398,62 @@ namespace Sanet.MakaMek.Avalonia.Controls
             // Process all events in the queue
             while (_unit.DequeueEvent() is { } uiEvent)
             {
-                string template = _viewModel.LocalizationService.GetString($"Events_Unit_{uiEvent.Type}");
+                var template = _viewModel.LocalizationService.GetString($"Events_Unit_{uiEvent.Type}");
                 var damageText = string.Format(template, uiEvent.Parameters);
-                CreateDamageLabel(damageText);         
+                CreateDamageLabel(damageText,GetEventLabelBackground(uiEvent.Type));         
             }
         }
-        
+
+        private IBrush GetEventLabelBackground(UiEventType uiEventType)
+        {
+            return uiEventType switch
+            {
+                UiEventType.ArmorDamage => AvaloniaResourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush 
+                                           ?? new SolidColorBrush(Colors.LightBlue),
+                UiEventType.StructureDamage => AvaloniaResourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush 
+                                               ?? new SolidColorBrush(Colors.Orange),
+                _ => AvaloniaResourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush 
+                     ?? new SolidColorBrush(Colors.Red)
+            };
+        }
+
         /// <summary>
         /// Creates a damage label with animation
         /// </summary>
         /// <param name="damageText">The damage text to display</param>
-        private void CreateDamageLabel(string damageText)
+        /// <param name="background">Label background depends on the event type</param>
+        private void CreateDamageLabel(string damageText, IBrush background)
         {
             // Create a border with text
             var textBlock = new TextBlock
             {
                 Text = damageText,
-                Foreground = new ImmutableSolidColorBrush(Colors.Red),
+                Foreground = new ImmutableSolidColorBrush(Colors.White),
                 FontWeight = FontWeight.Bold,
+                Background = background,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
             
-            var border = new Border
-            {
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(6, 2),
-                Background = new ImmutableSolidColorBrush(Color.FromArgb(180, 0, 0, 0)),
-                Child = textBlock
-            };
-            
             // Add to the events panel
-            _eventsPanel.Children.Add(border);
+            _eventsPanel.Children.Add(textBlock);
             
             // Start fade out animation
-            _ = AnimateDamageLabelAsync(border);
+            _ = AnimateDamageLabelAsync(textBlock);
         }
         
         /// <summary>
         /// Animates a damage label to fade out and move up
         /// </summary>
         /// <param name="label">The label to animate</param>
-        private async Task AnimateDamageLabelAsync(Border label)
+        private async Task AnimateDamageLabelAsync(TextBlock label)
         {
             var startTime = DateTime.Now;
             var endTime = startTime + _eventDisplayDuration;
             
             // Initial position offset
-            var initialOffset = 0.0;
-            var targetOffset = -20.0; // Move up by 20 pixels
+            const double initialOffset = 0.0;
+            const double targetOffset = -20.0; // Move up by 20 pixels
             
             while (DateTime.Now < endTime)
             {
