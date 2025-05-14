@@ -48,7 +48,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             IsHitTestVisible = false;
             Width = HexCoordinates.HexWidth;
             Height = HexCoordinates.HexHeight;
-            
+
             _unitImage = new Image
             {
                 Width = Width * 0.84,
@@ -67,7 +67,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Background = new SolidColorBrush(Colors.White),
                 Opacity = 0.7
             };
-            
+
             _actionButtons = new StackPanel
             {
                 Orientation = Orientation.Vertical,
@@ -91,7 +91,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Margin = new Thickness(4),
                 Width = Width * 0.8
             };
-            
+
             // Create events panel for damage labels
             _eventsPanel = new StackPanel
             {
@@ -105,10 +105,10 @@ namespace Sanet.MakaMek.Avalonia.Controls
             };
 
             // Get colors from resources with fallbacks
-            var armorBrush = AvaloniaResourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush 
-                ?? new SolidColorBrush(Colors.LightBlue);
-            var structureBrush = AvaloniaResourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush 
-                ?? new SolidColorBrush(Colors.Orange);
+            var armorBrush = AvaloniaResourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush
+                             ?? new SolidColorBrush(Colors.LightBlue);
+            var structureBrush = AvaloniaResourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
+                                 ?? new SolidColorBrush(Colors.Orange);
             var backgroundBrush = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0));
 
             // Create an armor bar
@@ -143,19 +143,19 @@ namespace Sanet.MakaMek.Avalonia.Controls
             _healthBars.Children.Add(_armorBar);
             _healthBars.Children.Add(_structureBar);
 
-            var color = _unit.Owner!=null 
-                ?Color.Parse(_unit.Owner.Tint)
-                :Colors.Yellow;
+            var color = _unit.Owner != null
+                ? Color.Parse(_unit.Owner.Tint)
+                : Colors.Yellow;
             var selectionBorder = new Border
             {
-                Width = Width*0.9,
-                Height = Height*0.9,
+                Width = Width * 0.9,
+                Height = Height * 0.9,
                 Opacity = 0.9,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 BorderBrush = new SolidColorBrush(color),
                 BorderThickness = new Thickness(4),
-                CornerRadius = new CornerRadius(Width/2),
+                CornerRadius = new CornerRadius(Width / 2),
                 IsVisible = false
             };
 
@@ -224,20 +224,21 @@ namespace Sanet.MakaMek.Avalonia.Controls
             // Create an observable that polls the unit's position and selection state
             Observable
                 .Interval(TimeSpan.FromMilliseconds(32)) // ~60fps
-                .Select(_ => new
+                .Select(_ => new UnitState()
                 {
-                    _unit.Position,
-                    _unit.IsDeployed,
-                    viewModel.SelectedUnit,
+                    Position = _unit.Position,
+                    IsDeployed = _unit.IsDeployed,
+                    SelectedUnit = viewModel.SelectedUnit,
                     Actions = viewModel.CurrentState.GetAvailableActions(),
                     IsWeaponsPhase = viewModel.CurrentState is WeaponsAttackState,
-                    (_unit as Mech)?.TorsoDirection,
-                    _unit.TotalMaxArmor,
-                    _unit.TotalCurrentArmor,
-                    _unit.TotalMaxStructure,
-                    _unit.TotalCurrentStructure,
-                    _unit.Events
+                    TorsoDirection = (_unit as Mech)?.TorsoDirection,
+                    TotalMaxArmor = _unit.TotalMaxArmor,
+                    TotalCurrentArmor = _unit.TotalCurrentArmor,
+                    TotalMaxStructure = _unit.TotalMaxStructure,
+                    TotalCurrentStructure = _unit.TotalCurrentStructure,
+                    Events = _unit.Events
                 })
+                .DistinctUntilChanged() 
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
                 .Subscribe(state =>
                 {
@@ -245,37 +246,39 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     _destroyedCross.IsVisible = _unit.Status == UnitStatus.Destroyed;
                     _healthBars.IsVisible = _unit.Status != UnitStatus.Destroyed;
                     if (state.Position == null) return; // unit is not deployed, no need to display
-                    
+
                     Render();
                     selectionBorder.IsVisible = state.SelectedUnit == _unit
-                                                || _viewModel.CurrentState is WeaponsAttackState attackState && (attackState.Attacker == _unit || attackState.SelectedTarget == _unit);
+                                                || _viewModel.CurrentState is WeaponsAttackState attackState &&
+                                                (attackState.Attacker == _unit || attackState.SelectedTarget == _unit);
                     UpdateActionButtons(state.Actions);
-                    UpdateHealthBars(state.TotalCurrentArmor, state.TotalMaxArmor, state.TotalCurrentStructure, state.TotalMaxStructure);
-                    
+                    UpdateHealthBars(state.TotalCurrentArmor, state.TotalMaxArmor, state.TotalCurrentStructure,
+                        state.TotalMaxStructure);
+
                     // Process any new events
                     if (state.Events.Any())
                     {
                         ProcessEvents(state.Events);
                     }
-                    
+
                     // Calculate rotation angles
                     var isMech = _unit is Mech;
 
-                    var torsoFacing = isMech && state.TorsoDirection.HasValue 
-                        ? (int)state.TorsoDirection.Value 
+                    var torsoFacing = isMech && state.TorsoDirection.HasValue
+                        ? (int)state.TorsoDirection.Value
                         : (int)state.Position!.Facing;
                     var unitFacing = (int)state.Position!.Facing;
-                    
+
                     // Rotate entire control to show torso/unit direction
                     RenderTransform = new RotateTransform(torsoFacing * 60, 0, 0);
 
                     // Update direction indicator for mechs
                     if (isMech)
                     {
-                        torsoArrow.IsVisible = state.IsWeaponsPhase 
+                        torsoArrow.IsVisible = state.IsWeaponsPhase
                                                && _unit.Status != UnitStatus.Destroyed
-                                               && state.TorsoDirection.HasValue 
-                                               && state.Position!=null;
+                                               && state.TorsoDirection.HasValue
+                                               && state.Position != null;
                         if (!torsoArrow.IsVisible) return;
                         // Since control is rotated to torso direction, we need opposite delta
                         var deltaAngle = (unitFacing - torsoFacing + 6) % 6 * 60;
@@ -293,11 +296,12 @@ namespace Sanet.MakaMek.Avalonia.Controls
                         torsoArrow.IsVisible = false;
                     }
                 });
-            
+
             // Initial update
             Render();
             UpdateImage();
-            UpdateHealthBars(_unit.TotalCurrentArmor, _unit.TotalMaxArmor, _unit.TotalCurrentStructure, _unit.TotalMaxStructure);
+            UpdateHealthBars(_unit.TotalCurrentArmor, _unit.TotalMaxArmor, _unit.TotalCurrentStructure,
+                _unit.TotalMaxStructure);
         }
 
         private void UpdateHealthBars(int currentArmor, int maxArmor, int currentStructure, int maxStructure)
@@ -305,7 +309,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             // Update armor bar
             _armorBar.Maximum = maxArmor;
             _armorBar.Value = currentArmor;
-            
+
             // Update structure bar
             _structureBar.Maximum = maxStructure;
             _structureBar.Value = currentStructure;
@@ -315,11 +319,11 @@ namespace Sanet.MakaMek.Avalonia.Controls
         {
             _actionButtons.Children.Clear();
             _actionButtons.IsVisible = false;
-            
+
             var activeUnit = _viewModel.CurrentState is WeaponsAttackState state
-                ? state.Attacker 
+                ? state.Attacker
                 : _viewModel.SelectedUnit;
-            
+
             if (activeUnit != _unit) return;
 
             foreach (var action in actions)
@@ -355,19 +359,20 @@ namespace Sanet.MakaMek.Avalonia.Controls
             IsVisible = _unit.IsDeployed;
             if (_unit.Position == null) return;
             var hexPosition = _unit.Position;
-            
+
             var leftPos = hexPosition.Coordinates.H;
             var topPos = hexPosition.Coordinates.V;
-            
+
             SetValue(Canvas.LeftProperty, leftPos);
             SetValue(Canvas.TopProperty, topPos);
-            
+
             // Update buttons position to follow the unit
             if (_actionButtons.Parent == null && Parent is Canvas canvas)
             {
                 canvas.Children.Add(_actionButtons);
-                
+
             }
+
             Canvas.SetLeft(_actionButtons, leftPos);
             Canvas.SetTop(_actionButtons, topPos + Height);
 
@@ -376,18 +381,20 @@ namespace Sanet.MakaMek.Avalonia.Controls
             {
                 canvas2.Children.Add(_healthBars);
             }
+
             Canvas.SetLeft(_healthBars, leftPos);
             Canvas.SetTop(_healthBars, topPos - 15); // Position above the unit
-            
+
             // Update events panel position to follow the unit
             if (_eventsPanel.Parent == null && Parent is Canvas canvas3)
             {
                 canvas3.Children.Add(_eventsPanel);
             }
+
             Canvas.SetLeft(_eventsPanel, leftPos);
-            Canvas.SetTop(_eventsPanel, topPos - 40); // Position above the health bars
+            Canvas.SetTop(_eventsPanel, topPos - 40-_eventsPanel.Children.Count*10);
         }
-        
+
         /// <summary>
         /// Processes events from the unit and creates UI elements to display them
         /// </summary>
@@ -395,13 +402,13 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private void ProcessEvents(IReadOnlyCollection<UiEvent> events)
         {
             if (events.Count == 0) return;
-            
+
             // Process all events in the queue
             while (_unit.DequeueEvent() is { } uiEvent)
             {
                 var template = _viewModel.LocalizationService.GetString($"Events_Unit_{uiEvent.Type}");
                 var damageText = string.Format(template, uiEvent.Parameters);
-                CreateDamageLabel(damageText,GetEventLabelBackground(uiEvent.Type));         
+                CreateDamageLabel(damageText, GetEventLabelBackground(uiEvent.Type));
             }
         }
 
@@ -409,11 +416,12 @@ namespace Sanet.MakaMek.Avalonia.Controls
         {
             return uiEventType switch
             {
-                UiEventType.ArmorDamage => AvaloniaResourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush 
+                UiEventType.ArmorDamage => AvaloniaResourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush
                                            ?? new SolidColorBrush(Colors.LightBlue),
-                UiEventType.StructureDamage => AvaloniaResourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush 
-                                               ?? new SolidColorBrush(Colors.Orange),
-                _ => AvaloniaResourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush 
+                UiEventType.StructureDamage =>
+                    AvaloniaResourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
+                    ?? new SolidColorBrush(Colors.Orange),
+                _ => AvaloniaResourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush
                      ?? new SolidColorBrush(Colors.Red)
             };
         }
@@ -435,14 +443,14 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            
+
             // Add to the events panel
             _eventsPanel.Children.Add(textBlock);
             
             // Start animation
             _ = AnimateDamageLabel(textBlock);
         }
-        
+
         /// <summary>
         /// Animates a damage label using keyframe animation and removes it when done
         /// </summary>
@@ -461,11 +469,11 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 // Fallback in case the animation resource isn't found
                 await Task.Delay(_eventDisplayDuration);
             }
-            
+
             // Remove the label from the panel
             _eventsPanel.Children.Remove(label);
         }
-        
+
         private void UpdateImage()
         {
             var image = _imageService.GetImage("units/mechs", _unit.Model.ToUpper());
@@ -473,7 +481,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             {
                 _unitImage.Source = image;
             }
-            
+
             // Apply player's tint color if available
             if (_unit.Owner == null) return;
             var color = Color.Parse(_unit.Owner.Tint);
@@ -485,13 +493,13 @@ namespace Sanet.MakaMek.Avalonia.Controls
         {
             if (!_actionButtons.IsVisible)
                 return false;
-            
+
             // Find which button was clicked based on position
             var clickedButton = _actionButtons.Children
                 .OfType<Button>()
                 .FirstOrDefault(b => b.Bounds.Contains(position));
 
-            if (clickedButton is not {IsEnabled:true, IsVisible:true}) return false;
+            if (clickedButton is not { IsEnabled: true, IsVisible: true }) return false;
             // Trigger the button's Click event
             clickedButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             return true;
@@ -501,7 +509,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
         {
             _subscription.Dispose();
         }
-        
+
         public StackPanel ActionButtons => _actionButtons;
     }
 }
+
