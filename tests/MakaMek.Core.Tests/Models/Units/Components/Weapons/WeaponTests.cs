@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -111,19 +112,19 @@ public class WeaponTests
     private static WeaponDefinition CreateTestWeaponDefinition(WeaponType type, MakaMekComponent? ammoComponentType)
     {
         return new WeaponDefinition(
-            name: "Test Weapon",
-            elementaryDamage: 5,
-            heat: 3,
-            minimumRange: 0,
-            shortRange: 3,
-            mediumRange: 6,
-            longRange: 9,
-            type: type,
-            battleValue: 10,
-            clusters: 1,
-            clusterSize: 1,
-            weaponComponentType: MakaMekComponent.MachineGun,
-            ammoComponentType: ammoComponentType);
+            Name: "Test Weapon",
+            ElementaryDamage: 5,
+            Heat: 3,
+            MinimumRange: 0,
+            ShortRange: 3,
+            MediumRange: 6,
+            LongRange: 9,
+            Type: type,
+            BattleValue: 10,
+            Clusters: 1,
+            ClusterSize: 1,
+            WeaponComponentType: MakaMekComponent.MachineGun,
+            AmmoComponentType: ammoComponentType);
     }
     
     private class MockUnit : Unit

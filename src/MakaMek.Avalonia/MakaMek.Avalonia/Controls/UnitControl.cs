@@ -16,6 +16,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media.Immutable;
 using Sanet.MakaMek.Avalonia.Utils;
+using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.UiStates;

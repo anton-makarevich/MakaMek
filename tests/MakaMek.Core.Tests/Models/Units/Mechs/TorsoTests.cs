@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Events;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;

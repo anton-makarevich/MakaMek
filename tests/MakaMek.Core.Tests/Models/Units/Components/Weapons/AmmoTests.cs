@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Data.Units;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
@@ -42,16 +43,16 @@ public class AmmoTests
     {
         // Arrange
         var definition = new WeaponDefinition(
-            name: "Medium Laser",
-            elementaryDamage: 5,
-            heat: 3,
-            minimumRange: 0,
-            shortRange: 3,
-            mediumRange: 6,
-            longRange: 9,
-            type: WeaponType.Energy,
-            battleValue: 46,
-            weaponComponentType: MakaMekComponent.MediumLaser);
+            Name: "Medium Laser",
+            ElementaryDamage: 5,
+            Heat: 3,
+            MinimumRange: 0,
+            ShortRange: 3,
+            MediumRange: 6,
+            LongRange: 9,
+            Type: WeaponType.Energy,
+            BattleValue: 46,
+            WeaponComponentType: MakaMekComponent.MediumLaser);
 
         // Act & Assert
         Should.Throw<ArgumentException>(() => new Ammo(definition, 200));
@@ -185,16 +186,16 @@ public class AmmoTests
     private static WeaponDefinition CreateTestWeaponDefinition(string name, MakaMekComponent ammoComponentType, int damage)
     {
         return new WeaponDefinition(
-            name: name,
-            elementaryDamage: damage,
-            heat: 0,
-            minimumRange: 0,
-            shortRange: 1,
-            mediumRange: 2,
-            longRange: 3,
-            type: WeaponType.Ballistic,
-            battleValue: 1,
-            weaponComponentType: MakaMekComponent.MachineGun,
-            ammoComponentType: ammoComponentType);
+            Name: name,
+            ElementaryDamage: damage,
+            Heat: 0,
+            MinimumRange: 0,
+            ShortRange: 1,
+            MediumRange: 2,
+            LongRange: 3,
+            Type: WeaponType.Ballistic,
+            BattleValue: 1,
+            WeaponComponentType: MakaMekComponent.MachineGun,
+            AmmoComponentType: ammoComponentType);
     }
 }
