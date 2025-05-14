@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;

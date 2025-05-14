@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Units;
+
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Data.Community;
 
@@ -5,16 +7,16 @@ public class MediumLaser : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
-        name: "Medium Laser",
-        elementaryDamage: 5,
-        heat: 3,
-        minimumRange: 0,
-        shortRange: 3,
-        mediumRange: 6,
-        longRange: 9,
-        type: WeaponType.Energy,
-        battleValue: 46,
-        weaponComponentType: MakaMekComponent.MediumLaser);
+        Name: "Medium Laser",
+        ElementaryDamage: 5,
+        Heat: 3,
+        MinimumRange: 0,
+        ShortRange: 3,
+        MediumRange: 6,
+        LongRange: 9,
+        Type: WeaponType.Energy,
+        BattleValue: 46,
+        WeaponComponentType: MakaMekComponent.MediumLaser);
         
     // Constructor uses the static definition
     public MediumLaser() : base(Definition)

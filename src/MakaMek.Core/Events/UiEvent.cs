@@ -1,4 +1,6 @@
-namespace Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units;
+
+namespace Sanet.MakaMek.Core.Events;
 
 /// <summary>
 /// Represents a UI event that can be displayed in the UI
