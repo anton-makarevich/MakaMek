@@ -1454,9 +1454,11 @@ public class UnitTests
         
         // Act
         unit.AddEvent(testEvent);
-        var dequeuedEvent = unit.DequeueEvent();
+        
         
         // Assert
+        unit.Events.Count.ShouldBe(1);
+        var dequeuedEvent = unit.DequeueEvent();
         dequeuedEvent.ShouldNotBeNull();
         dequeuedEvent.Type.ShouldBe(UiEventType.ArmorDamage);
         dequeuedEvent.Parameters.Length.ShouldBe(2);
