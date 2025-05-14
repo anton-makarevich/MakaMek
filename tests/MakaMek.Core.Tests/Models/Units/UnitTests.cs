@@ -1533,6 +1533,22 @@ public class UnitTests
         unit.Events.Count.ShouldBe(0);
         dequeuedEvent.ShouldBeNull();
     }
+
+    [Fact]
+    public void ResetTurnState_ShouldClearEvents()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        unit.AddEvent(new UiEvent(UiEventType.ArmorDamage, "Location", "5"));
+        unit.AddEvent(new UiEvent(UiEventType.StructureDamage, "Location", "3"));
+        
+        // Act
+        unit.ResetTurnState();
+        
+        // Assert
+        unit.Notifications.Count.ShouldBe(0);
+        unit.Events.Count.ShouldBe(0);
+    }
     
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)

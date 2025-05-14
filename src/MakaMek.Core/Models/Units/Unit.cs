@@ -211,7 +211,7 @@ public abstract class Unit
         ResetMovement();
         HasAppliedHeat = false;
         ResetWeaponsTargets();
-        
+        ClearEvents();
     }
 
     private void ResetWeaponsTargets()
