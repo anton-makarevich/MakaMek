@@ -1,4 +1,6 @@
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -73,7 +75,7 @@ public class UnitPartTests
         part.TryAddComponent(masc);
 
         // Act
-        part.ApplyDamage(10); // Ensure structure is destroyed
+        part.ApplyDamage(10); // Ensure the structure is destroyed
 
         // Assert
         part.IsDestroyed.ShouldBeTrue();
@@ -289,8 +291,145 @@ public class UnitPartTests
         part.HitSlots.Count.ShouldBe(3); // But all slots should be marked as hit
     }
 
+    [Fact]
+    public void ApplyDamage_ShouldRaiseArmorDamageEvent_WhenUnitIsSet()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var unit = new TestUnit();
+        part.Unit = unit;
+        
+        // Act
+        part.ApplyDamage(5);
+        
+        // Assert
+        var uiEvent = unit.DequeueEvent();
+        uiEvent.ShouldNotBeNull();
+        uiEvent.Type.ShouldBe(UiEventType.ArmorDamage);
+        uiEvent.Parameters.Length.ShouldBe(2);
+        uiEvent.Parameters[0].ShouldBe(part.Name);
+        uiEvent.Parameters[1].ShouldBe("5");
+    }
+    
+    [Fact]
+    public void ApplyDamage_ShouldRaiseStructureDamageEvent_WhenArmorIsDepletedAndStructureIsDamaged()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 5, 10, 12);
+        var unit = new TestUnit();
+        part.Unit = unit;
+        
+        // Act
+        part.ApplyDamage(8); // 5 armor + 3 structure damage
+        
+        // Assert
+        // First event should be armor damage
+        var armorEvent = unit.DequeueEvent();
+        armorEvent.ShouldNotBeNull();
+        armorEvent.Type.ShouldBe(UiEventType.ArmorDamage);
+        
+        // The second event should be structure damage
+        var structureEvent = unit.DequeueEvent();
+        structureEvent.ShouldNotBeNull();
+        structureEvent.Type.ShouldBe(UiEventType.StructureDamage);
+        structureEvent.Parameters.Length.ShouldBe(2);
+        structureEvent.Parameters[0].ShouldBe(part.Name);
+        structureEvent.Parameters[1].ShouldBe("3");
+    }
+    
+    [Fact]
+    public void ApplyDamage_ShouldRaiseLocationDestroyedEvent_WhenStructureIsReducedToZero()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 5, 5, 12);
+        var unit = new TestUnit();
+        part.Unit = unit;
+        
+        // Act
+        part.ApplyDamage(15); // 5 armor + 5 structure + 5 excess
+        
+        // Assert
+        // First event should be armor damage
+        var armorEvent = unit.DequeueEvent();
+        armorEvent.ShouldNotBeNull();
+        armorEvent.Type.ShouldBe(UiEventType.ArmorDamage);
+        
+        // The second event should be structure damage (not checking this to keep the test focused)
+        unit.DequeueEvent();
+        
+        // The third event should be location destroyed
+        var destroyedEvent = unit.DequeueEvent();
+        destroyedEvent.ShouldNotBeNull();
+        destroyedEvent.Type.ShouldBe(UiEventType.LocationDestroyed);
+        destroyedEvent.Parameters.Length.ShouldBe(1);
+        destroyedEvent.Parameters[0].ShouldBe(part.Name);
+    }
+    
+    [Fact]
+    public void CriticalHit_ShouldRaiseCriticalHitEvent_WhenComponentIsHit()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var unit = new TestUnit();
+        part.Unit = unit;
+        
+        var component = new TestComponent("Test Component",[]);
+        part.TryAddComponent(component);
+        
+        // Act
+        part.CriticalHit(0); // Hit the first slot where our component is
+        
+        // Assert
+        var criticalEvent = unit.DequeueEvent();
+        criticalEvent.ShouldNotBeNull();
+        criticalEvent.Type.ShouldBe(UiEventType.CriticalHit);
+        criticalEvent.Parameters.Length.ShouldBe(1);
+        criticalEvent.Parameters[0].ShouldBe(component.Name);
+    }
+    
+    [Fact]
+    public void CriticalHit_ShouldRaiseComponentDestroyedEvent_WhenComponentIsDestroyed()
+    {
+        // Arrange
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var unit = new TestUnit();
+        part.Unit = unit;
+        
+        var component = new TestComponent("Test Component",[]);
+        part.TryAddComponent(component);
+        
+        // Act
+        part.CriticalHit(0); // Hit the first slot where our component is
+        
+        // Assert
+        // First event should be a critical hit
+        unit.DequeueEvent();
+        
+        // Second event should be component destroyed
+        var destroyedEvent = unit.DequeueEvent();
+        destroyedEvent.ShouldNotBeNull();
+        destroyedEvent.Type.ShouldBe(UiEventType.ComponentDestroyed);
+        destroyedEvent.Parameters.Length.ShouldBe(1);
+        destroyedEvent.Parameters[0].ShouldBe(component.Name);
+    }
+    
     private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size)
     {
         public override MakaMekComponent ComponentType => throw new NotImplementedException();
+    }
+    
+    private class TestUnit() : Unit("Test", "Unit", 20, 4, [], Guid.NewGuid())
+    {
+        public override int CalculateBattleValue() => 0;
+        
+        public override bool CanMoveBackward(MovementType type) => true;
+        
+        public override PartLocation? GetTransferLocation(PartLocation location) => null;
+        
+        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)
+            => throw new NotImplementedException();
+        
+        protected override void ApplyHeatEffects()
+            => throw new NotImplementedException();
     }
 }

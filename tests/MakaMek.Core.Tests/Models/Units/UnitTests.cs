@@ -1350,6 +1350,164 @@ public class UnitTests
         targetPart.CurrentArmor.ShouldBe(4); // 10 - 6 = 4
     }
     
+    // [Fact]
+    // public void ApplyDamage_WithExplosion_ShouldAddExplosionEvent()
+    // {
+    //     // Arrange
+    //     var unit = CreateTestUnit();
+    //     var targetPart = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+    //     
+    //     // Create an explodable component
+    //     var explodableComponent = Substitute.For<Component>("Explodable Component");
+    //     explodableComponent.IsExplodable.Returns(true);
+    //     explodableComponent.HasExploded.Returns(false);
+    //     explodableComponent.GetExplosionDamage().Returns(5);
+    //     explodableComponent.Name.Returns("Ammo");
+    //     
+    //     // Add the component to the part
+    //     targetPart.TryAddComponent(explodableComponent);
+    //     
+    //     // Create hit locations with critical hits that will trigger the explosion
+    //     var criticalHits = new List<CriticalHit>
+    //     {
+    //         new()
+    //         {
+    //             Location = PartLocation.CenterTorso,
+    //             CriticalHits = new List<int> { 0 } // Hit the first slot where our component is
+    //         }
+    //     };
+    //     
+    //     var hitLocations = new List<HitLocationData>
+    //     {
+    //         new()
+    //         {
+    //             Location = PartLocation.CenterTorso,
+    //             Damage = 5,
+    //             CriticalHits = criticalHits
+    //         }
+    //     };
+    //     
+    //     // Act
+    //     unit.ApplyDamage(hitLocations);
+    //     
+    //     // Assert
+    //     // Dequeue all events and check for explosion event
+    //     bool foundExplosionEvent = false;
+    //     while (unit.DequeueEvent() is { } uiEvent)
+    //     {
+    //         if (uiEvent.Type == UiEventType.Explosion && uiEvent.Parameters[0] == "Ammo")
+    //         {
+    //             foundExplosionEvent = true;
+    //             break;
+    //         }
+    //     }
+    //     
+    //     foundExplosionEvent.ShouldBeTrue("Should have found an explosion event");
+    // }
+    //
+    // [Fact]
+    // public void ApplyDamage_WithUnitDestruction_ShouldAddUnitDestroyedEvent()
+    // {
+    //     // Arrange
+    //     var unit = CreateTestUnit();
+    //     
+    //     // Create hit locations that will destroy the unit
+    //     var hitLocations = new List<HitLocationData>
+    //     {
+    //         new()
+    //         {
+    //             Location = PartLocation.CenterTorso,
+    //             Damage = 100 // Enough to destroy the center torso completely
+    //         }
+    //     };
+    //     
+    //     // Act
+    //     unit.ApplyDamage(hitLocations);
+    //     
+    //     // Assert
+    //     unit.Status.ShouldBe(UnitStatus.Destroyed);
+    //     
+    //     // Dequeue all events and check for unit destroyed event
+    //     bool foundUnitDestroyedEvent = false;
+    //     while (unit.DequeueEvent() is { } uiEvent)
+    //     {
+    //         if (uiEvent.Type == UiEventType.UnitDestroyed && uiEvent.Parameters[0] == unit.Name)
+    //         {
+    //             foundUnitDestroyedEvent = true;
+    //             break;
+    //         }
+    //     }
+    //     
+    //     foundUnitDestroyedEvent.ShouldBeTrue("Should have found a unit destroyed event");
+    // }
+    
+    [Fact]
+    public void AddEvent_ShouldAddEventToQueue()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var testEvent = new UiEvent(UiEventType.ArmorDamage, "TestLocation", "5");
+        
+        // Act
+        unit.AddEvent(testEvent);
+        var dequeuedEvent = unit.DequeueEvent();
+        
+        // Assert
+        dequeuedEvent.ShouldNotBeNull();
+        dequeuedEvent.Type.ShouldBe(UiEventType.ArmorDamage);
+        dequeuedEvent.Parameters.Length.ShouldBe(2);
+        dequeuedEvent.Parameters[0].ShouldBe("TestLocation");
+        dequeuedEvent.Parameters[1].ShouldBe("5");
+    }
+    
+    [Fact]
+    public void DequeueEvent_ShouldReturnEventsInOrder()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var event1 = new UiEvent(UiEventType.ArmorDamage, "Location1", "5");
+        var event2 = new UiEvent(UiEventType.StructureDamage, "Location2", "3");
+        var event3 = new UiEvent(UiEventType.CriticalHit, "Component");
+        
+        // Act
+        unit.AddEvent(event1);
+        unit.AddEvent(event2);
+        unit.AddEvent(event3);
+        
+        var dequeuedEvent1 = unit.DequeueEvent();
+        var dequeuedEvent2 = unit.DequeueEvent();
+        var dequeuedEvent3 = unit.DequeueEvent();
+        var dequeuedEvent4 = unit.DequeueEvent(); // Should be null
+        
+        // Assert
+        dequeuedEvent1.ShouldNotBeNull();
+        dequeuedEvent1.Type.ShouldBe(UiEventType.ArmorDamage);
+        
+        dequeuedEvent2.ShouldNotBeNull();
+        dequeuedEvent2.Type.ShouldBe(UiEventType.StructureDamage);
+        
+        dequeuedEvent3.ShouldNotBeNull();
+        dequeuedEvent3.Type.ShouldBe(UiEventType.CriticalHit);
+        
+        dequeuedEvent4.ShouldBeNull();
+    }
+    
+    [Fact]
+    public void ClearEvents_ShouldRemoveAllEvents()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        unit.AddEvent(new UiEvent(UiEventType.ArmorDamage, "Location", "5"));
+        unit.AddEvent(new UiEvent(UiEventType.StructureDamage, "Location", "3"));
+        
+        // Act
+        unit.ClearEvents();
+        var dequeuedEvent = unit.DequeueEvent();
+        
+        // Assert
+        dequeuedEvent.ShouldBeNull();
+    }
+    
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)
     {
