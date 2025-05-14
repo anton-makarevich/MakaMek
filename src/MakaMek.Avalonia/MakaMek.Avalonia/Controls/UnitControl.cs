@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -438,39 +439,27 @@ namespace Sanet.MakaMek.Avalonia.Controls
             // Add to the events panel
             _eventsPanel.Children.Add(textBlock);
             
-            // Start fade out animation
-            _ = AnimateDamageLabelAsync(textBlock);
+            // Start animation
+            _ = AnimateDamageLabel(textBlock);
         }
         
         /// <summary>
-        /// Animates a damage label to fade out and move up
+        /// Animates a damage label using keyframe animation and removes it when done
         /// </summary>
         /// <param name="label">The label to animate</param>
-        private async Task AnimateDamageLabelAsync(TextBlock label)
+        private async Task AnimateDamageLabel(TextBlock label)
         {
-            var startTime = DateTime.Now;
-            var endTime = startTime + _eventDisplayDuration;
-            
-            // Initial position offset
-            const double initialOffset = 0.0;
-            const double targetOffset = -20.0; // Move up by 20 pixels
-            
-            while (DateTime.Now < endTime)
+            // Get the animation from resources
+            var animation = AvaloniaResourcesLocator.TryFindResource("DamageLabelAnimation") as Animation;
+            if (animation != null)
             {
-                var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
-                var duration = _eventDisplayDuration.TotalMilliseconds;
-                var progress = Math.Min(elapsed / duration, 1.0);
-                
-                // Calculate current opacity and position
-                var currentOpacity = 1.0 - progress;
-                var currentOffset = initialOffset + (targetOffset - initialOffset) * progress;
-                
-                // Apply opacity and transform
-                label.Opacity = currentOpacity;
-                label.RenderTransform = new TranslateTransform(0, currentOffset);
-                
-                // Wait a bit before the next frame
-                await Task.Delay(16); // ~60fps
+                // Start the animation and await its completion
+                await animation.RunAsync(label);
+            }
+            else
+            {
+                // Fallback in case the animation resource isn't found
+                await Task.Delay(_eventDisplayDuration);
             }
             
             // Remove the label from the panel
