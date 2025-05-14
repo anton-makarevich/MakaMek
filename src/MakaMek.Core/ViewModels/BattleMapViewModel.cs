@@ -35,6 +35,7 @@ public class BattleMapViewModel : BaseViewModel
     private List<WeaponAttackViewModel>? _weaponAttacks;
     private bool _isWeaponSelectionVisible;
     private readonly IDispatcherService _dispatcherService;
+    private List<UiEventViewModel> _selectedUnitEvents = [];
 
     public HexCoordinates? DirectionSelectorPosition
     {
@@ -340,6 +341,8 @@ public class BattleMapViewModel : BaseViewModel
             NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
             NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
             NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
+            
+            UpdateSelectedUnitEvents();
         }
     }
     
@@ -399,6 +402,7 @@ public class BattleMapViewModel : BaseViewModel
     }
 
     public IEnumerable<Unit> Units => Game?.AlivePlayers.SelectMany(p => p.AliveUnits) ?? [];
+
     public IUiState CurrentState { get; private set; }
 
     public void ShowDirectionSelector(HexCoordinates position, IEnumerable<HexDirection> availableDirections)
@@ -430,5 +434,29 @@ public class BattleMapViewModel : BaseViewModel
     public void HideMovementPath()
     {
         MovementPath = null;
+    }
+
+    /// <summary>
+    /// List of UI events for the selected unit
+    /// </summary>
+    public IReadOnlyList<UiEventViewModel> SelectedUnitEvents => _selectedUnitEvents;
+
+    /// <summary>
+    /// Updates the list of UI events for the selected unit
+    /// </summary>
+    private void UpdateSelectedUnitEvents()
+    {
+        if (_selectedUnit == null)
+        {
+            _selectedUnitEvents = [];
+        }
+        else
+        {
+            _selectedUnitEvents = _selectedUnit.Events
+                .Select(e => new UiEventViewModel(e, _localizationService))
+                .ToList();
+        }
+        
+        NotifyPropertyChanged(nameof(SelectedUnitEvents));
     }
 }

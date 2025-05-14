@@ -192,6 +192,12 @@
                     </TabItem.Header>
                     <controls:UnitComponentsPanel Unit="{Binding SelectedUnit}" />
                 </TabItem>
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf0e0;"/>
+                    </TabItem.Header>
+                    <controls:UnitEventsPanel/>
+                </TabItem>
             </TabControl>
         </templatedControls:GamePanel>
 
