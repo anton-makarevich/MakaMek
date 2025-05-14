@@ -237,7 +237,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     TotalCurrentArmor = _unit.TotalCurrentArmor,
                     TotalMaxStructure = _unit.TotalMaxStructure,
                     TotalCurrentStructure = _unit.TotalCurrentStructure,
-                    Events = _unit.Events
+                    Events = _unit.Notifications
                 })
                 .DistinctUntilChanged() 
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
@@ -405,7 +405,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             if (events.Count == 0) return;
 
             // Process all events in the queue
-            while (_unit.DequeueEvent() is { } uiEvent)
+            while (_unit.DequeueNotification() is { } uiEvent)
             {
                 var template = _viewModel.LocalizationService.GetString($"Events_Unit_{uiEvent.Type}");
                 var damageText = string.Format(template, uiEvent.Parameters);

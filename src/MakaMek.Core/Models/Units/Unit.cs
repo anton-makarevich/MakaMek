@@ -14,7 +14,8 @@ namespace Sanet.MakaMek.Core.Models.Units;
 public abstract class Unit
 {
     protected readonly List<UnitPart> _parts; 
-    private readonly Queue<UiEvent> _events = new();
+    private readonly Queue<UiEvent> _notifications = new();
+    private readonly List<UiEvent> _events = new();
     
     protected Unit(string chassis, string model, int tonnage,
         int walkMp,
@@ -537,7 +538,8 @@ public abstract class Unit
         IDiceRoller diceRoller);
     
     // UI events queue for unit events (damage, etc.)
-    public IReadOnlyCollection<UiEvent> Events => _events.ToArray();
+    public IReadOnlyCollection<UiEvent> Notifications => _notifications.ToArray();
+    public IReadOnlyList<UiEvent> Events => _events;
     
     /// <summary>
     /// Adds an event to the unit's events queue
@@ -545,16 +547,17 @@ public abstract class Unit
     /// <param name="uiEvent">The event to add</param>
     public void AddEvent(UiEvent uiEvent)
     {
-        _events.Enqueue(uiEvent);
+        _notifications.Enqueue(uiEvent);
+        _events.Add(uiEvent);
     }
     
     /// <summary>
     /// Dequeues and returns the next event from the unit's events queue
     /// </summary>
     /// <returns>The next event, or null if the queue is empty</returns>
-    public UiEvent? DequeueEvent()
+    public UiEvent? DequeueNotification()
     {
-        return _events.Count > 0 ? _events.Dequeue() : null;
+        return _notifications.Count > 0 ? _notifications.Dequeue() : null;
     }
     
     /// <summary>
@@ -562,6 +565,7 @@ public abstract class Unit
     /// </summary>
     public void ClearEvents()
     {
+        _notifications.Clear();
         _events.Clear();
     }
 }

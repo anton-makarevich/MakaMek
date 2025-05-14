@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.UiStates;
 
 namespace Sanet.MakaMek.Avalonia.Utils;

@@ -304,7 +304,7 @@ public class UnitPartTests
         part.ApplyDamage(5);
         
         // Assert
-        var uiEvent = unit.DequeueEvent();
+        var uiEvent = unit.DequeueNotification();
         uiEvent.ShouldNotBeNull();
         uiEvent.Type.ShouldBe(UiEventType.ArmorDamage);
         uiEvent.Parameters.Length.ShouldBe(2);
@@ -325,12 +325,12 @@ public class UnitPartTests
         
         // Assert
         // First event should be armor damage
-        var armorEvent = unit.DequeueEvent();
+        var armorEvent = unit.DequeueNotification();
         armorEvent.ShouldNotBeNull();
         armorEvent.Type.ShouldBe(UiEventType.ArmorDamage);
         
         // The second event should be structure damage
-        var structureEvent = unit.DequeueEvent();
+        var structureEvent = unit.DequeueNotification();
         structureEvent.ShouldNotBeNull();
         structureEvent.Type.ShouldBe(UiEventType.StructureDamage);
         structureEvent.Parameters.Length.ShouldBe(2);
@@ -351,15 +351,15 @@ public class UnitPartTests
         
         // Assert
         // First event should be armor damage
-        var armorEvent = unit.DequeueEvent();
+        var armorEvent = unit.DequeueNotification();
         armorEvent.ShouldNotBeNull();
         armorEvent.Type.ShouldBe(UiEventType.ArmorDamage);
         
         // The second event should be structure damage (not checking this to keep the test focused)
-        unit.DequeueEvent();
+        unit.DequeueNotification();
         
         // The third event should be location destroyed
-        var destroyedEvent = unit.DequeueEvent();
+        var destroyedEvent = unit.DequeueNotification();
         destroyedEvent.ShouldNotBeNull();
         destroyedEvent.Type.ShouldBe(UiEventType.LocationDestroyed);
         destroyedEvent.Parameters.Length.ShouldBe(1);
@@ -381,7 +381,7 @@ public class UnitPartTests
         part.CriticalHit(0); // Hit the first slot where our component is
         
         // Assert
-        var criticalEvent = unit.DequeueEvent();
+        var criticalEvent = unit.DequeueNotification();
         criticalEvent.ShouldNotBeNull();
         criticalEvent.Type.ShouldBe(UiEventType.CriticalHit);
         criticalEvent.Parameters.Length.ShouldBe(1);
@@ -404,10 +404,10 @@ public class UnitPartTests
         
         // Assert
         // First event should be a critical hit
-        unit.DequeueEvent();
+        unit.DequeueNotification();
         
         // Second event should be component destroyed
-        var destroyedEvent = unit.DequeueEvent();
+        var destroyedEvent = unit.DequeueNotification();
         destroyedEvent.ShouldNotBeNull();
         destroyedEvent.Type.ShouldBe(UiEventType.ComponentDestroyed);
         destroyedEvent.Parameters.Length.ShouldBe(1);
