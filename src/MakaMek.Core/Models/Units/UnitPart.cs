@@ -124,10 +124,13 @@ public abstract class UnitPart
             if (CurrentStructure >= remainingDamage)
             {
                 CurrentStructure -= remainingDamage;
+                Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage,Name,remainingDamage.ToString()));
                 return 0;
             }
             remainingDamage -= CurrentStructure;
+            Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage,Name,CurrentStructure.ToString()));
             CurrentStructure = 0;
+            Unit?.AddEvent(new UiEvent(UiEventType.LocationDestroyed,Name));
             return remainingDamage; // Return excess damage for transfer
         }
 
@@ -140,9 +143,11 @@ public abstract class UnitPart
         if (CurrentArmor >= damage)
         {
             CurrentArmor -= damage;
+            Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage,Name,damage.ToString()));
             return 0;
         }
         damage -= CurrentArmor;
+        Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage,Name,CurrentArmor.ToString()));
         CurrentArmor = 0;
 
         return damage;
@@ -205,10 +210,20 @@ public abstract class UnitPart
     public void CriticalHit(int slot)
     {
         _hitSlots.Add(slot);
+        
+        
         var component = GetComponentAtSlot(slot);
-        if (component is { IsDestroyed: false })
+
+
+        if (component is not { IsDestroyed: false }) return;
+        // Raise critical hit event
+        Unit?.AddEvent(new UiEvent(UiEventType.CriticalHit, component.Name));
+        component.Hit();
+            
+        // Raise component destroyed event if the component was destroyed by this hit
+        if (component.IsDestroyed)
         {
-            component.Hit();
+            Unit?.AddEvent(new UiEvent(UiEventType.ComponentDestroyed, component.Name));
         }
     }
 }

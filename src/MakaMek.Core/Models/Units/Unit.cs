@@ -13,6 +13,8 @@ namespace Sanet.MakaMek.Core.Models.Units;
 public abstract class Unit
 {
     protected readonly List<UnitPart> _parts; 
+    private readonly Queue<UiEvent> _events = new();
+    
     protected Unit(string chassis, string model, int tonnage,
         int walkMp,
         IEnumerable<UnitPart> parts,
@@ -272,17 +274,17 @@ public abstract class Unit
             Status = UnitStatus.Shutdown;
         }
     }
-    
+
     public void ApplyDamage(List<HitLocationData> hitLocations)
     {
         foreach (var hitLocation in hitLocations)
         {
             var targetPart = _parts.Find(p => p.Location == hitLocation.Location);
             if (targetPart == null) continue;
-            
+
             // Calculate total damage including any potential explosion damage
             var totalDamage = hitLocation.Damage;
-            
+
             // Handle critical hits if present
             if (hitLocation.CriticalHits != null && hitLocation.CriticalHits.Count != 0)
             {
@@ -291,19 +293,19 @@ public abstract class Unit
                 {
                     var criticalPart = _parts.Find(p => p.Location == criticalHit.Location);
                     if (criticalPart == null) continue;
-                    
+
                     // Handle blown off parts
                     if (criticalHit.IsBlownOff)
                     {
                         criticalPart.BlowOff();
                         continue;
                     }
-                    
+
                     // Check for explodable components before applying critical hits
                     if (criticalHit.CriticalHits != null)
                     {
                         var explosionDamage = 0;
-                        
+
                         foreach (var slot in criticalHit.CriticalHits)
                         {
                             var component = criticalPart.GetComponentAtSlot(slot);
@@ -311,9 +313,11 @@ public abstract class Unit
                             {
                                 // Add explosion damage to the total
                                 explosionDamage += component.GetExplosionDamage();
+                                // Add explosion event
+                                AddEvent(new UiEvent(UiEventType.Explosion, component.Name));
                             }
                         }
-                        
+
                         // Add explosion damage to total damage
                         if (explosionDamage > 0)
                         {
@@ -322,21 +326,21 @@ public abstract class Unit
                     }
                 }
             }
-            
+
             // Apply the total damage (including any explosion damage)
             ApplyArmorAndStructureDamage(totalDamage, targetPart);
-            
+
             // Now apply the critical hits after calculating total damage
             if (hitLocation.CriticalHits == null || !hitLocation.CriticalHits.Any()) continue;
-            
+
             foreach (var criticalHit in hitLocation.CriticalHits)
             {
                 var criticalPart = _parts.Find(p => p.Location == criticalHit.Location);
                 if (criticalPart == null) continue;
-                
+
                 // Skip blown off parts as they were already handled
                 if (criticalHit.IsBlownOff) continue;
-                
+
                 // Apply critical hits to specific slots
                 if (criticalHit.CriticalHits == null) continue;
                 foreach (var slot in criticalHit.CriticalHits)
@@ -344,6 +348,13 @@ public abstract class Unit
                     criticalPart.CriticalHit(slot);
                 }
             }
+
+
+        }
+
+        if (Status == UnitStatus.Destroyed)
+        {
+            AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
         }
     }
 
@@ -523,4 +534,33 @@ public abstract class Unit
     public abstract LocationCriticalHitsData? CalculateCriticalHitsData(
         PartLocation location, 
         IDiceRoller diceRoller);
+    
+    // UI events queue for unit events (damage, etc.)
+    public IReadOnlyCollection<UiEvent> Events => _events.ToArray();
+    
+    /// <summary>
+    /// Adds an event to the unit's events queue
+    /// </summary>
+    /// <param name="uiEvent">The event to add</param>
+    public void AddEvent(UiEvent uiEvent)
+    {
+        _events.Enqueue(uiEvent);
+    }
+    
+    /// <summary>
+    /// Dequeues and returns the next event from the unit's events queue
+    /// </summary>
+    /// <returns>The next event, or null if the queue is empty</returns>
+    public UiEvent? DequeueEvent()
+    {
+        return _events.Count > 0 ? _events.Dequeue() : null;
+    }
+    
+    /// <summary>
+    /// Clears all events from the unit's events queue
+    /// </summary>
+    public void ClearEvents()
+    {
+        _events.Clear();
+    }
 }

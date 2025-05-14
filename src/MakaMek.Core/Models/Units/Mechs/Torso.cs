@@ -36,9 +36,11 @@ public abstract class Torso : UnitPart
         if (CurrentRearArmor >= remainingDamage)
         {
             CurrentRearArmor -= remainingDamage;
+            Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage, Name, remainingDamage.ToString()));
             return 0;
         }
         remainingDamage -= CurrentRearArmor;
+        Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage, Name, CurrentRearArmor.ToString()));
         CurrentRearArmor = 0;
         return remainingDamage;
     }

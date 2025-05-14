@@ -62,7 +62,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             var hexControl = new HexControl(hex, imageService);
             MapCanvas.Children.Add(hexControl);
         }
-
         
         _unitControls = ViewModel?.Units
             .Select(u=>new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel))
