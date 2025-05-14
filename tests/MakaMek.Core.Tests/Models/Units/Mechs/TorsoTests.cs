@@ -155,4 +155,49 @@ public class TorsoTests
         isBlownOff.ShouldBeFalse();
         torso.IsBlownOff.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void ApplyDamage_RaisesArmorDamageEvent()
+    {
+        // Arrange
+        var unit = new UnitPartTests.TestUnit();
+        var torso = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10)
+            {
+                Unit = unit
+            };
+
+        // Act
+        torso.ApplyDamage(5, HitDirection.Rear);
+
+        // Assert
+        var uiEvent = unit.DequeueEvent();
+        uiEvent.ShouldNotBeNull();
+        uiEvent.Type.ShouldBe(UiEventType.ArmorDamage);
+        uiEvent.Parameters.Length.ShouldBe(2);
+        uiEvent.Parameters[0].ShouldBe("Test Torso");
+        uiEvent.Parameters[1].ShouldBe("5");
+    }
+    
+    [Fact]
+    public void ApplyDamage_RaisesArmorDamageEvent_WhenArmorFullyDestroyed()
+    {
+        // Arrange
+        var unit = new UnitPartTests.TestUnit();
+        var torso = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10)
+        {
+            Unit = unit
+        };
+
+        // Act
+        torso.ApplyDamage(15, HitDirection.Rear);
+
+        // Assert
+        unit.Events.Count.ShouldBe(2); //10 armor damage + 5 structure damage
+        var uiEvent = unit.DequeueEvent();
+        uiEvent.ShouldNotBeNull();
+        uiEvent.Type.ShouldBe(UiEventType.ArmorDamage);
+        uiEvent.Parameters.Length.ShouldBe(2);
+        uiEvent.Parameters[0].ShouldBe("Test Torso");
+        uiEvent.Parameters[1].ShouldBe("10");
+    }
 }

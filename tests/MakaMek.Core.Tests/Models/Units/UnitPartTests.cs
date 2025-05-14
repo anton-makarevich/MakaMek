@@ -418,7 +418,7 @@ public class UnitPartTests
         public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
     
-    private class TestUnit() : Unit("Test", "Unit", 20, 4, [], Guid.NewGuid())
+    public class TestUnit() : Unit("Test", "Unit", 20, 4, [], Guid.NewGuid())
     {
         public override int CalculateBattleValue() => 0;
         
