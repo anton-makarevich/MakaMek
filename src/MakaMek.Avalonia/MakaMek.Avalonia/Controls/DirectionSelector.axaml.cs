@@ -69,13 +69,13 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
         }
 
-        public static readonly DirectProperty<DirectionSelector,string> ForegroundProperty =
+        public new static readonly DirectProperty<DirectionSelector,string> ForegroundProperty =
             AvaloniaProperty.RegisterDirect<DirectionSelector, string>(nameof(Foreground),
                 o=> o.Foreground,
                 (o, v) => o.Foreground = v);
 
-        private string _foreground; 
-        public string Foreground
+        private string _foreground = "#FFFFFF"; 
+        public new string Foreground
         {
             get => _foreground;
             set => SetAndRaise(ForegroundProperty, ref _foreground, value);
