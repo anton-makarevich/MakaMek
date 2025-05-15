@@ -3,9 +3,7 @@ using System.Linq;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
-using Avalonia.Media;
 using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Avalonia.Controls
