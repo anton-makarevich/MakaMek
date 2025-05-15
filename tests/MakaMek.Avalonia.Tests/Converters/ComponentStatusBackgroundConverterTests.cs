@@ -1,17 +1,26 @@
 using System.Globalization;
 using Avalonia.Media;
 using Sanet.MakaMek.Avalonia.Converters;
+using Sanet.MakaMek.Avalonia.Utils;
 using Shouldly;
 using MakaMek.Avalonia.Tests.TestHelpers;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using NSubstitute;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
 public class ComponentStatusBackgroundConverterTests
 {
-    private readonly ComponentStatusBackgroundConverter _sut = new();
+    private readonly IAvaloniaResourcesLocator _resourcesLocator;
+    private readonly ComponentStatusBackgroundConverter _sut;
+
+    public ComponentStatusBackgroundConverterTests()
+    {
+        _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
+        _sut = new ComponentStatusBackgroundConverter(_resourcesLocator);
+    }
 
     [Fact]
     public void Convert_AvailableWeapon_ReturnsTransparent()
@@ -20,6 +29,7 @@ public class ComponentStatusBackgroundConverterTests
         var weapon = new TestWeapon();
         var unitPart = new Arm("Left Arm",PartLocation.LeftArm,1,1);
         weapon.Mount([1], unitPart);
+        
         // Act
         var result = _sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
 
@@ -36,6 +46,7 @@ public class ComponentStatusBackgroundConverterTests
         var unitPart = new Arm("Left Arm",PartLocation.LeftArm,1,1);
         unitPart.ApplyDamage(5);
         weapon.Mount([1], unitPart);
+        
         // Act
         var result = _sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
 
@@ -65,6 +76,24 @@ public class ComponentStatusBackgroundConverterTests
         // Arrange
         var weapon = new TestWeapon();
         weapon.Hit();
+        var destroyedBrush = new SolidColorBrush(Colors.DarkRed);
+        _resourcesLocator.TryFindResource("DestroyedBrush").Returns(destroyedBrush);
+
+        // Act
+        var result = _sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBe(destroyedBrush);
+    }
+
+    [Fact]
+    public void Convert_DestroyedWeapon_ReturnsDefaultWhenResourceNotFound()
+    {
+        // Arrange
+        var weapon = new TestWeapon();
+        weapon.Hit();
+        _resourcesLocator.TryFindResource("DestroyedBrush").Returns(null);
 
         // Act
         var result = _sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
@@ -99,12 +128,59 @@ public class ComponentStatusBackgroundConverterTests
     [Fact]
     public void Convert_Status_ToColor()
     {
+        // Arrange
+        var destroyedBrush = new SolidColorBrush(Colors.DarkRed);
+        _resourcesLocator.TryFindResource("DestroyedBrush").Returns(destroyedBrush);
+
+        // Act
+        var result = _sut.Convert(ComponentStatus.Destroyed, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBe(destroyedBrush);
+    }
+
+    [Fact]
+    public void Convert_Status_ToDefaultColorWhenResourceNotFound()
+    {
+        // Arrange
+        _resourcesLocator.TryFindResource("DestroyedBrush").Returns(null);
+
         // Act
         var result = _sut.Convert(ComponentStatus.Destroyed, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
 
         // Assert
         result.ShouldNotBeNull();
         result.Color.ShouldBe(Colors.Red);
+    }
+
+    [Fact]
+    public void Convert_DamagedStatus_ReturnsDamagedBrush()
+    {
+        // Arrange
+        var damagedBrush = new SolidColorBrush(Colors.DarkOrange);
+        _resourcesLocator.TryFindResource("DamagedBrush").Returns(damagedBrush);
+
+        // Act
+        var result = _sut.Convert(ComponentStatus.Damaged, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBe(damagedBrush);
+    }
+
+    [Fact]
+    public void Convert_DamagedStatus_ReturnsDefaultWhenResourceNotFound()
+    {
+        // Arrange
+        _resourcesLocator.TryFindResource("DamagedBrush").Returns(null);
+
+        // Act
+        var result = _sut.Convert(ComponentStatus.Damaged, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Color.ShouldBe(Colors.Orange);
     }
 
     [Fact]
