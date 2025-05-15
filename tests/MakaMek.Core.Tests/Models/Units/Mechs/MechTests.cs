@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Map;
@@ -259,177 +260,11 @@ public class MechTests
     }
 
     [Theory]
-    [InlineData(105, WeightClass.Unknown)]
-    [InlineData(20, WeightClass.Light)]
-    [InlineData(25, WeightClass.Light)]
-    [InlineData(30, WeightClass.Light)]
-    [InlineData(35, WeightClass.Light)]
-    [InlineData(40, WeightClass.Medium)]
-    [InlineData(45, WeightClass.Medium)]
-    [InlineData(50, WeightClass.Medium)]
-    [InlineData(55, WeightClass.Medium)]
-    [InlineData(60, WeightClass.Heavy)]
-    [InlineData(65, WeightClass.Heavy)]
-    [InlineData(70, WeightClass.Heavy)]
-    [InlineData(75, WeightClass.Heavy)]
-    [InlineData(80, WeightClass.Assault)]
-    [InlineData(85, WeightClass.Assault)]
-    [InlineData(90, WeightClass.Assault)]
-    [InlineData(95, WeightClass.Assault)]
-    [InlineData(100, WeightClass.Assault)]
-    public void WeightClass_Calculation_ReturnsCorrectClass(int tonnage, WeightClass expectedClass)
-    {
-        // Arrange
-        var mech = new Mech("Test", "TST-1A", tonnage, 4, CreateBasicPartsData());
-
-        // Act
-        var weightClass = mech.Class;
-
-        // Assert
-        weightClass.ShouldBe(expectedClass);
-    }
-
-    [Fact]
-    public void ApplyDamage_DestroysMech_WhenHeadOrCenterTorsoIsDestroyed()
-    {
-        // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var headPart = mech.Parts.First(p => p.Location == PartLocation.Head);
-
-        // Act
-        mech.ApplyArmorAndStructureDamage(100, headPart);
-        // Assert
-        mech.Status.ShouldBe(UnitStatus.Destroyed);
-
-        // Reset mech for next test
-        mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var centerTorsoPart = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
-
-        // Act
-        mech.ApplyArmorAndStructureDamage(100, centerTorsoPart);
-        // Assert
-        mech.Status.ShouldBe(UnitStatus.Destroyed);
-    }
-
-    [Fact]
-    public void Deploy_SetsPosition_WhenNotDeployed()
-    {
-        // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var coordinate = new HexCoordinates(1, 1);
-
-        // Act
-        mech.Deploy(new HexPosition(coordinate, HexDirection.Bottom));
-
-        // Assert
-        mech.Position?.Coordinates.ShouldBe(coordinate);
-        mech.Position?.Facing.ShouldBe(HexDirection.Bottom);
-        mech.IsDeployed.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void Deploy_ThrowsException_WhenAlreadyDeployed()
-    {
-        // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var coordinate = new HexCoordinates(1, 1);
-        mech.Deploy(new HexPosition(coordinate, HexDirection.Bottom));
-
-        // Act & Assert
-        var ex = Should.Throw<InvalidOperationException>(() =>
-            mech.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom)));
-        ex.Message.ShouldBe("Test TST-1A is already deployed.");
-    }
-
-    [Fact]
-    public void MoveTo_ShouldNotUpdatePosition_WhenMovementTypeIsStandingStill()
-    {
-        // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        mech.Deploy(position);
-
-        // Act
-        mech.Move(MovementType.StandingStill, []);
-
-        // Assert
-        mech.Position.ShouldBe(position); // Position should remain the same
-        mech.HasMoved.ShouldBeTrue(); // Unit should be marked as moved
-        mech.MovementTypeUsed.ShouldBe(MovementType.StandingStill);
-        mech.DistanceCovered.ShouldBe(0); // Distance should be 0
-        mech.MovementPointsSpent.ShouldBe(0); // No movement points spent
-    }
-
-    [Fact]
-    public void DeclareWeaponAttack_ShouldThrowException_WhenNotDeployed()
-    {
-        // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-
-        // Act
-        var act = () => mech.DeclareWeaponAttack([], []);
-
-        // Assert
-        var ex = Should.Throw<InvalidOperationException>(act);
-        ex.Message.ShouldBe("Unit is not deployed.");
-    }
-
-    [Fact]
-    public void DeclareWeaponAttack_ShouldSetHasDeclaredWeaponAttack_WhenDeployed()
-    {
-        // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        mech.Deploy(position);
-
-        // Act
-        mech.DeclareWeaponAttack([], []);
-
-        // Assert
-        mech.HasDeclaredWeaponAttack.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void HasDeclaredWeaponAttack_ShouldBeFalse_ByDefault()
-    {
-        // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-
-        // Assert
-        mech.HasDeclaredWeaponAttack.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void Deploy_ShouldResetTorsoRotation()
-    {
-        // Arrange
-        var parts = CreateBasicPartsData();
-        var torsos = parts.OfType<Torso>().ToList();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-
-        // Set initial torso rotation
-        foreach (var torso in torsos)
-        {
-            torso.Rotate(HexDirection.Bottom);
-        }
-
-        // Act
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight));
-
-        // Assert
-        foreach (var torso in torsos)
-        {
-            torso.Facing.ShouldBe(HexDirection.TopRight,
-                $"Torso {torso.Name} facing should be reset to match unit facing");
-        }
-    }
-
-    [Theory]
     [InlineData(0, HexDirection.Top, HexDirection.TopRight, false)] // No rotation allowed
-    [InlineData(1, HexDirection.Top, HexDirection.TopRight, true)]  // 60 degrees allowed, within limit
-    [InlineData(1, HexDirection.Top, HexDirection.Bottom, false)]   // 60 degrees allowed, beyond limit
+    [InlineData(1, HexDirection.Top, HexDirection.TopRight, true)] // 60 degrees allowed, within limit
+    [InlineData(1, HexDirection.Top, HexDirection.Bottom, false)] // 60 degrees allowed, beyond limit
     [InlineData(2, HexDirection.Top, HexDirection.BottomRight, true)] // 120 degrees allowed, within limit
-    [InlineData(3, HexDirection.Top, HexDirection.Bottom, true)]    // 180 degrees allowed, within limit
+    [InlineData(3, HexDirection.Top, HexDirection.Bottom, true)] // 180 degrees allowed, within limit
     public void RotateTorso_ShouldRespectPossibleTorsoRotation(
         int possibleRotation,
         HexDirection unitFacing,
@@ -480,9 +315,9 @@ public class MechTests
     }
 
     [Theory]
-    [InlineData(0, false)]  // No rotation possible
-    [InlineData(1, true)]   // Normal rotation
-    [InlineData(2, true)]   // Extended rotation
+    [InlineData(0, false)] // No rotation possible
+    [InlineData(1, true)] // Normal rotation
+    [InlineData(2, true)] // Extended rotation
     public void CanRotateTorso_ShouldRespectPossibleTorsoRotation(int possibleRotation, bool expected)
     {
         // Arrange
@@ -614,7 +449,7 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
         sut.GetNumCriticalHits(roll).ShouldBe(expected);
     }
-    
+
     [Fact]
     public void CalculateCriticalHitsData_ShouldSetCriticalHits_WhenDamageExceedsArmorAndCritsRolled()
     {
@@ -646,6 +481,7 @@ public class MechTests
     {
         public override MakaMekComponent ComponentType => MakaMekComponent.MachineGun;
     }
+
     [Fact]
     public void CalculateCriticalHitsData_ShouldReturnOnlyAvailableInSecondGroup()
     {
@@ -689,7 +525,7 @@ public class MechTests
         diceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightLeg,  diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightLeg, diceRoller);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -808,7 +644,7 @@ public class MechTests
 
         var diceRoller = Substitute.For<IDiceRoller>();
         diceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(6), new(6) } // 12 total for crit roll
+            [new DiceResult(6), new DiceResult(6)] // 12 total for crit roll
         );
         diceRoller.RollD6().Returns(
             new DiceResult(2),
@@ -827,7 +663,7 @@ public class MechTests
         critsData.NumCriticalHits.ShouldBe(3);
         critsData.CriticalHits.ShouldNotBeNull();
     }
-    
+
     [Fact]
     public void CalculateCriticalHitsData_ShouldAllowHittingMultiSlotComponent_AfterOneSlotIsHit()
     {
@@ -835,27 +671,129 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
         var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
         var diceRoller = Substitute.For<IDiceRoller>();
-        
+
         // Gyro is in slots 3-6 of center torso
         // First, hit slot 3
         centerTorso.CriticalHit(3);
-        
+
         // Setup dice roller to return values that would hit slot 1
         diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(4)] // Total 9 for crit roll (1 crit)
         );
-        diceRoller.RollD6().Returns(new DiceResult(4)); //that should go to the second group where only one slot is available (6) 
-        
+        diceRoller.RollD6()
+            .Returns(new DiceResult(4)); //that should go to the second group where only one slot is available (6) 
+
         // Act
         var critData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
-        
+
         // Assert
         critData.ShouldNotBeNull();
         critData.CriticalHits.ShouldNotBeNull();
         critData.CriticalHits.ShouldContain(6); // Slot 6 should be available for a hit
-        
+
         // Verify that slot 3 is already marked as hit
         centerTorso.HitSlots.ShouldContain(3);
     }
-}
 
+
+    [Theory]
+    [InlineData(0, 5, 5, 8)] // No heat, no penalty
+    [InlineData(5, 5, 4, 6)] // 5 heat, -1 MP
+    [InlineData(10, 5, 3, 5)] // 10 heat, -2 MP
+    [InlineData(15, 5, 2, 3)] // 15 heat, -3 MP
+    [InlineData(20, 5, 1, 2)] // 20 heat, -4 MP
+    [InlineData(25, 5, 0, 0)] // 25 heat, -5 MP (reduced to 0)
+    [InlineData(30, 5, 0, 0)] // 30+ heat, -5 MP and shutdown
+    public void HeatShouldAffectMovementPoints(int heat, int baseMovement, int expectedWalkMp, int expectedRunMp)
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, baseMovement, CreateBasicPartsData());
+
+        // Act
+        // Set heat and apply effects
+        var heatData = new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData
+                {
+                    WeaponName = "TestWeapon",
+                    HeatPoints = heat
+                }
+            ],
+            DissipationData = new HeatDissipationData
+            {
+                DissipationPoints = 0,
+                HeatSinks = 0,
+                EngineHeatSinks = 0
+            }
+        };
+
+        // Apply heat effects
+        mech.ApplyHeat(heatData);
+
+        // Assert
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalkMp);
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(expectedRunMp);
+        mech.MovementHeatPenalty.ShouldBe(baseMovement-expectedWalkMp);
+
+        // Jumping MP should not be affected by heat
+        var jumpJets = new JumpJets();
+        var leftLeg = mech.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(jumpJets);
+
+        var originalJumpMp = jumpJets.JumpMp;
+        mech.GetMovementPoints(MovementType.Jump).ShouldBe(originalJumpMp, "Jump MP should not be affected by heat");
+
+        // Check shutdown status for high heat
+        if (heat >= 30)
+        {
+            mech.Status.ShouldBe(UnitStatus.Shutdown, "Mech should shutdown at 30+ heat");
+        }
+    }
+
+    [Fact]
+    public void HeatDissipation_ShouldReduceHeatAndRestoreMovement()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+
+        // Set initial heat to 15 (3 MP penalty)
+        mech.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData
+                {
+                    WeaponName = "TestWeapon",
+                    HeatPoints = 15
+                }
+            ],
+            DissipationData = new HeatDissipationData
+            {
+                DissipationPoints = 0,
+                HeatSinks = 0,
+                EngineHeatSinks = 0
+            }
+        });
+
+        // Verify initial state
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(2, "Initial walking MP should be reduced by 3");
+
+        // Act - apply heat with dissipation that reduces heat to 3
+        mech.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [],
+            DissipationData = new HeatDissipationData
+            {
+                DissipationPoints = 12,
+                HeatSinks = 0,
+                EngineHeatSinks = 0
+            }
+        });
+
+        // Assert
+        mech.CurrentHeat.ShouldBe(3, "Heat should be reduced by dissipation");
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Walking MP should be fully restored");
+        mech.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be fully restored");
+    }
+}

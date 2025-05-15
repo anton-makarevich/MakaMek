@@ -60,16 +60,17 @@ public abstract class Unit
     // Base movement (walking)
     protected int BaseMovement { get; }
     
+    // Modified movement after applying effects (defaults to base movement)
+    protected int ModifiedMovement => BaseMovement - MovementHeatPenalty;
+    
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType type)
     {
         return type switch
         {
-            MovementType.Walk => BaseMovement,
-            MovementType.Run => (int)Math.Ceiling(BaseMovement * 1.5),
+            MovementType.Walk => ModifiedMovement,
+            MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
             MovementType.Jump => GetAllComponents<JumpJets>().Sum(j => j.JumpMp),
-            MovementType.Sprint => BaseMovement * 2,
-            MovementType.Masc => HasAvailableComponent<Masc>() ? BaseMovement * 2 : (int)(BaseMovement * 1.5),
             _ => 0
         };
     }
@@ -540,7 +541,8 @@ public abstract class Unit
     // UI events queue for unit events (damage, etc.)
     public IReadOnlyCollection<UiEvent> Notifications => _notifications.ToArray();
     public IReadOnlyList<UiEvent> Events => _events;
-    
+    public virtual int MovementHeatPenalty => 0;
+
     /// <summary>
     /// Adds an event to the unit's events queue
     /// </summary>

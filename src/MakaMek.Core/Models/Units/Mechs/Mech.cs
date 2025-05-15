@@ -104,8 +104,21 @@ public class Mech : Unit
             // Chance to shut down, ammo explosion, etc.
             // To be implemented
         }
+        
+        // Movement penalties are calculated on-demand in ModifiedMovement
     }
-
+    
+    // Calculate movement penalty based on current heat
+    public override int MovementHeatPenalty=> CurrentHeat switch
+        {
+            >= 25 => 5,
+            >= 20 => 4,
+            >= 15 => 3,
+            >= 10 => 2,
+            >= 5 => 1,
+            _ => 0
+        };
+    
     public override int CalculateBattleValue()
     {
         var bv = Tonnage * 100; // Base value
