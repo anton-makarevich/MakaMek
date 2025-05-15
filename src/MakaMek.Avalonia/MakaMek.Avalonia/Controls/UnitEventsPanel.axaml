@@ -15,8 +15,8 @@
         <ItemsControl ItemsSource="{Binding SelectedUnitEvents}" Margin="10">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding FormattedText}" 
-                               Classes="body"
+                    <TextBlock Margin="5" Padding="5" Text="{Binding FormattedText}" 
+                               Classes="bodyLarge"
                                Background="{Binding Type, Converter={StaticResource EventTypeToBackgroundConverter}}"/>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
