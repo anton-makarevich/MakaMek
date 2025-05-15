@@ -1398,7 +1398,7 @@ public class UnitTests
         // Assert
         // Dequeue all events and check for explosion event
         var foundExplosionEvent = false;
-        while (unit.DequeueEvent() is { } uiEvent)
+        while (unit.DequeueNotification() is { } uiEvent)
         {
             if (uiEvent.Type == UiEventType.Explosion && uiEvent.Parameters[0] == "LRM-5 Ammo")
             {
@@ -1434,7 +1434,7 @@ public class UnitTests
         
         // Dequeue all events and check for unit destroyed event
         bool foundUnitDestroyedEvent = false;
-        while (unit.DequeueEvent() is { } uiEvent)
+        while (unit.DequeueNotification() is { } uiEvent)
         {
             if (uiEvent.Type == UiEventType.UnitDestroyed && uiEvent.Parameters[0] == unit.Name)
             {
@@ -1456,10 +1456,10 @@ public class UnitTests
         // Act
         unit.AddEvent(testEvent);
         
-        
         // Assert
+        unit.Notifications.Count.ShouldBe(1);
         unit.Events.Count.ShouldBe(1);
-        var dequeuedEvent = unit.DequeueEvent();
+        var dequeuedEvent = unit.DequeueNotification();
         dequeuedEvent.ShouldNotBeNull();
         dequeuedEvent.Type.ShouldBe(UiEventType.ArmorDamage);
         dequeuedEvent.Parameters.Length.ShouldBe(2);
@@ -1468,7 +1468,7 @@ public class UnitTests
     }
     
     [Fact]
-    public void DequeueEvent_ShouldReturnEventsInOrder()
+    public void DequeueNotification_ShouldReturnEventsInOrder()
     {
         // Arrange
         var unit = CreateTestUnit();
@@ -1481,10 +1481,10 @@ public class UnitTests
         unit.AddEvent(event2);
         unit.AddEvent(event3);
         
-        var dequeuedEvent1 = unit.DequeueEvent();
-        var dequeuedEvent2 = unit.DequeueEvent();
-        var dequeuedEvent3 = unit.DequeueEvent();
-        var dequeuedEvent4 = unit.DequeueEvent(); // Should be null
+        var dequeuedEvent1 = unit.DequeueNotification();
+        var dequeuedEvent2 = unit.DequeueNotification();
+        var dequeuedEvent3 = unit.DequeueNotification();
+        var dequeuedEvent4 = unit.DequeueNotification(); // Should be null
         
         // Assert
         dequeuedEvent1.ShouldNotBeNull();
@@ -1500,6 +1500,23 @@ public class UnitTests
     }
     
     [Fact]
+    public void DequeueNotification_ShouldRemoveNotifications_ButKeepEvents()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var event1 = new UiEvent(UiEventType.ArmorDamage, "Location1", "5");
+        
+        // Act
+        unit.AddEvent(event1);
+
+        unit.DequeueNotification();
+
+        // Assert
+        unit.Notifications.Count.ShouldBe(0);
+        unit.Events.Count.ShouldBe(1);
+    }
+
+    [Fact]
     public void ClearEvents_ShouldRemoveAllEvents()
     {
         // Arrange
@@ -1509,10 +1526,28 @@ public class UnitTests
         
         // Act
         unit.ClearEvents();
-        var dequeuedEvent = unit.DequeueEvent();
+        var dequeuedEvent = unit.DequeueNotification();
         
         // Assert
+        unit.Notifications.Count.ShouldBe(0);
+        unit.Events.Count.ShouldBe(0);
         dequeuedEvent.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResetTurnState_ShouldClearEvents()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        unit.AddEvent(new UiEvent(UiEventType.ArmorDamage, "Location", "5"));
+        unit.AddEvent(new UiEvent(UiEventType.StructureDamage, "Location", "3"));
+        
+        // Act
+        unit.ResetTurnState();
+        
+        // Assert
+        unit.Notifications.Count.ShouldBe(0);
+        unit.Events.Count.ShouldBe(0);
     }
     
     // Helper class for testing explodable components

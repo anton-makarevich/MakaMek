@@ -171,7 +171,7 @@ public class TorsoTests
         torso.ApplyDamage(5, HitDirection.Rear);
 
         // Assert
-        var uiEvent = unit.DequeueEvent();
+        var uiEvent = unit.DequeueNotification();
         uiEvent.ShouldNotBeNull();
         uiEvent.Type.ShouldBe(UiEventType.ArmorDamage);
         uiEvent.Parameters.Length.ShouldBe(2);
@@ -193,8 +193,8 @@ public class TorsoTests
         torso.ApplyDamage(15, HitDirection.Rear);
 
         // Assert
-        unit.Events.Count.ShouldBe(2); //10 armor damage + 5 structure damage
-        var uiEvent = unit.DequeueEvent();
+        unit.Notifications.Count.ShouldBe(2); //10 armor damage + 5 structure damage
+        var uiEvent = unit.DequeueNotification();
         uiEvent.ShouldNotBeNull();
         uiEvent.Type.ShouldBe(UiEventType.ArmorDamage);
         uiEvent.Parameters.Length.ShouldBe(2);
