@@ -3,9 +3,7 @@ using System.Linq;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
-using Avalonia.Media;
 using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Avalonia.Controls
@@ -69,40 +67,16 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
         }
 
-        public static readonly DirectProperty<DirectionSelector,string> ForegroundProperty =
+        public new static readonly DirectProperty<DirectionSelector,string> ForegroundProperty =
             AvaloniaProperty.RegisterDirect<DirectionSelector, string>(nameof(Foreground),
                 o=> o.Foreground,
                 (o, v) => o.Foreground = v);
 
-        private string _foreground; 
-        public string Foreground
+        private string _foreground = "#FFFFFF"; 
+        public new string Foreground
         {
             get => _foreground;
             set => SetAndRaise(ForegroundProperty, ref _foreground, value);
-        }
-
-        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-        {
-            base.OnPropertyChanged(change);
-
-            if (change.Property != ForegroundProperty) return;
-            if (string.IsNullOrEmpty(Foreground)) return;
-       
-            var color = Color.Parse(Foreground);
-            var brush = new SolidColorBrush(color);
-            
-            if (TopButton?.Content is Path topPath)
-                topPath.Fill = brush;
-            if (TopRightButton?.Content is Path topRightPath)
-                topRightPath.Fill = brush;
-            if (BottomRightButton?.Content is Path bottomRightPath)
-                bottomRightPath.Fill = brush;
-            if (BottomButton?.Content is Path bottomPath)
-                bottomPath.Fill = brush;
-            if (BottomLeftButton?.Content is Path bottomLeftPath)
-                bottomLeftPath.Fill = brush;
-            if (TopLeftButton?.Content is Path topLeftPath)
-                topLeftPath.Fill = brush;
         }
 
         public bool HandleInteraction(Point position)
