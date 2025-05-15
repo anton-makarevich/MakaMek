@@ -6,7 +6,7 @@ A cross-platform implementation of turn-based tabletop tactics BattleTech, built
 
 MakaMek is an open-source tactical combat game featuring giant walking war machines. The game is inspired by another computer implementation of BattleTech called [MegaMek](https://megamek.org/) but focusing on simplicity and accessibility for all players. We aim to keep gameplay simple and prioritize a mobile-first and web-first user experience.
 
-![MakaMek](docs/screenshots/win/240425.png)
+![MakaMek](docs/screenshots/win/150525.png)
 
 ## Features
 ### Implemented
@@ -75,9 +75,6 @@ MakaMek/
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-The [Windsurf/Cascade](https://codeium.com/refer?referral_code=a7584e79ff) AI workflow from Codeium is dramatically accelerating development of MakaMek.
-Try it out for yourself using the link above!
 
 ## License
 
