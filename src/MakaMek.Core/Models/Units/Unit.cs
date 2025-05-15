@@ -97,8 +97,10 @@ public abstract class Unit
     // Heat management
     public int CurrentHeat { get; protected set; }
     public int HeatDissipation => GetAvailableComponents<HeatSink>().Sum(hs => hs.HeatDissipation)
-                                  +10; // Engine heat sinks
-    
+                                  + EngineHeatSinks; // Engine heat sinks
+
+    public virtual int EngineHeatSinks => 0;
+
     /// <summary>
     /// Calculates and returns heat data for this unit
     /// </summary>
