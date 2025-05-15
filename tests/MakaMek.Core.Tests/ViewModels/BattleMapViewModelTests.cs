@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
@@ -1598,5 +1599,42 @@ public class BattleMapViewModelTests
         
         // Assert - we expect action label for End phase
         result.ShouldBe("End turn");
+    }
+
+    [Fact]
+    public void SelectedUnit_WhenSetWithEvents_ShouldUpdateSelectedUnitEvents()
+    {
+        // Arrange
+        var unitId = Guid.NewGuid();
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = unitId;
+        
+        var player = new Player(Guid.NewGuid(), "Player1");
+        _game.JoinGameWithUnits(player, [unitData]);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = player.Tint
+        });
+        
+        var unit = _game.Players[0].Units[0];
+        
+        // Add some events to the unit
+        var damageEvent = new UiEvent(UiEventType.ArmorDamage, "10");
+        var explosionEvent = new UiEvent(UiEventType.Explosion, "Ammo");
+        unit.AddEvent(damageEvent);
+        unit.AddEvent(explosionEvent);
+        
+        // Act
+        _sut.SelectedUnit = unit;
+        
+        // Assert
+        _sut.SelectedUnitEvents.ShouldNotBeNull();
+        _sut.SelectedUnitEvents.Count.ShouldBe(2);
+        _sut.SelectedUnitEvents[0].Type.ShouldBe(UiEventType.ArmorDamage);
+        _sut.SelectedUnitEvents[1].Type.ShouldBe(UiEventType.Explosion);
     }
 }
