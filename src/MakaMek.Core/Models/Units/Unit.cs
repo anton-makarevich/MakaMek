@@ -71,8 +71,6 @@ public abstract class Unit
             MovementType.Walk => ModifiedMovement,
             MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
             MovementType.Jump => GetAllComponents<JumpJets>().Sum(j => j.JumpMp),
-            MovementType.Sprint => ModifiedMovement * 2,
-            MovementType.Masc => HasAvailableComponent<Masc>() ? ModifiedMovement * 2 : (int)(ModifiedMovement * 1.5),
             _ => 0
         };
     }
