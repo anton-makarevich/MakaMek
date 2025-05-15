@@ -734,6 +734,7 @@ public class MechTests
         // Assert
         mech.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalkMp);
         mech.GetMovementPoints(MovementType.Run).ShouldBe(expectedRunMp);
+        mech.MovementHeatPenalty.ShouldBe(baseMovement-expectedWalkMp);
 
         // Jumping MP should not be affected by heat
         var jumpJets = new JumpJets();

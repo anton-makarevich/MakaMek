@@ -109,9 +109,7 @@ public class Mech : Unit
     }
     
     // Calculate movement penalty based on current heat
-    private int CalculateMovementPenalty()
-    {
-        return CurrentHeat switch
+    public override int MovementHeatPenalty=> CurrentHeat switch
         {
             >= 25 => 5,
             >= 20 => 4,
@@ -120,11 +118,7 @@ public class Mech : Unit
             >= 5 => 1,
             _ => 0
         };
-    }
-
-    // Override ModifiedMovement to apply heat penalties
-    protected override int ModifiedMovement => Math.Max(0, BaseMovement - CalculateMovementPenalty());
-
+    
     public override int CalculateBattleValue()
     {
         var bv = Tonnage * 100; // Base value
