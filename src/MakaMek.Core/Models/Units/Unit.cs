@@ -60,16 +60,19 @@ public abstract class Unit
     // Base movement (walking)
     protected int BaseMovement { get; }
     
+    // Modified movement after applying effects (defaults to base movement)
+    protected virtual int ModifiedMovement => BaseMovement;
+    
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType type)
     {
         return type switch
         {
-            MovementType.Walk => BaseMovement,
-            MovementType.Run => (int)Math.Ceiling(BaseMovement * 1.5),
+            MovementType.Walk => ModifiedMovement,
+            MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
             MovementType.Jump => GetAllComponents<JumpJets>().Sum(j => j.JumpMp),
-            MovementType.Sprint => BaseMovement * 2,
-            MovementType.Masc => HasAvailableComponent<Masc>() ? BaseMovement * 2 : (int)(BaseMovement * 1.5),
+            MovementType.Sprint => ModifiedMovement * 2,
+            MovementType.Masc => HasAvailableComponent<Masc>() ? ModifiedMovement * 2 : (int)(ModifiedMovement * 1.5),
             _ => 0
         };
     }
