@@ -39,6 +39,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly Path _destroyedCross;
         private readonly StackPanel _eventsPanel;
         private readonly TimeSpan _eventDisplayDuration = TimeSpan.FromSeconds(5);
+        private readonly IAvaloniaResourcesLocator _resourcesLocator = new AvaloniaResourcesLocator();
 
         public UnitControl(Unit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel)
         {
@@ -106,9 +107,9 @@ namespace Sanet.MakaMek.Avalonia.Controls
             };
 
             // Get colors from resources with fallbacks
-            var armorBrush = AvaloniaResourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush
+            var armorBrush = _resourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush
                              ?? new SolidColorBrush(Colors.LightBlue);
-            var structureBrush = AvaloniaResourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
+            var structureBrush = _resourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
                                  ?? new SolidColorBrush(Colors.Orange);
             var backgroundBrush = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0));
 
@@ -417,12 +418,12 @@ namespace Sanet.MakaMek.Avalonia.Controls
         {
             return uiEventType switch
             {
-                UiEventType.ArmorDamage => AvaloniaResourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush
+                UiEventType.ArmorDamage => _resourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush
                                            ?? new SolidColorBrush(Colors.LightBlue),
                 UiEventType.StructureDamage =>
-                    AvaloniaResourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
+                    _resourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
                     ?? new SolidColorBrush(Colors.Orange),
-                _ => AvaloniaResourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush
+                _ => _resourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush
                      ?? new SolidColorBrush(Colors.Red)
             };
         }
@@ -459,8 +460,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private async Task AnimateDamageLabel(TextBlock label)
         {
             // Get the animation from resources
-            var animation = AvaloniaResourcesLocator.TryFindResource("DamageLabelAnimation") as Animation;
-            if (animation != null)
+            if (_resourcesLocator.TryFindResource("DamageLabelAnimation") is Animation animation)
             {
                 // Start the animation and await its completion
                 await animation.RunAsync(label);

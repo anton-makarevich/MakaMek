@@ -12,17 +12,35 @@ namespace Sanet.MakaMek.Avalonia.Converters
     /// </summary>
     public class EventTypeToBackgroundConverter : IValueConverter
     {
+        private readonly IAvaloniaResourcesLocator _resourcesLocator;
+
+        /// <summary>
+        /// Creates a new instance of EventTypeToBackgroundConverter with a specific resources locator
+        /// </summary>
+        /// <param name="resourcesLocator">The resource locator to use</param>
+        public EventTypeToBackgroundConverter(IAvaloniaResourcesLocator resourcesLocator)
+        {
+            _resourcesLocator = resourcesLocator;
+        }
+
+        /// <summary>
+        /// Creates a new instance of EventTypeToBackgroundConverter with the default resources locator
+        /// </summary>
+        public EventTypeToBackgroundConverter() : this(new AvaloniaResourcesLocator())
+        {
+        }
+
         public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is UiEventType eventType)
             {
                 return eventType switch
                 {
-                    UiEventType.ArmorDamage => AvaloniaResourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush
+                    UiEventType.ArmorDamage => _resourcesLocator.TryFindResource("MechArmorBrush") as SolidColorBrush
                                                ?? new SolidColorBrush(Colors.LightBlue),
-                    UiEventType.StructureDamage => AvaloniaResourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
+                    UiEventType.StructureDamage => _resourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
                                                   ?? new SolidColorBrush(Colors.Orange),
-                    _ => AvaloniaResourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush
+                    _ => _resourcesLocator.TryFindResource("DestroyedColor") as SolidColorBrush
                                                 ?? new SolidColorBrush(Colors.Red)
                 };
             }
