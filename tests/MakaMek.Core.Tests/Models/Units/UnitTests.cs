@@ -1578,6 +1578,14 @@ public class UnitTests
         sut.CurrentHeat.ShouldBe(15);
         sut.MovementHeatPenalty.ShouldBe(0);
     }
+
+    [Fact]
+    private void EngineHeatSinks_ShouldBeZero_ByDefault()
+    {
+        var sut = CreateTestUnit();
+        
+        sut.EngineHeatSinks.ShouldBe(0);
+    }
     
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)

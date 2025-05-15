@@ -12,7 +12,7 @@
             <converters:ComponentStatusBackgroundConverter x:Key="ComponentStatusBackgroundConverter"/>
             <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter"/>
             <converters:ContrastingForegroundConverter x:Key="ContrastingForegroundConverter"/>
-            <converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
+            <converters:GreaterThanValueConverter x:Key="GreaterThanValueConverter"/>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Colors.axaml"/>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Animations.axaml"/>

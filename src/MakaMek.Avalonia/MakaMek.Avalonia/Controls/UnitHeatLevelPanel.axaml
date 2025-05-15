@@ -26,16 +26,9 @@
                      VerticalAlignment="Center"/>
         </Grid>
         <!-- Movement Heat Penalty Tag -->
-        <Border IsVisible="{Binding MovementHeatPenalty, Converter={StaticResource GreaterThanZeroConverter}}"
-                Background="#FF5555"
-                CornerRadius="4"
-                Padding="5,2"
-                HorizontalAlignment="Left"
-                Margin="0,-5,0,5">
-            <TextBlock Text="{Binding MovementHeatPenalty, StringFormat='MP -{0}'}"
-                     Foreground="White"
-                     FontSize="12"
-                     FontWeight="Bold"/>
+        <Border IsVisible="{Binding MovementHeatPenalty, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"
+                Classes="statusTag">
+            <TextBlock Text="{Binding MovementHeatPenalty, StringFormat='MP -{0}'}"/>
         </Border>
     </StackPanel>
 </UserControl>

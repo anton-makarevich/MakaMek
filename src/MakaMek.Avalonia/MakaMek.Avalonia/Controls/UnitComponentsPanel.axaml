@@ -10,7 +10,6 @@
     <UserControl.Resources>
         <converters:SlotsRangeConverter x:Key="SlotsRangeConverter"/>
         <converters:ComponentHitsConverter x:Key="ComponentHitsConverter"/>
-        <converters:GreaterThanOneConverter x:Key="GreaterThanOneConverter"/>
     </UserControl.Resources>
     <Grid ColumnDefinitions="6*,2*,2*,3*" RowDefinitions="Auto,*" Margin="5">
         <TextBlock Grid.Column="0" Text="Component" Classes="h4"/>
@@ -44,7 +43,7 @@
                                                            Classes="bodySmall" Margin="5,0"
                                                            VerticalAlignment="Center"
                                                            HorizontalAlignment="Center"
-                                                           IsVisible="{Binding HealthPoints, Converter={StaticResource GreaterThanOneConverter}}"/>
+                                                           IsVisible="{Binding HealthPoints, Converter={StaticResource GreaterThanValueConverter}}"/>
                                                 <TextBlock Grid.Column="3"
                                                            Text="{Binding Status}" 
                                                            Classes="bodySmall" Margin="5,0"
