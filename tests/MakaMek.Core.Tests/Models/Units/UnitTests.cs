@@ -68,7 +68,6 @@ public class UnitTests
 
         protected override void ApplyHeatEffects()
         {
-            throw new NotImplementedException();
         }
         
         internal override void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart)
@@ -1450,16 +1449,16 @@ public class UnitTests
     public void AddEvent_ShouldAddEventToQueue()
     {
         // Arrange
-        var unit = CreateTestUnit();
+        var sut = CreateTestUnit();
         var testEvent = new UiEvent(UiEventType.ArmorDamage, "TestLocation", "5");
         
         // Act
-        unit.AddEvent(testEvent);
+        sut.AddEvent(testEvent);
         
         // Assert
-        unit.Notifications.Count.ShouldBe(1);
-        unit.Events.Count.ShouldBe(1);
-        var dequeuedEvent = unit.DequeueNotification();
+        sut.Notifications.Count.ShouldBe(1);
+        sut.Events.Count.ShouldBe(1);
+        var dequeuedEvent = sut.DequeueNotification();
         dequeuedEvent.ShouldNotBeNull();
         dequeuedEvent.Type.ShouldBe(UiEventType.ArmorDamage);
         dequeuedEvent.Parameters.Length.ShouldBe(2);
@@ -1471,20 +1470,20 @@ public class UnitTests
     public void DequeueNotification_ShouldReturnEventsInOrder()
     {
         // Arrange
-        var unit = CreateTestUnit();
+        var sut = CreateTestUnit();
         var event1 = new UiEvent(UiEventType.ArmorDamage, "Location1", "5");
         var event2 = new UiEvent(UiEventType.StructureDamage, "Location2", "3");
         var event3 = new UiEvent(UiEventType.CriticalHit, "Component");
         
         // Act
-        unit.AddEvent(event1);
-        unit.AddEvent(event2);
-        unit.AddEvent(event3);
+        sut.AddEvent(event1);
+        sut.AddEvent(event2);
+        sut.AddEvent(event3);
         
-        var dequeuedEvent1 = unit.DequeueNotification();
-        var dequeuedEvent2 = unit.DequeueNotification();
-        var dequeuedEvent3 = unit.DequeueNotification();
-        var dequeuedEvent4 = unit.DequeueNotification(); // Should be null
+        var dequeuedEvent1 = sut.DequeueNotification();
+        var dequeuedEvent2 = sut.DequeueNotification();
+        var dequeuedEvent3 = sut.DequeueNotification();
+        var dequeuedEvent4 = sut.DequeueNotification(); // Should be null
         
         // Assert
         dequeuedEvent1.ShouldNotBeNull();
@@ -1503,34 +1502,34 @@ public class UnitTests
     public void DequeueNotification_ShouldRemoveNotifications_ButKeepEvents()
     {
         // Arrange
-        var unit = CreateTestUnit();
+        var sut = CreateTestUnit();
         var event1 = new UiEvent(UiEventType.ArmorDamage, "Location1", "5");
         
         // Act
-        unit.AddEvent(event1);
+        sut.AddEvent(event1);
 
-        unit.DequeueNotification();
+        sut.DequeueNotification();
 
         // Assert
-        unit.Notifications.Count.ShouldBe(0);
-        unit.Events.Count.ShouldBe(1);
+        sut.Notifications.Count.ShouldBe(0);
+        sut.Events.Count.ShouldBe(1);
     }
 
     [Fact]
     public void ClearEvents_ShouldRemoveAllEvents()
     {
         // Arrange
-        var unit = CreateTestUnit();
-        unit.AddEvent(new UiEvent(UiEventType.ArmorDamage, "Location", "5"));
-        unit.AddEvent(new UiEvent(UiEventType.StructureDamage, "Location", "3"));
+        var sut = CreateTestUnit();
+        sut.AddEvent(new UiEvent(UiEventType.ArmorDamage, "Location", "5"));
+        sut.AddEvent(new UiEvent(UiEventType.StructureDamage, "Location", "3"));
         
         // Act
-        unit.ClearEvents();
-        var dequeuedEvent = unit.DequeueNotification();
+        sut.ClearEvents();
+        var dequeuedEvent = sut.DequeueNotification();
         
         // Assert
-        unit.Notifications.Count.ShouldBe(0);
-        unit.Events.Count.ShouldBe(0);
+        sut.Notifications.Count.ShouldBe(0);
+        sut.Events.Count.ShouldBe(0);
         dequeuedEvent.ShouldBeNull();
     }
 
@@ -1538,16 +1537,46 @@ public class UnitTests
     public void ResetTurnState_ShouldClearEvents()
     {
         // Arrange
-        var unit = CreateTestUnit();
-        unit.AddEvent(new UiEvent(UiEventType.ArmorDamage, "Location", "5"));
-        unit.AddEvent(new UiEvent(UiEventType.StructureDamage, "Location", "3"));
+        var sut = CreateTestUnit();
+        sut.AddEvent(new UiEvent(UiEventType.ArmorDamage, "Location", "5"));
+        sut.AddEvent(new UiEvent(UiEventType.StructureDamage, "Location", "3"));
         
         // Act
-        unit.ResetTurnState();
+        sut.ResetTurnState();
         
         // Assert
-        unit.Notifications.Count.ShouldBe(0);
-        unit.Events.Count.ShouldBe(0);
+        sut.Notifications.Count.ShouldBe(0);
+        sut.Events.Count.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void HeatDissipation_ShouldReduceHeatAndRestoreMovement()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+
+        // Set initial heat to 15 (3 MP penalty)
+        sut.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData
+                {
+                    WeaponName = "TestWeapon",
+                    HeatPoints = 15
+                }
+            ],
+            DissipationData = new HeatDissipationData
+            {
+                DissipationPoints = 0,
+                HeatSinks = 0,
+                EngineHeatSinks = 0
+            }
+        });
+
+        // Assert
+        // Verify no heat penalty for base unit
+        sut.CurrentHeat.ShouldBe(15);
+        sut.MovementHeatPenalty.ShouldBe(0);
     }
     
     // Helper class for testing explodable components

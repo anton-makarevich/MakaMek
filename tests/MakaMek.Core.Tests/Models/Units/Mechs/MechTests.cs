@@ -757,11 +757,6 @@ public class MechTests
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
 
-        // Add heat sinks
-        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        centerTorso.TryAddComponent(new HeatSink());
-        centerTorso.TryAddComponent(new HeatSink());
-
         // Set initial heat to 15 (3 MP penalty)
         mech.ApplyHeat(new HeatData
         {
