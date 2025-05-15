@@ -56,10 +56,10 @@ public class EventTypeToBackgroundConverterTests
     {
         // Arrange
         var expectedBrush = new SolidColorBrush(Colors.LightBlue);
-        _resourcesLocator.TryFindResource("MechArmorBrush").Returns(null);
+        var sut = new EventTypeToBackgroundConverter();
 
         // Act
-        var result = _sut.Convert(UiEventType.ArmorDamage, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+        var result = sut.Convert(UiEventType.ArmorDamage, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
 
         // Assert
         result.ShouldNotBeNull();

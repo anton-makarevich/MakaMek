@@ -93,10 +93,10 @@ public class ComponentStatusBackgroundConverterTests
         // Arrange
         var weapon = new TestWeapon();
         weapon.Hit();
-        _resourcesLocator.TryFindResource("DestroyedBrush").Returns(null);
+        var sut = new ComponentStatusBackgroundConverter();
 
         // Act
-        var result = _sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+        var result = sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
 
         // Assert
         result.ShouldNotBeNull();
