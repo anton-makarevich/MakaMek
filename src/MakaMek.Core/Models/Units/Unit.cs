@@ -142,7 +142,7 @@ public abstract class Unit
         
         // Get heat dissipation
         var heatSinks = GetAvailableComponents<HeatSink>().Count();
-        var engineHeatSinks = 10; // Always 10 engine heat sinks
+        var engineHeatSinks = EngineHeatSinks;
         var heatDissipation = HeatDissipation;
         var dissipationData = new HeatDissipationData
         {
