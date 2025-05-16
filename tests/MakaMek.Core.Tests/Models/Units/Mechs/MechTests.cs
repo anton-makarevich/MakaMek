@@ -707,7 +707,7 @@ public class MechTests
     public void HeatShouldAffectMovementPoints(int heat, int baseMovement, int expectedWalkMp, int expectedRunMp)
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, baseMovement, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, baseMovement, CreateBasicPartsData());
 
         // Act
         // Set heat and apply effects
@@ -729,36 +729,44 @@ public class MechTests
         };
 
         // Apply heat effects
-        mech.ApplyHeat(heatData);
+        sut.ApplyHeat(heatData);
 
         // Assert
-        mech.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalkMp);
-        mech.GetMovementPoints(MovementType.Run).ShouldBe(expectedRunMp);
-        mech.MovementHeatPenalty.ShouldBe(baseMovement-expectedWalkMp);
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalkMp);
+        sut.GetMovementPoints(MovementType.Run).ShouldBe(expectedRunMp);
+        sut.MovementHeatPenalty.ShouldBe(baseMovement-expectedWalkMp);
 
         // Jumping MP should not be affected by heat
         var jumpJets = new JumpJets();
-        var leftLeg = mech.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
         leftLeg.TryAddComponent(jumpJets);
 
         var originalJumpMp = jumpJets.JumpMp;
-        mech.GetMovementPoints(MovementType.Jump).ShouldBe(originalJumpMp, "Jump MP should not be affected by heat");
+        sut.GetMovementPoints(MovementType.Jump).ShouldBe(originalJumpMp, "Jump MP should not be affected by heat");
 
         // Check shutdown status for high heat
         if (heat >= 30)
         {
-            mech.Status.ShouldBe(UnitStatus.Shutdown, "Mech should shutdown at 30+ heat");
+            sut.Status.ShouldBe(UnitStatus.Shutdown, "Mech should shutdown at 30+ heat");
         }
+    }
+
+    [Fact]
+    public void EngineHeatSinks_ShouldBeTen()
+    {
+        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        
+        sut.EngineHeatSinks.ShouldBe(10);
     }
 
     [Fact]
     public void HeatDissipation_ShouldReduceHeatAndRestoreMovement()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
 
         // Set initial heat to 15 (3 MP penalty)
-        mech.ApplyHeat(new HeatData
+        sut.ApplyHeat(new HeatData
         {
             MovementHeatSources = [],
             WeaponHeatSources = [new WeaponHeatData
@@ -776,10 +784,10 @@ public class MechTests
         });
 
         // Verify initial state
-        mech.GetMovementPoints(MovementType.Walk).ShouldBe(2, "Initial walking MP should be reduced by 3");
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(2, "Initial walking MP should be reduced by 3");
 
         // Act - apply heat with dissipation that reduces heat to 3
-        mech.ApplyHeat(new HeatData
+        sut.ApplyHeat(new HeatData
         {
             MovementHeatSources = [],
             WeaponHeatSources = [],
@@ -792,8 +800,8 @@ public class MechTests
         });
 
         // Assert
-        mech.CurrentHeat.ShouldBe(3, "Heat should be reduced by dissipation");
-        mech.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Walking MP should be fully restored");
-        mech.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be fully restored");
+        sut.CurrentHeat.ShouldBe(3, "Heat should be reduced by dissipation");
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Walking MP should be fully restored");
+        sut.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be fully restored");
     }
 }

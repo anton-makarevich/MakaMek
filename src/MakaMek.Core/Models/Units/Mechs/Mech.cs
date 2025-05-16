@@ -91,6 +91,8 @@ public class Mech : Unit
         }
     }
 
+    public override int EngineHeatSinks => 10;
+
     protected override void ApplyHeatEffects()
     {
         // Apply effects based on the current heat level

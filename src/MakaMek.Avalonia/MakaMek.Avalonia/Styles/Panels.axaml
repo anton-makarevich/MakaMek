@@ -76,4 +76,19 @@
         <Setter Property="Padding" Value="16"/>
         <Setter Property="BoxShadow" Value="0 4 8 0 #40000000"/>
     </Style>
+    
+    <!-- Status Tag -->
+    <Style Selector="Border.statusTag">
+        <Setter Property="Background" Value="{DynamicResource HeatBrush}"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="5,2"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="Margin" Value="0,-5,0,5"/>
+    </Style>
+    
+    <Style Selector="Border.statusTag > TextBlock">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
 </Styles>

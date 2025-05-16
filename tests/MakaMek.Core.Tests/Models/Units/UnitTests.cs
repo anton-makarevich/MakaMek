@@ -886,7 +886,7 @@ public class UnitTests
         heatData.WeaponHeatSources.ShouldBeEmpty();
         heatData.TotalHeatPoints.ShouldBe(0);
         heatData.DissipationData.HeatSinks.ShouldBe(unit.GetAllComponents<HeatSink>().Count());
-        heatData.DissipationData.EngineHeatSinks.ShouldBe(10); // Default engine heat sinks
+        heatData.DissipationData.EngineHeatSinks.ShouldBe(0); // Default engine heat sinks for base unit (Mech overrides with 10)
         heatData.DissipationData.DissipationPoints.ShouldBe(unit.HeatDissipation);
     }
     
@@ -1013,7 +1013,7 @@ public class UnitTests
         // Assert
         var expectedHeatSinks = unit.GetAllComponents<HeatSink>().Count();
         heatData.DissipationData.HeatSinks.ShouldBe(expectedHeatSinks);
-        heatData.DissipationData.EngineHeatSinks.ShouldBe(10); // Default engine heat sinks
+        heatData.DissipationData.EngineHeatSinks.ShouldBe(0); // Default engine heat sinks for base unit (Mech overrides with 10)
         heatData.DissipationData.DissipationPoints.ShouldBe(unit.HeatDissipation);
         heatData.TotalHeatDissipationPoints.ShouldBe(unit.HeatDissipation);
     }
@@ -1037,12 +1037,12 @@ public class UnitTests
         
         // Assert
         heatData.DissipationData.HeatSinks.ShouldBe(1); //another one is destroyed
-        heatData.DissipationData.EngineHeatSinks.ShouldBe(10); // Default engine heat sinks
-        heatData.DissipationData.DissipationPoints.ShouldBe(11);
+        heatData.DissipationData.EngineHeatSinks.ShouldBe(0); // Default engine heat sinks
+        heatData.DissipationData.DissipationPoints.ShouldBe(1);
     }
     
     [Fact]
-    public void GetHeatData_DoesNoCountHeatSinksOnDestroyedParts()
+    public void GetHeatData_DoesNotCountHeatSinksOnDestroyedParts()
     {
         // Arrange
         var unit = CreateTestUnit();
@@ -1059,8 +1059,8 @@ public class UnitTests
         
         // Assert
         heatData.DissipationData.HeatSinks.ShouldBe(0);
-        heatData.DissipationData.EngineHeatSinks.ShouldBe(10); // Default engine heat sinks
-        heatData.DissipationData.DissipationPoints.ShouldBe(10);
+        heatData.DissipationData.EngineHeatSinks.ShouldBe(0); // Default engine heat sinks for generic unit
+        heatData.DissipationData.DissipationPoints.ShouldBe(0);
     }
     
     [Fact]
@@ -1577,6 +1577,14 @@ public class UnitTests
         // Verify no heat penalty for base unit
         sut.CurrentHeat.ShouldBe(15);
         sut.MovementHeatPenalty.ShouldBe(0);
+    }
+
+    [Fact]
+    private void EngineHeatSinks_ShouldBeZero_ByDefault()
+    {
+        var sut = CreateTestUnit();
+        
+        sut.EngineHeatSinks.ShouldBe(0);
     }
     
     // Helper class for testing explodable components

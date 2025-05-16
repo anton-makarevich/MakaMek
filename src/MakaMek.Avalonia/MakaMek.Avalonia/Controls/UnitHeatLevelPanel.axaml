@@ -25,5 +25,10 @@
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"/>
         </Grid>
+        <!-- Movement Heat Penalty Tag -->
+        <Border IsVisible="{Binding MovementHeatPenalty, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"
+                Classes="statusTag">
+            <TextBlock Text="{Binding MovementHeatPenalty, StringFormat='MP -{0}'}"/>
+        </Border>
     </StackPanel>
 </UserControl>
