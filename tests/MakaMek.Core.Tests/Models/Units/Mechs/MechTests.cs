@@ -804,4 +804,91 @@ public class MechTests
         sut.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Walking MP should be fully restored");
         sut.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be fully restored");
     }
+
+    [Theory]
+    [InlineData(0, 0)]  // No heat, no penalty
+    [InlineData(7, 0)]  // Below first threshold, no penalty
+    [InlineData(8, 1)]  // At first threshold, +1 penalty
+    [InlineData(12, 1)] // Between first and second threshold, +1 penalty
+    [InlineData(13, 2)] // At second threshold, +2 penalty
+    [InlineData(16, 2)] // Between second and third threshold, +2 penalty
+    [InlineData(17, 3)] // At third threshold, +3 penalty
+    [InlineData(23, 3)] // Between third and fourth threshold, +3 penalty
+    [InlineData(24, 4)] // At fourth threshold, +4 penalty
+    [InlineData(30, 4)] // Above fourth threshold, +4 penalty
+    public void AttackHeatPenalty_ShouldReturnCorrectPenalty(int heat, int expectedPenalty)
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        
+        // Act
+        // Set heat and apply effects
+        var heatData = new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData
+                {
+                    WeaponName = "TestWeapon",
+                    HeatPoints = heat
+                }
+            ],
+            DissipationData = new HeatDissipationData
+            {
+                DissipationPoints = 0,
+                HeatSinks = 0,
+                EngineHeatSinks = 0
+            }
+        };
+
+        // Apply heat effects
+        sut.ApplyHeat(heatData);
+        
+        // Assert
+        sut.AttackHeatPenalty.ShouldBe(expectedPenalty, $"Heat level {heat} should result in attack penalty of {expectedPenalty}");
+    }
+    
+    [Fact]
+    public void HeatDissipation_ShouldReduceHeatAndRestoreAttackPenalty()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+
+        // Set initial heat to 17 (attack penalty +3)
+        sut.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData
+                {
+                    WeaponName = "TestWeapon",
+                    HeatPoints = 17
+                }
+            ],
+            DissipationData = new HeatDissipationData
+            {
+                DissipationPoints = 0,
+                HeatSinks = 0,
+                EngineHeatSinks = 0
+            }
+        });
+
+        // Verify initial state
+        sut.AttackHeatPenalty.ShouldBe(3, "Initial attack penalty should be +3");
+
+        // Act - apply heat with dissipation that reduces heat to 7
+        sut.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [],
+            DissipationData = new HeatDissipationData
+            {
+                DissipationPoints = 10,
+                HeatSinks = 0,
+                EngineHeatSinks = 0
+            }
+        });
+
+        // Assert
+        sut.CurrentHeat.ShouldBe(7, "Heat should be reduced by dissipation");
+        sut.AttackHeatPenalty.ShouldBe(0, "Attack penalty should be removed");
+    }
 }
