@@ -30,7 +30,7 @@ public class EmbeddedResourcesUnitsLoader : IUnitsLoader
             if (stream == null) continue;
             using var reader = new StreamReader(stream);
             var mtfData = await reader.ReadToEndAsync();
-            var lines = mtfData.Split(Environment.NewLine);
+            var lines = mtfData.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
             var mechData = _mtfDataProvider.LoadMechFromTextData(lines);
                 
             units.Add(mechData);
