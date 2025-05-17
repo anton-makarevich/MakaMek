@@ -121,6 +121,16 @@ public class Mech : Unit
             _ => 0
         };
     
+    // Calculate attack penalty based on current heat
+    public override int AttackHeatPenalty => CurrentHeat switch
+        {
+            >= 24 => 4,
+            >= 17 => 3,
+            >= 13 => 2,
+            >= 8 => 1,
+            _ => 0
+        };
+    
     public override int CalculateBattleValue()
     {
         var bv = Tonnage * 100; // Base value

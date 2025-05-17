@@ -1550,7 +1550,7 @@ public class UnitTests
     }
     
     [Fact]
-    public void HeatDissipation_ShouldReduceHeatAndRestoreMovement()
+    public void ApplyHeat_ShouldNotAddHeatPenaltiesForBaseUnit()
     {
         // Arrange
         var sut = CreateTestUnit();
@@ -1565,18 +1565,14 @@ public class UnitTests
                     HeatPoints = 15
                 }
             ],
-            DissipationData = new HeatDissipationData
-            {
-                DissipationPoints = 0,
-                HeatSinks = 0,
-                EngineHeatSinks = 0
-            }
+            DissipationData = default
         });
 
         // Assert
         // Verify no heat penalty for base unit
         sut.CurrentHeat.ShouldBe(15);
         sut.MovementHeatPenalty.ShouldBe(0);
+        sut.AttackHeatPenalty.ShouldBe(0);
     }
 
     [Fact]
