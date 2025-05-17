@@ -720,12 +720,7 @@ public class MechTests
                     HeatPoints = heat
                 }
             ],
-            DissipationData = new HeatDissipationData
-            {
-                DissipationPoints = 0,
-                HeatSinks = 0,
-                EngineHeatSinks = 0
-            }
+            DissipationData = default
         };
 
         // Apply heat effects
@@ -775,12 +770,7 @@ public class MechTests
                     HeatPoints = 15
                 }
             ],
-            DissipationData = new HeatDissipationData
-            {
-                DissipationPoints = 0,
-                HeatSinks = 0,
-                EngineHeatSinks = 0
-            }
+            DissipationData = default
         });
 
         // Verify initial state
@@ -832,12 +822,7 @@ public class MechTests
                     HeatPoints = heat
                 }
             ],
-            DissipationData = new HeatDissipationData
-            {
-                DissipationPoints = 0,
-                HeatSinks = 0,
-                EngineHeatSinks = 0
-            }
+            DissipationData = default
         };
 
         // Apply heat effects
@@ -863,12 +848,7 @@ public class MechTests
                     HeatPoints = 17
                 }
             ],
-            DissipationData = new HeatDissipationData
-            {
-                DissipationPoints = 0,
-                HeatSinks = 0,
-                EngineHeatSinks = 0
-            }
+            DissipationData = default
         });
 
         // Verify initial state

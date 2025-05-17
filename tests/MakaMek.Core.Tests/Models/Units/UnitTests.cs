@@ -1565,12 +1565,7 @@ public class UnitTests
                     HeatPoints = 15
                 }
             ],
-            DissipationData = new HeatDissipationData
-            {
-                DissipationPoints = 0,
-                HeatSinks = 0,
-                EngineHeatSinks = 0
-            }
+            DissipationData = default
         });
 
         // Assert
