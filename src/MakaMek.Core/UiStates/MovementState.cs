@@ -330,7 +330,7 @@ public class MovementState : IUiState
     public IEnumerable<StateAction> GetAvailableActions()
     {
         if (CurrentMovementStep != MovementStep.SelectingMovementType || _selectedUnit == null)
-            return new List<StateAction>();
+            return [];
 
         var actions = new List<StateAction>
         {
@@ -357,7 +357,11 @@ public class MovementState : IUiState
 
         // Jump
         var jumpPoints = _selectedUnit?.GetMovementPoints(MovementType.Jump);
-        if (jumpPoints > 0)
+        if (jumpPoints == null)
+        {
+            return [];
+        }
+        if (jumpPoints.Value > 0)
         {
             actions.Add(new StateAction(
                 string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
