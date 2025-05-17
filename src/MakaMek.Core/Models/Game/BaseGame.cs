@@ -286,6 +286,8 @@ public abstract class BaseGame : IGame
 
     private bool ValidateJoinCommand(JoinGameCommand joinCommand)
     {
+        var existingPlayer = _players.FirstOrDefault(p => p.Id == joinCommand.PlayerId);
+        if (existingPlayer != null) throw new InvalidOperationException("Player already exists");
         return joinCommand.PlayerId != Guid.Empty && _players.All(p => p.Id != joinCommand.PlayerId);
 }
 
