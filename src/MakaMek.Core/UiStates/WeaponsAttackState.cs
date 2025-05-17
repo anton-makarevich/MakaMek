@@ -327,11 +327,13 @@ public class WeaponsAttackState : IUiState
             .SelectMany(p => p.GetComponents<Weapon>())
             .ToList();
             
-        IEnumerable<HexCoordinates> allPossibleHexes = [];
+        IEnumerable<HexCoordinates> allPossibleHexes;
         // If there are no weapons, just clear all
         if (weapons.Count == 0)
         {
-            allPossibleHexes = _game.BattleMap.GetHexes().Select(h=>h.Coordinates);
+            allPossibleHexes = _game.BattleMap?.GetHexes()
+                .Where(h=>h.IsHighlighted)
+                .Select(h=>h.Coordinates)??[];
         }
         else
         {
