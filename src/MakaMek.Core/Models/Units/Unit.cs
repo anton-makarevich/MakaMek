@@ -58,10 +58,16 @@ public abstract class Unit
     };
 
     // Base movement (walking)
-    protected int BaseMovement { get; }
+    private int BaseMovement { get; }
     
     // Modified movement after applying effects (defaults to base movement)
-    protected int ModifiedMovement => BaseMovement - MovementHeatPenalty;
+    private int ModifiedMovement => BaseMovement - MovementHeatPenalty;
+    
+    // Movement heat penalty
+    public virtual int MovementHeatPenalty => 0;
+    
+    // Attack heat penalty
+    public virtual int AttackHeatPenalty => 0;
     
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType type)
@@ -543,7 +549,6 @@ public abstract class Unit
     // UI events queue for unit events (damage, etc.)
     public IReadOnlyCollection<UiEvent> Notifications => _notifications.ToArray();
     public IReadOnlyList<UiEvent> Events => _events;
-    public virtual int MovementHeatPenalty => 0;
 
     /// <summary>
     /// Adds an event to the unit's events queue

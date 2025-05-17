@@ -77,7 +77,7 @@ public class ClassicToHitCalculator : IToHitCalculator
         var modifiers = new List<AttackModifier> {
             new HeatAttackModifier
             {
-                Value = _rules.GetHeatModifier(attacker.CurrentHeat),
+                Value = attacker.AttackHeatPenalty,
                 HeatLevel = attacker.CurrentHeat
             }
         };

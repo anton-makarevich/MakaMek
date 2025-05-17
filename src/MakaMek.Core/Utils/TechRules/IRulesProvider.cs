@@ -25,11 +25,6 @@ public interface IRulesProvider
     int GetRangeModifier(WeaponRange  rangeType, int rangeValue, int distance);
 
     /// <summary>
-    /// Gets the modifier based on the attacker's current heat level
-    /// </summary>
-    int GetHeatModifier(int currentHeat);
-
-    /// <summary>
     /// Gets the to-hit modifier for a specific terrain type
     /// </summary>
     int GetTerrainToHitModifier(MakaMekTerrains terrainType);

@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
 using Sanet.MakaMek.Core.Models.Map;
@@ -52,7 +53,6 @@ public class ClassicToHitCalculatorTests
         _rules.GetAttackerMovementModifier(MovementType.StandingStill).Returns(0);
         _rules.GetTargetMovementModifier(1).Returns(0);
         _rules.GetRangeModifier(WeaponRange.Short,Arg.Any<int>(), Arg.Any<int>()).Returns(0);
-        _rules.GetHeatModifier(0).Returns(0);
     }
 
     private void SetupAttackerAndTarget(HexPosition attackerPosition, HexPosition targetEndPosition)
@@ -199,17 +199,27 @@ public class ClassicToHitCalculatorTests
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
-        _rules.GetHeatModifier(0).Returns(2);
-
+        _attacker!.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData
+                {
+                    HeatPoints = 15,
+                    WeaponName = ""
+                }
+            ],
+            DissipationData = default
+        });
+        
         // Act
-        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+        var result = _sut.GetModifierBreakdown(_attacker, _target!, _weapon, map);
 
         // Assert
         result.OtherModifiers.Count.ShouldBe(1);
         result.OtherModifiers[0].ShouldBeOfType<HeatAttackModifier>();
         var heatModifier = (HeatAttackModifier)result.OtherModifiers[0];
         heatModifier.Value.ShouldBe(2);
-        heatModifier.HeatLevel.ShouldBe(0);
+        heatModifier.HeatLevel.ShouldBe(15);
         result.Total.ShouldBe(6); // Base (4) + heat (2)
     }
 
