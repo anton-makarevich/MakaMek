@@ -232,18 +232,6 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         };
     }
 
-    public int GetHeatModifier(int currentHeat)
-    {
-        return currentHeat switch
-        {
-            <= 7 => 0,    // 0-7 heat: no modifier
-            <= 12 => 1,   // 8-12 heat: +1
-            <= 16 => 2,   // 13-16 heat: +2
-            <= 23 => 3,   // 17-23 heat: +3
-            _ => 4        // 24+ heat: +4 (assuming max penalty)
-        };
-    }
-
     public int GetTerrainToHitModifier(MakaMekTerrains terrainId)
     {
         return terrainId switch

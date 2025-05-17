@@ -97,22 +97,6 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         }
 
         [Theory]
-        [InlineData(0, 0)]   // 0-7 heat: no modifier
-        [InlineData(7, 0)]
-        [InlineData(8, 1)]   // 8-12 heat: +1
-        [InlineData(12, 1)]
-        [InlineData(13, 2)]  // 13-16 heat: +2
-        [InlineData(16, 2)]
-        [InlineData(17, 3)]  // 17-23 heat: +3
-        [InlineData(23, 3)]
-        [InlineData(24, 4)]  // 24+ heat: +4
-        [InlineData(25, 4)]  // >24 heat: +4
-        public void GetHeatModifier_ReturnsExpectedValues(int currentHeat, int expectedModifier)
-        {
-            _sut.GetHeatModifier(currentHeat).ShouldBe(expectedModifier);
-        }
-
-        [Theory]
         [InlineData(MakaMekTerrains.LightWoods, 1)]
         [InlineData(MakaMekTerrains.HeavyWoods, 2)]
         [InlineData(MakaMekTerrains.Clear, 0)]
