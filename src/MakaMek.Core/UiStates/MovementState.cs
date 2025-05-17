@@ -356,7 +356,7 @@ public class MovementState : IUiState
         };
 
         // Jump
-        var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump);
+        var jumpPoints = _selectedUnit?.GetMovementPoints(MovementType.Jump);
         if (jumpPoints > 0)
         {
             actions.Add(new StateAction(
