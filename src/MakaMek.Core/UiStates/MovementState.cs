@@ -16,6 +16,7 @@ public class MovementState : IUiState
     private MovementType? _selectedMovementType;
     private int _movementPoints;
     private Dictionary<HexDirection, List<PathSegment>> _possibleDirections = [];
+    private readonly Lock _stateLock = new();
 
     public MovementState(BattleMapViewModel viewModel)
     {
@@ -39,15 +40,18 @@ public class MovementState : IUiState
 
     public void HandleUnitSelection(Unit? unit)
     {
-        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
-        if (unit == null) return;
-        if (unit.Status == UnitStatus.Destroyed) return;
-        if (unit.HasMoved) return;
-        
-        _selectedUnit = unit;
-        _builder.SetUnit(unit);
-        CurrentMovementStep = MovementStep.SelectingMovementType;
-        _viewModel.NotifyStateChanged();
+        lock (_stateLock)
+        {
+            if (_viewModel.Game is { CanActivePlayerAct: false }) return;
+            if (unit == null) return;
+            if (unit.Status == UnitStatus.Destroyed) return;
+            if (unit.HasMoved) return;
+            
+            _selectedUnit = unit;
+            _builder.SetUnit(unit);
+            CurrentMovementStep = MovementStep.SelectingMovementType;
+            _viewModel.NotifyStateChanged();
+        }
     }
 
     public void HandleMovementTypeSelection(MovementType movementType)
@@ -170,20 +174,23 @@ public class MovementState : IUiState
 
     private void ResetUnitSelection()
     {
-        if (_viewModel.SelectedUnit == null) return;
-        _viewModel.SelectedUnit = null;
-        _selectedUnit = null;
-        _viewModel.HideMovementPath();
-        _viewModel.HideDirectionSelector();
-        if (_forwardReachableHexes.Count > 0 || _backwardReachableHexes.Count > 0)
+        lock (_stateLock)
         {
-            var allReachableHexes = _forwardReachableHexes.Union(_backwardReachableHexes).ToList();
-            _viewModel.HighlightHexes(allReachableHexes, false);
-            _forwardReachableHexes = [];
-            _backwardReachableHexes = [];
+            if (_viewModel.SelectedUnit == null) return;
+            _viewModel.SelectedUnit = null;
+            _selectedUnit = null;
+            _viewModel.HideMovementPath();
+            _viewModel.HideDirectionSelector();
+            if (_forwardReachableHexes.Count > 0 || _backwardReachableHexes.Count > 0)
+            {
+                var allReachableHexes = _forwardReachableHexes.Union(_backwardReachableHexes).ToList();
+                _viewModel.HighlightHexes(allReachableHexes, false);
+                _forwardReachableHexes = [];
+                _backwardReachableHexes = [];
+            }
+            CurrentMovementStep=MovementStep.SelectingUnit;
+            _viewModel.NotifyStateChanged();
         }
-        CurrentMovementStep=MovementStep.SelectingUnit;
-        _viewModel.NotifyStateChanged();
     }
 
     private void HandleTargetHexSelection(Hex hex)
@@ -280,22 +287,25 @@ public class MovementState : IUiState
     
     private void CompleteMovement()
     {
-        var command = _builder.Build();
-        if (command != null && _viewModel.Game is { } clientGame)
+        lock (_stateLock)
         {
-            _viewModel.HideMovementPath();
-            _viewModel.HideDirectionSelector();
-            clientGame.MoveUnit(command.Value);
+            var command = _builder.Build();
+            if (command != null && _viewModel.Game is { } clientGame)
+            {
+                _viewModel.HideMovementPath();
+                _viewModel.HideDirectionSelector();
+                clientGame.MoveUnit(command.Value);
+            }
+            
+            _builder.Reset();
+            var allReachableHexes = _forwardReachableHexes.Union(_backwardReachableHexes).ToList();
+            _viewModel.HighlightHexes(allReachableHexes,false);
+            _forwardReachableHexes = [];
+            _backwardReachableHexes = [];
+            _selectedUnit = null;
+            CurrentMovementStep = MovementStep.Completed;
+            _viewModel.NotifyStateChanged();
         }
-        
-        _builder.Reset();
-        var allReachableHexes = _forwardReachableHexes.Union(_backwardReachableHexes).ToList();
-        _viewModel.HighlightHexes(allReachableHexes,false);
-        _forwardReachableHexes = [];
-        _backwardReachableHexes = [];
-        _selectedUnit = null;
-        CurrentMovementStep = MovementStep.Completed;
-        _viewModel.NotifyStateChanged();
     }
 
     public string ActionLabel => !IsActionRequired? string.Empty : CurrentMovementStep switch
@@ -329,48 +339,47 @@ public class MovementState : IUiState
 
     public IEnumerable<StateAction> GetAvailableActions()
     {
-        if (CurrentMovementStep != MovementStep.SelectingMovementType || _selectedUnit == null)
-            return [];
-
-        var actions = new List<StateAction>
+        lock (_stateLock)
         {
-            // Stand Still
-            new StateAction(
-                _viewModel.LocalizationService.GetString("Action_StandStill"),
-                true,
-                () => HandleMovementTypeSelection(MovementType.StandingStill)),
-            // Walk
-            new StateAction(
-                string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
-                    _viewModel.LocalizationService.GetString("MovementType_Walk"), 
-                    _selectedUnit.GetMovementPoints(MovementType.Walk)),
-                true,
-                () => HandleMovementTypeSelection(MovementType.Walk)),
-            // Run
-            new StateAction(
-                string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
-                    _viewModel.LocalizationService.GetString("MovementType_Run"), 
-                    _selectedUnit.GetMovementPoints(MovementType.Run)),
-                true,
-                () => HandleMovementTypeSelection(MovementType.Run))
-        };
+            if (CurrentMovementStep != MovementStep.SelectingMovementType || _selectedUnit == null)
+                return [];
 
-        // Jump
-        var jumpPoints = _selectedUnit?.GetMovementPoints(MovementType.Jump);
-        if (jumpPoints == null)
-        {
-            return [];
+            var actions = new List<StateAction>
+            {
+                // Stand Still
+                new(
+                    _viewModel.LocalizationService.GetString("Action_StandStill"),
+                    true,
+                    () => HandleMovementTypeSelection(MovementType.StandingStill)),
+                // Walk
+                new(
+                    string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
+                        _viewModel.LocalizationService.GetString("MovementType_Walk"), 
+                        _selectedUnit.GetMovementPoints(MovementType.Walk)),
+                    true,
+                    () => HandleMovementTypeSelection(MovementType.Walk)),
+                // Run
+                new(
+                    string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
+                        _viewModel.LocalizationService.GetString("MovementType_Run"), 
+                        _selectedUnit.GetMovementPoints(MovementType.Run)),
+                    true,
+                    () => HandleMovementTypeSelection(MovementType.Run))
+            };
+
+            // Jump
+            var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump);
+            if (jumpPoints > 0)
+            {
+                actions.Add(new StateAction(
+                    string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
+                        _viewModel.LocalizationService.GetString("MovementType_Jump"), 
+                        jumpPoints),
+                    true,
+                    () => HandleMovementTypeSelection(MovementType.Jump)));
+            }
+
+            return actions;
         }
-        if (jumpPoints.Value > 0)
-        {
-            actions.Add(new StateAction(
-                string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
-                    _viewModel.LocalizationService.GetString("MovementType_Jump"), 
-                    jumpPoints),
-                true,
-                () => HandleMovementTypeSelection(MovementType.Jump)));
-        }
-
-        return actions;
     }
 }
