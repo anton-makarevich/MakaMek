@@ -323,12 +323,26 @@ public class WeaponsAttackState : IUiState
         if (Attacker?.Position == null) return;
 
         // Get all hexes in maximum weapon range and unhighlight them
-        var maxRange = Attacker.Parts
+        var weapons = Attacker.Parts
             .SelectMany(p => p.GetComponents<Weapon>())
-            .Max(w => w.LongRange);
+            .ToList();
+            
+        IEnumerable<HexCoordinates> allPossibleHexes;
+        // If there are no weapons, just clear all
+        if (weapons.Count == 0)
+        {
+            allPossibleHexes = _game.BattleMap?.GetHexes()
+                .Where(h=>h.IsHighlighted)
+                .Select(h=>h.Coordinates)??[];
+        }
+        else
+        {
 
-        var allPossibleHexes = Attacker.Position.Coordinates
-            .GetCoordinatesInRange(maxRange);
+            var maxRange = weapons.Max(w => w.LongRange);
+
+            allPossibleHexes = Attacker.Position.Coordinates
+                .GetCoordinatesInRange(maxRange);
+        }
 
         _weaponRanges.Clear();
         _viewModel.HighlightHexes(allPossibleHexes.ToList(), false);

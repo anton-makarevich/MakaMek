@@ -176,7 +176,7 @@ public class BattleMapViewModel : BaseViewModel
                     .SelectMany(p => p.Units)
                     .FirstOrDefault(u => u.Id == wt.TargetId);
 
-                if (target?.Position == null) throw new Exception("The target should e deployed");
+                if (target?.Position == null) throw new Exception("The target should be deployed");
                 
                 // Get or initialize offset for this target
                 var offset = targetOffsets.GetValueOrDefault(target.Id, 5);

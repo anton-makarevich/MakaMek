@@ -634,12 +634,16 @@ public class MovementStateTests
         actions.ShouldBeEmpty();
     }
 
-    [Fact]
-    public void GetAvailableActions_NotInMovementTypeSelection_ReturnsEmpty()
+    [Theory]
+    [InlineData(MovementType.StandingStill)]
+    [InlineData(MovementType.Run)]
+    [InlineData(MovementType.Walk)]
+    [InlineData(MovementType.Jump)]
+    public void GetAvailableActions_NotInMovementTypeSelection_ReturnsEmpty(MovementType type)
     {
         // Arrange
         _sut.HandleUnitSelection(_unit1);
-        _sut.HandleMovementTypeSelection(MovementType.Walk); // This moves us past movement type selection
+        _sut.HandleMovementTypeSelection(type); // This moves us past movement type selection
 
         // Act
         var actions = _sut.GetAvailableActions();
@@ -683,19 +687,36 @@ public class MovementStateTests
         actions.ShouldNotContain(a => a.Label.StartsWith("Jump"));
     }
 
-    [Fact]
-    public void GetAvailableActions_ExecutingAction_UpdatesState()
+    [Theory]
+    [InlineData("Run")]
+    [InlineData("Walk")]
+    public void GetAvailableActions_ExecutingAction_UpdatesState(string startWithLabel)
     {
         // Arrange
         _sut.HandleUnitSelection(_unit1);
         var actions = _sut.GetAvailableActions().ToList();
-        var walkAction = actions.First(a => a.Label.StartsWith("Walk"));
+        var walkAction = actions.First(a => a.Label.StartsWith(startWithLabel));
 
         // Act
         walkAction.OnExecute();
 
         // Assert
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
+    }
+    
+    [Fact]
+    public void GetAvailableActions_ExecutingStandingAction_CompletesState()
+    {
+        // Arrange
+        _sut.HandleUnitSelection(_unit1);
+        var actions = _sut.GetAvailableActions().ToList();
+        var walkAction = actions.First(a => a.Label.StartsWith("Stand"));
+
+        // Act
+        walkAction.OnExecute();
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
     }
 
     [Fact]

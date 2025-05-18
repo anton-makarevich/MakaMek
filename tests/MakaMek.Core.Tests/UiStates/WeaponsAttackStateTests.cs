@@ -20,6 +20,7 @@ using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Tests.Models.Units;
 using Sanet.MakaMek.Core.UiStates;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
@@ -1429,5 +1430,28 @@ public class WeaponsAttackStateTests
 
         weaponSelection2.Weapon.IsAvailable.ShouldBeFalse();
         weaponSelection2.ModifiersBreakdown.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ClearWeaponRangeHighlights_DoesNotCrash_WhenAttackerHasNoWeapons()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        
+        // Create a unit with no weapons
+        var unitWithNoWeapons = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var weapons = unitWithNoWeapons.Parts.SelectMany(p => p.GetComponents<Weapon>()).ToList();
+        foreach (var weapon in weapons)
+        {
+            weapon.MountedOn?.RemoveComponent(weapon);
+        }
+        
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        unitWithNoWeapons.Deploy(position);
+        
+        // Set the unit as the attacker in the state
+        _sut.HandleUnitSelection(unitWithNoWeapons);
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==position.Coordinates));
     }
 }
