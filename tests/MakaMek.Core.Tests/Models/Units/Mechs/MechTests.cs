@@ -912,5 +912,8 @@ public class MechTests
 
         // Assert
         heatData.TotalHeatPoints.ShouldBe(5, "Total heat should include engine heat penalty");
+        heatData.EngineHeatSource.ShouldNotBeNull();
+        heatData.EngineHeatSource.Value.Hits.ShouldBe(1);
+        heatData.EngineHeatSource.Value.HeatPoints.ShouldBe(5);
     }
 }
