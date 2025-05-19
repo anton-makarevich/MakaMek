@@ -1494,6 +1494,16 @@ public class BattleMapViewModelTests
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
+        
+        // Join player
+        clientGame.HandleCommand(new JoinGameCommand
+        {
+            PlayerName = player.Name,
+            Units = [],
+            Tint = "#FF0000",
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId
+        });
         // Set up the game state for the End phase
         clientGame.HandleCommand(new ChangePhaseCommand
         {

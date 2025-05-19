@@ -22,12 +22,12 @@ public class EndState : IUiState
 
     public bool IsActionRequired => IsActivePlayer;
 
-    public bool CanExecutePlayerAction => true;
+    public bool CanExecutePlayerAction => IsActivePlayer;
 
     public string PlayerActionLabel => _localizationService.GetString("EndPhase_PlayerActionLabel");
 
     private bool IsActivePlayer => _viewModel.Game?.ActivePlayer != null && 
-                                  _viewModel.Game is ClientGame clientGame &&
+                                  _viewModel.Game is { } clientGame &&
                                   clientGame.LocalPlayers.Any(p => p.Id == _viewModel.Game.ActivePlayer.Id);
 
     public void HandleUnitSelection(Unit? unit)
