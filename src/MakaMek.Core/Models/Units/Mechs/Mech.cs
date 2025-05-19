@@ -92,7 +92,7 @@ public class Mech : Unit
         }
     }
 
-    public override int EngineHeatSinks => 10;
+    public override int EngineHeatSinks => GetAllComponents<Engine>().FirstOrDefault()?.NumberOfHeatSinks??0;
 
     /// <summary>
     /// Gets the heat penalty caused by engine damage

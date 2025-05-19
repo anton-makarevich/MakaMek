@@ -30,5 +30,7 @@ public class Engine : Component
         Type = type;
     }
     
+    public int NumberOfHeatSinks => 10;
+    
     public override MakaMekComponent ComponentType => MakaMekComponent.Engine;
 }

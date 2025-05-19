@@ -18,10 +18,12 @@ public class MechTests
 {
     private static List<UnitPart> CreateBasicPartsData()
     {
+        var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
+        centerTorso.TryAddComponent(new Engine(250));
         return
         [
             new Head("Head", 9, 3),
-            new CenterTorso("CenterTorso", 31, 10, 6),
+            centerTorso,
             new SideTorso("LeftTorso", PartLocation.LeftTorso, 25, 8, 6),
             new SideTorso("RightTorso", PartLocation.RightTorso, 25, 8, 6),
             new Arm("RightArm", PartLocation.RightArm, 17, 6),
@@ -691,7 +693,7 @@ public class MechTests
         // Assert
         critData.ShouldNotBeNull();
         critData.CriticalHits.ShouldNotBeNull();
-        critData.CriticalHits.ShouldContain(6); // Slot 6 should be available for a hit
+        critData.CriticalHits.ShouldContain(9); // Slot 9 should be available for a hit
 
         // Verify that slot 3 is already marked as hit
         centerTorso.HitSlots.ShouldContain(3);
@@ -880,8 +882,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-        var engine = new Engine(250);
-        centerTorso.TryAddComponent(engine);
+        var engine = centerTorso.GetComponent<Engine>()!;
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
         
         // Apply one hit to the engine
@@ -900,8 +901,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-        var engine = new Engine(250);
-        centerTorso.TryAddComponent(engine);
+        var engine = centerTorso.GetComponent<Engine>()!;
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
         
         // Apply one hit to the engine

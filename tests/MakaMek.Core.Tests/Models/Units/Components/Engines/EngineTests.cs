@@ -21,6 +21,7 @@ public class EngineTests
         sut.ComponentType.ShouldBe(MakaMekComponent.Engine);
         sut.IsRemovable.ShouldBeTrue();
         sut.HealthPoints.ShouldBe(3);
+        sut.NumberOfHeatSinks.ShouldBe(10);
     }
     
     [Fact]
@@ -31,7 +32,7 @@ public class EngineTests
         sut.Hit();
         
         sut.IsDestroyed.ShouldBeFalse();
-        sut.Hits.ShouldBe(1);;
+        sut.Hits.ShouldBe(1);
     }
     
     [Fact]
