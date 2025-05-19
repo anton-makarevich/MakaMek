@@ -82,11 +82,25 @@ public class EndStateTests
         _sut.ActionLabel.ShouldBe("End your turn");
     }
     
+    
     [Fact]
     public void InitialState_CanExecutePlayerAction()
     {
         // Assert
         _sut.CanExecutePlayerAction.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void CanExecutePlayerAction_ShouldBeFalse_WhenNotActivePlayer()
+    {
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(), //doesn't exist
+            UnitsToPlay = 0
+        });
+        // Assert
+        _sut.CanExecutePlayerAction.ShouldBeFalse();
     }
 
     [Fact]
