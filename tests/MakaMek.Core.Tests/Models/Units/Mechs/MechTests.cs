@@ -6,9 +6,11 @@ using Shouldly;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 
@@ -870,5 +872,45 @@ public class MechTests
         // Assert
         sut.CurrentHeat.ShouldBe(7, "Heat should be reduced by dissipation");
         sut.AttackHeatPenalty.ShouldBe(0, "Attack penalty should be removed");
+    }
+
+    [Fact]
+    public void EngineHeatPenalty_ReturnsCorrectValue_WhenEngineHasHits()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        var engine = new Engine(250);
+        centerTorso.TryAddComponent(engine);
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        
+        // Apply one hit to the engine
+        engine.Hit();
+
+        // Act
+        var engineHeatPenalty = mech.EngineHeatPenalty;
+
+        // Assert
+        engineHeatPenalty.ShouldBe(5, "Engine with one hit should have +5 heat penalty");
+    }
+
+    [Fact]
+    public void GetHeatData_IncludesEngineHeatInTotalHeatPoints()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+        var engine = new Engine(250);
+        centerTorso.TryAddComponent(engine);
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        
+        // Apply one hit to the engine
+        engine.Hit();
+
+        // Act
+        var heatData = mech.GetHeatData(Substitute.For<IRulesProvider>());
+
+        // Assert
+        heatData.TotalHeatPoints.ShouldBe(5, "Total heat should include engine heat penalty");
     }
 }

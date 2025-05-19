@@ -1583,6 +1583,19 @@ public class UnitTests
         sut.EngineHeatSinks.ShouldBe(0);
     }
     
+    [Fact]
+    public void EngineHeatPenalty_ReturnsZero_ForBaseUnit()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Act
+        var engineHeatPenalty = sut.EngineHeatPenalty;
+        
+        // Assert
+        engineHeatPenalty.ShouldBe(0);
+    }
+    
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)
     {

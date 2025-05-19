@@ -3,7 +3,7 @@ namespace Sanet.MakaMek.Core.Data.Game;
 /// <summary>
 /// Comprehensive heat data for a unit, including sources, dissipation, and totals
 /// </summary>
-public record struct HeatData
+public readonly record struct HeatData
 {
     /// <summary>
     /// Heat generated from movement
@@ -31,7 +31,7 @@ public record struct HeatData
     public int TotalHeatPoints => 
         MovementHeatSources.Sum(source => source.HeatPoints) + 
         WeaponHeatSources.Sum(source => source.HeatPoints) +
-        EngineHeatSource?.HeatPoints ?? 0;
+        (EngineHeatSource?.HeatPoints ?? 0);
     
     /// <summary>
     /// Total heat to dissipate
