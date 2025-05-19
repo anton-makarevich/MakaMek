@@ -96,18 +96,8 @@ public class Mech : Unit
 
     /// <summary>
     /// Gets the heat penalty caused by engine damage
-    /// First hit: +5 heat per turn
-    /// Second hit: +10 heat per turn (total)
-    /// Third hit: Engine shutdown
     /// </summary>
-    public override int EngineHeatPenalty
-    {
-        get
-        {
-            var engine = GetAllComponents<Engine>().FirstOrDefault();
-            return engine?.HeatPenalty ?? 0;
-        }
-    }
+    public override int EngineHeatPenalty => GetAllComponents<Engine>().FirstOrDefault()?.HeatPenalty ?? 0;
 
     protected override void ApplyHeatEffects()
     {

@@ -1,5 +1,3 @@
-using Sanet.MakaMek.Core.Models.Units;
-
 namespace Sanet.MakaMek.Core.Data.Game;
 
 /// <summary>
@@ -25,7 +23,7 @@ public record struct HeatData
     /// <summary>
     /// Heat penalty from engine damage
     /// </summary>
-    public int EngineHeatPenalty { get; init; }
+    public EngineHeatData? EngineHeatSource { get; init; }
     
     /// <summary>
     /// Total heat to apply to the unit
@@ -33,7 +31,7 @@ public record struct HeatData
     public int TotalHeatPoints => 
         MovementHeatSources.Sum(source => source.HeatPoints) + 
         WeaponHeatSources.Sum(source => source.HeatPoints) +
-        EngineHeatPenalty;
+        EngineHeatSource?.HeatPoints ?? 0;
     
     /// <summary>
     /// Total heat to dissipate
