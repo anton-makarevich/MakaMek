@@ -69,6 +69,9 @@ public abstract class Unit
     // Attack heat penalty
     public virtual int AttackHeatPenalty => 0;
     
+    // Engine heat penalty due to engine damage
+    public virtual int EngineHeatPenalty => 0;
+    
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType type)
     {
@@ -161,7 +164,8 @@ public abstract class Unit
         {
             MovementHeatSources = movementHeatSources,
             WeaponHeatSources = weaponHeatSources,
-            DissipationData = dissipationData
+            DissipationData = dissipationData,
+            EngineHeatPenalty = EngineHeatPenalty
         };
     }
     

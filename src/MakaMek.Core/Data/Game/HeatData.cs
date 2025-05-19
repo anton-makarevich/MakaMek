@@ -23,11 +23,17 @@ public record struct HeatData
     public required HeatDissipationData DissipationData { get; init; }
     
     /// <summary>
+    /// Heat penalty from engine damage
+    /// </summary>
+    public int EngineHeatPenalty { get; init; }
+    
+    /// <summary>
     /// Total heat to apply to the unit
     /// </summary>
     public int TotalHeatPoints => 
         MovementHeatSources.Sum(source => source.HeatPoints) + 
-        WeaponHeatSources.Sum(source => source.HeatPoints);
+        WeaponHeatSources.Sum(source => source.HeatPoints) +
+        EngineHeatPenalty;
     
     /// <summary>
     /// Total heat to dissipate
