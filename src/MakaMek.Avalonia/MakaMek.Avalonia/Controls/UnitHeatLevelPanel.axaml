@@ -26,7 +26,7 @@
                      VerticalAlignment="Center"/>
         </Grid>
         <!-- Movement Heat Penalty Tag -->
-        <StackPanel Spacing="5" Orientation="Horizontal">
+        <WrapPanel ItemSpacing="2" LineSpacing="2" Orientation="Horizontal">
             <Border IsVisible="{Binding MovementHeatPenalty, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"
                     Classes="statusTag">
                 <TextBlock Text="{Binding MovementHeatPenalty, StringFormat='MP -{0}'}"/>
@@ -35,7 +35,11 @@
                     Classes="statusTag">
                 <TextBlock Text="{Binding AttackHeatPenalty, StringFormat='ToHit Number +{0}'}"/>
             </Border>
-        </StackPanel>
+            <Border IsVisible="{Binding EngineHeatPenalty, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"
+                    Classes="statusTag">
+                <TextBlock Text="{Binding AttackHeatPenalty, StringFormat='Engine Heat +{0}'}"/>
+            </Border>
+        </WrapPanel>
         
     </StackPanel>
 </UserControl>

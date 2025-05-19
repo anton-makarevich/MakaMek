@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -68,6 +69,9 @@ public abstract class Unit
     
     // Attack heat penalty
     public virtual int AttackHeatPenalty => 0;
+    
+    // Engine heat penalty due to engine damage
+    public virtual int EngineHeatPenalty => 0;
     
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType type)
@@ -145,7 +149,17 @@ public abstract class Unit
                 HeatPoints = weapon.Heat
             });
         }
-        
+
+        var engine = GetAllComponents<Engine>().FirstOrDefault();
+
+        EngineHeatData? engineHeatSource = (engine != null)
+            ? new EngineHeatData
+            {
+                Hits = engine.Hits,
+                HeatPoints = engine.HeatPenalty
+            }
+            : null;
+
         // Get heat dissipation
         var heatSinks = GetAvailableComponents<HeatSink>().Count();
         var engineHeatSinks = EngineHeatSinks;
@@ -161,7 +175,8 @@ public abstract class Unit
         {
             MovementHeatSources = movementHeatSources,
             WeaponHeatSources = weaponHeatSources,
-            DissipationData = dissipationData
+            DissipationData = dissipationData,
+            EngineHeatSource = engineHeatSource
         };
     }
     

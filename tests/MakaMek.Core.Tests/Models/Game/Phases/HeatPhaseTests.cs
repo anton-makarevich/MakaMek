@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Shouldly;
 
@@ -196,6 +197,46 @@ public class HeatPhaseTests : GamePhaseTestsBase
                 cmd.HeatData.WeaponHeatSources.Count == 1));
     }
 
+    [Fact]
+    public void Enter_WithEngineDamage_ShouldIncludeEngineHeatSource()
+    {
+        // Arrange
+        // Setup unit with engine damage
+        SetupUnitWithEngineDamage(_unit1, 1); // 1 hit = 5 heat points
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify heat updated command was published with engine heat source
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<HeatUpdatedCommand>(cmd => 
+                cmd.UnitId == _unit1Id && 
+                cmd.HeatData.EngineHeatSource != null &&
+                cmd.HeatData.EngineHeatSource.Value.Hits == 1 &&
+                cmd.HeatData.EngineHeatSource.Value.HeatPoints == 5));
+    }
+    
+    [Fact]
+    public void Enter_WithEngineDamageAndOtherHeatSources_ShouldCalculateCorrectTotalHeat()
+    {
+        // Arrange
+        // Setup unit with engine damage, movement and weapon heat
+        SetupUnitWithEngineDamage(_unit1, 1); // 1 hit = 5 heat points
+        SetupUnitWithMovement(_unit1, MovementType.Run); // 2 heat points
+        SetupUnitWithWeaponFired(_unit1); // 3 heat points from medium laser
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify heat updated command was published with correct total heat
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<HeatUpdatedCommand>(cmd => 
+                cmd.UnitId == _unit1Id && 
+                cmd.HeatData.TotalHeatPoints == 10)); // 5 + 2 + 3 = 10
+    }
+
     #region Helper Methods
 
     private void SetupUnitWithMovement(Unit unit, MovementType movementType)
@@ -218,6 +259,21 @@ public class HeatPhaseTests : GamePhaseTestsBase
         
         // If a weapon exists, just set its target
         weapon.Target = _unit2;
+    }
+    
+    private void SetupUnitWithEngineDamage(Unit unit, int hits)
+    {
+        // Find the engine component on the unit
+        var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
+        
+        // If engine exists, apply hits
+        if (engine != null)
+        {
+            for (int i = 0; i < hits; i++)
+            {
+                engine.Hit();
+            }
+        }
     }
     #endregion
 }

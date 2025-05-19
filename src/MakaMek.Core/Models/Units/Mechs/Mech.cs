@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Models.Map;
@@ -91,7 +92,12 @@ public class Mech : Unit
         }
     }
 
-    public override int EngineHeatSinks => 10;
+    public override int EngineHeatSinks => GetAllComponents<Engine>().FirstOrDefault()?.NumberOfHeatSinks??0;
+
+    /// <summary>
+    /// Gets the heat penalty caused by engine damage
+    /// </summary>
+    public override int EngineHeatPenalty => GetAllComponents<Engine>().FirstOrDefault()?.HeatPenalty ?? 0;
 
     protected override void ApplyHeatEffects()
     {
