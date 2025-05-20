@@ -59,7 +59,8 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_Range" => "{0} at {1} hexes ({2} range): +{3}",
             "Modifier_Heat" => "Heat Level ({0}): +{1}",
             "Modifier_Terrain" => "{0} at {1}: +{2}",
-            
+            "Modifier_DamagedGyro" => "Damaged Gyro",
+            "Hits" => "Hits",
             // Attack information
             "Attack_NoLineOfSight" => "No LOS",
             "Attack_TargetNumber" => "Target ToHit Number",

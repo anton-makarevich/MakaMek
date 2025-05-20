@@ -23,6 +23,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
         [Fact]
         public void GetPsrBreakdown_NoRollTypesSpecified_CalculatesAllModifiers()
         {
+            // TODO: extend once we add more modifiers
             // Arrange
             // Create a torso with a gyro
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
