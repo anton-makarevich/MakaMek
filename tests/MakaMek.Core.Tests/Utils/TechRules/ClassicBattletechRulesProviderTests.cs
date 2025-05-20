@@ -476,7 +476,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             var rollType = PilotingSkillRollType.GyroHit;
 
             // Act
-            var result = _sut.GetPilotingSkillModifier(rollType);
+            var result = _sut.GetPilotingSkillRollModifier(rollType);
 
             // Assert
             result.ShouldBe(3);
@@ -489,7 +489,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             var rollType = (PilotingSkillRollType)999;
 
             // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetPilotingSkillModifier(rollType));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetPilotingSkillRollModifier(rollType));
         }
     }
 }
