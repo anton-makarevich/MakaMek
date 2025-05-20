@@ -64,6 +64,7 @@ public class PilotingSkillRollCommandTests
             RollType = PilotingSkillRollType.GyroHit,
             DiceResults = [3, 4], // Total 7
             IsSuccessful = true,
+            Timestamp = DateTime.UtcNow,
             PsrBreakdown = new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -84,6 +85,7 @@ public class PilotingSkillRollCommandTests
             RollType = PilotingSkillRollType.GyroHit,
             DiceResults = [2, 2], // Total 4
             IsSuccessful = false,
+            Timestamp = DateTime.UtcNow,
             PsrBreakdown = new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -104,6 +106,7 @@ public class PilotingSkillRollCommandTests
             RollType = PilotingSkillRollType.GyroHit,
             DiceResults = [6, 6], // Total 12, but doesn't matter for impossible rolls
             IsSuccessful = false,
+            Timestamp = DateTime.UtcNow,
             PsrBreakdown = new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -119,10 +122,10 @@ public class PilotingSkillRollCommandTests
     public void Format_ShouldFormatSuccessfulRoll_Correctly()
     {
         // Arrange
-        var command = CreateSuccessfulCommand();
+        var sut = CreateSuccessfulCommand();
         
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = sut.Format(_localizationService, _game);
         
         // Assert
         result.ShouldContain("Test Player's Locust LCT-1V succeeds Gyro Hit check");
@@ -137,10 +140,10 @@ public class PilotingSkillRollCommandTests
     public void Format_ShouldFormatFailedRoll_Correctly()
     {
         // Arrange
-        var command = CreateFailedCommand();
+        var sut = CreateFailedCommand();
         
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = sut.Format(_localizationService, _game);
         
         // Assert
         result.ShouldContain("Test Player's Locust LCT-1V fails Gyro Hit check");
@@ -155,10 +158,10 @@ public class PilotingSkillRollCommandTests
     public void Format_ShouldFormatImpossibleRoll_Correctly()
     {
         // Arrange
-        var command = CreateImpossibleCommand();
+        var sut = CreateImpossibleCommand();
         
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = sut.Format(_localizationService, _game);
         
         // Assert
         result.ShouldContain("Test Player's Locust LCT-1V automatically fails Gyro Hit check (impossible roll)");
@@ -173,11 +176,11 @@ public class PilotingSkillRollCommandTests
     public void Format_ShouldReturnEmpty_WhenUnitNotFound()
     {
         // Arrange
-        var command = CreateSuccessfulCommand();
-        command = command with { UnitId = Guid.NewGuid() }; // Set to a non-existent unit ID
+        var sut = CreateSuccessfulCommand();
+        sut = sut with { UnitId = Guid.NewGuid() }; // Set to a non-existent unit ID
         
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = sut.Format(_localizationService, _game);
         
         // Assert
         result.ShouldBeEmpty();
