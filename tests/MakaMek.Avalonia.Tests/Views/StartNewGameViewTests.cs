@@ -1,8 +1,8 @@
 using NSubstitute;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Factories;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;

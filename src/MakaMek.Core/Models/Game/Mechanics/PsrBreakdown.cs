@@ -1,6 +1,6 @@
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
 /// <summary>
 /// Holds the breakdown of a piloting skill roll, including all modifiers

@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.PilotingSkill;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 
 /// <summary>
 /// Modifier for piloting skill rolls due to damaged gyro

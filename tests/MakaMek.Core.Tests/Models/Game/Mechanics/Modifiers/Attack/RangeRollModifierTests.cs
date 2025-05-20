@@ -1,11 +1,10 @@
 using NSubstitute;
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Models.Game.Combat.Modifiers;
+namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Modifiers.Attack;
 
 public class RangeRollModifierTests
 {

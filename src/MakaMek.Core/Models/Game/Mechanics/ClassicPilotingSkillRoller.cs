@@ -1,10 +1,10 @@
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.PilotingSkill;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
 /// <summary>
 /// Classic BattleTech implementation of piloting skill roll calculator

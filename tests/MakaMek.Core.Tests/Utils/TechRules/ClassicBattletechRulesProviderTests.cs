@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Models.Game.Combat;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;

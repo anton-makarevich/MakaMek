@@ -1,8 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Models.Game.Combat;
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
@@ -16,7 +15,7 @@ using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Models.Game.Combat;
+namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
 
 public class ClassicToHitCalculatorTests
 {

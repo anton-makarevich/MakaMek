@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Models.Units;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
 /// <summary>
 /// Interface for calculating piloting skill roll target numbers

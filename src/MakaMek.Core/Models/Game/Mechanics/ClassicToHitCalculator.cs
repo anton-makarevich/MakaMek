@@ -1,12 +1,12 @@
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
 /// <summary>
 /// Classic BattleTech implementation of to-hit calculator using GATOR system

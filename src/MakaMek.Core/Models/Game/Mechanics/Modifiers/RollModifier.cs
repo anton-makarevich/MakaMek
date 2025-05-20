@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 
 /// <summary>
 /// Base class for all attack modifiers

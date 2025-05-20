@@ -3,7 +3,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
 public interface ICriticalHitsCalculator
 {

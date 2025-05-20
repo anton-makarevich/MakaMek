@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Models.Game.Combat;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;

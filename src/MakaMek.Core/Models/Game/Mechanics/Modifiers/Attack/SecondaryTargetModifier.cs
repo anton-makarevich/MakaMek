@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
 /// <summary>
 /// Modifier applied when targeting a secondary target
