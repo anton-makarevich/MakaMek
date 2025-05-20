@@ -9,14 +9,15 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// <summary>
 /// Classic BattleTech implementation of piloting skill roll calculator
 /// </summary>
-public class PilotingSkillRoller : IPilotingSkillRoller
+public class PilotingSkillCalculator : IPilotingSkillCalculator
 {
     /// <summary>
     /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll
     /// </summary>
     /// <param name="unit">The unit making the piloting skill roll</param>
+    /// <param name="rollTypes">An optional collection of specific Piloting Skill Roll types to consider. If null or empty, all applicable modifiers are calculated.</param>
     /// <returns>A breakdown of the piloting skill roll calculation</returns>
-    public PsrBreakdown GetPsrBreakdown(Unit unit)
+    public PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType>? rollTypes = null)
     {
         if (unit.Crew == null)
         {
@@ -24,21 +25,34 @@ public class PilotingSkillRoller : IPilotingSkillRoller
         }
 
         var modifiers = new List<RollModifier>();
-        
+        var relevantRollTypes = rollTypes?.ToList() ?? [];
+
+        // Determine if we need to calculate all modifiers or specific ones
+        var calculateAll = relevantRollTypes.Count == 0;
+
         // Add damaged gyro modifier if applicable
-        if (unit is Mech mech)
+        if (calculateAll || relevantRollTypes.Contains(PilotingSkillRollType.GyroHit))
         {
-            // Check for damaged gyro
-            var gyroHits = GetGyroHits(mech);
-            if (gyroHits > 0)
+            if (unit is Mech mech)
             {
-                modifiers.Add(new DamagedGyroModifier
+                // Check for damaged gyro
+                var gyroHits = GetGyroHits(mech);
+                if (gyroHits > 0)
                 {
-                    Value = gyroHits, // Each hit adds a +1 modifier
-                    HitsCount = gyroHits
-                });
+                    modifiers.Add(new DamagedGyroModifier
+                    {
+                        Value = gyroHits, // Each hit adds a +1 modifier
+                        HitsCount = gyroHits
+                    });
+                }
             }
         }
+        
+        // Future PSR modifiers can be added here following the same pattern:
+        // if (calculateAll || relevantRollTypes.Contains(PilotingSkillRollType.SomeOtherCondition))
+        // {
+        //     // logic to calculate and add SomeOtherConditionModifier
+        // }
 
         return new PsrBreakdown
         {
