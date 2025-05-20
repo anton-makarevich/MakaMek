@@ -1117,7 +1117,8 @@ public class UnitTests
         leftArm.TryAddComponent(critComponent, [2]);
         var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
         var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], 
-            [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]);
+            [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, 
+                [CreateComponentHitData(2)])]);
     
         // Pre-assert: component is not destroyed
         critComponent.IsDestroyed.ShouldBeFalse();
@@ -1154,7 +1155,8 @@ public class UnitTests
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.LeftArm, 10,[new DiceResult(3),new DiceResult(5)],
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2, [0, 2])])
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2, 
+                    [CreateComponentHitData(0), CreateComponentHitData(2)])])
         };
         
         // Act
@@ -1223,7 +1225,8 @@ public class UnitTests
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.LeftArm, 5, [new DiceResult(3)],
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1])])
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, 
+                    [CreateComponentHitData(1)])])
         };
         
         // Pre-assert: component has not exploded
@@ -1255,7 +1258,8 @@ public class UnitTests
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.LeftArm, 2, [new DiceResult(3)],
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1, 2])])
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, 
+                    [CreateComponentHitData(1), CreateComponentHitData(2)])])
         };
         
         // Pre-assert: components have not exploded
@@ -1288,7 +1292,8 @@ public class UnitTests
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.LeftArm, 3, [new DiceResult(3)],
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1])])
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, 
+                    [CreateComponentHitData(1)])])
         };
         
         // Pre-assert: component has already exploded
@@ -1317,7 +1322,8 @@ public class UnitTests
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.LeftArm, 4, [new DiceResult(3)],
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1])])
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, 
+                    [CreateComponentHitData(1)])])
         };
         
         targetPart.CurrentArmor.ShouldBe(10);
@@ -1344,7 +1350,7 @@ public class UnitTests
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.LeftArm, 6, [new DiceResult(3)],
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [1])])
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [CreateComponentHitData(1)])])
         };
         
         // Pre-assert: component has not exploded
@@ -1378,7 +1384,7 @@ public class UnitTests
             PartLocation.CenterTorso,
             10, // Roll value
             1,  // Number of critical hits
-            [0] // Hit the first slot where our component is
+            [CreateComponentHitData(0)] // Hit the first slot where our component is
         );
         
         var hitLocations = new List<HitLocationData>
@@ -1612,4 +1618,12 @@ public class UnitTests
     
     // Helper class for testing generic methods
     private class TestDerivedComponent(string name, int size = 1) : TestComponent(name, size);
+    private ComponentHitData CreateComponentHitData(int slot)
+    {
+        return new ComponentHitData
+        {
+            Slot = slot,
+            Type = MakaMekComponent.ISAmmoMG
+        };
+    }
 }

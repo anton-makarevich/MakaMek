@@ -1,5 +1,6 @@
 using Shouldly;
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
@@ -428,14 +429,16 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftArm,
                 5,
-                new List<DiceResult>(),
-                [new LocationCriticalHitsData(PartLocation.LeftArm,10, 1, [2])]
+                [],
+                [new LocationCriticalHitsData(PartLocation.LeftArm,10, 1, [
+                    CreateComponentHitData(2)
+                ])]
             )
         };
         var hitLocationsData = new AttackHitLocationsData(
             hitLocations,
             5,
-            new List<DiceResult>(),
+            [],
             1);
         var resolutionData = new AttackResolutionData(
             8,
@@ -471,7 +474,7 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftTorso,  // Final location
                 5,
-                [new(6), new(4)],        // Roll total 10
+                [new DiceResult(6), new DiceResult(4)],        // Roll total 10
                 null,                    // No crits
                 PartLocation.LeftArm     // Initial location
             )
@@ -485,7 +488,7 @@ public class WeaponAttackResolutionCommandTests
             
         var resolutionData = new AttackResolutionData(
             8,
-            [new(4), new(5)],
+            [new DiceResult(4), new DiceResult(5)],
             true,
             FiringArc.Forward,
             hitLocationsData);
@@ -562,14 +565,18 @@ public class WeaponAttackResolutionCommandTests
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         var critComponent = new MachineGun();
         leftArm.TryAddComponent(critComponent, [2]);
-        
+
         var hitLocations = new List<HitLocationData>
         {
             new(
                 PartLocation.CenterTorso,
                 5,
                 [new DiceResult(6)],
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+                [
+                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
+                        CreateComponentHitData(2)
+                    ])
+                ]
             )
         };
         
@@ -615,14 +622,19 @@ public class WeaponAttackResolutionCommandTests
         var critComponent2 = new MachineGun();
         leftArm.TryAddComponent(critComponent1, [2]);
         leftArm.TryAddComponent(critComponent2, [3]);
-        
+
         var hitLocations = new List<HitLocationData>
         {
             new(
                 PartLocation.LeftArm,
                 5,
                 [new DiceResult(6)],
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2, [2, 3])]
+                [
+                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2, [
+                        CreateComponentHitData(2),
+                        CreateComponentHitData(3)
+                    ])
+                ]
             )
         };
         
@@ -678,8 +690,10 @@ public class WeaponAttackResolutionCommandTests
                 5,
                 [new DiceResult(6)],
                 [
-                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2]),
-                    new LocationCriticalHitsData(PartLocation.RightArm, 11, 1, [3])
+                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
+                        CreateComponentHitData(2)]),
+                    new LocationCriticalHitsData(PartLocation.RightArm, 11, 1, [ 
+                        CreateComponentHitData(3)])
                 ]
             )
         };
@@ -826,14 +840,15 @@ public class WeaponAttackResolutionCommandTests
                 PartLocation.LeftArm,
                 5,
                 [new DiceResult(6)],
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [5])]  // Slot that doesn't exist or has no component
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
+                    CreateComponentHitData(5)])]  // Slot that doesn't exist or has no component
             )
         };
         
         var hitLocationsData = new AttackHitLocationsData(
             hitLocations,
             5,
-            new List<DiceResult>(),
+            [],
             1);
             
         var resolutionData = new AttackResolutionData(
@@ -880,7 +895,8 @@ public class WeaponAttackResolutionCommandTests
                 PartLocation.LeftArm,
                 5,
                 new List<DiceResult>(),
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
+                    CreateComponentHitData(2)])]
             )
         };
         
@@ -930,7 +946,8 @@ public class WeaponAttackResolutionCommandTests
                 PartLocation.LeftArm,
                 5,
                 new List<DiceResult>(),
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
+                    CreateComponentHitData(2)])]
             )
         };
         
@@ -983,7 +1000,8 @@ public class WeaponAttackResolutionCommandTests
                 PartLocation.LeftArm,
                 5,
                 new List<DiceResult>(),
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
+                    CreateComponentHitData(2)])]
             )
         };
         
@@ -1035,7 +1053,8 @@ public class WeaponAttackResolutionCommandTests
                 PartLocation.LeftArm,
                 5,
                 new List<DiceResult>(),
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [2])]
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, 
+                    [CreateComponentHitData(2)])]
             )
         };
         
@@ -1158,5 +1177,14 @@ public class WeaponAttackResolutionCommandTests
         // Assert
         result.ShouldNotBeEmpty();
         result.ShouldContain("Locust LCT-1V has been destroyed!");
+    }
+
+    private ComponentHitData CreateComponentHitData(int slot)
+    {
+        return new ComponentHitData
+        {
+            Slot = slot,
+            Type = MakaMekComponent.ISAmmoMG
+        };
     }
 }

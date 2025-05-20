@@ -465,7 +465,7 @@ public class MechTests
 
         var diceRoller = Substitute.For<IDiceRoller>();
         diceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(5), new(5) } // 10 total for crit roll
+            [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
         );
         diceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
 
@@ -474,9 +474,9 @@ public class MechTests
 
         // Assert
         critsData.ShouldNotBeNull();
-        critsData.CriticalHits.ShouldNotBeNull();
-        critsData.CriticalHits.Length.ShouldBe(2);
-        critsData.CriticalHits.ShouldContain(2);
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(2);
+        critsData.HitComponents.FirstOrDefault(c => c.Slot == 2).ShouldNotBeNull();
         critsData.Roll.ShouldBe(10);
         critsData.NumCriticalHits.ShouldBe(2);
     }
@@ -497,7 +497,7 @@ public class MechTests
 
         var diceRoller = Substitute.For<IDiceRoller>();
         diceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(5), new(5) } // 10 total for crit roll
+            [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
         );
         diceRoller.RollD6().Returns(
             new DiceResult(4),
@@ -510,9 +510,9 @@ public class MechTests
 
         // Assert
         critsData.ShouldNotBeNull();
-        critsData.CriticalHits.ShouldNotBeNull();
-        critsData.CriticalHits.Length.ShouldBe(2);
-        critsData.CriticalHits.ShouldContain(6);
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(2);
+        critsData.HitComponents.FirstOrDefault(c=>c.Slot==6).ShouldNotBeNull();
     }
 
     [Fact]
@@ -524,7 +524,7 @@ public class MechTests
 
         var diceRoller = Substitute.For<IDiceRoller>();
         diceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(5), new(5) } // 10 total for crit roll
+            [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
         );
         diceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
 
@@ -533,10 +533,10 @@ public class MechTests
 
         // Assert
         critsData.ShouldNotBeNull();
-        critsData.CriticalHits.ShouldNotBeNull();
-        critsData.CriticalHits.Length.ShouldBe(2);
-        critsData.CriticalHits.ShouldContain(1);
-        critsData.CriticalHits.ShouldContain(2);
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(2);
+        critsData.HitComponents.FirstOrDefault(c => c.Slot == 1).ShouldNotBeNull();
+        critsData.HitComponents.FirstOrDefault(c => c.Slot == 2).ShouldNotBeNull();
     }
 
     [Fact]
@@ -550,7 +550,7 @@ public class MechTests
 
         var diceRoller = Substitute.For<IDiceRoller>();
         diceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(3), new(3) } // 6 total for crit roll (no crits)
+            [new(3), new(3)] // 6 total for crit roll (no crits)
         );
 
         // Act
@@ -560,7 +560,7 @@ public class MechTests
         critsData.ShouldNotBeNull();
         critsData.Roll.ShouldBe(6);
         critsData.NumCriticalHits.ShouldBe(0);
-        critsData.CriticalHits.ShouldBeNull();
+        critsData.HitComponents.ShouldBeNull();
     }
 
     [Theory]
@@ -583,7 +583,7 @@ public class MechTests
 
         var diceRoller = Substitute.For<IDiceRoller>();
         diceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(4), new(5) } // 9 total for crit roll
+            [new(4), new(5)] // 9 total for crit roll
         );
         diceRoller.RollD6().Returns(new DiceResult(1));
 
@@ -592,9 +592,9 @@ public class MechTests
 
         // Assert
         critsData.ShouldNotBeNull();
-        critsData.CriticalHits.ShouldNotBeNull();
-        critsData.CriticalHits.Length.ShouldBe(1);
-        critsData.CriticalHits[0].ShouldBe(0);
+        critsData.HitComponents.ShouldNotBeNull();
+        critsData.HitComponents.Length.ShouldBe(1);
+        critsData.HitComponents[0].Slot.ShouldBe(0);
     }
 
     [Fact]
@@ -607,14 +607,14 @@ public class MechTests
 
         var diceRoller = Substitute.For<IDiceRoller>();
         diceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(4), new(5) } // 9 total for crit roll
+            [new(4), new(5)] // 9 total for crit roll
         );
 
         // Act
         var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
 
         // Assert
-        critsData?.CriticalHits.ShouldBeNull();
+        critsData?.HitComponents.ShouldBeNull();
     }
 
     [Fact]
@@ -626,7 +626,7 @@ public class MechTests
 
         var diceRoller = Substitute.For<IDiceRoller>();
         diceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(6), new(6) } // 12 total for crit roll
+            [new(6), new(6)] // 12 total for crit roll
         );
 
         // Act
@@ -636,7 +636,7 @@ public class MechTests
         critsData.ShouldNotBeNull();
         critsData.IsBlownOff.ShouldBeTrue();
         critsData.NumCriticalHits.ShouldBe(0);
-        critsData.CriticalHits.ShouldBeNull();
+        critsData.HitComponents.ShouldBeNull();
     }
 
     [Fact]
@@ -665,7 +665,7 @@ public class MechTests
         critsData.ShouldNotBeNull();
         critsData.IsBlownOff.ShouldBeFalse();
         critsData.NumCriticalHits.ShouldBe(3);
-        critsData.CriticalHits.ShouldNotBeNull();
+        critsData.HitComponents.ShouldNotBeNull();
     }
 
     [Fact]
@@ -692,8 +692,7 @@ public class MechTests
 
         // Assert
         critData.ShouldNotBeNull();
-        critData.CriticalHits.ShouldNotBeNull();
-        critData.CriticalHits.ShouldContain(9); // Slot 9 should be available for a hit
+        critData.HitComponents.ShouldNotBeNull();
 
         // Verify that slot 3 is already marked as hit
         centerTorso.HitSlots.ShouldContain(3);

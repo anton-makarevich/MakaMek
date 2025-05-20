@@ -11,7 +11,7 @@ public interface IPilotingSkillCalculator
     /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll.
     /// </summary>
     /// <param name="unit">The unit making the piloting skill roll.</param>
-    /// <param name="rollTypes">An optional collection of specific Piloting Skill Roll types to consider. If null or empty, all applicable modifiers are calculated.</param>
+    /// <param name="rollTypes">A collection of specific Piloting Skill Roll types to consider.</param>
     /// <returns>A breakdown of the piloting skill roll calculation.</returns>
-    PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType>? rollTypes = null);
+    PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType> rollTypes);
 }

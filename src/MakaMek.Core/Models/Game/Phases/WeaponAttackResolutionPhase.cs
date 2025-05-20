@@ -367,6 +367,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             mech,
             [Mechanics.PilotingSkillRollType.GyroHit]);
             
+        // If there are no modifiers, no need for a PSR as we expect one for Gyro Hit
+        if (psrBreakdown.Modifiers.Count==0)
+            return;
+        
         // Roll 2D6 for the piloting skill check
         var diceResults = Game.DiceRoller.Roll2D6();
         var rollTotal = diceResults.Sum(d => d.Result);

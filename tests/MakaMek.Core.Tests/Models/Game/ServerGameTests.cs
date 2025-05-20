@@ -47,7 +47,8 @@ public class ServerGameTests
             new MechFactory(rulesProvider, Substitute.For<ILocalizationService>()),
             _commandPublisher, diceRoller,
             Substitute.For<IToHitCalculator>(),
-            Substitute.For<ICriticalHitsCalculator>());
+            Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>());
         _sut.SetBattleMap(battleMap);
     }
 
@@ -288,6 +289,7 @@ public class ServerGameTests
             diceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             phaseManager);
         
         sut.TransitionToNextPhase(PhaseNames.Start);

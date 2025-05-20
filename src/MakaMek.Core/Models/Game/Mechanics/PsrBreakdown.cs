@@ -5,7 +5,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// <summary>
 /// Holds the breakdown of a piloting skill roll, including all modifiers
 /// </summary>
-public class PsrBreakdown
+public record PsrBreakdown
 {
     /// <summary>
     /// Base piloting skill value

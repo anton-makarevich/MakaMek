@@ -23,7 +23,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// <param name="unit">The unit making the piloting skill roll</param>
     /// <param name="rollTypes">An optional collection of specific Piloting Skill Roll types to consider. If null or empty, all applicable modifiers are calculated.</param>
     /// <returns>A breakdown of the piloting skill roll calculation</returns>
-    public PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType>? rollTypes = null)
+    public PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType> rollTypes)
     {
         if (unit.Crew == null)
         {
@@ -31,19 +31,16 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
 
         var modifiers = new List<RollModifier>();
-        var relevantRollTypes = rollTypes?.ToList() ?? [];
-
-        // Determine if we need to calculate all modifiers or specific ones
-        var calculateAll = relevantRollTypes.Count == 0;
+        var relevantRollTypes = rollTypes.ToList();
 
         // Add damaged gyro modifier if applicable
-        if (calculateAll || relevantRollTypes.Contains(PilotingSkillRollType.GyroHit))
+        if (relevantRollTypes.Contains(PilotingSkillRollType.GyroHit))
         {
             if (unit is Mech mech)
             {
                 // Check for damaged gyro
                 var gyroHits = GetGyroHits(mech);
-                if (gyroHits > 0)
+                if (gyroHits == 1)
                 {
                     modifiers.Add(new DamagedGyroModifier
                     {
