@@ -1,12 +1,12 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
 using Sanet.MakaMek.Core.Services.Localization;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Combat.Modifiers;
 
-public class RangeAttackModifierTests
+public class GunneryRollModifierTests
 {
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
@@ -14,20 +14,17 @@ public class RangeAttackModifierTests
     public void Format_ShouldFormatCorrectly()
     {
         // Arrange
-        var modifier = new RangeAttackModifier
+        var modifier = new GunneryRollModifier
         {
-            Value = 2,
-            Range = WeaponRange.Medium,
-            Distance = 7,
-            WeaponName = "Medium Laser"
+            Value = 4
         };
-        _localizationService.GetString("Modifier_Range").Returns("{0} at {1} hexes ({2} range): +{3}");
+        _localizationService.GetString("Modifier_GunnerySkill").Returns("Gunnery Skill: +{0}");
 
         // Act
         var result = modifier.Format(_localizationService);
 
         // Assert
-        result.ShouldBe("Medium Laser at 7 hexes (Medium range): +2");
-        _localizationService.Received(1).GetString("Modifier_Range");
+        result.ShouldBe("Gunnery Skill: +4");
+        _localizationService.Received(1).GetString("Modifier_GunnerySkill");
     }
 }

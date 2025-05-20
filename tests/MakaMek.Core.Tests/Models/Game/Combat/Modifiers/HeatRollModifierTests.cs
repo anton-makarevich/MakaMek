@@ -1,11 +1,12 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
 using Sanet.MakaMek.Core.Services.Localization;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Combat.Modifiers;
 
-public class HeatAttackModifierTests
+public class HeatRollModifierTests
 {
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
@@ -13,7 +14,7 @@ public class HeatAttackModifierTests
     public void Format_ShouldFormatCorrectly()
     {
         // Arrange
-        var modifier = new HeatAttackModifier
+        var modifier = new HeatRollModifier
         {
             Value = 2,
             HeatLevel = 15

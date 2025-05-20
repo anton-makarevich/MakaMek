@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
 using Sanet.MakaMek.Core.Services.Localization;
 using Shouldly;
 

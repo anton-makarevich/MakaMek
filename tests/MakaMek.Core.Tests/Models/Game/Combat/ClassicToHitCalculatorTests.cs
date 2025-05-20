@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
@@ -216,8 +217,8 @@ public class ClassicToHitCalculatorTests
 
         // Assert
         result.OtherModifiers.Count.ShouldBe(1);
-        result.OtherModifiers[0].ShouldBeOfType<HeatAttackModifier>();
-        var heatModifier = (HeatAttackModifier)result.OtherModifiers[0];
+        result.OtherModifiers[0].ShouldBeOfType<HeatRollModifier>();
+        var heatModifier = (HeatRollModifier)result.OtherModifiers[0];
         heatModifier.Value.ShouldBe(2);
         heatModifier.HeatLevel.ShouldBe(15);
         result.Total.ShouldBe(6); // Base (4) + heat (2)

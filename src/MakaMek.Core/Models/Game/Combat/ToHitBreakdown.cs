@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
 
 namespace Sanet.MakaMek.Core.Models.Game.Combat;
 
@@ -15,7 +16,7 @@ public record ToHitBreakdown
     /// <summary>
     /// Base gunnery skill of the attacker
     /// </summary>
-    public required GunneryAttackModifier GunneryBase { get; init; }
+    public required GunneryRollModifier GunneryBase { get; init; }
 
     /// <summary>
     /// Modifier based on attacker's movement type
@@ -30,17 +31,17 @@ public record ToHitBreakdown
     /// <summary>
     /// List of other modifiers with descriptions
     /// </summary>
-    public required IReadOnlyList<AttackModifier> OtherModifiers { get; init; }
+    public required IReadOnlyList<RollModifier> OtherModifiers { get; init; }
 
     /// <summary>
     /// Modifier based on weapon range to target
     /// </summary>
-    public required RangeAttackModifier RangeModifier { get; init; }
+    public required RangeRollModifier RangeModifier { get; init; }
 
     /// <summary>
     /// List of terrain modifiers along the line of sight
     /// </summary>
-    public required IReadOnlyList<TerrainAttackModifier> TerrainModifiers { get; init; }
+    public required IReadOnlyList<TerrainRollModifier> TerrainModifiers { get; init; }
 
     /// <summary>
     /// Whether there is a clear line of sight to the target
@@ -50,7 +51,7 @@ public record ToHitBreakdown
     /// <summary>
     /// All modifiers combined into a single list
     /// </summary>
-    public IReadOnlyList<AttackModifier> AllModifiers => new AttackModifier[]
+    public IReadOnlyList<RollModifier> AllModifiers => new RollModifier[]
     {
         GunneryBase,
         AttackerMovement,

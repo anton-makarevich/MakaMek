@@ -1,0 +1,16 @@
+using Sanet.MakaMek.Core.Models.Units;
+
+namespace Sanet.MakaMek.Core.Models.Game.Combat;
+
+/// <summary>
+/// Interface for calculating piloting skill roll target numbers
+/// </summary>
+public interface IPilotingSkillRoller
+{
+    /// <summary>
+    /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll
+    /// </summary>
+    /// <param name="unit">The unit making the piloting skill roll</param>
+    /// <returns>A breakdown of the piloting skill roll calculation</returns>
+    PsrBreakdown GetPsrBreakdown(Unit unit);
+}

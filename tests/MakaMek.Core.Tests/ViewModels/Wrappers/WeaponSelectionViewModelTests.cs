@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
@@ -583,11 +584,11 @@ public class WeaponSelectionViewModelTests
 
         return new ToHitBreakdown
         {
-            GunneryBase = new GunneryAttackModifier { Value = gunneryValue },
+            GunneryBase = new GunneryRollModifier { Value = gunneryValue },
             AttackerMovement = new AttackerMovementModifier { Value = 0, MovementType = MovementType.StandingStill },
 
             TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 0 },
-            RangeModifier = new RangeAttackModifier
+            RangeModifier = new RangeRollModifier
                 { Value = otherModifiers, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
             OtherModifiers = [],
             TerrainModifiers = [],
