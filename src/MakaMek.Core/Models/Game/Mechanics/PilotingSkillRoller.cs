@@ -9,7 +9,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// <summary>
 /// Classic BattleTech implementation of piloting skill roll calculator
 /// </summary>
-public class ClassicPilotingSkillRoller : IPilotingSkillRoller
+public class PilotingSkillRoller : IPilotingSkillRoller
 {
     /// <summary>
     /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll

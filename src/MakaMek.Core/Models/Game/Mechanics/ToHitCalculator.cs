@@ -11,11 +11,11 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// <summary>
 /// Classic BattleTech implementation of to-hit calculator using GATOR system
 /// </summary>
-public class ClassicToHitCalculator : IToHitCalculator
+public class ToHitCalculator : IToHitCalculator
 {
     private readonly IRulesProvider _rules;
 
-    public ClassicToHitCalculator(IRulesProvider rules)
+    public ToHitCalculator(IRulesProvider rules)
     {
         _rules = rules;
     }

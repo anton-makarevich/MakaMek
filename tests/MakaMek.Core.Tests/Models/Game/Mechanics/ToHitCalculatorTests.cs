@@ -17,19 +17,19 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
 
-public class ClassicToHitCalculatorTests
+public class ToHitCalculatorTests
 {
     private readonly IRulesProvider _rules;
-    private readonly ClassicToHitCalculator _sut;
+    private readonly ToHitCalculator _sut;
     private Unit? _attacker;
     private Unit? _target;
     private readonly Weapon _weapon;
     private readonly MechFactory _mechFactory;
 
-    public ClassicToHitCalculatorTests()
+    public ToHitCalculatorTests()
     {
         _rules = Substitute.For<IRulesProvider>();
-        _sut = new ClassicToHitCalculator(_rules);
+        _sut = new ToHitCalculator(_rules);
 
         // Setup rules for structure values (needed for MechFactory)
         _rules.GetStructureValues(20).Returns(new Dictionary<PartLocation, int>
