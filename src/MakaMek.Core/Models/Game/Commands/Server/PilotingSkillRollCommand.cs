@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Services.Localization;
+using System.Text;
 
 namespace Sanet.MakaMek.Core.Models.Game.Commands.Server;
 
@@ -37,6 +38,81 @@ public record struct PilotingSkillRollCommand : IGameCommand
     public DateTime Timestamp { get; set; }
     public string Format(ILocalizationService localizationService, IGame game)
     {
-        throw new NotImplementedException();
+        var command = this;
+        var unit = game.Players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == command.UnitId);
+        
+        if (unit == null || unit.Owner == null)
+        {
+            return string.Empty;
+        }
+
+        var player = unit.Owner;
+        var rollTotal = DiceResults.Sum();
+        var stringBuilder = new StringBuilder();
+
+        // Get the localized roll type name
+        var rollTypeKey = $"PilotingSkillRollType_{RollType}";
+        var rollTypeName = localizationService.GetString(rollTypeKey);
+
+        if (IsSuccessful)
+        {
+            // Success case
+            var successTemplate = localizationService.GetString("Command_PilotingSkillRoll_Success");
+            stringBuilder.AppendLine(string.Format(successTemplate,
+                player.Name,
+                unit.Name,
+                rollTypeName,
+                PsrBreakdown.ModifiedPilotingSkill,
+                rollTotal));
+        }
+        else
+        {
+            // Failure case
+            var failureTemplate = localizationService.GetString("Command_PilotingSkillRoll_Failure");
+            stringBuilder.AppendLine(string.Format(failureTemplate,
+                player.Name,
+                unit.Name,
+                rollTypeName,
+                PsrBreakdown.ModifiedPilotingSkill,
+                rollTotal));
+        }
+
+        // Add breakdown of modifiers
+        stringBuilder.AppendLine(string.Format(
+            localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill"),
+            PsrBreakdown.BasePilotingSkill));
+
+        if (PsrBreakdown.Modifiers.Count > 0)
+        {
+            stringBuilder.AppendLine(localizationService.GetString("Command_PilotingSkillRoll_Modifiers"));
+            
+            foreach (var modifier in PsrBreakdown.Modifiers)
+            {
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_PilotingSkillRoll_Modifier"),
+                    modifier.Format(localizationService),
+                    modifier.Value));
+            }
+        }
+
+        // Add total target number
+        stringBuilder.AppendLine(string.Format(
+            localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber"),
+            PsrBreakdown.ModifiedPilotingSkill));
+
+        // Add roll result
+        stringBuilder.AppendLine(string.Format(
+            localizationService.GetString("Command_PilotingSkillRoll_RollResult"),
+            rollTotal));
+
+        // Add impossible roll message if applicable
+        if (PsrBreakdown.IsImpossible)
+        {
+            stringBuilder.AppendLine(localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll"));
+        }
+        
+        return stringBuilder.ToString().TrimEnd();
     }
 }
