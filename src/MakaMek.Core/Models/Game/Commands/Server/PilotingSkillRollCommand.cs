@@ -56,16 +56,24 @@ public record struct PilotingSkillRollCommand : IGameCommand
         var rollTypeKey = $"PilotingSkillRollType_{RollType}";
         var rollTypeName = localizationService.GetString(rollTypeKey);
 
-        if (IsSuccessful)
+        // Check if the roll is impossible first
+        if (PsrBreakdown.IsImpossible)
+        {
+            // Impossible roll case (auto-fail)
+            var impossibleTemplate = localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll");
+            stringBuilder.AppendLine(string.Format(impossibleTemplate,
+                player.Name,
+                unit.Name,
+                rollTypeName));
+        }
+        else if (IsSuccessful)
         {
             // Success case
             var successTemplate = localizationService.GetString("Command_PilotingSkillRoll_Success");
             stringBuilder.AppendLine(string.Format(successTemplate,
                 player.Name,
                 unit.Name,
-                rollTypeName,
-                PsrBreakdown.ModifiedPilotingSkill,
-                rollTotal));
+                rollTypeName));
         }
         else
         {
@@ -74,9 +82,7 @@ public record struct PilotingSkillRollCommand : IGameCommand
             stringBuilder.AppendLine(string.Format(failureTemplate,
                 player.Name,
                 unit.Name,
-                rollTypeName,
-                PsrBreakdown.ModifiedPilotingSkill,
-                rollTotal));
+                rollTypeName));
         }
 
         // Add breakdown of modifiers
@@ -102,15 +108,12 @@ public record struct PilotingSkillRollCommand : IGameCommand
             localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber"),
             PsrBreakdown.ModifiedPilotingSkill));
 
-        // Add roll result
-        stringBuilder.AppendLine(string.Format(
-            localizationService.GetString("Command_PilotingSkillRoll_RollResult"),
-            rollTotal));
-
-        // Add impossible roll message if applicable
-        if (PsrBreakdown.IsImpossible)
+        // Add roll result if not an impossible roll
+        if (!PsrBreakdown.IsImpossible)
         {
-            stringBuilder.AppendLine(localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll"));
+            stringBuilder.AppendLine(string.Format(
+                localizationService.GetString("Command_PilotingSkillRoll_RollResult"),
+                rollTotal));
         }
         
         return stringBuilder.ToString().TrimEnd();

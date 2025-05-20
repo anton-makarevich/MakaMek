@@ -46,6 +46,19 @@ public class FakeLocalizationService: ILocalizationService
             "Direction_Forward" => "forward",
             "Direction_Backward" => "backward",
             
+            // Piloting Skill Roll Command
+            "Command_PilotingSkillRoll_Success" => "{0}'s {1} succeeds {2} check",
+            "Command_PilotingSkillRoll_Failure" => "{0}'s {1} fails {2} check",
+            "Command_PilotingSkillRoll_ImpossibleRoll" => "{0}'s {1} automatically fails {2} check (impossible roll)",
+            "Command_PilotingSkillRoll_BasePilotingSkill" => "Base Piloting Skill: {0}",
+            "Command_PilotingSkillRoll_Modifiers" => "Modifiers:",
+            "Command_PilotingSkillRoll_Modifier" => "  - {0}: +{1}",
+            "Command_PilotingSkillRoll_TotalTargetNumber" => "Total Target Number: {0}",
+            "Command_PilotingSkillRoll_RollResult" => "Roll Result: {0}",
+            
+            // Piloting Skill Roll Types
+            "PilotingSkillRollType_GyroHit" => "Gyro Hit",
+            
             // Attack direction strings
             "AttackDirection_Left" => "Left",
             "AttackDirection_Right" => "Right",

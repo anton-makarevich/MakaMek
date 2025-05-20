@@ -45,6 +45,17 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_SetBattleMap", "Battle map has been set.")]
     [InlineData("Direction_Forward", "forward")]
     [InlineData("Direction_Backward", "backward")]
+    // Piloting Skill Roll Command
+    [InlineData("Command_PilotingSkillRoll_Success", "{0}'s {1} succeeds {2} check")]
+    [InlineData("Command_PilotingSkillRoll_Failure", "{0}'s {1} fails {2} check")]
+    [InlineData("Command_PilotingSkillRoll_ImpossibleRoll", "{0}'s {1} automatically fails {2} check (impossible roll)")]
+    [InlineData("Command_PilotingSkillRoll_BasePilotingSkill", "Base Piloting Skill: {0}")]
+    [InlineData("Command_PilotingSkillRoll_Modifiers", "Modifiers:")]
+    [InlineData("Command_PilotingSkillRoll_Modifier", "  - {0}: +{1}")]
+    [InlineData("Command_PilotingSkillRoll_TotalTargetNumber", "Total Target Number: {0}")]
+    [InlineData("Command_PilotingSkillRoll_RollResult", "Roll Result: {0}")]
+    // Piloting Skill Roll Types
+    [InlineData("PilotingSkillRollType_GyroHit", "Gyro Hit")]
     // Attack modifiers
     [InlineData("AttackDirection_Left", "Left")]
     [InlineData("AttackDirection_Right", "Right")]
