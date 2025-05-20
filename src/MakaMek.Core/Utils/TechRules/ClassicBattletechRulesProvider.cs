@@ -375,4 +375,13 @@ public class ClassicBattletechRulesProvider : IRulesProvider
             _ => 0 // No heat for other movement types
         };
     }
+
+    public int GetPilotingSkillRollModifier(PilotingSkillRollType gyroHit)
+    {
+        return gyroHit switch
+        {
+            PilotingSkillRollType.GyroHit => 3,
+            _ => throw new ArgumentOutOfRangeException(nameof(gyroHit), "Invalid piloting skill roll type")
+        };
+    }
 }

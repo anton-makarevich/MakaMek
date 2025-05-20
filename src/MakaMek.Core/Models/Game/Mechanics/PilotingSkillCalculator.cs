@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
@@ -11,6 +12,11 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// </summary>
 public class PilotingSkillCalculator : IPilotingSkillCalculator
 {
+    private readonly IRulesProvider _rules;
+    public PilotingSkillCalculator(IRulesProvider rules)
+    {
+        _rules = rules;
+    }
     /// <summary>
     /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll
     /// </summary>
@@ -41,7 +47,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                 {
                     modifiers.Add(new DamagedGyroModifier
                     {
-                        Value = gyroHits, // Each hit adds a +1 modifier
+                        Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit),
                         HitsCount = gyroHits
                     });
                 }

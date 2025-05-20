@@ -468,5 +468,28 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             // Assert
             result.ShouldBe(expectedHeatPoints);
         }
+
+        [Fact]
+        public void GetPilotingSkillModifier_GyroHit_ReturnsThree()
+        {
+            // Arrange
+            var rollType = PilotingSkillRollType.GyroHit;
+
+            // Act
+            var result = _sut.GetPilotingSkillModifier(rollType);
+
+            // Assert
+            result.ShouldBe(3);
+        }
+
+        [Fact]
+        public void GetPilotingSkillModifier_UnknownType_ThrowsArgumentOutOfRangeException()
+        {
+            // Arrange - Use a value that doesn't exist in the enum
+            var rollType = (PilotingSkillRollType)999;
+
+            // Act & Assert
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetPilotingSkillModifier(rollType));
+        }
     }
 }
