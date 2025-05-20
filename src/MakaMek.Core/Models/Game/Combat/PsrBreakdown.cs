@@ -25,10 +25,10 @@ public class PsrBreakdown
     /// <summary>
     /// Gets the total target number for the piloting skill roll
     /// </summary>
-    public int Total => BasePilotingSkill + Modifiers.Sum(m => m.Value);
+    public int ModifiedPilotingSkill => BasePilotingSkill + Modifiers.Sum(m => m.Value);
     
     /// <summary>
     /// Determines if the roll is impossible (greater than 12 on 2d6)
     /// </summary>
-    public bool IsImpossible => Total >= ImpossibleRoll;
+    public bool IsImpossible => ModifiedPilotingSkill >= ImpossibleRoll;
 }
