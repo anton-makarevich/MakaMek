@@ -200,7 +200,7 @@ public class Mech : Unit
             
         var critRoll = diceRoller.Roll2D6().Sum(d => d.Result);
         var numCrits = GetNumCriticalHits(critRoll);
-        int[]? crits = null;
+        ComponentHitData[]? hitComponents = null;
         
         // Check if the location can be blown off (head or limbs on a roll of 12)
         var isBlownOff = part.CanBeBlownOff && numCrits == 3;
@@ -211,10 +211,10 @@ public class Mech : Unit
         
         if (numCrits > 0)
         {
-            crits = DetermineCriticalHitSlots(part, numCrits, diceRoller);
+            hitComponents = DetermineCriticalHitSlots(part, numCrits, diceRoller);
         }
         
-        return new LocationCriticalHitsData(location, critRoll, numCrits, crits, isBlownOff);
+        return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff);
     }
 
     /// <summary>
@@ -242,7 +242,7 @@ public class Mech : Unit
     /// <param name="numCriticalHits">Number of critical hits to determine</param>
     /// <param name="diceRoller">The dice roller to use</param>
     /// <returns>Array of slot indices affected by critical hits, or null if none</returns>
-    private int[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits, IDiceRoller diceRoller)
+    private ComponentHitData[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits, IDiceRoller diceRoller)
     {
         var availableSlots = Enumerable.Range(0, part.TotalSlots)
             .Where(slot => !part.HitSlots.Contains(slot)
@@ -250,12 +250,12 @@ public class Mech : Unit
             .ToList();
         if (availableSlots.Count == 0 || numCriticalHits == 0)
             return null;
-        var result = new List<int>();
+        var result = new List<ComponentHitData>();
         for (var i = 0; i < numCriticalHits; i++)
         {
             if (availableSlots.Count == 1)
             {
-                result.Add(availableSlots[0]);
+                result.Add(CreateComponentHitData(part,0));
                 availableSlots.RemoveAt(0);
                 break;
             }
@@ -291,9 +291,20 @@ public class Mech : Unit
             }
 
             if (slot == -1) continue;
-            result.Add(slot);
+            result.Add(CreateComponentHitData(part, slot));
             availableSlots.Remove(slot);
         }
         return result.Count > 0 ? result.ToArray() : null;
+    }
+
+    private ComponentHitData CreateComponentHitData(UnitPart part, int slot)
+    {
+        var component = part.GetComponentAtSlot(slot);
+        if (component == null) throw new ArgumentException("Invalid slot");
+        return new ComponentHitData()
+        {
+            Slot = slot,
+            Type = component.ComponentType
+        }; 
     }
 }

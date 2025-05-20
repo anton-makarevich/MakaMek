@@ -143,14 +143,15 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                         localizationService.GetString("Command_WeaponAttackResolution_NumCrits"),
                         criticalHit.NumCriticalHits));
                     
-                    if (criticalHit.CriticalHits == null || criticalHit.CriticalHits.Length == 0)
+                    if (criticalHit.HitComponents == null || criticalHit.HitComponents.Length == 0)
                         continue;
                     
                     var targetUnit = game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.TargetId);
                     var part = targetUnit?.Parts.FirstOrDefault(p => p.Location == criticalHit.Location);
 
-                    foreach (var slot in criticalHit.CriticalHits)
+                    foreach (var component in criticalHit.HitComponents)
                     {
+                        var slot = component.Slot;
                         var comp = part?.GetComponentAtSlot(slot);
                         if (comp == null) continue;
                         var compName = comp.Name;

@@ -124,14 +124,15 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         HashSet<Component> explodedComponents)
     {
         // Check for explodable components that would be hit by these critical hits
-        if (criticalHitsData.CriticalHits is not { Length: > 0 })
+        if (criticalHitsData.HitComponents is not { Length: > 0 })
             return;
             
         var explosionDamage = 0;
         var hasExplosion = false;
         
-        foreach (var slot in criticalHitsData.CriticalHits)
+        foreach (var componentData in criticalHitsData.HitComponents)
         {
+            var slot = componentData.Slot;
             var component = part.GetComponentAtSlot(slot);
             if (component is { CanExplode: true, HasExploded: false } && !explodedComponents.Contains(component))
             {

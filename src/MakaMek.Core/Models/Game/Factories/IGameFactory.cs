@@ -21,7 +21,8 @@ public interface IGameFactory
         ICommandPublisher commandPublisher, 
         IDiceRoller diceRoller, 
         IToHitCalculator toHitCalculator,
-        ICriticalHitsCalculator criticalHitsCalculator);
+        ICriticalHitsCalculator criticalHitsCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator);
 
     /// <summary>
     /// Creates a new client-side game instance.

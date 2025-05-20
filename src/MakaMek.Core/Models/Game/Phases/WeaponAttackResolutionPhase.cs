@@ -351,40 +351,13 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     private void CheckForGyroHitAndMakePilotingSkillRoll(Units.Mechs.Mech mech, AttackHitLocationsData hitLocationsData)
     {
         // Check if any critical hits from this attack affected the gyro in the center torso
-        var gyroHitInThisAttack = false;
-        
-        // Find center torso hits
-        var centerTorsoHits = hitLocationsData.HitLocations
-            .Where(hl => hl is { Location: PartLocation.CenterTorso, CriticalHits.Count: > 0 })
+        var gyroHitInThisAttack = hitLocationsData.HitLocations
+            .Where(hl => hl.Location == PartLocation.CenterTorso)
             .SelectMany(hl => hl.CriticalHits ?? [])
-            .Where(chd => chd.Location == PartLocation.CenterTorso && chd.CriticalHits != null)
-            .ToList();
+            .Where(chd => chd.Location == PartLocation.CenterTorso)
+            .Any(chd => chd.HitComponents != null 
+                        && chd.HitComponents.Any(c=> c.Type==Data.Community.MakaMekComponent.Gyro));
             
-        if (centerTorsoHits.Count > 0)
-        {
-            // Get the center torso part
-            var centerTorso = mech.Parts.FirstOrDefault(p => p.Location == PartLocation.CenterTorso);
-            if (centerTorso != null)
-            {
-                // Check all critical hit slots for a gyro
-                foreach (var critHit in centerTorsoHits)
-                {
-                    foreach (var slot in critHit.CriticalHits ?? [])
-                    {
-                        var component = centerTorso.GetComponentAtSlot(slot);
-                        if (component is Units.Components.Internal.Gyro)
-                        {
-                            gyroHitInThisAttack = true;
-                            break;
-                        }
-                    }
-                    
-                    if (gyroHitInThisAttack)
-                        break;
-                }
-            }
-        }
-        
         // If no gyro was hit in this attack, no need for a PSR
         if (!gyroHitInThisAttack)
             return;
