@@ -75,6 +75,10 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     private int GetGyroHits(Mech mech)
     {
         var gyro = mech.GetAllComponents<Gyro>().FirstOrDefault();
-        return gyro?.Hits ?? 0;
+        if (gyro == null)
+        {
+            throw new ArgumentException("No gyro found in mech", nameof(mech));
+        }
+        return gyro.Hits;
     }
 }

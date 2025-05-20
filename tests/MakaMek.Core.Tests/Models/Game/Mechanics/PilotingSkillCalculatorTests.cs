@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -140,6 +141,24 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             result.Modifiers.Count.ShouldBe(1);
             result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting + 10);
             result.IsImpossible.ShouldBe(result.ModifiedPilotingSkill >= PsrBreakdown.ImpossibleRoll);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_SideTorsoWithoutGyro_ThrowsArgumentException()
+        {
+            // Arrange
+            // Create a side torso (which doesn't have a gyro)
+            var sideTorso = new SideTorso("Left Torso", PartLocation.LeftTorso, 10, 3, 5);
+            
+            // Create a mech with only the side torso
+            var mech = new Mech("Test", "TST-1A", 50, 4, [sideTorso]);
+            
+            // Set up the rules provider to return a modifier value for gyro hits
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
+
+            // Act & Assert
+            Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit]))
+                .Message.ShouldContain("No gyro found");
         }
     }
 }
