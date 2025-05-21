@@ -8,7 +8,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
-using Sanet.MakaMek.Core.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
 
 namespace MakaMek.Avalonia.Tests.Views

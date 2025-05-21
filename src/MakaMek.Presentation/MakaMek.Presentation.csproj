@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Sanet.MakaMek.Presentation</AssemblyName>
+        <RootNamespace>Sanet.MakaMek.Presentation</RootNamespace>
+        <Description>An Attempt of Classic BattleTech game implementation. Presentation Logic</Description>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <None Include="../../README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <PackageReference Include="Sanet.MVVM.Core" Version="1.1.1" />
+      <PackageReference Include="System.Reactive" Version="6.0.1" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\MakaMek.Core\MakaMek.Core.csproj" />
+    </ItemGroup>
+
+    <!-- Debug target to print properties -->
+    <Target Name="PrintProperties" BeforeTargets="Build">
+        <Message Importance="high" Text="Project: $(MSBuildProjectName)" />
+        <Message Importance="high" Text="Version: $(Version)" />
+        <Message Importance="high" Text="Authors: $(Authors)" />
+        <Message Importance="high" Text="Company: $(Company)" />
+    </Target>
+</Project>

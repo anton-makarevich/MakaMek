@@ -5,9 +5,9 @@
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.JoinGame.Fragments"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewWide"
-             x:DataType="vm:JoinGameViewModel" 
-             xmlns:vm="using:Sanet.MakaMek.Core.ViewModels"
-             xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.NewGame.Fragments">
+             x:DataType="viewModels:JoinGameViewModel"
+             xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.NewGame.Fragments"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation">
 
     <Grid ColumnDefinitions="*,*" Margin="10" RowDefinitions="Auto, *">
         <TextBlock Text="Join Game"
@@ -26,3 +26,4 @@
         </Border>
     </Grid>
 </UserControl>
+

@@ -19,8 +19,8 @@ using Sanet.MakaMek.Avalonia.Utils;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.UiStates;
-using Sanet.MakaMek.Core.ViewModels;
+using Sanet.MakaMek.Presentation.UiStates;
+using Sanet.MakaMek.Presentation.ViewModels;
 
 namespace Sanet.MakaMek.Avalonia.Controls
 {

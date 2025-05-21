@@ -4,7 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 

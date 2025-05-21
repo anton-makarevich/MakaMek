@@ -1,0 +1,50 @@
+name: MakaMek Presentation Library
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+  workflow_dispatch:
+env:
+  NuGetDirectory: ${{ github.workspace}}/nuget
+  
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 9.x
+
+      - name: Run Presentation tests
+        run: dotnet test tests/MakaMek.Presentation.Tests/MakaMek.Presentation.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Presentation]*
+
+      - name: Upload Presentation tests results
+        run: bash <(curl -s https://codecov.io/bash) -f "tests/MakaMek.Presentation.Tests/coverage.opencover.xml" -t ${{ secrets.CODECOV_TOKEN }}
+  
+  publish-nuget:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.x'
+
+      - name: Create nuget packages
+        run: |
+          dotnet pack src/MakaMek.Presentation/MakaMek.Presentation.csproj --configuration Release --output ${{ env.NuGetDirectory }}
+
+      - name: Publish NuGet package
+        run: |
+          for file in "${{ env.NuGetDirectory }}"/*.nupkg; do
+            dotnet nuget push "$file" --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done

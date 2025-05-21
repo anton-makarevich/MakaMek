@@ -53,3 +53,4 @@
         <ProgressBar Name="RightLegStructure" Grid.Row="7" Grid.Column="1" Grid.RowSpan="2" Classes="unitPartHealthBar mechStructure"/>
     </Grid>
 </UserControl>
+

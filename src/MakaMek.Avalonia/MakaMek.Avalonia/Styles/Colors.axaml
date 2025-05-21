@@ -68,3 +68,4 @@
     <SolidColorBrush x:Key="TargetingBrush" Color="{StaticResource TargetingColor}"/>
     <SolidColorBrush x:Key="MovementBrush" Color="{StaticResource MovementColor}"/>
 </ResourceDictionary>
+

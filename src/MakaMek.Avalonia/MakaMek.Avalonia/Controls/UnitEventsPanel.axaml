@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Core.ViewModels;assembly=Sanet.MakaMek.Core"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
+             xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
-             x:DataType="viewModels:BattleMapViewModel"
+             x:DataType="viewModels1:BattleMapViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitEventsPanel">
     <UserControl.Resources>
         <converters:EventTypeToBackgroundConverter x:Key="EventTypeToBackgroundConverter"/>
@@ -23,3 +23,4 @@
         </ItemsControl>
     </ScrollViewer>
 </UserControl>
+

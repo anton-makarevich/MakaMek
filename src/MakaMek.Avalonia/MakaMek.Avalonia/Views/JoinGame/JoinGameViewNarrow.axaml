@@ -6,8 +6,8 @@
              xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.NewGame.Fragments"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewNarrow"
-             x:DataType="vm:JoinGameViewModel" 
-             xmlns:vm="using:Sanet.MakaMek.Core.ViewModels">
+             x:DataType="viewModels:JoinGameViewModel"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation">
 
   <DockPanel Classes="pageContainer">
     <TextBlock Text="Join Game" 
@@ -30,3 +30,4 @@
     </ScrollViewer>
   </DockPanel>
 </UserControl>
+

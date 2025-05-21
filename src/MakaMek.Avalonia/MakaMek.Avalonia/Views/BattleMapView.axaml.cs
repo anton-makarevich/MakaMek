@@ -10,7 +10,7 @@ using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Views.Avalonia;
 
 namespace Sanet.MakaMek.Avalonia.Views;

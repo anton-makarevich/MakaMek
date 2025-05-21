@@ -38,6 +38,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\MakaMek.Core\MakaMek.Core.csproj" />
+      <ProjectReference Include="..\..\MakaMek.Presentation\MakaMek.Presentation.csproj" />
     </ItemGroup>
 
     <ItemGroup>
