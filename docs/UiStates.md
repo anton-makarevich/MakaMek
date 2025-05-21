@@ -1,7 +1,9 @@
-# UI States Module Architecture (MakaMek.Core)
+# UI States Module Architecture (MakaMek.Presentation)
 
 ## Overview
 The `UiStates` module manages user interaction logic for different game phases. Each UI state encapsulates the rules, available actions, and input handling for a specific phase or context, acting as a bridge between the core game logic and the user interface (typically via ViewModels). This design enables clear separation of phase-specific UI behavior and supports extensible, maintainable interaction flows.
+
+As part of the MakaMek.Presentation layer, UI States serve as an intermediary between the core game logic (MakaMek.Core) and user interactions in MakaMek.Avalonia.
 
 ---
 
@@ -32,7 +34,7 @@ The `UiStates` module manages user interaction logic for different game phases. 
 ## Relationships & Data Flow
 
 - Each UI state is instantiated and managed by the main ViewModel (e.g., `BattleMapViewModel`), which delegates user input to the current state.
-- UI states interact with the game model, map, and units to determine available actions and handle input.
+- UI states interact with the game model, map, and units from MakaMek.Core to determine available actions and handle input.
 - State transitions are triggered by user actions, game events, or completion of required steps.
 - The design supports phase-specific validation, action availability, and feedback, decoupling UI logic from core game rules.
 
@@ -42,6 +44,30 @@ The `UiStates` module manages user interaction logic for different game phases. 
 - **New Phases:** Add new UI states by implementing `IUiState` for additional game phases or custom interactions.
 - **Custom Actions:** Extend `StateAction` or add new substates for richer interaction flows.
 - **UI/UX Enhancements:** UI states can be extended to support new input paradigms, tooltips, or contextual help.
+
+---
+
+## Architecture Context
+
+The UiStates module is part of the MakaMek.Presentation layer, which implements the presentation logic in the MVVM architecture:
+
+```
++-------------------+    
+|  MakaMek.Avalonia |    Platform-specific UI implementation
++-------------------+
+          ↑
+          |
++-------------------+
+| MakaMek.Presentation |  ViewModels, UiStates, and other presentation logic
++-------------------+
+          ↑
+          |
++-------------------+
+|   MakaMek.Core    |    Core game logic and models
++-------------------+
+```
+
+This separation allows the presentation logic to be tested independently of the UI implementation, and enables potential future UI implementations on different platforms while reusing the same presentation logic.
 
 ---
 
