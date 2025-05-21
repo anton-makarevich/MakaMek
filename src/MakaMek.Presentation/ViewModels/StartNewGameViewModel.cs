@@ -13,9 +13,9 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
-using Sanet.MakaMek.Core.ViewModels.Wrappers;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
-namespace Sanet.MakaMek.Core.ViewModels;
+namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {

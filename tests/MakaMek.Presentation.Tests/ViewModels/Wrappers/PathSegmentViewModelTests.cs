@@ -1,8 +1,8 @@
-using Shouldly;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.ViewModels.Wrappers;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.ViewModels.Wrappers;
+namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
 
 public class PathSegmentViewModelTests
 {

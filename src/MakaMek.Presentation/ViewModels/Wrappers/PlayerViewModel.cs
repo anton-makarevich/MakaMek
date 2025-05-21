@@ -1,11 +1,11 @@
-using Sanet.MVVM.Core.ViewModels;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MVVM.Core.ViewModels;
 
-namespace Sanet.MakaMek.Core.ViewModels.Wrappers;
+namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 public class PlayerViewModel : BindableBase
 {

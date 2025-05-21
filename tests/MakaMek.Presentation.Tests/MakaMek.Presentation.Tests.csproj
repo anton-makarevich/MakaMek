@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <AssemblyName>Sanet.MakaMek.Presentation.Tests</AssemblyName>
-    <RootNamespace>Sanet.MakaMek.Core.Tests</RootNamespace>
+    <RootNamespace>Sanet.MakaMek.Presentation.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.ViewModels.Wrappers
+namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers
 {
     /// <summary>
     /// View model for UI events

@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Core.UiStates;
+namespace Sanet.MakaMek.Presentation.UiStates;
 
 public enum MovementStep
 {

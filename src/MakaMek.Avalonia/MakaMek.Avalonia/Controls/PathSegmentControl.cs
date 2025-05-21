@@ -4,8 +4,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.ViewModels;
-using Sanet.MakaMek.Core.ViewModels.Wrappers;
+using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 

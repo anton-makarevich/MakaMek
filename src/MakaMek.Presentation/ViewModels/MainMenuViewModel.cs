@@ -1,9 +1,9 @@
+using System.Reflection;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MVVM.Core.ViewModels;
-using System.Reflection;
 
-namespace Sanet.MakaMek.Core.ViewModels;
+namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public class MainMenuViewModel : BaseViewModel
 {

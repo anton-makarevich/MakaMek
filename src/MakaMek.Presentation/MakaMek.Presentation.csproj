@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>Sanet.MakaMek.Presentation</AssemblyName>
-        <RootNamespace>Sanet.MakaMek.Core</RootNamespace>
+        <RootNamespace>Sanet.MakaMek.Presentation</RootNamespace>
         <Description>An Attempt of Classic BattleTech game implementation. Presentation Logic</Description>
     </PropertyGroup>
     

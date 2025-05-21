@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Views.Avalonia;
 
 namespace Sanet.MakaMek.Avalonia.Views.StartNewGame;

@@ -1,4 +1,3 @@
-using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
@@ -10,16 +9,17 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.UiStates;
-using Sanet.MakaMek.Core.ViewModels;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
+using Sanet.MakaMek.Presentation.UiStates;
+using Sanet.MakaMek.Presentation.ViewModels;
+using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.UiStates;
+namespace Sanet.MakaMek.Presentation.Tests.UiStates;
 
 public class DeploymentStateTests
 {

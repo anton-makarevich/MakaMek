@@ -1,7 +1,7 @@
+using Sanet.MakaMek.Presentation.UiStates;
 using Shouldly;
-using Sanet.MakaMek.Core.UiStates;
 
-namespace Sanet.MakaMek.Core.Tests.UiStates;
+namespace Sanet.MakaMek.Presentation.Tests.UiStates;
 
 public class IdleStateTests
 {

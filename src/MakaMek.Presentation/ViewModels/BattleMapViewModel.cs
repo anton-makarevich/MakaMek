@@ -1,21 +1,21 @@
+using System.Collections.ObjectModel;
 using System.Reactive.Linq;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Phases;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.UiStates;
-using Sanet.MVVM.Core.ViewModels;
-using System.Collections.ObjectModel;
-using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.ViewModels.Wrappers;
 using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game.Phases;
+using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Presentation.UiStates;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MVVM.Core.ViewModels;
 
-namespace Sanet.MakaMek.Core.ViewModels;
+namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public class BattleMapViewModel : BaseViewModel
 {

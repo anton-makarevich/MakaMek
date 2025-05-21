@@ -2,7 +2,7 @@ using System.Numerics;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MVVM.Core.ViewModels;
 
-namespace Sanet.MakaMek.Core.ViewModels.Wrappers;
+namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 public class PathSegmentViewModel : BaseViewModel
 {

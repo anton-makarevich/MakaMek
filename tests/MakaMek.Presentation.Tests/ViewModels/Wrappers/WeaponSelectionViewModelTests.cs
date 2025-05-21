@@ -11,10 +11,10 @@ using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
-using Sanet.MakaMek.Core.ViewModels.Wrappers;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.ViewModels.Wrappers;
+namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
 
 public class WeaponSelectionViewModelTests
 {

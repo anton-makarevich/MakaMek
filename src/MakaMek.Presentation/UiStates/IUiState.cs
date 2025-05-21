@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 
-namespace Sanet.MakaMek.Core.UiStates;
+namespace Sanet.MakaMek.Presentation.UiStates;
 
 public interface IUiState
 {

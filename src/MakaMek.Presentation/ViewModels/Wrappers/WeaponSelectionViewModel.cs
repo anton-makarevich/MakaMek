@@ -5,7 +5,7 @@ using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MVVM.Core.ViewModels;
 
-namespace Sanet.MakaMek.Core.ViewModels.Wrappers;
+namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 public class WeaponSelectionViewModel : BindableBase
 {

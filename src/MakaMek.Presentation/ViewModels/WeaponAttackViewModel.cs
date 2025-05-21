@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
-namespace Sanet.MakaMek.Core.ViewModels;
+namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public record WeaponAttackViewModel
 {

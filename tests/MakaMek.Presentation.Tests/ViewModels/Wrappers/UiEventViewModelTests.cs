@@ -1,10 +1,10 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.ViewModels.Wrappers;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.ViewModels.Wrappers;
+namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
 
 public class UiEventViewModelTests
 {

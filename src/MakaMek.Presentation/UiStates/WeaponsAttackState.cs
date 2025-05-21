@@ -1,15 +1,15 @@
+using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.ViewModels;
-using Sanet.MakaMek.Core.ViewModels.Wrappers;
-using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
-namespace Sanet.MakaMek.Core.UiStates;
+namespace Sanet.MakaMek.Presentation.UiStates;
 
 public class WeaponsAttackState : IUiState
 {

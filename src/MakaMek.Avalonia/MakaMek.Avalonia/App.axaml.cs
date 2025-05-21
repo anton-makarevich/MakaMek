@@ -9,7 +9,7 @@ using Sanet.MakaMek.Avalonia.Views;
 using Sanet.MakaMek.Avalonia.Views.JoinGame;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Avalonia.Views.MainMenu;
-using Sanet.MakaMek.Core.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Sanet.MVVM.Navigation.Avalonia.Services;
 using MainWindow = Sanet.MakaMek.Avalonia.Views.MainWindow;

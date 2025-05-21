@@ -10,10 +10,10 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.TechRules;
-using Sanet.MakaMek.Core.ViewModels.Wrappers;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
 
-namespace Sanet.MakaMek.Core.ViewModels;
+namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public abstract class NewGameViewModel : BaseViewModel
 {

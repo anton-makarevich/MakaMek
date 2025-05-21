@@ -1,9 +1,9 @@
 using Sanet.MakaMek.Core.Models.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels;
 
-namespace Sanet.MakaMek.Core.UiStates;
+namespace Sanet.MakaMek.Presentation.UiStates;
 
 public class MovementState : IUiState
 {

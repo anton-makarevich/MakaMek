@@ -1,10 +1,10 @@
-using NSubstitute;
-using Shouldly;
-using Sanet.MakaMek.Core.ViewModels;
-using Sanet.MVVM.Core.Services;
 using AsyncAwaitBestPractices.MVVM;
+using NSubstitute;
+using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MVVM.Core.Services;
+using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.ViewModels;
+namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
 public class MainMenuViewModelTests
 {
