@@ -328,12 +328,13 @@ public abstract class Unit
                     }
 
                     // Check for explodable components before applying critical hits
-                    if (criticalHit.CriticalHits != null)
+                    if (criticalHit.HitComponents != null)
                     {
                         var explosionDamage = 0;
 
-                        foreach (var slot in criticalHit.CriticalHits)
+                        foreach (var componentData in criticalHit.HitComponents)
                         {
+                            var slot = componentData.Slot;
                             var component = criticalPart.GetComponentAtSlot(slot);
                             if (component is { CanExplode: true, HasExploded: false })
                             {
@@ -368,10 +369,10 @@ public abstract class Unit
                 if (criticalHit.IsBlownOff) continue;
 
                 // Apply critical hits to specific slots
-                if (criticalHit.CriticalHits == null) continue;
-                foreach (var slot in criticalHit.CriticalHits)
+                if (criticalHit.HitComponents == null) continue;
+                foreach (var component in criticalHit.HitComponents)
                 {
-                    criticalPart.CriticalHit(slot);
+                    criticalPart.CriticalHit(component.Slot);
                 }
             }
 

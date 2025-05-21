@@ -1,8 +1,8 @@
-using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -24,6 +24,7 @@ public class ServerGame : BaseGame, IDisposable
     public IDiceRoller DiceRoller { get; }
     
     public ICriticalHitsCalculator CriticalHitsCalculator { get; }
+    public IPilotingSkillCalculator PilotingSkillCalculator { get; }
     public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
 
     public ServerGame(
@@ -33,11 +34,13 @@ public class ServerGame : BaseGame, IDisposable
         IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator,
         IPhaseManager? phaseManager = null)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator) 
     {
         DiceRoller = diceRoller;
         CriticalHitsCalculator = criticalHitsCalculator;
+        PilotingSkillCalculator = pilotingSkillCalculator;
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }

@@ -2,10 +2,10 @@ using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
@@ -47,7 +47,8 @@ public class ServerGameTests
             new MechFactory(rulesProvider, Substitute.For<ILocalizationService>()),
             _commandPublisher, diceRoller,
             Substitute.For<IToHitCalculator>(),
-            Substitute.For<ICriticalHitsCalculator>());
+            Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>());
         _sut.SetBattleMap(battleMap);
     }
 
@@ -288,6 +289,7 @@ public class ServerGameTests
             diceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             phaseManager);
         
         sut.TransitionToNextPhase(PhaseNames.Start);

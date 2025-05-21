@@ -1,20 +1,21 @@
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
 /// <summary>
 /// Classic BattleTech implementation of to-hit calculator using GATOR system
 /// </summary>
-public class ClassicToHitCalculator : IToHitCalculator
+public class ToHitCalculator : IToHitCalculator
 {
     private readonly IRulesProvider _rules;
 
-    public ClassicToHitCalculator(IRulesProvider rules)
+    public ToHitCalculator(IRulesProvider rules)
     {
         _rules = rules;
     }
@@ -44,7 +45,7 @@ public class ClassicToHitCalculator : IToHitCalculator
         
         return new ToHitBreakdown
         {
-            GunneryBase = new GunneryAttackModifier
+            GunneryBase = new GunneryRollModifier
             {
                 Value = attacker.Crew!.Gunnery
             },
@@ -60,7 +61,7 @@ public class ClassicToHitCalculator : IToHitCalculator
                 HexesMoved = target.DistanceCovered
             },
             OtherModifiers = otherModifiers,
-            RangeModifier = new RangeAttackModifier
+            RangeModifier = new RangeRollModifier
             {
                 Value = _rules.GetRangeModifier(range, rangeValue, distance),
                 Range = range,
@@ -72,10 +73,10 @@ public class ClassicToHitCalculator : IToHitCalculator
         };
     }
 
-    private IReadOnlyList<AttackModifier> GetDetailedOtherModifiers(Unit attacker, Unit target, bool isPrimaryTarget = true)
+    private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(Unit attacker, Unit target, bool isPrimaryTarget = true)
     {
-        var modifiers = new List<AttackModifier> {
-            new HeatAttackModifier
+        var modifiers = new List<RollModifier> {
+            new HeatRollModifier
             {
                 Value = attacker.AttackHeatPenalty,
                 HeatLevel = attacker.CurrentHeat
@@ -110,7 +111,7 @@ public class ClassicToHitCalculator : IToHitCalculator
         return modifiers;
     }
 
-    private IReadOnlyList<TerrainAttackModifier> GetTerrainModifiers(Unit attacker, Unit target, BattleMap map)
+    private IReadOnlyList<TerrainRollModifier> GetTerrainModifiers(Unit attacker, Unit target, BattleMap map)
     {
         var hexes = map.GetHexesAlongLineOfSight(
             attacker.Position!.Coordinates,
@@ -119,7 +120,7 @@ public class ClassicToHitCalculator : IToHitCalculator
         return hexes
             .Skip(1) // Skip attacker's hex
             .SelectMany(hex => hex.GetTerrains()
-                .Select(terrain => new TerrainAttackModifier
+                .Select(terrain => new TerrainRollModifier
                 {
                     Value = _rules.GetTerrainToHitModifier(terrain.Id),
                     Location = hex.Coordinates,

@@ -1,6 +1,6 @@
 using NSubstitute;
-using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
@@ -13,7 +13,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Models.Game.Combat;
+namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
 
 public class CriticalHitsCalculatorTests
 {
@@ -284,13 +284,13 @@ public class CriticalHitsCalculatorTests
         result[0].Location.ShouldBe(location);
         result[0].Roll.ShouldBe(8); // 4 + 4
         result[0].NumCriticalHits.ShouldBe(1); // Roll of 8 gives 1 critical hit
-        result[0].CriticalHits!.ShouldContain(0); // Should hit slot 0 where ammo is
+        result[0].HitComponents!.FirstOrDefault(c=>c.Slot == 0).ShouldNotBeNull(); // Should hit slot 0 where ammo is
         
         // Second critical hit set (from explosion)
         result[1].Location.ShouldBe(location);
         result[1].Roll.ShouldBe(8); // 5 + 3
         result[1].NumCriticalHits.ShouldBe(1); // Roll of 8 gives 1 critical hit
-        result[1].CriticalHits!.ShouldContain(0); // Should hit slot 0 where ammo is
+        result[1].HitComponents!.FirstOrDefault(c=>c.Slot == 0).ShouldNotBeNull(); // Should hit slot 0 where ammo is
     }
     
     [Fact]
@@ -345,12 +345,12 @@ public class CriticalHitsCalculatorTests
         // First critical hit set (from initial damage)
         result[0].Location.ShouldBe(location);
         result[0].NumCriticalHits.ShouldBe(1);
-        result[0].CriticalHits!.ShouldContain(0); // Should hit slot 0 where ammo1 is
+        result[0].HitComponents!.FirstOrDefault(c=>c.Slot == 0).ShouldNotBeNull(); // Should hit slot 0 where ammo1 is
         
         // Second critical hit set (from first explosion)
         result[1].Location.ShouldBe(location);
         result[1].NumCriticalHits.ShouldBe(1);
-        result[1].CriticalHits!.ShouldContain(1); // Should hit slot 1 where ammo2 is
+        result[1].HitComponents!.FirstOrDefault(c=>c.Slot == 1).ShouldNotBeNull(); // Should hit slot 1 where ammo2 is
         
         // Third critical hit set (from the second explosion)
         result[2].Location.ShouldBe(location);
@@ -398,7 +398,7 @@ public class CriticalHitsCalculatorTests
         // First critical hit set (from initial damage)
         result[0].Location.ShouldBe(initialLocation);
         result[0].NumCriticalHits.ShouldBe(1);
-        result[0].CriticalHits!.ShouldContain(0); // Should hit slot 0 where ammo is
+        result[0].HitComponents!.FirstOrDefault(c=>c.Slot == 0).ShouldNotBeNull(); // Should hit slot 0 where ammo is
         
         // The last critical hit set should be in the transfer location
         var lastResult = result[^1];

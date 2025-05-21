@@ -1,5 +1,5 @@
-using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
@@ -21,7 +21,8 @@ public interface IGameFactory
         ICommandPublisher commandPublisher, 
         IDiceRoller diceRoller, 
         IToHitCalculator toHitCalculator,
-        ICriticalHitsCalculator criticalHitsCalculator);
+        ICriticalHitsCalculator criticalHitsCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator);
 
     /// <summary>
     /// Creates a new client-side game instance.

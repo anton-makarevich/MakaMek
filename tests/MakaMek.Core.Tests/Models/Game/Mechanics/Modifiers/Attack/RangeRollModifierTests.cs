@@ -1,12 +1,12 @@
 using NSubstitute;
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Models.Game.Combat.Modifiers;
+namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Modifiers.Attack;
 
-public class RangeAttackModifierTests
+public class RangeRollModifierTests
 {
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
@@ -14,7 +14,7 @@ public class RangeAttackModifierTests
     public void Format_ShouldFormatCorrectly()
     {
         // Arrange
-        var modifier = new RangeAttackModifier
+        var modifier = new RangeRollModifier
         {
             Value = 2,
             Range = WeaponRange.Medium,

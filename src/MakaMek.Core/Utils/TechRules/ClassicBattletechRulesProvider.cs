@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Models.Game.Combat;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
@@ -373,6 +373,15 @@ public class ClassicBattletechRulesProvider : IRulesProvider
             MovementType.Run => 2,
             MovementType.Jump => Math.Max(3, movementPointSpent),
             _ => 0 // No heat for other movement types
+        };
+    }
+
+    public int GetPilotingSkillRollModifier(PilotingSkillRollType gyroHit)
+    {
+        return gyroHit switch
+        {
+            PilotingSkillRollType.GyroHit => 3,
+            _ => throw new ArgumentOutOfRangeException(nameof(gyroHit), "Invalid piloting skill roll type")
         };
     }
 }

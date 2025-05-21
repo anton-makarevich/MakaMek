@@ -1,9 +1,9 @@
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
-public record RangeAttackModifier : AttackModifier
+public record RangeRollModifier : RollModifier
 {
     public required WeaponRange Range { get; init; }
     public required int Distance { get; init; }

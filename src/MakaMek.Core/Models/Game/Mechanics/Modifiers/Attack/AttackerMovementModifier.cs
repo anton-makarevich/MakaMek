@@ -1,9 +1,9 @@
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
-public record AttackerMovementModifier : AttackModifier
+public record AttackerMovementModifier : RollModifier
 {
     public required MovementType MovementType { get; init; }
 

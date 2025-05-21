@@ -289,19 +289,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return FiringArc.Forward;
     }
 
-    private void MoveToNextUnit()
-    {
-        _currentUnitIndex++;
-        _currentWeaponIndex = 0;
-    }
-    
-    private void MoveToNextPlayer()
-    {
-        _currentPlayerIndex++;
-        _currentUnitIndex = 0;
-        _currentWeaponIndex = 0;
-    }
-    
     private void PublishAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target, AttackResolutionData resolution)
     {
         // Track destroyed parts before damage
@@ -347,6 +334,83 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         attacker.FireWeapon(command.WeaponData);
 
         Game.CommandPublisher.PublishCommand(command);
+        
+        // Check if any critical hits affected the gyro in this attack
+        if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null } && 
+            target is Units.Mechs.Mech mech)
+        {
+            CheckForGyroHitAndMakePilotingSkillRoll(mech, resolution.HitLocationsData);
+        }
+    }
+    
+    /// <summary>
+    /// Checks if the gyro was hit and makes a piloting skill roll if necessary
+    /// </summary>
+    /// <param name="mech">The mech to check for gyro hits</param>
+    /// <param name="hitLocationsData">The hit locations data from the attack</param>
+    private void CheckForGyroHitAndMakePilotingSkillRoll(Units.Mechs.Mech mech, AttackHitLocationsData hitLocationsData)
+    {
+        // Check if any critical hits from this attack affected the gyro in the center torso
+        var gyroHitInThisAttack = hitLocationsData.HitLocations
+            .Where(hl => hl.Location == PartLocation.CenterTorso)
+            .SelectMany(hl => hl.CriticalHits ?? [])
+            .Where(chd => chd.Location == PartLocation.CenterTorso)
+            .Any(chd => chd.HitComponents != null 
+                        && chd.HitComponents.Any(c=> c.Type==Data.Community.MakaMekComponent.Gyro));
+            
+        // If no gyro was hit in this attack, no need for a PSR
+        if (!gyroHitInThisAttack)
+            return;
+            
+        // Get the PSR breakdown for a gyro hit
+        var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
+            mech,
+            [Mechanics.PilotingSkillRollType.GyroHit]);
+            
+        // If there are no modifiers, no need for a PSR as we expect one for Gyro Hit
+        if (psrBreakdown.Modifiers.Count==0)
+            return;
+        
+        // Roll 2D6 for the piloting skill check
+        var diceResults = Game.DiceRoller.Roll2D6();
+        var rollTotal = diceResults.Sum(d => d.Result);
+        
+        // Check if the roll was successful (roll >= target number)
+        var isSuccessful = rollTotal >= psrBreakdown.ModifiedPilotingSkill;
+        
+        // Create and publish a command for the piloting skill roll
+        var psrCommand = new PilotingSkillRollCommand
+        {
+            GameOriginId = Game.Id,
+            UnitId = mech.Id,
+            RollType = Mechanics.PilotingSkillRollType.GyroHit,
+            DiceResults = diceResults.Select(d => d.Result).ToArray(),
+            IsSuccessful = isSuccessful,
+            PsrBreakdown = psrBreakdown
+        };
+        
+        Game.CommandPublisher.PublishCommand(psrCommand);
+        
+        // If the roll failed, the mech falls
+        if (!isSuccessful)
+        {
+            // Logic for handling mech falling would go here
+            // This would typically involve applying damage and changing the mech's state
+            // For now, we're just publishing the PSR command
+        }
+    }
+
+    private void MoveToNextUnit()
+    {
+        _currentUnitIndex++;
+        _currentWeaponIndex = 0;
+    }
+    
+    private void MoveToNextPlayer()
+    {
+        _currentPlayerIndex++;
+        _currentUnitIndex = 0;
+        _currentWeaponIndex = 0;
     }
 
     public override void HandleCommand(IGameCommand command)

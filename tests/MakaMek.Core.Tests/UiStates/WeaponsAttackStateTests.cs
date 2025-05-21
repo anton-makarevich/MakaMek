@@ -3,10 +3,10 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Combat;
-using Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -81,11 +81,11 @@ public class WeaponsAttackStateTests
 
         var expectedModifiers = new ToHitBreakdown
         {
-            GunneryBase = new GunneryAttackModifier { Value = 4 },
+            GunneryBase = new GunneryRollModifier { Value = 4 },
             AttackerMovement = new AttackerMovementModifier { Value = 0, MovementType = MovementType.StandingStill },
             TargetMovement = new TargetMovementModifier { Value = 0, HexesMoved = 1 },
             OtherModifiers = [],
-            RangeModifier = new RangeAttackModifier
+            RangeModifier = new RangeRollModifier
                 { Value = 0, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = [],
             HasLineOfSight = true
@@ -1040,7 +1040,7 @@ public class WeaponsAttackStateTests
         // Set up the calculator mock to return different breakdowns based on parameters
         var primaryBreakdown = new ToHitBreakdown
         {
-            GunneryBase = new GunneryAttackModifier
+            GunneryBase = new GunneryRollModifier
             {
                 Value = 4
             },
@@ -1048,19 +1048,19 @@ public class WeaponsAttackStateTests
             HasLineOfSight = true,
             AttackerMovement = new AttackerMovementModifier{MovementType = MovementType.Walk, Value = 1},
             TargetMovement = new TargetMovementModifier{HexesMoved = 3, Value = 1},
-            RangeModifier = new RangeAttackModifier
+            RangeModifier = new RangeRollModifier
                 { Value = 0, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = []
         };
         
         var secondaryBreakdown = new ToHitBreakdown
         {
-            GunneryBase = new GunneryAttackModifier { Value = 4 },
+            GunneryBase = new GunneryRollModifier { Value = 4 },
             OtherModifiers = [new SecondaryTargetModifier { Value = 2, IsInFrontArc = false }],
             HasLineOfSight = true,
             AttackerMovement = new AttackerMovementModifier{MovementType = MovementType.Walk, Value = 1},
             TargetMovement = new TargetMovementModifier{HexesMoved = 3, Value = 1},
-            RangeModifier = new RangeAttackModifier
+            RangeModifier = new RangeRollModifier
                 { Value = 0, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = []
         };

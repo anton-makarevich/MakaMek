@@ -2,9 +2,9 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
-public record TerrainAttackModifier : AttackModifier
+public record TerrainRollModifier : RollModifier
 {
     public required HexCoordinates Location { get; init; }
     public required MakaMekTerrains TerrainId { get; init; }

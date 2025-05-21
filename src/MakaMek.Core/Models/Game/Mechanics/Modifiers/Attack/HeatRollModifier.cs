@@ -1,8 +1,8 @@
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
-public record HeatAttackModifier : AttackModifier
+public record HeatRollModifier : RollModifier
 {
     public required int HeatLevel { get; init; }
 

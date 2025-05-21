@@ -1,8 +1,8 @@
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Models.Game.Combat.Modifiers;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
-public record TargetMovementModifier : AttackModifier
+public record TargetMovementModifier : RollModifier
 {
     public required int HexesMoved { get; init; }
 

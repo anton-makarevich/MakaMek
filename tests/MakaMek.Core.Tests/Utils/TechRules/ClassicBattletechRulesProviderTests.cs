@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Models.Game.Combat;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -467,6 +467,29 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
 
             // Assert
             result.ShouldBe(expectedHeatPoints);
+        }
+
+        [Fact]
+        public void GetPilotingSkillModifier_GyroHit_ReturnsThree()
+        {
+            // Arrange
+            var rollType = PilotingSkillRollType.GyroHit;
+
+            // Act
+            var result = _sut.GetPilotingSkillRollModifier(rollType);
+
+            // Assert
+            result.ShouldBe(3);
+        }
+
+        [Fact]
+        public void GetPilotingSkillModifier_UnknownType_ThrowsArgumentOutOfRangeException()
+        {
+            // Arrange - Use a value that doesn't exist in the enum
+            var rollType = (PilotingSkillRollType)999;
+
+            // Act & Assert
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetPilotingSkillRollModifier(rollType));
         }
     }
 }

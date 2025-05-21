@@ -46,6 +46,19 @@ public class FakeLocalizationService: ILocalizationService
             "Direction_Forward" => "forward",
             "Direction_Backward" => "backward",
             
+            // Piloting Skill Roll Command
+            "Command_PilotingSkillRoll_Success" => "{0}'s {1} succeeds {2} check",
+            "Command_PilotingSkillRoll_Failure" => "{0}'s {1} fails {2} check",
+            "Command_PilotingSkillRoll_ImpossibleRoll" => "{0}'s {1} automatically fails {2} check (impossible roll)",
+            "Command_PilotingSkillRoll_BasePilotingSkill" => "Base Piloting Skill: {0}",
+            "Command_PilotingSkillRoll_Modifiers" => "Modifiers:",
+            "Command_PilotingSkillRoll_Modifier" => "  - {0}: +{1}",
+            "Command_PilotingSkillRoll_TotalTargetNumber" => "Total Target Number: {0}",
+            "Command_PilotingSkillRoll_RollResult" => "Roll Result: {0}",
+            
+            // Piloting Skill Roll Types
+            "PilotingSkillRollType_GyroHit" => "Gyro Hit",
+            
             // Attack direction strings
             "AttackDirection_Left" => "Left",
             "AttackDirection_Right" => "Right",
@@ -59,7 +72,8 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_Range" => "{0} at {1} hexes ({2} range): +{3}",
             "Modifier_Heat" => "Heat Level ({0}): +{1}",
             "Modifier_Terrain" => "{0} at {1}: +{2}",
-            
+            "Modifier_DamagedGyro" => "Damaged Gyro",
+            "Hits" => "Hits",
             // Attack information
             "Attack_NoLineOfSight" => "No LOS",
             "Attack_TargetNumber" => "Target ToHit Number",

@@ -1,8 +1,8 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Combat;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
@@ -31,7 +31,8 @@ public class GameFactoryTests
             _commandPublisher, 
             _diceRoller, 
             _toHitCalculator,
-            Substitute.For<ICriticalHitsCalculator>());
+            Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>());
 
         // Assert
         serverGame.ShouldNotBeNull();
