@@ -38,10 +38,11 @@ MakaMek is an open-source tactical combat game featuring giant walking war machi
 ```
 MakaMek/
 ├── src/
-│   ├── MakaMek.Core/        # Core game engine and logic
-│   └── MakaMek.Avalonia/    # UI implementation
-├── tests/                   # Unit tests
-└── docs/                    # Documentation (also synced to GitHub Wiki)
+│   ├── MakaMek.Core/         # Core game engine and logic
+│   ├── MakaMek.Presentation/ # Presentation layer (ViewModels and UI states)
+│   └── MakaMek.Avalonia/     # UI implementation with AvaloniaUI
+├── tests/                    # Unit tests
+└── docs/                     # Documentation (also synced to GitHub Wiki)
 ```
 
 ### Project Status
@@ -50,6 +51,7 @@ MakaMek/
 |----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
 | **Test Coverage (non-ui)** | [![codecov](https://codecov.io/github/anton-makarevich/MakaMek/graph/badge.svg?token=SAQTXWFA21)](https://codecov.io/github/anton-makarevich/MakaMek)                                                    | |
 | **MakaMek.Core**           | [![build](https://github.com/anton-makarevich/MakaMek/actions/workflows/core.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/core.yml)                                     | [![NuGet Version](https://img.shields.io/nuget/vpre/Sanet.MakaMek.Core?logo=nuget)](https://www.nuget.org/packages/Sanet.MakaMek.Core) |
+| **MakaMek.Presentation**   | [![build](https://github.com/anton-makarevich/MakaMek/actions/workflows/presentation.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/presentation.yml)                     | [![NuGet Version](https://img.shields.io/nuget/vpre/Sanet.MakaMek.Presentation?logo=nuget)](https://www.nuget.org/packages/Sanet.MakaMek.Presentation) |
 | **MakaMek.Avalonia**       | [![build](https://github.com/anton-makarevich/MakaMek/actions/workflows/avalonia.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/avalonia.yml)                             | [![NuGet Version](https://img.shields.io/nuget/vpre/Sanet.MakaMek.Avalonia?logo=nuget)](https://www.nuget.org/packages/Sanet.MakaMek.Avalonia) |
 | **Web Version (WASM)**     | [![Deploy WASM to GitHub Pages](https://github.com/anton-makarevich/MakaMek/actions/workflows/deploy-wasm.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/deploy-wasm.yml) | [![Play in Browser](https://img.shields.io/badge/Play-in%20Browser-blue?logo=github)](https://anton-makarevich.github.io/MakaMek/) |
 | **Android Version**        | [![Build Android APK](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-android.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-android.yml)       | [![Download Android APK](https://img.shields.io/badge/Download-Android%20APK-green?logo=android)](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-android.yml) |
