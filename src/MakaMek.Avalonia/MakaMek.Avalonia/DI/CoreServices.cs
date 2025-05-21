@@ -37,6 +37,7 @@ public static class CoreServices
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
         services.AddSingleton<IToHitCalculator, ToHitCalculator>();
+        services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IMechDataProvider, MtfDataProvider>();
         services.AddSingleton<IUnitsLoader, EmbeddedResourcesUnitsLoader>();
         services.AddSingleton<IGameFactory, GameFactory>();
