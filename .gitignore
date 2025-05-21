@@ -272,3 +272,5 @@ __pycache__/
 # Scripts
 
 serve-wasm.ps1
+
+**/.avalonia-build-tasks
