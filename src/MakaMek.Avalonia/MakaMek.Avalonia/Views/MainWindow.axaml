@@ -10,3 +10,4 @@
         Title="MakaMek.Avalonia">
         <views:BattleMapView />
 </Window>
+

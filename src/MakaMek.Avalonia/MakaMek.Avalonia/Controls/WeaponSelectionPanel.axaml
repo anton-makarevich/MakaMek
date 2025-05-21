@@ -4,8 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
-             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Core.ViewModels.Wrappers;assembly=Sanet.MakaMek.Core"
-             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Core.ViewModels;assembly=Sanet.MakaMek.Core"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Core.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Core.ViewModels;assembly=Sanet.MakaMek.Presentation"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Controls.WeaponSelectionPanel"
              x:DataType="viewModels:BattleMapViewModel"
@@ -125,3 +125,4 @@
         </Grid>
     </templatedControls:GamePanel>
 </UserControl>
+
