@@ -687,6 +687,168 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         _player2Unit1.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
     }
 
+    [Fact]
+    public void Enter_ShouldPublishPilotingSkillRollCommand_WhenGyroIsHit()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        
+        // Setup ToHitCalculator to return a value
+        Game.ToHitCalculator.GetToHitNumber(
+            Arg.Any<Unit>(), 
+            Arg.Any<Unit>(), 
+            Arg.Any<Weapon>(), 
+            Arg.Any<BattleMap>())
+            .Returns(7); // Return a to-hit number of 7
+        
+        // Configure dice rolls to ensure hit on center torso
+        // First roll (8) is for attack (hit)
+        // Second roll (7) is for hit location (center torso)
+        SetupDiceRolls(8, 7);
+        
+        // Setup critical hit calculator to return a gyro hit
+        Game.CriticalHitsCalculator.CalculateCriticalHits(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(loc => loc == PartLocation.CenterTorso),
+                Arg.Any<int>())
+            .Returns([
+                new LocationCriticalHitsData(PartLocation.CenterTorso,
+                    7,
+                    1,
+                    [
+                        new ComponentHitData
+                        {
+                            Type = MakaMekComponent.Gyro,
+                            Slot = 3
+                        }
+                    ]
+                )
+            ]);
+        
+        // Setup piloting skill calculator to return a PSR breakdown with modifiers
+        Game.PilotingSkillCalculator.GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<IEnumerable<Sanet.MakaMek.Core.Models.Game.Mechanics.PilotingSkillRollType>>(
+                types => types.Contains(Sanet.MakaMek.Core.Models.Game.Mechanics.PilotingSkillRollType.GyroHit)))
+            .Returns(new Sanet.MakaMek.Core.Models.Game.Mechanics.PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = [new TestModifier { Value = 3, Name = "Damaged Gyro" }]
+            });
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify that a PilotingSkillRollCommand was published
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<PilotingSkillRollCommand>(cmd => 
+                cmd.GameOriginId == Game.Id &&
+                cmd.RollType == Sanet.MakaMek.Core.Models.Game.Mechanics.PilotingSkillRollType.GyroHit));
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishPilotingSkillRollCommand_WhenGyroIsNotHit()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        
+        // Setup ToHitCalculator to return a value
+        Game.ToHitCalculator.GetToHitNumber(
+            Arg.Any<Unit>(), 
+            Arg.Any<Unit>(), 
+            Arg.Any<Weapon>(), 
+            Arg.Any<BattleMap>())
+            .Returns(7); // Return a to-hit number of 7
+        
+        // Configure dice rolls to ensure hit on center torso
+        // First roll (8) is for attack (hit)
+        // Second roll (7) is for hit location (center torso)
+        SetupDiceRolls(8, 7);
+        
+        // Setup critical hit calculator to return a gyro hit
+        Game.CriticalHitsCalculator.CalculateCriticalHits(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(loc => loc == PartLocation.CenterTorso),
+                Arg.Any<int>())
+            .Returns([
+                new LocationCriticalHitsData(PartLocation.CenterTorso,
+                    7,
+                    1,
+                    []
+                )
+            ]);
+        
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify that no PilotingSkillRollCommand was published
+        CommandPublisher.DidNotReceive().PublishCommand(
+            Arg.Any<PilotingSkillRollCommand>());
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishPilotingSkillRollCommand_WhenPsrBreakdownHasNoModifiers()
+    {
+                // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        
+        // Setup ToHitCalculator to return a value
+        Game.ToHitCalculator.GetToHitNumber(
+            Arg.Any<Unit>(), 
+            Arg.Any<Unit>(), 
+            Arg.Any<Weapon>(), 
+            Arg.Any<BattleMap>())
+            .Returns(7); // Return a to-hit number of 7
+        
+        // Configure dice rolls to ensure hit on center torso
+        // First roll (8) is for attack (hit)
+        // Second roll (7) is for hit location (center torso)
+        SetupDiceRolls(8, 7);
+        
+        // Setup critical hit calculator to return a gyro hit
+        Game.CriticalHitsCalculator.CalculateCriticalHits(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(loc => loc == PartLocation.CenterTorso),
+                Arg.Any<int>())
+            .Returns([
+                new LocationCriticalHitsData(PartLocation.CenterTorso,
+                    7,
+                    1,
+                    [
+                        new ComponentHitData
+                        {
+                            Type = MakaMekComponent.Gyro,
+                            Slot = 3
+                        }
+                    ]
+                )
+            ]);
+        
+        // Setup piloting skill calculator to return a PSR breakdown with modifiers
+        Game.PilotingSkillCalculator.GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<IEnumerable<Sanet.MakaMek.Core.Models.Game.Mechanics.PilotingSkillRollType>>(
+                types => types.Contains(Sanet.MakaMek.Core.Models.Game.Mechanics.PilotingSkillRollType.GyroHit)))
+            .Returns(new Sanet.MakaMek.Core.Models.Game.Mechanics.PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify that no PilotingSkillRollCommand was published
+        CommandPublisher.DidNotReceive().PublishCommand(
+            Arg.Any<PilotingSkillRollCommand>());
+    }
+    
     private void SetupPlayer1WeaponTargets()
     {
         // Add a weapon to each unit
@@ -775,5 +937,15 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             0, 3, 6, 9,
             type, 10, clusters, clusterSize,1,1,MakaMekComponent.LRM10, ammoType))
     {
+    }
+    
+    private record TestModifier : Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.RollModifier
+    {
+        public required string Name { get; init; }
+        
+        public override string Format(Sanet.MakaMek.Core.Services.Localization.ILocalizationService localizationService)
+        {
+            return Name;
+        }
     }
 }
