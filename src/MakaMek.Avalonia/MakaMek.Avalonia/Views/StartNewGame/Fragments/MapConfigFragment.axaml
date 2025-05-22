@@ -7,8 +7,6 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.NewGame.Fragments.MapConfigFragment"
              x:DataType="viewModels1:StartNewGameViewModel">
     <StackPanel Classes="verticalSpaced">
-        <TextBlock Text="Map Settings" Classes="h2" HorizontalAlignment="Center"/>
-        
         <StackPanel Classes="formGroup">
             <TextBlock Text="{Binding MapWidthLabel}" Classes="label"/>
             <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>

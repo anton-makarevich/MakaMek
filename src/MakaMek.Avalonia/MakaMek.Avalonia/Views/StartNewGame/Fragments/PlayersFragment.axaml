@@ -7,7 +7,6 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.NewGame.Fragments.PlayersFragment"
              x:DataType="viewModels1:NewGameViewModel">
     <StackPanel Classes="verticalSpaced">
-        <TextBlock Text="Players" Classes="h2" HorizontalAlignment="Center"/>
         <Button Content="Add Player" Command="{Binding AddPlayerCommand}"
                 Classes="secondary"
                 HorizontalAlignment="Center"
@@ -16,9 +15,9 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border Classes="card" Margin="0,5">
-                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*">
-                            
-                            <StackPanel Grid.Row="1" Grid.Column="0" Classes="verticalSpaced" Margin="10,5">
+                        <Grid ColumnDefinitions="*,*" 
+                              RowDefinitions="Auto,*">
+                            <StackPanel Grid.Row="0" Grid.Column="0" Classes="verticalSpaced" Margin="10,5">
                                 <TextBlock Text="{Binding Name}" Classes="h3" />
                                 <TextBlock Text="Available Units:" Classes="label" Margin="5"/>
                                 <ComboBox 
@@ -32,22 +31,21 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Content="Add Unit" 
-                                            IsVisible="{Binding IsLocalPlayer}"
-                                            Command="{Binding AddUnitCommand}" 
-                                                                            Classes="primary"
-                                                                            IsEnabled="{Binding CanAddUnit}"/>
-                                    <Button Content="Join Game" Command="{Binding JoinGameCommand}" 
-                                            Classes="primary"
-                                            IsVisible="{Binding CanJoin}"/>
-                                    <Button Content="Set Ready" Command="{Binding SetReadyCommand}" 
-                                            Classes="primary"
-                                            IsVisible="{Binding CanSetReady}"/>
-                                </StackPanel>
-                                
+                                <Button Content="Add Unit" 
+                                        IsVisible="{Binding IsLocalPlayer}"
+                                        Command="{Binding AddUnitCommand}" 
+                                        Classes="primary"
+                                        IsEnabled="{Binding CanAddUnit}"/>
                             </StackPanel>
-                            <Border Grid.Row="1" Grid.Column="1" Classes="card" Background="{DynamicResource SurfaceBrush}">
+                            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                                <Button Content="Join Game" Command="{Binding JoinGameCommand}" 
+                                         Classes="primary"
+                                         IsVisible="{Binding CanJoin}"/>
+                                <Button Content="Set Ready" Command="{Binding SetReadyCommand}" 
+                                         Classes="primary"
+                                         IsVisible="{Binding CanSetReady}"/>
+                            </StackPanel>
+                            <Border Grid.Row="0" Grid.Column="1" Classes="card" Background="{DynamicResource SurfaceBrush}">
                                 <ItemsControl ItemsSource="{Binding Units}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
