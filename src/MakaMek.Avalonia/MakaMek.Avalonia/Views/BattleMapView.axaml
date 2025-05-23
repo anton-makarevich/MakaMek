@@ -93,6 +93,7 @@
                     IsVisible="{Binding IsUserActionLabelVisible}">
                 <TextBlock Text="{Binding ActionInfoLabel}" 
                          Classes="actionInfo"
+                         TextWrapping="Wrap"
                          FontWeight="Bold"
                          Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
                          VerticalAlignment="Center"/>

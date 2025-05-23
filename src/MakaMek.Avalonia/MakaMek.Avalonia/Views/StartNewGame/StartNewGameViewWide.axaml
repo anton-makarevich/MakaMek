@@ -17,12 +17,14 @@
                 Margin="0,10,0,0"/>
         
         <ScrollViewer Classes="gameScrollViewer">
-            <Grid ColumnDefinitions="*,*">
-                <StackPanel Grid.Column="0" Spacing="8">
-                    <fragments1:MapConfigFragment Margin="10"/>
-                    <fragments1:NetworkFragment IsVisible="{Binding CanStartLanServer}" Margin="10"/>
-                </StackPanel>
-                <fragments1:PlayersFragment Grid.Column="1" Margin="10"/>
+            <Grid 
+                ColumnDefinitions="*,*"
+                RowDefinitions="Auto,*,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Map" Classes="h2" HorizontalAlignment="Center"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Players" Classes="h2" HorizontalAlignment="Center"/>
+                    <fragments1:MapConfigFragment Grid.Column="0" Grid.Row="1" Margin="10"/>
+                    <fragments1:NetworkFragment Grid.Column="0" Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10"/>
+                    <fragments1:PlayersFragment Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" Margin="10"/>
             </Grid>
         </ScrollViewer>
     </DockPanel>
