@@ -513,7 +513,7 @@ public abstract class Unit
             :new HexPosition(movementPath.Last().To);
         var distance = Position.Coordinates.DistanceTo(position.Coordinates);
         DistanceCovered = distance;
-        MovementPointsSpent = movementPath.Sum(s=>s.Cost);
+        SpendMovementPoints(movementPath.Sum(s=>s.Cost));
         MovementTypeUsed = movementType;
         Position = position; 
     }
@@ -592,5 +592,14 @@ public abstract class Unit
     {
         _notifications.Clear();
         _events.Clear();
+    }
+
+    /// <summary>
+    /// Adds movement points to the unit's movement points spent
+    /// </summary>
+    /// <param name="points">The number of points to add</param>
+    protected void SpendMovementPoints(int points)
+    {
+        MovementPointsSpent += points;
     }
 }
