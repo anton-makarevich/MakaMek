@@ -57,22 +57,40 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         // Determine attack direction for hit location purposes
         FiringArc attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingRoll.Result);
         
-        // Roll for hit location (2d6)
-        var locationRolls = _diceRoller.Roll2D6();
-        var locationRollResult = locationRolls.Sum(r => r.Result);
+        // Divide damage into groups of 5 points each
+        var hitLocations = new List<HitLocationData>();
+        var remainingDamage = totalDamage;
         
-        // Get hit location from rules provider
-        var hitLocation = _rulesProvider.GetHitLocation(locationRollResult, attackDirection);
+        // Calculate how many full 5-point groups we have
+        var fullGroups = remainingDamage / 5;
+        // Calculate the remaining points for the smaller group
+        var remainingPoints = remainingDamage % 5;
         
-        // Create a list of hit locations
-        var hitLocations = new List<HitLocationData>
+        // Local function to determine hit location and create HitLocationData
+        HitLocationData DetermineHitLocationData(int damageAmount)
         {
-            new HitLocationData(
+            var locationRolls = _diceRoller.Roll2D6();
+            var locationRollResult = locationRolls.Sum(r => r.Result);
+            var hitLocation = _rulesProvider.GetHitLocation(locationRollResult, attackDirection);
+            
+            return new HitLocationData(
                 hitLocation,
-                totalDamage,
+                damageAmount,
                 locationRolls
-            )
-        };
+            );
+        }
+        
+        // Add full 5-point groups
+        for (int i = 0; i < fullGroups; i++)
+        {
+            hitLocations.Add(DetermineHitLocationData(5));
+        }
+        
+        // Add the smaller group if there are remaining points
+        if (remainingPoints > 0)
+        {
+            hitLocations.Add(DetermineHitLocationData(remainingPoints));
+        }
         
         // Create hit locations data
         var hitLocationsData = new HitLocationsData(
@@ -116,7 +134,7 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         }
         
         // Otherwise, pilot takes damage if PSR fails
-        int rollResult = diceRolls.Sum(r => r.Result);
+        var rollResult = diceRolls.Sum(r => r.Result);
         return rollResult > psrBreakdown.ModifiedPilotingSkill;
     }
 }
