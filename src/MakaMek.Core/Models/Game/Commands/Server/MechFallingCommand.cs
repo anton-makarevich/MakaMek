@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Services.Localization;
+using System.Text;
 
 namespace Sanet.MakaMek.Core.Models.Game.Commands.Server;
 
@@ -43,25 +44,38 @@ public record struct MechFallingCommand : IGameCommand
             return string.Empty;
         }
         
-        string message = $"{unit.Name} fell";
+        var stringBuilder = new StringBuilder();
         
+        // Base message about falling
+        stringBuilder.Append(string.Format(
+            localizationService.GetString("Command_MechFalling_Base"),
+            unit.Name));
+        
+        // Add levels fallen if applicable
         if (LevelsFallen > 0)
         {
-            message += $" {LevelsFallen} level(s)";
+            stringBuilder.Append(string.Format(
+                localizationService.GetString("Command_MechFalling_Levels"),
+                LevelsFallen));
         }
         
+        // Add jumping status if applicable
         if (WasJumping)
         {
-            message += " while jumping";
+            stringBuilder.Append(localizationService.GetString("Command_MechFalling_Jumping"));
         }
         
-        message += $" and took {DamageData.TotalDamage} damage";
+        // Add damage information
+        stringBuilder.Append(string.Format(
+            localizationService.GetString("Command_MechFalling_Damage"),
+            DamageData.TotalDamage));
         
+        // Add pilot injury information if applicable
         if (DamageData.PilotTakesDamage)
         {
-            message += ", pilot was injured";
+            stringBuilder.Append(localizationService.GetString("Command_MechFalling_PilotInjury"));
         }
         
-        return message;
+        return stringBuilder.ToString();
     }
 }

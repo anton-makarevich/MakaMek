@@ -46,6 +46,13 @@ public class FakeLocalizationService: ILocalizationService
             "Direction_Forward" => "forward",
             "Direction_Backward" => "backward",
             
+            // MechFallingCommand strings
+            "Command_MechFalling_Base" => "{0} fell",
+            "Command_MechFalling_Levels" => " {0} level(s)",
+            "Command_MechFalling_Jumping" => " while jumping",
+            "Command_MechFalling_Damage" => " and took {0} damage",
+            "Command_MechFalling_PilotInjury" => ", pilot was injured",
+            
             // Piloting Skill Roll Command
             "Command_PilotingSkillRoll_Success" => "{0}'s {1} succeeds {2} check",
             "Command_PilotingSkillRoll_Failure" => "{0}'s {1} fails {2} check",

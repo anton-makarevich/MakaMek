@@ -45,6 +45,12 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_SetBattleMap", "Battle map has been set.")]
     [InlineData("Direction_Forward", "forward")]
     [InlineData("Direction_Backward", "backward")]
+    // MechFallingCommand strings
+    [InlineData("Command_MechFalling_Base", "{0} fell")]
+    [InlineData("Command_MechFalling_Levels", " {0} level(s)")]
+    [InlineData("Command_MechFalling_Jumping", " while jumping")]
+    [InlineData("Command_MechFalling_Damage", " and took {0} damage")]
+    [InlineData("Command_MechFalling_PilotInjury", ", pilot was injured")]
     // Piloting Skill Roll Command
     [InlineData("Command_PilotingSkillRoll_Success", "{0}'s {1} succeeds {2} check")]
     [InlineData("Command_PilotingSkillRoll_Failure", "{0}'s {1} fails {2} check")]
