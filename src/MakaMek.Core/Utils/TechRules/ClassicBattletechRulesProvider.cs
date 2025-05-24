@@ -362,22 +362,17 @@ public class ClassicBattletechRulesProvider : IRulesProvider
 
     public HexDirection GetFacingAfterFall(int roll, HexDirection currentFacing)
     {
-        // Based on the table provided, determine the new facing relative to current facing
-        return roll switch
+        if (roll < 1 || roll > 6)
         {
-            1 => currentFacing, // Same direction
-            2 => currentFacing.Rotate(1), // 1 hexside right
-            3 => currentFacing.Rotate(2), // 2 hexsides right
-            4 => currentFacing.Rotate(3), // Opposite direction
-            5 => currentFacing.Rotate(4), // 2 hexsides left
-            6 => currentFacing.Rotate(5), // 1 hexside left
-            _ => throw new ArgumentOutOfRangeException(nameof(roll), "Roll must be between 1 and 6")
-        };
+            throw new ArgumentOutOfRangeException(nameof(roll), "Roll must be between 1 and 6"); 
+        }
+        // Determine the new facing relative to current facing
+        return currentFacing.Rotate(roll-1);
     }
 
     public FiringArc GetAttackDirectionAfterFall(int roll)
     {
-        // Based on the table provided, determine the attack direction for hit location
+        // Determine the attack direction for hit location
         return roll switch
         {
             1 => FiringArc.Forward, // Front

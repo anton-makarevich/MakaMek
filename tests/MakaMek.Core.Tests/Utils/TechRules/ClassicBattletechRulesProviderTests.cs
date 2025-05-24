@@ -491,5 +491,55 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             // Act & Assert
             Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetPilotingSkillRollModifier(rollType));
         }
+        
+        [Theory]
+        [InlineData(1, HexDirection.Top, HexDirection.Top)] // Same direction
+        [InlineData(2, HexDirection.Top, HexDirection.TopRight)] // 1 hexside right
+        [InlineData(3, HexDirection.Top, HexDirection.BottomRight)] // 2 hexsides right
+        [InlineData(4, HexDirection.Top, HexDirection.Bottom)] // Opposite direction
+        [InlineData(5, HexDirection.Top, HexDirection.BottomLeft)] // 2 hexsides left
+        [InlineData(6, HexDirection.Top, HexDirection.TopLeft)] // 1 hexside left
+        public void GetFacingAfterFall_FromTop_ReturnsCorrectFacing(int roll, HexDirection currentFacing, HexDirection expectedFacing)
+        {
+            // Act
+            var result = _sut.GetFacingAfterFall(roll, currentFacing);
+
+            // Assert
+            result.ShouldBe(expectedFacing);
+        }
+
+        [Theory]
+        [InlineData(0, HexDirection.Top)] // Roll too low
+        [InlineData(7, HexDirection.Top)] // Roll too high
+        public void GetFacingAfterFall_InvalidRoll_ThrowsArgumentOutOfRangeException(int invalidRoll, HexDirection currentFacing)
+        {
+            // Act & Assert
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetFacingAfterFall(invalidRoll, currentFacing));
+        }
+
+        [Theory]
+        [InlineData(1, FiringArc.Forward)] // Front
+        [InlineData(2, FiringArc.Right)] // Right Side
+        [InlineData(3, FiringArc.Right)] // Right Side
+        [InlineData(4, FiringArc.Rear)] // Rear
+        [InlineData(5, FiringArc.Left)] // Left Side
+        [InlineData(6, FiringArc.Left)] // Left Side
+        public void GetAttackDirectionAfterFall_ReturnsCorrectHitLocation(int roll, FiringArc expectedDirection)
+        {
+            // Act
+            var result = _sut.GetAttackDirectionAfterFall(roll);
+
+            // Assert
+            result.ShouldBe(expectedDirection);
+        }
+
+        [Theory]
+        [InlineData(0)] // Roll too low
+        [InlineData(7)] // Roll too high
+        public void GetAttackDirectionAfterFall_InvalidRoll_ThrowsArgumentOutOfRangeException(int invalidRoll)
+        {
+            // Act & Assert
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetAttackDirectionAfterFall(invalidRoll));
+        }
     }
 }
