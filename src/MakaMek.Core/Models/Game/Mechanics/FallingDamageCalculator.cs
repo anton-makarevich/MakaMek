@@ -108,33 +108,36 @@ public class FallingDamageCalculator : IFallingDamageCalculator
     }
     
     /// <summary>
-    /// Determines if a pilot takes damage from a fall
+    /// Determines if a warrior takes damage from a fall
     /// </summary>
     /// <param name="unit">The unit that fell</param>
     /// <param name="levelsFallen">The number of levels the unit fell</param>
     /// <param name="psrBreakdown">The piloting skill roll breakdown</param>
-    /// <param name="diceRolls">The dice roll result</param>
-    /// <returns>True if the pilot takes damage, false otherwise</returns>
-    public bool DeterminePilotDamage(Unit unit, int levelsFallen, PsrBreakdown psrBreakdown, List<DiceResult> diceRolls)
+    /// <returns>Tuple containing: whether pilot takes damage and the dice roll results</returns>
+    public (bool TakesDamage, List<DiceResult>? DiceRolls) DeterminePilotDamage(Unit unit, int levelsFallen, PsrBreakdown psrBreakdown)
     {
-        if (unit is not Mech mech)
+        // Check if the unit is a mech
+        if (unit is not Mech)
         {
-            throw new ArgumentException("Only mech pilots can take falling damage", nameof(unit));
+            throw new ArgumentException("Only mechs can have pilot damage from falling", nameof(unit));
+        }
+
+        // If the PSR is impossible, pilot automatically takes damage
+        if (psrBreakdown.IsImpossible)
+        {
+            // Return true
+            return (true, null);
         }
         
-        // Pilot automatically takes damage if:
-        // - Mech is immobile
-        // - Pilot is unconscious
-        // - PSR target number is impossible (> 12)
-        if ((mech.Status & UnitStatus.Immobile) != 0 ||
-            mech.Crew?.IsUnconscious == true ||
-            psrBreakdown.IsImpossible)
-        {
-            return true;
-        }
+        // Roll 2D6 for the PSR
+        var diceRolls = _diceRoller.Roll2D6();
         
-        // Otherwise, pilot takes damage if PSR fails
+        // Calculate the roll result
         var rollResult = diceRolls.Sum(r => r.Result);
-        return rollResult > psrBreakdown.ModifiedPilotingSkill;
+        
+        // Pilot takes damage if PSR fails (roll > modified piloting skill)
+        var takesDamage = rollResult > psrBreakdown.ModifiedPilotingSkill;
+        
+        return (takesDamage, diceRolls);
     }
 }

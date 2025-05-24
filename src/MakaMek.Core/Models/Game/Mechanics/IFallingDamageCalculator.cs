@@ -24,7 +24,6 @@ public interface IFallingDamageCalculator
     /// <param name="unit">The unit that fell</param>
     /// <param name="levelsFallen">The number of levels the unit fell</param>
     /// <param name="psrBreakdown">The piloting skill roll breakdown</param>
-    /// <param name="diceRolls">The dice roll result</param>
-    /// <returns>True if the MechWarrior takes damage, false otherwise</returns>
-    bool DeterminePilotDamage(Unit unit, int levelsFallen, PsrBreakdown psrBreakdown, List<DiceResult> diceRolls);
+    /// <returns>Tuple containing: whether pilot takes damage and the dice roll results</returns>
+    (bool TakesDamage, List<DiceResult>? DiceRolls) DeterminePilotDamage(Unit unit, int levelsFallen, PsrBreakdown psrBreakdown);
 }

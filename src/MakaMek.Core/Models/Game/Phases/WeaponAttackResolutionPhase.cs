@@ -408,13 +408,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 new[] { PilotingSkillRollType.WarriorDamageFromFall },
                 Game.BattleMap);
 
-            // Roll for pilot damage
-            var pilotDamageRoll = Game.DiceRoller.Roll2D6();
-            var pilotTakesDamage = fallingDamageCalculator.DeterminePilotDamage(
+            // Determine if pilot takes damage using the calculator's internal dice roller
+            var (pilotTakesDamage, pilotDamageRoll) = fallingDamageCalculator.DeterminePilotDamage(
                 mech,
                 0,
-                pilotPsrBreakdown,
-                pilotDamageRoll);
+                pilotPsrBreakdown);
 
             // Create and publish the mech falling command
             var mechFallingCommand = new MechFallingCommand
