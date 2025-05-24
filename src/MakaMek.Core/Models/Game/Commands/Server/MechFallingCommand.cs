@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Commands.Server;
@@ -31,8 +30,6 @@ public record struct MechFallingCommand : IGameCommand
 
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
-    public required bool PilotTakesDamage { get; init; }
-    public List<DiceResult>? PilotDamageRoll { get; init; }
 
     public string Format(ILocalizationService localizationService, IGame game)
     {
@@ -60,7 +57,7 @@ public record struct MechFallingCommand : IGameCommand
         
         message += $" and took {DamageData.TotalDamage} damage";
         
-        if (PilotTakesDamage)
+        if (DamageData.PilotTakesDamage)
         {
             message += ", pilot was injured";
         }

@@ -8,7 +8,8 @@ namespace Sanet.MakaMek.Core.Data.Game;
 /// </summary>
 public record FallingDamageData(
     int TotalDamage,
-    int DamagePerGroup,
     HexDirection FacingAfterFall,
     HitLocationsData HitLocations,
-    DiceResult FacingDiceRoll);
+    DiceResult FacingDiceRoll,
+    bool PilotTakesDamage = false,
+    List<DiceResult>? PilotDamageRoll = null);

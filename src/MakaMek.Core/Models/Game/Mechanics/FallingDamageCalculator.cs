@@ -27,8 +27,13 @@ public class FallingDamageCalculator : IFallingDamageCalculator
     /// <param name="unit">The unit that fell</param>
     /// <param name="levelsFallen">The number of levels the unit fell</param>
     /// <param name="wasJumping">Whether the unit was jumping when it fell</param>
+    /// <param name="psrBreakdown">The piloting skill roll breakdown</param>
     /// <returns>The result of the falling damage calculation</returns>
-    public FallingDamageData CalculateFallingDamage(Unit unit, int levelsFallen, bool wasJumping)
+    public FallingDamageData CalculateFallingDamage(
+        Unit unit, 
+        int levelsFallen, 
+        bool wasJumping,
+        PsrBreakdown psrBreakdown)
     {
         if (unit is not Mech mech)
         {
@@ -40,13 +45,12 @@ public class FallingDamageCalculator : IFallingDamageCalculator
             throw new ArgumentException("Mech must be deployed", nameof(unit)); 
         }
 
-        // Calculate damage per group based on tonnage (rounded up to nearest 10)
-        var damagePerGroup = (int)Math.Ceiling(mech.Tonnage / 10.0);
-        
         // If the mech was jumping, it only takes damage for 1 level
         // Otherwise, it takes damage for (levelsFallen + 1) levels
         var effectiveLevels = wasJumping ? 0 : levelsFallen;
-        var totalDamage = damagePerGroup * (effectiveLevels + 1);
+        
+        // Calculate damage based on tonnage (rounded up to nearest 10)
+        var totalDamage = (int)Math.Ceiling(mech.Tonnage / 10.0)*(effectiveLevels + 1);
         
         // Roll for facing after fall (1d6)
         var facingRoll = _diceRoller.RollD6();
@@ -98,46 +102,29 @@ public class FallingDamageCalculator : IFallingDamageCalculator
             totalDamage
         );
         
-        return new FallingDamageData(
-            totalDamage,
-            damagePerGroup,
-            newFacing,
-            hitLocationsData,
-            facingRoll
-        );
-    }
-    
-    /// <summary>
-    /// Determines if a warrior takes damage from a fall
-    /// </summary>
-    /// <param name="unit">The unit that fell</param>
-    /// <param name="levelsFallen">The number of levels the unit fell</param>
-    /// <param name="psrBreakdown">The piloting skill roll breakdown</param>
-    /// <returns>Tuple containing: whether pilot takes damage and the dice roll results</returns>
-    public (bool TakesDamage, List<DiceResult>? DiceRolls) DeterminePilotDamage(Unit unit, int levelsFallen, PsrBreakdown psrBreakdown)
-    {
-        // Check if the unit is a mech
-        if (unit is not Mech)
+        
+        var takesDamage = psrBreakdown.IsImpossible;
+        List<DiceResult>? diceRolls = null;
+
+        if (!takesDamage)
         {
-            throw new ArgumentException("Only mechs can have pilot damage from falling", nameof(unit));
+            // Roll 2D6 for the PSR
+            diceRolls = _diceRoller.Roll2D6();
+
+            // Calculate the roll result
+            var rollResult = diceRolls.Sum(r => r.Result);
+
+            // Pilot takes damage if PSR fails (roll > modified piloting skill)
+            takesDamage = rollResult > psrBreakdown.ModifiedPilotingSkill;
         }
 
-        // If the PSR is impossible, pilot automatically takes damage
-        if (psrBreakdown.IsImpossible)
-        {
-            // Return true
-            return (true, null);
-        }
-        
-        // Roll 2D6 for the PSR
-        var diceRolls = _diceRoller.Roll2D6();
-        
-        // Calculate the roll result
-        var rollResult = diceRolls.Sum(r => r.Result);
-        
-        // Pilot takes damage if PSR fails (roll > modified piloting skill)
-        var takesDamage = rollResult > psrBreakdown.ModifiedPilotingSkill;
-        
-        return (takesDamage, diceRolls);
+        return new FallingDamageData(
+            totalDamage,
+            newFacing,
+            hitLocationsData,
+            facingRoll,
+            takesDamage,
+            diceRolls
+        );
     }
 }

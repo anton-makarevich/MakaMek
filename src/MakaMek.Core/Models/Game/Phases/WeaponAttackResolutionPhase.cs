@@ -366,7 +366,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Get the PSR breakdown for a gyro hit
         var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
             mech,
-            [Mechanics.PilotingSkillRollType.GyroHit], Game.BattleMap);
+            [PilotingSkillRollType.GyroHit], Game.BattleMap);
             
         // If there are no modifiers, no need for a PSR as we expect one for Gyro Hit
         if (psrBreakdown.Modifiers.Count==0)
@@ -384,7 +384,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         {
             GameOriginId = Game.Id,
             UnitId = mech.Id,
-            RollType = Mechanics.PilotingSkillRollType.GyroHit,
+            RollType = PilotingSkillRollType.GyroHit,
             DiceResults = diceResults.Select(d => d.Result).ToArray(),
             IsSuccessful = isSuccessful,
             PsrBreakdown = psrBreakdown
@@ -397,21 +397,16 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         {
             // Calculate falling damage
             var fallingDamageCalculator = Game.FallingDamageCalculator;
-            var fallingDamageData = fallingDamageCalculator.CalculateFallingDamage(mech, 0, false);
-            
-            // Check if the MechWarrior takes damage
-            var pilotingSkillCalculator = Game.PilotingSkillCalculator;
-
             // Get the PSR breakdown for pilot damage with level modifiers
+            var pilotingSkillCalculator = Game.PilotingSkillCalculator;
             var pilotPsrBreakdown = pilotingSkillCalculator.GetPsrBreakdown(
                 mech,
-                new[] { PilotingSkillRollType.WarriorDamageFromFall },
+                [PilotingSkillRollType.WarriorDamageFromFall],
                 Game.BattleMap);
-
-            // Determine if pilot takes damage using the calculator's internal dice roller
-            var (pilotTakesDamage, pilotDamageRoll) = fallingDamageCalculator.DeterminePilotDamage(
-                mech,
+            var fallingDamageData = fallingDamageCalculator.CalculateFallingDamage(
+                mech, 
                 0,
+                false,
                 pilotPsrBreakdown);
 
             // Create and publish the mech falling command
@@ -421,9 +416,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 LevelsFallen = 0,
                 WasJumping = false,
                 DamageData = fallingDamageData,
-                GameOriginId = Game.Id,
-                PilotTakesDamage = pilotTakesDamage,
-                PilotDamageRoll = pilotTakesDamage ? pilotDamageRoll : null
+                GameOriginId = Game.Id
             };
 
             Game.CommandPublisher.PublishCommand(mechFallingCommand);
