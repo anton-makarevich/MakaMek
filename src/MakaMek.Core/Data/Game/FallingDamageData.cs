@@ -7,7 +7,6 @@ namespace Sanet.MakaMek.Core.Data.Game;
 /// Contains the results of a falling damage calculation
 /// </summary>
 public record FallingDamageData(
-    int TotalDamage,
     HexDirection FacingAfterFall,
     HitLocationsData HitLocations,
     DiceResult FacingDiceRoll,

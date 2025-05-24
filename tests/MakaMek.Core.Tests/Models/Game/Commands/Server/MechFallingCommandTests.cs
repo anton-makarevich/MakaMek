@@ -65,7 +65,6 @@ public class MechFallingCommandTests
             5);
         
         var fallingDamageData = new FallingDamageData(
-            5,
             HexDirection.Top,
             hitLocationsData,
             new DiceResult(1));
@@ -105,7 +104,6 @@ public class MechFallingCommandTests
             5);
         
         var fallingDamageData = new FallingDamageData(
-            5,
             HexDirection.Top,
             hitLocationsData,
             new DiceResult(1),
@@ -136,7 +134,6 @@ public class MechFallingCommandTests
             8);
         
         var fallingDamageData = new FallingDamageData(
-            8,
             HexDirection.Top,
             hitLocationsData,
             new DiceResult(1),

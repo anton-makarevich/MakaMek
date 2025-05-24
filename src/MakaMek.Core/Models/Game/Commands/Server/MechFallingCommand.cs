@@ -68,7 +68,7 @@ public record struct MechFallingCommand : IGameCommand
         // Add damage information
         stringBuilder.Append(string.Format(
             localizationService.GetString("Command_MechFalling_Damage"),
-            DamageData.TotalDamage));
+            DamageData.HitLocations.TotalDamage));
         
         // Add pilot injury information if applicable
         if (DamageData.PilotTakesDamage)
