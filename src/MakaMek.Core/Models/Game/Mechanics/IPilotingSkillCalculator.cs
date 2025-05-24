@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -12,6 +13,7 @@ public interface IPilotingSkillCalculator
     /// </summary>
     /// <param name="unit">The unit making the piloting skill roll.</param>
     /// <param name="rollTypes">A collection of specific Piloting Skill Roll types to consider.</param>
+    /// <param name="map">A map for location context</param>
     /// <returns>A breakdown of the piloting skill roll calculation.</returns>
-    PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType> rollTypes);
+    PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType> rollTypes, BattleMap? map);
 }

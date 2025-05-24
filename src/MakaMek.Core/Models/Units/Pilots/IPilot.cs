@@ -19,4 +19,8 @@ public interface IPilot
     /// Piloting skill. Lower is better
     /// </summary>
     int Piloting { get; }
+
+    int Injuries { get; }
+
+    void Hit();
 }

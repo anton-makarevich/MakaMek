@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -17,13 +18,15 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     {
         _rules = rules;
     }
+    
     /// <summary>
-    /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll
+    /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll with additional context
     /// </summary>
     /// <param name="unit">The unit making the piloting skill roll</param>
     /// <param name="rollTypes">An optional collection of specific Piloting Skill Roll types to consider. If null or empty, all applicable modifiers are calculated.</param>
+    /// <param name="map">The battle map, used for terrain-based modifiers</param>
     /// <returns>A breakdown of the piloting skill roll calculation</returns>
-    public PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType> rollTypes)
+    public PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType> rollTypes, BattleMap? map)
     {
         if (unit.Crew == null)
         {
@@ -49,6 +52,21 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                     });
                 }
             }
+        }
+        
+        // Add MecWarrior damage from fall modifiers if applicable
+        if (relevantRollTypes.Contains(PilotingSkillRollType.WarriorDamageFromFall))
+        {
+            // TODO: Calculate levels fallen if map is provided
+            var levelsFallen = 0;
+            
+            // Add modifiers for levels fallen
+            // According to the rules, there's a +1 modifier for every level above 1 fallen
+            modifiers.Add(new FallingLevelsModifier
+            {
+                Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
+                LevelsFallen = levelsFallen
+            });
         }
         
         // Future PSR modifiers can be added here following the same pattern:

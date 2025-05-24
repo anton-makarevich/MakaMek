@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -394,9 +395,58 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // If the roll failed, the mech falls
         if (!isSuccessful)
         {
-            // Logic for handling mech falling would go here
-            // This would typically involve applying damage and changing the mech's state
-            // For now, we're just publishing the PSR command
+            // Calculate falling damage
+            var fallingDamageCalculator = Game.FallingDamageCalculator;
+            
+            // Calculate the falling damage
+            var fallingDamageData = fallingDamageCalculator.CalculateFallingDamage(mech, 0, false);
+
+            // Check if the MechWarrior takes damage
+            var pilotingSkillCalculator = Game.PilotingSkillCalculator;
+
+            // Get the PSR breakdown for warrior damage with level modifiers
+            var warriorPsrBreakdown = pilotingSkillCalculator.GetPsrBreakdown(
+                mech,
+                [PilotingSkillRollType.WarriorDamageFromFall],
+                Game.BattleMap);
+
+            // Roll for warrior damage
+            var warriorDamageRoll = Game.DiceRoller.Roll2D6();
+            var warriorTakesDamage = fallingDamageCalculator.DetermineWarriorDamage(
+                mech,
+                0,
+                warriorPsrBreakdown,
+                warriorDamageRoll);
+
+            // Create updated falling damage data with warrior damage info
+            var updatedFallingDamageData = fallingDamageData with
+            {
+                WarriorTakesDamage = warriorTakesDamage,
+                WarriorDamageRoll = warriorTakesDamage ? warriorDamageRoll : null
+            };
+
+            // Create and publish the falling damage command
+            var fallingDamageCommand = new FallingDamageCommand(
+                mech.Id,
+                0,
+                false,
+                fallingDamageData.FacingAfterFall,
+                updatedFallingDamageData
+            )
+            {
+                GameOriginId = Game.Id
+            };
+
+            Game.CommandPublisher.PublishCommand(fallingDamageCommand);
+
+            {
+                // If the roll failed, the mech falls
+                if (!isSuccessful)
+                {
+                    // Update the mech's status to prone
+                    mech.Status |= UnitStatus.Prone;
+                }
+            }
         }
     }
 

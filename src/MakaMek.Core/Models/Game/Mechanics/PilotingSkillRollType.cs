@@ -9,10 +9,14 @@ public enum PilotingSkillRollType
     /// <summary>
     /// PSR modifier due to a damaged or destroyed gyro.
     /// </summary>
-    GyroHit
+    GyroHit,
+    
+    /// <summary>
+    /// PSR for determining if a MechWarrior takes damage when a mech falls.
+    /// </summary>
+    WarriorDamageFromFall
     // Add other PSR types here in the future, e.g.:
     // ActuatorDamage,
-    // Falling,
     // PilotDamage,
     // LegDamage,
     // Shutdown,

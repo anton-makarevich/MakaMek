@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -19,9 +20,18 @@ public class GameFactory : IGameFactory
         IDiceRoller diceRoller, 
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator)
+        IPilotingSkillCalculator pilotingSkillCalculator,
+        IFallingDamageCalculator fallingDamageCalculator)
     {
-        return new ServerGame(rulesProvider, mechFactory, commandPublisher, diceRoller, toHitCalculator, criticalHitsCalculator, pilotingSkillCalculator);
+        return new ServerGame(
+            rulesProvider, 
+            mechFactory, 
+            commandPublisher, 
+            diceRoller, 
+            toHitCalculator, 
+            criticalHitsCalculator, 
+            pilotingSkillCalculator,
+            fallingDamageCalculator);
     }
 
     public ClientGame CreateClientGame(

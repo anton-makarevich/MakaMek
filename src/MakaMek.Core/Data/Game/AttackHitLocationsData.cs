@@ -9,4 +9,4 @@ public record AttackHitLocationsData(
     List<HitLocationData> HitLocations,
     int TotalDamage,
     List<DiceResult> ClusterRoll,
-    int MissilesHit);
+    int MissilesHit):HitLocationsData(HitLocations,TotalDamage);
