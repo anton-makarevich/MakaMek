@@ -47,6 +47,8 @@ public class MechWarrior : IPilot
 
     public int Injuries { get; private set; }
 
+    public bool IsUnconscious { get;private set; }
+
     public MechWarrior(string firstName, string lastName, int? gunnery = null, int? piloting = null)
     {
         FirstName = firstName;

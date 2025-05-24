@@ -366,7 +366,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Get the PSR breakdown for a gyro hit
         var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
             mech,
-            [Mechanics.PilotingSkillRollType.GyroHit]);
+            [Mechanics.PilotingSkillRollType.GyroHit], Game.BattleMap);
             
         // If there are no modifiers, no need for a PSR as we expect one for Gyro Hit
         if (psrBreakdown.Modifiers.Count==0)
@@ -397,56 +397,38 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         {
             // Calculate falling damage
             var fallingDamageCalculator = Game.FallingDamageCalculator;
-            
-            // Calculate the falling damage
             var fallingDamageData = fallingDamageCalculator.CalculateFallingDamage(mech, 0, false);
-
+            
             // Check if the MechWarrior takes damage
             var pilotingSkillCalculator = Game.PilotingSkillCalculator;
 
-            // Get the PSR breakdown for warrior damage with level modifiers
-            var warriorPsrBreakdown = pilotingSkillCalculator.GetPsrBreakdown(
+            // Get the PSR breakdown for pilot damage with level modifiers
+            var pilotPsrBreakdown = pilotingSkillCalculator.GetPsrBreakdown(
                 mech,
-                [PilotingSkillRollType.WarriorDamageFromFall],
+                new[] { PilotingSkillRollType.WarriorDamageFromFall },
                 Game.BattleMap);
 
-            // Roll for warrior damage
-            var warriorDamageRoll = Game.DiceRoller.Roll2D6();
-            var warriorTakesDamage = fallingDamageCalculator.DetermineWarriorDamage(
+            // Roll for pilot damage
+            var pilotDamageRoll = Game.DiceRoller.Roll2D6();
+            var pilotTakesDamage = fallingDamageCalculator.DeterminePilotDamage(
                 mech,
                 0,
-                warriorPsrBreakdown,
-                warriorDamageRoll);
+                pilotPsrBreakdown,
+                pilotDamageRoll);
 
-            // Create updated falling damage data with warrior damage info
-            var updatedFallingDamageData = fallingDamageData with
+            // Create and publish the mech falling command
+            var mechFallingCommand = new MechFallingCommand
             {
-                WarriorTakesDamage = warriorTakesDamage,
-                WarriorDamageRoll = warriorTakesDamage ? warriorDamageRoll : null
+                UnitId = mech.Id,
+                LevelsFallen = 0,
+                WasJumping = false,
+                DamageData = fallingDamageData,
+                GameOriginId = Game.Id,
+                PilotTakesDamage = pilotTakesDamage,
+                PilotDamageRoll = pilotTakesDamage ? pilotDamageRoll : null
             };
 
-            // Create and publish the falling damage command
-            var fallingDamageCommand = new FallingDamageCommand(
-                mech.Id,
-                0,
-                false,
-                fallingDamageData.FacingAfterFall,
-                updatedFallingDamageData
-            )
-            {
-                GameOriginId = Game.Id
-            };
-
-            Game.CommandPublisher.PublishCommand(fallingDamageCommand);
-
-            {
-                // If the roll failed, the mech falls
-                if (!isSuccessful)
-                {
-                    // Update the mech's status to prone
-                    mech.Status |= UnitStatus.Prone;
-                }
-            }
+            Game.CommandPublisher.PublishCommand(mechFallingCommand);
         }
     }
 

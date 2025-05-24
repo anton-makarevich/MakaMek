@@ -11,6 +11,4 @@ public record FallingDamageData(
     int DamagePerGroup,
     HexDirection FacingAfterFall,
     HitLocationsData HitLocations,
-    DiceResult FacingDiceRoll,
-    bool PilotTakesDamage = false,
-    DiceResult? PilotDamageRoll = null);
+    DiceResult FacingDiceRoll);

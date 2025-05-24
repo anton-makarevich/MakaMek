@@ -21,6 +21,7 @@ public interface IPilot
     int Piloting { get; }
 
     int Injuries { get; }
+    bool IsUnconscious { get; }
 
     void Hit();
 }
