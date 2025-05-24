@@ -32,7 +32,8 @@ public class GameFactoryTests
             _diceRoller, 
             _toHitCalculator,
             Substitute.For<ICriticalHitsCalculator>(),
-            Substitute.For<IPilotingSkillCalculator>());
+            Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IFallingDamageCalculator>());
 
         // Assert
         serverGame.ShouldNotBeNull();

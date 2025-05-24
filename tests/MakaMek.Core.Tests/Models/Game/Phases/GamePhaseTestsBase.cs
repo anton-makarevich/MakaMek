@@ -38,6 +38,7 @@ public abstract class GamePhaseTestsBase
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IFallingDamageCalculator>(),
             MockPhaseManager);
     }
     
@@ -47,6 +48,7 @@ public abstract class GamePhaseTestsBase
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IFallingDamageCalculator>(),
             MockPhaseManager);
     }
 

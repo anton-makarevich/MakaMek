@@ -316,6 +316,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IFallingDamageCalculator>(),
             mockPhaseManager)
         {
             IsAutoRoll = false

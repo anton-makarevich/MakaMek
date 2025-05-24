@@ -366,7 +366,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Get the PSR breakdown for a gyro hit
         var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
             mech,
-            [PilotingSkillRollType.GyroHit], Game.BattleMap);
+            [PilotingSkillRollType.GyroHit]);
             
         // If there are no modifiers, no need for a PSR as we expect one for Gyro Hit
         if (psrBreakdown.Modifiers.Count==0)
