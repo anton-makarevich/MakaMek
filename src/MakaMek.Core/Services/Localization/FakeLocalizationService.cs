@@ -65,6 +65,7 @@ public class FakeLocalizationService: ILocalizationService
             
             // Piloting Skill Roll Types
             "PilotingSkillRollType_GyroHit" => "Gyro Hit",
+            "PilotingSkillRollType_FallingLevels" => "Falling Levels",
             
             // Attack direction strings
             "AttackDirection_Left" => "Left",
@@ -80,7 +81,9 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_Heat" => "Heat Level ({0}): +{1}",
             "Modifier_Terrain" => "{0} at {1}: +{2}",
             "Modifier_DamagedGyro" => "Damaged Gyro",
+            "Modifier_FallingLevels" => "Falling Levels",
             "Hits" => "Hits",
+            "Levels" => "Levels",
             // Attack information
             "Attack_NoLineOfSight" => "No LOS",
             "Attack_TargetNumber" => "Target ToHit Number",

@@ -31,9 +31,9 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_HitLocation", "{0}: {1} damage (Roll: {2})")]
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer", "{0} → {1}: {2} damage (Roll: {3})")]
     [InlineData("Command_WeaponAttackResolution_CriticalHit", "Critical hit in {0} slot {1}: {2}")]
-    [InlineData("Command_WeaponAttackResolution_BlownOff", "Critical hit in {0}, location blown off")]
     [InlineData("Command_WeaponAttackResolution_CritRoll", "Critical Roll: {0}")]
     [InlineData("Command_WeaponAttackResolution_NumCrits", "Num Crits: {0}")]
+    [InlineData("Command_WeaponAttackResolution_BlownOff", "Critical hit in {0}, location blown off")]
     [InlineData("Command_WeaponAttackResolution_LocationCriticals", "Critical hits in {0}:")]
     [InlineData("Command_WeaponAttackResolution_Explosion", "{0} exploded, damage: {1}")]
     [InlineData("Command_WeaponAttackResolution_DestroyedParts", "Destroyed parts:")]
@@ -62,6 +62,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_PilotingSkillRoll_RollResult", "Roll Result: {0}")]
     // Piloting Skill Roll Types
     [InlineData("PilotingSkillRollType_GyroHit", "Gyro Hit")]
+    [InlineData("PilotingSkillRollType_FallingLevels", "Falling Levels")]
     // Attack modifiers
     [InlineData("AttackDirection_Left", "Left")]
     [InlineData("AttackDirection_Right", "Right")]
@@ -74,7 +75,9 @@ public class FakeLocalizationServiceTests
     [InlineData("Modifier_Heat", "Heat Level ({0}): +{1}")]
     [InlineData("Modifier_Terrain", "{0} at {1}: +{2}")]
     [InlineData("Modifier_DamagedGyro", "Damaged Gyro")]
+    [InlineData("Modifier_FallingLevels", "Falling Levels")]
     [InlineData("Hits", "Hits")]
+    [InlineData("Levels", "Levels")]
     // Attack information
     [InlineData("Attack_NoLineOfSight", "No LOS")]
     [InlineData("Attack_TargetNumber", "Target ToHit Number")]
@@ -87,12 +90,15 @@ public class FakeLocalizationServiceTests
     // Secondary target modifiers
     [InlineData("Attack_SecondaryTargetFrontArc", "Secondary target (front arc): +{0}")]
     [InlineData("Attack_SecondaryTargetOtherArc", "Secondary target (other arc): +{0}")]
+    // Deployment actions
+    [InlineData("Action_SelectUnitToDeploy", "Select Unit")]
+    [InlineData("Action_SelectDeploymentHex", "Select Hex")]
     // Weapon attack actions
     [InlineData("Action_SelectUnitToFire", "Select unit to fire weapons")]
     [InlineData("Action_SelectAction", "Select action")]
     [InlineData("Action_ConfigureWeapons", "Configure weapons")]
-    [InlineData("Action_TurnTorso", "Turn Torso")]
     [InlineData("Action_SelectTarget", "Select Target")]
+    [InlineData("Action_TurnTorso", "Turn Torso")]
     [InlineData("Action_SkipAttack", "Skip Attack")]
     [InlineData("Action_DeclareAttack", "Declare Attack")]
     // Movement actions
@@ -120,9 +126,15 @@ public class FakeLocalizationServiceTests
     // End phase
     [InlineData("EndPhase_ActionLabel", "End your turn")]
     [InlineData("EndPhase_PlayerActionLabel", "End Turn")]
-    // Deployment actions
-    [InlineData("Action_SelectUnitToDeploy", "Select Unit")]
-    [InlineData("Action_SelectDeploymentHex", "Select Hex")]
+    // Mech part names
+    [InlineData("MechPart_LeftArm", "Left Arm")]
+    [InlineData("MechPart_RightArm", "Right Arm")]
+    [InlineData("MechPart_LeftTorso", "Left Torso")]
+    [InlineData("MechPart_RightTorso", "Right Torso")]
+    [InlineData("MechPart_CenterTorso", "Center Torso")]
+    [InlineData("MechPart_Head", "Head")]
+    [InlineData("MechPart_LeftLeg", "Left Leg")]
+    [InlineData("MechPart_RightLeg", "Right Leg")]
     // UI Events
     [InlineData("Events_Unit_ArmorDamage", "Damage at {0}|-{1}")]
     [InlineData("Events_Unit_StructureDamage", "Damage at {0}|-{1}")]

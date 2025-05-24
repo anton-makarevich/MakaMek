@@ -12,5 +12,6 @@ public record FallingLevelsModifier : RollModifier
     /// </summary>
     public required int LevelsFallen { get; init; }
     
-    public override string Format(ILocalizationService localizationService) => $"Falling {LevelsFallen} levels";
+    public override string Format(ILocalizationService localizationService) => 
+        $"{Value} ({localizationService.GetString("Modifier_FallingLevels")} {LevelsFallen} {localizationService.GetString("Levels")})";
 }
