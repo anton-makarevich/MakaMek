@@ -18,14 +18,14 @@ public class DamagedGyroModifierTests
             Value = 3,
             HitsCount = 1
         };
-        _localizationService.GetString("Modifier_DamagedGyro").Returns("Damaged Gyro");
+        _localizationService.GetString("Modifier_DamagedGyro").Returns("Damaged Gyro ({0} {1}): +{2}");
         _localizationService.GetString("Hits").Returns("Hits");
 
         // Act
         var result = modifier.Format(_localizationService);
 
         // Assert
-        result.ShouldBe("3 (Damaged Gyro 1 Hits)");
+        result.ShouldBe("Damaged Gyro (1 Hits): +3");
         _localizationService.Received(1).GetString("Modifier_DamagedGyro");
         _localizationService.Received(1).GetString("Hits");
     }

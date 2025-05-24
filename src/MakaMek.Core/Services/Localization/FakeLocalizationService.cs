@@ -46,6 +46,13 @@ public class FakeLocalizationService: ILocalizationService
             "Direction_Forward" => "forward",
             "Direction_Backward" => "backward",
             
+            // MechFallingCommand strings
+            "Command_MechFalling_Base" => "{0} fell",
+            "Command_MechFalling_Levels" => " {0} level(s)",
+            "Command_MechFalling_Jumping" => " while jumping",
+            "Command_MechFalling_Damage" => " and took {0} damage",
+            "Command_MechFalling_PilotInjury" => ", pilot was injured",
+            
             // Piloting Skill Roll Command
             "Command_PilotingSkillRoll_Success" => "{0}'s {1} succeeds {2} check",
             "Command_PilotingSkillRoll_Failure" => "{0}'s {1} fails {2} check",
@@ -58,6 +65,7 @@ public class FakeLocalizationService: ILocalizationService
             
             // Piloting Skill Roll Types
             "PilotingSkillRollType_GyroHit" => "Gyro Hit",
+            "PilotingSkillRollType_FallingLevels" => "Falling Levels",
             
             // Attack direction strings
             "AttackDirection_Left" => "Left",
@@ -72,8 +80,10 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_Range" => "{0} at {1} hexes ({2} range): +{3}",
             "Modifier_Heat" => "Heat Level ({0}): +{1}",
             "Modifier_Terrain" => "{0} at {1}: +{2}",
-            "Modifier_DamagedGyro" => "Damaged Gyro",
+            "Modifier_DamagedGyro" => "Damaged Gyro ({0} {1}): +{2}",
+            "Modifier_FallingLevels" => "Falling ({0} {1}): +{2}",
             "Hits" => "Hits",
+            "Levels" => "Levels",
             // Attack information
             "Attack_NoLineOfSight" => "No LOS",
             "Attack_TargetNumber" => "Target ToHit Number",

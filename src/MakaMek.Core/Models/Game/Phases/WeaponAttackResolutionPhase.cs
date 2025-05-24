@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -365,7 +366,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Get the PSR breakdown for a gyro hit
         var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
             mech,
-            [Mechanics.PilotingSkillRollType.GyroHit]);
+            [PilotingSkillRollType.GyroHit]);
             
         // If there are no modifiers, no need for a PSR as we expect one for Gyro Hit
         if (psrBreakdown.Modifiers.Count==0)
@@ -383,7 +384,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         {
             GameOriginId = Game.Id,
             UnitId = mech.Id,
-            RollType = Mechanics.PilotingSkillRollType.GyroHit,
+            RollType = PilotingSkillRollType.GyroHit,
             DiceResults = diceResults.Select(d => d.Result).ToArray(),
             IsSuccessful = isSuccessful,
             PsrBreakdown = psrBreakdown
@@ -394,9 +395,31 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // If the roll failed, the mech falls
         if (!isSuccessful)
         {
-            // Logic for handling mech falling would go here
-            // This would typically involve applying damage and changing the mech's state
-            // For now, we're just publishing the PSR command
+            // Calculate falling damage
+            var fallingDamageCalculator = Game.FallingDamageCalculator;
+            // Get the PSR breakdown for pilot damage with level modifiers
+            var pilotingSkillCalculator = Game.PilotingSkillCalculator;
+            var pilotPsrBreakdown = pilotingSkillCalculator.GetPsrBreakdown(
+                mech,
+                [PilotingSkillRollType.WarriorDamageFromFall],
+                Game.BattleMap);
+            var fallingDamageData = fallingDamageCalculator.CalculateFallingDamage(
+                mech, 
+                0,
+                false,
+                pilotPsrBreakdown);
+
+            // Create and publish the mech falling command
+            var mechFallingCommand = new MechFallingCommand
+            {
+                UnitId = mech.Id,
+                LevelsFallen = 0,
+                WasJumping = false,
+                DamageData = fallingDamageData,
+                GameOriginId = Game.Id
+            };
+
+            Game.CommandPublisher.PublishCommand(mechFallingCommand);
         }
     }
 

@@ -1,0 +1,129 @@
+using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Utils.TechRules;
+
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
+
+/// <summary>
+/// Classic BattleTech implementation of falling damage calculator
+/// </summary>
+public class FallingDamageCalculator : IFallingDamageCalculator
+{
+    private readonly IDiceRoller _diceRoller;
+    private readonly IRulesProvider _rulesProvider;
+
+    public FallingDamageCalculator(IDiceRoller diceRoller, IRulesProvider rulesProvider)
+    {
+        _diceRoller = diceRoller;
+        _rulesProvider = rulesProvider;
+    }
+
+    /// <summary>
+    /// Calculates the damage a unit takes when falling
+    /// </summary>
+    /// <param name="unit">The unit that fell</param>
+    /// <param name="levelsFallen">The number of levels the unit fell</param>
+    /// <param name="wasJumping">Whether the unit was jumping when it fell</param>
+    /// <param name="psrBreakdown">The piloting skill roll breakdown</param>
+    /// <returns>The result of the falling damage calculation</returns>
+    public FallingDamageData CalculateFallingDamage(
+        Unit unit, 
+        int levelsFallen, 
+        bool wasJumping,
+        PsrBreakdown psrBreakdown)
+    {
+        if (unit is not Mech mech)
+        {
+            throw new ArgumentException("Only mechs can take falling damage", nameof(unit));
+        }
+
+        if (mech.Position == null)
+        {
+            throw new ArgumentException("Mech must be deployed", nameof(unit)); 
+        }
+
+        // If the mech was jumping, it only takes damage for 1 level
+        // Otherwise, it takes damage for (levelsFallen + 1) levels
+        var effectiveLevels = wasJumping ? 0 : levelsFallen;
+        
+        // Calculate damage based on tonnage (rounded up to nearest 10)
+        var totalDamage = (int)Math.Ceiling(mech.Tonnage / 10.0)*(effectiveLevels + 1);
+        
+        // Roll for facing after fall (1d6)
+        var facingRoll = _diceRoller.RollD6();
+        
+        // Determine new facing based on current facing and roll
+        HexDirection newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, mech.Position.Facing);
+        
+        // Determine attack direction for hit location purposes
+        FiringArc attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingRoll.Result);
+        
+        // Divide damage into groups of 5 points each
+        var hitLocations = new List<HitLocationData>();
+        var remainingDamage = totalDamage;
+        
+        // Calculate how many full 5-point groups we have
+        var fullGroups = remainingDamage / 5;
+        // Calculate the remaining points for the smaller group
+        var remainingPoints = remainingDamage % 5;
+        
+        // Local function to determine hit location and create HitLocationData
+        HitLocationData DetermineHitLocationData(int damageAmount)
+        {
+            var locationRolls = _diceRoller.Roll2D6();
+            var locationRollResult = locationRolls.Sum(r => r.Result);
+            var hitLocation = _rulesProvider.GetHitLocation(locationRollResult, attackDirection);
+            
+            return new HitLocationData(
+                hitLocation,
+                damageAmount,
+                locationRolls
+            );
+        }
+        
+        // Add full 5-point groups
+        for (int i = 0; i < fullGroups; i++)
+        {
+            hitLocations.Add(DetermineHitLocationData(5));
+        }
+        
+        // Add the smaller group if there are remaining points
+        if (remainingPoints > 0)
+        {
+            hitLocations.Add(DetermineHitLocationData(remainingPoints));
+        }
+        
+        // Create hit locations data
+        var hitLocationsData = new HitLocationsData(
+            hitLocations,
+            totalDamage
+        );
+        
+        
+        var takesDamage = psrBreakdown.IsImpossible;
+        List<DiceResult>? diceRolls = null;
+
+        if (!takesDamage)
+        {
+            // Roll 2D6 for the PSR
+            diceRolls = _diceRoller.Roll2D6();
+
+            // Calculate the roll result
+            var rollResult = diceRolls.Sum(r => r.Result);
+
+            // Pilot takes damage if PSR fails (roll > modified piloting skill)
+            takesDamage = rollResult > psrBreakdown.ModifiedPilotingSkill;
+        }
+
+        return new FallingDamageData(
+            newFacing,
+            hitLocationsData,
+            facingRoll,
+            takesDamage,
+            diceRolls
+        );
+    }
+}

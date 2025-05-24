@@ -111,5 +111,106 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit]))
                 .Message.ShouldContain("No gyro found");
         }
+
+        [Fact]
+        public void GetPsrBreakdown_WarriorDamageFromFall_AddsZeroValueModifier()
+        {
+            // Arrange
+            var mech = new Mech("Test", "TST-1A", 50, 4, []);
+            
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.WarriorDamageFromFall]);
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
+            result.Modifiers.Count.ShouldBe(1); // One modifier should be added
+            result.Modifiers[0].ShouldBeOfType<FallingLevelsModifier>();
+            var fallingModifier = (FallingLevelsModifier)result.Modifiers[0];
+            fallingModifier.Value.ShouldBe(0); // 0 levels fallen means no modifier
+            fallingModifier.LevelsFallen.ShouldBe(0);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting); // No change to difficulty
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_MultipleRollTypes_CalculatesAllRequestedModifiers()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var gyro = torso.GetComponent<Gyro>()!;
+            gyro.Hit(); // Apply 1 hit to the gyro
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            
+            // Set up the rules provider to return a modifier value for gyro hits
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
+
+            // Act - request both GyroHit and WarriorDamageFromFall modifiers
+            var result = _sut.GetPsrBreakdown(
+                mech, 
+                [PilotingSkillRollType.GyroHit, PilotingSkillRollType.WarriorDamageFromFall]
+            );
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
+            result.Modifiers.Count.ShouldBe(2); // Both modifiers should be present
+            
+            // Check for gyro modifier
+            result.Modifiers.ShouldContain(m => m is DamagedGyroModifier);
+            var gyroModifier = result.Modifiers.OfType<DamagedGyroModifier>().First();
+            gyroModifier.Value.ShouldBe(3);
+            gyroModifier.HitsCount.ShouldBe(1);
+            
+            // Check for falling levels modifier
+            result.Modifiers.ShouldContain(m => m is FallingLevelsModifier);
+            var fallingModifier = result.Modifiers.OfType<FallingLevelsModifier>().First();
+            fallingModifier.Value.ShouldBe(0); // 0 levels fallen = no modifier
+            fallingModifier.LevelsFallen.ShouldBe(0);
+            
+            // Total modifier should be sum of both
+            result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting + 3); // Only gyro modifier affects the total
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_OnlyRequestedModifiersAreApplied()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var gyro = torso.GetComponent<Gyro>()!;
+            gyro.Hit(); // Apply 1 hit to the gyro
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            
+            // Set up the rules provider to return a modifier value for gyro hits
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
+
+            // Act - only request WarriorDamageFromFall, not GyroHit
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.WarriorDamageFromFall]);
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
+            result.Modifiers.Count.ShouldBe(1); // Only the falling modifier should be present
+            result.Modifiers.ShouldNotContain(m => m is DamagedGyroModifier); // No gyro modifier
+            result.Modifiers[0].ShouldBeOfType<FallingLevelsModifier>();
+            result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting); // No change to difficulty
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_EmptyRollTypesList_NoModifiersApplied()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var gyro = torso.GetComponent<Gyro>()!;
+            gyro.Hit(); // Apply 1 hit to the gyro
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            
+            // Set up the rules provider to return a modifier value for gyro hits
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
+
+            // Act - provide an empty list of roll types
+            var result = _sut.GetPsrBreakdown(mech, []);
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
+            result.Modifiers.Count.ShouldBe(0); // No modifiers should be applied
+            result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting); // No change to difficulty
+        }
     }
 }

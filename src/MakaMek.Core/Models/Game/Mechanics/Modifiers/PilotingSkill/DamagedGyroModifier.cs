@@ -11,6 +11,9 @@ public record DamagedGyroModifier : RollModifier
     
     public override string Format(ILocalizationService localizationService)
     {
-        return $"{Value} ({localizationService.GetString("Modifier_DamagedGyro")} {HitsCount} {localizationService.GetString("Hits")})";
+        return string.Format(localizationService.GetString("Modifier_DamagedGyro"),
+            HitsCount,
+            localizationService.GetString("Hits"),
+            Value);
     }
 }

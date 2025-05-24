@@ -36,9 +36,9 @@ The Game module orchestrates the core game loop, state, and player interactions 
 - **TurnOrder:** Determines the sequence in which players and units act within a turn, supporting complex initiative and multi-unit moves.
 - **TurnStep:** Encapsulates a single player's action within the turn order.
 
-### 6. Combat & Dice
-- **Combat:**
-  - Encapsulated in the `Combat` submodule, with calculators for to-hit resolution and breakdowns for modifiers.
+### 6. Mechanics & Dice
+- **Mechanics:**
+  - Encapsulated in the `Mechanics` submodule, with calculators for to-hit resolution and breakdowns for modifiers.
 - **Dice:**
   - Dice rolling is abstracted for both random and deterministic play, supporting testability and custom dice logic.
 

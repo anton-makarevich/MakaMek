@@ -45,6 +45,10 @@ public class MechWarrior : IPilot
     /// </summary>
     public int Piloting { get; }
 
+    public int Injuries { get; private set; }
+
+    public bool IsUnconscious { get;private set; }
+
     public MechWarrior(string firstName, string lastName, int? gunnery = null, int? piloting = null)
     {
         FirstName = firstName;
@@ -52,5 +56,10 @@ public class MechWarrior : IPilot
         Health = DefaultHealth;
         Gunnery = gunnery ?? DefaultGunnery;
         Piloting = piloting ?? DefaultPiloting;
+    }
+
+    public void Hit()
+    {
+        Injuries++;
     }
 }

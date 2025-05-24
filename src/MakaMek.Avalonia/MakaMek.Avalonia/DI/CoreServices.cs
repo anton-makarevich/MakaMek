@@ -38,6 +38,7 @@ public static class CoreServices
         services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
         services.AddSingleton<IToHitCalculator, ToHitCalculator>();
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
+        services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
         services.AddSingleton<IMechDataProvider, MtfDataProvider>();
         services.AddSingleton<IUnitsLoader, EmbeddedResourcesUnitsLoader>();
         services.AddSingleton<IGameFactory, GameFactory>();
