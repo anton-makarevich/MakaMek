@@ -74,8 +74,8 @@ public class FakeLocalizationServiceTests
     [InlineData("Modifier_Range", "{0} at {1} hexes ({2} range): +{3}")]
     [InlineData("Modifier_Heat", "Heat Level ({0}): +{1}")]
     [InlineData("Modifier_Terrain", "{0} at {1}: +{2}")]
-    [InlineData("Modifier_DamagedGyro", "Damaged Gyro")]
-    [InlineData("Modifier_FallingLevels", "Falling Levels")]
+    [InlineData("Modifier_DamagedGyro", "Damaged Gyro ({0} {1}): +{2}")]
+    [InlineData("Modifier_FallingLevels", "Falling ({0} {1}): +{2}")]
     [InlineData("Hits", "Hits")]
     [InlineData("Levels", "Levels")]
     // Attack information

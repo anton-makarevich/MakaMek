@@ -18,14 +18,14 @@ public class FallingLevelsModifierTests
             Value = 2,
             LevelsFallen = 2
         };
-        _localizationService.GetString("Modifier_FallingLevels").Returns("Falling Levels");
+        _localizationService.GetString("Modifier_FallingLevels").Returns("Falling ({0} {1}): +{2}");
         _localizationService.GetString("Levels").Returns("Levels");
 
         // Act
         var result = modifier.Format(_localizationService);
 
         // Assert
-        result.ShouldBe("2 (Falling Levels 2 Levels)");
+        result.ShouldBe("Falling (2 Levels): +2");
         _localizationService.Received(1).GetString("Modifier_FallingLevels");
         _localizationService.Received(1).GetString("Levels");
     }

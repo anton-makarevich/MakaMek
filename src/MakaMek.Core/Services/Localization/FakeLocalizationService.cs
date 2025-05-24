@@ -80,8 +80,8 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_Range" => "{0} at {1} hexes ({2} range): +{3}",
             "Modifier_Heat" => "Heat Level ({0}): +{1}",
             "Modifier_Terrain" => "{0} at {1}: +{2}",
-            "Modifier_DamagedGyro" => "Damaged Gyro",
-            "Modifier_FallingLevels" => "Falling Levels",
+            "Modifier_DamagedGyro" => "Damaged Gyro ({0} {1}): +{2}",
+            "Modifier_FallingLevels" => "Falling ({0} {1}): +{2}",
             "Hits" => "Hits",
             "Levels" => "Levels",
             // Attack information
