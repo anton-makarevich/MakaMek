@@ -11,7 +11,7 @@ public class RangeRollModifierTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var modifier = new RangeRollModifier
@@ -24,7 +24,7 @@ public class RangeRollModifierTests
         _localizationService.GetString("Modifier_Range").Returns("{0} at {1} hexes ({2} range): +{3}");
 
         // Act
-        var result = modifier.Format(_localizationService);
+        var result = modifier.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Medium Laser at 7 hexes (Medium range): +2");

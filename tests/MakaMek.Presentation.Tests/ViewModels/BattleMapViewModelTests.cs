@@ -227,7 +227,7 @@ public class BattleMapViewModelTests
 
         // Assert
         _sut.CommandLog.Count.ShouldBe(1);
-        _sut.CommandLog.First().ShouldBeEquivalentTo(joinCommand.Format(_localizationService, clientGame));
+        _sut.CommandLog.First().ShouldBeEquivalentTo(joinCommand.Render(_localizationService, clientGame));
     }
 
     [Fact]
@@ -266,8 +266,8 @@ public class BattleMapViewModelTests
 
         // Assert
         _sut.CommandLog.Count.ShouldBe(2);
-        _sut.CommandLog.First().ShouldBeEquivalentTo(joinCommand.Format(_localizationService,clientGame));
-        _sut.CommandLog.Last().ShouldBeEquivalentTo(phaseCommand.Format(_localizationService,clientGame));
+        _sut.CommandLog.First().ShouldBeEquivalentTo(joinCommand.Render(_localizationService,clientGame));
+        _sut.CommandLog.Last().ShouldBeEquivalentTo(phaseCommand.Render(_localizationService,clientGame));
     }
 
     [Fact]
@@ -1595,6 +1595,7 @@ public class BattleMapViewModelTests
         _sut.Game = clientGame;
         clientGame.HandleCommand(new ChangeActivePlayerCommand
         {
+            GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id,
             UnitsToPlay = 1
         });

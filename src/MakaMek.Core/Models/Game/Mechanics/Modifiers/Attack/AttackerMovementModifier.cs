@@ -7,7 +7,7 @@ public record AttackerMovementModifier : RollModifier
 {
     public required MovementType MovementType { get; init; }
 
-    public override string Format(ILocalizationService localizationService) =>
+    public override string Render(ILocalizationService localizationService) =>
         string.Format(localizationService.GetString("Modifier_AttackerMovement"), 
             MovementType, Value);
 }

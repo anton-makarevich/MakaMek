@@ -142,6 +142,7 @@ public class ClientGameTests
         var player = new Player(Guid.NewGuid(), "Player1");
         var readyCommand = new UpdatePlayerStatusCommand
         {
+            GameOriginId = Guid.NewGuid(),
             PlayerStatus = PlayerStatus.Ready,
             PlayerId = player.Id
         };

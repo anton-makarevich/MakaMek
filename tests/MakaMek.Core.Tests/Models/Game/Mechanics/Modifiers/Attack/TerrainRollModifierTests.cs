@@ -12,7 +12,7 @@ public class TerrainRollModifierTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var hexCoordinates = new HexCoordinates(3, 4);
@@ -25,7 +25,7 @@ public class TerrainRollModifierTests
         _localizationService.GetString("Modifier_Terrain").Returns("{0} at {1}: {2}");
 
         // Act
-        var result = modifier.Format(_localizationService);
+        var result = modifier.Render(_localizationService);
 
         // Assert
         result.ShouldBe("LightWoods at 0304: 1");

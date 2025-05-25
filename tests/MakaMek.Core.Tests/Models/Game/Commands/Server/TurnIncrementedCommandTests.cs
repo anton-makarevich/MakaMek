@@ -28,13 +28,13 @@ public class TurnIncrementedCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var command = CreateCommand(2);
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("Turn 2 has started.");
@@ -45,13 +45,13 @@ public class TurnIncrementedCommandTests
     [InlineData(1)]
     [InlineData(5)]
     [InlineData(10)]
-    public void Format_ShouldIncludeTurnNumber(int turnNumber)
+    public void Render_ShouldIncludeTurnNumber(int turnNumber)
     {
         // Arrange
         var command = CreateCommand(turnNumber);
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe($"Turn {turnNumber} has started.");

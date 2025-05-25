@@ -9,5 +9,5 @@ public abstract record RollModifier
 {
     public required int Value { get; init; }
     
-    public abstract string Format(ILocalizationService localizationService);
+    public abstract string Render(ILocalizationService localizationService);
 }

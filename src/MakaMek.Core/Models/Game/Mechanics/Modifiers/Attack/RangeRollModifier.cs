@@ -9,7 +9,7 @@ public record RangeRollModifier : RollModifier
     public required int Distance { get; init; }
     public required string WeaponName { get; init; }
 
-    public override string Format(ILocalizationService localizationService) =>
+    public override string Render(ILocalizationService localizationService) =>
         string.Format(localizationService.GetString("Modifier_Range"), 
             WeaponName, Distance, Range, Value);
 }

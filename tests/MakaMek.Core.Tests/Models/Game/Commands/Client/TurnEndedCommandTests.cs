@@ -32,13 +32,13 @@ public class TurnEndedCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var command = CreateCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("Player 1 has ended their turn.");
@@ -46,13 +46,13 @@ public class TurnEndedCommandTests
     }
 
     [Fact]
-    public void Format_ShouldReturnEmptyPlayerName_WhenPlayerNotFound()
+    public void Render_ShouldReturnEmptyPlayerName_WhenPlayerNotFound()
     {
         // Arrange
         var command = CreateCommand() with { PlayerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe(" has ended their turn.");

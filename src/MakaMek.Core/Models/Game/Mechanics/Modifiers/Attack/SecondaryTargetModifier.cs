@@ -12,7 +12,7 @@ public record SecondaryTargetModifier : RollModifier
     /// </summary>
     public required bool IsInFrontArc { get; init; }
 
-    public override string Format(ILocalizationService localizationService)
+    public override string Render(ILocalizationService localizationService)
     {
         var template = IsInFrontArc
             ? localizationService.GetString("Attack_SecondaryTargetFrontArc")

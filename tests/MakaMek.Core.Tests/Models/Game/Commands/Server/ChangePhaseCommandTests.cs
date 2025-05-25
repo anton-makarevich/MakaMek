@@ -24,14 +24,14 @@ public class ChangePhaseCommandTests
 
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var command = CreateCommand();
         _localizationService.GetString("Command_ChangePhase").Returns("formatted phase command");
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("formatted phase command");

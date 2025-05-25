@@ -30,7 +30,7 @@ public class ChangeActivePlayerCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var command = CreateCommand();
@@ -38,7 +38,7 @@ public class ChangeActivePlayerCommandTests
         _localizationService.GetString("Command_ChangeActivePlayerUnits").Returns("formatted active player command");
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("formatted active player command");
@@ -46,7 +46,7 @@ public class ChangeActivePlayerCommandTests
     }
     
     [Fact]
-    public void Format_ShouldFormatCorrectly_WhenNoUnits()
+    public void Render_ShouldFormatCorrectly_WhenNoUnits()
     {
         // Arrange
         var command = new ChangeActivePlayerCommand
@@ -59,7 +59,7 @@ public class ChangeActivePlayerCommandTests
         _localizationService.GetString("Command_ChangeActivePlayer").Returns("formatted active player command");
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("formatted active player command");
@@ -67,7 +67,7 @@ public class ChangeActivePlayerCommandTests
     }
     
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenPlayerNotFound()
+    public void Render_ShouldReturnEmpty_WhenPlayerNotFound()
     {
         // Arrange
         var command = new ChangeActivePlayerCommand
@@ -78,7 +78,7 @@ public class ChangeActivePlayerCommandTests
         };
         
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
         
         // Assert
         result.ShouldBeEmpty();

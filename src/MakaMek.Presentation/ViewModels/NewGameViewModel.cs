@@ -72,6 +72,7 @@ public abstract class NewGameViewModel : BaseViewModel
         
         var readyCommand = new UpdatePlayerStatusCommand
         {
+            GameOriginId = Guid.NewGuid(),
             PlayerId = playerVm.Player.Id,
             PlayerStatus = PlayerStatus.Ready
         };

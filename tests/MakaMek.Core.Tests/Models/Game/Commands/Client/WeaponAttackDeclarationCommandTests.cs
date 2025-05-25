@@ -74,40 +74,40 @@ public class WeaponAttackDeclarationCommandTests
     }
     
     [Fact]
-    public void Format_ReturnsEmpty_WhenPlayerNotFound()
+    public void Render_ReturnsEmpty_WhenPlayerNotFound()
     {
         // Arrange
         var command = CreateCommand() with { PlayerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ReturnsEmpty_WhenAttackerNotFound()
+    public void Render_ReturnsEmpty_WhenAttackerNotFound()
     {
         // Arrange
         var command = CreateCommand() with { AttackerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ReturnsNoAttacksMessage_WhenNoWeaponTargets()
+    public void Render_ReturnsNoAttacksMessage_WhenNoWeaponTargets()
     {
         // Arrange
         var command = CreateCommand() with { WeaponTargets = new List<WeaponTargetData>() };
         _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_NoAttacks");
@@ -115,7 +115,7 @@ public class WeaponAttackDeclarationCommandTests
     }
 
     [Fact]
-    public void Format_SkipsInvalidTargets_WhenTargetNotFound()
+    public void Render_SkipsInvalidTargets_WhenTargetNotFound()
     {
         // Arrange
         var command = CreateCommand();
@@ -135,7 +135,7 @@ public class WeaponAttackDeclarationCommandTests
         _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top));
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_Header");
@@ -148,7 +148,7 @@ public class WeaponAttackDeclarationCommandTests
     }
     
     [Fact]
-    public void Format_ReturnsNoAttacksMessage_WhenTargetsNotFound()
+    public void Render_ReturnsNoAttacksMessage_WhenTargetsNotFound()
     {
         // Arrange
         var command = CreateCommand();
@@ -158,7 +158,7 @@ public class WeaponAttackDeclarationCommandTests
         _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top));
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_NoAttacks");
@@ -169,7 +169,7 @@ public class WeaponAttackDeclarationCommandTests
     }
 
     [Fact]
-    public void Format_ReturnsAttackDeclarationMessage_WhenAllDataIsValid()
+    public void Render_ReturnsAttackDeclarationMessage_WhenAllDataIsValid()
     {
         // Arrange
         var command = CreateCommand();
@@ -177,7 +177,7 @@ public class WeaponAttackDeclarationCommandTests
         _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top));
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_Header");
@@ -190,7 +190,7 @@ public class WeaponAttackDeclarationCommandTests
     }
 
     [Fact]
-    public void Format_ReturnsMultipleWeaponLines_WhenMultipleWeaponsTarget()
+    public void Render_ReturnsMultipleWeaponLines_WhenMultipleWeaponsTarget()
     {
         // Arrange
         var command = CreateCommand();
@@ -211,7 +211,7 @@ public class WeaponAttackDeclarationCommandTests
         _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top));
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_Header");

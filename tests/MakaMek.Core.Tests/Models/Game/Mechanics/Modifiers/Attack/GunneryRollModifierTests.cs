@@ -10,7 +10,7 @@ public class GunneryRollModifierTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var modifier = new GunneryRollModifier
@@ -20,7 +20,7 @@ public class GunneryRollModifierTests
         _localizationService.GetString("Modifier_GunnerySkill").Returns("Gunnery Skill: +{0}");
 
         // Act
-        var result = modifier.Format(_localizationService);
+        var result = modifier.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Gunnery Skill: +4");

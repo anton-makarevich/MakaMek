@@ -54,7 +54,7 @@ public class HeatUpdatedCommandTests
     }
 
     [Fact]
-    public void Format_WithNoHeatSources_ReturnsExpectedString()
+    public void Render_WithNoHeatSources_ReturnsExpectedString()
     {
         // Arrange
         var heatData = new HeatData
@@ -79,7 +79,7 @@ public class HeatUpdatedCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldContain($"Heat update for {_unit.Name} (Previous: 0)");
@@ -89,7 +89,7 @@ public class HeatUpdatedCommandTests
     }
 
     [Fact]
-    public void Format_WithMovementHeat_ReturnsExpectedString()
+    public void Render_WithMovementHeat_ReturnsExpectedString()
     {
         // Arrange
         var movementHeatSources = new List<MovementHeatData>
@@ -119,7 +119,7 @@ public class HeatUpdatedCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldContain($"Heat update for {_unit.Name} (Previous: 0)");
@@ -130,7 +130,7 @@ public class HeatUpdatedCommandTests
     }
 
     [Fact]
-    public void Format_WithWeaponHeat_ReturnsExpectedString()
+    public void Render_WithWeaponHeat_ReturnsExpectedString()
     {
         // Arrange
         var weaponHeatSources = new List<WeaponHeatData>
@@ -161,7 +161,7 @@ public class HeatUpdatedCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldContain($"Heat update for {_unit.Name} (Previous: 0)");
@@ -173,7 +173,7 @@ public class HeatUpdatedCommandTests
     }
 
     [Fact]
-    public void Format_WithCombinedHeatSources_ReturnsExpectedString()
+    public void Render_WithCombinedHeatSources_ReturnsExpectedString()
     {
         // Arrange
         var movementHeatSources = new List<MovementHeatData>
@@ -209,7 +209,7 @@ public class HeatUpdatedCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldContain($"Heat update for {_unit.Name} (Previous: 5)");
@@ -222,7 +222,7 @@ public class HeatUpdatedCommandTests
     }
 
     [Fact]
-    public void Format_WithUnitNotFound_ReturnsEmptyString()
+    public void Render_WithUnitNotFound_ReturnsEmptyString()
     {
         // Arrange
         var heatData = new HeatData
@@ -247,7 +247,7 @@ public class HeatUpdatedCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();

@@ -30,14 +30,14 @@ public class UpdatePlayerStatusCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var command = CreateCommand();
         _localizationService.GetString("Command_UpdatePlayerStatus").Returns("formatted status command");
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("formatted status command");
@@ -45,13 +45,13 @@ public class UpdatePlayerStatusCommandTests
     }
 
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenPlayerNotFound()
+    public void Render_ShouldReturnEmpty_WhenPlayerNotFound()
     {
         // Arrange
         var command = CreateCommand() with { PlayerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();

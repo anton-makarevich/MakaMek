@@ -14,10 +14,10 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
     public required Guid TargetId { get; init; }
     public required AttackResolutionData ResolutionData { get; init; }
 
-    public Guid GameOriginId { get; set; }
+    public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
 
-    public string Format(ILocalizationService localizationService, IGame game)
+    public string Render(ILocalizationService localizationService, IGame game)
     {
         var command = this;
         var player = game.Players.FirstOrDefault(p => p.Id == command.PlayerId);

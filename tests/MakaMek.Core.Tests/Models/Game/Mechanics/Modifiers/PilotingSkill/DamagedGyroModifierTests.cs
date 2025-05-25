@@ -10,7 +10,7 @@ public class DamagedGyroModifierTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var modifier = new DamagedGyroModifier
@@ -22,7 +22,7 @@ public class DamagedGyroModifierTests
         _localizationService.GetString("Hits").Returns("Hits");
 
         // Act
-        var result = modifier.Format(_localizationService);
+        var result = modifier.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Damaged Gyro (1 Hits): +3");

@@ -10,10 +10,10 @@ public record struct DeployUnitCommand : IClientCommand
     public required HexCoordinateData Position { get; init; }
     public required int Direction { get; init; }
 
-    public Guid GameOriginId { get; set; }
+    public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
 
-    public string Format(ILocalizationService localizationService, IGame game)
+    public string Render(ILocalizationService localizationService, IGame game)
     {
         var command = this;
         var player = game.Players.FirstOrDefault(p => p.Id == command.PlayerId);

@@ -126,6 +126,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         
         var turnEndedCommand = new TurnEndedCommand
         {
+            GameOriginId = Game.Id,
             PlayerId = _player1Id,
             Timestamp = DateTime.UtcNow
         };
@@ -175,6 +176,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         
         var turnEndedCommand = new TurnEndedCommand
         {
+            GameOriginId = Game.Id,
             PlayerId = _player1Id,
             Timestamp = DateTime.UtcNow
         };

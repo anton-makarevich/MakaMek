@@ -6,7 +6,7 @@ public record HeatRollModifier : RollModifier
 {
     public required int HeatLevel { get; init; }
 
-    public override string Format(ILocalizationService localizationService) =>
+    public override string Render(ILocalizationService localizationService) =>
         string.Format(localizationService.GetString("Modifier_Heat"), 
             HeatLevel, Value);
 }

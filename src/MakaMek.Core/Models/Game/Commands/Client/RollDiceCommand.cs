@@ -4,10 +4,10 @@ namespace Sanet.MakaMek.Core.Models.Game.Commands.Client;
 
 public record struct RollDiceCommand : IClientCommand
 {
-    public Guid GameOriginId { get; set; }
+    public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
 
-    public string Format(ILocalizationService localizationService, IGame game)
+    public string Render(ILocalizationService localizationService, IGame game)
     {
         var command = this;
         var player = game.Players.FirstOrDefault(p => p.Id == command.PlayerId);

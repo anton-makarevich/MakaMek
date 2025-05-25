@@ -10,7 +10,7 @@ public class SecondaryTargetModifierTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     [Fact]
-    public void Format_FrontArc_ShouldFormatCorrectly()
+    public void Render_FrontArc_ShouldFormatCorrectly()
     {
         // Arrange
         var modifier = new SecondaryTargetModifier
@@ -21,7 +21,7 @@ public class SecondaryTargetModifierTests
         _localizationService.GetString("Attack_SecondaryTargetFrontArc").Returns("Secondary target (front arc): +{0}");
 
         // Act
-        var result = modifier.Format(_localizationService);
+        var result = modifier.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Secondary target (front arc): +1");
@@ -29,7 +29,7 @@ public class SecondaryTargetModifierTests
     }
 
     [Fact]
-    public void Format_OtherArc_ShouldFormatCorrectly()
+    public void Render_OtherArc_ShouldFormatCorrectly()
     {
         // Arrange
         var modifier = new SecondaryTargetModifier
@@ -40,7 +40,7 @@ public class SecondaryTargetModifierTests
         _localizationService.GetString("Attack_SecondaryTargetOtherArc").Returns("Secondary target (other arc): +{0}");
 
         // Act
-        var result = modifier.Format(_localizationService);
+        var result = modifier.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Secondary target (other arc): +2");

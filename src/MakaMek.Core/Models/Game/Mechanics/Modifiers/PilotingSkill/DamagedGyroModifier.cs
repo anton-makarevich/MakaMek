@@ -9,7 +9,7 @@ public record DamagedGyroModifier : RollModifier
 {
     public required int HitsCount { get; init; }
     
-    public override string Format(ILocalizationService localizationService)
+    public override string Render(ILocalizationService localizationService)
     {
         return string.Format(localizationService.GetString("Modifier_DamagedGyro"),
             HitsCount,

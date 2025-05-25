@@ -1220,7 +1220,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         public required string Name { get; init; }
         
-        public override string Format(Sanet.MakaMek.Core.Services.Localization.ILocalizationService localizationService)
+        public override string Render(Sanet.MakaMek.Core.Services.Localization.ILocalizationService localizationService)
         {
             return Name;
         }
