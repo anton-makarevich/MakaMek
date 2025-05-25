@@ -34,9 +34,9 @@ public record struct PilotingSkillRollCommand : IGameCommand
     /// </summary>
     public required PsrBreakdown PsrBreakdown { get; init; }
 
-    public Guid GameOriginId { get; set; }
+    public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
-    public string Format(ILocalizationService localizationService, IGame game)
+    public string Render(ILocalizationService localizationService, IGame game)
     {
         var command = this;
         var unit = game.Players
@@ -98,7 +98,7 @@ public record struct PilotingSkillRollCommand : IGameCommand
             {
                 stringBuilder.AppendLine(string.Format(
                     localizationService.GetString("Command_PilotingSkillRoll_Modifier"),
-                    modifier.Format(localizationService),
+                    modifier.Render(localizationService),
                     modifier.Value));
             }
         }

@@ -21,13 +21,13 @@ public class AttackerMovementModifierTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         _localizationService.GetString("Modifier_AttackerMovement").Returns("Attacker Movement ({0}): +{1}");
 
         // Act
-        var result = _sut.Format(_localizationService);
+        var result = _sut.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Attacker Movement (Run): +2");

@@ -263,6 +263,7 @@ public class JoinGameViewModelTests
         // Create status update command
         var statusCommand = new UpdatePlayerStatusCommand
         {
+            GameOriginId = Guid.NewGuid(),
             PlayerId = playerId,
             PlayerStatus = PlayerStatus.Ready
         };
@@ -285,6 +286,7 @@ public class JoinGameViewModelTests
         var remotePlayerId = Guid.NewGuid();
         var joinCommand = new JoinGameCommand
         {
+            GameOriginId = Guid.NewGuid(),
             PlayerId = remotePlayerId,
             PlayerName = "Remote Player",
             Units = [MechFactoryTests.CreateDummyMechData()],
@@ -314,6 +316,7 @@ public class JoinGameViewModelTests
         // Create join command for the existing local player
         var joinCommand = new JoinGameCommand
         {
+            GameOriginId = Guid.NewGuid(),
             PlayerId = playerId,
             PlayerName = player.Player.Name,
             Units = [MechFactoryTests.CreateDummyMechData()],

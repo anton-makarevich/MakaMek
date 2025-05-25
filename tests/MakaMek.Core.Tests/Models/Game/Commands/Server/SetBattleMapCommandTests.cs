@@ -25,14 +25,14 @@ public class SetBattleMapCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var sut = CreateCommand();
         _localizationService.GetString("Command_SetBattleMap").Returns("Battle map has been set.");
 
         // Act
-        var result = sut.Format(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("Battle map has been set.");

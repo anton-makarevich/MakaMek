@@ -137,7 +137,7 @@ public class BattleMapViewModel : BaseViewModel
         _dispatcherService.RunOnUIThread(() =>
         {
             if (Game == null) return;
-            var formattedCommand = command.Format(_localizationService, Game);
+            var formattedCommand = command.Render(_localizationService, Game);
             _commandLog.Add(formattedCommand);
             NotifyPropertyChanged(nameof(CommandLog));
 

@@ -205,13 +205,13 @@ public class WeaponAttackResolutionCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatHit_Correctly()
+    public void Render_ShouldFormatHit_Correctly()
     {
         // Arrange
         var command = CreateHitCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -222,13 +222,13 @@ public class WeaponAttackResolutionCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatMiss_Correctly()
+    public void Render_ShouldFormatMiss_Correctly()
     {
         // Arrange
         var command = CreateMissCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -237,13 +237,13 @@ public class WeaponAttackResolutionCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatClusterWeapon_Correctly()
+    public void Render_ShouldFormatClusterWeapon_Correctly()
     {
         // Arrange
         var command = CreateClusterHitCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -259,52 +259,52 @@ public class WeaponAttackResolutionCommandTests
     }
 
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenPlayerNotFound()
+    public void Render_ShouldReturnEmpty_WhenPlayerNotFound()
     {
         // Arrange
         var command = CreateHitCommand() with { PlayerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenAttackerNotFound()
+    public void Render_ShouldReturnEmpty_WhenAttackerNotFound()
     {
         // Arrange
         var command = CreateHitCommand() with { AttackerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenTargetNotFound()
+    public void Render_ShouldReturnEmpty_WhenTargetNotFound()
     {
         // Arrange
         var command = CreateHitCommand() with { TargetId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ShouldIncludeAttackDirection_WhenHit()
+    public void Render_ShouldIncludeAttackDirection_WhenHit()
     {
         // Arrange
         var command = CreateHitCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -312,13 +312,13 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_ShouldIncludeAttackDirection_WithClusterWeapon()
+    public void Render_ShouldIncludeAttackDirection_WithClusterWeapon()
     {
         // Arrange
         var command = CreateClusterHitCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -329,7 +329,7 @@ public class WeaponAttackResolutionCommandTests
     [InlineData(FiringArc.Left, "Attack Direction: Left")]
     [InlineData(FiringArc.Right, "Attack Direction: Right")]
     [InlineData(FiringArc.Rear, "Attack Direction: Rear")]
-    public void Format_ShouldDisplayCorrectAttackDirection(FiringArc direction, string expectedDirectionText)
+    public void Render_ShouldDisplayCorrectAttackDirection(FiringArc direction, string expectedDirectionText)
     {
         // Arrange
         var hitLocations = new List<HitLocationData>
@@ -362,7 +362,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -370,7 +370,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_Includes_CriticalHitsData_When_It_Present_ButNotHitSlots()
+    public void Render_Includes_CriticalHitsData_When_It_Present_ButNotHitSlots()
     {
         // Arrange: create a hit with a critical hit in slot 2, with a component
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -409,7 +409,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical roll: 7");
@@ -418,7 +418,7 @@ public class WeaponAttackResolutionCommandTests
     }
 
     [Fact]
-    public void Format_Includes_CriticalHit_Info_When_CriticalHits_Present()
+    public void Render_Includes_CriticalHit_Info_When_CriticalHits_Present()
     {
         // Arrange: create a hit with a critical hit in slot 2, with a component
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -459,14 +459,14 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
     }
 
     [Fact]
-    public void Format_Includes_HitLocationTransfer_Info_When_Transfers_Present()
+    public void Render_Includes_HitLocationTransfer_Info_When_Transfers_Present()
     {
         // Arrange: create a hit with a transfer from LeftArm to LeftTorso
         var hitLocations = new List<HitLocationData>
@@ -505,14 +505,14 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("LeftArm → LeftTorso: 5 damage");
     }
 
     [Fact]
-    public void Format_Includes_BlownOff_Message_When_Location_Is_Blown_Off()
+    public void Render_Includes_BlownOff_Message_When_Location_Is_Blown_Off()
     {
         // Arrange: create a hit with a blown-off location (head)
         var hitLocations = new List<HitLocationData>
@@ -550,7 +550,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("LOCATION BLOWN OFF: Head");
@@ -559,7 +559,7 @@ public class WeaponAttackResolutionCommandTests
     }
 
     [Fact]
-    public void Format_Includes_CriticalHits_In_Different_Location()
+    public void Render_Includes_CriticalHits_In_Different_Location()
     {
         // Arrange: create a hit with critical hits in a different location than the primary hit
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -605,7 +605,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("CenterTorso: 5 damage");
@@ -614,7 +614,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_Handles_Multiple_Critical_Hits_In_Different_Slots()
+    public void Render_Handles_Multiple_Critical_Hits_In_Different_Slots()
     {
         // Arrange: create a hit with multiple critical hits in different slots
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -663,7 +663,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical roll: 10");
@@ -673,7 +673,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_Handles_Multiple_Critical_Hits_In_Different_Locations()
+    public void Render_Handles_Multiple_Critical_Hits_In_Different_Locations()
     {
         // Arrange: create a hit with critical hits in multiple locations
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -723,7 +723,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hits in LeftArm:");
@@ -735,7 +735,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_Handles_Multiple_Blown_Off_Locations()
+    public void Render_Handles_Multiple_Blown_Off_Locations()
     {
         // Arrange: create a hit with multiple blown-off locations
         var hitLocations = new List<HitLocationData>
@@ -776,7 +776,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("LOCATION BLOWN OFF: LeftArm");
@@ -784,7 +784,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_Handles_Null_CriticalHits_Array()
+    public void Render_Handles_Null_CriticalHits_Array()
     {
         // Arrange: create a hit with null critical hits array
         var hitLocations = new List<HitLocationData>
@@ -822,7 +822,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical roll: 10");
@@ -831,7 +831,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_Handles_Component_Lookup_Failure()
+    public void Render_Handles_Component_Lookup_Failure()
     {
         // Arrange: create a hit with a critical hit in a slot that doesn't have a component
         var hitLocations = new List<HitLocationData>
@@ -870,7 +870,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical roll: 10");
@@ -880,7 +880,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_Includes_Explosion_Message_When_Component_Can_Explode()
+    public void Render_Includes_Explosion_Message_When_Component_Can_Explode()
     {
         // Arrange: create a hit with a critical hit on an explodable component
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -925,7 +925,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
@@ -933,7 +933,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_DoesNotInclude_Explosion_Message_When_Component_Cannot_Explode()
+    public void Render_DoesNotInclude_Explosion_Message_When_Component_Cannot_Explode()
     {
         // Arrange: create a hit with a critical hit on a non-explodable component
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -976,7 +976,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
@@ -984,7 +984,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_DoesNotInclude_Explosion_Message_When_Component_Has_Already_Exploded()
+    public void Render_DoesNotInclude_Explosion_Message_When_Component_Has_Already_Exploded()
     {
         // Arrange: create a hit with a critical hit on an ammo component that has already exploded
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -1030,7 +1030,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
@@ -1038,7 +1038,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_DoesNotInclude_Explosion_Message_When_Component_Has_Zero_Explosion_Damage()
+    public void Render_DoesNotInclude_Explosion_Message_When_Component_Has_Zero_Explosion_Damage()
     {
         // Arrange: create a hit with a critical hit on an ammo component with no remaining shots
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -1083,7 +1083,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Format(_localizationService, _game);
+        var output = command.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
@@ -1091,7 +1091,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_ShouldIncludeDestroyedParts_WhenPartsAreDestroyed()
+    public void Render_ShouldIncludeDestroyedParts_WhenPartsAreDestroyed()
     {
         // Arrange
         var hitLocations = new List<HitLocationData>
@@ -1127,7 +1127,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -1137,7 +1137,7 @@ public class WeaponAttackResolutionCommandTests
     }
     
     [Fact]
-    public void Format_ShouldIncludeUnitDestroyed_WhenUnitIsDestroyed()
+    public void Render_ShouldIncludeUnitDestroyed_WhenUnitIsDestroyed()
     {
         // Arrange
         var hitLocations = new List<HitLocationData>
@@ -1172,7 +1172,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();

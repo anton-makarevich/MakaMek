@@ -57,7 +57,7 @@ public class FallingDamageCalculatorTests
     {
         public required string Name { get; init; }
         
-        public override string Format(ILocalizationService localizationService)
+        public override string Render(ILocalizationService localizationService)
         {
             return Name;
         }

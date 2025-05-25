@@ -8,12 +8,11 @@ namespace Sanet.MakaMek.Core.Models.Game.Commands.Server;
 /// </summary>
 public record struct SetBattleMapCommand : IGameCommand
 {
-    public Guid GameOriginId { get; set; }
+    public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
-    public string Format(ILocalizationService localizationService, IGame game)
+    public string Render(ILocalizationService localizationService, IGame game)
     {
-        var localizedTemplate = localizationService.GetString("Command_SetBattleMap");
-        return string.Format(localizedTemplate);
+        return string.Format(localizationService.GetString("Command_SetBattleMap"));
     }
 
     public required List<HexData> MapData { get; init; }

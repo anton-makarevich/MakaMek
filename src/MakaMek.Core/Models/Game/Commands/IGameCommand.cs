@@ -6,5 +6,5 @@ public interface IGameCommand
 {
     Guid GameOriginId { get; set; }
     DateTime Timestamp { get; set; } 
-    string Format(ILocalizationService localizationService, IGame game); 
+    string Render(ILocalizationService localizationService, IGame game); 
 }

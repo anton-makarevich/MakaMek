@@ -10,7 +10,7 @@ public class FallingLevelsModifierTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var modifier = new FallingLevelsModifier
@@ -22,7 +22,7 @@ public class FallingLevelsModifierTests
         _localizationService.GetString("Levels").Returns("Levels");
 
         // Act
-        var result = modifier.Format(_localizationService);
+        var result = modifier.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Falling (2 Levels): +2");

@@ -119,13 +119,13 @@ public class PilotingSkillRollCommandTests
     }
     
     [Fact]
-    public void Format_ShouldFormatSuccessfulRoll_Correctly()
+    public void Render_ShouldFormatSuccessfulRoll_Correctly()
     {
         // Arrange
         var sut = CreateSuccessfulCommand();
         
         // Act
-        var result = sut.Format(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
         
         // Assert
         result.ShouldContain("Test Player's Locust LCT-1V succeeds Gyro Hit check");
@@ -137,13 +137,13 @@ public class PilotingSkillRollCommandTests
     }
     
     [Fact]
-    public void Format_ShouldFormatFailedRoll_Correctly()
+    public void Render_ShouldFormatFailedRoll_Correctly()
     {
         // Arrange
         var sut = CreateFailedCommand();
         
         // Act
-        var result = sut.Format(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
         
         // Assert
         result.ShouldContain("Test Player's Locust LCT-1V fails Gyro Hit check");
@@ -155,13 +155,13 @@ public class PilotingSkillRollCommandTests
     }
     
     [Fact]
-    public void Format_ShouldFormatImpossibleRoll_Correctly()
+    public void Render_ShouldFormatImpossibleRoll_Correctly()
     {
         // Arrange
         var sut = CreateImpossibleCommand();
         
         // Act
-        var result = sut.Format(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
         
         // Assert
         result.ShouldContain("Test Player's Locust LCT-1V automatically fails Gyro Hit check (impossible roll)");
@@ -173,14 +173,14 @@ public class PilotingSkillRollCommandTests
     }
     
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenUnitNotFound()
+    public void Render_ShouldReturnEmpty_WhenUnitNotFound()
     {
         // Arrange
         var sut = CreateSuccessfulCommand();
         sut = sut with { UnitId = Guid.NewGuid() }; // Set to a non-existent unit ID
         
         // Act
-        var result = sut.Format(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
         
         // Assert
         result.ShouldBeEmpty();
@@ -191,7 +191,7 @@ public class PilotingSkillRollCommandTests
     {
         public required string Name { get; init; }
         
-        public override string Format(ILocalizationService localizationService)
+        public override string Render(ILocalizationService localizationService)
         {
             return Name;
         }

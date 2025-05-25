@@ -146,7 +146,7 @@ public class WeaponSelectionViewModel : BindableBase
             {
                 $"{_localizationService.GetString("Attack_TargetNumber")}: {ModifiersBreakdown.Total}"
             };
-            lines.AddRange(ModifiersBreakdown.AllModifiers.Select(modifier => modifier.Format(_localizationService)));
+            lines.AddRange(ModifiersBreakdown.AllModifiers.Select(modifier => modifier.Render(_localizationService)));
             // Add all modifiers using their Format method
             return string.Join(Environment.NewLine, lines);
         }

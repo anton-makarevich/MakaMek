@@ -152,13 +152,13 @@ public class MechFallingCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatBasicFall_Correctly()
+    public void Render_ShouldFormatBasicFall_Correctly()
     {
         // Arrange
         var command = CreateBasicFallingCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -170,13 +170,13 @@ public class MechFallingCommandTests
     }
 
     [Fact]
-    public void Format_ShouldIncludeLevelsFallen_WhenApplicable()
+    public void Render_ShouldIncludeLevelsFallen_WhenApplicable()
     {
         // Arrange
         var command = CreateFallingWithLevelsCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -186,13 +186,13 @@ public class MechFallingCommandTests
     }
 
     [Fact]
-    public void Format_ShouldIncludeJumpingStatus_WhenApplicable()
+    public void Render_ShouldIncludeJumpingStatus_WhenApplicable()
     {
         // Arrange
         var command = CreateJumpingFallCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -202,13 +202,13 @@ public class MechFallingCommandTests
     }
 
     [Fact]
-    public void Format_ShouldIncludePilotInjury_WhenApplicable()
+    public void Render_ShouldIncludePilotInjury_WhenApplicable()
     {
         // Arrange
         var command = CreatePilotInjuryCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -218,13 +218,13 @@ public class MechFallingCommandTests
     }
 
     [Fact]
-    public void Format_ShouldIncludeAllElements_ForComplexFall()
+    public void Render_ShouldIncludeAllElements_ForComplexFall()
     {
         // Arrange
         var command = CreateComplexFallCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -236,13 +236,13 @@ public class MechFallingCommandTests
     }
 
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenUnitNotFound()
+    public void Render_ShouldReturnEmpty_WhenUnitNotFound()
     {
         // Arrange
         var command = CreateBasicFallingCommand() with { UnitId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();

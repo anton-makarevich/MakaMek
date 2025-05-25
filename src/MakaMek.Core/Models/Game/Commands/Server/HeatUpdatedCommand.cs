@@ -10,10 +10,10 @@ public record struct HeatUpdatedCommand : IGameCommand
     public required HeatData HeatData { get; init; }
     public required int PreviousHeat { get; init; }
     
-    public Guid GameOriginId { get; set; }
+    public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
 
-    public string Format(ILocalizationService localizationService, IGame game)
+    public string Render(ILocalizationService localizationService, IGame game)
     {
         var command = this;
         var unit = game.Players

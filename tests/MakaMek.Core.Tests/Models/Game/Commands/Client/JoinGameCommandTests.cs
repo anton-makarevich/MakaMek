@@ -32,7 +32,7 @@ public class JoinGameCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var command = CreateCommand();
@@ -40,7 +40,7 @@ public class JoinGameCommandTests
         _localizationService.GetString("Command_JoinGame").Returns("formatted join command");
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("formatted join command");

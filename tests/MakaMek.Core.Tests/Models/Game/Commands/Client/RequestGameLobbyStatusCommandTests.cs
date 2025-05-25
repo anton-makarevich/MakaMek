@@ -22,7 +22,7 @@ public class RequestGameLobbyStatusCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var command = CreateCommand();
@@ -32,7 +32,7 @@ public class RequestGameLobbyStatusCommandTests
         _localizationService.GetString("Command_RequestGameLobbyStatus").Returns(expectedFormat);
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe(expectedResult);

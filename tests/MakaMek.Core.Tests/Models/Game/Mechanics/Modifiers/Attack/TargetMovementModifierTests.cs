@@ -10,7 +10,7 @@ public class TargetMovementModifierTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var modifier = new TargetMovementModifier
@@ -21,7 +21,7 @@ public class TargetMovementModifierTests
         _localizationService.GetString("Modifier_TargetMovement").Returns("Target Movement ({0} hexes): +{1}");
 
         // Act
-        var result = modifier.Format(_localizationService);
+        var result = modifier.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Target Movement (5 hexes): +3");

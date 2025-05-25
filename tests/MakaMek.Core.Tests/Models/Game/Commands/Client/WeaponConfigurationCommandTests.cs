@@ -53,46 +53,46 @@ public class WeaponConfigurationCommandTests
     }
 
     [Fact]
-    public void Format_ReturnsEmpty_WhenPlayerNotFound()
+    public void Render_ReturnsEmpty_WhenPlayerNotFound()
     {
         // Arrange
         var command = CreateCommand() with { PlayerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ReturnsEmpty_WhenUnitNotFound()
+    public void Render_ReturnsEmpty_WhenUnitNotFound()
     {
         // Arrange
         var command = CreateCommand() with { UnitId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ReturnsEmpty_WhenUnitNotDeployed()
+    public void Render_ReturnsEmpty_WhenUnitNotDeployed()
     {
         // Arrange
         var command = CreateCommand();
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ReturnsTorsoRotationMessage_WhenConfigurationIsTorsoRotation()
+    public void Render_ReturnsTorsoRotationMessage_WhenConfigurationIsTorsoRotation()
     {
         // Arrange
         var command = CreateCommand();
@@ -100,7 +100,7 @@ public class WeaponConfigurationCommandTests
         var expectedHex = _unit.Position!.Coordinates.Neighbor(HexDirection.Bottom);
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponConfiguration_TorsoRotation");
@@ -108,7 +108,7 @@ public class WeaponConfigurationCommandTests
     }
 
     [Fact]
-    public void Format_ReturnsArmsFlipMessage_WhenConfigurationIsArmsFlip()
+    public void Render_ReturnsArmsFlipMessage_WhenConfigurationIsArmsFlip()
     {
         // Arrange
         var command = CreateCommand();
@@ -120,7 +120,7 @@ public class WeaponConfigurationCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponConfiguration_ArmsFlip");
@@ -128,7 +128,7 @@ public class WeaponConfigurationCommandTests
     }
 
     [Fact]
-    public void Format_ReturnsArmsFlipBackwardMessage_WhenConfigurationIsArmsFlipZero()
+    public void Render_ReturnsArmsFlipBackwardMessage_WhenConfigurationIsArmsFlipZero()
     {
         // Arrange
         var command = CreateCommand();
@@ -140,7 +140,7 @@ public class WeaponConfigurationCommandTests
         };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponConfiguration_ArmsFlip");

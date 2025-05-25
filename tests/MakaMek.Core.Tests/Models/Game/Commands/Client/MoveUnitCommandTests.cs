@@ -45,7 +45,7 @@ public class MoveUnitCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         var command = CreateCommand();
@@ -53,7 +53,7 @@ public class MoveUnitCommandTests
         _localizationService.GetString("Command_MoveUnit").Returns("formatted move command");
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("formatted move command");
@@ -61,26 +61,26 @@ public class MoveUnitCommandTests
     }
 
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenPlayerNotFound()
+    public void Render_ShouldReturnEmpty_WhenPlayerNotFound()
     {
         // Arrange
         var command = CreateCommand() with { PlayerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenUnitNotFound()
+    public void Render_ShouldReturnEmpty_WhenUnitNotFound()
     {
         // Arrange
         var command = CreateCommand() with { UnitId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();

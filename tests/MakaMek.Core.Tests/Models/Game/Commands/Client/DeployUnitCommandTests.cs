@@ -39,13 +39,13 @@ public class DeployUnitCommandTests
     }
 
     [Fact]
-    public void Format_ShouldFormatCorrectly()
+    public void Render_ShouldFormatCorrectly()
     {
         // Arrange
         _localizationService.GetString("Command_DeployUnit").Returns("formatted deploy command");
 
         // Act
-        var result = _sut.Format(_localizationService, _game);
+        var result = _sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe("formatted deploy command");
@@ -53,26 +53,26 @@ public class DeployUnitCommandTests
     }
 
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenPlayerNotFound()
+    public void Render_ShouldReturnEmpty_WhenPlayerNotFound()
     {
         // Arrange
         var command = _sut with { PlayerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Format_ShouldReturnEmpty_WhenUnitNotFound()
+    public void Render_ShouldReturnEmpty_WhenUnitNotFound()
     {
         // Arrange
         var command = _sut with { UnitId = Guid.NewGuid() };
 
         // Act
-        var result = command.Format(_localizationService, _game);
+        var result = command.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
