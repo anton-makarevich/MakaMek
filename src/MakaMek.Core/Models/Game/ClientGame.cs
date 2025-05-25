@@ -98,6 +98,9 @@ public sealed class ClientGame : BaseGame
             case WeaponAttackResolutionCommand attackResolutionCommand:
                 OnWeaponsAttackResolution(attackResolutionCommand);
                 break;
+            case MechFallingCommand mechFallingCommand:
+                OnMechFalling(mechFallingCommand);
+                break;
             case HeatUpdatedCommand heatUpdateCommand:
                 OnHeatUpdate(heatUpdateCommand);
                 break;

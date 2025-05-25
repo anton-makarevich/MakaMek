@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
+using Shouldly.ShouldlyExtensionMethods;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
@@ -943,6 +944,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         
         // Assert
+        _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
         // Verify that a MechFallingCommand was published with the correct data
         CommandPublisher.Received().PublishCommand(
             Arg.Is<MechFallingCommand>(cmd => 
