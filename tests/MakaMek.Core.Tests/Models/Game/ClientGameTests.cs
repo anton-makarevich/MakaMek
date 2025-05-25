@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -22,6 +23,7 @@ using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
+using Shouldly.ShouldlyExtensionMethods;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
@@ -608,7 +610,6 @@ public class ClientGameTests
         {
             _sut.JoinGameWithUnits(player, []);
         }
-
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -1509,5 +1510,130 @@ public class ClientGameTests
         _sut.BattleMap.ShouldBe(newBattleMap);
         _mapFactory.Received(1).CreateFromData(Arg.Is<List<HexData>>(data => 
             data.Count == mapData.Count));
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldProcessMechFallingCommand_WhenReceived()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitId = Guid.NewGuid();
+        var player = new Player(playerId, "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = unitId;
+        
+        // Add player and unit to the game
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = "#FF0000"
+        });
+        
+        // Set up the map
+        _sut.HandleCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = []
+        });
+        
+        // Deploy the unit
+        _sut.HandleCommand(new DeployUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            UnitId = unitId,
+            Position = new HexCoordinateData(1, 1),
+            Direction = 0
+        });
+        
+        // Create hit locations data for the falling damage
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.CenterTorso, 
+                5,
+                [new DiceResult(4)])
+        };
+        
+        var hitLocationsData = new HitLocationsData(hitLocations, 5);
+        
+        // Create the falling damage data
+        var fallingDamageData = new FallingDamageData(
+            HexDirection.Top,
+            hitLocationsData,
+            new DiceResult(4),
+            true);
+        
+        // Create the mech falling command
+        var mechFallingCommand = new MechFallingCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitId,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = fallingDamageData
+        };
+        var unit = _sut.Players.First().Units.First(u => u.Id == unitId);
+        var initialArmor = unit.Parts.First(p => p.Location == PartLocation.CenterTorso).CurrentArmor;
+        
+        // Act
+        _sut.HandleCommand(mechFallingCommand);
+        
+        // Assert
+        // Verify the command was added to the log
+        _sut.CommandLog.ShouldContain(cmd => cmd is MechFallingCommand);
+        
+        // Get the unit and verify it's prone
+        unit.ShouldNotBeNull();
+        unit.Status.ShouldHaveFlag(UnitStatus.Prone);
+        
+        // Verify damage was applied
+        var currentArmor = unit.Parts.First(p => p.Location == PartLocation.CenterTorso).CurrentArmor;
+        currentArmor.ShouldBe(initialArmor - 5);
+    }
+    
+    [Fact]
+    public void HandleCommand_ShouldNotProcessMechFallingCommand_WhenUnitDoesNotExist()
+    {
+        // Arrange
+        var nonExistentUnitId = Guid.NewGuid();
+        
+        // Create hit locations data for the falling damage
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.CenterTorso, 
+                5,
+                [new DiceResult(4)])
+        };
+        
+        var hitLocationsData = new HitLocationsData(hitLocations, 5);
+        
+        // Create the falling damage data
+        var fallingDamageData = new FallingDamageData(
+            HexDirection.Top,
+            hitLocationsData,
+            new DiceResult(4),
+            true);
+        
+        // Create the mech falling command
+        var mechFallingCommand = new MechFallingCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = nonExistentUnitId,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = fallingDamageData
+        };
+        
+        // Act - this should not throw an exception
+        var exception = Record.Exception(() => _sut.HandleCommand(mechFallingCommand));
+        
+        // Assert
+        exception.ShouldBeNull();
+        _sut.CommandLog.ShouldContain(cmd => cmd is MechFallingCommand);
     }
 }

@@ -216,6 +216,18 @@ public abstract class BaseGame : IGame
             targetUnit.ApplyDamage(attackResolutionCommand.ResolutionData.HitLocationsData.HitLocations);
         }
     }
+    
+    internal void OnMechFalling(MechFallingCommand fallingCommand)
+    {
+        // Find the unit with the given ID across all players
+        var mech = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == fallingCommand.UnitId) as Mech;
+
+        // Apply falling to the unit using the falling data from the command
+        mech?.ApplyDamage(fallingCommand.DamageData.HitLocations.HitLocations);
+        mech?.SetProne();
+    }
 
     internal void OnHeatUpdate(HeatUpdatedCommand heatUpdatedCommand)
     {
@@ -269,6 +281,7 @@ public abstract class BaseGame : IGame
             HeatUpdatedCommand => true,
             TurnEndedCommand => true,
             RequestGameLobbyStatusCommand => true,
+            MechFallingCommand => true,
             _ => false
         };
     }

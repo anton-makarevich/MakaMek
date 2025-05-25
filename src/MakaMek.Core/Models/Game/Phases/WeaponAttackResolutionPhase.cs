@@ -404,7 +404,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 [PilotingSkillRollType.WarriorDamageFromFall],
                 Game.BattleMap);
             var fallingDamageData = fallingDamageCalculator.CalculateFallingDamage(
-                mech, 
+                mech,
                 0,
                 false,
                 pilotPsrBreakdown);
@@ -419,6 +419,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 GameOriginId = Game.Id
             };
 
+            mech.ApplyDamage(mechFallingCommand.DamageData.HitLocations.HitLocations);
+            mech.SetProne();
             Game.CommandPublisher.PublishCommand(mechFallingCommand);
         }
     }
