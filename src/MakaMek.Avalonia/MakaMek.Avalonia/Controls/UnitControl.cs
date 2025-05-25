@@ -36,7 +36,6 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly StackPanel _healthBars;
         private readonly ProgressBar _armorBar;
         private readonly ProgressBar _structureBar;
-        private readonly Path _destroyedCross;
         private readonly StackPanel _eventsPanel;
         private readonly TimeSpan _eventDisplayDuration = TimeSpan.FromSeconds(5);
         private readonly IAvaloniaResourcesLocator _resourcesLocator = new AvaloniaResourcesLocator();
@@ -193,7 +192,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
 
             // Create destroyed indicator (cross)
-            _destroyedCross = new Path
+            var destroyedCross = new Path
             {
                 Data = new StreamGeometry(),
                 Stroke = new SolidColorBrush(color),
@@ -206,8 +205,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Height = Height * 0.3
             };
             // Draw cross geometry
-            var crossSize = _destroyedCross.Width;
-            using (var context = ((StreamGeometry)_destroyedCross.Data).Open())
+            var crossSize = destroyedCross.Width;
+            using (var context = ((StreamGeometry)destroyedCross.Data).Open())
             {
                 // Diagonal line 1
                 context.BeginFigure(new Point(0, 0), true);
@@ -217,11 +216,33 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 context.LineTo(new Point(0, crossSize));
             }
 
+            // Create prone indicator
+            var proneIndicator = new Border
+            {
+                Width = Width * 0.8,
+                Height = Height * 0.2,
+                Background = new SolidColorBrush(Colors.Orange),
+                CornerRadius = new CornerRadius(4),
+                IsVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(0, 0, 0, 5),
+                Child = new TextBlock
+                {
+                    Text = "PRONE",
+                    Foreground = new SolidColorBrush(Colors.White),
+                    FontWeight = FontWeight.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+
             Children.Add(selectionBorder);
             Children.Add(_unitImage);
             Children.Add(_tintBorder);
             Children.Add(torsoArrow);
-            Children.Add(_destroyedCross);
+            Children.Add(destroyedCross);
+            Children.Add(proneIndicator);
 
             // Create an observable that polls the unit's position and selection state
             Observable
@@ -245,10 +266,22 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 .Subscribe(state =>
                 {
                     // Show/hide destroyed indicator
-                    _destroyedCross.IsVisible = _unit.Status == UnitStatus.Destroyed;
+                    destroyedCross.IsVisible = _unit.Status == UnitStatus.Destroyed;
                     _healthBars.IsVisible = _unit.Status != UnitStatus.Destroyed;
+                    
                     if (state.Position == null) return; // unit is not deployed, no need to display
-
+                    
+                    // Show/hide prone indicator (for mechs only)
+                    if (_unit is Mech mech)
+                    {
+                        proneIndicator.IsVisible = (mech.Status & UnitStatus.Prone) == UnitStatus.Prone 
+                                                   && mech.Status != UnitStatus.Destroyed;
+                    }
+                    else
+                    {
+                        proneIndicator.IsVisible = false;
+                    }
+                    
                     Render();
                     selectionBorder.IsVisible = state.SelectedUnit == _unit
                                                 || _viewModel.CurrentState is WeaponsAttackState attackState &&
@@ -279,8 +312,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     {
                         torsoArrow.IsVisible = state.IsWeaponsPhase
                                                && _unit.Status != UnitStatus.Destroyed
-                                               && state.TorsoDirection.HasValue
-                                               && state.Position != null;
+                                               && state is { TorsoDirection: not null, Position: not null };
                         if (!torsoArrow.IsVisible) return;
                         // Since control is rotated to torso direction, we need opposite delta
                         var deltaAngle = (unitFacing - torsoFacing + 6) % 6 * 60;
@@ -514,4 +546,3 @@ namespace Sanet.MakaMek.Avalonia.Controls
         public StackPanel ActionButtons => _actionButtons;
     }
 }
-
