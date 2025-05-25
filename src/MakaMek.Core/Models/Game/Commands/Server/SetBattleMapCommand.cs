@@ -12,8 +12,7 @@ public record struct SetBattleMapCommand : IGameCommand
     public DateTime Timestamp { get; set; }
     public string Render(ILocalizationService localizationService, IGame game)
     {
-        var localizedTemplate = localizationService.GetString("Command_SetBattleMap");
-        return string.Format(localizedTemplate);
+        return string.Format(localizationService.GetString("Command_SetBattleMap"));
     }
 
     public required List<HexData> MapData { get; init; }
