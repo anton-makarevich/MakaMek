@@ -18,7 +18,7 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
     public void Execute(GeneratorExecutionContext context)
     {
         // Get our syntax receiver
-        if (context.SyntaxContextReceiver is not SyntaxReceiver receiver)
+        if (context.SyntaxContextReceiver is not SyntaxReceiver)
             return;
 
         // Get the compilation
@@ -52,27 +52,141 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
                 }
                     
                 if (rollModifierSymbol == null)
+                {
+                    // Add diagnostic to help debugging
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        new DiagnosticDescriptor(
+                            "RMGEN001", 
+                            "RollModifier type not found", 
+                            "Could not find RollModifier type in compilation", 
+                            "RollModifierGenerator", 
+                            DiagnosticSeverity.Warning, 
+                            true), 
+                        Location.None));
                     return; // Still couldn't find RollModifier
+                }
             }
         }
 
-        // Get the namespace for RollModifier
-        var rollModifierNamespace = rollModifierSymbol.ContainingNamespace.ToDisplayString();
-            
-        // Find all derived classes
+        // Log the found RollModifier type for debugging
+        context.ReportDiagnostic(Diagnostic.Create(
+            new DiagnosticDescriptor(
+                "RMGEN003", 
+                "RollModifier type found", 
+                "Found RollModifier type: {0}", 
+                "RollModifierGenerator", 
+                DiagnosticSeverity.Info, 
+                true), 
+            Location.None,
+            rollModifierSymbol.ToDisplayString()));
+
+        // Now that we have the RollModifier type, find all derived classes
         var derivedClasses = new List<INamedTypeSymbol>();
-            
-        // Check each class in the receiver's list
-        foreach (var classSymbol in receiver.CandidateClasses)
+        
+        // Scan all syntax trees for class and record declarations
+        foreach (var syntaxTree in compilation.SyntaxTrees)
         {
-            if (InheritsFrom(classSymbol, rollModifierSymbol) && !classSymbol.IsAbstract)
+            var semanticModel = compilation.GetSemanticModel(syntaxTree);
+            
+            // Look for both class and record declarations
+            var typeDeclarations = syntaxTree.GetRoot().DescendantNodes()
+                .Where(n => n is ClassDeclarationSyntax || n is RecordDeclarationSyntax);
+            
+            foreach (var typeDeclaration in typeDeclarations)
             {
-                derivedClasses.Add(classSymbol);
+                BaseTypeSyntax? baseType = null;
+                string typeName = "";
+                
+                if (typeDeclaration is ClassDeclarationSyntax classDecl)
+                {
+                    baseType = classDecl.BaseList?.Types.FirstOrDefault();
+                    typeName = classDecl.Identifier.Text;
+                }
+                else if (typeDeclaration is RecordDeclarationSyntax recordDecl)
+                {
+                    baseType = recordDecl.BaseList?.Types.FirstOrDefault();
+                    typeName = recordDecl.Identifier.Text;
+                }
+                
+                // Skip if no base type
+                if (baseType == null) continue;
+                
+                // Log the type we're checking
+                context.ReportDiagnostic(Diagnostic.Create(
+                    new DiagnosticDescriptor(
+                        "RMGEN006", 
+                        "Checking type", 
+                        "Checking type {0} with base type syntax {1}", 
+                        "RollModifierGenerator", 
+                        DiagnosticSeverity.Info, 
+                        true), 
+                    Location.None,
+                    typeName,
+                    baseType.ToString()));
+                
+                var symbol = semanticModel.GetDeclaredSymbol(typeDeclaration);
+                if (symbol == null) continue;
+                
+                // Convert to INamedTypeSymbol
+                var typeSymbol = symbol as INamedTypeSymbol;
+                if (typeSymbol == null || typeSymbol.IsAbstract) continue;
+                
+                // Check if this type inherits from RollModifier
+                if (InheritsFrom(typeSymbol, rollModifierSymbol))
+                {
+                    derivedClasses.Add(typeSymbol);
+                    
+                    // Log found derived class
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        new DiagnosticDescriptor(
+                            "RMGEN005", 
+                            "Found derived class", 
+                            "Found derived class: {0}", 
+                            "RollModifierGenerator", 
+                            DiagnosticSeverity.Info, 
+                            true), 
+                        Location.None,
+                        typeSymbol.ToDisplayString()));
+                }
             }
+        }
+        
+        // Add diagnostic to help debugging
+        if (derivedClasses.Count == 0)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                new DiagnosticDescriptor(
+                    "RMGEN002", 
+                    "No RollModifier derived types found", 
+                    "Found RollModifier type but no derived types were found in the compilation.", 
+                    "RollModifierGenerator", 
+                    DiagnosticSeverity.Warning, 
+                    true),
+                Location.None));
+            
+            // Generate empty implementation to avoid compilation errors
+            var emptySource = @"
+// <auto-generated/>
+using System;
+using System.Text.Json.Serialization;
+
+namespace Sanet.MakaMek.Core.Services.Transport
+{
+    public partial class RollModifierTypeResolver
+    {
+        static partial void RegisterGeneratedTypes(System.Text.Json.Serialization.Metadata.JsonTypeInfo jsonTypeInfo)
+        {
+            // No derived types found by the source generator
+            // This is a placeholder implementation to avoid compilation errors
+        }
+    }
+}";
+            context.AddSource("RollModifierTypeResolverExtension.g.cs", SourceText.From(emptySource, Encoding.UTF8));
+            return;
         }
             
         // Generate the source code
-        var source = GenerateTypeResolverExtension(rollModifierNamespace, derivedClasses);
+        var source = GenerateTypeResolverExtension(rollModifierSymbol.ContainingNamespace.ToDisplayString(), derivedClasses);
             
         // Add the source code to the compilation
         context.AddSource("RollModifierTypeResolverExtension.g.cs", SourceText.From(source, Encoding.UTF8));
@@ -80,14 +194,35 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
 
     private bool InheritsFrom(INamedTypeSymbol classSymbol, INamedTypeSymbol baseTypeSymbol)
     {
+        // Check if the class directly inherits from the base type
+        if (classSymbol.BaseType != null && 
+            SymbolEqualityComparer.Default.Equals(classSymbol.BaseType, baseTypeSymbol))
+        {
+            return true;
+        }
+        
+        // Check inheritance chain
         var currentSymbol = classSymbol.BaseType;
-            
         while (currentSymbol != null)
         {
             if (SymbolEqualityComparer.Default.Equals(currentSymbol, baseTypeSymbol))
                 return true;
-                
+            
+            // Check if the base type is a constructed generic type
+            if (currentSymbol is { IsGenericType: true })
+            {
+                if (SymbolEqualityComparer.Default.Equals(currentSymbol.ConstructedFrom, baseTypeSymbol))
+                    return true;
+            }
+            
             currentSymbol = currentSymbol.BaseType;
+        }
+        
+        // Check if the class implements the base type as an interface
+        foreach (var interfaceSymbol in classSymbol.AllInterfaces)
+        {
+            if (SymbolEqualityComparer.Default.Equals(interfaceSymbol, baseTypeSymbol))
+                return true;
         }
             
         return false;
@@ -99,7 +234,9 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
             
         sb.AppendLine("// <auto-generated/>");
         sb.AppendLine("using System;");
+        sb.AppendLine("using System.Text.Json;");
         sb.AppendLine("using System.Text.Json.Serialization;");
+        sb.AppendLine("using System.Text.Json.Serialization.Metadata;");
         sb.AppendLine($"using {rollModifierNamespace};");
             
         // Add imports for all namespaces containing derived classes
@@ -127,7 +264,7 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
         sb.AppendLine("        /// Registers all known RollModifier derived types");
         sb.AppendLine("        /// Generated automatically by RollModifierTypeResolverGenerator");
         sb.AppendLine("        /// </summary>");
-        sb.AppendLine("        static partial void RegisterGeneratedTypes(System.Text.Json.Serialization.Metadata.JsonTypeInfo jsonTypeInfo)");
+        sb.AppendLine("        static partial void RegisterGeneratedTypes(JsonTypeInfo jsonTypeInfo)");
         sb.AppendLine("        {");
         sb.AppendLine("            // Add all known derived types generated by the source generator");
             
@@ -136,7 +273,7 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
         {
             string fullClassName = derivedClass.ToDisplayString();
             string className = derivedClass.Name;
-            sb.AppendLine($"            jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof({fullClassName}), nameof({className})));");
+            sb.AppendLine($"            jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new(typeof({fullClassName}), \"{className}\"));");
         }
             
         sb.AppendLine("        }");
@@ -151,21 +288,9 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
     /// </summary>
     private class SyntaxReceiver : ISyntaxContextReceiver
     {
-        public List<INamedTypeSymbol> CandidateClasses { get; } = new List<INamedTypeSymbol>();
-
         public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
         {
-            // Look for classes
-            if (context.Node is not ClassDeclarationSyntax classDeclarationSyntax) return;
-            // Get the semantic model for this class
-            var semanticModel = context.SemanticModel;
-            var classSymbol = semanticModel.GetDeclaredSymbol(classDeclarationSyntax);
-
-            // Add all non-abstract classes that have a base type
-            if (classSymbol is { IsAbstract: false, BaseType: not null })
-            {
-                CandidateClasses.Add(classSymbol);
-            }
+            // This method is no longer used as we're directly scanning for derived classes in Execute
         }
     }
 }
