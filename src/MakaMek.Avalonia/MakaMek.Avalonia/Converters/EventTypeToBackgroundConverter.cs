@@ -3,7 +3,7 @@ using Avalonia.Media;
 using Sanet.MakaMek.Core.Events;
 using System;
 using System.Globalization;
-using Sanet.MakaMek.Avalonia.Utils;
+using Sanet.MakaMek.Avalonia.Services;
 
 namespace Sanet.MakaMek.Avalonia.Converters
 {

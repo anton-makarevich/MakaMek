@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Presentation.UiStates;
 
 namespace Sanet.MakaMek.Avalonia.Utils;
@@ -20,6 +21,7 @@ internal class UnitState : IEquatable<UnitState>
     public int TotalMaxStructure { get; init; }
     public int TotalCurrentStructure { get; init; }
     public IReadOnlyCollection<UiEvent> Events { get; init; } = [];
+    public UnitStatus Status { get; init; }
 
     public bool Equals(UnitState? other)
     {
@@ -35,6 +37,7 @@ internal class UnitState : IEquatable<UnitState>
                TotalCurrentArmor == other.TotalCurrentArmor &&
                TotalMaxStructure == other.TotalMaxStructure &&
                TotalCurrentStructure == other.TotalCurrentStructure &&
+               Status == other.Status &&
                AreEventsEqual(Events, other.Events);
     }
 
@@ -52,6 +55,7 @@ internal class UnitState : IEquatable<UnitState>
             SelectedUnit?.GetHashCode() ?? 0,
             IsWeaponsPhase.GetHashCode(),
             TorsoDirection?.GetHashCode() ?? 0,
+            Status,
             TotalCurrentArmor,
             TotalCurrentStructure
         );

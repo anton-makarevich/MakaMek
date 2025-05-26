@@ -1,13 +1,13 @@
 using System.Globalization;
 using Avalonia.Media;
 using Sanet.MakaMek.Avalonia.Converters;
-using Sanet.MakaMek.Avalonia.Utils;
 using Shouldly;
 using MakaMek.Avalonia.Tests.TestHelpers;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using NSubstitute;
+using Sanet.MakaMek.Avalonia.Services;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
