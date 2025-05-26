@@ -1,6 +1,6 @@
 ﻿using Avalonia;
 
-namespace Sanet.MakaMek.Avalonia.Utils;
+namespace Sanet.MakaMek.Avalonia.Services;
 
 public class AvaloniaResourcesLocator : IAvaloniaResourcesLocator
 {

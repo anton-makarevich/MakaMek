@@ -1,10 +1,10 @@
 using System.Globalization;
 using Avalonia.Media;
 using Sanet.MakaMek.Avalonia.Converters;
-using Sanet.MakaMek.Avalonia.Utils;
 using Sanet.MakaMek.Core.Events;
 using Shouldly;
 using NSubstitute;
+using Sanet.MakaMek.Avalonia.Services;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
@@ -70,7 +70,6 @@ public class EventTypeToBackgroundConverterTests
     public void Convert_StructureDamage_ReturnsMechStructureBrush()
     {
         // Arrange
-        var expectedBrush = new SolidColorBrush(Colors.Orange);
         var resourceBrush = new SolidColorBrush(Colors.DarkOrange);
         _resourcesLocator.TryFindResource("MechStructureBrush").Returns(resourceBrush);
 
@@ -106,7 +105,6 @@ public class EventTypeToBackgroundConverterTests
     public void Convert_OtherEventTypes_ReturnsDestroyedColorBrush(UiEventType eventType)
     {
         // Arrange
-        var expectedBrush = new SolidColorBrush(Colors.Red);
         var resourceBrush = new SolidColorBrush(Colors.DarkRed);
         _resourcesLocator.TryFindResource("DestroyedColor").Returns(resourceBrush);
 

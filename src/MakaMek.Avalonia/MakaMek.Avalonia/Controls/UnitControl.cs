@@ -13,8 +13,11 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls.Shapes;
+using Avalonia.Data.Converters;
 using Avalonia.Interactivity;
 using Avalonia.Media.Immutable;
+using Sanet.MakaMek.Avalonia.Converters;
+using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Avalonia.Utils;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Map;
@@ -216,12 +219,16 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 context.LineTo(new Point(0, crossSize));
             }
 
+            // Get the contrasting foreground converter from resources
+            var contrastingForegroundConverter = _resourcesLocator
+                .TryFindResource("ContrastingForegroundConverter") as ContrastingForegroundConverter;
+
             // Create prone indicator
             var proneIndicator = new Border
             {
                 Width = Width * 0.8,
                 Height = Height * 0.2,
-                Background = new SolidColorBrush(Colors.Orange),
+                Background = new SolidColorBrush(color),
                 CornerRadius = new CornerRadius(4),
                 IsVisible = false,
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -230,7 +237,9 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Child = new TextBlock
                 {
                     Text = "PRONE",
-                    Foreground = new SolidColorBrush(Colors.White),
+                    Foreground = contrastingForegroundConverter != null 
+                        ? contrastingForegroundConverter.Convert(_unit.Owner?.Tint, typeof(IBrush), null, null) as IBrush 
+                        : new SolidColorBrush(Colors.White),
                     FontWeight = FontWeight.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
@@ -259,6 +268,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     TotalCurrentArmor = _unit.TotalCurrentArmor,
                     TotalMaxStructure = _unit.TotalMaxStructure,
                     TotalCurrentStructure = _unit.TotalCurrentStructure,
+                    Status = _unit.Status,
                     Events = _unit.Notifications
                 })
                 .DistinctUntilChanged() 
