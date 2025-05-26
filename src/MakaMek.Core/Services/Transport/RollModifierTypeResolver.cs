@@ -2,8 +2,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 
 namespace Sanet.MakaMek.Core.Services.Transport;
 
@@ -11,7 +9,7 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 /// Custom type resolver for RollModifier and its derived types
 /// Enables proper serialization/deserialization of abstract RollModifier class
 /// </summary>
-public class RollModifierTypeResolver : DefaultJsonTypeInfoResolver
+public partial class RollModifierTypeResolver : DefaultJsonTypeInfoResolver
 {
     public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
     {
@@ -26,17 +24,15 @@ public class RollModifierTypeResolver : DefaultJsonTypeInfoResolver
             UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization
         };
 
-        // Add all known derived types
-        jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(FallingLevelsModifier), nameof(FallingLevelsModifier)));
-        jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(DamagedGyroModifier), nameof(DamagedGyroModifier)));
-        jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(AttackerMovementModifier), nameof(AttackerMovementModifier)));
-        jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(GunneryRollModifier), nameof(GunneryRollModifier)));
-        jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(HeatRollModifier), nameof(HeatRollModifier)));
-        jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(RangeRollModifier), nameof(RangeRollModifier)));
-        jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(SecondaryTargetModifier), nameof(SecondaryTargetModifier)));
-        jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(TargetMovementModifier), nameof(TargetMovementModifier)));
-        jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(TerrainRollModifier), nameof(TerrainRollModifier)));
+        // Call the generated method to register types found by the source generator
+        RegisterGeneratedTypes(jsonTypeInfo);
 
         return jsonTypeInfo;
     }
+    
+    /// <summary>
+    /// Registers additional RollModifier derived types found by the source generator
+    /// This method is implemented by the source generator
+    /// </summary>
+    static partial void RegisterGeneratedTypes(JsonTypeInfo jsonTypeInfo);
 }

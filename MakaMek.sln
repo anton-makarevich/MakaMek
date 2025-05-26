@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakaMek.Presentation", "src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakaMek.Presentation.Tests", "tests\MakaMek.Presentation.Tests\MakaMek.Presentation.Tests.csproj", "{FBA9817A-3235-4A78-BC7B-DC70116947CC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakaMek.SourceGenerators", "src\MakaMek.SourceGenerators\MakaMek.SourceGenerators.csproj", "{2820591E-FE2E-46C7-B8E2-5B8D750901EC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{FBA9817A-3235-4A78-BC7B-DC70116947CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FBA9817A-3235-4A78-BC7B-DC70116947CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FBA9817A-3235-4A78-BC7B-DC70116947CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2820591E-FE2E-46C7-B8E2-5B8D750901EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2820591E-FE2E-46C7-B8E2-5B8D750901EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2820591E-FE2E-46C7-B8E2-5B8D750901EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2820591E-FE2E-46C7-B8E2-5B8D750901EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{55F67370-27C7-4688-9ACD-74C829CA9F2A} = {E9EF5D46-32F6-4656-93DB-04EF916A0619}
