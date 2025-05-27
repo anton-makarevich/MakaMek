@@ -11,6 +11,7 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 /// </summary>
 public partial class RollModifierTypeResolver : DefaultJsonTypeInfoResolver
 {
+    public const string TypeDiscriminatorPropertyName = "$type";
     public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
     {
         var jsonTypeInfo = base.GetTypeInfo(type, options);
@@ -19,7 +20,7 @@ public partial class RollModifierTypeResolver : DefaultJsonTypeInfoResolver
         if (jsonTypeInfo.Type != typeof(RollModifier)) return jsonTypeInfo;
         jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
         {
-            TypeDiscriminatorPropertyName = "$type",
+            TypeDiscriminatorPropertyName = TypeDiscriminatorPropertyName,
             IgnoreUnrecognizedTypeDiscriminators = false,
             UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization
         };
