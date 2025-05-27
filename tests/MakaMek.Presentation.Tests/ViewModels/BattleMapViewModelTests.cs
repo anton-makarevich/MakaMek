@@ -321,7 +321,7 @@ public class BattleMapViewModelTests
         _game.HandleCommand(new JoinGameCommand()
         {
             PlayerId = player.Id,
-            Units = [],
+            Units = [MechFactoryTests.CreateDummyMechData()],
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
             Tint = "#FF0000"
@@ -357,7 +357,7 @@ public class BattleMapViewModelTests
         _game.HandleCommand(new JoinGameCommand()
         {
             PlayerId = player.Id,
-            Units = [],
+            Units = [MechFactoryTests.CreateDummyMechData()],
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
             Tint = "#FF0000"
@@ -1499,7 +1499,7 @@ public class BattleMapViewModelTests
         clientGame.HandleCommand(new JoinGameCommand
         {
             PlayerName = player.Name,
-            Units = [],
+            Units = [MechFactoryTests.CreateDummyMechData()],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId

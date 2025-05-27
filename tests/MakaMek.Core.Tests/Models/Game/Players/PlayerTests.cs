@@ -38,6 +38,7 @@ public class PlayerTests
         player.Tint.ShouldBe(tint);
         player.Status.ShouldBe(PlayerStatus.NotJoined);
         player.Units.ShouldBeEmpty();
+        player.CanAct.ShouldBeFalse();
     }
     
     [Fact]
@@ -81,6 +82,20 @@ public class PlayerTests
         
         // Assert
         unit.Owner.ShouldBe(player);
+    }
+    
+    [Fact]
+    public void AddUnit_ShouldAllowPlayerToAct()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Test Player");
+        var unit = CreateMech();
+        
+        // Act
+        player.AddUnit(unit);
+        
+        // Assert
+        player.CanAct.ShouldBeTrue();
     }
     
     [Fact]

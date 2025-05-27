@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -20,15 +19,17 @@ public class EndState : IUiState
 
     public string ActionLabel => _localizationService.GetString("EndPhase_ActionLabel");
 
-    public bool IsActionRequired => IsActivePlayer;
+    public bool IsActionRequired => IsActivePlayer && CanActivePlayerAct;
 
-    public bool CanExecutePlayerAction => IsActivePlayer;
+    public bool CanExecutePlayerAction => IsActivePlayer && CanActivePlayerAct;
 
     public string PlayerActionLabel => _localizationService.GetString("EndPhase_PlayerActionLabel");
 
     private bool IsActivePlayer => _viewModel.Game?.ActivePlayer != null && 
                                   _viewModel.Game is { } clientGame &&
-                                  clientGame.LocalPlayers.Any(p => p.Id == _viewModel.Game.ActivePlayer.Id);
+                                  clientGame.LocalPlayers.Any(p => p == _viewModel.Game.ActivePlayer.Id);
+
+    private bool CanActivePlayerAct => _viewModel.Game?.CanActivePlayerAct ?? false;
 
     public void HandleUnitSelection(Unit? unit)
     {
@@ -66,7 +67,7 @@ public class EndState : IUiState
             Timestamp = DateTime.UtcNow
         };
 
-        if (_viewModel.Game is ClientGame clientGame)
+        if (_viewModel.Game is { } clientGame)
         {
             clientGame.EndTurn(command);
         }
