@@ -337,7 +337,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(command);
         
         // Check if any critical hits affected the gyro in this attack
-        if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null } && 
+        if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null, } && 
             target is Units.Mechs.Mech mech)
         {
             CheckForGyroHitAndMakePilotingSkillRoll(mech, resolution.HitLocationsData);

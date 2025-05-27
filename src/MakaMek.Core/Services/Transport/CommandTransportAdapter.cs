@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.Transport;
 
 namespace Sanet.MakaMek.Core.Services.Transport;
@@ -15,7 +16,7 @@ public class CommandTransportAdapter
     internal readonly List<ITransportPublisher> TransportPublishers = new();
     private readonly Dictionary<string, Type> _commandTypes;
     private Action<IGameCommand>? _onCommandReceived;
-    private bool _isInitialized = false;
+    private bool _isInitialized;
     
     /// <summary>
     /// Creates a new instance of the CommandTransportAdapter with multiple publishers
@@ -116,7 +117,12 @@ public class CommandTransportAdapter
     /// <returns>JSON representation of the command</returns>
     private string SerializeCommand(IGameCommand command)
     {
-        return JsonSerializer.Serialize(command, command.GetType());
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false,
+            TypeInfoResolver = new RollModifierTypeResolver()
+        };
+        return JsonSerializer.Serialize(command, command.GetType(), options);
     }
     
     /// <summary>
@@ -138,7 +144,13 @@ public class CommandTransportAdapter
         try
         {
             // Ensure the game origin ID and timestamp are set correctly
-            if (JsonSerializer.Deserialize(message.Payload, commandType) is not IGameCommand command)
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                TypeInfoResolver = new RollModifierTypeResolver()
+            };
+            
+            if (JsonSerializer.Deserialize(message.Payload, commandType, options) is not IGameCommand command)
                 throw new InvalidOperationException($"Failed to deserialize command of type {message.MessageType}");
             command.GameOriginId = message.SourceId;
             command.Timestamp = message.Timestamp;
@@ -181,6 +193,8 @@ public class CommandTransportAdapter
             { nameof(ChangePhaseCommand), typeof(ChangePhaseCommand) },
             { nameof(ChangeActivePlayerCommand), typeof(ChangeActivePlayerCommand) },
             { nameof(SetBattleMapCommand), typeof(SetBattleMapCommand) },
+            { nameof(PilotingSkillRollCommand), typeof(PilotingSkillRollCommand) },
+            { nameof(MechFallingCommand), typeof(MechFallingCommand) },
         };
     }
     
