@@ -87,7 +87,7 @@ public abstract class BaseGame : IGame
     }
 
     /// <summary>
-    /// Returns only players who are ready and have at least one alive unit
+    /// Returns only players with at least one alive unit (i.e., those that can act)
     /// </summary>
     public IReadOnlyList<IPlayer> AlivePlayers => _players
         .Where(p => p.CanAct)
