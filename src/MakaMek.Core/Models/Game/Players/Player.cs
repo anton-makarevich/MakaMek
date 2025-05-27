@@ -11,6 +11,8 @@ public class Player(Guid id, string name, string tint = "#ffffff") : IPlayer
     public string Tint { get; } = tint;
     public IReadOnlyList<Unit> Units => _units;
     public IReadOnlyList<Unit> AliveUnits => Units.Where(u => u.Status != UnitStatus.Destroyed).ToList();
+    public bool CanAct => AliveUnits.Count > 0 ;
+
     /// <summary>
     /// Returns only units that are not destroyed
     /// </summary>

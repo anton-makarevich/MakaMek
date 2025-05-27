@@ -9,6 +9,8 @@ public interface IPlayer
     IReadOnlyList<Unit> Units { get; }
     IReadOnlyList<Unit> AliveUnits { get; }
     
+    bool CanAct { get; }
+    
     PlayerStatus Status { get; set; }
     
     string Tint { get; }

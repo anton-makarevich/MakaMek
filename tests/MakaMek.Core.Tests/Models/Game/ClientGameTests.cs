@@ -1268,21 +1268,23 @@ public class ClientGameTests
         var rulesProvider = new ClassicBattletechRulesProvider();
         var clientGame = new ClientGame(
             rulesProvider, 
-            Substitute.For<IMechFactory>(),
+            new MechFactory(rulesProvider,Substitute.For<ILocalizationService>()),
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
             _mapFactory);
-        clientGame.JoinGameWithUnits(localPlayer1,[]);
-        clientGame.JoinGameWithUnits(localPlayer2,[]);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        clientGame.JoinGameWithUnits(localPlayer1,[unitData]);
+        clientGame.JoinGameWithUnits(localPlayer2,[unitData]);
         clientGame.SetBattleMap(battleMap);
         
         // Add the local players to the game
+        
         clientGame.HandleCommand(new JoinGameCommand
         {
             PlayerId = localPlayer1.Id,
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer1.Name,
-            Units = [],
+            Units = [unitData],
             Tint = "#FF0000"
         });
         
@@ -1291,7 +1293,7 @@ public class ClientGameTests
             PlayerId = localPlayer2.Id,
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer2.Name,
-            Units = [],
+            Units = [unitData],
             Tint = "#00FF00"
         });
         

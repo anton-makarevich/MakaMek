@@ -30,7 +30,7 @@ public sealed class ClientGame : BaseGame
         _mapFactory = mapFactory;
     }
 
-    public List<IPlayer> LocalPlayers { get; } = [];
+    public List<Guid> LocalPlayers { get; } = [];
 
     public override void HandleCommand(IGameCommand command)
     {
@@ -52,7 +52,7 @@ public sealed class ClientGame : BaseGame
                 break;
             case JoinGameCommand joinGameCommand:
                 OnPlayerJoined(joinGameCommand);
-                var localPlayer = LocalPlayers.FirstOrDefault(p => p.Id == joinGameCommand.PlayerId);
+                var localPlayer = Players.FirstOrDefault(p => p.Id == joinGameCommand.PlayerId);
                 if (localPlayer != null)
                 {
                     localPlayer.Status = PlayerStatus.Joined;
@@ -75,7 +75,7 @@ public sealed class ClientGame : BaseGame
                 if (phaseCommand.Phase == PhaseNames.End)
                 {
                     _playersEndedTurn.Clear();
-                    ActivePlayer = LocalPlayers.FirstOrDefault();
+                     ActivePlayer = AlivePlayers.FirstOrDefault(p =>p.Id == LocalPlayers.FirstOrDefault());
                 }
                 break;
             case ChangeActivePlayerCommand changeActivePlayerCommand:
@@ -117,13 +117,15 @@ public sealed class ClientGame : BaseGame
                     // Set the next local player who hasn't ended their turn as active
                     ActivePlayer = Players
                         .Where(p => _playersEndedTurn.Contains(p.Id) == false)
-                        .FirstOrDefault(p => LocalPlayers.Any(lp => lp.Id == p.Id));
+                        .FirstOrDefault(p => LocalPlayers.Any(lp => lp == p.Id));
                 }
                 break;
         }
     }
 
-    public bool CanActivePlayerAct => ActivePlayer != null && LocalPlayers.Any(lp => lp.Id == ActivePlayer.Id);
+    public bool CanActivePlayerAct => ActivePlayer != null 
+                                      && LocalPlayers.Contains(ActivePlayer.Id) 
+                                      && ActivePlayer.CanAct;
 
     public void JoinGameWithUnits(IPlayer player, List<UnitData> units)
     {
@@ -136,7 +138,7 @@ public sealed class ClientGame : BaseGame
             Units = units
         };
         player.Status = PlayerStatus.Joining;
-        LocalPlayers.Add(player);
+        LocalPlayers.Add(player.Id);
         if (ValidateCommand(joinCommand))
         {
             CommandPublisher.PublishCommand(joinCommand);
