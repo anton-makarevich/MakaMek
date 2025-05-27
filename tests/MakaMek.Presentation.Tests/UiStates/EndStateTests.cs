@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Commands.Server;
@@ -189,6 +190,63 @@ public class EndStateTests
         result.ShouldBe("End your turn");
     }
     
+    [Fact]
+    public void IsActionRequired_ShouldBeTrue_WhenActivePlayerAndCanAct()
+    {
+        // Arrange
+        SetActivePlayer();
+        
+        // Act & Assert
+        _sut.IsActionRequired.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsActionRequired_ShouldBeFalse_WhenNotActivePlayer()
+    {
+        // Arrange
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(), // Different player
+            UnitsToPlay = 0
+        });
+        
+        // Act & Assert
+        _sut.IsActionRequired.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void IsActionRequired_ShouldBeFalse_WhenActivePlayerCannotAct()
+    {
+        // Arrange
+        SetActivePlayer();
+        
+        // Make the player unable to act by destroying their unit
+        _unit1.ApplyDamage([new HitLocationData(
+            PartLocation.CenterTorso,
+            100,
+            [])]);
+        
+        // Act & Assert
+        _sut.IsActionRequired.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanExecutePlayerAction_ShouldBeFalse_WhenActivePlayerCannotAct()
+    {
+        // Arrange
+        SetActivePlayer();
+        
+        // Make the player unable to act by destroying their unit
+        _unit1.ApplyDamage([new HitLocationData(
+            PartLocation.CenterTorso,
+            100,
+            [])]);
+        
+        // Act & Assert
+        _sut.CanExecutePlayerAction.ShouldBeFalse();
+    }
+    
     private void SetActivePlayer()
     {
         _game.HandleCommand(new ChangeActivePlayerCommand
@@ -204,7 +262,7 @@ public class EndStateTests
         _game.HandleCommand(new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
-            Phase = phase,
+            Phase = phase
         });
     }
 }
