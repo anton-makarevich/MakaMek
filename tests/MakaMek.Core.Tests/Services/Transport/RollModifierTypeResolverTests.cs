@@ -10,17 +10,12 @@ namespace Sanet.MakaMek.Core.Tests.Services.Transport;
 
 public class RollModifierTypeResolverTests
 {
-    private readonly JsonSerializerOptions _options;
-    
-    public RollModifierTypeResolverTests()
+    private readonly JsonSerializerOptions _options = new()
     {
-        _options = new JsonSerializerOptions
-        {
-            TypeInfoResolver = new RollModifierTypeResolver(),
-            WriteIndented = true
-        };
-    }
-    
+        TypeInfoResolver = new RollModifierTypeResolver(),
+        WriteIndented = true
+    };
+
     [Fact]
     public void Should_Have_Polymorphism_Options_Configured()
     {
