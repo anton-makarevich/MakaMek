@@ -1188,7 +1188,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 )
             ]);
         
-        // Destroy the gyro with 2 hits
+        // Remove gyro to simulate no gyro mech (not possible, so maybe we should throw)
         var ct = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
         var gyro = ct.GetComponents<Gyro>().First();
         ct.RemoveComponent(gyro);
