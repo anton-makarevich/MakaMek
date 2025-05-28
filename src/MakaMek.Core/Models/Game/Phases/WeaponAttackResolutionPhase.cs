@@ -6,7 +6,9 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -337,74 +339,99 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(command);
         
         // Check if any critical hits affected the gyro in this attack
-        if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null, } && 
-            target is Units.Mechs.Mech mech)
+        if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null } && 
+            resolution.HitLocationsData.HitLocations.Count != 0)
         {
-            CheckForGyroHitAndMakePilotingSkillRoll(mech, resolution.HitLocationsData);
+            var allComponentHits = GetAllComponentHits(resolution.HitLocationsData);
+            
+            if (allComponentHits.Count != 0)
+            {
+                CheckForGyroHitAndMakePilotingSkillRoll(target, allComponentHits);
+            }
         }
     }
     
     /// <summary>
+    /// Extracts all component hits from hit locations data
+    /// </summary>
+    /// <param name="hitLocationsData">The hit locations data to extract component hits from</param>
+    /// <returns>A list of all component hits across all hit locations</returns>
+    private List<ComponentHitData> GetAllComponentHits(AttackHitLocationsData hitLocationsData)
+    {
+        return hitLocationsData.HitLocations
+            .Where(hl => hl.CriticalHits != null && hl.CriticalHits.Count != 0)
+            .SelectMany(hl => hl.CriticalHits!)
+            .Where(ch => ch.HitComponents is { Length: > 0 })
+            .SelectMany(ch => ch.HitComponents!)
+            .ToList();
+    }
+
+    /// <summary>
     /// Checks if the gyro was hit and makes a piloting skill roll if necessary
     /// </summary>
-    /// <param name="mech">The mech to check for gyro hits</param>
-    /// <param name="hitLocationsData">The hit locations data from the attack</param>
-    private void CheckForGyroHitAndMakePilotingSkillRoll(Units.Mechs.Mech mech, AttackHitLocationsData hitLocationsData)
+    /// <param name="unit">The mech to check for gyro hits</param>
+    /// <param name="componentHits">The component hits from the attack</param>
+    private void CheckForGyroHitAndMakePilotingSkillRoll(Unit unit , List<ComponentHitData> componentHits)
     {
-        // Check if any critical hits from this attack affected the gyro in the center torso
-        var gyroHitInThisAttack = hitLocationsData.HitLocations
-            .Where(hl => hl.Location == PartLocation.CenterTorso)
-            .SelectMany(hl => hl.CriticalHits ?? [])
-            .Where(chd => chd.Location == PartLocation.CenterTorso)
-            .Any(chd => chd.HitComponents != null 
-                        && chd.HitComponents.Any(c=> c.Type==Data.Community.MakaMekComponent.Gyro));
+        // Check if any component hits from this attack affected the gyro
+        var gyroHitInThisAttack = componentHits
+            .Any(c => c.Type == Data.Community.MakaMekComponent.Gyro);
             
         // If no gyro was hit in this attack, no need for a PSR
         if (!gyroHitInThisAttack)
             return;
-            
-        // Get the PSR breakdown for a gyro hit
-        var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
-            mech,
-            [PilotingSkillRollType.GyroHit]);
-            
-        // If there are no modifiers, no need for a PSR as we expect one for Gyro Hit
-        if (psrBreakdown.Modifiers.Count==0)
+        
+        var gyro = unit.GetAllComponents<Gyro>().FirstOrDefault();
+        if (gyro == null)
             return;
         
-        // Roll 2D6 for the piloting skill check
-        var diceResults = Game.DiceRoller.Roll2D6();
-        var rollTotal = diceResults.Sum(d => d.Result);
-        
-        // Check if the roll was successful (roll >= target number)
-        var isSuccessful = rollTotal >= psrBreakdown.ModifiedPilotingSkill;
-        
-        // Create and publish a command for the piloting skill roll
-        var psrCommand = new PilotingSkillRollCommand
+        var isFalling = gyro.IsDestroyed;
+
+        if (!isFalling)
         {
-            GameOriginId = Game.Id,
-            UnitId = mech.Id,
-            RollType = PilotingSkillRollType.GyroHit,
-            DiceResults = diceResults.Select(d => d.Result).ToArray(),
-            IsSuccessful = isSuccessful,
-            PsrBreakdown = psrBreakdown
-        };
-        
-        Game.CommandPublisher.PublishCommand(psrCommand);
-        
+            // Get the PSR breakdown for a gyro hit
+            var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
+                unit,
+                [PilotingSkillRollType.GyroHit]);
+
+            // If there are no modifiers, no need for a PSR as we expect one for Gyro Hit
+            if (psrBreakdown.Modifiers.Count == 0)
+                return;
+
+            // Roll 2D6 for the piloting skill check
+            var diceResults = Game.DiceRoller.Roll2D6();
+            var rollTotal = diceResults.Sum(d => d.Result);
+
+            // Check if the roll was successful (roll >= target number)
+            isFalling = rollTotal < psrBreakdown.ModifiedPilotingSkill;
+
+            // Create and publish a command for the piloting skill roll
+            var psrCommand = new PilotingSkillRollCommand
+            {
+                GameOriginId = Game.Id,
+                UnitId = unit.Id,
+                RollType = PilotingSkillRollType.GyroHit,
+                DiceResults = diceResults.Select(d => d.Result).ToArray(),
+                IsSuccessful = !isFalling,
+                PsrBreakdown = psrBreakdown
+            };
+
+            Game.CommandPublisher.PublishCommand(psrCommand);
+        }
+
         // If the roll failed, the mech falls
-        if (!isSuccessful)
+        if (isFalling && unit is Mech mech)
         {
             // Calculate falling damage
             var fallingDamageCalculator = Game.FallingDamageCalculator;
             // Get the PSR breakdown for pilot damage with level modifiers
             var pilotingSkillCalculator = Game.PilotingSkillCalculator;
             var pilotPsrBreakdown = pilotingSkillCalculator.GetPsrBreakdown(
-                mech,
+                unit,
                 [PilotingSkillRollType.WarriorDamageFromFall],
                 Game.BattleMap);
             var fallingDamageData = fallingDamageCalculator.CalculateFallingDamage(
-                mech,
+                unit,
                 0,
                 false,
                 pilotPsrBreakdown);
@@ -412,14 +439,14 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             // Create and publish the mech falling command
             var mechFallingCommand = new MechFallingCommand
             {
-                UnitId = mech.Id,
+                UnitId = unit.Id,
                 LevelsFallen = 0,
                 WasJumping = false,
                 DamageData = fallingDamageData,
                 GameOriginId = Game.Id
             };
 
-            mech.ApplyDamage(mechFallingCommand.DamageData.HitLocations.HitLocations);
+            unit.ApplyDamage(mechFallingCommand.DamageData.HitLocations.HitLocations);
             mech.SetProne();
             Game.CommandPublisher.PublishCommand(mechFallingCommand);
         }
