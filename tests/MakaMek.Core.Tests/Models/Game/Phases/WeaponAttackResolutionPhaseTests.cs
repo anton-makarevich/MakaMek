@@ -1150,6 +1150,63 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
     
     [Fact]
+    public void Enter_ShouldNotPublishPsrOrMechFallingCommands_WhenNoGyroFound()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        
+        // Setup ToHitCalculator to return a value
+        Game.ToHitCalculator.GetToHitNumber(
+            Arg.Any<Unit>(), 
+            Arg.Any<Unit>(), 
+            Arg.Any<Weapon>(), 
+            Arg.Any<BattleMap>())
+            .Returns(7); // Return a to-hit number of 7
+        
+        // Configure dice rolls to ensure hit on center torso
+        // First roll (8) is for attack (hit)
+        // Second roll (7) is for hit location (center torso)
+        SetupDiceRolls(8, 7);
+        
+        // Setup critical hit calculator to return a gyro hit
+        Game.CriticalHitsCalculator.CalculateCriticalHits(
+                _player1Unit1,
+                Arg.Is<PartLocation>(loc => loc == PartLocation.CenterTorso),
+                Arg.Any<int>())
+            .Returns([
+                new LocationCriticalHitsData(PartLocation.CenterTorso,
+                    7,
+                    1,
+                    [
+                        new ComponentHitData
+                        {
+                            Type = MakaMekComponent.Gyro,
+                            Slot = 3
+                        }
+                    ]
+                )
+            ]);
+        
+        // Destroy the gyro with 2 hits
+        var ct = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var gyro = ct.GetComponents<Gyro>().First();
+        ct.RemoveComponent(gyro);
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify that a MechFallingCommand was published with the correct data
+        CommandPublisher.DidNotReceive().PublishCommand(
+            Arg.Any<MechFallingCommand>());
+        
+        // Verify that NO PilotingSkillRollCommand was published (since gyro is destroyed)
+        CommandPublisher.DidNotReceive().PublishCommand(
+            Arg.Any<PilotingSkillRollCommand>());
+    }
+    
+    [Fact]
     public void Enter_ShouldNotPublishMechFallingCommand_WhenGyroHitPsrSucceeds()
     {
         // Arrange
