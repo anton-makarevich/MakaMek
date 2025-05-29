@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Exceptions;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.Transport;
 
 namespace Sanet.MakaMek.Core.Services.Transport;

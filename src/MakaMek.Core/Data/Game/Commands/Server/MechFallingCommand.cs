@@ -1,4 +1,5 @@
 using System.Text;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Localization;
 
@@ -29,6 +30,23 @@ public record struct MechFallingCommand : IGameCommand
     /// </summary>
     public required FallingDamageData DamageData { get; init; }
 
+    /// <summary>
+    /// Whether a piloting skill roll is required for this fall
+    /// </summary>
+    public bool IsPilotingSkillRollRequired { get; set; }
+    
+    public bool IsPilotTakingDamage { get; set; }
+
+    /// <summary>
+    /// The piloting skill roll data for the fall check
+    /// </summary>
+    public PilotingSkillRollData? FallPilotingSkillRoll { get; set; }
+
+    /// <summary>
+    /// The piloting skill roll data for pilot damage check
+    /// </summary>
+    public PilotingSkillRollData? PilotDamagePilotingSkillRoll { get; set; }
+
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
 
@@ -45,6 +63,13 @@ public record struct MechFallingCommand : IGameCommand
         }
         
         var stringBuilder = new StringBuilder();
+        
+        // If there's a fall PSR, render it first
+        if (IsPilotingSkillRollRequired && FallPilotingSkillRoll !=null)
+        {
+            stringBuilder.AppendLine(FallPilotingSkillRoll.Render(localizationService, game));
+            stringBuilder.AppendLine();
+        }
         
         // Base message about falling
         stringBuilder.Append(string.Format(
@@ -71,9 +96,17 @@ public record struct MechFallingCommand : IGameCommand
             DamageData.HitLocations.TotalDamage));
         
         // Add pilot injury information if applicable
-        if (DamageData.PilotTakesDamage)
+        if (IsPilotTakingDamage)
         {
             stringBuilder.Append(localizationService.GetString("Command_MechFalling_PilotInjury"));
+            
+            // If there's a pilot damage PSR, render it
+            if (PilotDamagePilotingSkillRoll !=null)
+            {
+                stringBuilder.AppendLine();
+                stringBuilder.AppendLine();
+                stringBuilder.Append(PilotDamagePilotingSkillRoll.Render(localizationService, game));
+            }
         }
         
         return stringBuilder.ToString();

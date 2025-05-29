@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
 /// <summary>
 /// Defines the types of events or conditions that can trigger a Piloting Skill Roll (PSR)

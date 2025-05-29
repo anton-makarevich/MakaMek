@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -27,13 +28,11 @@ public class FallingDamageCalculator : IFallingDamageCalculator
     /// <param name="unit">The unit that fell</param>
     /// <param name="levelsFallen">The number of levels the unit fell</param>
     /// <param name="wasJumping">Whether the unit was jumping when it fell</param>
-    /// <param name="psrBreakdown">The piloting skill roll breakdown</param>
     /// <returns>The result of the falling damage calculation</returns>
     public FallingDamageData CalculateFallingDamage(
         Unit unit, 
         int levelsFallen, 
-        bool wasJumping,
-        PsrBreakdown psrBreakdown)
+        bool wasJumping)
     {
         if (unit is not Mech mech)
         {
@@ -85,7 +84,7 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         }
         
         // Add full 5-point groups
-        for (int i = 0; i < fullGroups; i++)
+        for (var i = 0; i < fullGroups; i++)
         {
             hitLocations.Add(DetermineHitLocationData(5));
         }
@@ -101,29 +100,11 @@ public class FallingDamageCalculator : IFallingDamageCalculator
             hitLocations,
             totalDamage
         );
-        
-        
-        var takesDamage = psrBreakdown.IsImpossible;
-        List<DiceResult>? diceRolls = null;
-
-        if (!takesDamage)
-        {
-            // Roll 2D6 for the PSR
-            diceRolls = _diceRoller.Roll2D6();
-
-            // Calculate the roll result
-            var rollResult = diceRolls.Sum(r => r.Result);
-
-            // Pilot takes damage if PSR fails (roll > modified piloting skill)
-            takesDamage = rollResult > psrBreakdown.ModifiedPilotingSkill;
-        }
 
         return new FallingDamageData(
             newFacing,
             hitLocationsData,
-            facingRoll,
-            takesDamage,
-            diceRolls
+            facingRoll
         );
     }
 }

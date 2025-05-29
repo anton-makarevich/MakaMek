@@ -1,14 +1,13 @@
 using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Services.Localization;
 
-namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
 /// <summary>
-/// Command sent when a unit needs to make a piloting skill roll
+/// Data for a piloting skill roll
 /// </summary>
-public record struct PilotingSkillRollCommand : IGameCommand
+public record PilotingSkillRollData
 {
     /// <summary>
     /// The ID of the unit that needs to make the piloting skill roll
@@ -35,14 +34,17 @@ public record struct PilotingSkillRollCommand : IGameCommand
     /// </summary>
     public required PsrBreakdown PsrBreakdown { get; init; }
 
-    public required Guid GameOriginId { get; set; }
-    public DateTime Timestamp { get; set; }
+    /// <summary>
+    /// Renders the piloting skill roll data as a string
+    /// </summary>
+    /// <param name="localizationService">Localization service to get localized strings</param>
+    /// <param name="game">Game instance to get unit and player information</param>
+    /// <returns>Rendered string representation of the piloting skill roll</returns>
     public string Render(ILocalizationService localizationService, IGame game)
     {
-        var command = this;
         var unit = game.Players
             .SelectMany(p => p.Units)
-            .FirstOrDefault(u => u.Id == command.UnitId);
+            .FirstOrDefault(u => u.Id == UnitId);
         
         if (unit == null || unit.Owner == null)
         {

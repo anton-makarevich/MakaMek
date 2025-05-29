@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Data.Game;

@@ -1,8 +1,8 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -383,6 +383,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             return;
         
         var isFalling = gyro.IsDestroyed;
+        PilotingSkillRollData? fallPsr = null;
 
         if (!isFalling)
         {
@@ -402,45 +403,66 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             // Check if the roll was successful (roll >= target number)
             isFalling = rollTotal < psrBreakdown.ModifiedPilotingSkill;
 
-            // Create and publish a command for the piloting skill roll
-            var psrCommand = new PilotingSkillRollCommand
+            // Create PSR data
+            fallPsr = new PilotingSkillRollData
             {
-                GameOriginId = Game.Id,
                 UnitId = unit.Id,
                 RollType = PilotingSkillRollType.GyroHit,
                 DiceResults = diceResults.Select(d => d.Result).ToArray(),
                 IsSuccessful = !isFalling,
                 PsrBreakdown = psrBreakdown
             };
-
-            Game.CommandPublisher.PublishCommand(psrCommand);
         }
 
-        // If the roll failed, the mech falls
+        // If the roll failed or gyro is destroyed, the mech falls
         if (isFalling && unit is Mech mech)
         {
             // Calculate falling damage
             var fallingDamageCalculator = Game.FallingDamageCalculator;
+            
             // Get the PSR breakdown for pilot damage with level modifiers
             var pilotingSkillCalculator = Game.PilotingSkillCalculator;
             var pilotPsrBreakdown = pilotingSkillCalculator.GetPsrBreakdown(
                 unit,
                 [PilotingSkillRollType.WarriorDamageFromFall],
                 Game.BattleMap);
+                
+            PilotingSkillRollData? pilotDamagePsr = null;
+            
+            // Roll for pilot damage if applicable
+            if (pilotPsrBreakdown.Modifiers.Count > 0)
+            {
+                var pilotDiceResults = Game.DiceRoller.Roll2D6();
+                var pilotRollTotal = pilotDiceResults.Sum(d => d.Result);
+                var isPilotDamageSuccessful = pilotRollTotal >= pilotPsrBreakdown.ModifiedPilotingSkill;
+                
+                pilotDamagePsr = new PilotingSkillRollData
+                {
+                    UnitId = unit.Id,
+                    RollType = PilotingSkillRollType.WarriorDamageFromFall,
+                    DiceResults = pilotDiceResults.Select(d => d.Result).ToArray(),
+                    IsSuccessful = isPilotDamageSuccessful,
+                    PsrBreakdown = pilotPsrBreakdown
+                };
+            }
+            
             var fallingDamageData = fallingDamageCalculator.CalculateFallingDamage(
                 unit,
                 0,
-                false,
-                pilotPsrBreakdown);
+                false);
 
-            // Create and publish the mech falling command
+            // Create and publish the combined mech falling command
             var mechFallingCommand = new MechFallingCommand
             {
                 UnitId = unit.Id,
                 LevelsFallen = 0,
                 WasJumping = false,
                 DamageData = fallingDamageData,
-                GameOriginId = Game.Id
+                GameOriginId = Game.Id,
+                IsPilotingSkillRollRequired = fallPsr!=null,
+                IsPilotTakingDamage = !pilotDamagePsr?.IsSuccessful??false,
+                FallPilotingSkillRoll = fallPsr,
+                PilotDamagePilotingSkillRoll = pilotDamagePsr
             };
 
             unit.ApplyDamage(mechFallingCommand.DamageData.HitLocations.HitLocations);

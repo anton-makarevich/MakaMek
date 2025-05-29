@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
 /// <summary>
 /// Detailed breakdown of GATOR modifiers affecting an attack

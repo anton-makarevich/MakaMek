@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Map;
 
-namespace Sanet.MakaMek.Core.Data.Game;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
 /// <summary>
 /// Contains the results of a falling damage calculation
@@ -9,6 +9,4 @@ namespace Sanet.MakaMek.Core.Data.Game;
 public record FallingDamageData(
     HexDirection FacingAfterFall,
     HitLocationsData HitLocations,
-    DiceResult FacingDiceRoll,
-    bool PilotTakesDamage = false,
-    List<DiceResult>? PilotDamageRoll = null);
+    DiceResult FacingDiceRoll);
