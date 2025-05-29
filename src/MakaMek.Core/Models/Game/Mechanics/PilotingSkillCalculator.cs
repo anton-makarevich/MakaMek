@@ -56,7 +56,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
         
         // Add MecWarrior damage from fall modifiers if applicable
-        if (relevantRollTypes.Contains(PilotingSkillRollType.WarriorDamageFromFall))
+        if (relevantRollTypes.Contains(PilotingSkillRollType.PilotDamageFromFall))
         {
             // TODO: Calculate levels fallen if map is provided
             var levelsFallen = 0;

@@ -63,6 +63,7 @@ public class FakeLocalizationServiceTests
     // Piloting Skill Roll Types
     [InlineData("PilotingSkillRollType_GyroHit", "Gyro Hit")]
     [InlineData("PilotingSkillRollType_FallingLevels", "Falling Levels")]
+    [InlineData("PilotingSkillRollType_PilotDamageFromFall", "Pilot Damage From Fall")]
     // Attack modifiers
     [InlineData("AttackDirection_Left", "Left")]
     [InlineData("AttackDirection_Right", "Right")]

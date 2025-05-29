@@ -14,7 +14,7 @@ public enum PilotingSkillRollType
     /// <summary>
     /// PSR for determining if a MechWarrior takes damage when a mech falls.
     /// </summary>
-    WarriorDamageFromFall
+    PilotDamageFromFall
     // Add other PSR types here in the future, e.g.:
     // ActuatorDamage,
     // PilotDamage,

@@ -298,7 +298,7 @@ public class MechFallingCommandTests
         var command = CreatePilotInjuryCommand();
         
         // Setup localization service for PSR rendering
-        _localizationService.GetString("PilotingSkillRollType_WarriorDamageFromFall").Returns("Pilot Damage");
+        _localizationService.GetString("PilotingSkillRollType_PilotDamageFromFall").Returns("Pilot Damage");
         _localizationService.GetString("Command_PilotingSkillRoll_Failure").Returns("PSR for {0} failed");
         _localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill").Returns("Base Piloting Skill: {0}");
         _localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber").Returns("Target Number: {0}");
@@ -313,7 +313,7 @@ public class MechFallingCommandTests
         
         var pilotDamagePsr = new PilotingSkillRollData
         {
-            RollType = PilotingSkillRollType.WarriorDamageFromFall,
+            RollType = PilotingSkillRollType.PilotDamageFromFall,
             DiceResults = [2, 3],
             IsSuccessful = false,
             PsrBreakdown = psrBreakdown

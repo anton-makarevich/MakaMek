@@ -54,9 +54,9 @@ public class FakeLocalizationService: ILocalizationService
             "Command_MechFalling_PilotInjury" => ", pilot was injured",
             
             // Piloting Skill Roll Command
-            "Command_PilotingSkillRoll_Success" => "{0}'s {1} succeeds {2} check",
-            "Command_PilotingSkillRoll_Failure" => "{0}'s {1} fails {2} check",
-            "Command_PilotingSkillRoll_ImpossibleRoll" => "{0}'s {1} automatically fails {2} check (impossible roll)",
+            "Command_PilotingSkillRoll_Success" => "{0}' roll succeeded",
+            "Command_PilotingSkillRoll_Failure" => "{0}' roll failed",
+            "Command_PilotingSkillRoll_ImpossibleRoll" => "{0} roll is impossible",
             "Command_PilotingSkillRoll_BasePilotingSkill" => "Base Piloting Skill: {0}",
             "Command_PilotingSkillRoll_Modifiers" => "Modifiers:",
             "Command_PilotingSkillRoll_Modifier" => "  - {0}: +{1}",
@@ -66,6 +66,7 @@ public class FakeLocalizationService: ILocalizationService
             // Piloting Skill Roll Types
             "PilotingSkillRollType_GyroHit" => "Gyro Hit",
             "PilotingSkillRollType_FallingLevels" => "Falling Levels",
+            "PilotingSkillRollType_PilotDamageFromFall" => "Pilot Damage From Fall",
             
             // Attack direction strings
             "AttackDirection_Left" => "Left",

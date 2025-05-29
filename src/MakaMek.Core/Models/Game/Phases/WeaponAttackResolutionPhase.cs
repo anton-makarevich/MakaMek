@@ -423,7 +423,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var pilotingSkillCalculator = Game.PilotingSkillCalculator;
             var pilotPsrBreakdown = pilotingSkillCalculator.GetPsrBreakdown(
                 unit,
-                [PilotingSkillRollType.WarriorDamageFromFall],
+                [PilotingSkillRollType.PilotDamageFromFall],
                 Game.BattleMap);
                 
             PilotingSkillRollData? pilotDamagePsr = null;
@@ -437,7 +437,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 
                 pilotDamagePsr = new PilotingSkillRollData
                 {
-                    RollType = PilotingSkillRollType.WarriorDamageFromFall,
+                    RollType = PilotingSkillRollType.PilotDamageFromFall,
                     DiceResults = pilotDiceResults.Select(d => d.Result).ToArray(),
                     IsSuccessful = isPilotDamageSuccessful,
                     PsrBreakdown = pilotPsrBreakdown

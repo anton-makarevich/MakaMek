@@ -741,6 +741,18 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Modifiers = [new TestModifier { Value = 3, Name = "Damaged Gyro" }]
             });
         
+        // Setup piloting skill calculator for pilot damage
+        Game.PilotingSkillCalculator.GetPsrBreakdown(
+                Arg.Any<Unit>(),
+                Arg.Is<IEnumerable<PilotingSkillRollType>>(
+                    types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+                Arg.Any<BattleMap>())
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = [new TestModifier { Value = 3, Name = "Pilot taking damage" }]
+            });
+        
         // Setup dice roller to return a failed PSR roll (less than 7)
         DiceRoller.Roll2D6().Returns(
             // First roll for attack
@@ -791,6 +803,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.LevelsFallen == 0 &&
                 cmd.WasJumping == false &&
                 cmd.DamageData == fallingDamageData &&
+                cmd.IsPilotTakingDamage == true &&
+                cmd.FallPilotingSkillRoll != null &&
+                cmd.PilotDamagePilotingSkillRoll !=null &&
                 cmd.IsPilotingSkillRollRequired == true));
     }
     
@@ -845,6 +860,18 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Modifiers = [new TestModifier { Value = 3, Name = "Damaged Gyro" }]
             });
         
+        // Setup piloting skill calculator for pilot damage
+        Game.PilotingSkillCalculator.GetPsrBreakdown(
+                Arg.Any<Unit>(),
+                Arg.Is<IEnumerable<PilotingSkillRollType>>(
+                    types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+                Arg.Any<BattleMap>())
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = [new TestModifier { Value = 3, Name = "Pilot taking damage" }]
+            });
+        
         // Setup dice roller to return a failed PSR roll (less than 7)
         DiceRoller.Roll2D6().Returns(
             // First roll for attack
@@ -890,7 +917,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         Game.PilotingSkillCalculator.Received().GetPsrBreakdown(
             Arg.Any<Unit>(),
             Arg.Is<IEnumerable<PilotingSkillRollType>>(
-                types => types.Contains(PilotingSkillRollType.WarriorDamageFromFall)),
+                types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
             Arg.Any<BattleMap>());
     }
     
@@ -932,6 +959,18 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     ]
                 )
             ]);
+        
+        // Setup piloting skill calculator for pilot damage
+        Game.PilotingSkillCalculator.GetPsrBreakdown(
+                Arg.Any<Unit>(),
+                Arg.Is<IEnumerable<PilotingSkillRollType>>(
+                    types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+                Arg.Any<BattleMap>())
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = [new TestModifier { Value = 3, Name = "Pilot taking damage" }]
+            });
         
         // Destroy the gyro with 2 hits
         var gyro = _player1Unit1.GetAllComponents<Gyro>().First();
@@ -1158,12 +1197,12 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         Game.PilotingSkillCalculator.GetPsrBreakdown(
             Arg.Any<Unit>(),
             Arg.Is<IEnumerable<PilotingSkillRollType>>(
-                types => types.Contains(PilotingSkillRollType.WarriorDamageFromFall)),
+                types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
             Arg.Any<BattleMap>())
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
-                Modifiers = []
+                Modifiers = [new TestModifier { Value = 3, Name = "Pilot Damage" }]
             });
         
         // Setup dice roller to return a failed PSR roll for both checks

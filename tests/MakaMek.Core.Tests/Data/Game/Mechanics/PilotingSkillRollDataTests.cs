@@ -15,9 +15,9 @@ public class PilotingSkillRollDataTests
 
         // Setup localization service
         _localizationService.GetString("PilotingSkillRollType_GyroHit").Returns("Gyro Hit");
-        _localizationService.GetString("Command_PilotingSkillRoll_Success").Returns("{0}' roll succeeded");
-        _localizationService.GetString("Command_PilotingSkillRoll_Failure").Returns("{0}' roll failed");
-        _localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll").Returns("{0}' roll is impossible");
+        _localizationService.GetString("Command_PilotingSkillRoll_Success").Returns("{0} roll succeeded");
+        _localizationService.GetString("Command_PilotingSkillRoll_Failure").Returns("{0} roll failed");
+        _localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll").Returns("{0} roll is impossible");
         _localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill")
             .Returns("Base Piloting Skill: {0}");
         _localizationService.GetString("Command_PilotingSkillRoll_Modifiers").Returns("Modifiers:");
