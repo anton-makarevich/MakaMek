@@ -1,13 +1,10 @@
 using NSubstitute;
-using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Models.Units;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
@@ -53,50 +50,15 @@ public class FallingDamageCalculatorTests
        return new Mech("Test", "TST-1A", tonnage, 4, CreateBasicPartsData());
     }
 
-    // Test modifier implementation for RollModifier
-    private record TestModifier : RollModifier
-    {
-        public required string Name { get; init; }
-        
-        public override string Render(ILocalizationService localizationService)
-        {
-            return Name;
-        }
-    }
-
-    private PsrBreakdown CreatePsrBreakdown(int basePilotingSkill, int modifierTotal = 0, bool impossible = false)
-    {
-        var modifiers = new List<RollModifier>();
-        
-        if (modifierTotal != 0)
-        {
-            modifiers.Add(new TestModifier { Name = "Test Modifier", Value = modifierTotal });
-        }
-        
-        // If we want an impossible roll, make sure the total is at least 13
-        if (impossible && basePilotingSkill + modifierTotal < PsrBreakdown.ImpossibleRoll)
-        {
-            int additionalModifier = PsrBreakdown.ImpossibleRoll - (basePilotingSkill + modifierTotal);
-            modifiers.Add(new TestModifier { Name = "Impossible Modifier", Value = additionalModifier });
-        }
-        
-        return new PsrBreakdown
-        {
-            BasePilotingSkill = basePilotingSkill,
-            Modifiers = modifiers
-        };
-    }
-
     [Fact]
     public void CalculateFallingDamage_WhenUnitIsNotMech_ThrowsArgumentException()
     {
         // Arrange
         var unit = new UnitTests.TestUnit("test", "unit", 20, 4, []);
-        var psrBreakdown = CreatePsrBreakdown(4);
 
         // Act & Assert
         Should.Throw<ArgumentException>(() => 
-            _sut.CalculateFallingDamage(unit, 1, false, psrBreakdown))
+            _sut.CalculateFallingDamage(unit, 1, false))
             .Message.ShouldContain("Only mechs can take falling damage");
     }
 
@@ -106,11 +68,10 @@ public class FallingDamageCalculatorTests
         // Arrange
         var mech = CreateTestMech(20);
         // Don't deploy the mech
-        var psrBreakdown = CreatePsrBreakdown(4);
 
         // Act & Assert
         Should.Throw<ArgumentException>(() => 
-            _sut.CalculateFallingDamage(mech, 1, false, psrBreakdown))
+            _sut.CalculateFallingDamage(mech, 1, false))
             .Message.ShouldContain("Mech must be deployed");
     }
 
@@ -127,8 +88,6 @@ public class FallingDamageCalculatorTests
         var mech = CreateTestMech(50);
         mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
         
-        var psrBreakdown = CreatePsrBreakdown(4);
-        
         // Setup dice roller for facing roll
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
         
@@ -139,7 +98,7 @@ public class FallingDamageCalculatorTests
         );
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, levelsFallen, wasJumping, psrBreakdown);
+        var result = _sut.CalculateFallingDamage(mech, levelsFallen, wasJumping);
         
         // Assert
         result.HitLocations.TotalDamage.ShouldBe(expectedDamage);
@@ -151,7 +110,6 @@ public class FallingDamageCalculatorTests
         // Arrange
         var mech = CreateTestMech(50);
         mech.Deploy(new HexPosition(1,1, HexDirection.Top));
-        var psrBreakdown = CreatePsrBreakdown(4);
         const int levelsFallen = 2; // 15 damage for a 50 ton mech (50/10 * (2+1)
         
         // Setup dice roller for facing roll
@@ -166,7 +124,7 @@ public class FallingDamageCalculatorTests
         );
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, levelsFallen, false, psrBreakdown);
+        var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
         
         // Assert
         result.HitLocations.TotalDamage.ShouldBe(15);
@@ -189,7 +147,6 @@ public class FallingDamageCalculatorTests
         // Arrange
         var mech = CreateTestMech(40);
         mech.Deploy(new HexPosition(1,1, HexDirection.Top));
-        var psrBreakdown = CreatePsrBreakdown(4);
         const int levelsFallen = 1; // 8 damage for a 40 ton mech
         
         // Setup dice roller for facing roll
@@ -203,7 +160,7 @@ public class FallingDamageCalculatorTests
         );
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, levelsFallen, false, psrBreakdown);
+        var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
         
         // Assert
         result.HitLocations.TotalDamage.ShouldBe(8);
@@ -225,7 +182,6 @@ public class FallingDamageCalculatorTests
         var mech = CreateTestMech(35);
         mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
         
-        var psrBreakdown = CreatePsrBreakdown(4);
         const int levelsFallen = 1; // 8 damage for a 35 ton mech
         
         // Setup dice roller for facing roll
@@ -239,7 +195,7 @@ public class FallingDamageCalculatorTests
         );
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, levelsFallen, false, psrBreakdown);
+        var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
         
         // Assert
         result.HitLocations.TotalDamage.ShouldBe(8);
@@ -259,7 +215,6 @@ public class FallingDamageCalculatorTests
         // Arrange
         var mech = CreateTestMech(20);
         mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
-        var psrBreakdown = CreatePsrBreakdown(4);
         
         // Setup dice roller for facing roll
         _mockDiceRoller.RollD6().Returns(new DiceResult(3));
@@ -271,65 +226,10 @@ public class FallingDamageCalculatorTests
         );
         
         // Act
-        var result = _sut.CalculateFallingDamage(mech, 0, false, psrBreakdown);
+        var result = _sut.CalculateFallingDamage(mech, 0, false);
         
         // Assert
         result.FacingAfterFall.ShouldBe(HexDirection.BottomRight);
         result.FacingDiceRoll.Result.ShouldBe(3);
-    }
-
-    [Theory]
-    [InlineData(4, true)] // Roll of 5 > skill of 4, pilot takes damage
-    [InlineData(6, false)] // Roll of 5 < skill of 6, pilot doesn't take damage
-    [InlineData(5, false)] // Roll of 5 = skill of 5, pilot doesn't take damage
-    public void CalculateFallingDamage_DeterminesPilotDamageCorrectly(int pilotingSkill, bool expectPilotDamage)
-    {
-        // Arrange
-        const int rollResult = 5; 
-        var mech = CreateTestMech(20);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
-        var psrBreakdown = CreatePsrBreakdown(pilotingSkill);
-        
-        // Setup dice roller for facing roll
-        _mockDiceRoller.RollD6().Returns(new DiceResult(1));
-        
-        // Setup dice roller for hit locations and PSR
-        _mockDiceRoller.Roll2D6().Returns(
-            [new DiceResult(3), new DiceResult(3)], // Hit location roll
-            [new DiceResult(2), new DiceResult(3)]  // PSR roll with sum of 5
-        );
-        
-        // Act
-        var result = _sut.CalculateFallingDamage(mech, 0, false, psrBreakdown);
-        
-        // Assert
-        result.PilotTakesDamage.ShouldBe(expectPilotDamage);
-        result.PilotDamageRoll.ShouldNotBeNull();
-        result.PilotDamageRoll.Count.ShouldBe(2);
-        result.PilotDamageRoll.Sum(r => r.Result).ShouldBe(rollResult);
-    }
-
-    [Fact]
-    public void CalculateFallingDamage_WhenPsrIsImpossible_PilotAutomaticallyTakesDamage()
-    {
-        // Arrange
-        var mech = CreateTestMech(20);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
-        var psrBreakdown = CreatePsrBreakdown(4, 0, true); // Make it impossible
-        
-        // Setup dice roller for facing roll
-        _mockDiceRoller.RollD6().Returns(new DiceResult(1));
-        
-        // Setup dice roller for hit locations (no PSR roll needed)
-        _mockDiceRoller.Roll2D6().Returns(
-            [new DiceResult(3), new DiceResult(3)] // Hit location roll
-        );
-        
-        // Act
-        var result = _sut.CalculateFallingDamage(mech, 0, false, psrBreakdown);
-        
-        // Assert
-        result.PilotTakesDamage.ShouldBe(true);
-        result.PilotDamageRoll.ShouldBeNull(); // No roll was made
     }
 }

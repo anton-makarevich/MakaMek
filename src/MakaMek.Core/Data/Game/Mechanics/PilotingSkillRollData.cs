@@ -1,5 +1,4 @@
 using System.Text;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -9,11 +8,6 @@ namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 /// </summary>
 public record PilotingSkillRollData
 {
-    /// <summary>
-    /// The ID of the unit that needs to make the piloting skill roll
-    /// </summary>
-    public required Guid UnitId { get; init; }
-    
     /// <summary>
     /// The type of piloting skill roll to make
     /// </summary>
@@ -38,20 +32,9 @@ public record PilotingSkillRollData
     /// Renders the piloting skill roll data as a string
     /// </summary>
     /// <param name="localizationService">Localization service to get localized strings</param>
-    /// <param name="game">Game instance to get unit and player information</param>
     /// <returns>Rendered string representation of the piloting skill roll</returns>
-    public string Render(ILocalizationService localizationService, IGame game)
+    public string Render(ILocalizationService localizationService)
     {
-        var unit = game.Players
-            .SelectMany(p => p.Units)
-            .FirstOrDefault(u => u.Id == UnitId);
-        
-        if (unit == null || unit.Owner == null)
-        {
-            return string.Empty;
-        }
-
-        var player = unit.Owner;
         var rollTotal = DiceResults.Sum();
         var stringBuilder = new StringBuilder();
 
@@ -64,28 +47,19 @@ public record PilotingSkillRollData
         {
             // Impossible roll case (auto-fail)
             var impossibleTemplate = localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll");
-            stringBuilder.AppendLine(string.Format(impossibleTemplate,
-                player.Name,
-                unit.Name,
-                rollTypeName));
+            stringBuilder.AppendLine(string.Format(impossibleTemplate, rollTypeName));
         }
         else if (IsSuccessful)
         {
             // Success case
             var successTemplate = localizationService.GetString("Command_PilotingSkillRoll_Success");
-            stringBuilder.AppendLine(string.Format(successTemplate,
-                player.Name,
-                unit.Name,
-                rollTypeName));
+            stringBuilder.AppendLine(string.Format(successTemplate, rollTypeName));
         }
         else
         {
             // Failure case
             var failureTemplate = localizationService.GetString("Command_PilotingSkillRoll_Failure");
-            stringBuilder.AppendLine(string.Format(failureTemplate,
-                player.Name,
-                unit.Name,
-                rollTypeName));
+            stringBuilder.AppendLine(string.Format(failureTemplate, rollTypeName));
         }
 
         // Add breakdown of modifiers

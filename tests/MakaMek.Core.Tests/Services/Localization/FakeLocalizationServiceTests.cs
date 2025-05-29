@@ -52,9 +52,9 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_MechFalling_Damage", " and took {0} damage")]
     [InlineData("Command_MechFalling_PilotInjury", ", pilot was injured")]
     // Piloting Skill Roll Command
-    [InlineData("Command_PilotingSkillRoll_Success", "{0}'s {1} succeeds {2} check")]
-    [InlineData("Command_PilotingSkillRoll_Failure", "{0}'s {1} fails {2} check")]
-    [InlineData("Command_PilotingSkillRoll_ImpossibleRoll", "{0}'s {1} automatically fails {2} check (impossible roll)")]
+    [InlineData("Command_PilotingSkillRoll_Success", "{0}' roll succeeded")]
+    [InlineData("Command_PilotingSkillRoll_Failure", "{0}' roll failed")]
+    [InlineData("Command_PilotingSkillRoll_ImpossibleRoll", "{0} roll is impossible")]
     [InlineData("Command_PilotingSkillRoll_BasePilotingSkill", "Base Piloting Skill: {0}")]
     [InlineData("Command_PilotingSkillRoll_Modifiers", "Modifiers:")]
     [InlineData("Command_PilotingSkillRoll_Modifier", "  - {0}: +{1}")]

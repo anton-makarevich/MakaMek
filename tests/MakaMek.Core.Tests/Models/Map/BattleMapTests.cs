@@ -1,5 +1,4 @@
 using Shouldly;
-using NSubstitute;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;

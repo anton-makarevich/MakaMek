@@ -406,7 +406,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             // Create PSR data
             fallPsr = new PilotingSkillRollData
             {
-                UnitId = unit.Id,
                 RollType = PilotingSkillRollType.GyroHit,
                 DiceResults = diceResults.Select(d => d.Result).ToArray(),
                 IsSuccessful = !isFalling,
@@ -438,7 +437,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 
                 pilotDamagePsr = new PilotingSkillRollData
                 {
-                    UnitId = unit.Id,
                     RollType = PilotingSkillRollType.WarriorDamageFromFall,
                     DiceResults = pilotDiceResults.Select(d => d.Result).ToArray(),
                     IsSuccessful = isPilotDamageSuccessful,
