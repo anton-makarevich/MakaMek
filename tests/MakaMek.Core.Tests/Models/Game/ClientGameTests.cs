@@ -1568,8 +1568,7 @@ public class ClientGameTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(4),
-            true);
+            new DiceResult(4));
         
         // Create the mech falling command
         var mechFallingCommand = new MechFallingCommand
@@ -1620,8 +1619,7 @@ public class ClientGameTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(4),
-            true);
+            new DiceResult(4));
         
         // Create the mech falling command
         var mechFallingCommand = new MechFallingCommand

@@ -107,9 +107,7 @@ public class MechFallingCommandTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(1),
-            true,
-            [new DiceResult(6)]);
+            new DiceResult(1));
 
         return new MechFallingCommand
         {
@@ -118,6 +116,7 @@ public class MechFallingCommandTests
             LevelsFallen = 0,
             WasJumping = false,
             DamageData = fallingDamageData,
+            IsPilotTakingDamage = true,
             Timestamp = DateTime.UtcNow
         };
     }
@@ -137,9 +136,7 @@ public class MechFallingCommandTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(1),
-            true,
-            [new DiceResult(6)]);
+            new DiceResult(1));
 
         return new MechFallingCommand
         {
@@ -148,6 +145,7 @@ public class MechFallingCommandTests
             LevelsFallen = 2,
             WasJumping = true,
             DamageData = fallingDamageData,
+            IsPilotTakingDamage = true,
             Timestamp = DateTime.UtcNow
         };
     }
@@ -247,5 +245,92 @@ public class MechFallingCommandTests
 
         // Assert
         result.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void Render_ShouldIncludePilotingSkillRollData_WhenProvided()
+    {
+        // Arrange
+        var command = CreateBasicFallingCommand();
+        
+        // Setup localization service for PSR rendering
+        _localizationService.GetString("PilotingSkillRollType_GyroHit").Returns("Gyro Hit");
+        _localizationService.GetString("Command_PilotingSkillRoll_Success").Returns("PSR for {0} succeeded");
+        _localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill").Returns("Base Piloting Skill: {0}");
+        _localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber").Returns("Target Number: {0}");
+        _localizationService.GetString("Command_PilotingSkillRoll_RollResult").Returns("Roll Result: {0}");
+        
+        // Create PSR data
+        var psrBreakdown = new PsrBreakdown
+        {
+            BasePilotingSkill = 4,
+            Modifiers = []
+        };
+        
+        var fallPsr = new PilotingSkillRollData
+        {
+            RollType = PilotingSkillRollType.GyroHit,
+            DiceResults = [4, 3],
+            IsSuccessful = true,
+            PsrBreakdown = psrBreakdown
+        };
+        
+        command = command with 
+        { 
+            IsPilotingSkillRollRequired = true,
+            FallPilotingSkillRoll = fallPsr
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("PSR for Gyro Hit succeeded");
+        result.ShouldContain("Base Piloting Skill: 4");
+        result.ShouldContain("Locust LCT-1V fell");
+    }
+    
+    [Fact]
+    public void Render_ShouldIncludePilotDamagePsr_WhenProvided()
+    {
+        // Arrange
+        var command = CreatePilotInjuryCommand();
+        
+        // Setup localization service for PSR rendering
+        _localizationService.GetString("PilotingSkillRollType_WarriorDamageFromFall").Returns("Pilot Damage");
+        _localizationService.GetString("Command_PilotingSkillRoll_Failure").Returns("PSR for {0} failed");
+        _localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill").Returns("Base Piloting Skill: {0}");
+        _localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber").Returns("Target Number: {0}");
+        _localizationService.GetString("Command_PilotingSkillRoll_RollResult").Returns("Roll Result: {0}");
+        
+        // Create PSR data
+        var psrBreakdown = new PsrBreakdown
+        {
+            BasePilotingSkill = 4,
+            Modifiers = []
+        };
+        
+        var pilotDamagePsr = new PilotingSkillRollData
+        {
+            RollType = PilotingSkillRollType.WarriorDamageFromFall,
+            DiceResults = [2, 3],
+            IsSuccessful = false,
+            PsrBreakdown = psrBreakdown
+        };
+        
+        command = command with 
+        { 
+            PilotDamagePilotingSkillRoll = pilotDamagePsr
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("Locust LCT-1V fell");
+        result.ShouldContain("pilot was injured");
+        result.ShouldContain("PSR for Pilot Damage failed");
     }
 }
