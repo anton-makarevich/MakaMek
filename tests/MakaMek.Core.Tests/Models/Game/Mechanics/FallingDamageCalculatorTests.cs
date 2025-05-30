@@ -93,8 +93,7 @@ public class FallingDamageCalculatorTests
         
         // Setup dice roller for hit locations
         _mockDiceRoller.Roll2D6().Returns(
-            [new DiceResult(3), new DiceResult(3)], // First hit location roll
-            [new DiceResult(4), new DiceResult(4)]  // PSR roll
+            [new DiceResult(3), new DiceResult(3)] // First hit location roll
         );
         
         // Act
@@ -119,8 +118,7 @@ public class FallingDamageCalculatorTests
         _mockDiceRoller.Roll2D6().Returns(
             [new DiceResult(3), new DiceResult(4)], // First hit location roll, 7 CT
             [new DiceResult(4), new DiceResult(4)], // Second hit location roll, 8 LT
-            [new DiceResult(5), new DiceResult(5)], // Third hit location roll, 10 LA
-            [new DiceResult(2), new DiceResult(3)]  // PSR roll
+            [new DiceResult(5), new DiceResult(5)] // Third hit location roll, 10 LA
         );
         
         // Act
@@ -155,8 +153,7 @@ public class FallingDamageCalculatorTests
         // Setup dice roller for hit locations (2 groups: 5 damage and 3 damage)
         _mockDiceRoller.Roll2D6().Returns(
             [new DiceResult(3), new DiceResult(4)], // First hit location roll
-            [new DiceResult(4), new DiceResult(4)], // Second hit location roll
-            [new DiceResult(2), new DiceResult(3)]  // PSR roll
+            [new DiceResult(4), new DiceResult(4)] // Second hit location roll
         );
         
         // Act
@@ -190,8 +187,7 @@ public class FallingDamageCalculatorTests
         // Setup dice roller for hit locations (1 group of 5 damage, 1 group of 3 damage)
         _mockDiceRoller.Roll2D6().Returns(
             [new DiceResult(3), new DiceResult(4)], // First hit location roll
-            [new DiceResult(4), new DiceResult(4)], // Second hit location roll
-            [new DiceResult(2), new DiceResult(3)]  // PSR roll
+            [new DiceResult(4), new DiceResult(4)] // Second hit location roll
         );
         
         // Act
@@ -221,8 +217,7 @@ public class FallingDamageCalculatorTests
         
         // Setup dice roller for hit locations
         _mockDiceRoller.Roll2D6().Returns(
-            [new DiceResult(3), new DiceResult(3)], // Hit location roll
-            [new DiceResult(2), new DiceResult(3)]  // PSR roll
+            [new DiceResult(3), new DiceResult(3)] // Hit location roll
         );
         
         // Act
