@@ -116,7 +116,17 @@ public class MechFallingCommandTests
             LevelsFallen = 0,
             WasJumping = false,
             DamageData = fallingDamageData,
-            IsPilotTakingDamage = true,
+            PilotDamagePilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.PilotDamageFromFall,
+                DiceResults = [],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 1,
+                    Modifiers = []
+                }
+            },
             Timestamp = DateTime.UtcNow
         };
     }
@@ -145,7 +155,17 @@ public class MechFallingCommandTests
             LevelsFallen = 2,
             WasJumping = true,
             DamageData = fallingDamageData,
-            IsPilotTakingDamage = true,
+            PilotDamagePilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.PilotDamageFromFall,
+                DiceResults = [],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 1,
+                    Modifiers = []
+                }
+            },
             Timestamp = DateTime.UtcNow
         };
     }
@@ -277,7 +297,6 @@ public class MechFallingCommandTests
         
         command = command with 
         { 
-            IsPilotingSkillRollRequired = true,
             FallPilotingSkillRoll = fallPsr
         };
 

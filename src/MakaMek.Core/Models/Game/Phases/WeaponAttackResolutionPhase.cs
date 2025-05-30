@@ -457,8 +457,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 WasJumping = false,
                 DamageData = fallingDamageData,
                 GameOriginId = Game.Id,
-                IsPilotingSkillRollRequired = fallPsr!=null,
-                IsPilotTakingDamage = !pilotDamagePsr?.IsSuccessful??false,
                 FallPilotingSkillRoll = fallPsr,
                 PilotDamagePilotingSkillRoll = pilotDamagePsr
             };

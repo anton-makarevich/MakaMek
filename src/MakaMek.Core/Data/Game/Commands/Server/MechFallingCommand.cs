@@ -33,9 +33,12 @@ public record struct MechFallingCommand : IGameCommand
     /// <summary>
     /// Whether a piloting skill roll is required for this fall
     /// </summary>
-    public bool IsPilotingSkillRollRequired { get; set; }
+    public bool IsPilotingSkillRollRequired => FallPilotingSkillRoll != null;
     
-    public bool IsPilotTakingDamage { get; set; }
+    /// <summary>
+    /// Whether the pilot is taking damage from the fall
+    /// </summary>
+    public bool IsPilotTakingDamage => PilotDamagePilotingSkillRoll != null;
 
     /// <summary>
     /// The piloting skill roll data for the fall check
@@ -65,7 +68,7 @@ public record struct MechFallingCommand : IGameCommand
         var stringBuilder = new StringBuilder();
         
         // If there's a fall PSR, render it first
-        if (IsPilotingSkillRollRequired && FallPilotingSkillRoll !=null)
+        if (IsPilotingSkillRollRequired && FallPilotingSkillRoll != null)
         {
             stringBuilder.AppendLine(FallPilotingSkillRoll.Render(localizationService));
             stringBuilder.AppendLine();
