@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 using Sanet.MakaMek.Core.Models.Units;
@@ -119,7 +120,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             var mech = new Mech("Test", "TST-1A", 50, 4, []);
             
             // Act
-            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.WarriorDamageFromFall]);
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.PilotDamageFromFall]);
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
@@ -146,7 +147,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             // Act - request both GyroHit and WarriorDamageFromFall modifiers
             var result = _sut.GetPsrBreakdown(
                 mech, 
-                [PilotingSkillRollType.GyroHit, PilotingSkillRollType.WarriorDamageFromFall]
+                [PilotingSkillRollType.GyroHit, PilotingSkillRollType.PilotDamageFromFall]
             );
 
             // Assert
@@ -182,7 +183,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
             // Act - only request WarriorDamageFromFall, not GyroHit
-            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.WarriorDamageFromFall]);
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.PilotDamageFromFall]);
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);

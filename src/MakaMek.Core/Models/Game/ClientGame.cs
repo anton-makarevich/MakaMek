@@ -1,9 +1,9 @@
-using Sanet.MakaMek.Core.Models.Game.Commands;
-using Sanet.MakaMek.Core.Models.Game.Commands.Client;
-using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
+using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Players;

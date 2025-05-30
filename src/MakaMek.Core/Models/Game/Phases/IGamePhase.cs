@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Models.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 

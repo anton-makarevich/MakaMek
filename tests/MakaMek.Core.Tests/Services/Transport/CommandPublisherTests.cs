@@ -1,6 +1,6 @@
 using NSubstitute;
-using Sanet.MakaMek.Core.Models.Game.Commands;
-using Sanet.MakaMek.Core.Models.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
 using Shouldly;

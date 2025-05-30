@@ -1,12 +1,13 @@
 using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Commands;
-using Sanet.MakaMek.Core.Models.Game.Commands.Client;
-using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -1567,8 +1568,7 @@ public class ClientGameTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(4),
-            true);
+            new DiceResult(4));
         
         // Create the mech falling command
         var mechFallingCommand = new MechFallingCommand
@@ -1619,8 +1619,7 @@ public class ClientGameTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(4),
-            true);
+            new DiceResult(4));
         
         // Create the mech falling command
         var mechFallingCommand = new MechFallingCommand

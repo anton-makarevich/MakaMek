@@ -1,12 +1,12 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Exceptions;
-using Sanet.MakaMek.Core.Models.Game.Commands;
-using Sanet.MakaMek.Core.Models.Game.Commands.Client;
-using Sanet.MakaMek.Core.Models.Game.Commands.Server;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
 using Shouldly;
 using System.Text.Json;
+using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
 namespace Sanet.MakaMek.Core.Tests.Services.Transport;
 
