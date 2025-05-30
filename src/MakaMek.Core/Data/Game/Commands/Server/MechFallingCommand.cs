@@ -71,7 +71,6 @@ public record struct MechFallingCommand : IGameCommand
         if (IsPilotingSkillRollRequired && FallPilotingSkillRoll != null)
         {
             stringBuilder.AppendLine(FallPilotingSkillRoll.Render(localizationService));
-            stringBuilder.AppendLine();
         }
         
         // Base message about falling
@@ -104,8 +103,6 @@ public record struct MechFallingCommand : IGameCommand
             
         // If there's a pilot damage PSR, render it
         if (PilotDamagePilotingSkillRoll == null) return stringBuilder.ToString();
-        stringBuilder.AppendLine();
-        stringBuilder.AppendLine();
         stringBuilder.Append(PilotDamagePilotingSkillRoll.Render(localizationService));
 
         return stringBuilder.ToString();
