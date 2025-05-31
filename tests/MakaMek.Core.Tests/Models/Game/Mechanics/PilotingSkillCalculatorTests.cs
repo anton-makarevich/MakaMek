@@ -15,7 +15,6 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
         private readonly IRulesProvider _mockRulesProvider;
         private readonly IPilotingSkillCalculator _sut;
         
-
         public PilotingSkillCalculatorTests()
         {
             _mockRulesProvider = Substitute.For<IRulesProvider>();
@@ -212,6 +211,81 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
             result.Modifiers.Count.ShouldBe(0); // No modifiers should be applied
             result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting); // No change to difficulty
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_LowerLegActuatorHitRequested_AddsModifier()
+        {
+            // Arrange
+            var mech = new Mech("Test", "TST-1A", 50, 4, []);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit).Returns(1);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.LowerLegActuatorHit]);
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
+            result.Modifiers.Count.ShouldBe(1);
+            result.Modifiers[0].ShouldBeOfType<LowerLegActuatorHitModifier>();
+            var actuatorModifier = (LowerLegActuatorHitModifier)result.Modifiers[0];
+            actuatorModifier.Value.ShouldBe(1);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting + 1);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_LowerLegActuatorHitAndGyroHitRequested_AddsBothModifiers()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var gyro = torso.GetComponent<Gyro>()!;
+            gyro.Hit(); // Apply 1 hit to the gyro
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit).Returns(1);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, 
+                [PilotingSkillRollType.LowerLegActuatorHit, PilotingSkillRollType.GyroHit]);
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
+            result.Modifiers.Count.ShouldBe(2);
+            
+            result.Modifiers.ShouldContain(m => m is LowerLegActuatorHitModifier);
+            var actuatorModifier = result.Modifiers.OfType<LowerLegActuatorHitModifier>().First();
+            actuatorModifier.Value.ShouldBe(1);
+            
+            result.Modifiers.ShouldContain(m => m is DamagedGyroModifier);
+            var gyroModifier = result.Modifiers.OfType<DamagedGyroModifier>().First();
+            gyroModifier.Value.ShouldBe(3);
+            gyroModifier.HitsCount.ShouldBe(1);
+            
+            result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting + 1 + 3);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_OnlyGyroHitRequested_LowerLegActuatorHitModifierNotAdded()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var gyro = torso.GetComponent<Gyro>()!;
+            gyro.Hit(); // Apply 1 hit to the gyro
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
+            // No setup for LowerLegActuatorHit, to ensure it's not called or added if not requested
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit]);
+
+            // Assert
+            result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
+            result.Modifiers.Count.ShouldBe(1);
+            result.Modifiers[0].ShouldBeOfType<DamagedGyroModifier>();
+            result.Modifiers.ShouldNotContain(m => m is LowerLegActuatorHitModifier);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting + 3);
+            _mockRulesProvider.DidNotReceive().GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit);
         }
     }
 }
