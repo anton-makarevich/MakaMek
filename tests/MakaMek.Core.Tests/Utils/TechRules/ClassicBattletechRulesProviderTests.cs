@@ -469,27 +469,19 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             result.ShouldBe(expectedHeatPoints);
         }
 
-        [Fact]
-        public void GetPilotingSkillModifier_GyroHit_ReturnsThree()
+        [Theory]
+        [InlineData(PilotingSkillRollType.GyroHit, 3)]
+        [InlineData(PilotingSkillRollType.LowerLegActuatorHit, 1)]
+        public void GetPilotingSkillRollModifier_ValidTypes_ReturnsExpectedValues(PilotingSkillRollType rollType, int expectedModifier)
         {
-            // Arrange
-            var rollType = PilotingSkillRollType.GyroHit;
-
-            // Act
-            var result = _sut.GetPilotingSkillRollModifier(rollType);
-
-            // Assert
-            result.ShouldBe(3);
+            _sut.GetPilotingSkillRollModifier(rollType).ShouldBe(expectedModifier);
         }
 
         [Fact]
-        public void GetPilotingSkillModifier_UnknownType_ThrowsArgumentOutOfRangeException()
+        public void GetPilotingSkillModifier_InvalidType_ThrowsArgumentOutOfRangeException()
         {
-            // Arrange - Use a value that doesn't exist in the enum
-            var rollType = (PilotingSkillRollType)999;
-
-            // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetPilotingSkillRollModifier(rollType));
+            const PilotingSkillRollType invalidType = (PilotingSkillRollType)999; // Assuming 999 is not a valid enum value
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetPilotingSkillRollModifier(invalidType));
         }
         
         [Theory]

@@ -407,6 +407,7 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         return gyroHit switch
         {
             PilotingSkillRollType.GyroHit => 3,
+            PilotingSkillRollType.LowerLegActuatorHit => 1,
             _ => throw new ArgumentOutOfRangeException(nameof(gyroHit), "Invalid piloting skill roll type")
         };
     }
