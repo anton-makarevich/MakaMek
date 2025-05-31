@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -36,11 +37,10 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
 
         var modifiers = new List<RollModifier>();
         var relevantRollTypes = rollTypes.ToList();
-
-        // Add damaged gyro modifier if applicable
-        if (relevantRollTypes.Contains(PilotingSkillRollType.GyroHit))
+        if (unit is Mech mech)
         {
-            if (unit is Mech mech)
+            // Add damaged gyro modifier if applicable
+            if (relevantRollTypes.Contains(PilotingSkillRollType.GyroHit))
             {
                 // Check for damaged gyro
                 var gyroHits = GetGyroHits(mech);
@@ -53,9 +53,20 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                     });
                 }
             }
+
+            // Add Lower Leg Actuator Hit modifier if applicable
+            if (relevantRollTypes.Contains(PilotingSkillRollType.LowerLegActuatorHit))
+            {
+                modifiers.Add(new LowerLegActuatorHitModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit)
+                });
+            }
         }
-        
-        // Add MecWarrior damage from fall modifiers if applicable
+
+
+
+        // Add MechWarrior damage from fall modifiers if applicable
         if (relevantRollTypes.Contains(PilotingSkillRollType.PilotDamageFromFall))
         {
             // TODO: Calculate levels fallen if map is provided
@@ -71,7 +82,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
         
         // Future PSR modifiers can be added here following the same pattern:
-        // if (calculateAll || relevantRollTypes.Contains(PilotingSkillRollType.SomeOtherCondition))
+        // if (relevantRollTypes.Contains(PilotingSkillRollType.SomeOtherCondition))
         // {
         //     // logic to calculate and add SomeOtherConditionModifier
         // }
@@ -96,5 +107,18 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             throw new ArgumentException("No gyro found in mech", nameof(mech));
         }
         return gyro.Hits;
+    }
+}
+
+/// <summary>
+/// Modifier for a Piloting Skill Roll due to a critical hit on a Lower Leg Actuator.
+/// </summary>
+public record LowerLegActuatorHitModifier : RollModifier
+{
+    // The Value property is inherited from RollModifier.
+    // Specific properties for this modifier can be added if needed in the future.
+    public override string Render(ILocalizationService localizationService)
+    {
+        throw new NotImplementedException();
     }
 }

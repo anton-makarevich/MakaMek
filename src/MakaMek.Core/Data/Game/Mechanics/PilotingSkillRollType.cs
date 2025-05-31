@@ -14,7 +14,12 @@ public enum PilotingSkillRollType
     /// <summary>
     /// PSR for determining if a MechWarrior takes damage when a mech falls.
     /// </summary>
-    PilotDamageFromFall
+    PilotDamageFromFall,
+
+    /// <summary>
+    /// PSR modifier due to a critical hit on a lower leg actuator.
+    /// </summary>
+    LowerLegActuatorHit
     // Add other PSR types here in the future, e.g.:
     // ActuatorDamage,
     // PilotDamage,
