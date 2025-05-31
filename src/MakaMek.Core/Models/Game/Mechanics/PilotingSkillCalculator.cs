@@ -5,7 +5,6 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -107,18 +106,5 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             throw new ArgumentException("No gyro found in mech", nameof(mech));
         }
         return gyro.Hits;
-    }
-}
-
-/// <summary>
-/// Modifier for a Piloting Skill Roll due to a critical hit on a Lower Leg Actuator.
-/// </summary>
-public record LowerLegActuatorHitModifier : RollModifier
-{
-    // The Value property is inherited from RollModifier.
-    // Specific properties for this modifier can be added if needed in the future.
-    public override string Render(ILocalizationService localizationService)
-    {
-        throw new NotImplementedException();
     }
 }
