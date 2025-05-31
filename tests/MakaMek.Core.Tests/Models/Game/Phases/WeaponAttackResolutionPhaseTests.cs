@@ -702,7 +702,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Setup ToHitCalculator to return a value
         SetupToHitNumber(7);
 
-        SetupCriticalsForGyroHit();
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
 
         // Setup piloting skill calculator to return a PSR breakdown with modifiers
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
@@ -761,7 +761,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 7, 6);
 
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit();
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
 
         // Setup piloting skill calculator for gyro hit
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
@@ -822,7 +822,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 7);
 
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit();
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
 
         // Setup piloting skill calculator for pilot damage
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
@@ -874,7 +874,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 7);
 
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit(_player1Unit1);
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso,_player1Unit1);
 
         // Remove gyro to simulate no gyro mech (not possible, so maybe we should throw)
         var ct = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
@@ -912,7 +912,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 7, 8);
 
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit();
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
 
         // Setup piloting skill calculator to return a PSR breakdown with modifiers
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
@@ -937,7 +937,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupToHitNumber(7);
 
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit();
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
 
         // Setup piloting skill calculator for gyro hit
         Game.PilotingSkillCalculator.GetPsrBreakdown(
@@ -1021,7 +1021,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Dice: 1. Attack roll (hits), 2. Hit Location roll (LeftLeg - 9 for Front/Rear), 3. PSR roll (fails - 4 vs target 5)
         SetupDiceRolls(8, 9, 4);
 
-        SetupCriticalsForLowerLegActuatorHit(_player1Unit1);
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
 
         // PSR for LLA Hit: Base Skill 4, LLA Mod +1 => Target 5.
         SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
@@ -1059,7 +1059,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Dice: 1. Attack (hits), 2. Hit Location (LeftLeg - 9), 3. PSR (succeeds - 8 vs target 5)
         SetupDiceRolls(8, 9, 8);
 
-        SetupCriticalsForLowerLegActuatorHit(_player1Unit1);
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
 
         // PSR for LLA Hit: Base Skill 4, LLA Mod +1 => Target 5.
         SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
@@ -1139,30 +1139,12 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             return result;
         });
     }
-
-    private void SetupCriticalsForGyroHit(Unit? unit = null)
-    {
-        // Setup critical hit calculator to return a gyro hit
-        Game.CriticalHitsCalculator.CalculateCriticalHits(
-                unit ?? Arg.Any<Unit>(),
-                Arg.Is<PartLocation>(loc => loc == PartLocation.CenterTorso),
-                Arg.Any<int>())
-            .Returns([
-                new LocationCriticalHitsData(PartLocation.CenterTorso,
-                    7,
-                    1,
-                    [
-                        new ComponentHitData
-                        {
-                            Type = MakaMekComponent.Gyro,
-                            Slot = 3
-                        }
-                    ]
-                )
-            ]);
-    }
     
-    private void SetupCriticalsForLowerLegActuatorHit(Unit? unit = null, PartLocation location = PartLocation.LeftLeg)
+    private void SetupCriticalHitsFor(
+        MakaMekComponent component,
+        int slot,
+        PartLocation location = PartLocation.LeftLeg,
+        Unit? unit = null)
     {
         Game.CriticalHitsCalculator.CalculateCriticalHits(
                 unit ?? Arg.Any<Unit>(),
@@ -1170,14 +1152,14 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<int>())
             .Returns(
             [
-                new LocationCriticalHitsData(PartLocation.CenterTorso,
+                new LocationCriticalHitsData(location,
                     7,
                     1,
                     [
                         new ComponentHitData
                         {
-                            Type = MakaMekComponent.LowerLegActuator,
-                            Slot = 2
+                            Type = component,
+                            Slot = slot
                         }
                     ]
                 )
@@ -1232,9 +1214,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         : Weapon(new WeaponDefinition(
             "Test Weapon", 5, 3,
             0, 3, 6, 9,
-            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType))
-    {
-    }
+            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType));
 
     // Custom cluster weapon class that allows setting damage for testing
     private class TestClusterWeapon(
@@ -1246,9 +1226,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         : Weapon(new WeaponDefinition(
             "Test Cluster Weapon", damage, 3,
             0, 3, 6, 9,
-            type, 10, clusters, clusterSize, 1, 1, MakaMekComponent.LRM10, ammoType))
-    {
-    }
+            type, 10, clusters, clusterSize, 1, 1, MakaMekComponent.LRM10, ammoType));
 
     private record TestModifier : Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.RollModifier
     {
