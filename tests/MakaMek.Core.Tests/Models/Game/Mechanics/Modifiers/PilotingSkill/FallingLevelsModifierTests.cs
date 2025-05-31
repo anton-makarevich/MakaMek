@@ -13,7 +13,7 @@ public class FallingLevelsModifierTests
     public void Render_ShouldFormatCorrectly()
     {
         // Arrange
-        var modifier = new FallingLevelsModifier
+        var sut = new FallingLevelsModifier
         {
             Value = 2,
             LevelsFallen = 2
@@ -22,7 +22,7 @@ public class FallingLevelsModifierTests
         _localizationService.GetString("Levels").Returns("Levels");
 
         // Act
-        var result = modifier.Render(_localizationService);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Falling (2 Levels): +2");
@@ -37,14 +37,14 @@ public class FallingLevelsModifierTests
     public void Value_ShouldReflectLevelsFallen(int levelsFallen, int expectedValue)
     {
         // Arrange & Act
-        var modifier = new FallingLevelsModifier
+        var sut = new FallingLevelsModifier
         {
             Value = expectedValue,
             LevelsFallen = levelsFallen
         };
 
         // Assert
-        modifier.Value.ShouldBe(expectedValue);
-        modifier.LevelsFallen.ShouldBe(levelsFallen);
+        sut.Value.ShouldBe(expectedValue);
+        sut.LevelsFallen.ShouldBe(levelsFallen);
     }
 }

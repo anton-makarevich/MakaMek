@@ -36,7 +36,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Create mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.WeaponAttackResolution, Game).Returns(_mockNextPhase);
-        
+
         _sut = new WeaponAttackResolutionPhase(Game);
 
         // Add two players with units
@@ -76,7 +76,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
-        
+
         // Act
         _sut.Enter();
 
@@ -85,11 +85,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         Received.InOrder(() =>
         {
             // Player 2 (initiative winner) attacks are resolved first
-            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd => 
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
                 cmd.PlayerId == _player2Id));
-            
+
             // Player 1's attacks are resolved second
-            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd => 
+            CommandPublisher.PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
                 cmd.PlayerId == _player1Id));
         });
     }
@@ -108,9 +108,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         // Verify ToHitCalculator was called for each weapon with a target
         Game.ToHitCalculator.Received(2).GetToHitNumber(
-            Arg.Any<Unit>(), 
-            Arg.Any<Unit>(), 
-            Arg.Any<Weapon>(), 
+            Arg.Any<Unit>(),
+            Arg.Any<Unit>(),
+            Arg.Any<Weapon>(),
             Arg.Any<BattleMap>());
     }
 
@@ -128,13 +128,13 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         // Verify attack resolution commands were published with correct resolution data
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
-                cmd.GameOriginId == Game.Id && 
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.GameOriginId == Game.Id &&
                 cmd.AttackerId == _player1Unit1Id));
-        
+
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
-                cmd.GameOriginId == Game.Id && 
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.GameOriginId == Game.Id &&
                 cmd.AttackerId == _player2Unit1Id));
     }
 
@@ -184,15 +184,15 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Verify ToHitCalculator was called exactly twice (only for weapons with targets)
         // and not for the third weapon that has no target
         Game.ToHitCalculator.Received(2).GetToHitNumber(
-            Arg.Any<Unit>(), 
-            Arg.Any<Unit>(), 
-            Arg.Any<Weapon>(), 
+            Arg.Any<Unit>(),
+            Arg.Any<Unit>(),
+            Arg.Any<Weapon>(),
             Arg.Any<BattleMap>());
-            
+
         // Verify only two attack resolution commands were published
         // (one for each weapon with a target)
         CommandPublisher.Received(2).PublishCommand(
-            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
                 cmd.GameOriginId == Game.Id));
     }
 
@@ -277,7 +277,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assume unit2's head is the first part and get its max armor/structure
         var head = _player1Unit2.Parts.First(p => p.Location == PartLocation.Head);
         var lethalDamage = head.MaxArmor + head.MaxStructure + 1;
-        
+
         _player1Unit2.ApplyArmorAndStructureDamage(lethalDamage, head); // Apply lethal damage();
 
         // Act
@@ -295,48 +295,48 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         SetMap();
-        
+
         // Setup weapons using the existing method
         SetupPlayer1WeaponTargets();
-        
+
         // Get the target unit (player2's unit)
         var targetUnit = _player2Unit1;
-        
+
         // Remove targets for the target unit
         var targetWeapons = targetUnit.GetAllComponents<Weapon>();
         foreach (var targetWeapon in targetWeapons)
         {
             targetWeapon.Target = null;
         }
-        
+
         // Get the part we want to target (left arm)
         var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        
+
         // Get the initial armor and structure values
         var initialArmor = targetPart.CurrentArmor;
         var initialStructure = targetPart.CurrentStructure;
-        
+
         // Get the weapons from player1's unit
         var attackingUnit = _player1Unit1;
         var weaponWithoutTarget = attackingUnit.Parts[1].GetComponents<Weapon>().First();
-        
+
         // Set target for the second weapon (same as first weapon)
         weaponWithoutTarget.Target = targetUnit;
-        
+
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for first attack (hit)
         // Second roll (10) is for first hit location (left arm)
         // Third roll (8) is for second attack (hit)
         // Fourth roll (10) is for second hit location (same location)
         SetupDiceRolls(8, 10, 8, 10);
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         // Verify that damage was applied to the target part
         targetPart.CurrentArmor.ShouldBeLessThan(initialArmor);
-        
+
         // Capture the published commands to verify both attacks hit the same location
         var capturedCommands = new List<WeaponAttackResolutionCommand>();
         CommandPublisher.ReceivedCalls()
@@ -346,64 +346,64 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             .Where(cmd => cmd.AttackerId == attackingUnit.Id) // Only get commands from our attacking unit
             .ToList()
             .ForEach(capturedCommands.Add);
-        
+
         // We should have exactly 2 commands
         capturedCommands.Count.ShouldBe(2);
-        
+
         // Both commands should target the left arm
         capturedCommands[0].ResolutionData.HitLocationsData!.HitLocations[0].Location
             .ShouldBe(PartLocation.LeftArm);
         capturedCommands[1].ResolutionData.HitLocationsData!.HitLocations[0].Location
             .ShouldBe(PartLocation.LeftArm);
-        
+
         // Calculate the total damage from both attacks
-        var totalDamage = capturedCommands.Sum(cmd => 
+        var totalDamage = capturedCommands.Sum(cmd =>
             cmd.ResolutionData.HitLocationsData!.TotalDamage);
 
-        var nextPart = targetUnit.Parts.First(p=> p.Location == targetPart.GetNextTransferLocation());
-        
+        var nextPart = targetUnit.Parts.First(p => p.Location == targetPart.GetNextTransferLocation());
+
         // The total damage should match the difference in armor/structure
         var armorDamage = initialArmor - targetPart.CurrentArmor;
         var structureDamage = initialStructure - targetPart.CurrentStructure;
         var transferDamage = nextPart.MaxArmor - nextPart.CurrentArmor;
         var totalDamageTaken = armorDamage + structureDamage + transferDamage;
-        
+
         totalDamageTaken.ShouldBe(totalDamage);
     }
-    
+
     [Fact]
     public void Enter_ShouldRollForClusterHits_WhenClusterWeaponHits()
     {
         // Arrange
         SetMap();
         // Add a cluster weapon to unit1
-        var clusterWeapon = new TestClusterWeapon(1,5); 
+        var clusterWeapon = new TestClusterWeapon(1, 5);
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
         clusterWeapon.Target = _player2Unit1; // Set target for the cluster weapon
-        
+
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
-            Arg.Any<Unit>(), 
-            Arg.Any<Unit>(), 
-            Arg.Any<Weapon>(), 
-            Arg.Any<BattleMap>())
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>())
             .Returns(7); // Return a to-hit number of 7
-            
+
         // Setup dice rolls: first for attack (8), second for cluster (9), third and fourth for hit locations
         SetupDiceRolls(8, 9, 6, 6);
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         // Verify that dice were rolled for attack, cluster hits, and hit locations
         DiceRoller.Received(4).Roll2D6(); // 1 for attack, 1 for cluster, 2 for hit locations
-        
+
         // Verify the attack resolution command contains the correct data
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
-                cmd.GameOriginId == Game.Id && 
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.GameOriginId == Game.Id &&
                 cmd.AttackerId == _player1Unit1Id &&
                 cmd.ResolutionData.IsHit &&
                 cmd.ResolutionData.HitLocationsData != null &&
@@ -413,9 +413,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.ResolutionData.HitLocationsData.HitLocations.Count == 2 && //2 clusters hit
                 cmd.ResolutionData.HitLocationsData.HitLocations[0].Location == PartLocation.RightTorso &&
                 cmd.ResolutionData.HitLocationsData.HitLocations[0].Damage == 5 && //first 5 missiles
-                cmd.ResolutionData.HitLocationsData.HitLocations[1].Damage == 3 )); //second 8-5=3
+                cmd.ResolutionData.HitLocationsData.HitLocations[1].Damage == 3)); //second 8-5=3
     }
-    
+
     [Fact]
     public void Enter_ShouldCalculateCorrectDamage_ForClusterWeapon()
     {
@@ -426,74 +426,76 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
         clusterWeapon.Target = _player2Unit1; // Set a target for the cluster weapon
-        
+
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
-            Arg.Any<Unit>(), 
-            Arg.Any<Unit>(), 
-            Arg.Any<Weapon>(), 
-            Arg.Any<BattleMap>())
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>())
             .Returns(7); // Return a to-hit number of 7
-            
+
         // Setup dice rolls: first for attack (8), second for cluster (9 = 5 hits), third for hit location
         SetupDiceRolls(8, 9, 6);
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         // Verify the attack resolution command contains the correct damage
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
-                cmd.GameOriginId == Game.Id && 
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.GameOriginId == Game.Id &&
                 cmd.AttackerId == _player1Unit1Id &&
                 cmd.ResolutionData.IsHit &&
                 cmd.ResolutionData.HitLocationsData != null &&
                 cmd.ResolutionData.HitLocationsData.TotalDamage == 30)); // 5 hits * 6 damage per missile = 30 damage
     }
-    
+
     [Fact]
     public void Enter_ShouldNotRollForClusterHits_WhenClusterWeaponMisses()
     {
         // Arrange
         // Add a cluster weapon to unit1
         SetMap();
-        var clusterWeapon = new TestClusterWeapon(1010,5); // LRM-10
+        var clusterWeapon = new TestClusterWeapon(1010, 5); // LRM-10
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
         clusterWeapon.Target = _player2Unit1; // Set target for the cluster weapon
-        
+
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
-            Arg.Any<Unit>(), 
-            Arg.Any<Unit>(), 
-            Arg.Any<Weapon>(), 
-            Arg.Any<BattleMap>())
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>())
             .Returns(7); // Return a to-hit number of 7
-            
+
         // Setup dice rolls: first for attack (6), which is less than to-hit number (7)
         SetupDiceRolls(6);
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         // Verify that dice were rolled only for attack, not for cluster hits or hit locations
         DiceRoller.Received(1).Roll2D6(); // Only for attack
-        
+
         // Verify the attack resolution command contains the correct data
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
-                cmd.GameOriginId == Game.Id && 
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.GameOriginId == Game.Id &&
                 cmd.AttackerId == _player1Unit1Id &&
                 !cmd.ResolutionData.IsHit &&
                 cmd.ResolutionData.HitLocationsData == null));
     }
-    
+
     // Helper to invoke private method
-    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg, Unit? target)
+    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg,
+        Unit? target)
     {
-        var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         return (HitLocationData)method!.Invoke(phase, [arc, dmg, target])!;
     }
 
@@ -502,10 +504,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         // Ensure BattleMap is null (default state after ServerGame creation in test base)
-        Game.BattleMap.ShouldBeNull(); 
-        
+        Game.BattleMap.ShouldBeNull();
+
         // Setup weapon targets - necessary to reach the ResolveAttack call
-        SetupPlayer1WeaponTargets(); 
+        SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls, values don't matter much here
 
         // Act
@@ -515,7 +517,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Verify that calling Enter throws the specific exception because BattleMap is null
         var exception = Should.Throw<Exception>(act);
         exception.Message.ShouldBe("Battle map is null");
-        
+
         // Verify no commands were published as the exception happens before that
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackResolutionCommand>());
     }
@@ -526,70 +528,70 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         SetGameWithRulesProvider(mockRulesProvider);
-        
+
         // Create a mech with multiple parts including a destroyed left arm
         var leftArm = new Arm("LeftArm", PartLocation.LeftArm, 5, 5);
-        var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5,10);
-        var centerTorso = new CenterTorso("CenterTorso", 15, 10,15);
-        
+        var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5, 10);
+        var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
+
         // Destroy the left arm
         leftArm.ApplyDamage(10); // Apply enough damage to destroy it
         leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
-        
+
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
-        
+
         // Configure the rules provider to return LeftArm as the initial hit location
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.LeftArm);
-        
+
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 for hit location roll
         );
-        
+
         var sut = new WeaponAttackResolutionPhase(Game);
-        
+
         // Act
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
-        
+
         // Assert
         // Should have transferred from LeftArm to LeftTorso (based on Mech's GetTransferLocation implementation)
         data.Location.ShouldBe(PartLocation.LeftTorso);
     }
-    
+
     [Fact]
     public void DetermineHitLocation_ShouldTransferMultipleTimes_WhenMultipleLocationsInChainAreDestroyed()
     {
         // Arrange
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         SetGameWithRulesProvider(mockRulesProvider);
-        
+
         // Create a mech with multiple parts including destroyed left arm and left torso
         var leftArm = new Arm("LeftArm", PartLocation.LeftArm, 5, 5);
-        var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5,10);
-        var centerTorso = new CenterTorso("CenterTorso", 15, 10,15);
-        
+        var leftTorso = new SideTorso("LeftTorso", PartLocation.LeftTorso, 10, 5, 10);
+        var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
+
         // Destroy the left arm and left torso
         leftArm.ApplyDamage(10); // Apply enough damage to destroy it
         leftTorso.ApplyDamage(20); // Apply enough damage to destroy it
-        
+
         leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
         leftTorso.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
-        
+
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
-        
+
         // Configure the rules provider to return LeftArm as the initial hit location
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.LeftArm);
-        
+
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 for hit location roll
         );
-        
+
         var sut = new WeaponAttackResolutionPhase(Game);
-        
+
         // Act
         var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
-        
+
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
         data.Location.ShouldBe(PartLocation.CenterTorso);
@@ -600,74 +602,74 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange - Setup weapon targets
         SetupPlayer1WeaponTargets();
-        
+
         // Get the target unit (player2's unit)
         var targetUnit = _player2Unit1;
-        
+
         // Get the part we want to target (left arm)
         var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        
+
         // Apply damage to the part to leave it with minimal structure
         // This way the next attack will destroy it
         var initialArmor = targetPart.CurrentArmor;
         var initialStructure = targetPart.CurrentStructure;
-        
+
         // Apply damage to leave only 1 structure point
         targetPart.ApplyDamage(initialArmor + initialStructure - 1);
-        
+
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for attack (hit)
         // Second roll (10) is for hit location (left arm)
         SetupDiceRolls(8, 10);
         SetMap();
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         // Capture the published command to verify it includes the destroyed part
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
-                cmd.ResolutionData.DestroyedParts != null && 
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+                cmd.ResolutionData.DestroyedParts != null &&
                 cmd.ResolutionData.DestroyedParts.Contains(PartLocation.LeftArm)));
     }
-    
+
     [Fact]
     public void Enter_ShouldTrackUnitDestruction_WhenUnitIsDestroyed()
     {
         // Arrange - Setup weapon targets
         SetupPlayer1WeaponTargets();
-        
+
         // Get the target unit (player2's unit)
         var targetUnit = _player2Unit1;
-        
+
         // Get the part we want to target (center torso)
         var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        
+
         // Apply damage to the center torso to leave it with minimal structure
         // This way the next attack will destroy the unit
         var initialArmor = targetPart.CurrentArmor;
         var initialStructure = targetPart.CurrentStructure;
-        
+
         // Apply damage to leave only 1 structure point
         targetPart.ApplyDamage(initialArmor + initialStructure - 1);
-        
+
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for attack (hit)
         // Second roll (7) is for hit location (center torso)
         SetupDiceRolls(8, 7);
         SetMap();
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         // Verify unit is destroyed
         targetUnit.Status.ShouldBe(UnitStatus.Destroyed);
-        
+
         // Capture the published command to verify it includes unit destruction
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<WeaponAttackResolutionCommand>(cmd => 
+            Arg.Is<WeaponAttackResolutionCommand>(cmd =>
                 cmd.ResolutionData.UnitDestroyed));
     }
 
@@ -678,10 +680,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
-        
+
         // Get initial values for verification
         var initialArmor = _player2Unit1.TotalCurrentArmor;
-        
+
         // Act
         _sut.Enter();
 
@@ -689,48 +691,48 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Verify that damage was applied to the target
         _player2Unit1.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
     }
-    
+
     [Fact]
     public void Enter_ShouldPublishMechFallingCommand_WhenGyroHitPsrFails()
     {
         // Arrange
         SetMap();
         SetupPlayer1WeaponTargets();
-        
+
         // Setup ToHitCalculator to return a value
         SetupToHitNumber(7);
 
-        SetupCriticalsForGyroHit();
-        
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
+
         // Setup piloting skill calculator to return a PSR breakdown with modifiers
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
-        
+
         // Setup piloting skill calculator for pilot damage
-        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall,3, "Pilot taking damage");
-        
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
+
         // Setup dice roller to return a failed PSR roll (less than 7)
         // First roll for attack, Second roll for hit location
         // Third roll for PSR (failed roll - 6 is less than 7 needed)
-        SetupDiceRolls(8,7,6);
-        
+        SetupDiceRolls(8, 7, 6);
+
         // Setup falling damage calculator
 
         var fallingDamageData = GetFallingDamageData();
-        
+
         Game.FallingDamageCalculator.CalculateFallingDamage(
-            Arg.Any<Unit>(),
-            Arg.Is<int>(i => i == 0),
-            Arg.Is<bool>(b => b == false))
+                Arg.Any<Unit>(),
+                Arg.Is<int>(i => i == 0),
+                Arg.Is<bool>(b => b == false))
             .Returns(fallingDamageData);
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
         // Verify that a MechFallingCommand was published with the correct data
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd => 
+            Arg.Is<MechFallingCommand>(cmd =>
                 cmd.GameOriginId == Game.Id &&
                 cmd.UnitId == _player1Unit1.Id &&
                 cmd.LevelsFallen == 0 &&
@@ -738,35 +740,35 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.DamageData == fallingDamageData &&
                 cmd.IsPilotTakingDamage == true &&
                 cmd.FallPilotingSkillRoll != null &&
-                cmd.PilotDamagePilotingSkillRoll !=null &&
+                cmd.PilotDamagePilotingSkillRoll != null &&
                 cmd.IsPilotingSkillRollRequired == true));
     }
-    
+
     [Fact]
     public void Enter_ShouldGetPsrBreakdownForWarriorDamage_WhenMechFalls()
     {
         // Arrange
         SetMap();
         SetupPlayer1WeaponTargets();
-        
+
         // Setup ToHitCalculator to return a value
         SetupToHitNumber(7);
-        
+
         // Configure dice rolls to ensure hit on center torso
         // First roll (8) is for attack (hit)
         // Second roll (7) is for hit location (center torso)
         // Third roll for PSR (failed roll - 6 is less than 7 needed)
         SetupDiceRolls(8, 7, 6);
-        
+
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit();
-        
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
+
         // Setup piloting skill calculator for gyro hit
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
-        
+
         // Setup piloting skill calculator for pilot damage
-        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall,3, "Pilot taking damage");
-        
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
+
         // Setup falling damage calculator
         var facingRoll = new DiceResult(3);
         var hitLocationRolls = new List<DiceResult> { new(3), new(3) };
@@ -779,75 +781,75 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             [hitLocationData],
             5
         );
-        
+
         var fallingDamageData = new FallingDamageData(
             HexDirection.TopRight,
             hitLocationsData,
             facingRoll
         );
-        
+
         Game.FallingDamageCalculator.CalculateFallingDamage(
-            Arg.Any<Unit>(),
-            Arg.Is<int>(i => i == 0),
-            Arg.Is<bool>(b => b == false))
+                Arg.Any<Unit>(),
+                Arg.Is<int>(i => i == 0),
+                Arg.Is<bool>(b => b == false))
             .Returns(fallingDamageData);
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         // Verify that GetPsrBreakdown was called with WarriorDamageFromFall roll type
         Game.PilotingSkillCalculator.Received().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(
-                types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types =>
+                types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
             Arg.Any<BattleMap>());
     }
-    
+
     [Fact]
     public void Enter_ShouldPublishMechFallingCommand_WhenGyroIsDestroyed()
     {
         // Arrange
         SetMap();
         SetupPlayer1WeaponTargets();
-        
+
         // Setup ToHitCalculator to return a value
         SetupToHitNumber(7);
-        
+
         // Configure dice rolls to ensure hit on center torso
         // First roll (8) is for attack (hit)
         // Second roll (7) is for hit location (center torso)
         SetupDiceRolls(8, 7);
-        
+
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit();
-        
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
+
         // Setup piloting skill calculator for pilot damage
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
-        
+
         // Destroy the gyro with 2 hits
         var gyro = _player1Unit1.GetAllComponents<Gyro>().First();
         gyro.Hit();
         gyro.Hit();
-        
+
         // Setup falling damage calculator
         var fallingDamageData = GetFallingDamageData();
-        
+
         Game.FallingDamageCalculator.CalculateFallingDamage(
-            Arg.Any<Unit>(),
-            Arg.Is<int>(i => i == 0),
-            Arg.Is<bool>(b => b == false))
+                Arg.Any<Unit>(),
+                Arg.Is<int>(i => i == 0),
+                Arg.Is<bool>(b => b == false))
             .Returns(fallingDamageData);
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-        
+
         // Verify that a MechFallingCommand was published with the correct data
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd => 
+            Arg.Is<MechFallingCommand>(cmd =>
                 cmd.GameOriginId == Game.Id &&
                 cmd.UnitId == _player1Unit1.Id &&
                 cmd.LevelsFallen == 0 &&
@@ -862,108 +864,107 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         SetMap();
         SetupPlayer1WeaponTargets();
-        
+
         // Setup ToHitCalculator to return a value
         SetupToHitNumber(7);
-        
+
         // Configure dice rolls to ensure hit on center torso
         // First roll (8) is for attack (hit)
         // Second roll (7) is for hit location (center torso)
         SetupDiceRolls(8, 7);
-        
+
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit(_player1Unit1);
-        
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso,_player1Unit1);
+
         // Remove gyro to simulate no gyro mech (not possible, so maybe we should throw)
         var ct = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
         var gyro = ct.GetComponents<Gyro>().First();
         ct.RemoveComponent(gyro);
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         // Verify that a MechFallingCommand was published with the correct data
         CommandPublisher.DidNotReceive().PublishCommand(
             Arg.Any<MechFallingCommand>());
     }
-    
+
     [Fact]
     public void Enter_ShouldNotPublishMechFallingCommand_WhenGyroHitPsrSucceeds()
     {
         // Arrange
         SetMap();
         SetupPlayer1WeaponTargets();
-        
+
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
-            Arg.Any<Unit>(), 
-            Arg.Any<Unit>(), 
-            Arg.Any<Weapon>(), 
-            Arg.Any<BattleMap>())
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>())
             .Returns(7); // Return a to-hit number of 7
-        
+
         // Configure dice rolls to ensure hit on center torso
         // First roll (8) is for attack (hit)
         // Second roll (7) is for hit location (center torso)
         // Third roll for PSR (successful roll - 8 is greater than 7 needed)
         SetupDiceRolls(8, 7, 8);
-        
+
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit();
-        
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
+
         // Setup piloting skill calculator to return a PSR breakdown with modifiers
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         // Verify that no MechFallingCommand was published
         CommandPublisher.DidNotReceive().PublishCommand(
             Arg.Any<MechFallingCommand>());
     }
-    
+
     [Fact]
     public void Enter_ShouldPublishMechFallingCommandWithPilotDamagePsr_WhenPilotDamageCheckFails()
     {
         // Arrange
         SetMap();
         SetupPlayer1WeaponTargets();
-        
+
         // Setup ToHitCalculator to return a value
         SetupToHitNumber(7);
-        
+
         // Setup critical hit calculator to return a gyro hit
-        SetupCriticalsForGyroHit();
-        
+        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
+
         // Setup piloting skill calculator for gyro hit
         Game.PilotingSkillCalculator.GetPsrBreakdown(
-            Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(
-                types => types.Contains(PilotingSkillRollType.GyroHit)),
-            Arg.Any<BattleMap>())
+                Arg.Any<Unit>(),
+                Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.GyroHit)),
+                Arg.Any<BattleMap>())
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
                 Modifiers = [new TestModifier { Value = 3, Name = "Damaged Gyro" }]
             });
-        
+
         // Setup piloting skill calculator for warrior damage
         Game.PilotingSkillCalculator.GetPsrBreakdown(
-            Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(
-                types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            Arg.Any<BattleMap>())
+                Arg.Any<Unit>(),
+                Arg.Is<IEnumerable<PilotingSkillRollType>>(types =>
+                    types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+                Arg.Any<BattleMap>())
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
                 Modifiers = [new TestModifier { Value = 3, Name = "Pilot Damage" }]
             });
-        
+
         // Setup dice roller to return a failed PSR roll for both checks
-        SetupDiceRolls(8,7,6,3);
-        
+        SetupDiceRolls(8, 7, 6, 3);
+
         // Setup falling damage calculator
         var facingRoll = new DiceResult(3);
         var hitLocationRolls = new List<DiceResult> { new(3), new(3) };
@@ -976,28 +977,28 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             [hitLocationData],
             5
         );
-        
+
         var fallingDamageData = new FallingDamageData(
             HexDirection.TopRight,
             hitLocationsData,
             facingRoll
         );
-        
+
         Game.FallingDamageCalculator.CalculateFallingDamage(
-            Arg.Any<Unit>(),
-            Arg.Is<int>(i => i == 0),
-            Arg.Is<bool>(b => b == false))
+                Arg.Any<Unit>(),
+                Arg.Is<int>(i => i == 0),
+                Arg.Is<bool>(b => b == false))
             .Returns(fallingDamageData);
-        
+
         // Act
         _sut.Enter();
-        
+
         // Assert
         _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-        
+
         // Verify that a MechFallingCommand was published with the correct data
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd => 
+            Arg.Is<MechFallingCommand>(cmd =>
                 cmd.GameOriginId == Game.Id &&
                 cmd.UnitId == _player1Unit1.Id &&
                 cmd.LevelsFallen == 0 &&
@@ -1008,54 +1009,116 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.PilotDamagePilotingSkillRoll != null &&
                 !cmd.PilotDamagePilotingSkillRoll.IsSuccessful));
     }
+    
+    [Fact]
+    public void Enter_ShouldPublishMechFallingCommand_WhenLowerLegActuatorHitPsrFails()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupToHitNumber(7);
+
+        // Dice: 1. Attack roll (hits), 2. Hit Location roll (LeftLeg - 9 for Front/Rear), 3. PSR roll (fails - 4 vs target 5)
+        SetupDiceRolls(8, 9, 4);
+
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
+
+        // PSR for LLA Hit: Base Skill 4, LLA Mod +1 => Target 5.
+        SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
+
+        // PSR for Pilot Damage from Fall
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 2, "Pilot Damage from Fall");
+
+        var fallingDamageData = GetFallingDamageData();
+        Game.FallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallingCommand>(cmd =>
+                cmd.UnitId == _player1Unit1.Id &&
+                cmd.IsPilotingSkillRollRequired == true &&
+                cmd.FallPilotingSkillRoll != null &&
+                cmd.FallPilotingSkillRoll.RollType == PilotingSkillRollType.LowerLegActuatorHit &&
+                cmd.PilotDamagePilotingSkillRoll != null &&
+                cmd.DamageData == fallingDamageData));
+    }
+
+    [Fact]
+    public void Enter_ShouldNotPublishMechFallingCommand_WhenLowerLegActuatorHitPsrSucceeds()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupToHitNumber(7);
+
+        // Dice: 1. Attack (hits), 2. Hit Location (LeftLeg - 9), 3. PSR (succeeds - 8 vs target 5)
+        SetupDiceRolls(8, 9, 8);
+
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
+
+        // PSR for LLA Hit: Base Skill 4, LLA Mod +1 => Target 5.
+        SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player1Unit1.Status.ShouldNotHaveFlag(UnitStatus.Prone);
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallingCommand>());
+    }
 
     private void SetupPlayer1WeaponTargets()
     {
         // Add a weapon to each unit
         var weapon1 = new TestWeapon();
         var part1 = _player1Unit1.Parts[0];
-        part1.TryAddComponent(weapon1,[1]);
+        part1.TryAddComponent(weapon1, [1]);
         weapon1.Target = _player2Unit1; // Set target for weapon1
 
         var weapon2 = new TestWeapon();
         var part2 = _player2Unit1.Parts[0];
-        part2.TryAddComponent(weapon2,[1]);
+        part2.TryAddComponent(weapon2, [1]);
         weapon2.Target = _player1Unit1; // Set target for weapon2
-        
+
         // Add a third weapon without a target to test that it's properly skipped
         var weaponWithoutTarget = new TestWeapon();
         var part3 = _player1Unit1.Parts[1]; // Using the second part of unit1
-        part3.TryAddComponent(weaponWithoutTarget,[2]);
+        part3.TryAddComponent(weaponWithoutTarget, [2]);
         // Deliberately not setting a target for this weapon
 
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
-            Arg.Any<Unit>(), 
-            Arg.Any<Unit>(), 
-            Arg.Any<Weapon>(), 
-            Arg.Any<BattleMap>())
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>())
             .Returns(7); // Return a default to-hit number of 7
     }
-    
+
     private void SetupPlayer2WeaponTargets()
     {
         // Add a weapon to each unit
         var weapon1 = new TestWeapon();
         var part1 = _player2Unit1.Parts[0];
-        part1.TryAddComponent(weapon1,[1]);
+        part1.TryAddComponent(weapon1, [1]);
         weapon1.Target = _player1Unit1; // Set target for weapon1
-        
+
         // Add a third weapon without a target to test that it's properly skipped
         var weaponWithoutTarget = new TestWeapon();
         var part3 = _player2Unit1.Parts[1]; // Using the second part of unit1
-        part3.TryAddComponent(weaponWithoutTarget,[2]);
+        part3.TryAddComponent(weaponWithoutTarget, [2]);
         // Deliberately not setting a target for this weapon// Return a default to-hit number of 7
     }
 
     private void SetupDiceRolls(params int[] rolls)
     {
         var diceResults = new List<List<DiceResult>>();
-        
+
         // Create dice results for each roll
         foreach (var roll in rolls)
         {
@@ -1066,7 +1129,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             };
             diceResults.Add(diceResult);
         }
-        
+
         // Set up the dice roller to return the predefined results
         var callCount = 0;
         DiceRoller.Roll2D6().Returns(_ =>
@@ -1076,23 +1139,27 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             return result;
         });
     }
-
-    private void SetupCriticalsForGyroHit(Unit? unit = null)
+    
+    private void SetupCriticalHitsFor(
+        MakaMekComponent component,
+        int slot,
+        PartLocation location = PartLocation.LeftLeg,
+        Unit? unit = null)
     {
-        // Setup critical hit calculator to return a gyro hit
         Game.CriticalHitsCalculator.CalculateCriticalHits(
                 unit ?? Arg.Any<Unit>(),
-                Arg.Is<PartLocation>(loc => loc == PartLocation.CenterTorso),
+                Arg.Is<PartLocation>(loc => loc == location),
                 Arg.Any<int>())
-            .Returns([
-                new LocationCriticalHitsData(PartLocation.CenterTorso,
+            .Returns(
+            [
+                new LocationCriticalHitsData(location,
                     7,
                     1,
                     [
                         new ComponentHitData
                         {
-                            Type = MakaMekComponent.Gyro,
-                            Slot = 3
+                            Type = component,
+                            Slot = slot
                         }
                     ]
                 )
@@ -1102,9 +1169,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private void SetupToHitNumber(int toHitNumber)
     {
         Game.ToHitCalculator.GetToHitNumber(
-                Arg.Any<Unit>(), 
-                Arg.Any<Unit>(), 
-                Arg.Any<Weapon>(), 
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
                 Arg.Any<BattleMap>())
             .Returns(toHitNumber); // Return a to-hit number
     }
@@ -1113,8 +1180,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         Game.PilotingSkillCalculator.GetPsrBreakdown(
                 Arg.Any<Unit>(),
-                Arg.Is<IEnumerable<PilotingSkillRollType>>(
-                    types => types.Contains(psrType)),
+                Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(psrType)),
                 Arg.Any<BattleMap>())
             .Returns(new PsrBreakdown
             {
@@ -1122,7 +1188,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Modifiers = [new TestModifier { Value = modifierValue, Name = modifierName }]
             });
     }
-    
+
     private FallingDamageData GetFallingDamageData()
     {
         var facingRoll = new DiceResult(3);
@@ -1136,7 +1202,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             [hitLocationData],
             5
         );
-        
+
         return new FallingDamageData(
             HexDirection.TopRight,
             hitLocationsData,
@@ -1145,31 +1211,27 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null)
-        : Weapon( new WeaponDefinition(
+        : Weapon(new WeaponDefinition(
             "Test Weapon", 5, 3,
-            0, 3, 6, 9, 
-            type, 10, 1, 1,1, 1,MakaMekComponent.MachineGun,ammoType))
-    {
-    }
+            0, 3, 6, 9,
+            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType));
 
     // Custom cluster weapon class that allows setting damage for testing
     private class TestClusterWeapon(
-        int damage =10,
+        int damage = 10,
         int clusterSize = 1,
         int clusters = 2,
         WeaponType type = WeaponType.Missile,
         MakaMekComponent? ammoType = null)
-        : Weapon( new WeaponDefinition(
+        : Weapon(new WeaponDefinition(
             "Test Cluster Weapon", damage, 3,
             0, 3, 6, 9,
-            type, 10, clusters, clusterSize,1,1,MakaMekComponent.LRM10, ammoType))
-    {
-    }
-    
+            type, 10, clusters, clusterSize, 1, 1, MakaMekComponent.LRM10, ammoType));
+
     private record TestModifier : Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.RollModifier
     {
         public required string Name { get; init; }
-        
+
         public override string Render(Sanet.MakaMek.Core.Services.Localization.ILocalizationService localizationService)
         {
             return Name;

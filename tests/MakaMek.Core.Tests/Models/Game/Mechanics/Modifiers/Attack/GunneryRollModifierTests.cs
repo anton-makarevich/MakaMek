@@ -13,14 +13,14 @@ public class GunneryRollModifierTests
     public void Render_ShouldFormatCorrectly()
     {
         // Arrange
-        var modifier = new GunneryRollModifier
+        var sut = new GunneryRollModifier
         {
             Value = 4
         };
         _localizationService.GetString("Modifier_GunnerySkill").Returns("Gunnery Skill: +{0}");
 
         // Act
-        var result = modifier.Render(_localizationService);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Gunnery Skill: +4");

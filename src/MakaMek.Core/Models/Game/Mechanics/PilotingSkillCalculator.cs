@@ -24,7 +24,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll with additional context
     /// </summary>
     /// <param name="unit">The unit making the piloting skill roll</param>
-    /// <param name="rollTypes">An optional collection of specific Piloting Skill Roll types to consider. If null or empty, all applicable modifiers are calculated.</param>
+    /// <param name="rollTypes">A collection of specific Piloting Skill Roll types to consider.</param>
     /// <param name="map">The battle map, used for terrain-based modifiers</param>
     /// <returns>A breakdown of the piloting skill roll calculation</returns>
     public PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType> rollTypes, BattleMap? map)
@@ -36,11 +36,10 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
 
         var modifiers = new List<RollModifier>();
         var relevantRollTypes = rollTypes.ToList();
-
-        // Add damaged gyro modifier if applicable
-        if (relevantRollTypes.Contains(PilotingSkillRollType.GyroHit))
+        if (unit is Mech mech)
         {
-            if (unit is Mech mech)
+            // Add damaged gyro modifier if applicable
+            if (relevantRollTypes.Contains(PilotingSkillRollType.GyroHit))
             {
                 // Check for damaged gyro
                 var gyroHits = GetGyroHits(mech);
@@ -53,9 +52,20 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                     });
                 }
             }
+
+            // Add Lower Leg Actuator Hit modifier if applicable
+            if (relevantRollTypes.Contains(PilotingSkillRollType.LowerLegActuatorHit))
+            {
+                modifiers.Add(new LowerLegActuatorHitModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit)
+                });
+            }
         }
-        
-        // Add MecWarrior damage from fall modifiers if applicable
+
+
+
+        // Add MechWarrior damage from fall modifiers if applicable
         if (relevantRollTypes.Contains(PilotingSkillRollType.PilotDamageFromFall))
         {
             // TODO: Calculate levels fallen if map is provided
@@ -71,7 +81,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
         
         // Future PSR modifiers can be added here following the same pattern:
-        // if (calculateAll || relevantRollTypes.Contains(PilotingSkillRollType.SomeOtherCondition))
+        // if (relevantRollTypes.Contains(PilotingSkillRollType.SomeOtherCondition))
         // {
         //     // logic to calculate and add SomeOtherConditionModifier
         // }

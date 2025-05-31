@@ -16,7 +16,7 @@ public class TerrainRollModifierTests
     {
         // Arrange
         var hexCoordinates = new HexCoordinates(3, 4);
-        var modifier = new TerrainRollModifier
+        var sut = new TerrainRollModifier
         {
             Value = 1,
             TerrainId = MakaMekTerrains.LightWoods,
@@ -25,7 +25,7 @@ public class TerrainRollModifierTests
         _localizationService.GetString("Modifier_Terrain").Returns("{0} at {1}: {2}");
 
         // Act
-        var result = modifier.Render(_localizationService);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBe("LightWoods at 0304: 1");

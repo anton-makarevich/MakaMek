@@ -83,6 +83,7 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_Terrain" => "{0} at {1}: +{2}",
             "Modifier_DamagedGyro" => "Damaged Gyro ({0} {1}): +{2}",
             "Modifier_FallingLevels" => "Falling ({0} {1}): +{2}",
+            "Modifier_LowerLegActuatorHit" => "Lower Leg Actuator Hit: +{0}",
             "Hits" => "Hits",
             "Levels" => "Levels",
             // Attack information
