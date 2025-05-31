@@ -14,7 +14,7 @@ public class RangeRollModifierTests
     public void Render_ShouldFormatCorrectly()
     {
         // Arrange
-        var modifier = new RangeRollModifier
+        var sut = new RangeRollModifier
         {
             Value = 2,
             Range = WeaponRange.Medium,
@@ -24,7 +24,7 @@ public class RangeRollModifierTests
         _localizationService.GetString("Modifier_Range").Returns("{0} at {1} hexes ({2} range): +{3}");
 
         // Act
-        var result = modifier.Render(_localizationService);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Medium Laser at 7 hexes (Medium range): +2");

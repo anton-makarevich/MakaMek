@@ -13,7 +13,7 @@ public class TargetMovementModifierTests
     public void Render_ShouldFormatCorrectly()
     {
         // Arrange
-        var modifier = new TargetMovementModifier
+        var sut = new TargetMovementModifier
         {
             Value = 3,
             HexesMoved = 5
@@ -21,7 +21,7 @@ public class TargetMovementModifierTests
         _localizationService.GetString("Modifier_TargetMovement").Returns("Target Movement ({0} hexes): +{1}");
 
         // Act
-        var result = modifier.Render(_localizationService);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Target Movement (5 hexes): +3");

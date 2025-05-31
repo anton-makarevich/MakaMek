@@ -13,7 +13,7 @@ public class SecondaryTargetModifierTests
     public void Render_FrontArc_ShouldFormatCorrectly()
     {
         // Arrange
-        var modifier = new SecondaryTargetModifier
+        var sut = new SecondaryTargetModifier
         {
             Value = 1,
             IsInFrontArc = true
@@ -21,7 +21,7 @@ public class SecondaryTargetModifierTests
         _localizationService.GetString("Attack_SecondaryTargetFrontArc").Returns("Secondary target (front arc): +{0}");
 
         // Act
-        var result = modifier.Render(_localizationService);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Secondary target (front arc): +1");

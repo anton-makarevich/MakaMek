@@ -13,7 +13,7 @@ public class DamagedGyroModifierTests
     public void Render_ShouldFormatCorrectly()
     {
         // Arrange
-        var modifier = new DamagedGyroModifier
+        var sut = new DamagedGyroModifier
         {
             Value = 3,
             HitsCount = 1
@@ -22,7 +22,7 @@ public class DamagedGyroModifierTests
         _localizationService.GetString("Hits").Returns("Hits");
 
         // Act
-        var result = modifier.Render(_localizationService);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Damaged Gyro (1 Hits): +3");
@@ -36,14 +36,14 @@ public class DamagedGyroModifierTests
     public void Value_ShouldReflectHitsCount(int hitsCount, int expectedValue)
     {
         // Arrange & Act
-        var modifier = new DamagedGyroModifier
+        var sut = new DamagedGyroModifier
         {
             Value = expectedValue,
             HitsCount = hitsCount
         };
 
         // Assert
-        modifier.Value.ShouldBe(expectedValue);
-        modifier.HitsCount.ShouldBe(hitsCount);
+        sut.Value.ShouldBe(expectedValue);
+        sut.HitsCount.ShouldBe(hitsCount);
     }
 }
