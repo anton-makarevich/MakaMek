@@ -117,6 +117,34 @@ public class BaseGameTests : BaseGame
         // Assert
         // No exception should be thrown
     }
+    
+    [Fact]
+    public void OnMechFalling_DoesNothing_WhenNoDamageData()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000"
+        };
+        OnPlayerJoined(joinCommand);
+        var player = Players.First();
+        var command = new MechFallingCommand
+        {
+            GameOriginId = Id,
+            UnitId = Guid.NewGuid(),
+            DamageData = null
+        };
+
+        // Act
+        OnMechFalling(command);
+
+        // Assert
+        // No exception should be thrown
+    }
 
     [Fact]
     public void OnWeaponConfiguration_RotatesTorso_WhenConfigurationIsTorsoRotation()
