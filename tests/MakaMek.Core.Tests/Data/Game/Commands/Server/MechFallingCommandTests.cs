@@ -21,6 +21,9 @@ public class MechFallingCommandTests
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
     private readonly Unit _unit;
+    private const string PsrDetailsRenderedText = "PSR Details: Target 7, Rolled 8 (Success)";
+    private const string FailedPsrDetailsRenderedText = "PSR Details: Target 7, Rolled 6 (Failure)";
+    private const string PilotDamagePsrRenderedText = "Pilot PSR: Target 5, Rolled 4 (Failure)";
 
     public MechFallingCommandTests()
     {
@@ -54,29 +57,34 @@ public class MechFallingCommandTests
             .Returns(", pilot was injured");
     }
 
-    private MechFallingCommand CreateBasicFallingCommand()
+    private PilotingSkillRollData CreateTestPsrData(bool successful, PilotingSkillRollType rollType = PilotingSkillRollType.GyroHit, string renderedText = PsrDetailsRenderedText)
+    {
+        var psrData = Substitute.For<PilotingSkillRollData>();
+        psrData.IsSuccessful.Returns(successful);
+        psrData.RollType.Returns(rollType);
+        psrData.Render(Arg.Any<ILocalizationService>()).Returns(renderedText);
+        return psrData;
+    }
+
+    private FallingDamageData CreateTestFallingDamageData(int totalDamage = 5)
     {
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, [new DiceResult(6)])
+            new(PartLocation.CenterTorso, totalDamage, [new DiceResult(6)])
         };
-        
-        var hitLocationsData = new HitLocationsData(
-            hitLocations,
-            5);
-        
-        var fallingDamageData = new FallingDamageData(
-            HexDirection.Top,
-            hitLocationsData,
-            new DiceResult(1));
+        var hitLocationsData = new HitLocationsData(hitLocations, totalDamage);
+        return new FallingDamageData(HexDirection.Top, hitLocationsData, new DiceResult(1));
+    }
 
+    private MechFallingCommand CreateBasicFallingCommand()
+    {
         return new MechFallingCommand
         {
             GameOriginId = _gameId,
             UnitId = _unit.Id,
             LevelsFallen = 0,
             WasJumping = false,
-            DamageData = fallingDamageData,
+            DamageData = CreateTestFallingDamageData(),
             Timestamp = DateTime.UtcNow
         };
     }
@@ -351,5 +359,125 @@ public class MechFallingCommandTests
         result.ShouldContain("Locust LCT-1V fell");
         result.ShouldContain("pilot was injured");
         result.ShouldContain("PSR for Pilot Damage failed");
+    }
+
+    [Fact]
+    public void Render_AutoFall_GyroDestroyed_ShouldRenderFallDetails_WithoutFallPsrInfo()
+    {
+        // Arrange
+        var command = CreateBasicFallingCommand() with
+        {
+            FallPilotingSkillRoll = null, // Auto-fall, no PSR for the fall itself
+            DamageData = CreateTestFallingDamageData(10) // Ensure damage is present
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe($"Locust LCT-1V fell and took 10 damage");
+        result.ShouldNotContain(PsrDetailsRenderedText);
+        result.ShouldNotContain(FailedPsrDetailsRenderedText);
+    }
+
+    [Fact]
+    public void Render_SuccessfulPsr_GyroHit_ShouldRenderPsrSuccessMessage_AndPsrDetails()
+    {
+        // Arrange
+        var successfulPsr = CreateTestPsrData(true);
+        var command = new MechFallingCommand
+        {
+            GameOriginId = _gameId,
+            UnitId = _unit.Id,
+            DamageData = null, // No fall damage
+            FallPilotingSkillRoll = successfulPsr,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe($"{PsrDetailsRenderedText}{Environment.NewLine}Locust LCT-1V successfully compensated for a gyro hit.");
+    }
+    
+    [Fact]
+    public void Render_SuccessfulPsr_LowerLegActuatorHit_ShouldRenderPsrSuccessMessage_AndPsrDetails()
+    {
+        // Arrange
+        var successfulPsr = CreateTestPsrData(true, PilotingSkillRollType.LowerLegActuatorHit);
+        var command = new MechFallingCommand
+        {
+            GameOriginId = _gameId,
+            UnitId = _unit.Id,
+            DamageData = null, // No fall damage
+            FallPilotingSkillRoll = successfulPsr,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe($"{PsrDetailsRenderedText}{Environment.NewLine}Locust LCT-1V successfully compensated for a lower leg actuator hit.");
+    }
+
+    [Fact]
+    public void Render_FailedPsr_ResultsInFall_ShouldRenderPsrDetails_AndFallDetails()
+    {
+        // Arrange
+        var failedPsr = CreateTestPsrData(false, PilotingSkillRollType.GyroHit, FailedPsrDetailsRenderedText);
+        var command = CreateBasicFallingCommand() with
+        {
+            FallPilotingSkillRoll = failedPsr,
+            DamageData = CreateTestFallingDamageData(7) // Fall damage occurred
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe($"{FailedPsrDetailsRenderedText}{Environment.NewLine}Locust LCT-1V fell and took 7 damage");
+    }
+
+    [Fact]
+    public void Render_NoDamage_NoFallPsr_ShouldRenderMinimally()
+    {
+        // Arrange
+        var command = new MechFallingCommand
+        {
+            GameOriginId = _gameId,
+            UnitId = _unit.Id,
+            DamageData = null,
+            FallPilotingSkillRoll = null,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBeEmpty(); // Expecting empty if no PSR and no damage
+    }
+
+    [Fact]
+    public void Render_FallPsrDetails_PilotDamagePsrDetails_AndFallDamage_Correctly()
+    {
+        // Arrange
+        var failedFallPsr = CreateTestPsrData(false, PilotingSkillRollType.GyroHit, FailedPsrDetailsRenderedText);
+        var failedPilotPsr = CreateTestPsrData(false, PilotingSkillRollType.PilotDamageFromFall, PilotDamagePsrRenderedText);
+
+        var command = CreateBasicFallingCommand() with
+        {
+            FallPilotingSkillRoll = failedFallPsr,
+            PilotDamagePilotingSkillRoll = failedPilotPsr,
+            DamageData = CreateTestFallingDamageData(12)
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe($"{FailedPsrDetailsRenderedText}{Environment.NewLine}Locust LCT-1V fell and took 12 damage, pilot was injured{PilotDamagePsrRenderedText}");
     }
 }

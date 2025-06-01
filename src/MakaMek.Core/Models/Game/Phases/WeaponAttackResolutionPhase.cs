@@ -390,7 +390,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         foreach (var componentType in hitFallInducingComponentTypes)
         {
-            var hasFallen = false;
             PilotingSkillRollData? pilotDamagePsr = null;
             var rollType = FallInducingCriticalsMap[componentType];
             
@@ -430,14 +429,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                     PsrBreakdown = psrBreakdown
                 };
             }
+            
             // If autoFall is true, fallPsrData remains null, consistent with original Gyro destroyed logic.
-
             if (isFallingNow)
             {
                 // Process the fall.
-                var pilotingSkillCalculator = Game.PilotingSkillCalculator;
-                
-                var pilotPsrBreakdown = pilotingSkillCalculator.GetPsrBreakdown(
+                var pilotPsrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
                     unit,
                     [PilotingSkillRollType.PilotDamageFromFall],
                     Game.BattleMap);
@@ -457,11 +454,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                         PsrBreakdown = pilotPsrBreakdown
                     };
                 }
-
-                // If a fall has been processed for this unit, stop checking other fall-inducing criticals from this same attack.
-                hasFallen = true; 
             }
-            var fallingDamageData = hasFallen
+            var fallingDamageData = isFallingNow
                 ? Game.FallingDamageCalculator.CalculateFallingDamage(unit, 0, false)
                 :null;
 
