@@ -223,10 +223,13 @@ public abstract class BaseGame : IGame
         var mech = _players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == fallingCommand.UnitId) as Mech;
-
+        
         // Apply falling to the unit using the falling data from the command
-        mech?.ApplyDamage(fallingCommand.DamageData.HitLocations.HitLocations);
-        mech?.SetProne();
+        if (fallingCommand.DamageData is { HitLocations.HitLocations: var hits })
+        {
+            mech?.ApplyDamage(hits);
+            mech?.SetProne();
+        }
     }
 
     internal void OnHeatUpdate(HeatUpdatedCommand heatUpdatedCommand)
