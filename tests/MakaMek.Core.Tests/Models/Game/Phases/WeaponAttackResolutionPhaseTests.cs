@@ -891,7 +891,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_ShouldNotPublishMechFallingCommand_WhenGyroHitPsrSucceeds()
+    public void Enter_ShouldPublishMechFallingCommand_WhenGyroHitPsrSucceeds()
     {
         // Arrange
         SetMap();
@@ -921,9 +921,17 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         _sut.Enter();
 
         // Assert
-        // Verify that no MechFallingCommand was published
-        CommandPublisher.DidNotReceive().PublishCommand(
-            Arg.Any<MechFallingCommand>());
+        // Verify that a MechFallingCommand was published
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallingCommand>(cmd =>
+                cmd.GameOriginId == Game.Id &&
+                cmd.UnitId == _player1Unit1.Id &&
+                cmd.LevelsFallen == 0 &&
+                cmd.WasJumping == false &&
+                cmd.DamageData == null &&
+                cmd.FallPilotingSkillRoll!.DiceResults.Sum() == 8 &&
+                cmd.FallPilotingSkillRoll!.RollType == PilotingSkillRollType.GyroHit &&
+                cmd.IsPilotingSkillRollRequired == true));
     }
 
     [Fact]
@@ -1069,7 +1077,17 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         _player1Unit1.Status.ShouldNotHaveFlag(UnitStatus.Prone);
-        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallingCommand>());
+        // Verify that a MechFallingCommand was published
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallingCommand>(cmd =>
+                cmd.GameOriginId == Game.Id &&
+                cmd.UnitId == _player1Unit1.Id &&
+                cmd.LevelsFallen == 0 &&
+                cmd.WasJumping == false &&
+                cmd.DamageData == null &&
+                cmd.FallPilotingSkillRoll!.DiceResults.Sum() == 8 &&
+                cmd.FallPilotingSkillRoll!.RollType == PilotingSkillRollType.LowerLegActuatorHit &&
+                cmd.IsPilotingSkillRollRequired == true));
     }
 
     private void SetupPlayer1WeaponTargets()
