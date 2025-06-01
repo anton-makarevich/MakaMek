@@ -51,7 +51,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_MechFalling_Levels" => " {0} level(s)",
             "Command_MechFalling_Jumping" => " while jumping",
             "Command_MechFalling_Damage" => " and took {0} damage",
-            "Command_MechFalling_PilotInjury" => ", pilot was injured",
+            "Command_MechFalling_PilotInjury" => "Pilot was injured",
             
             // Piloting Skill Roll Command
             "Command_PilotingSkillRoll_Success" => "{0} roll succeeded",
@@ -67,6 +67,7 @@ public class FakeLocalizationService: ILocalizationService
             "PilotingSkillRollType_GyroHit" => "Gyro Hit",
             "PilotingSkillRollType_FallingLevels" => "Falling Levels",
             "PilotingSkillRollType_PilotDamageFromFall" => "Pilot Damage From Fall",
+            "PilotingSkillRollType_LowerLegActuatorHit" => "Lower Leg Actuator Hit",
             
             // Attack direction strings
             "AttackDirection_Left" => "Left",

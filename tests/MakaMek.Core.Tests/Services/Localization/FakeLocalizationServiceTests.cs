@@ -50,7 +50,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_MechFalling_Levels", " {0} level(s)")]
     [InlineData("Command_MechFalling_Jumping", " while jumping")]
     [InlineData("Command_MechFalling_Damage", " and took {0} damage")]
-    [InlineData("Command_MechFalling_PilotInjury", ", pilot was injured")]
+    [InlineData("Command_MechFalling_PilotInjury", "Pilot was injured")]
     // Piloting Skill Roll Command
     [InlineData("Command_PilotingSkillRoll_Success", "{0} roll succeeded")]
     [InlineData("Command_PilotingSkillRoll_Failure", "{0} roll failed")]
@@ -64,6 +64,7 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_GyroHit", "Gyro Hit")]
     [InlineData("PilotingSkillRollType_FallingLevels", "Falling Levels")]
     [InlineData("PilotingSkillRollType_PilotDamageFromFall", "Pilot Damage From Fall")]
+    [InlineData("PilotingSkillRollType_LowerLegActuatorHit", "Lower Leg Actuator Hit")]
     // Attack modifiers
     [InlineData("AttackDirection_Left", "Left")]
     [InlineData("AttackDirection_Right", "Right")]

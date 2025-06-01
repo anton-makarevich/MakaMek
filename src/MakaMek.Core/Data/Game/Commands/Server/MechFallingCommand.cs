@@ -28,7 +28,7 @@ public record struct MechFallingCommand : IGameCommand
     /// <summary>
     /// The falling damage data
     /// </summary>
-    public required FallingDamageData DamageData { get; init; }
+    public required FallingDamageData? DamageData { get; init; }
 
     /// <summary>
     /// Whether a piloting skill roll is required for this fall
@@ -67,44 +67,43 @@ public record struct MechFallingCommand : IGameCommand
         
         var stringBuilder = new StringBuilder();
         
-        // If there's a fall PSR, render it first
-        if (IsPilotingSkillRollRequired && FallPilotingSkillRoll != null)
+        // Render the fall PSR details if it exists, regardless of outcome.
+        if (FallPilotingSkillRoll != null)
         {
             stringBuilder.AppendLine(FallPilotingSkillRoll.Render(localizationService));
         }
         
+        // Check if an actual fall occurred (indicated by damage or levels fallen)
+        if (DamageData == null)
+            return stringBuilder.ToString().TrimEnd();
         // Base message about falling
         stringBuilder.Append(string.Format(
             localizationService.GetString("Command_MechFalling_Base"),
             unit.Name));
-        
-        // Add levels fallen if applicable
+            
         if (LevelsFallen > 0)
         {
             stringBuilder.Append(string.Format(
                 localizationService.GetString("Command_MechFalling_Levels"),
                 LevelsFallen));
         }
-        
-        // Add jumping status if applicable
+            
         if (WasJumping)
         {
             stringBuilder.Append(localizationService.GetString("Command_MechFalling_Jumping"));
         }
-        
-        // Add damage information
+            
         stringBuilder.Append(string.Format(
             localizationService.GetString("Command_MechFalling_Damage"),
             DamageData.HitLocations.TotalDamage));
-        
-        // Add pilot injury information if applicable
-        if (!IsPilotTakingDamage) return stringBuilder.ToString();
-        stringBuilder.Append(localizationService.GetString("Command_MechFalling_PilotInjury"));
-            
-        // If there's a pilot damage PSR, render it
-        if (PilotDamagePilotingSkillRoll == null) return stringBuilder.ToString();
-        stringBuilder.Append(PilotDamagePilotingSkillRoll.Render(localizationService));
 
-        return stringBuilder.ToString();
+        if (PilotDamagePilotingSkillRoll == null) return stringBuilder.ToString().TrimEnd();
+        stringBuilder.AppendLine(PilotDamagePilotingSkillRoll.Render(localizationService));
+        if (!PilotDamagePilotingSkillRoll.IsSuccessful)
+        {
+            stringBuilder.Append(localizationService.GetString("Command_MechFalling_PilotInjury"));
+        }
+
+        return stringBuilder.ToString().TrimEnd();
     }
 }

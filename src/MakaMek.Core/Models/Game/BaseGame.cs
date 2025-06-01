@@ -223,9 +223,10 @@ public abstract class BaseGame : IGame
         var mech = _players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == fallingCommand.UnitId) as Mech;
-
-        // Apply falling to the unit using the falling data from the command
-        mech?.ApplyDamage(fallingCommand.DamageData.HitLocations.HitLocations);
+        
+        // Apply falling to the unit using the falling data from the command if present
+        if (fallingCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
+        mech?.ApplyDamage(hits);
         mech?.SetProne();
     }
 
