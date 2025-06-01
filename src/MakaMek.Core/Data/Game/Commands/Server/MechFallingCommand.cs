@@ -74,7 +74,7 @@ public record struct MechFallingCommand : IGameCommand
         }
         
         // Check if an actual fall occurred (indicated by damage or levels fallen)
-        if (DamageData == null || FallPilotingSkillRoll?.IsSuccessful != false)
+        if (DamageData == null)
             return stringBuilder.ToString().TrimEnd();
         // Base message about falling
         stringBuilder.Append(string.Format(

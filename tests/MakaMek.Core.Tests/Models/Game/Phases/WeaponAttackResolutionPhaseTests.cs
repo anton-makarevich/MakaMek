@@ -1228,7 +1228,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             0, 3, 6, 9,
             type, 10, clusters, clusterSize, 1, 1, MakaMekComponent.LRM10, ammoType));
 
-    private record TestModifier : Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.RollModifier
+    public record TestModifier : Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.RollModifier
     {
         public required string Name { get; init; }
 
