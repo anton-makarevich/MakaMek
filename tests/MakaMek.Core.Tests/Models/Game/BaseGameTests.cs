@@ -131,7 +131,6 @@ public class BaseGameTests : BaseGame
             Tint = "#FF0000"
         };
         OnPlayerJoined(joinCommand);
-        var player = Players.First();
         var command = new MechFallingCommand
         {
             GameOriginId = Id,

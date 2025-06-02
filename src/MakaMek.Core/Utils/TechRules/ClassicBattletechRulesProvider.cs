@@ -408,6 +408,7 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         {
             PilotingSkillRollType.GyroHit => 3,
             PilotingSkillRollType.LowerLegActuatorHit => 1,
+            PilotingSkillRollType.HeavyDamage => 1, // +1 modifier for taking 20+ damage in a single phase
             _ => throw new ArgumentOutOfRangeException(nameof(gyroHit), "Invalid piloting skill roll type")
         };
     }

@@ -24,7 +24,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     
     // Units with weapons that have targets, organized by player
     private readonly Dictionary<Guid, List<Unit>> _unitsWithTargets = new();
-
+    
     public override void Enter()
     {
         base.Enter();
@@ -339,13 +339,19 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         Game.CommandPublisher.PublishCommand(command);
         
-        // Check if any critical hits affected the gyro in this attack
+        // Check for conditions that might cause the mech to fall
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
+        
+        // Check for component hits that can cause a fall
         var allComponentHits = GetAllComponentHits(resolution.HitLocationsData);
-            
-        if (allComponentHits.Count != 0)
+        
+        // Check for heavy damage (20+ points) that requires a PSR
+        var heavyDamage = resolution.HitLocationsData.TotalDamage >= 20;
+        
+        // Check for fall conditions
+        if (allComponentHits.Count > 0 || heavyDamage)
         {
-            CheckForFall(target, allComponentHits);
+            CheckForFall(target, allComponentHits, heavyDamage);
         }
     }
     
@@ -377,7 +383,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// </summary>
     /// <param name="unit">The unit to check for fall-inducing critical hits.</param>
     /// <param name="componentHits">The list of component hits from the current attack resolution.</param>
-    private void CheckForFall(Unit unit, List<ComponentHitData> componentHits)
+    /// <param name="heavyDamage">Whether the attack dealt 20+ points of damage.</param>
+    private void CheckForFall(Unit unit, List<ComponentHitData> componentHits, bool heavyDamage)
     {
         // Get all distinct component types that were critically hit and are known to potentially cause a fall.
         var hitFallInducingComponentTypes = componentHits
@@ -385,9 +392,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             .Where(type => FallInducingCriticalsMap.ContainsKey(type))
             .ToList();
 
-        if (hitFallInducingComponentTypes.Count == 0)
+        if (hitFallInducingComponentTypes.Count == 0 && !heavyDamage)
             return;
 
+        // Process component-based fall conditions
         foreach (var componentType in hitFallInducingComponentTypes)
         {
             PilotingSkillRollData? pilotDamagePsr = null;
@@ -433,50 +441,82 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             // If autoFall is true, fallPsrData remains null, consistent with original Gyro destroyed logic.
             if (isFallingNow)
             {
-                // Process the fall.
-                var pilotPsrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
-                    unit,
-                    [PilotingSkillRollType.PilotDamageFromFall],
-                    Game.BattleMap);
-                
-                // Roll for pilot damage if applicable (e.g., if modifiers exist for this roll)
-                if (pilotPsrBreakdown.Modifiers.Count > 0) 
-                {
-                    var pilotDiceResults = Game.DiceRoller.Roll2D6();
-                    var pilotRollTotal = pilotDiceResults.Sum(d => d.Result);
-                    var isPilotDamageSuccessful = pilotRollTotal >= pilotPsrBreakdown.ModifiedPilotingSkill;
-                    
-                    pilotDamagePsr = new PilotingSkillRollData
-                    {
-                        RollType = PilotingSkillRollType.PilotDamageFromFall,
-                        DiceResults = pilotDiceResults.Select(d => d.Result).ToArray(),
-                        IsSuccessful = isPilotDamageSuccessful,
-                        PsrBreakdown = pilotPsrBreakdown
-                    };
-                }
+                ProcessFall(unit, fallPsrData);
+                return; // Only process one fall at a time
             }
-            var fallingDamageData = isFallingNow
-                ? Game.FallingDamageCalculator.CalculateFallingDamage(unit, 0, false)
-                :null;
+        }
+        
+        // Process heavy damage PSR if no component-based fall occurred
+        if (heavyDamage && unit is Mech)
+        {
+            var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, [PilotingSkillRollType.HeavyDamage]);
+            var diceResults = Game.DiceRoller.Roll2D6();
+            var rollTotal = diceResults.Sum(d => d.Result);
+            var isFallingNow = rollTotal < psrBreakdown.ModifiedPilotingSkill;
 
-            var mechFallingCommand = new MechFallingCommand
+            var fallPsrData = new PilotingSkillRollData
             {
-                UnitId = unit.Id,
-                LevelsFallen = 0,
-                WasJumping = false,
-                DamageData = fallingDamageData,
-                GameOriginId = Game.Id,
-                FallPilotingSkillRoll = fallPsrData, // PSR for the component hit causing the fall
-                PilotDamagePilotingSkillRoll = pilotDamagePsr // PSR for pilot damage from this fall
+                RollType = PilotingSkillRollType.HeavyDamage,
+                DiceResults = diceResults.Select(d => d.Result).ToArray(),
+                IsSuccessful = !isFallingNow,
+                PsrBreakdown = psrBreakdown
             };
             
-            Game.CommandPublisher.PublishCommand(mechFallingCommand);
-            if (fallingDamageData != null && unit is Mech mech)
+            if (isFallingNow)
             {
-                unit.ApplyDamage(fallingDamageData.HitLocations.HitLocations);
-                mech.SetProne();
-                return;
+                ProcessFall(unit, fallPsrData);
             }
+        }
+    }
+    
+    /// <summary>
+    /// Processes a fall for a unit, calculating damage and publishing the appropriate command.
+    /// </summary>
+    /// <param name="unit">The unit that is falling.</param>
+    /// <param name="fallPsrData">The PSR data that caused the fall, if any.</param>
+    private void ProcessFall(Unit unit, PilotingSkillRollData? fallPsrData)
+    {
+        // Roll for pilot damage if applicable
+        PilotingSkillRollData? pilotDamagePsr = null;
+        var pilotPsrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
+            unit,
+            [PilotingSkillRollType.PilotDamageFromFall],
+            Game.BattleMap);
+        
+        // Roll for pilot damage if applicable (e.g., if modifiers exist for this roll)
+        if (pilotPsrBreakdown.Modifiers.Count > 0) 
+        {
+            var pilotDiceResults = Game.DiceRoller.Roll2D6();
+            var pilotRollTotal = pilotDiceResults.Sum(d => d.Result);
+            var isPilotDamageSuccessful = pilotRollTotal >= pilotPsrBreakdown.ModifiedPilotingSkill;
+            
+            pilotDamagePsr = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.PilotDamageFromFall,
+                DiceResults = pilotDiceResults.Select(d => d.Result).ToArray(),
+                IsSuccessful = isPilotDamageSuccessful,
+                PsrBreakdown = pilotPsrBreakdown
+            };
+        }
+        
+        var fallingDamageData = Game.FallingDamageCalculator.CalculateFallingDamage(unit, 0, false);
+
+        var mechFallingCommand = new MechFallingCommand
+        {
+            UnitId = unit.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = fallingDamageData,
+            GameOriginId = Game.Id,
+            FallPilotingSkillRoll = fallPsrData, // PSR for the component hit causing the fall
+            PilotDamagePilotingSkillRoll = pilotDamagePsr // PSR for pilot damage from this fall
+        };
+        
+        Game.CommandPublisher.PublishCommand(mechFallingCommand);
+        if (fallingDamageData != null && unit is Mech mech)
+        {
+            unit.ApplyDamage(fallingDamageData.HitLocations.HitLocations);
+            mech.SetProne();
         }
     }
 

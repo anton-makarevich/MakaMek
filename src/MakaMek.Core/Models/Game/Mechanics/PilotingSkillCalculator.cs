@@ -61,6 +61,16 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                     Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit)
                 });
             }
+            
+            // Add Heavy Damage modifier if applicable
+            if (relevantRollTypes.Contains(PilotingSkillRollType.HeavyDamage))
+            {
+                modifiers.Add(new HeavyDamageModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage),
+                    DamageTaken = 20 // This is the minimum threshold, actual damage value could be passed as parameter if needed
+                });
+            }
         }
 
 
