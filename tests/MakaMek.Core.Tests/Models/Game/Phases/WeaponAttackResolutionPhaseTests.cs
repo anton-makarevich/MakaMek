@@ -422,6 +422,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         // Add a cluster weapon to unit1 (SRM-6 with 1 damage per missile)
         SetMap();
+        // Setup PSR for heavy damage 36 > 20 to avoid NRE
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 1, "Damage");
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); // 6 missiles, 1 damage per missile
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
