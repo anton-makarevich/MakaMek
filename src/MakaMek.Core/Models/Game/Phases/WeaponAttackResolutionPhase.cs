@@ -345,13 +345,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Check for component hits that can cause a fall
         var allComponentHits = GetAllComponentHits(resolution.HitLocationsData);
         
-        // Check for heavy damage (20+ points) that requires a PSR
-        var heavyDamage = resolution.HitLocationsData.TotalDamage >= 20;
-        
         // Check for fall conditions
-        if (allComponentHits.Count > 0 || heavyDamage)
+        // Pass the total damage to CheckForFall
+        if (allComponentHits.Count > 0 || resolution.HitLocationsData.TotalDamage >= 20)
         {
-            CheckForFall(target, allComponentHits, heavyDamage);
+            CheckForFall(target, allComponentHits, resolution.HitLocationsData.TotalDamage);
         }
     }
     
@@ -385,8 +383,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// </summary>
     /// <param name="unit">The unit to check for fall-inducing critical hits.</param>
     /// <param name="componentHits">The list of component hits from the current attack resolution.</param>
-    /// <param name="heavyDamage">Whether the attack dealt 20+ points of damage.</param>
-    private void CheckForFall(Unit unit, List<ComponentHitData> componentHits, bool heavyDamage)
+    /// <param name="totalDamage">The total damage dealt by the attack.</param>
+    private void CheckForFall(Unit unit, List<ComponentHitData> componentHits, int totalDamage)
     {
         // Add component-based fall reasons
         var hitFallInducingComponentTypes = componentHits
@@ -399,7 +397,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 new FallReason(FallInducingCriticalsMap[componentType], componentType)).ToList();
 
         // Add heavy damage fall reason
-        if (heavyDamage && unit is Mech) // Ensure unit is a Mech for heavy damage PSR
+        if (totalDamage >= 20 && unit is Mech) // Ensure unit is a Mech for heavy damage PSR
         {
             fallReasons.Add(new FallReason(PilotingSkillRollType.HeavyDamage));
         }
@@ -432,7 +430,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
             if (requiresPsr && !autoFall)
             {
-                var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, [reason.RollType]);
+                var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, [reason.RollType],
+                    null, totalDamage);
                 var diceResults = Game.DiceRoller.Roll2D6();
                 var rollTotal = diceResults.Sum(d => d.Result);
                 isFallingNow = rollTotal < psrBreakdown.ModifiedPilotingSkill;

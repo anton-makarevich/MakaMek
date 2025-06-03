@@ -950,27 +950,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
 
         // Setup piloting skill calculator for gyro hit
-        Game.PilotingSkillCalculator.GetPsrBreakdown(
-                Arg.Any<Unit>(),
-                Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.GyroHit)),
-                Arg.Any<BattleMap>())
-            .Returns(new PsrBreakdown
-            {
-                BasePilotingSkill = 4,
-                Modifiers = [new TestModifier { Value = 3, Name = "Damaged Gyro" }]
-            });
+        SetupPsrFor(PilotingSkillRollType.GyroHit,3,"Damaged Gyro");
 
-        // Setup piloting skill calculator for warrior damage
-        Game.PilotingSkillCalculator.GetPsrBreakdown(
-                Arg.Any<Unit>(),
-                Arg.Is<IEnumerable<PilotingSkillRollType>>(types =>
-                    types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-                Arg.Any<BattleMap>())
-            .Returns(new PsrBreakdown
-            {
-                BasePilotingSkill = 4,
-                Modifiers = [new TestModifier { Value = 3, Name = "Pilot Damage" }]
-            });
+        // Setup piloting skill calculator for pilot damage
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
 
         // Setup dice roller to return a failed PSR roll for both checks
         SetupDiceRolls(8, 7, 6, 3);
@@ -1201,7 +1184,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         Game.PilotingSkillCalculator.GetPsrBreakdown(
                 Arg.Any<Unit>(),
                 Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(psrType)),
-                Arg.Any<BattleMap>())
+                Arg.Any<BattleMap>(),
+                Arg.Any<int>())
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,

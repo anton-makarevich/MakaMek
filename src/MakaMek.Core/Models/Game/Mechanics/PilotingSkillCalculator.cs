@@ -24,10 +24,14 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// Gets a detailed breakdown of all modifiers affecting the piloting skill roll with additional context
     /// </summary>
     /// <param name="unit">The unit making the piloting skill roll</param>
-    /// <param name="rollTypes">A collection of specific Piloting Skill Roll types to consider.</param>
+    /// <param name="rollTypes">A collection of specific Piloting Skill Roll types to consider. If null or empty, all relevant modifiers are calculated.</param>
     /// <param name="map">The battle map, used for terrain-based modifiers</param>
+    /// <param name="totalDamage">The total damage taken by the unit, used specifically for the HeavyDamage modifier check.</param>
     /// <returns>A breakdown of the piloting skill roll calculation</returns>
-    public PsrBreakdown GetPsrBreakdown(Unit unit, IEnumerable<PilotingSkillRollType> rollTypes, BattleMap? map)
+    public PsrBreakdown GetPsrBreakdown(
+        Unit unit, 
+        IEnumerable<PilotingSkillRollType> rollTypes,
+        BattleMap? map = null, int totalDamage=0)
     {
         if (unit.Crew == null)
         {
@@ -35,7 +39,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
 
         var modifiers = new List<RollModifier>();
-        var relevantRollTypes = rollTypes.ToList();
+        var relevantRollTypes = rollTypes.ToList() ?? [];
         if (unit is Mech mech)
         {
             // Add damaged gyro modifier if applicable
@@ -68,7 +72,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                 modifiers.Add(new HeavyDamageModifier
                 {
                     Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage),
-                    DamageTaken = 20 // This is the minimum threshold, actual damage value could be passed as parameter if needed
+                    DamageTaken = totalDamage 
                 });
             }
         }
