@@ -18,6 +18,6 @@ public record HeavyDamageModifier : RollModifier
     /// <returns>A string describing this modifier.</returns>
     public override string Render(ILocalizationService localizationService)
     {
-        return $"Heavy Damage ({DamageTaken} points): {Value:+#;-#;0}";
+        return string.Format(localizationService.GetString("Modifier_HeavyDamage"), DamageTaken, Value);
     }
 }
