@@ -37,7 +37,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit], null, 0);
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit]);
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
@@ -60,7 +60,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, [], null, 0);
+            var result = _sut.GetPsrBreakdown(mech, []);
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
@@ -84,7 +84,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(10);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit], null, 0);
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit]);
 
             // Assert
             // The base piloting skill + 10 should be >= 13, which is impossible on 2d6
@@ -108,7 +108,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
             // Act & Assert
-            Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit], null, 0))
+            Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit]))
                 .Message.ShouldContain("No gyro found");
         }
 
@@ -119,7 +119,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             var mech = new Mech("Test", "TST-1A", 50, 4, []);
             
             // Act
-            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.PilotDamageFromFall], null, 0);
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.PilotDamageFromFall]);
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
@@ -146,9 +146,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             // Act - request both GyroHit and PilotDamageFromFall modifiers
             var result = _sut.GetPsrBreakdown(
                 mech, 
-                [PilotingSkillRollType.GyroHit, PilotingSkillRollType.PilotDamageFromFall],
-                null,
-                0
+                [PilotingSkillRollType.GyroHit, PilotingSkillRollType.PilotDamageFromFall]
             );
 
             // Assert
@@ -184,7 +182,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
             // Act - only request PilotDamageFromFall, not GyroHit
-            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.PilotDamageFromFall], null, 0);
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.PilotDamageFromFall]);
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
@@ -207,7 +205,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
             // Act - provide an empty list of roll types
-            var result = _sut.GetPsrBreakdown(mech, [], null, 0);
+            var result = _sut.GetPsrBreakdown(mech, []);
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
@@ -223,7 +221,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit).Returns(1);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.LowerLegActuatorHit], null, 0);
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.LowerLegActuatorHit]);
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
@@ -248,9 +246,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
 
             // Act
             var result = _sut.GetPsrBreakdown(mech, 
-                [PilotingSkillRollType.LowerLegActuatorHit, PilotingSkillRollType.GyroHit],
-                null,
-                0
+                [PilotingSkillRollType.LowerLegActuatorHit, PilotingSkillRollType.GyroHit]
             );
 
             // Assert
@@ -282,7 +278,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
             // No setup for LowerLegActuatorHit, to ensure it's not called or added if not requested
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit], null, 0);
+            var result = _sut.GetPsrBreakdown(mech, [PilotingSkillRollType.GyroHit]);
 
             // Assert
             result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
