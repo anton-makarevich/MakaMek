@@ -77,6 +77,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Modifier_Heat", "Heat Level ({0}): +{1}")]
     [InlineData("Modifier_Terrain", "{0} at {1}: +{2}")]
     [InlineData("Modifier_DamagedGyro", "Damaged Gyro ({0} {1}): +{2}")]
+    [InlineData("Modifier_HeavyDamage", "Heavy Damage ({0} points): +{1}")]
     [InlineData("Modifier_FallingLevels", "Falling ({0} {1}): +{2}")]
     [InlineData("Modifier_LowerLegActuatorHit", "Lower Leg Actuator Hit: +{0}")]
     [InlineData("Hits", "Hits")]

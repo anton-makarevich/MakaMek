@@ -339,13 +339,18 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         Game.CommandPublisher.PublishCommand(command);
         
-        // Check if any critical hits affected the gyro in this attack
+        // Check for conditions that might cause the mech to fall
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
+        
+        // Check for component hits that can cause a fall
         var allComponentHits = GetAllComponentHits(resolution.HitLocationsData);
-            
-        if (allComponentHits.Count != 0)
+        
+        // Check for fall conditions
+        // Pass the total damage to CheckForFall
+        var heavyDamageThreshold = Game.RulesProvider.GetHeavyDamageThreshold();
+        if (allComponentHits.Count > 0 || resolution.HitLocationsData.TotalDamage >= heavyDamageThreshold)
         {
-            CheckForFall(target, allComponentHits);
+            CheckForFall(target, allComponentHits, resolution.HitLocationsData.TotalDamage);
         }
     }
     
@@ -371,33 +376,45 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         //TODO potentially move this to a separate mapper
     };
 
+    private record FallReason(PilotingSkillRollType RollType, MakaMekComponent? ComponentType = null);
+
     /// <summary>
     /// Checks for critical hits on components that can cause a Mech to fall (e.g., Gyro, Actuators)
     /// and makes a Piloting Skill Roll if necessary.
     /// </summary>
     /// <param name="unit">The unit to check for fall-inducing critical hits.</param>
     /// <param name="componentHits">The list of component hits from the current attack resolution.</param>
-    private void CheckForFall(Unit unit, List<ComponentHitData> componentHits)
+    /// <param name="totalDamage">The total damage dealt by the attack.</param>
+    private void CheckForFall(Unit unit, List<ComponentHitData> componentHits, int totalDamage)
     {
-        // Get all distinct component types that were critically hit and are known to potentially cause a fall.
+        // Add component-based fall reasons
         var hitFallInducingComponentTypes = componentHits
             .Select(c => c.Type)
             .Where(type => FallInducingCriticalsMap.ContainsKey(type))
             .ToList();
 
-        if (hitFallInducingComponentTypes.Count == 0)
+        var fallReasons = hitFallInducingComponentTypes
+            .Select(componentType => 
+                new FallReason(FallInducingCriticalsMap[componentType], componentType)).ToList();
+
+        // Add heavy damage fall reason
+        var heavyDamageThreshold = Game.RulesProvider.GetHeavyDamageThreshold();
+        if (totalDamage >= heavyDamageThreshold && unit is Mech) // Ensure unit is a Mech for heavy damage PSR
+        {
+            fallReasons.Add(new FallReason(PilotingSkillRollType.HeavyDamage));
+        }
+
+        if (fallReasons.Count == 0)
             return;
 
-        foreach (var componentType in hitFallInducingComponentTypes)
+        // Process each fall reason. If a fall occurs, stop processing further reasons.
+        foreach (var reason in fallReasons)
         {
-            PilotingSkillRollData? pilotDamagePsr = null;
-            var rollType = FallInducingCriticalsMap[componentType];
-            
             var autoFall = false;
             var requiresPsr = true;
 
             // Specific handling for components like Gyro that cause automatic fall on destruction.
-            if (componentType == MakaMekComponent.Gyro)
+            if (reason.ComponentType == MakaMekComponent.Gyro)
             {
                 var gyro = unit.GetAllComponents<Gyro>().FirstOrDefault();
                 if (gyro == null) continue; // Should not happen if a gyro component was reported as hit.
@@ -408,29 +425,28 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 }
             }
             // Add other auto-fall conditions here if necessary for other component types.
-            // For LowerLegActuator, a critical hit itself requires a PSR.
+            // For LowerLegActuator, a critical hit itself requires a PSR (handled by requiresPsr = true default).
 
             PilotingSkillRollData? fallPsrData = null;
             var isFallingNow = autoFall;
 
             if (requiresPsr && !autoFall)
             {
-                var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, [rollType]);
-
+                var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, [reason.RollType],
+                    null, totalDamage);
                 var diceResults = Game.DiceRoller.Roll2D6();
                 var rollTotal = diceResults.Sum(d => d.Result);
                 isFallingNow = rollTotal < psrBreakdown.ModifiedPilotingSkill;
 
                 fallPsrData = new PilotingSkillRollData
                 {
-                    RollType = rollType,
+                    RollType = reason.RollType,
                     DiceResults = diceResults.Select(d => d.Result).ToArray(),
                     IsSuccessful = !isFallingNow,
                     PsrBreakdown = psrBreakdown
                 };
             }
-            
-            // If autoFall is true, fallPsrData remains null, consistent with original Gyro destroyed logic.
+            PilotingSkillRollData? pilotDamagePsr = null;
             if (isFallingNow)
             {
                 // Process the fall.
@@ -457,7 +473,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             }
             var fallingDamageData = isFallingNow
                 ? Game.FallingDamageCalculator.CalculateFallingDamage(unit, 0, false)
-                :null;
+                : null;
 
             var mechFallingCommand = new MechFallingCommand
             {

@@ -83,6 +83,7 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_Heat" => "Heat Level ({0}): +{1}",
             "Modifier_Terrain" => "{0} at {1}: +{2}",
             "Modifier_DamagedGyro" => "Damaged Gyro ({0} {1}): +{2}",
+            "Modifier_HeavyDamage" => "Heavy Damage ({0} points): +{1}",
             "Modifier_FallingLevels" => "Falling ({0} {1}): +{2}",
             "Modifier_LowerLegActuatorHit" => "Lower Leg Actuator Hit: +{0}",
             "Hits" => "Hits",

@@ -269,7 +269,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange: Setup weapon targets so that unit1 attacks unit2's head with lethal damage
         SetupPlayer1WeaponTargets();
-        SetupPlayer2WeaponTargets();
         SetupDiceRolls(5, 6); // First roll is for attack (5), which is less than to-hit number (7)
         SetMap();
 
@@ -422,6 +421,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         // Add a cluster weapon to unit1 (SRM-6 with 1 damage per missile)
         SetMap();
+        // Setup PSR for heavy damage 36 > 20 to avoid NRE
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 1, "Damage");
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); // 6 missiles, 1 damage per missile
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
@@ -948,27 +949,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
 
         // Setup piloting skill calculator for gyro hit
-        Game.PilotingSkillCalculator.GetPsrBreakdown(
-                Arg.Any<Unit>(),
-                Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.GyroHit)),
-                Arg.Any<BattleMap>())
-            .Returns(new PsrBreakdown
-            {
-                BasePilotingSkill = 4,
-                Modifiers = [new TestModifier { Value = 3, Name = "Damaged Gyro" }]
-            });
+        SetupPsrFor(PilotingSkillRollType.GyroHit,3,"Damaged Gyro");
 
-        // Setup piloting skill calculator for warrior damage
-        Game.PilotingSkillCalculator.GetPsrBreakdown(
-                Arg.Any<Unit>(),
-                Arg.Is<IEnumerable<PilotingSkillRollType>>(types =>
-                    types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-                Arg.Any<BattleMap>())
-            .Returns(new PsrBreakdown
-            {
-                BasePilotingSkill = 4,
-                Modifiers = [new TestModifier { Value = 3, Name = "Pilot Damage" }]
-            });
+        // Setup piloting skill calculator for pilot damage
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
 
         // Setup dice roller to return a failed PSR roll for both checks
         SetupDiceRolls(8, 7, 6, 3);
@@ -1012,7 +996,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.LevelsFallen == 0 &&
                 cmd.WasJumping == false &&
                 cmd.DamageData == fallingDamageData &&
-                cmd.IsPilotingSkillRollRequired == true &&
                 cmd.IsPilotTakingDamage == true &&
                 cmd.PilotDamagePilotingSkillRoll != null &&
                 !cmd.PilotDamagePilotingSkillRoll.IsSuccessful));
@@ -1087,6 +1070,85 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.DamageData == null &&
                 cmd.FallPilotingSkillRoll!.DiceResults.Sum() == 8 &&
                 cmd.FallPilotingSkillRoll!.RollType == PilotingSkillRollType.LowerLegActuatorHit &&
+                cmd.IsPilotingSkillRollRequired == true));
+    }
+
+    [Fact]
+    public void Enter_ShouldPublishMechFallingCommand_WhenHeavyDamagePsrFails()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupToHitNumber(7);
+
+        // Configure a high-damage weapon
+        var highDamageWeapon = new TestWeapon(WeaponType.Energy, null, 20);
+        var part = _player1Unit1.Parts[0];
+        part.TryAddComponent(highDamageWeapon, [1]);
+        highDamageWeapon.Target = _player2Unit1;
+
+        // Dice: 1. Attack roll (hits), 2. Hit Location roll, 3. PSR roll (fails - 4 vs target 7)
+        SetupDiceRolls(8, 7, 4);
+
+        // Setup piloting skill calculator for heavy damage
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 3, "Heavy Damage");
+
+        // Setup piloting skill calculator for pilot damage
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 2, "Pilot Damage from Fall");
+
+        var fallingDamageData = GetFallingDamageData();
+        Game.FallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallingCommand>(cmd =>
+                cmd.UnitId == _player2Unit1.Id &&
+                cmd.IsPilotingSkillRollRequired == true &&
+                cmd.FallPilotingSkillRoll != null &&
+                cmd.FallPilotingSkillRoll.RollType == PilotingSkillRollType.HeavyDamage &&
+                cmd.PilotDamagePilotingSkillRoll != null &&
+                cmd.DamageData == fallingDamageData));
+    }
+
+    [Fact]
+    public void Enter_ShouldPublishMechFallingCommand_WhenHeavyDamagePsrSucceeds()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupToHitNumber(7);
+
+        // Configure a high-damage weapon
+        var highDamageWeapon = new TestWeapon(WeaponType.Energy, null, 20);
+        var part = _player1Unit1.Parts[0];
+        part.TryAddComponent(highDamageWeapon, [1]);
+        highDamageWeapon.Target = _player2Unit1;
+
+        // Dice: 1. Attack roll (hits), 2. Hit Location roll, 3. PSR roll (succeeds - 8 vs target 7)
+        SetupDiceRolls(8, 7, 8);
+
+        // Setup piloting skill calculator for heavy damage
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 3, "Heavy Damage (20+ points)");
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Unit1.Status.ShouldNotHaveFlag(UnitStatus.Prone);
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallingCommand>(cmd =>
+                cmd.GameOriginId == Game.Id &&
+                cmd.UnitId == _player2Unit1.Id &&
+                cmd.LevelsFallen == 0 &&
+                cmd.WasJumping == false &&
+                cmd.DamageData == null &&
+                cmd.FallPilotingSkillRoll!.DiceResults.Sum() == 8 &&
+                cmd.FallPilotingSkillRoll!.RollType == PilotingSkillRollType.HeavyDamage &&
                 cmd.IsPilotingSkillRollRequired == true));
     }
 
@@ -1199,7 +1261,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         Game.PilotingSkillCalculator.GetPsrBreakdown(
                 Arg.Any<Unit>(),
                 Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(psrType)),
-                Arg.Any<BattleMap>())
+                Arg.Any<BattleMap>(),
+                Arg.Any<int>())
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -1228,11 +1291,16 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         );
     }
 
-    private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null)
-        : Weapon(new WeaponDefinition(
-            "Test Weapon", 5, 3,
-            0, 3, 6, 9,
-            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType));
+    private class TestWeapon : Weapon
+    {
+        public TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null, int damage = 5)
+            : base(new WeaponDefinition(
+                "Test Weapon", damage, 3,
+                0, 3, 6, 9,
+                type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType))
+        {
+        }
+    }
 
     // Custom cluster weapon class that allows setting damage for testing
     private class TestClusterWeapon(

@@ -472,6 +472,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [Theory]
         [InlineData(PilotingSkillRollType.GyroHit, 3)]
         [InlineData(PilotingSkillRollType.LowerLegActuatorHit, 1)]
+        [InlineData(PilotingSkillRollType.HeavyDamage, 1)]
         public void GetPilotingSkillRollModifier_ValidTypes_ReturnsExpectedValues(PilotingSkillRollType rollType, int expectedModifier)
         {
             _sut.GetPilotingSkillRollModifier(rollType).ShouldBe(expectedModifier);
@@ -532,6 +533,16 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         {
             // Act & Assert
             Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetAttackDirectionAfterFall(invalidRoll));
+        }
+        
+        [Fact]
+        public void GetHeavyDamageThreshold_ReturnsExpectedValue()
+        {
+            // Act
+            var result = _sut.GetHeavyDamageThreshold();
+
+            // Assert
+            result.ShouldBe(20);
         }
     }
 }
