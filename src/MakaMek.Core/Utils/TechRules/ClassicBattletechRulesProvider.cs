@@ -402,14 +402,14 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         };
     }
 
-    public int GetPilotingSkillRollModifier(PilotingSkillRollType gyroHit)
+    public int GetPilotingSkillRollModifier(PilotingSkillRollType psrType)
     {
-        return gyroHit switch
+        return psrType switch
         {
             PilotingSkillRollType.GyroHit => 3,
             PilotingSkillRollType.LowerLegActuatorHit => 1,
             PilotingSkillRollType.HeavyDamage => 1, // +1 modifier for taking 20+ damage in a single phase
-            _ => throw new ArgumentOutOfRangeException(nameof(gyroHit), "Invalid piloting skill roll type")
+            _ => throw new ArgumentOutOfRangeException(nameof(psrType), "Invalid piloting skill roll type")
         };
     }
 }

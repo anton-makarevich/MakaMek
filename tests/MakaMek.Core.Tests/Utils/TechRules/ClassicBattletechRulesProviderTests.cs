@@ -472,6 +472,7 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
         [Theory]
         [InlineData(PilotingSkillRollType.GyroHit, 3)]
         [InlineData(PilotingSkillRollType.LowerLegActuatorHit, 1)]
+        [InlineData(PilotingSkillRollType.HeavyDamage, 1)]
         public void GetPilotingSkillRollModifier_ValidTypes_ReturnsExpectedValues(PilotingSkillRollType rollType, int expectedModifier)
         {
             _sut.GetPilotingSkillRollModifier(rollType).ShouldBe(expectedModifier);
