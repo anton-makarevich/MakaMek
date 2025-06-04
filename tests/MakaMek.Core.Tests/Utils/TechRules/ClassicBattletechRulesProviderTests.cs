@@ -534,5 +534,15 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             // Act & Assert
             Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetAttackDirectionAfterFall(invalidRoll));
         }
+        
+        [Fact]
+        public void GetHeavyDamageThreshold_ReturnsExpectedValue()
+        {
+            // Act
+            var result = _sut.GetHeavyDamageThreshold();
+
+            // Assert
+            result.ShouldBe(20);
+        }
     }
 }

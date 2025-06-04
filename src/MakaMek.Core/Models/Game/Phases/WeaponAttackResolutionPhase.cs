@@ -347,7 +347,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         // Check for fall conditions
         // Pass the total damage to CheckForFall
-        if (allComponentHits.Count > 0 || resolution.HitLocationsData.TotalDamage >= 20)
+        var heavyDamageThreshold = Game.RulesProvider.GetHeavyDamageThreshold();
+        if (allComponentHits.Count > 0 || resolution.HitLocationsData.TotalDamage >= heavyDamageThreshold)
         {
             CheckForFall(target, allComponentHits, resolution.HitLocationsData.TotalDamage);
         }
@@ -397,7 +398,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 new FallReason(FallInducingCriticalsMap[componentType], componentType)).ToList();
 
         // Add heavy damage fall reason
-        if (totalDamage >= 20 && unit is Mech) // Ensure unit is a Mech for heavy damage PSR
+        var heavyDamageThreshold = Game.RulesProvider.GetHeavyDamageThreshold();
+        if (totalDamage >= heavyDamageThreshold && unit is Mech) // Ensure unit is a Mech for heavy damage PSR
         {
             fallReasons.Add(new FallReason(PilotingSkillRollType.HeavyDamage));
         }

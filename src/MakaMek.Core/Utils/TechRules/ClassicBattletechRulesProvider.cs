@@ -412,4 +412,9 @@ public class ClassicBattletechRulesProvider : IRulesProvider
             _ => throw new ArgumentOutOfRangeException(nameof(psrType), "Invalid piloting skill roll type")
         };
     }
+
+    public int GetHeavyDamageThreshold()
+    {
+        return 20;    
+    }
 }

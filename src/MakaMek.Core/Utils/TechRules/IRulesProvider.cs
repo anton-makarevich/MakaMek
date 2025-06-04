@@ -77,4 +77,6 @@ public interface IRulesProvider
     int GetMovementHeatPoints(MovementType movementType, int movementPointSpent);
 
     int GetPilotingSkillRollModifier(PilotingSkillRollType psrType);
+
+    int GetHeavyDamageThreshold();
 }
