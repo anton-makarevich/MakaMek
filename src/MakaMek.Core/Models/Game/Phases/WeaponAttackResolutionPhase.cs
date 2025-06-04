@@ -24,7 +24,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     
     // Units with weapons that have targets, organized by player
     private readonly Dictionary<Guid, List<Unit>> _unitsWithTargets = new();
-    
+
     public override void Enter()
     {
         base.Enter();
@@ -447,7 +447,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 };
             }
             PilotingSkillRollData? pilotDamagePsr = null;
-            // If autoFall is true, fallPsrData remains null, consistent with original Gyro destroyed logic.
             if (isFallingNow)
             {
                 // Process the fall.
@@ -474,7 +473,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             }
             var fallingDamageData = isFallingNow
                 ? Game.FallingDamageCalculator.CalculateFallingDamage(unit, 0, false)
-                :null;
+                : null;
 
             var mechFallingCommand = new MechFallingCommand
             {

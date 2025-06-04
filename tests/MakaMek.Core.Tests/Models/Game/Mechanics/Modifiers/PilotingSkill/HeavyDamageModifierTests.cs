@@ -7,11 +7,12 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Modifiers.PilotingSkill
 
 public class HeavyDamageModifierTests
 {
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+
     public HeavyDamageModifierTests()
     {
         _localizationService.GetString("Modifier_HeavyDamage").Returns("Heavy Damage ({0} points): +{1}");
     }
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     [Theory]
     [InlineData(10, 1, "Heavy Damage (10 points): +1")]
