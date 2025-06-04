@@ -39,7 +39,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
 
         var modifiers = new List<RollModifier>();
-        var relevantRollTypes = rollTypes.ToList() ?? [];
+        var relevantRollTypes = rollTypes.ToList();
         if (unit is Mech mech)
         {
             // Add damaged gyro modifier if applicable
