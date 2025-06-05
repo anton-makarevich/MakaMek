@@ -347,18 +347,20 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (allComponentHits.Count > 0 || resolution.HitLocationsData.TotalDamage >= heavyDamageThreshold)
         {
             // Use the new FallProcessor
-            var mechFallingCommand = Game.FallProcessor.ProcessPotentialFall(
+            var mechFallingCommands = Game.FallProcessor.ProcessPotentialFall(
                 target, 
                 Game.BattleMap, 
                 allComponentHits, 
                 resolution.HitLocationsData.TotalDamage, 
-                Game.Id);
+                Game.Id).ToList();
 
-            if (mechFallingCommand == null) return;
-            Game.CommandPublisher.PublishCommand(mechFallingCommand);
-            if (mechFallingCommand.Value.DamageData == null || target is not Mech mech) return;
-            target.ApplyDamage(mechFallingCommand.Value.DamageData.HitLocations.HitLocations);
-            mech.SetProne();
+            foreach (var fallingCommand in mechFallingCommands)
+            {
+                Game.CommandPublisher.PublishCommand(fallingCommand);
+                if (fallingCommand.DamageData is null || target is not Mech mech) continue;
+                target.ApplyDamage(fallingCommand.DamageData.HitLocations.HitLocations);
+                mech.SetProne();
+            }
         }
     }
     
