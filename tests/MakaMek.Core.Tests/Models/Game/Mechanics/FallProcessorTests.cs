@@ -27,10 +27,10 @@ public class FallProcessorTests
     private readonly IDiceRoller _mockDiceRoller;
     private readonly IFallingDamageCalculator _mockFallingDamageCalculator;
 
-    private Mech _testMech;
-    private BattleMap _map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10,
+    private readonly Mech _testMech;
+    private readonly BattleMap _map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10,
         new SingleTerrainGenerator(10,10, new ClearTerrain()));
-    private Guid _gameId = Guid.NewGuid();
+    private readonly Guid _gameId = Guid.NewGuid();
 
     public FallProcessorTests()
     {
@@ -79,7 +79,7 @@ public class FallProcessorTests
 
         // Act
         var results =
-            _sut.ProcessPotentialFall(_testMech, _map, componentHits, 10, _gameId);
+            _sut.ProcessPotentialFall(_testMech, _map, componentHits, 10, _gameId).ToList();
 
         // Assert
         results.ShouldHaveSingleItem("A single command should be returned for a gyro hit PSR fail.");
@@ -132,7 +132,8 @@ public class FallProcessorTests
             Arg.Any<Unit>(),
             Arg.Is<IEnumerable<PilotingSkillRollType>>(types =>
                 types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            Arg.Any<BattleMap>());
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>());
     }
     //
     // [Fact]
@@ -184,41 +185,11 @@ public class FallProcessorTests
     //             cmd.LevelsFallen == 0 &&
     //             cmd.WasJumping == false &&
     //             cmd.DamageData == fallingDamageData &&
-    //             cmd.IsPilotingSkillRollRequired == false));
+    //             cmd.IsPilotTakingDamage == true &&
+    //             cmd.PilotDamagePilotingSkillRoll != null &&
+    //             !cmd.PilotDamagePilotingSkillRoll.IsSuccessful));
     // }
-    //
-    // [Fact]
-    // public void Enter_ShouldNotPublishMechFallingCommand_WhenNoGyroFound()
-    // {
-    //     // Arrange
-    //     SetMap();
-    //     SetupPlayer1WeaponTargets();
-    //
-    //     // Setup ToHitCalculator to return a value
-    //     SetupToHitNumber(7);
-    //
-    //     // Configure dice rolls to ensure hit on center torso
-    //     // First roll (8) is for attack (hit)
-    //     // Second roll (7) is for hit location (center torso)
-    //     SetupDiceRolls(8, 7);
-    //
-    //     // Setup critical hit calculator to return a gyro hit
-    //     SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso,_player1Unit1);
-    //
-    //     // Remove gyro to simulate no gyro mech (not possible, so maybe we should throw)
-    //     var ct = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
-    //     var gyro = ct.GetComponents<Gyro>().First();
-    //     ct.RemoveComponent(gyro);
-    //
-    //     // Act
-    //     _sut.Enter();
-    //
-    //     // Assert
-    //     // Verify that a MechFallingCommand was published with the correct data
-    //     CommandPublisher.DidNotReceive().PublishCommand(
-    //         Arg.Any<MechFallingCommand>());
-    // }
-    //
+    
     [Fact]
     public void ProcessPotentialFall_ShouldReturnCommandWithSuccessfulPsr_WhenGyroHitPsrSucceeds()
     {
@@ -262,225 +233,288 @@ public class FallProcessorTests
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(
             Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
     }
-    //
-    // [Fact]
-    // public void Enter_ShouldPublishMechFallingCommandWithPilotDamagePsr_WhenPilotDamageCheckFails()
-    // {
-    //     // Arrange
-    //     SetMap();
-    //     SetupPlayer1WeaponTargets();
-    //
-    //     // Setup ToHitCalculator to return a value
-    //     SetupToHitNumber(7);
-    //
-    //     // Setup critical hit calculator to return a gyro hit
-    //     SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
-    //
-    //     // Setup piloting skill calculator for gyro hit
-    //     SetupPsrFor(PilotingSkillRollType.GyroHit,3,"Damaged Gyro");
-    //
-    //     // Setup piloting skill calculator for pilot damage
-    //     SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
-    //
-    //     // Setup dice roller to return a failed PSR roll for both checks
-    //     SetupDiceRolls(8, 7, 6, 3);
-    //
-    //     // Setup falling damage calculator
-    //     var facingRoll = new DiceResult(3);
-    //     var hitLocationRolls = new List<DiceResult> { new(3), new(3) };
-    //     var hitLocationData = new HitLocationData(
-    //         PartLocation.CenterTorso,
-    //         5,
-    //         hitLocationRolls
-    //     );
-    //     var hitLocationsData = new HitLocationsData(
-    //         [hitLocationData],
-    //         5
-    //     );
-    //
-    //     var fallingDamageData = new FallingDamageData(
-    //         HexDirection.TopRight,
-    //         hitLocationsData,
-    //         facingRoll
-    //     );
-    //
-    //     Game.FallingDamageCalculator.CalculateFallingDamage(
-    //             Arg.Any<Unit>(),
-    //             Arg.Is<int>(i => i == 0),
-    //             Arg.Is<bool>(b => b == false))
-    //         .Returns(fallingDamageData);
-    //
-    //     // Act
-    //     _sut.Enter();
-    //
-    //     // Assert
-    //     _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-    //
-    //     // Verify that a MechFallingCommand was published with the correct data
-    //     CommandPublisher.Received().PublishCommand(
-    //         Arg.Is<MechFallingCommand>(cmd =>
-    //             cmd.GameOriginId == Game.Id &&
-    //             cmd.UnitId == _player1Unit1.Id &&
-    //             cmd.LevelsFallen == 0 &&
-    //             cmd.WasJumping == false &&
-    //             cmd.DamageData == fallingDamageData &&
-    //             cmd.IsPilotTakingDamage == true &&
-    //             cmd.PilotDamagePilotingSkillRoll != null &&
-    //             !cmd.PilotDamagePilotingSkillRoll.IsSuccessful));
-    // }
-    //
-    // [Fact]
-    // public void Enter_ShouldPublishMechFallingCommand_WhenLowerLegActuatorHitPsrFails()
-    // {
-    //     // Arrange
-    //     SetMap();
-    //     SetupPlayer1WeaponTargets();
-    //     SetupToHitNumber(7);
-    //
-    //     // Dice: 1. Attack roll (hits), 2. Hit Location roll (LeftLeg - 9 for Front/Rear), 3. PSR roll (fails - 4 vs target 5)
-    //     SetupDiceRolls(8, 9, 4);
-    //
-    //     SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
-    //
-    //     // PSR for LLA Hit: Base Skill 4, LLA Mod +1 => Target 5.
-    //     SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
-    //
-    //     // PSR for Pilot Damage from Fall
-    //     SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 2, "Pilot Damage from Fall");
-    //
-    //     var fallingDamageData = GetFallingDamageData();
-    //     Game.FallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), 0, false)
-    //         .Returns(fallingDamageData);
-    //
-    //     // Act
-    //     _sut.Enter();
-    //
-    //     // Assert
-    //     _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-    //     CommandPublisher.Received().PublishCommand(
-    //         Arg.Is<MechFallingCommand>(cmd =>
-    //             cmd.UnitId == _player1Unit1.Id &&
-    //             cmd.IsPilotingSkillRollRequired == true &&
-    //             cmd.FallPilotingSkillRoll != null &&
-    //             cmd.FallPilotingSkillRoll.RollType == PilotingSkillRollType.LowerLegActuatorHit &&
-    //             cmd.PilotDamagePilotingSkillRoll != null &&
-    //             cmd.DamageData == fallingDamageData));
-    // }
-    //
-    // [Fact]
-    // public void Enter_ShouldNotPublishMechFallingCommand_WhenLowerLegActuatorHitPsrSucceeds()
-    // {
-    //     // Arrange
-    //     SetMap();
-    //     SetupPlayer1WeaponTargets();
-    //     SetupToHitNumber(7);
-    //
-    //     // Dice: 1. Attack (hits), 2. Hit Location (LeftLeg - 9), 3. PSR (succeeds - 8 vs target 5)
-    //     SetupDiceRolls(8, 9, 8);
-    //
-    //     SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
-    //
-    //     // PSR for LLA Hit: Base Skill 4, LLA Mod +1 => Target 5.
-    //     SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
-    //
-    //     // Act
-    //     _sut.Enter();
-    //
-    //     // Assert
-    //     _player1Unit1.Status.ShouldNotHaveFlag(UnitStatus.Prone);
-    //     // Verify that a MechFallingCommand was published
-    //     CommandPublisher.Received().PublishCommand(
-    //         Arg.Is<MechFallingCommand>(cmd =>
-    //             cmd.GameOriginId == Game.Id &&
-    //             cmd.UnitId == _player1Unit1.Id &&
-    //             cmd.LevelsFallen == 0 &&
-    //             cmd.WasJumping == false &&
-    //             cmd.DamageData == null &&
-    //             cmd.FallPilotingSkillRoll!.DiceResults.Sum() == 8 &&
-    //             cmd.FallPilotingSkillRoll!.RollType == PilotingSkillRollType.LowerLegActuatorHit &&
-    //             cmd.IsPilotingSkillRollRequired == true));
-    // }
-    //
-    // [Fact]
-    // public void Enter_ShouldPublishMechFallingCommand_WhenHeavyDamagePsrFails()
-    // {
-    //     // Arrange
-    //     SetMap();
-    //     SetupPlayer1WeaponTargets();
-    //     SetupToHitNumber(7);
-    //
-    //     // Configure a high-damage weapon
-    //     var highDamageWeapon = new TestWeapon(WeaponType.Energy, null, 20);
-    //     var part = _player1Unit1.Parts[0];
-    //     part.TryAddComponent(highDamageWeapon, [1]);
-    //     highDamageWeapon.Target = _player2Unit1;
-    //
-    //     // Dice: 1. Attack roll (hits), 2. Hit Location roll, 3. PSR roll (fails - 4 vs target 7)
-    //     SetupDiceRolls(8, 7, 4);
-    //
-    //     // Setup piloting skill calculator for heavy damage
-    //     SetupPsrFor(PilotingSkillRollType.HeavyDamage, 3, "Heavy Damage");
-    //
-    //     // Setup piloting skill calculator for pilot damage
-    //     SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 2, "Pilot Damage from Fall");
-    //
-    //     var fallingDamageData = GetFallingDamageData();
-    //     Game.FallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), 0, false)
-    //         .Returns(fallingDamageData);
-    //
-    //     // Act
-    //     _sut.Enter();
-    //
-    //     // Assert
-    //     _player2Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-    //     CommandPublisher.Received().PublishCommand(
-    //         Arg.Is<MechFallingCommand>(cmd =>
-    //             cmd.UnitId == _player2Unit1.Id &&
-    //             cmd.IsPilotingSkillRollRequired == true &&
-    //             cmd.FallPilotingSkillRoll != null &&
-    //             cmd.FallPilotingSkillRoll.RollType == PilotingSkillRollType.HeavyDamage &&
-    //             cmd.PilotDamagePilotingSkillRoll != null &&
-    //             cmd.DamageData == fallingDamageData));
-    // }
-    //
-    // [Fact]
-    // public void Enter_ShouldPublishMechFallingCommand_WhenHeavyDamagePsrSucceeds()
-    // {
-    //     // Arrange
-    //     SetMap();
-    //     SetupPlayer1WeaponTargets();
-    //     SetupToHitNumber(7);
-    //
-    //     // Configure a high-damage weapon
-    //     var highDamageWeapon = new TestWeapon(WeaponType.Energy, null, 20);
-    //     var part = _player1Unit1.Parts[0];
-    //     part.TryAddComponent(highDamageWeapon, [1]);
-    //     highDamageWeapon.Target = _player2Unit1;
-    //
-    //     // Dice: 1. Attack roll (hits), 2. Hit Location roll, 3. PSR roll (succeeds - 8 vs target 7)
-    //     SetupDiceRolls(8, 7, 8);
-    //
-    //     // Setup piloting skill calculator for heavy damage
-    //     SetupPsrFor(PilotingSkillRollType.HeavyDamage, 3, "Heavy Damage (20+ points)");
-    //
-    //     // Act
-    //     _sut.Enter();
-    //
-    //     // Assert
-    //     _player2Unit1.Status.ShouldNotHaveFlag(UnitStatus.Prone);
-    //     CommandPublisher.Received().PublishCommand(
-    //         Arg.Is<MechFallingCommand>(cmd =>
-    //             cmd.GameOriginId == Game.Id &&
-    //             cmd.UnitId == _player2Unit1.Id &&
-    //             cmd.LevelsFallen == 0 &&
-    //             cmd.WasJumping == false &&
-    //             cmd.DamageData == null &&
-    //             cmd.FallPilotingSkillRoll!.DiceResults.Sum() == 8 &&
-    //             cmd.FallPilotingSkillRoll!.RollType == PilotingSkillRollType.HeavyDamage &&
-    //             cmd.IsPilotingSkillRollRequired == true));
-    // }
     
-        [Fact]
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnTwoCommands_WhenGyroHitAndHeavyDamagePsrsFail()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
+        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+
+        _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
+
+        // Gyro Hit PSR: Base 4 + Mod 3 (Gyro Hit) = TN 7. Roll 6 -> Fails.
+        SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Gyro Hit");
+        // Heavy Damage PSR: Base 4 + Mod 2 (20 damage) = TN 6. Roll 5 -> Fails.
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
+        // PilotDamageFromFall PSR: Base 4 + Mod 0 = TN 4. Roll 7 -> Succeeds (pilot avoids damage).
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot Damage PSR");
+
+        // Dice rolls: Gyro (fails), HeavyDamage (fails), PilotDamage (succeeds)
+        SetupDiceRolls(6,5,7);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+
+        // Assert
+        results.Count.ShouldBe(2, "Two commands should be returned for Gyro hit and Heavy Damage PSR failures.");
+
+        // First command (expected Gyro Hit)
+        var gyroFallCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.GyroHit);
+        gyroFallCommand.IsPilotingSkillRollRequired.ShouldBeTrue();
+        gyroFallCommand.FallPilotingSkillRoll!.IsSuccessful.ShouldBeFalse();
+        gyroFallCommand.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(6);
+        gyroFallCommand.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7);
+        gyroFallCommand.DamageData.ShouldBe(fallingDamageData);
+        gyroFallCommand.IsPilotTakingDamage.ShouldBeTrue(); // Pilot damage PSR is made because a fall occurred
+        gyroFallCommand.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        gyroFallCommand.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        gyroFallCommand.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
+        gyroFallCommand.PilotDamagePilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
+
+        // Second command (expected Heavy Damage)
+        var heavyDamageFallCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.HeavyDamage);
+        heavyDamageFallCommand.IsPilotingSkillRollRequired.ShouldBeTrue();
+        heavyDamageFallCommand.FallPilotingSkillRoll!.IsSuccessful.ShouldBeFalse();
+        heavyDamageFallCommand.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(5);
+        heavyDamageFallCommand.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6);
+        heavyDamageFallCommand.DamageData.ShouldBeNull(); // Not applied to subsequent fall reasons
+        heavyDamageFallCommand.IsPilotTakingDamage.ShouldBeFalse(); // Not applied to subsequent fall reasons
+        heavyDamageFallCommand.PilotDamagePilotingSkillRoll.ShouldBeNull(); // Not applied to subsequent fall reasons
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.GyroHit)),
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>());
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.HeavyDamage)),
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>());
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>());
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnTwoCommands_WhenGyroHitAndHeavyDamagePsrsSucceed()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
+        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+
+        _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
+
+        // Gyro Hit PSR: Base 4 + Mod 3 (Gyro Hit) = TN 7. Roll 8 -> Succeeds.
+        SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Gyro Hit");
+        // Heavy Damage PSR: Base 4 + Mod 2 (20 damage) = TN 6. Roll 7 -> Succeeds.
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
+
+        // Dice rolls: Gyro (succeeds), HeavyDamage (succeeds)
+        SetupDiceRolls(8, 7);
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+
+        // Assert
+        results.Count.ShouldBe(2, "Two commands should be returned for Gyro hit and Heavy Damage PSR successes.");
+
+        // First command (expected Gyro Hit)
+        var gyroCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.GyroHit);
+        gyroCommand.IsPilotingSkillRollRequired.ShouldBeTrue();
+        gyroCommand.FallPilotingSkillRoll!.IsSuccessful.ShouldBeTrue();
+        gyroCommand.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(8);
+        gyroCommand.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7);
+        gyroCommand.DamageData.ShouldBeNull();
+        gyroCommand.IsPilotTakingDamage.ShouldBeFalse();
+        gyroCommand.PilotDamagePilotingSkillRoll.ShouldBeNull();
+
+        // Second command (expected Heavy Damage)
+        var heavyDamageCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.HeavyDamage);
+        heavyDamageCommand.IsPilotingSkillRollRequired.ShouldBeTrue();
+        heavyDamageCommand.FallPilotingSkillRoll!.IsSuccessful.ShouldBeTrue();
+        heavyDamageCommand.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
+        heavyDamageCommand.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6);
+        heavyDamageCommand.DamageData.ShouldBeNull();
+        heavyDamageCommand.IsPilotTakingDamage.ShouldBeFalse();
+        heavyDamageCommand.PilotDamagePilotingSkillRoll.ShouldBeNull();
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.GyroHit)),
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>());
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.HeavyDamage)),
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>());
+
+        _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>());
+
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldNotReturnCommand_WhenNoFallConditionsMet()
+    {
+        // Arrange
+        var componentHits = new List<ComponentHitData>(); // No fall-inducing critical hits
+        const int totalDamageDealt = 5; // Damage below heavy damage threshold
+
+        // Ensure heavy damage PSR is not triggered by mocking RulesProvider if necessary, 
+        // or rely on the default ClassicBattletechRulesProvider threshold (usually 20).
+        // For this test, 5 damage should be safe.
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+
+        // Assert
+        results.ShouldBeEmpty("No commands should be returned when no fall conditions are met.");
+
+        // Verify no PSR calculations for fall reasons were attempted
+        _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => 
+                types.Contains(PilotingSkillRollType.GyroHit) || 
+                types.Contains(PilotingSkillRollType.LowerLegActuatorHit) || 
+                types.Contains(PilotingSkillRollType.HeavyDamage)),
+            _map,
+            totalDamageDealt);
+
+        // Verify no pilot damage PSR was attempted
+        _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+            _map,
+            totalDamageDealt);
+
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnCommand_WhenHeavyDamagePsrFails()
+    {
+        // Arrange
+        var componentHits = new List<ComponentHitData>(); // No critical hits
+        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+
+        _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
+
+        // Heavy Damage PSR: Base 4 + Mod (e.g., 2 for 20 damage) = TN 6. Roll 5 -> Fails.
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
+        
+        // PilotDamageFromFall PSR: Base 4 + Mod (e.g., 0) = TN 4. Roll 7 -> Succeeds.
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot Damage PSR");
+
+        // Dice rolls: First for HeavyDamage (fails), second for PilotDamage (succeeds)
+        SetupDiceRolls(5, 7);
+        
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+
+        // Assert
+        results.ShouldHaveSingleItem("A single command should be returned for a failed Heavy Damage PSR.");
+        var command = results.Single();
+
+        command.IsPilotingSkillRollRequired.ShouldBeTrue();
+        command.FallPilotingSkillRoll.ShouldNotBeNull();
+        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.HeavyDamage);
+        command.FallPilotingSkillRoll.IsSuccessful.ShouldBeFalse();
+        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(5);
+        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); 
+
+        command.DamageData.ShouldBe(fallingDamageData);
+        command.IsPilotTakingDamage.ShouldBeTrue();
+        command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
+        command.PilotDamagePilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.HeavyDamage)),
+            _map,
+            totalDamageDealt);
+        
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+            _map,
+            totalDamageDealt); // totalDamageDealt is passed for context, even if not directly used by PilotDamage PSR modifiers in this setup
+
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnCommandWithSuccessfulHeavyDamagePsr_WhenHeavyDamagePsrSucceeds()
+    {
+        // Arrange
+        var componentHits = new List<ComponentHitData>(); // No critical hits
+        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+
+        _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
+
+        // Heavy Damage PSR: Base 4 + Mod (e.g., 2 for 20 damage) = TN 6. Roll 7 -> Succeeds.
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
+        
+        // Dice roll for HeavyDamage PSR (succeeds)
+        SetupDiceRolls(7);
+        
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+
+        // Assert
+        results.ShouldHaveSingleItem("A single command should be returned for a successful Heavy Damage PSR.");
+        var command = results.Single();
+
+        command.IsPilotingSkillRollRequired.ShouldBeTrue();
+        command.FallPilotingSkillRoll.ShouldNotBeNull();
+        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.HeavyDamage);
+        command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
+        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
+        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6);
+
+        command.DamageData.ShouldBeNull();
+        command.PilotDamagePilotingSkillRoll.ShouldBeNull();
+        command.IsPilotTakingDamage.ShouldBeFalse();
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.HeavyDamage)),
+            _map,
+            totalDamageDealt);
+        
+        _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+            _map,
+            totalDamageDealt);
+
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
     public void ProcessPotentialFall_ShouldNotReturnCommand_WhenGyroHitReportedForMechWithoutGyro()
     {
         // Arrange
@@ -655,6 +689,48 @@ public class FallProcessorTests
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
     }
     
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnCommandWithSuccessfulLlaPsr_WhenLlaPsrSucceeds()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.LowerLegActuator, 1); // LLA hit
+        const int totalDamageDealt = 5; // Not enough for heavy damage
+
+        // Setup LLA Hit PSR to succeed.
+        // BasePilotingSkill = 4. LLA Hit Mod +1. TargetNumber = 5.
+        SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
+        
+        // Dice roll: 8 for LLA Hit PSR (8 >= 5 succeeds).
+        SetupDiceRolls(8); 
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+
+        // Assert
+        results.ShouldHaveSingleItem("A single command should be returned for a successful LLA PSR.");
+        var command = results.Single();
+
+        command.GameOriginId.ShouldBe(_gameId);
+        command.UnitId.ShouldBe(_testMech.Id);
+        command.IsPilotingSkillRollRequired.ShouldBeTrue();
+        command.FallPilotingSkillRoll.ShouldNotBeNull();
+        command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
+        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.LowerLegActuatorHit);
+        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(8);
+        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (LLA mod)
+        command.DamageData.ShouldBeNull();
+        command.PilotDamagePilotingSkillRoll.ShouldBeNull();
+        command.IsPilotTakingDamage.ShouldBeFalse();
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.LowerLegActuatorHit)),
+            _map,
+            totalDamageDealt);
+            
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+    
     private void SetupPsrFor(PilotingSkillRollType psrType, int modifierValue, string modifierName)
     {
         _mockPilotingSkillCalculator.GetPsrBreakdown(
@@ -733,7 +809,7 @@ public class FallProcessorTests
     {
         public required string Name { get; init; }
 
-        public override string Render(Sanet.MakaMek.Core.Services.Localization.ILocalizationService localizationService)
+        public override string Render(ILocalizationService localizationService)
         {
             return Name;
         }
