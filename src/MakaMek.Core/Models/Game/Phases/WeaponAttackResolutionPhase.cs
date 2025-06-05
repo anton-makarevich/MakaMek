@@ -1,15 +1,12 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.Data.Community;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -346,11 +343,22 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var allComponentHits = GetAllComponentHits(resolution.HitLocationsData);
         
         // Check for fall conditions
-        // Pass the total damage to CheckForFall
         var heavyDamageThreshold = Game.RulesProvider.GetHeavyDamageThreshold();
         if (allComponentHits.Count > 0 || resolution.HitLocationsData.TotalDamage >= heavyDamageThreshold)
         {
-            CheckForFall(target, allComponentHits, resolution.HitLocationsData.TotalDamage);
+            // Use the new FallProcessor
+            var mechFallingCommand = Game.FallProcessor.ProcessPotentialFall(
+                target, 
+                Game.BattleMap, 
+                allComponentHits, 
+                resolution.HitLocationsData.TotalDamage, 
+                Game.Id);
+
+            if (mechFallingCommand == null) return;
+            Game.CommandPublisher.PublishCommand(mechFallingCommand);
+            if (mechFallingCommand.Value.DamageData == null || target is not Mech mech) return;
+            target.ApplyDamage(mechFallingCommand.Value.DamageData.HitLocations.HitLocations);
+            mech.SetProne();
         }
     }
     
@@ -367,133 +375,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             .Where(ch => ch.HitComponents is { Length: > 0 })
             .SelectMany(ch => ch.HitComponents!)
             .ToList();
-    }
-
-    private static readonly Dictionary<MakaMekComponent, PilotingSkillRollType> FallInducingCriticalsMap = new()
-    {
-        { MakaMekComponent.Gyro, PilotingSkillRollType.GyroHit },
-        { MakaMekComponent.LowerLegActuator, PilotingSkillRollType.LowerLegActuatorHit }
-        //TODO potentially move this to a separate mapper
-    };
-
-    private record FallReason(PilotingSkillRollType RollType, MakaMekComponent? ComponentType = null);
-
-    /// <summary>
-    /// Checks for critical hits on components that can cause a Mech to fall (e.g., Gyro, Actuators)
-    /// and makes a Piloting Skill Roll if necessary.
-    /// </summary>
-    /// <param name="unit">The unit to check for fall-inducing critical hits.</param>
-    /// <param name="componentHits">The list of component hits from the current attack resolution.</param>
-    /// <param name="totalDamage">The total damage dealt by the attack.</param>
-    private void CheckForFall(Unit unit, List<ComponentHitData> componentHits, int totalDamage)
-    {
-        // Add component-based fall reasons
-        var hitFallInducingComponentTypes = componentHits
-            .Select(c => c.Type)
-            .Where(type => FallInducingCriticalsMap.ContainsKey(type))
-            .ToList();
-
-        var fallReasons = hitFallInducingComponentTypes
-            .Select(componentType => 
-                new FallReason(FallInducingCriticalsMap[componentType], componentType)).ToList();
-
-        // Add heavy damage fall reason
-        var heavyDamageThreshold = Game.RulesProvider.GetHeavyDamageThreshold();
-        if (totalDamage >= heavyDamageThreshold && unit is Mech) // Ensure unit is a Mech for heavy damage PSR
-        {
-            fallReasons.Add(new FallReason(PilotingSkillRollType.HeavyDamage));
-        }
-
-        if (fallReasons.Count == 0)
-            return;
-
-        // Process each fall reason. If a fall occurs, stop processing further reasons.
-        foreach (var reason in fallReasons)
-        {
-            var autoFall = false;
-            var requiresPsr = true;
-
-            // Specific handling for components like Gyro that cause automatic fall on destruction.
-            if (reason.ComponentType == MakaMekComponent.Gyro)
-            {
-                var gyro = unit.GetAllComponents<Gyro>().FirstOrDefault();
-                if (gyro == null) continue; // Should not happen if a gyro component was reported as hit.
-                if (gyro.IsDestroyed)
-                {
-                    autoFall = true;
-                    requiresPsr = false; // No PSR needed if auto-falling due to destruction.
-                }
-            }
-            // Add other auto-fall conditions here if necessary for other component types.
-            // For LowerLegActuator, a critical hit itself requires a PSR (handled by requiresPsr = true default).
-
-            PilotingSkillRollData? fallPsrData = null;
-            var isFallingNow = autoFall;
-
-            if (requiresPsr && !autoFall)
-            {
-                var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, [reason.RollType],
-                    null, totalDamage);
-                var diceResults = Game.DiceRoller.Roll2D6();
-                var rollTotal = diceResults.Sum(d => d.Result);
-                isFallingNow = rollTotal < psrBreakdown.ModifiedPilotingSkill;
-
-                fallPsrData = new PilotingSkillRollData
-                {
-                    RollType = reason.RollType,
-                    DiceResults = diceResults.Select(d => d.Result).ToArray(),
-                    IsSuccessful = !isFallingNow,
-                    PsrBreakdown = psrBreakdown
-                };
-            }
-            PilotingSkillRollData? pilotDamagePsr = null;
-            if (isFallingNow)
-            {
-                // Process the fall.
-                var pilotPsrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(
-                    unit,
-                    [PilotingSkillRollType.PilotDamageFromFall],
-                    Game.BattleMap);
-                
-                // Roll for pilot damage if applicable (e.g., if modifiers exist for this roll)
-                if (pilotPsrBreakdown.Modifiers.Count > 0) 
-                {
-                    var pilotDiceResults = Game.DiceRoller.Roll2D6();
-                    var pilotRollTotal = pilotDiceResults.Sum(d => d.Result);
-                    var isPilotDamageSuccessful = pilotRollTotal >= pilotPsrBreakdown.ModifiedPilotingSkill;
-                    
-                    pilotDamagePsr = new PilotingSkillRollData
-                    {
-                        RollType = PilotingSkillRollType.PilotDamageFromFall,
-                        DiceResults = pilotDiceResults.Select(d => d.Result).ToArray(),
-                        IsSuccessful = isPilotDamageSuccessful,
-                        PsrBreakdown = pilotPsrBreakdown
-                    };
-                }
-            }
-            var fallingDamageData = isFallingNow
-                ? Game.FallingDamageCalculator.CalculateFallingDamage(unit, 0, false)
-                : null;
-
-            var mechFallingCommand = new MechFallingCommand
-            {
-                UnitId = unit.Id,
-                LevelsFallen = 0,
-                WasJumping = false,
-                DamageData = fallingDamageData,
-                GameOriginId = Game.Id,
-                FallPilotingSkillRoll = fallPsrData, // PSR for the component hit causing the fall
-                PilotDamagePilotingSkillRoll = pilotDamagePsr // PSR for pilot damage from this fall
-            };
-            
-            Game.CommandPublisher.PublishCommand(mechFallingCommand);
-            if (fallingDamageData != null && unit is Mech mech)
-            {
-                unit.ApplyDamage(fallingDamageData.HitLocations.HitLocations);
-                mech.SetProne();
-                return;
-            }
-        }
     }
 
     private void MoveToNextUnit()
