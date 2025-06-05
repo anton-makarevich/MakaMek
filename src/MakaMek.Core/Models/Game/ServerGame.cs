@@ -22,10 +22,7 @@ public class ServerGame : BaseGame, IDisposable
     public bool IsAutoRoll { get; set; } = true;
     private IPhaseManager PhaseManager { get; }
     public IDiceRoller DiceRoller { get; }
-    
     public ICriticalHitsCalculator CriticalHitsCalculator { get; }
-    public IPilotingSkillCalculator PilotingSkillCalculator { get; }
-    public IFallingDamageCalculator FallingDamageCalculator { get; }
     public IFallProcessor FallProcessor { get; }
     public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
 
@@ -36,16 +33,12 @@ public class ServerGame : BaseGame, IDisposable
         IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IFallingDamageCalculator fallingDamageCalculator,
         IFallProcessor fallProcessor,
         IPhaseManager? phaseManager = null)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator) 
     {
         DiceRoller = diceRoller;
         CriticalHitsCalculator = criticalHitsCalculator;
-        PilotingSkillCalculator = pilotingSkillCalculator;
-        FallingDamageCalculator = fallingDamageCalculator;
         FallProcessor = fallProcessor;
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
