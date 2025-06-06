@@ -764,6 +764,14 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             GameOriginId = Game.Id
         };
         
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Any<Unit>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<int>(),
+                Arg.Any<Guid>())
+            .Returns(new List<MechFallingCommand> { mechFallingCommand });
+        
         // Get initial armor value to verify damage is applied
         var targetPart = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
         var initialArmor = targetPart.CurrentArmor;
