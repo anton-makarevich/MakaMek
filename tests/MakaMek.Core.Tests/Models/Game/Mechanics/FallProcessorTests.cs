@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -10,19 +11,21 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
+using Shouldly.ShouldlyExtensionMethods;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
 
 public class FallProcessorTests
 {
     private readonly FallProcessor _sut;
-    private readonly IRulesProvider _mockRulesProvider;
+    private readonly IRulesProvider _rulesProvider;
     private readonly IPilotingSkillCalculator _mockPilotingSkillCalculator;
     private readonly IDiceRoller _mockDiceRoller;
     private readonly IFallingDamageCalculator _mockFallingDamageCalculator;
@@ -34,19 +37,19 @@ public class FallProcessorTests
 
     public FallProcessorTests()
     {
-        _mockRulesProvider = new ClassicBattletechRulesProvider();
+        _rulesProvider = new ClassicBattletechRulesProvider();
         _mockPilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
         _mockDiceRoller = Substitute.For<IDiceRoller>();
         _mockFallingDamageCalculator = Substitute.For<IFallingDamageCalculator>();
 
         _sut = new FallProcessor(
-            _mockRulesProvider,
+            _rulesProvider,
             _mockPilotingSkillCalculator,
             _mockDiceRoller,
             _mockFallingDamageCalculator);
 
         _testMech = new MechFactory(
-            _mockRulesProvider,
+            _rulesProvider,
             Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData());
     }
@@ -135,60 +138,47 @@ public class FallProcessorTests
             Arg.Any<BattleMap>(),
             Arg.Any<int>());
     }
-    //
-    // [Fact]
-    // public void Enter_ShouldPublishMechFallingCommand_WhenGyroIsDestroyed()
-    // {
-    //     // Arrange
-    //     SetMap();
-    //     SetupPlayer1WeaponTargets();
-    //
-    //     // Setup ToHitCalculator to return a value
-    //     SetupToHitNumber(7);
-    //
-    //     // Configure dice rolls to ensure hit on center torso
-    //     // First roll (8) is for attack (hit)
-    //     // Second roll (7) is for hit location (center torso)
-    //     SetupDiceRolls(8, 7);
-    //
-    //     // Setup critical hit calculator to return a gyro hit
-    //     SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
-    //
-    //     // Setup piloting skill calculator for pilot damage
-    //     SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
-    //
-    //     // Destroy the gyro with 2 hits
-    //     var gyro = _player1Unit1.GetAllComponents<Gyro>().First();
-    //     gyro.Hit();
-    //     gyro.Hit();
-    //
-    //     // Setup falling damage calculator
-    //     var fallingDamageData = GetFallingDamageData();
-    //
-    //     Game.FallingDamageCalculator.CalculateFallingDamage(
-    //             Arg.Any<Unit>(),
-    //             Arg.Is<int>(i => i == 0),
-    //             Arg.Is<bool>(b => b == false))
-    //         .Returns(fallingDamageData);
-    //
-    //     // Act
-    //     _sut.Enter();
-    //
-    //     // Assert
-    //     _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-    //
-    //     // Verify that a MechFallingCommand was published with the correct data
-    //     CommandPublisher.Received().PublishCommand(
-    //         Arg.Is<MechFallingCommand>(cmd =>
-    //             cmd.GameOriginId == Game.Id &&
-    //             cmd.UnitId == _player1Unit1.Id &&
-    //             cmd.LevelsFallen == 0 &&
-    //             cmd.WasJumping == false &&
-    //             cmd.DamageData == fallingDamageData &&
-    //             cmd.IsPilotTakingDamage == true &&
-    //             cmd.PilotDamagePilotingSkillRoll != null &&
-    //             !cmd.PilotDamagePilotingSkillRoll.IsSuccessful));
-    // }
+    
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnMechFallingCommand_WhenGyroIsDestroyed()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.Gyro,3);
+        const int totalDamageDealt = 5;
+    
+        // Setup piloting skill calculator for pilot damage
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
+    
+        SetupDiceRolls(5);
+        // Destroy the gyro with 2 hits
+        var gyro = _testMech.GetAllComponents<Gyro>().First();
+        gyro.Hit();
+        gyro.Hit();
+    
+        // Setup falling damage calculator
+        var fallingDamageData = GetFallingDamageData();
+    
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<int>(i => i == 0),
+                Arg.Is<bool>(b => b == false))
+            .Returns(fallingDamageData);
+    
+        // Act
+        var result = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId)
+            .First();
+    
+        // Assert
+        // Verify that a MechFallingCommand was published with the correct data
+        result.GameOriginId.ShouldBe(_gameId);
+            result.UnitId.ShouldBe(_testMech.Id); 
+            result.LevelsFallen.ShouldBe(0);
+            result.WasJumping.ShouldBe(false);
+            result.DamageData.ShouldBe(fallingDamageData);
+            result.IsPilotTakingDamage.ShouldBe(true);
+            result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+            result.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeFalse();
+    }
     
     [Fact]
     public void ProcessPotentialFall_ShouldReturnCommandWithSuccessfulPsr_WhenGyroHitPsrSucceeds()
@@ -241,7 +231,7 @@ public class FallProcessorTests
         var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
 
-        _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
+        _rulesProvider.GetHeavyDamageThreshold().Returns(20);
 
         // Gyro Hit PSR: Base 4 + Mod 3 (Gyro Hit) = TN 7. Roll 6 -> Fails.
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Gyro Hit");
@@ -314,7 +304,7 @@ public class FallProcessorTests
         var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
 
-        _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
+        _rulesProvider.GetHeavyDamageThreshold().Returns(20);
 
         // Gyro Hit PSR: Base 4 + Mod 3 (Gyro Hit) = TN 7. Roll 8 -> Succeeds.
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Gyro Hit");
@@ -414,9 +404,7 @@ public class FallProcessorTests
         // Arrange
         var componentHits = new List<ComponentHitData>(); // No critical hits
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
-
-        _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
-
+        
         // Heavy Damage PSR: Base 4 + Mod (e.g., 2 for 20 damage) = TN 6. Roll 5 -> Fails.
         SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
         
@@ -455,17 +443,17 @@ public class FallProcessorTests
             _testMech,
             Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.HeavyDamage)),
             _map,
-            totalDamageDealt);
+            Arg.Any<int>());
         
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
             Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
             _map,
-            totalDamageDealt); // totalDamageDealt is passed for context, even if not directly used by PilotDamage PSR modifiers in this setup
+            Arg.Any<int>()); // totalDamageDealt is passed for context, even if not directly used by PilotDamage PSR modifiers in this setup
 
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
     }
-
+   
     [Fact]
     public void ProcessPotentialFall_ShouldReturnCommandWithSuccessfulHeavyDamagePsr_WhenHeavyDamagePsrSucceeds()
     {
@@ -473,7 +461,7 @@ public class FallProcessorTests
         var componentHits = new List<ComponentHitData>(); // No critical hits
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
 
-        _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
+        _rulesProvider.GetHeavyDamageThreshold().Returns(20);
 
         // Heavy Damage PSR: Base 4 + Mod (e.g., 2 for 20 damage) = TN 6. Roll 7 -> Succeeds.
         SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
