@@ -109,7 +109,8 @@ public class FallProcessor : IFallProcessor
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(
                     unit,
                     [PilotingSkillRollType.PilotDamageFromFall],
-                    battleMap);
+                    battleMap,
+                    totalDamage);
 
                 if (pilotPsrBreakdown.Modifiers.Any())
                 {
