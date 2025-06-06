@@ -6,11 +6,11 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -422,7 +422,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Add a cluster weapon to unit1 (SRM-6 with 1 damage per missile)
         SetMap();
         // Setup PSR for heavy damage 36 > 20 to avoid NRE
-        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 1, "Damage");
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); // 6 missiles, 1 damage per missile
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
@@ -694,462 +693,123 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_ShouldPublishMechFallingCommand_WhenGyroHitPsrFails()
+    public void Enter_ShouldPublishMechFallingCommand_WhenFallProcessorReturnsCommand()
     {
         // Arrange
         SetMap();
         SetupPlayer1WeaponTargets();
-
-        // Setup ToHitCalculator to return a value
-        SetupToHitNumber(7);
-
-        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
-
-        // Setup piloting skill calculator to return a PSR breakdown with modifiers
-        SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
-
-        // Setup piloting skill calculator for pilot damage
-        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
-
-        // Setup dice roller to return a failed PSR roll (less than 7)
-        // First roll for attack, Second roll for hit location
-        // Third roll for PSR (failed roll - 6 is less than 7 needed)
-        SetupDiceRolls(8, 7, 6);
-
-        // Setup falling damage calculator
-
-        var fallingDamageData = GetFallingDamageData();
-
-        Game.FallingDamageCalculator.CalculateFallingDamage(
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+        
+        // Configure the MockFallProcessor to return MechFallingCommands
+        var mechFallingCommand = new MechFallingCommand
+        {
+            UnitId = _player1Unit1.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            GameOriginId = Game.Id,
+            DamageData = null
+        };
+        
+        MockFallProcessor.ProcessPotentialFall(
                 Arg.Any<Unit>(),
-                Arg.Is<int>(i => i == 0),
-                Arg.Is<bool>(b => b == false))
-            .Returns(fallingDamageData);
-
+                Arg.Any<BattleMap>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<int>(),
+                Arg.Any<Guid>())
+            .Returns(new List<MechFallingCommand> { mechFallingCommand });
+        
         // Act
         _sut.Enter();
-
+        
         // Assert
-        _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-        // Verify that a MechFallingCommand was published with the correct data
+        // Verify that FallProcessor.ProcessPotentialFall was called
+        MockFallProcessor.Received().ProcessPotentialFall(
+            Arg.Is<Unit>(u => u == _player1Unit1), // Target unit
+            Arg.Is<BattleMap>(m => m == Game.BattleMap),
+            Arg.Any<List<ComponentHitData>>(),
+            Arg.Any<int>(),
+            Arg.Is<Guid>(g => g == Game.Id));
+        
+        // Verify that the MechFallingCommand was published
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd =>
-                cmd.GameOriginId == Game.Id &&
-                cmd.UnitId == _player1Unit1.Id &&
-                cmd.LevelsFallen == 0 &&
-                cmd.WasJumping == false &&
-                cmd.DamageData == fallingDamageData &&
-                cmd.IsPilotTakingDamage == true &&
-                cmd.FallPilotingSkillRoll != null &&
-                cmd.PilotDamagePilotingSkillRoll != null &&
-                cmd.IsPilotingSkillRollRequired == true));
-    }
-
-    [Fact]
-    public void Enter_ShouldGetPsrBreakdownForWarriorDamage_WhenMechFalls()
-    {
-        // Arrange
-        SetMap();
-        SetupPlayer1WeaponTargets();
-
-        // Setup ToHitCalculator to return a value
-        SetupToHitNumber(7);
-
-        // Configure dice rolls to ensure hit on center torso
-        // First roll (8) is for attack (hit)
-        // Second roll (7) is for hit location (center torso)
-        // Third roll for PSR (failed roll - 6 is less than 7 needed)
-        SetupDiceRolls(8, 7, 6);
-
-        // Setup critical hit calculator to return a gyro hit
-        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
-
-        // Setup piloting skill calculator for gyro hit
-        SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
-
-        // Setup piloting skill calculator for pilot damage
-        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
-
-        // Setup falling damage calculator
-        var facingRoll = new DiceResult(3);
-        var hitLocationRolls = new List<DiceResult> { new(3), new(3) };
-        var hitLocationData = new HitLocationData(
-            PartLocation.CenterTorso,
-            5,
-            hitLocationRolls
-        );
-        var hitLocationsData = new HitLocationsData(
-            [hitLocationData],
-            5
-        );
-
-        var fallingDamageData = new FallingDamageData(
-            HexDirection.TopRight,
-            hitLocationsData,
-            facingRoll
-        );
-
-        Game.FallingDamageCalculator.CalculateFallingDamage(
-                Arg.Any<Unit>(),
-                Arg.Is<int>(i => i == 0),
-                Arg.Is<bool>(b => b == false))
-            .Returns(fallingDamageData);
-
-        // Act
-        _sut.Enter();
-
-        // Assert
-        // Verify that GetPsrBreakdown was called with WarriorDamageFromFall roll type
-        Game.PilotingSkillCalculator.Received().GetPsrBreakdown(
-            Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types =>
-                types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            Arg.Any<BattleMap>());
-    }
-
-    [Fact]
-    public void Enter_ShouldPublishMechFallingCommand_WhenGyroIsDestroyed()
-    {
-        // Arrange
-        SetMap();
-        SetupPlayer1WeaponTargets();
-
-        // Setup ToHitCalculator to return a value
-        SetupToHitNumber(7);
-
-        // Configure dice rolls to ensure hit on center torso
-        // First roll (8) is for attack (hit)
-        // Second roll (7) is for hit location (center torso)
-        SetupDiceRolls(8, 7);
-
-        // Setup critical hit calculator to return a gyro hit
-        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
-
-        // Setup piloting skill calculator for pilot damage
-        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
-
-        // Destroy the gyro with 2 hits
-        var gyro = _player1Unit1.GetAllComponents<Gyro>().First();
-        gyro.Hit();
-        gyro.Hit();
-
-        // Setup falling damage calculator
-        var fallingDamageData = GetFallingDamageData();
-
-        Game.FallingDamageCalculator.CalculateFallingDamage(
-                Arg.Any<Unit>(),
-                Arg.Is<int>(i => i == 0),
-                Arg.Is<bool>(b => b == false))
-            .Returns(fallingDamageData);
-
-        // Act
-        _sut.Enter();
-
-        // Assert
-        _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-
-        // Verify that a MechFallingCommand was published with the correct data
-        CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd =>
-                cmd.GameOriginId == Game.Id &&
-                cmd.UnitId == _player1Unit1.Id &&
-                cmd.LevelsFallen == 0 &&
-                cmd.WasJumping == false &&
-                cmd.DamageData == fallingDamageData &&
-                cmd.IsPilotingSkillRollRequired == false));
-    }
-
-    [Fact]
-    public void Enter_ShouldNotPublishMechFallingCommand_WhenNoGyroFound()
-    {
-        // Arrange
-        SetMap();
-        SetupPlayer1WeaponTargets();
-
-        // Setup ToHitCalculator to return a value
-        SetupToHitNumber(7);
-
-        // Configure dice rolls to ensure hit on center torso
-        // First roll (8) is for attack (hit)
-        // Second roll (7) is for hit location (center torso)
-        SetupDiceRolls(8, 7);
-
-        // Setup critical hit calculator to return a gyro hit
-        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso,_player1Unit1);
-
-        // Remove gyro to simulate no gyro mech (not possible, so maybe we should throw)
-        var ct = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var gyro = ct.GetComponents<Gyro>().First();
-        ct.RemoveComponent(gyro);
-
-        // Act
-        _sut.Enter();
-
-        // Assert
-        // Verify that a MechFallingCommand was published with the correct data
-        CommandPublisher.DidNotReceive().PublishCommand(
-            Arg.Any<MechFallingCommand>());
-    }
-
-    [Fact]
-    public void Enter_ShouldPublishMechFallingCommand_WhenGyroHitPsrSucceeds()
-    {
-        // Arrange
-        SetMap();
-        SetupPlayer1WeaponTargets();
-
-        // Setup ToHitCalculator to return a value
-        Game.ToHitCalculator.GetToHitNumber(
-                Arg.Any<Unit>(),
-                Arg.Any<Unit>(),
-                Arg.Any<Weapon>(),
-                Arg.Any<BattleMap>())
-            .Returns(7); // Return a to-hit number of 7
-
-        // Configure dice rolls to ensure hit on center torso
-        // First roll (8) is for attack (hit)
-        // Second roll (7) is for hit location (center torso)
-        // Third roll for PSR (successful roll - 8 is greater than 7 needed)
-        SetupDiceRolls(8, 7, 8);
-
-        // Setup critical hit calculator to return a gyro hit
-        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
-
-        // Setup piloting skill calculator to return a PSR breakdown with modifiers
-        SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
-
-        // Act
-        _sut.Enter();
-
-        // Assert
-        // Verify that a MechFallingCommand was published
-        CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd =>
-                cmd.GameOriginId == Game.Id &&
-                cmd.UnitId == _player1Unit1.Id &&
-                cmd.LevelsFallen == 0 &&
-                cmd.WasJumping == false &&
-                cmd.DamageData == null &&
-                cmd.FallPilotingSkillRoll!.DiceResults.Sum() == 8 &&
-                cmd.FallPilotingSkillRoll!.RollType == PilotingSkillRollType.GyroHit &&
-                cmd.IsPilotingSkillRollRequired == true));
-    }
-
-    [Fact]
-    public void Enter_ShouldPublishMechFallingCommandWithPilotDamagePsr_WhenPilotDamageCheckFails()
-    {
-        // Arrange
-        SetMap();
-        SetupPlayer1WeaponTargets();
-
-        // Setup ToHitCalculator to return a value
-        SetupToHitNumber(7);
-
-        // Setup critical hit calculator to return a gyro hit
-        SetupCriticalHitsFor(MakaMekComponent.Gyro,3, PartLocation.CenterTorso);
-
-        // Setup piloting skill calculator for gyro hit
-        SetupPsrFor(PilotingSkillRollType.GyroHit,3,"Damaged Gyro");
-
-        // Setup piloting skill calculator for pilot damage
-        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
-
-        // Setup dice roller to return a failed PSR roll for both checks
-        SetupDiceRolls(8, 7, 6, 3);
-
-        // Setup falling damage calculator
-        var facingRoll = new DiceResult(3);
-        var hitLocationRolls = new List<DiceResult> { new(3), new(3) };
-        var hitLocationData = new HitLocationData(
-            PartLocation.CenterTorso,
-            5,
-            hitLocationRolls
-        );
-        var hitLocationsData = new HitLocationsData(
-            [hitLocationData],
-            5
-        );
-
-        var fallingDamageData = new FallingDamageData(
-            HexDirection.TopRight,
-            hitLocationsData,
-            facingRoll
-        );
-
-        Game.FallingDamageCalculator.CalculateFallingDamage(
-                Arg.Any<Unit>(),
-                Arg.Is<int>(i => i == 0),
-                Arg.Is<bool>(b => b == false))
-            .Returns(fallingDamageData);
-
-        // Act
-        _sut.Enter();
-
-        // Assert
-        _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-
-        // Verify that a MechFallingCommand was published with the correct data
-        CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd =>
-                cmd.GameOriginId == Game.Id &&
-                cmd.UnitId == _player1Unit1.Id &&
-                cmd.LevelsFallen == 0 &&
-                cmd.WasJumping == false &&
-                cmd.DamageData == fallingDamageData &&
-                cmd.IsPilotTakingDamage == true &&
-                cmd.PilotDamagePilotingSkillRoll != null &&
-                !cmd.PilotDamagePilotingSkillRoll.IsSuccessful));
+            Arg.Is<MechFallingCommand>(cmd => 
+                cmd.UnitId == _player1Unit1.Id && 
+                cmd.GameOriginId == Game.Id));
     }
     
     [Fact]
-    public void Enter_ShouldPublishMechFallingCommand_WhenLowerLegActuatorHitPsrFails()
+    public void Enter_ShouldApplyDamageAndSetProne_WhenMechFallingCommandHasDamageData()
     {
         // Arrange
         SetMap();
         SetupPlayer1WeaponTargets();
-        SetupToHitNumber(7);
-
-        // Dice: 1. Attack roll (hits), 2. Hit Location roll (LeftLeg - 9 for Front/Rear), 3. PSR roll (fails - 4 vs target 5)
-        SetupDiceRolls(8, 9, 4);
-
         SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
-
-        // PSR for LLA Hit: Base Skill 4, LLA Mod +1 => Target 5.
-        SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
-
-        // PSR for Pilot Damage from Fall
-        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 2, "Pilot Damage from Fall");
-
-        var fallingDamageData = GetFallingDamageData();
-        Game.FallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), 0, false)
-            .Returns(fallingDamageData);
-
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+        
+        var damageData = new FallingDamageData(HexDirection.Bottom,
+            new HitLocationsData(
+                HitLocations: [
+                new HitLocationData(
+                PartLocation.CenterTorso,
+                5,
+                [])], TotalDamage: 5), new DiceResult(3));
+        
+        var mechFallingCommand = new MechFallingCommand
+        {
+            UnitId = _player1Unit1.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = damageData,
+            GameOriginId = Game.Id
+        };
+        
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Any<Unit>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<int>(),
+                Arg.Any<Guid>())
+            .Returns(new List<MechFallingCommand> { mechFallingCommand });
+        
+        // Get initial armor value to verify damage is applied
+        var targetPart = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var initialArmor = targetPart.CurrentArmor;
+        
         // Act
         _sut.Enter();
-
+        
         // Assert
-        _player1Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-        CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd =>
-                cmd.UnitId == _player1Unit1.Id &&
-                cmd.IsPilotingSkillRollRequired == true &&
-                cmd.FallPilotingSkillRoll != null &&
-                cmd.FallPilotingSkillRoll.RollType == PilotingSkillRollType.LowerLegActuatorHit &&
-                cmd.PilotDamagePilotingSkillRoll != null &&
-                cmd.DamageData == fallingDamageData));
+        // Verify that damage was applied to the target
+        targetPart.CurrentArmor.ShouldBe(initialArmor - 5);
+        
+        // Verify that the mech was set to prone
+        (_player1Unit1 as Mech)!.Status.ShouldHaveFlag(UnitStatus.Prone);
     }
-
+    
     [Fact]
-    public void Enter_ShouldNotPublishMechFallingCommand_WhenLowerLegActuatorHitPsrSucceeds()
+    public void Enter_ShouldNotPublishMechFallingCommands_WhenNoFallConditionsAreMet()
     {
         // Arrange
         SetMap();
         SetupPlayer1WeaponTargets();
-        SetupToHitNumber(7);
-
-        // Dice: 1. Attack (hits), 2. Hit Location (LeftLeg - 9), 3. PSR (succeeds - 8 vs target 5)
-        SetupDiceRolls(8, 9, 8);
-
-        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
-
-        // PSR for LLA Hit: Base Skill 4, LLA Mod +1 => Target 5.
-        SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
-
+        SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        
+        // Configure MockFallProcessor to return an empty list (no fall conditions met)
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Any<Unit>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<int>(),
+                Arg.Any<Guid>())
+            .Returns(new List<MechFallingCommand>());
+        
         // Act
         _sut.Enter();
-
+        
         // Assert
-        _player1Unit1.Status.ShouldNotHaveFlag(UnitStatus.Prone);
-        // Verify that a MechFallingCommand was published
-        CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd =>
-                cmd.GameOriginId == Game.Id &&
-                cmd.UnitId == _player1Unit1.Id &&
-                cmd.LevelsFallen == 0 &&
-                cmd.WasJumping == false &&
-                cmd.DamageData == null &&
-                cmd.FallPilotingSkillRoll!.DiceResults.Sum() == 8 &&
-                cmd.FallPilotingSkillRoll!.RollType == PilotingSkillRollType.LowerLegActuatorHit &&
-                cmd.IsPilotingSkillRollRequired == true));
-    }
-
-    [Fact]
-    public void Enter_ShouldPublishMechFallingCommand_WhenHeavyDamagePsrFails()
-    {
-        // Arrange
-        SetMap();
-        SetupPlayer1WeaponTargets();
-        SetupToHitNumber(7);
-
-        // Configure a high-damage weapon
-        var highDamageWeapon = new TestWeapon(WeaponType.Energy, null, 20);
-        var part = _player1Unit1.Parts[0];
-        part.TryAddComponent(highDamageWeapon, [1]);
-        highDamageWeapon.Target = _player2Unit1;
-
-        // Dice: 1. Attack roll (hits), 2. Hit Location roll, 3. PSR roll (fails - 4 vs target 7)
-        SetupDiceRolls(8, 7, 4);
-
-        // Setup piloting skill calculator for heavy damage
-        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 3, "Heavy Damage");
-
-        // Setup piloting skill calculator for pilot damage
-        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 2, "Pilot Damage from Fall");
-
-        var fallingDamageData = GetFallingDamageData();
-        Game.FallingDamageCalculator.CalculateFallingDamage(Arg.Any<Unit>(), 0, false)
-            .Returns(fallingDamageData);
-
-        // Act
-        _sut.Enter();
-
-        // Assert
-        _player2Unit1.Status.ShouldHaveFlag(UnitStatus.Prone);
-        CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd =>
-                cmd.UnitId == _player2Unit1.Id &&
-                cmd.IsPilotingSkillRollRequired == true &&
-                cmd.FallPilotingSkillRoll != null &&
-                cmd.FallPilotingSkillRoll.RollType == PilotingSkillRollType.HeavyDamage &&
-                cmd.PilotDamagePilotingSkillRoll != null &&
-                cmd.DamageData == fallingDamageData));
-    }
-
-    [Fact]
-    public void Enter_ShouldPublishMechFallingCommand_WhenHeavyDamagePsrSucceeds()
-    {
-        // Arrange
-        SetMap();
-        SetupPlayer1WeaponTargets();
-        SetupToHitNumber(7);
-
-        // Configure a high-damage weapon
-        var highDamageWeapon = new TestWeapon(WeaponType.Energy, null, 20);
-        var part = _player1Unit1.Parts[0];
-        part.TryAddComponent(highDamageWeapon, [1]);
-        highDamageWeapon.Target = _player2Unit1;
-
-        // Dice: 1. Attack roll (hits), 2. Hit Location roll, 3. PSR roll (succeeds - 8 vs target 7)
-        SetupDiceRolls(8, 7, 8);
-
-        // Setup piloting skill calculator for heavy damage
-        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 3, "Heavy Damage (20+ points)");
-
-        // Act
-        _sut.Enter();
-
-        // Assert
-        _player2Unit1.Status.ShouldNotHaveFlag(UnitStatus.Prone);
-        CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd =>
-                cmd.GameOriginId == Game.Id &&
-                cmd.UnitId == _player2Unit1.Id &&
-                cmd.LevelsFallen == 0 &&
-                cmd.WasJumping == false &&
-                cmd.DamageData == null &&
-                cmd.FallPilotingSkillRoll!.DiceResults.Sum() == 8 &&
-                cmd.FallPilotingSkillRoll!.RollType == PilotingSkillRollType.HeavyDamage &&
-                cmd.IsPilotingSkillRollRequired == true));
+        // Verify that no MechFallingCommand was published
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallingCommand>());
     }
 
     private void SetupPlayer1WeaponTargets()
@@ -1179,46 +839,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<BattleMap>())
             .Returns(7); // Return a default to-hit number of 7
     }
-
-    private void SetupPlayer2WeaponTargets()
-    {
-        // Add a weapon to each unit
-        var weapon1 = new TestWeapon();
-        var part1 = _player2Unit1.Parts[0];
-        part1.TryAddComponent(weapon1, [1]);
-        weapon1.Target = _player1Unit1; // Set target for weapon1
-
-        // Add a third weapon without a target to test that it's properly skipped
-        var weaponWithoutTarget = new TestWeapon();
-        var part3 = _player2Unit1.Parts[1]; // Using the second part of unit1
-        part3.TryAddComponent(weaponWithoutTarget, [2]);
-        // Deliberately not setting a target for this weapon// Return a default to-hit number of 7
-    }
-
-    private void SetupDiceRolls(params int[] rolls)
-    {
-        var diceResults = new List<List<DiceResult>>();
-
-        // Create dice results for each roll
-        foreach (var roll in rolls)
-        {
-            var diceResult = new List<DiceResult>
-            {
-                new(roll / 2 + roll % 2),
-                new(roll / 2)
-            };
-            diceResults.Add(diceResult);
-        }
-
-        // Set up the dice roller to return the predefined results
-        var callCount = 0;
-        DiceRoller.Roll2D6().Returns(_ =>
-        {
-            var result = diceResults[callCount % diceResults.Count];
-            callCount++;
-            return result;
-        });
-    }
     
     private void SetupCriticalHitsFor(
         MakaMekComponent component,
@@ -1246,49 +866,29 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             ]);
     }
 
-    private void SetupToHitNumber(int toHitNumber)
+    private void SetupDiceRolls(params int[] rolls)
     {
-        Game.ToHitCalculator.GetToHitNumber(
-                Arg.Any<Unit>(),
-                Arg.Any<Unit>(),
-                Arg.Any<Weapon>(),
-                Arg.Any<BattleMap>())
-            .Returns(toHitNumber); // Return a to-hit number
-    }
+        var diceResults = new List<List<DiceResult>>();
 
-    private void SetupPsrFor(PilotingSkillRollType psrType, int modifierValue, string modifierName)
-    {
-        Game.PilotingSkillCalculator.GetPsrBreakdown(
-                Arg.Any<Unit>(),
-                Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(psrType)),
-                Arg.Any<BattleMap>(),
-                Arg.Any<int>())
-            .Returns(new PsrBreakdown
+        // Create dice results for each roll
+        foreach (var roll in rolls)
+        {
+            var diceResult = new List<DiceResult>
             {
-                BasePilotingSkill = 4,
-                Modifiers = [new TestModifier { Value = modifierValue, Name = modifierName }]
-            });
-    }
+                new(roll / 2 + roll % 2),
+                new(roll / 2)
+            };
+            diceResults.Add(diceResult);
+        }
 
-    private FallingDamageData GetFallingDamageData()
-    {
-        var facingRoll = new DiceResult(3);
-        var hitLocationRolls = new List<DiceResult> { new(3), new(3) };
-        var hitLocationData = new HitLocationData(
-            PartLocation.CenterTorso,
-            5,
-            hitLocationRolls
-        );
-        var hitLocationsData = new HitLocationsData(
-            [hitLocationData],
-            5
-        );
-
-        return new FallingDamageData(
-            HexDirection.TopRight,
-            hitLocationsData,
-            facingRoll
-        );
+        // Set up the dice roller to return the predefined results
+        var callCount = 0;
+        DiceRoller.Roll2D6().Returns(_ =>
+        {
+            var result = diceResults[callCount % diceResults.Count];
+            callCount++;
+            return result;
+        });
     }
 
     private class TestWeapon : Weapon
@@ -1313,14 +913,4 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             "Test Cluster Weapon", damage, 3,
             0, 3, 6, 9,
             type, 10, clusters, clusterSize, 1, 1, MakaMekComponent.LRM10, ammoType));
-
-    public record TestModifier : Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.RollModifier
-    {
-        public required string Name { get; init; }
-
-        public override string Render(Sanet.MakaMek.Core.Services.Localization.ILocalizationService localizationService)
-        {
-            return Name;
-        }
-    }
 }

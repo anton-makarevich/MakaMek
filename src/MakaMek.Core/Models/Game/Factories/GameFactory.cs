@@ -19,8 +19,7 @@ public class GameFactory : IGameFactory
         IDiceRoller diceRoller, 
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator,
-        IFallingDamageCalculator fallingDamageCalculator)
+        IFallProcessor fallProcessor)
     {
         return new ServerGame(
             rulesProvider, 
@@ -29,8 +28,7 @@ public class GameFactory : IGameFactory
             diceRoller, 
             toHitCalculator, 
             criticalHitsCalculator, 
-            pilotingSkillCalculator,
-            fallingDamageCalculator);
+            fallProcessor);
     }
 
     public ClientGame CreateClientGame(

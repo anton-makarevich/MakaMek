@@ -25,8 +25,7 @@ public class GameManagerTests : IDisposable
     private readonly INetworkHostService _networkHostService;
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
     private readonly ICriticalHitsCalculator _criticalHitsCalculator = Substitute.For<ICriticalHitsCalculator>();
-    private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
-    private readonly IFallingDamageCalculator _fallingDamageCalculator = Substitute.For<IFallingDamageCalculator>();
+    private readonly IFallProcessor _fallProcessor = Substitute.For<IFallProcessor>();
 
     public GameManagerTests()
     {
@@ -47,8 +46,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator
+            _fallProcessor
             );
         _gameFactory.CreateServerGame(
             _rulesProvider,
@@ -57,8 +55,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator).Returns(_serverGame);
+            _fallProcessor).Returns(_serverGame);
         _commandPublisher.Adapter.Returns(_transportAdapter);
 
         _sut = new GameManager(
@@ -68,8 +65,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator,
+            _fallProcessor,
             _gameFactory,
             _networkHostService);
     }
@@ -97,8 +93,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator);
+            _fallProcessor);
     }
     
     [Fact]
@@ -132,8 +127,7 @@ public class GameManagerTests : IDisposable
             _diceRoller, 
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator);
+            _fallProcessor);
     }
 
     [Fact]
@@ -155,8 +149,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator);
+            _fallProcessor);
     }
 
     [Fact]
@@ -179,8 +172,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator);
+            _fallProcessor);
     }
 
     [Fact]
@@ -234,8 +226,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator,
+            _fallProcessor,
             _gameFactory);
 
         // Act & Assert
@@ -265,8 +256,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator,
+            _fallProcessor,
             _gameFactory);
 
         // Act & Assert
@@ -298,8 +288,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator);
+            _fallProcessor);
     }
 
     [Fact]
@@ -323,8 +312,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _fallingDamageCalculator,
+            _fallProcessor,
             _gameFactory);
 
         // Act & Assert
