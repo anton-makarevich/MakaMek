@@ -25,6 +25,7 @@ public abstract class GamePhaseTestsBase
     protected readonly ICommandPublisher CommandPublisher;
     protected readonly IDiceRoller DiceRoller;
     protected readonly IPhaseManager MockPhaseManager;
+    protected readonly IFallProcessor MockFallProcessor;
     private readonly IMechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),Substitute.For<ILocalizationService>());
 
     protected GamePhaseTestsBase()
@@ -32,12 +33,13 @@ public abstract class GamePhaseTestsBase
         CommandPublisher = Substitute.For<ICommandPublisher>();
         DiceRoller = Substitute.For<IDiceRoller>();
         MockPhaseManager = Substitute.For<IPhaseManager>();
+        MockFallProcessor = Substitute.For<IFallProcessor>();
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
-            Substitute.For<IFallProcessor>(),
+            MockFallProcessor,
             MockPhaseManager);
     }
     
@@ -46,7 +48,7 @@ public abstract class GamePhaseTestsBase
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
-            Substitute.For<IFallProcessor>(),
+            MockFallProcessor,
             MockPhaseManager);
     }
 

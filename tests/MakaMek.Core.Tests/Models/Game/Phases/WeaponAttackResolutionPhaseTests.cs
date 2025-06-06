@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -14,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
+using Shouldly.ShouldlyExtensionMethods;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
@@ -690,6 +692,117 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         _player2Unit1.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
     }
 
+    [Fact]
+    public void Enter_ShouldPublishMechFallingCommand_WhenFallProcessorReturnsCommand()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+        
+        // Configure the MockFallProcessor to return MechFallingCommands
+        var mechFallingCommand = new MechFallingCommand
+        {
+            UnitId = _player1Unit1.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            GameOriginId = Game.Id,
+            DamageData = null
+        };
+        
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Any<Unit>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<int>(),
+                Arg.Any<Guid>())
+            .Returns(new List<MechFallingCommand> { mechFallingCommand });
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify that FallProcessor.ProcessPotentialFall was called
+        MockFallProcessor.Received().ProcessPotentialFall(
+            Arg.Is<Unit>(u => u == _player1Unit1), // Target unit
+            Arg.Is<BattleMap>(m => m == Game.BattleMap),
+            Arg.Any<List<ComponentHitData>>(),
+            Arg.Any<int>(),
+            Arg.Is<Guid>(g => g == Game.Id));
+        
+        // Verify that the MechFallingCommand was published
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallingCommand>(cmd => 
+                cmd.UnitId == _player1Unit1.Id && 
+                cmd.GameOriginId == Game.Id));
+    }
+    
+    [Fact]
+    public void Enter_ShouldApplyDamageAndSetProne_WhenMechFallingCommandHasDamageData()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+        
+        var damageData = new FallingDamageData(HexDirection.Bottom,
+            new HitLocationsData(
+                HitLocations: [
+                new HitLocationData(
+                PartLocation.CenterTorso,
+                5,
+                [])], TotalDamage: 5), new DiceResult(3));
+        
+        var mechFallingCommand = new MechFallingCommand
+        {
+            UnitId = _player1Unit1.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = damageData,
+            GameOriginId = Game.Id
+        };
+        
+        // Get initial armor value to verify damage is applied
+        var targetPart = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var initialArmor = targetPart.CurrentArmor;
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify that damage was applied to the target
+        targetPart.CurrentArmor.ShouldBe(initialArmor - 5);
+        
+        // Verify that the mech was set to prone
+        (_player1Unit1 as Mech)!.Status.ShouldHaveFlag(UnitStatus.Prone);
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishMechFallingCommands_WhenNoFallConditionsAreMet()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        
+        // Configure MockFallProcessor to return an empty list (no fall conditions met)
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Any<Unit>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<int>(),
+                Arg.Any<Guid>())
+            .Returns(new List<MechFallingCommand>());
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify that no MechFallingCommand was published
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallingCommand>());
+    }
 
     private void SetupPlayer1WeaponTargets()
     {
@@ -717,6 +830,32 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Weapon>(),
                 Arg.Any<BattleMap>())
             .Returns(7); // Return a default to-hit number of 7
+    }
+    
+    private void SetupCriticalHitsFor(
+        MakaMekComponent component,
+        int slot,
+        PartLocation location = PartLocation.LeftLeg,
+        Unit? unit = null)
+    {
+        Game.CriticalHitsCalculator.CalculateCriticalHits(
+                unit ?? Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(loc => loc == location),
+                Arg.Any<int>())
+            .Returns(
+            [
+                new LocationCriticalHitsData(location,
+                    7,
+                    1,
+                    [
+                        new ComponentHitData
+                        {
+                            Type = component,
+                            Slot = slot
+                        }
+                    ]
+                )
+            ]);
     }
 
     private void SetupDiceRolls(params int[] rolls)
