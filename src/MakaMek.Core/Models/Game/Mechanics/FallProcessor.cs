@@ -18,7 +18,7 @@ public class FallProcessor : IFallProcessor
     private readonly IDiceRoller _diceRoller;
     private readonly IFallingDamageCalculator _fallingDamageCalculator;
 
-    private static readonly Dictionary<MakaMekComponent, FallReasonType> FallInducingCriticalsMap = new()
+    private static readonly Dictionary<MakaMekComponent, FallReasonType> ComponentFallReasonMap = new()
     {
         { MakaMekComponent.Gyro, FallReasonType.GyroHit },
         { MakaMekComponent.LowerLegActuator, FallReasonType.LowerLegActuatorHit }
@@ -51,13 +51,13 @@ public class FallProcessor : IFallProcessor
         // Check for component critical hits that may cause falling
         var hitFallInducingComponentTypes = componentHits
             .Select(c => c.Type)
-            .Where(type => FallInducingCriticalsMap.ContainsKey(type))
+            .Where(type => ComponentFallReasonMap.ContainsKey(type))
             .ToList();
 
         // Add reasons from critical hits
         foreach (var componentType in hitFallInducingComponentTypes)
         {
-            var reasonType = FallInducingCriticalsMap[componentType];
+            var reasonType = ComponentFallReasonMap[componentType];
             
             // Special handling for gyro - check if it's destroyed
             if (componentType == MakaMekComponent.Gyro)

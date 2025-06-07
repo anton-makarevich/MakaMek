@@ -701,6 +701,63 @@ public class FallProcessorTests
             
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
     }
+
+    [Theory]
+    [InlineData(PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightLeg)]
+    public void ProcessPotentialFall_ShouldReturnMechFallingCommand_WhenLegIsDestroyed(PartLocation destroyedLeg)
+    {
+        // Arrange
+        var componentHits = new List<ComponentHitData>();
+        const int totalDamageDealt = 5;
+        
+        // Set up destroyed leg locations
+        var destroyedLegLocations = new List<PartLocation> { destroyedLeg };
+        
+        // Setup piloting skill calculator for pilot damage
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
+        
+        SetupDiceRolls(5); // For pilot damage PSR
+        
+        // Setup falling damage calculator
+        var fallingDamageData = GetFallingDamageData();
+        
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<int>(i => i == 0),
+                Arg.Is<bool>(b => b == false))
+            .Returns(fallingDamageData);
+        
+        // Act
+        var result = _sut.ProcessPotentialFall(_testMech, _map, componentHits, 
+            totalDamageDealt, _gameId, destroyedLegLocations).First();
+        
+        // Assert
+        result.GameOriginId.ShouldBe(_gameId);
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.LevelsFallen.ShouldBe(0);
+        result.WasJumping.ShouldBe(false);
+        result.DamageData.ShouldBe(fallingDamageData);
+        result.IsPilotTakingDamage.ShouldBe(true);
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeFalse();
+        result.FallPilotingSkillRoll.ShouldBeNull(); // No PSR for leg destroyed - automatic fall
+        result.IsPilotingSkillRollRequired.ShouldBe(false);
+        
+        // Verify that GetPsrBreakdown was called for PilotDamageFromFall
+        _mockPilotingSkillCalculator.Received().GetPsrBreakdown(
+            Arg.Any<Unit>(),
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => 
+                types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>());
+        
+        // Verify falling damage was calculated
+        _mockFallingDamageCalculator.Received().CalculateFallingDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<int>(i => i == 0),
+            Arg.Is<bool>(b => b == false));
+    }
     
     private void SetupPsrFor(PilotingSkillRollType psrType, int modifierValue, string modifierName)
     {
