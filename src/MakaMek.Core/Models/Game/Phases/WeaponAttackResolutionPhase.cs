@@ -344,23 +344,21 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         // Check for fall conditions
         var heavyDamageThreshold = Game.RulesProvider.GetHeavyDamageThreshold();
-        if (allComponentHits.Count > 0 || resolution.HitLocationsData.TotalDamage >= heavyDamageThreshold)
-        {
-            // Use the new FallProcessor
-            var mechFallingCommands = Game.FallProcessor.ProcessPotentialFall(
-                target, 
-                Game.BattleMap, 
-                allComponentHits, 
-                resolution.HitLocationsData.TotalDamage, 
-                Game.Id).ToList();
+        if (allComponentHits.Count <= 0 && resolution.HitLocationsData.TotalDamage < heavyDamageThreshold) return;
+        // Use the new FallProcessor
+        var mechFallingCommands = Game.FallProcessor.ProcessPotentialFall(
+            target, 
+            Game.BattleMap, 
+            allComponentHits, 
+            resolution.HitLocationsData.TotalDamage, 
+            Game.Id).ToList();
 
-            foreach (var fallingCommand in mechFallingCommands)
-            {
-                Game.CommandPublisher.PublishCommand(fallingCommand);
-                if (fallingCommand.DamageData is null || target is not Mech mech) continue;
-                target.ApplyDamage(fallingCommand.DamageData.HitLocations.HitLocations);
-                mech.SetProne();
-            }
+        foreach (var fallingCommand in mechFallingCommands)
+        {
+            Game.CommandPublisher.PublishCommand(fallingCommand);
+            if (fallingCommand.DamageData is null || target is not Mech mech) continue;
+            target.ApplyDamage(fallingCommand.DamageData.HitLocations.HitLocations);
+            mech.SetProne();
         }
     }
     
