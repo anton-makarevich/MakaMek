@@ -59,11 +59,6 @@ public static class FallReasonTypeExtensions
     /// <returns>True if a PSR is required, false if it's an automatic fall</returns>
     public static bool RequiresPilotingSkillRoll(this FallReasonType reasonType)
     {
-        return reasonType switch
-        {
-            FallReasonType.GyroDestroyed => false,
-            FallReasonType.LegDestroyed => false,
-            _ => true
-        };
+        return reasonType.ToPilotingSkillRollType()!=null;
     }
 }

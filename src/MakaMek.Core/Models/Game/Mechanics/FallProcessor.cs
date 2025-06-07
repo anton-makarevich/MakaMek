@@ -84,7 +84,7 @@ public class FallProcessor : IFallProcessor
         }
         
         // Check for destroyed legs
-        if (destroyedPartLocations?.Any(IsLegLocation) == true)
+        if (destroyedPartLocations?.Any(location => location.IsLeg()) == true)
         {
             fallReasons.Add(new FallReason(FallReasonType.LegDestroyed));
         }
@@ -99,9 +99,8 @@ public class FallProcessor : IFallProcessor
             
             PilotingSkillRollData? fallPsrData = null;
 
-            if (requiresPsr)
+            if (requiresPsr && reason.ReasonType.ToPilotingSkillRollType() is { } psrRollType)
             {
-                var psrRollType = reason.ReasonType.ToPilotingSkillRollType()!.Value;
                 var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(unit, [psrRollType],
                     battleMap, totalDamage);
                 var diceResults = _diceRoller.Roll2D6();
@@ -162,14 +161,5 @@ public class FallProcessor : IFallProcessor
         }
 
         return commandsToReturn;
-    }
-    
-    /// <summary>
-    /// Checks if a part location is a leg location
-    /// </summary>
-    private bool IsLegLocation(PartLocation location)
-    {
-        // Check if the location represents a leg part
-        return location is PartLocation.LeftLeg or PartLocation.RightLeg;
     }
 }
