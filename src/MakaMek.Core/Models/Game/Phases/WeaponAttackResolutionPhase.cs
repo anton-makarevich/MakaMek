@@ -343,15 +343,13 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var allComponentHits = GetAllComponentHits(resolution.HitLocationsData);
         
         // Check for fall conditions
-        var heavyDamageThreshold = Game.RulesProvider.GetHeavyDamageThreshold();
-        if (allComponentHits.Count <= 0 && resolution.HitLocationsData.TotalDamage < heavyDamageThreshold) return;
-        // Use the new FallProcessor
         var mechFallingCommands = Game.FallProcessor.ProcessPotentialFall(
             target, 
             Game.BattleMap, 
             allComponentHits, 
             resolution.HitLocationsData.TotalDamage, 
-            Game.Id).ToList();
+            Game.Id,
+            resolution.DestroyedParts).ToList();
 
         foreach (var fallingCommand in mechFallingCommands)
         {

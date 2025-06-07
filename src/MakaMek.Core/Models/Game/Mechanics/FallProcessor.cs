@@ -43,7 +43,8 @@ public class FallProcessor : IFallProcessor
         BattleMap? battleMap,
         List<ComponentHitData> componentHits,
         int totalDamage,
-        Guid gameId)
+        Guid gameId,
+        List<PartLocation>? destroyedPartLocations = null)
     {
         var commandsToReturn = new List<MechFallingCommand>();
 
