@@ -15,11 +15,13 @@ public interface IFallProcessor
     /// <param name="componentHits">A list of component hits sustained by the unit in the current context.</param>
     /// <param name="totalDamage">The total damage sustained by the unit in the current context.</param>
     /// <param name="gameId">The ID of the current game.</param>
+    /// <param name="destroyedPartLocations">The locations of parts that were destroyed.</param>
     /// <returns>A collection of MechFallingCommands if the unit falls, otherwise null.</returns>
     IEnumerable<MechFallingCommand> ProcessPotentialFall(
         Unit unit,
         BattleMap? battleMap,
         List<ComponentHitData> componentHits,
         int totalDamage,
-        Guid gameId);
+        Guid gameId,
+        List<PartLocation>? destroyedPartLocations = null);
 }
