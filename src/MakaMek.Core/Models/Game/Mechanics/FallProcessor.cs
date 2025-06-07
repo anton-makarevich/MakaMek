@@ -18,13 +18,13 @@ public class FallProcessor : IFallProcessor
     private readonly IDiceRoller _diceRoller;
     private readonly IFallingDamageCalculator _fallingDamageCalculator;
 
-    private static readonly Dictionary<MakaMekComponent, PilotingSkillRollType> FallInducingCriticalsMap = new()
+    private static readonly Dictionary<MakaMekComponent, FallReasonType> FallInducingCriticalsMap = new()
     {
-        { MakaMekComponent.Gyro, PilotingSkillRollType.GyroHit },
-        { MakaMekComponent.LowerLegActuator, PilotingSkillRollType.LowerLegActuatorHit }
+        { MakaMekComponent.Gyro, FallReasonType.GyroHit },
+        { MakaMekComponent.LowerLegActuator, FallReasonType.LowerLegActuatorHit }
     };
 
-    private record FallReason(PilotingSkillRollType RollType, MakaMekComponent? ComponentType = null);
+    private record FallReason(FallReasonType ReasonType, MakaMekComponent? ComponentType = null);
 
     public FallProcessor(
         IRulesProvider rulesProvider,
@@ -48,19 +48,44 @@ public class FallProcessor : IFallProcessor
     {
         var commandsToReturn = new List<MechFallingCommand>();
 
+        var fallReasons = new List<FallReason>();
+
+        // Check for component critical hits that may cause falling
         var hitFallInducingComponentTypes = componentHits
             .Select(c => c.Type)
             .Where(type => FallInducingCriticalsMap.ContainsKey(type))
             .ToList();
 
-        var fallReasons = hitFallInducingComponentTypes
-            .Select(componentType =>
-                new FallReason(FallInducingCriticalsMap[componentType], componentType)).ToList();
+        // Add reasons from critical hits
+        foreach (var componentType in hitFallInducingComponentTypes)
+        {
+            var reasonType = FallInducingCriticalsMap[componentType];
+            
+            // Special handling for gyro - check if it's destroyed
+            if (componentType == MakaMekComponent.Gyro)
+            {
+                var gyro = unit.GetAllComponents<Gyro>().FirstOrDefault();
+                if (gyro is { IsDestroyed: true })
+                {
+                    // If gyro is destroyed, change reason type to automatic fall
+                    reasonType = FallReasonType.GyroDestroyed;
+                }
+            }
+            
+            fallReasons.Add(new FallReason(reasonType, componentType));
+        }
 
+        // Check for heavy damage
         var heavyDamageThreshold = _rulesProvider.GetHeavyDamageThreshold();
         if (totalDamage >= heavyDamageThreshold && unit is Mech) // Ensure unit is a Mech for heavy damage PSR
         {
-            fallReasons.Add(new FallReason(PilotingSkillRollType.HeavyDamage));
+            fallReasons.Add(new FallReason(FallReasonType.HeavyDamage));
+        }
+        
+        // Check for destroyed legs
+        if (destroyedPartLocations?.Any(IsLegLocation) == true)
+        {
+            fallReasons.Add(new FallReason(FallReasonType.LegDestroyed));
         }
 
         if (fallReasons.Count == 0)
@@ -68,27 +93,15 @@ public class FallProcessor : IFallProcessor
 
         foreach (var reason in fallReasons)
         {
-            var autoFall = false;
-            var requiresPsr = true;
-
-            if (reason.ComponentType == MakaMekComponent.Gyro)
-            {
-                var gyro = unit.GetAllComponents<Gyro>().FirstOrDefault();
-                if (gyro == null) continue;
-
-                if (gyro.IsDestroyed)
-                {
-                    autoFall = true;
-                    requiresPsr = false;
-                }
-            }
-
+            var requiresPsr = reason.ReasonType.RequiresPilotingSkillRoll();
+            var isFallingNow = !requiresPsr; // Auto-fall if PSR not required
+            
             PilotingSkillRollData? fallPsrData = null;
-            var isFallingNow = autoFall;
 
-            if (requiresPsr && !autoFall)
+            if (requiresPsr)
             {
-                var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(unit, [reason.RollType],
+                var psrRollType = reason.ReasonType.ToPilotingSkillRollType()!.Value;
+                var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(unit, [psrRollType],
                     battleMap, totalDamage);
                 var diceResults = _diceRoller.Roll2D6();
                 var rollTotal = diceResults.Sum(d => d.Result);
@@ -96,7 +109,7 @@ public class FallProcessor : IFallProcessor
 
                 fallPsrData = new PilotingSkillRollData
                 {
-                    RollType = reason.RollType,
+                    RollType = psrRollType,
                     DiceResults = diceResults.Select(d => d.Result).ToArray(),
                     IsSuccessful = !isFallingNow,
                     PsrBreakdown = psrBreakdown
@@ -148,5 +161,14 @@ public class FallProcessor : IFallProcessor
         }
 
         return commandsToReturn;
+    }
+    
+    /// <summary>
+    /// Checks if a part location is a leg location
+    /// </summary>
+    private bool IsLegLocation(PartLocation location)
+    {
+        // Check if the location represents a leg part
+        return location is PartLocation.LeftLeg or PartLocation.RightLeg;
     }
 }
