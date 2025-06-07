@@ -65,7 +65,8 @@ public class FallProcessor : IFallProcessor
             if (componentType == MakaMekComponent.Gyro)
             {
                 var gyro = unit.GetAllComponents<Gyro>().FirstOrDefault();
-                if (gyro is { IsDestroyed: true })
+                if (gyro == null) continue;
+                if (gyro.IsDestroyed)
                 {
                     // If gyro is destroyed, change reason type to automatic fall
                     reasonType = FallReasonType.GyroDestroyed;
