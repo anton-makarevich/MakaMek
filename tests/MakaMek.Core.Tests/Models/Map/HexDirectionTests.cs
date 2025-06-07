@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Map;
+using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Map;
 
@@ -17,7 +18,7 @@ public class HexDirectionTests
         var result = input.GetOppositeDirection();
 
         // Assert
-        Assert.Equal(expected, result);
+        result.ShouldBe(expected);
     }
     
     [Theory]
@@ -39,6 +40,6 @@ public class HexDirectionTests
         var result = startDirection.Rotate(hexsides);
 
         // Assert
-        Assert.Equal(expectedDirection, result);
+        result.ShouldBe(expectedDirection);
     }
 }
