@@ -24,8 +24,6 @@ public class FallProcessor : IFallProcessor
         { MakaMekComponent.LowerLegActuator, FallReasonType.LowerLegActuatorHit }
     };
 
-    private record FallReason(FallReasonType ReasonType, MakaMekComponent? ComponentType = null);
-
     public FallProcessor(
         IRulesProvider rulesProvider,
         IPilotingSkillCalculator pilotingSkillCalculator,
@@ -48,7 +46,7 @@ public class FallProcessor : IFallProcessor
     {
         var commandsToReturn = new List<MechFallingCommand>();
 
-        var fallReasons = new List<FallReason>();
+        var fallReasons = new List<FallReasonType>();
 
         // Check for component critical hits that may cause falling
         var hitFallInducingComponentTypes = componentHits
@@ -73,33 +71,33 @@ public class FallProcessor : IFallProcessor
                 }
             }
             
-            fallReasons.Add(new FallReason(reasonType, componentType));
+            fallReasons.Add(reasonType);
         }
 
         // Check for heavy damage
         var heavyDamageThreshold = _rulesProvider.GetHeavyDamageThreshold();
         if (totalDamage >= heavyDamageThreshold && unit is Mech) // Ensure unit is a Mech for heavy damage PSR
         {
-            fallReasons.Add(new FallReason(FallReasonType.HeavyDamage));
+            fallReasons.Add(FallReasonType.HeavyDamage);
         }
         
         // Check for destroyed legs
         if (destroyedPartLocations?.Any(location => location.IsLeg()) == true)
         {
-            fallReasons.Add(new FallReason(FallReasonType.LegDestroyed));
+            fallReasons.Add(FallReasonType.LegDestroyed);
         }
 
         if (fallReasons.Count == 0)
             return commandsToReturn;
 
-        foreach (var reason in fallReasons)
+        foreach (var reasonType in fallReasons)
         {
-            var requiresPsr = reason.ReasonType.RequiresPilotingSkillRoll();
+            var requiresPsr = reasonType.RequiresPilotingSkillRoll();
             var isFallingNow = !requiresPsr; // Auto-fall if PSR not required
             
             PilotingSkillRollData? fallPsrData = null;
 
-            if (requiresPsr && reason.ReasonType.ToPilotingSkillRollType() is { } psrRollType)
+            if (requiresPsr && reasonType.ToPilotingSkillRollType() is { } psrRollType)
             {
                 var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(unit, [psrRollType],
                     battleMap, totalDamage);
