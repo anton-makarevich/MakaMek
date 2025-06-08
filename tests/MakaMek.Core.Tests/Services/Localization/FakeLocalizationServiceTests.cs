@@ -57,7 +57,6 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_PilotingSkillRoll_ImpossibleRoll", "{0} roll is impossible")]
     [InlineData("Command_PilotingSkillRoll_BasePilotingSkill", "Base Piloting Skill: {0}")]
     [InlineData("Command_PilotingSkillRoll_Modifiers", "Modifiers:")]
-    [InlineData("Command_PilotingSkillRoll_Modifier", "  - {0}: +{1}")]
     [InlineData("Command_PilotingSkillRoll_TotalTargetNumber", "Total Target Number: {0}")]
     [InlineData("Command_PilotingSkillRoll_RollResult", "Roll Result: {0}")]
     // Piloting Skill Roll Types

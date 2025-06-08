@@ -21,7 +21,6 @@ public class PilotingSkillRollDataTests
         _localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill")
             .Returns("Base Piloting Skill: {0}");
         _localizationService.GetString("Command_PilotingSkillRoll_Modifiers").Returns("Modifiers:");
-        _localizationService.GetString("Command_PilotingSkillRoll_Modifier").Returns("  - {0}: +{1}");
         _localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber")
             .Returns("Total Target Number: {0}");
         _localizationService.GetString("Command_PilotingSkillRoll_RollResult").Returns("Roll Result: {0}");
@@ -94,7 +93,7 @@ public class PilotingSkillRollDataTests
         result.ShouldContain("Gyro Hit roll succeeded");
         result.ShouldContain("Base Piloting Skill: 4");
         result.ShouldContain("Modifiers:");
-        result.ShouldContain("  - Damaged Gyro: +2");
+        result.ShouldContain("Damaged Gyro: +2");
         result.ShouldContain("Total Target Number: 6");
         result.ShouldContain("Roll Result: 7");
     }
@@ -112,7 +111,7 @@ public class PilotingSkillRollDataTests
         result.ShouldContain("Gyro Hit roll failed");
         result.ShouldContain("Base Piloting Skill: 4");
         result.ShouldContain("Modifiers:");
-        result.ShouldContain("  - Damaged Gyro: +2");
+        result.ShouldContain("Damaged Gyro: +2");
         result.ShouldContain("Total Target Number: 6");
         result.ShouldContain("Roll Result: 4");
     }
@@ -130,7 +129,7 @@ public class PilotingSkillRollDataTests
         result.ShouldContain("Gyro Hit roll is impossible");
         result.ShouldContain("Base Piloting Skill: 4");
         result.ShouldContain("Modifiers:");
-        result.ShouldContain("  - Damaged Gyro: +9");
+        result.ShouldContain("Damaged Gyro: +9");
         result.ShouldContain("Total Target Number: 13");
         result.ShouldNotContain("Roll Result:"); // No roll result for impossible rolls
     }
@@ -142,7 +141,7 @@ public class PilotingSkillRollDataTests
         
         public override string Render(ILocalizationService localizationService)
         {
-            return Name;
+            return $"{Name}: +{Value}";
         }
     }
 }

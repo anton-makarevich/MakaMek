@@ -82,7 +82,6 @@ public class MechFallingCommandTests
         _localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill")
             .Returns("Base Piloting Skill: {0}");
         _localizationService.GetString("Command_PilotingSkillRoll_Modifiers").Returns("Modifiers:");
-        _localizationService.GetString("Command_PilotingSkillRoll_Modifier").Returns("  - {0}: +{1}");
         _localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber")
             .Returns("Total Target Number: {0}");
         _localizationService.GetString("Command_PilotingSkillRoll_RollResult").Returns("Roll Result: {0}");

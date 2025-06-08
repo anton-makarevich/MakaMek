@@ -310,7 +310,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var unitNewlyDestroyed = !wasDestroyedBefore && target.Status== UnitStatus.Destroyed;
         
         // Update the resolution data with destruction information
-        var updatedResolution = resolution with 
+        resolution = resolution with 
         { 
             DestroyedParts = newlyDestroyedParts.Any() ? newlyDestroyedParts : null,
             UnitDestroyed = unitNewlyDestroyed
@@ -329,7 +329,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 Slots = weapon.MountedAtSlots
             },
             TargetId = target.Id,
-            ResolutionData = updatedResolution
+            ResolutionData = resolution
         };
         
         attacker.FireWeapon(command.WeaponData);

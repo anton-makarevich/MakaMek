@@ -73,10 +73,7 @@ public record PilotingSkillRollData
             
             foreach (var modifier in PsrBreakdown.Modifiers)
             {
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_PilotingSkillRoll_Modifier"),
-                    modifier.Render(localizationService),
-                    modifier.Value));
+                stringBuilder.AppendLine(modifier.Render(localizationService));
             }
         }
 
