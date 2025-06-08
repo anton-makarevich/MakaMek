@@ -84,22 +84,18 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                         localizationService.GetString("Command_WeaponAttackResolution_MissilesHit"),
                         ResolutionData.HitLocationsData.MissilesHit));
                 }
-
-                // Add hit locations with damage
-                if (ResolutionData.HitLocationsData.HitLocations.Count <= 0) return stringBuilder.ToString().TrimEnd();
+            }
+            
+            // Add hit locations with damage
+            if (ResolutionData.HitLocationsData.HitLocations.Count > 0)
+            {
 
                 stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_HitLocations"));
 
-                // Get the target unit to provide it to the rendering method
-                var targetUnit = game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.TargetId);
-
-                if (targetUnit is not null)
+                // Use the Render method for each hit location
+                foreach (var hitLocation in ResolutionData.HitLocationsData.HitLocations)
                 {
-                    // Use the Render method for each hit location
-                    foreach (var hitLocation in ResolutionData.HitLocationsData.HitLocations)
-                    {
-                        stringBuilder.Append(hitLocation.Render(localizationService, targetUnit));
-                    }
+                    stringBuilder.Append(hitLocation.Render(localizationService, target));
                 }
             }
 

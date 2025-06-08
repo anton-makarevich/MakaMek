@@ -97,22 +97,16 @@ public record struct MechFallingCommand : IGameCommand
             localizationService.GetString("Command_MechFalling_Damage"),
             DamageData.HitLocations.TotalDamage));
             
-        // Add detailed hit locations information - using the new Render method
+        // Add detailed hit locations information - using the location's Render method
         if (DamageData.HitLocations.HitLocations.Count > 0)
         {
             stringBuilder.AppendLine(); // Add a line break after total damage
             stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_HitLocations"));
-            
-            // Get the target unit to provide to the rendering method
-            var unitForHitLocations = game.Players
-                .SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.UnitId);
-            if (unitForHitLocations is not null)
+
+            // Render each hit location using the new method
+            foreach (var hitLocation in DamageData.HitLocations.HitLocations)
             {
-                // Render each hit location using the new method
-                foreach (var hitLocation in DamageData.HitLocations.HitLocations)
-                {
-                    stringBuilder.Append(hitLocation.Render(localizationService, unitForHitLocations));
-                }
+                stringBuilder.Append(hitLocation.Render(localizationService, unit));
             }
         }
 
