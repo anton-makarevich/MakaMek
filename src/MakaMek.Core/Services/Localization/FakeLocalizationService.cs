@@ -59,7 +59,6 @@ public class FakeLocalizationService: ILocalizationService
             "Command_PilotingSkillRoll_ImpossibleRoll" => "{0} roll is impossible",
             "Command_PilotingSkillRoll_BasePilotingSkill" => "Base Piloting Skill: {0}",
             "Command_PilotingSkillRoll_Modifiers" => "Modifiers:",
-            "Command_PilotingSkillRoll_Modifier" => "  - {0}: +{1}",
             "Command_PilotingSkillRoll_TotalTargetNumber" => "Total Target Number: {0}",
             "Command_PilotingSkillRoll_RollResult" => "Roll Result: {0}",
             
@@ -75,7 +74,7 @@ public class FakeLocalizationService: ILocalizationService
             "AttackDirection_Forward" => "Front",
             "AttackDirection_Rear" => "Rear",
             
-            // Attack modifiers
+            // Roll modifiers
             "Modifier_GunnerySkill" => "Gunnery Skill: +{0}",
             "Modifier_AttackerMovement" => "Attacker Movement ({0}): +{1}",
             "Modifier_TargetMovement" => "Target Movement ({0} hexes): +{1}",
