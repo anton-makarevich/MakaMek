@@ -18,12 +18,12 @@ public record struct MechFallingCommand : IGameCommand
     /// <summary>
     /// The number of levels the mech fell
     /// </summary>
-    public int LevelsFallen { get; set; } 
+    public int LevelsFallen { get; init; } 
 
     /// <summary>
     /// Whether the mech was jumping when it fell
     /// </summary>
-    public bool WasJumping { get; set; } 
+    public bool WasJumping { get; init; } 
     
     /// <summary>
     /// The falling damage data
@@ -43,12 +43,12 @@ public record struct MechFallingCommand : IGameCommand
     /// <summary>
     /// The piloting skill roll data for the fall check
     /// </summary>
-    public PilotingSkillRollData? FallPilotingSkillRoll { get; set; }
+    public PilotingSkillRollData? FallPilotingSkillRoll { get; init; }
 
     /// <summary>
     /// The piloting skill roll data for pilot damage check
     /// </summary>
-    public PilotingSkillRollData? PilotDamagePilotingSkillRoll { get; set; }
+    public PilotingSkillRollData? PilotDamagePilotingSkillRoll { get; init; }
 
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
@@ -96,6 +96,25 @@ public record struct MechFallingCommand : IGameCommand
         stringBuilder.Append(string.Format(
             localizationService.GetString("Command_MechFalling_Damage"),
             DamageData.HitLocations.TotalDamage));
+            
+        // Add detailed hit locations information - using the new Render method
+        if (DamageData.HitLocations.HitLocations.Count > 0)
+        {
+            stringBuilder.AppendLine(); // Add a line break after total damage
+            stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_HitLocations"));
+            
+            // Get the target unit to provide to the rendering method
+            var unitForHitLocations = game.Players
+                .SelectMany(p => p.Units).FirstOrDefault(u => u.Id == command.UnitId);
+            if (unitForHitLocations is not null)
+            {
+                // Render each hit location using the new method
+                foreach (var hitLocation in DamageData.HitLocations.HitLocations)
+                {
+                    stringBuilder.Append(hitLocation.Render(localizationService, unitForHitLocations));
+                }
+            }
+        }
 
         if (PilotDamagePilotingSkillRoll == null) return stringBuilder.ToString().TrimEnd();
         stringBuilder.AppendLine(PilotDamagePilotingSkillRoll.Render(localizationService));
