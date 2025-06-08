@@ -9,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
-using Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -254,6 +253,9 @@ public class MechFallingCommandTests
     {
         // Arrange
         var sut = CreateComplexFallCommand();
+        // Make sure the required string is properly defined
+        _localizationService.GetString("Command_WeaponAttackResolution_HitLocations")
+            .Returns("Hit Locations:");
 
         // Act
         var result = sut.Render(_localizationService, _game);
@@ -264,6 +266,12 @@ public class MechFallingCommandTests
         result.ShouldContain("2 level(s)");
         result.ShouldContain("while jumping");
         result.ShouldContain("and took 8 damage");
+        result.ShouldContain("Hit Locations:");
+        foreach (var hitLocation in sut.DamageData!.HitLocations.HitLocations)
+        {
+            var text = hitLocation.Render(_localizationService, _unit).Trim();
+            result.ShouldContain(text);
+        }
         result.ShouldContain("pilot was injured");
     }
 

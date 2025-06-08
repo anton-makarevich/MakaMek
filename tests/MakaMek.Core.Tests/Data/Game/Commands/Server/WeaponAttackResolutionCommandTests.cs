@@ -182,12 +182,12 @@ public class WeaponAttackResolutionCommandTests
         var hitLocationsData = new AttackHitLocationsData(
             hitLocations,
             10,
-            [new(6), new(4)],
+            [new DiceResult(6), new DiceResult(4)],
             5);
         
         var resolutionData = new AttackResolutionData(
             7,
-            [new(4), new(4)],
+            [new DiceResult(4), new DiceResult(4)],
             true,
             FiringArc.Forward,
             hitLocationsData);
@@ -208,10 +208,10 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldFormatHit_Correctly()
     {
         // Arrange
-        var command = CreateHitCommand();
+        var sut = CreateHitCommand();
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -225,10 +225,10 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldFormatMiss_Correctly()
     {
         // Arrange
-        var command = CreateMissCommand();
+        var sut = CreateMissCommand();
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -240,10 +240,10 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldFormatClusterWeapon_Correctly()
     {
         // Arrange
-        var command = CreateClusterHitCommand();
+        var sut = CreateClusterHitCommand();
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -262,10 +262,10 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldReturnEmpty_WhenPlayerNotFound()
     {
         // Arrange
-        var command = CreateHitCommand() with { PlayerId = Guid.NewGuid() };
+        var sut = CreateHitCommand() with { PlayerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
@@ -275,10 +275,10 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldReturnEmpty_WhenAttackerNotFound()
     {
         // Arrange
-        var command = CreateHitCommand() with { AttackerId = Guid.NewGuid() };
+        var sut = CreateHitCommand() with { AttackerId = Guid.NewGuid() };
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
@@ -288,10 +288,10 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldReturnEmpty_WhenTargetNotFound()
     {
         // Arrange
-        var command = CreateHitCommand() with { TargetId = Guid.NewGuid() };
+        var sut = CreateHitCommand() with { TargetId = Guid.NewGuid() };
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBeEmpty();
@@ -301,10 +301,10 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldIncludeAttackDirection_WhenHit()
     {
         // Arrange
-        var command = CreateHitCommand();
+        var sut = CreateHitCommand();
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -315,10 +315,10 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldIncludeAttackDirection_WithClusterWeapon()
     {
         // Arrange
-        var command = CreateClusterHitCommand();
+        var sut = CreateClusterHitCommand();
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -350,7 +350,7 @@ public class WeaponAttackResolutionCommandTests
             direction,
             hitLocationsData);
         
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -362,7 +362,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -397,7 +397,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -409,7 +409,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical roll: 7");
@@ -447,7 +447,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -459,7 +459,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
@@ -493,7 +493,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -505,7 +505,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("LeftArm → LeftTorso: 5 damage");
@@ -538,7 +538,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -550,7 +550,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("LOCATION BLOWN OFF: Head");
@@ -593,7 +593,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -605,7 +605,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("CenterTorso: 5 damage");
@@ -651,7 +651,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -663,7 +663,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical roll: 10");
@@ -711,7 +711,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -723,7 +723,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hits in LeftArm:");
@@ -764,7 +764,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -776,7 +776,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("LOCATION BLOWN OFF: LeftArm");
@@ -810,7 +810,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -822,7 +822,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical roll: 10");
@@ -858,7 +858,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -870,7 +870,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical roll: 10");
@@ -913,7 +913,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -925,7 +925,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
@@ -964,7 +964,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -974,12 +974,13 @@ public class WeaponAttackResolutionCommandTests
             ResolutionData = resolutionData,
             Timestamp = DateTime.UtcNow
         };
+        var hitLocationText = hitLocationsData.HitLocations.First().Render(_localizationService, _target).Trim();
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
+        output.ShouldContain(hitLocationText);
         output.ShouldNotContain("EXPLODES!");
     }
     
@@ -1018,7 +1019,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -1030,7 +1031,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
@@ -1071,7 +1072,7 @@ public class WeaponAttackResolutionCommandTests
             FiringArc.Forward,
             hitLocationsData);
 
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -1083,7 +1084,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var output = command.Render(_localizationService, _game);
+        var output = sut.Render(_localizationService, _game);
 
         // Assert
         output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
@@ -1115,7 +1116,7 @@ public class WeaponAttackResolutionCommandTests
             hitLocationsData,
             destroyedParts);
         
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -1127,7 +1128,7 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -1160,7 +1161,7 @@ public class WeaponAttackResolutionCommandTests
             null,
             true);
         
-        var command = new WeaponAttackResolutionCommand
+        var sut = new WeaponAttackResolutionCommand
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
@@ -1172,14 +1173,14 @@ public class WeaponAttackResolutionCommandTests
         };
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldNotBeEmpty();
         result.ShouldContain("Locust LCT-1V has been destroyed!");
     }
 
-    private ComponentHitData CreateComponentHitData(int slot)
+    public static ComponentHitData CreateComponentHitData(int slot)
     {
         return new ComponentHitData
         {
