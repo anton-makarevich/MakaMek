@@ -1,7 +1,8 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Data.Game.Mechanics;
+namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 
 public class FallReasonTypeTests
 {

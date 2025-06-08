@@ -1,4 +1,6 @@
-namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
+
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 
 /// <summary>
 /// Represents the different reasons a 'Mech might fall

@@ -1,6 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
@@ -8,7 +8,7 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics
+namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
 {
     public class PilotingSkillCalculatorTests
     {

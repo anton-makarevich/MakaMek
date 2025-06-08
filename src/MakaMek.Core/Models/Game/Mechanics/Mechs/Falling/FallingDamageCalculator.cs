@@ -6,7 +6,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 
 /// <summary>
 /// Classic BattleTech implementation of falling damage calculator
