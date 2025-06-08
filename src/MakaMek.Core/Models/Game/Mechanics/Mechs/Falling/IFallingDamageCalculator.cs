@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 
 /// <summary>
 /// Interface for calculating damage when a unit falls
