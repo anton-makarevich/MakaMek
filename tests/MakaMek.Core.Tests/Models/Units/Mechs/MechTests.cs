@@ -219,6 +219,7 @@ public class MechTests
 
         // Assert
         (mech.Status & UnitStatus.Prone).ShouldBe(UnitStatus.Prone);
+        mech.IsProne.ShouldBeTrue();
     }
 
     [Fact]
@@ -233,6 +234,7 @@ public class MechTests
 
         // Assert
         (mech.Status & UnitStatus.Prone).ShouldNotBe(UnitStatus.Prone);
+        mech.IsProne.ShouldBeFalse();
     }
 
     [Theory]
