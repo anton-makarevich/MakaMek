@@ -153,13 +153,13 @@ public class Mech : Unit
 
     public bool CanStandup()
     {
+        if ((Status & UnitStatus.Shutdown)== UnitStatus.Shutdown) return false;
         // Check if the Mech has at least one movement point available
-        var hasMovementPoint = GetMovementPoints(MovementType.Walk) > 0;
+        if (GetMovementPoints(MovementType.Walk) < 1) return false;
+
+        if (Crew?.IsUnconscious == true) return false;
         
-        // Check if the pilot is conscious
-        var isPilotConscious = !Crew?.IsUnconscious ?? false;
-        
-        return hasMovementPoint && isPilotConscious;
+        return true;
     }
 
     public void StandUp()

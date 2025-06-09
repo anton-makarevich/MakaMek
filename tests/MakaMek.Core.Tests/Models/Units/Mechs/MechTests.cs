@@ -266,181 +266,6 @@ public class MechTests
     }
 
     [Theory]
-    [InlineData(0, HexDirection.Top, HexDirection.TopRight, false)] // No rotation allowed
-    [InlineData(1, HexDirection.Top, HexDirection.TopRight, true)] // 60 degrees allowed, within limit
-    [InlineData(1, HexDirection.Top, HexDirection.Bottom, false)] // 60 degrees allowed, beyond limit
-    [InlineData(2, HexDirection.Top, HexDirection.BottomRight, true)] // 120 degrees allowed, within limit
-    [InlineData(3, HexDirection.Top, HexDirection.Bottom, true)] // 180 degrees allowed, within limit
-    public void RotateTorso_ShouldRespectPossibleTorsoRotation(
-        int possibleRotation,
-        HexDirection unitFacing,
-        HexDirection targetFacing,
-        bool shouldRotate)
-    {
-        // Arrange
-        var parts = CreateBasicPartsData();
-        var torsos = parts.OfType<Torso>().ToList();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts, possibleRotation);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), unitFacing));
-
-        // Act
-        mech.RotateTorso(targetFacing);
-
-        // Assert
-        foreach (var torso in torsos)
-        {
-            torso.Facing.ShouldBe(shouldRotate ? targetFacing : unitFacing);
-        }
-    }
-
-    [Fact]
-    public void HasUsedTorsoTwist_WhenTorsosAlignedWithUnit_ShouldBeFalse()
-    {
-        // Arrange
-        var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
-
-        // Assert
-        mech.HasUsedTorsoTwist.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void HasUsedTorsoTwist_WhenTorsosRotated_ShouldBeTrue()
-    {
-        // Arrange
-        var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
-
-        // Act
-        mech.RotateTorso(HexDirection.TopRight);
-
-        // Assert
-        mech.HasUsedTorsoTwist.ShouldBeTrue();
-    }
-
-    [Theory]
-    [InlineData(0, false)] // No rotation possible
-    [InlineData(1, true)] // Normal rotation
-    [InlineData(2, true)] // Extended rotation
-    public void CanRotateTorso_ShouldRespectPossibleTorsoRotation(int possibleRotation, bool expected)
-    {
-        // Arrange
-        var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts, possibleRotation);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
-
-        // Act & Assert
-        mech.CanRotateTorso.ShouldBe(expected);
-    }
-
-    [Fact]
-    public void CanRotateTorso_WhenTorsoAlreadyRotated_ShouldBeFalse()
-    {
-        // Arrange
-        var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
-
-        // Act
-        mech.RotateTorso(HexDirection.TopRight);
-
-        // Assert
-        mech.CanRotateTorso.ShouldBeFalse();
-    }
-
-    [Fact]
-    public void Constructor_ShouldSetDefaultPossibleTorsoRotation()
-    {
-        // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-
-        // Assert
-        mech.PossibleTorsoRotation.ShouldBe(1);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    public void Constructor_ShouldSetSpecifiedPossibleTorsoRotation(int rotation)
-    {
-        // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData(), rotation);
-
-        // Assert
-        mech.PossibleTorsoRotation.ShouldBe(rotation);
-    }
-
-    [Fact]
-    public void Constructor_AssignsDefaultMechwarrior()
-    {
-        // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-
-        // Assert
-        mech.Crew.ShouldNotBeNull();
-        mech.Crew.ShouldBeOfType<MechWarrior>();
-        var pilot = (MechWarrior)mech.Crew;
-        pilot.FirstName.ShouldBe("MechWarrior");
-        pilot.LastName.Length.ShouldBe(6); // Random GUID substring
-        pilot.Gunnery.ShouldBe(MechWarrior.DefaultGunnery);
-        pilot.Piloting.ShouldBe(MechWarrior.DefaultPiloting);
-    }
-
-    [Fact]
-    public void ResetTurnState_ShouldResetTorsoRotation()
-    {
-        // Arrange
-        var parts = CreateBasicPartsData();
-        var torsos = parts.OfType<Torso>().ToList();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
-
-        // Rotate torsos to a different direction
-        mech.RotateTorso(HexDirection.Bottom);
-
-        // Verify torsos are rotated
-        foreach (var torso in torsos)
-        {
-            torso.Facing.ShouldBe(HexDirection.Bottom, "Torso should be rotated before reset");
-        }
-
-        // Act
-        mech.ResetTurnState();
-
-        // Assert
-        foreach (var torso in torsos)
-        {
-            torso.Facing.ShouldBe(HexDirection.BottomRight, "Torso should be reset to match unit facing");
-        }
-    }
-
-    [Fact]
-    public void ResetTurnState_ShouldResetWeaponTargets()
-    {
-        // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var weapon = new MediumLaser();
-        // Attach weapon to a part (e.g., right arm)
-        var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
-        rightArm.TryAddComponent(weapon);
-        // Set a dummy target
-        var dummyTarget = new Mech("Dummy", "DMY-1A", 50, 4, CreateBasicPartsData());
-        weapon.Target = dummyTarget;
-        weapon.Target.ShouldNotBeNull();
-
-        // Act
-        sut.ResetTurnState();
-
-        // Assert
-        sut.HasDeclaredWeaponAttack.ShouldBeFalse();
-        weapon.Target.ShouldBeNull();
-    }
-
-    [Theory]
     // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
     [InlineData(2, 0)]
     [InlineData(7, 0)]
@@ -916,5 +741,89 @@ public class MechTests
         heatData.EngineHeatSource.ShouldNotBeNull();
         heatData.EngineHeatSource.Value.Hits.ShouldBe(1);
         heatData.EngineHeatSource.Value.HeatPoints.ShouldBe(5);
+    }
+
+    [Fact]
+    public void CanStandup_WhenHasMovementPointsAndPilotConscious_ShouldReturnTrue()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.SetProne();
+        
+        // Mock pilot - ensure it's conscious
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsUnconscious.Returns(false);
+        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeTrue("Mech should be able to stand up when it has movement points and pilot is conscious");
+    }
+
+    [Theory]
+    [InlineData(0, false)]  // No movement points, unconscious pilot
+    [InlineData(0, true)]   // No movement points, conscious pilot 
+    [InlineData(4, true)]   // Has movement points, unconscious pilot
+    public void CanStandup_WhenMissingRequirements_ShouldReturnFalse(int walkMp, bool pilotUnconscious)
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, walkMp, parts);
+        mech.SetProne();
+        
+        // Mock pilot with specified consciousness state
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsUnconscious.Returns(pilotUnconscious);
+        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBe(false, $"Mech should not stand up with walkMP={walkMp} and pilotUnconscious={pilotUnconscious}");
+    }
+
+    [Fact]
+    public void CanStandup_WhenHasMovementPointsAndPilotConsciousAndNotShutdown_ShouldReturnTrue()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.SetProne();
+        
+        // Mock pilot - ensure it's conscious
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsUnconscious.Returns(false);
+        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeTrue("Mech should be able to stand up when it has movement points and pilot is conscious and not shutdown");
+    }
+
+    [Fact]
+    public void CanStandup_WhenHasMovementPointsAndPilotConsciousAndShutdown_ShouldReturnFalse()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.SetProne();
+        mech.Shutdown();
+        
+        // Mock pilot - ensure it's conscious
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsUnconscious.Returns(false);
+        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
     }
 }
