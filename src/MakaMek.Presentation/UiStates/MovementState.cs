@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Presentation.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
@@ -344,6 +345,33 @@ public class MovementState : IUiState
             if (CurrentMovementStep != MovementStep.SelectingMovementType || _selectedUnit == null)
                 return [];
 
+            // Check if the unit is a Mech and is prone
+            if (_selectedUnit is Mech { IsProne: true } mech
+                && _viewModel.Game is not null)
+            {
+                // Calculate piloting skill roll breakdown and success probability
+                var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
+                    mech,
+                    []);
+                
+                var successProbability = Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
+                
+                // Format the probability as percentage
+                var probabilityText = $" ({successProbability:0}%)";
+                
+                // If the Mech is prone, only offer the "Attempt Standup" action if it can stand up
+                if (mech.CanStandup())
+                {
+                    return [new StateAction(
+                        _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
+                        true,
+                        () => HandleStandupAttempt(mech))];
+                }
+                
+                // If Mech can't stand up, return empty actions list
+                return [];
+            }
+
             var actions = new List<StateAction>
             {
                 // Stand Still
@@ -381,5 +409,11 @@ public class MovementState : IUiState
 
             return actions;
         }
+    }
+
+    // New method to handle standup attempts
+    private void HandleStandupAttempt(Mech mech)
+    {
+        // Create a command to stand the Mech up
     }
 }

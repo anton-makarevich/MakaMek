@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -52,6 +53,7 @@ public class MovementStateTests
         localizationService.GetString("MovementType_Walk").Returns("Walk");
         localizationService.GetString("MovementType_Run").Returns("Run");
         localizationService.GetString("MovementType_Jump").Returns("Jump");
+        localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
         
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
@@ -685,6 +687,39 @@ public class MovementStateTests
         // Assert
         actions.Count.ShouldBe(3); // Stand Still, Walk, Run
         actions.ShouldNotContain(a => a.Label.StartsWith("Jump"));
+    }
+
+    [Fact]
+    public void GetAvailableActions_ProneMech_OnlyShowsAttemptStandupAction()
+    {
+        // Arrange
+        var proneMech = _unit1 as Mech;
+        proneMech!.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(1, "Only one action should be available for prone mech");
+        actions[0].Label.ShouldBe("Attempt Standup", "Action should be 'Attempt Standup'");
+    }
+
+    [Fact]
+    public void GetAvailableActions_ProneMech_CannotStandup_ReturnsEmptyList()
+    {
+        // Arrange
+        // Set up a prone Mech that cannot stand up
+        var proneMech = _unit1 as Mech;
+        proneMech!.SetProne();
+        proneMech.Shutdown(); // shutdown cannot stand up 
+        _sut.HandleUnitSelection(proneMech);
+        
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+    
+        // Assert
+        actions.Count.ShouldBe(0, "No actions should be available for prone mech that cannot stand up");
     }
 
     [Theory]

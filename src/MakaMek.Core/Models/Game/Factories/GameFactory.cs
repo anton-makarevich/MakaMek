@@ -37,8 +37,15 @@ public class GameFactory : IGameFactory
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher, 
         IToHitCalculator toHitCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator,
         IBattleMapFactory mapFactory)
     {
-        return new ClientGame(rulesProvider, mechFactory, commandPublisher, toHitCalculator, mapFactory);
+        return new ClientGame(
+            rulesProvider,
+            mechFactory,
+            commandPublisher,
+            toHitCalculator, 
+            pilotingSkillCalculator,
+            mapFactory);
     }
 }

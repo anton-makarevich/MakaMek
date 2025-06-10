@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
@@ -35,10 +36,13 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         IBattleMapFactory mapFactory)
-        : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
+        : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
+           pilotingSkillCalculator, 
+            dispatcherService, gameFactory)
     {
         _gameManager = gameManager;
         _mechFactory = mechFactory;
@@ -56,6 +60,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _mechFactory,
             _commandPublisher, 
             _toHitCalculator,
+            _pilotingSkillCalculator,
             _mapFactory);
         // Update server IP initially if needed
         NotifyPropertyChanged(nameof(ServerIpAddress));

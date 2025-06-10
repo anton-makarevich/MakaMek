@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
@@ -29,11 +30,14 @@ public class JoinGameViewModel : NewGameViewModel
         IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         ITransportFactory transportFactory,
         IBattleMapFactory mapFactory)
-        : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator, dispatcherService, gameFactory)
+        : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
+            pilotingSkillCalculator,
+            dispatcherService, gameFactory)
     {
         _mechFactory = mechFactory;
         _transportFactory = transportFactory;
@@ -145,6 +149,7 @@ public class JoinGameViewModel : NewGameViewModel
                 _mechFactory,
                 _commandPublisher,
                 _toHitCalculator,
+                _pilotingSkillCalculator,
                 _mapFactory);
             IsConnected = true;
             _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand

@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -24,6 +25,7 @@ public abstract class NewGameViewModel : BaseViewModel
     private readonly IUnitsLoader _unitsLoader;
     protected readonly ICommandPublisher _commandPublisher;
     protected readonly IToHitCalculator _toHitCalculator;
+    protected readonly IPilotingSkillCalculator _pilotingSkillCalculator;
     private readonly IDispatcherService _dispatcherService;
     protected readonly IGameFactory _gameFactory;
     
@@ -31,11 +33,11 @@ public abstract class NewGameViewModel : BaseViewModel
     
     public ICommand AddPlayerCommand { get; protected set; }
 
-    protected NewGameViewModel(
-        IRulesProvider rulesProvider,
+    protected NewGameViewModel(IRulesProvider rulesProvider,
         IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory)
     {
@@ -43,6 +45,7 @@ public abstract class NewGameViewModel : BaseViewModel
         _unitsLoader = unitsLoader;
         _commandPublisher = commandPublisher;
         _toHitCalculator = toHitCalculator;
+        _pilotingSkillCalculator = pilotingSkillCalculator;
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
     }

@@ -112,6 +112,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Action_MoveUnit", "Move Unit")]
     [InlineData("Action_StandStill", "Stand Still")]
     [InlineData("Action_MovementPoints", "{0} | MP: {1}")]
+    [InlineData("Action_AttemptStandup", "Attempt Standup")]
     // Movement types
     [InlineData("MovementType_Walk", "Walk")]
     [InlineData("MovementType_Run", "Run")]

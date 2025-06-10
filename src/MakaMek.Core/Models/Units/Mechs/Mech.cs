@@ -151,6 +151,17 @@ public class Mech : Unit
         Status |= UnitStatus.Prone;
     }
 
+    public bool CanStandup()
+    {
+        if ((Status & UnitStatus.Shutdown)== UnitStatus.Shutdown) return false;
+        // Check if the Mech has at least one movement point available
+        if (GetMovementPoints(MovementType.Walk) < 1) return false;
+
+        if (Crew?.IsUnconscious == true) return false;
+        
+        return true;
+    }
+
     public void StandUp()
     {
         Status &= ~UnitStatus.Prone;
@@ -169,7 +180,9 @@ public class Mech : Unit
             }
         }
     }
-    
+
+    public bool IsProne => (Status & UnitStatus.Prone) == UnitStatus.Prone;
+
     /// <summary>
     /// Resets the turn state for the mech, including torso rotation
     /// </summary>

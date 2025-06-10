@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -16,6 +17,7 @@ namespace Sanet.MakaMek.Core.Models.Game;
 
 public sealed class ClientGame : BaseGame
 {
+    public IPilotingSkillCalculator PilotingSkillCalculator { get; }
     private readonly Subject<IGameCommand> _commandSubject = new();
     private readonly List<IGameCommand> _commandLog = [];
     private readonly HashSet<Guid> _playersEndedTurn = [];
@@ -24,9 +26,16 @@ public sealed class ClientGame : BaseGame
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
     
-    public ClientGame(IRulesProvider rulesProvider, IMechFactory mechFactory, ICommandPublisher commandPublisher, IToHitCalculator toHitCalculator, IBattleMapFactory mapFactory)
+    public ClientGame(
+        IRulesProvider rulesProvider,
+        IMechFactory mechFactory,
+        ICommandPublisher commandPublisher,
+        IToHitCalculator toHitCalculator, 
+        IPilotingSkillCalculator pilotingSkillCalculator,
+        IBattleMapFactory mapFactory)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator)
     {
+        PilotingSkillCalculator = pilotingSkillCalculator;
         _mapFactory = mapFactory;
     }
 

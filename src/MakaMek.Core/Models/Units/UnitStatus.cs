@@ -8,6 +8,5 @@ public enum UnitStatus
     Shutdown = 2,
     Prone = 4,
     Immobile = 8,
-    PoweredDown = 16,
     Destroyed = 32
 }
