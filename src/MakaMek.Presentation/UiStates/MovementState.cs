@@ -346,13 +346,24 @@ public class MovementState : IUiState
                 return [];
 
             // Check if the unit is a Mech and is prone
-            if (_selectedUnit is Mech mech && mech.IsProne)
+            if (_selectedUnit is Mech { IsProne: true } mech
+                && _viewModel.Game is not null)
             {
+                // Calculate piloting skill roll breakdown and success probability
+                var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
+                    mech,
+                    []);
+                
+                var successProbability = Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
+                
+                // Format the probability as percentage
+                var probabilityText = $" ({successProbability:0}%)";
+                
                 // If the Mech is prone, only offer the "Attempt Standup" action if it can stand up
                 if (mech.CanStandup())
                 {
                     return [new StateAction(
-                        _viewModel.LocalizationService.GetString("Action_AttemptStandup"),
+                        _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
                         true,
                         () => HandleStandupAttempt(mech))];
                 }

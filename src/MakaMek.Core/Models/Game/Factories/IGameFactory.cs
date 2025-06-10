@@ -33,5 +33,6 @@ public interface IGameFactory
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher, 
         IToHitCalculator toHitCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator,
         IBattleMapFactory mapFactory);
 }
