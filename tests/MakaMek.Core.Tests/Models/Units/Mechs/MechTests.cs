@@ -219,6 +219,7 @@ public class MechTests
 
         // Assert
         (mech.Status & UnitStatus.Prone).ShouldBe(UnitStatus.Prone);
+        mech.IsProne.ShouldBeTrue();
     }
 
     [Fact]
@@ -233,37 +234,10 @@ public class MechTests
 
         // Assert
         (mech.Status & UnitStatus.Prone).ShouldNotBe(UnitStatus.Prone);
+        mech.IsProne.ShouldBeFalse();
     }
-
-    [Theory]
-    [InlineData(5, 8, 2)] // Standard mech without jump jets
-    [InlineData(4, 6, 0)] // Fast mech with jump jets
-    [InlineData(3, 5, 2)] // Slow mech with lots of jump jets
-    public void GetMovement_ReturnsCorrectMPs(int walkMp, int runMp, int jumpMp)
-    {
-        // Arrange
-        var parts = CreateBasicPartsData();
-        if (jumpMp > 0)
-        {
-            var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-            centerTorso.TryAddComponent(new JumpJets());
-            centerTorso.TryAddComponent(new JumpJets());
-        }
-
-        var mech = new Mech("Test", "TST-1A", 50, walkMp, parts);
-
-        // Act
-        var walkingMp = mech.GetMovementPoints(MovementType.Walk);
-        var runningMp = mech.GetMovementPoints(MovementType.Run);
-        var jumpingMp = mech.GetMovementPoints(MovementType.Jump);
-
-        // Assert
-        walkingMp.ShouldBe(walkMp, "walking MP should match the base movement");
-        runningMp.ShouldBe(runMp, "running MP should be 1.5x walking");
-        jumpingMp.ShouldBe(jumpMp, "jumping MP should match the number of jump jets");
-    }
-
-    [Theory]
+    
+        [Theory]
     [InlineData(0, HexDirection.Top, HexDirection.TopRight, false)] // No rotation allowed
     [InlineData(1, HexDirection.Top, HexDirection.TopRight, true)] // 60 degrees allowed, within limit
     [InlineData(1, HexDirection.Top, HexDirection.Bottom, false)] // 60 degrees allowed, beyond limit
@@ -436,6 +410,35 @@ public class MechTests
         // Assert
         sut.HasDeclaredWeaponAttack.ShouldBeFalse();
         weapon.Target.ShouldBeNull();
+    }
+
+
+    [Theory]
+    [InlineData(5, 8, 2)] // Standard mech without jump jets
+    [InlineData(4, 6, 0)] // Fast mech with jump jets
+    [InlineData(3, 5, 2)] // Slow mech with lots of jump jets
+    public void GetMovement_ReturnsCorrectMPs(int walkMp, int runMp, int jumpMp)
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        if (jumpMp > 0)
+        {
+            var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
+            centerTorso.TryAddComponent(new JumpJets());
+            centerTorso.TryAddComponent(new JumpJets());
+        }
+
+        var mech = new Mech("Test", "TST-1A", 50, walkMp, parts);
+
+        // Act
+        var walkingMp = mech.GetMovementPoints(MovementType.Walk);
+        var runningMp = mech.GetMovementPoints(MovementType.Run);
+        var jumpingMp = mech.GetMovementPoints(MovementType.Jump);
+
+        // Assert
+        walkingMp.ShouldBe(walkMp, "walking MP should match the base movement");
+        runningMp.ShouldBe(runMp, "running MP should be 1.5x walking");
+        jumpingMp.ShouldBe(jumpMp, "jumping MP should match the number of jump jets");
     }
 
     [Theory]
@@ -914,5 +917,89 @@ public class MechTests
         heatData.EngineHeatSource.ShouldNotBeNull();
         heatData.EngineHeatSource.Value.Hits.ShouldBe(1);
         heatData.EngineHeatSource.Value.HeatPoints.ShouldBe(5);
+    }
+
+    [Fact]
+    public void CanStandup_WhenHasMovementPointsAndPilotConscious_ShouldReturnTrue()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.SetProne();
+        
+        // Mock pilot - ensure it's conscious
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsUnconscious.Returns(false);
+        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeTrue("Mech should be able to stand up when it has movement points and pilot is conscious");
+    }
+
+    [Theory]
+    [InlineData(0, false)]  // No movement points, unconscious pilot
+    [InlineData(0, true)]   // No movement points, conscious pilot 
+    [InlineData(4, true)]   // Has movement points, unconscious pilot
+    public void CanStandup_WhenMissingRequirements_ShouldReturnFalse(int walkMp, bool pilotUnconscious)
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, walkMp, parts);
+        mech.SetProne();
+        
+        // Mock pilot with specified consciousness state
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsUnconscious.Returns(pilotUnconscious);
+        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBe(false, $"Mech should not stand up with walkMP={walkMp} and pilotUnconscious={pilotUnconscious}");
+    }
+
+    [Fact]
+    public void CanStandup_WhenHasMovementPointsAndPilotConsciousAndNotShutdown_ShouldReturnTrue()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.SetProne();
+        
+        // Mock pilot - ensure it's conscious
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsUnconscious.Returns(false);
+        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeTrue("Mech should be able to stand up when it has movement points and pilot is conscious and not shutdown");
+    }
+
+    [Fact]
+    public void CanStandup_WhenHasMovementPointsAndPilotConsciousAndShutdown_ShouldReturnFalse()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.SetProne();
+        mech.Shutdown();
+        
+        // Mock pilot - ensure it's conscious
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsUnconscious.Returns(false);
+        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
     }
 }

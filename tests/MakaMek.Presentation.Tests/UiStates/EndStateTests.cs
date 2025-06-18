@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -56,6 +57,7 @@ public class EndStateTests
             new MechFactory(rules,localizationService),
             _commandPublisher, 
             Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));

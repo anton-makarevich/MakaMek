@@ -287,18 +287,16 @@ public abstract class Unit
     // Status management
     public virtual void Startup()
     {
-        if (Status is UnitStatus.Shutdown or UnitStatus.PoweredDown)
-        {
-            Status = UnitStatus.Active;
-        }
+        if ((Status & UnitStatus.Shutdown) != UnitStatus.Shutdown) return;
+        Status &= ~UnitStatus.Shutdown;
+        Status |= UnitStatus.Active;
     }
 
     public virtual void Shutdown()
     {
-        if (Status == UnitStatus.Active)
-        {
-            Status = UnitStatus.Shutdown;
-        }
+        if ((Status & UnitStatus.Active) != UnitStatus.Active) return;
+        Status &= ~UnitStatus.Active;
+        Status |= UnitStatus.Shutdown;
     }
 
     public void ApplyDamage(List<HitLocationData> hitLocations)

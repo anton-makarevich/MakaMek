@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
@@ -25,6 +26,7 @@ public class JoinGameViewModelTests
     private readonly JoinGameViewModel _sut;
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
+    private readonly IPilotingSkillCalculator  _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
     private readonly IGameFactory _gameFactory = Substitute.For<IGameFactory>();
     private readonly ITransportFactory _transportFactory = Substitute.For<ITransportFactory>();
@@ -43,6 +45,7 @@ public class JoinGameViewModelTests
             _mechFactory,
             _commandPublisher, 
             _toHitCalculator,
+            _pilotingSkillCalculator,
             _mapFactory);
         // Configure the adapter to be accessible from the command publisher
         _commandPublisher.Adapter.Returns(_adapter);
@@ -54,7 +57,10 @@ public class JoinGameViewModelTests
         // Configure the game factory to return our mock client game
         _gameFactory.CreateClientGame(_rulesProvider,
                 _mechFactory,
-                _commandPublisher, _toHitCalculator,_mapFactory)
+                _commandPublisher,
+                _toHitCalculator,
+                _pilotingSkillCalculator,
+                _mapFactory)
             .Returns(clientGame);
         
         // Configure dispatcher to execute actions immediately
@@ -67,6 +73,7 @@ public class JoinGameViewModelTests
             _unitsLoader,
             _commandPublisher,
             _toHitCalculator,
+            _pilotingSkillCalculator,
             _dispatcherService,
             _gameFactory,
             _transportFactory,
@@ -157,7 +164,10 @@ public class JoinGameViewModelTests
         // Assert
         _gameFactory.Received(1).CreateClientGame(_rulesProvider,
             _mechFactory,
-            _commandPublisher, _toHitCalculator,_mapFactory);
+            _commandPublisher,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _mapFactory);
     }
     
     [Fact]
@@ -177,6 +187,7 @@ public class JoinGameViewModelTests
             Arg.Any<IMechFactory>(),
             Arg.Any<ICommandPublisher>(), 
             Arg.Any<IToHitCalculator>(),
+            Arg.Any<IPilotingSkillCalculator>(),
             Arg.Any<IBattleMapFactory>());
     }
     
@@ -211,7 +222,7 @@ public class JoinGameViewModelTests
         // Add 4 players
         for (int i = 0; i < 4; i++)
         {
-            await ((AsyncCommand)_sut.AddPlayerCommand).ExecuteAsync();
+            await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         }
         
         // Assert
@@ -255,7 +266,7 @@ public class JoinGameViewModelTests
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
         await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
-        await ((AsyncCommand)_sut.AddPlayerCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         
         var player = _sut.Players.First();
         var playerId = player.Player.Id;
@@ -308,7 +319,7 @@ public class JoinGameViewModelTests
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
         await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
-        await ((AsyncCommand)_sut.AddPlayerCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         
         var player = _sut.Players.First();
         var playerId = player.Player.Id;

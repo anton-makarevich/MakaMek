@@ -2,15 +2,18 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -27,6 +30,7 @@ namespace Sanet.MakaMek.Presentation.Tests.UiStates;
 
 public class MovementStateTests
 {
+    private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
     private readonly MovementState _sut;
     private readonly ClientGame _game;
     private readonly UnitData _unitData;
@@ -52,6 +56,7 @@ public class MovementStateTests
         localizationService.GetString("MovementType_Walk").Returns("Walk");
         localizationService.GetString("MovementType_Run").Returns("Run");
         localizationService.GetString("MovementType_Jump").Returns("Jump");
+        localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
         
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
@@ -77,6 +82,7 @@ public class MovementStateTests
             mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
+            _pilotingSkillCalculator,
             Substitute.For<IBattleMapFactory>());
         
         _game.JoinGameWithUnits(_player,[]);
@@ -685,6 +691,51 @@ public class MovementStateTests
         // Assert
         actions.Count.ShouldBe(3); // Stand Still, Walk, Run
         actions.ShouldNotContain(a => a.Label.StartsWith("Jump"));
+    }
+
+    [Fact]
+    public void GetAvailableActions_ProneMech_OnlyShowsAttemptStandupAction()
+    {
+        // Arrange
+        var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, [])
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(1, "Only one action should be available for prone mech");
+        actions[0].Label.ShouldBe("Attempt Standup (92%)", "Action should be 'Attempt Standup'");
+    }
+
+    [Fact]
+    public void GetAvailableActions_ProneMech_CannotStandup_ReturnsEmptyList()
+    {
+        // Arrange
+        _pilotingSkillCalculator.GetPsrBreakdown(Arg.Any<Mech>(), [])
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        // Set up a prone Mech that cannot stand up
+        var proneMech = _unit1 as Mech;
+        proneMech!.SetProne();
+        proneMech.Shutdown(); // shutdown cannot stand up 
+        _sut.HandleUnitSelection(proneMech);
+        
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+    
+        // Assert
+        actions.Count.ShouldBe(0, "No actions should be available for prone mech that cannot stand up");
     }
 
     [Theory]

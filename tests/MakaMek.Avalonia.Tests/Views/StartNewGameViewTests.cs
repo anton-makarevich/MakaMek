@@ -3,6 +3,7 @@ using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -37,6 +38,7 @@ namespace MakaMek.Avalonia.Tests.Views
                 Substitute.For<IMechFactory>(),
                 Substitute.For<ICommandPublisher>(),
                 Substitute.For<IToHitCalculator>(),
+                Substitute.For<IPilotingSkillCalculator>(), 
                 Substitute.For<IDispatcherService>(),
                 Substitute.For<IGameFactory>(),
                 Substitute.For<IBattleMapFactory>());

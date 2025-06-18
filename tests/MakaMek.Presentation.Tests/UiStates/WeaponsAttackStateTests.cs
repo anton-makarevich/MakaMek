@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -75,6 +76,7 @@ public class WeaponsAttackStateTests
             _mechFactory,
             _commandPublisher,
             _toHitCalculator,
+            Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[]);
         _game.SetBattleMap(battleMap);
