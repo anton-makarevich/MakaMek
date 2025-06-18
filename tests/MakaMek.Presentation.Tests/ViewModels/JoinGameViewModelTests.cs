@@ -222,7 +222,7 @@ public class JoinGameViewModelTests
         // Add 4 players
         for (int i = 0; i < 4; i++)
         {
-            await ((AsyncCommand)_sut.AddPlayerCommand).ExecuteAsync();
+            await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         }
         
         // Assert
@@ -266,7 +266,7 @@ public class JoinGameViewModelTests
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
         await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
-        await ((AsyncCommand)_sut.AddPlayerCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         
         var player = _sut.Players.First();
         var playerId = player.Player.Id;
@@ -319,7 +319,7 @@ public class JoinGameViewModelTests
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
         await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
-        await ((AsyncCommand)_sut.AddPlayerCommand).ExecuteAsync();
+        await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         
         var player = _sut.Players.First();
         var playerId = player.Player.Id;

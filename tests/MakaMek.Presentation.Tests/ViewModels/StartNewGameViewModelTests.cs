@@ -153,7 +153,7 @@ public class StartNewGameViewModelTests
     {
         var initialPlayerCount = _sut.Players.Count;
 
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
 
         _sut.Players.Count.ShouldBe(initialPlayerCount + 1);
         _sut.CanAddPlayer.ShouldBeTrue();
@@ -164,11 +164,11 @@ public class StartNewGameViewModelTests
     {
         for (var i = 0; i < 4; i++)
         {
-            _sut.AddPlayerCommand.Execute(null);
+            _sut.AddPlayerCommand!.Execute(null);
         }
         var initialPlayerCount = _sut.Players.Count;
 
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
 
         _sut.Players.Count.ShouldBe(initialPlayerCount); 
         _sut.CanAddPlayer.ShouldBeFalse();
@@ -185,7 +185,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenPlayersHaveNoUnits()
     {
-        _sut.AddPlayerCommand.Execute(null); 
+        _sut.AddPlayerCommand!.Execute(null); 
 
         var result = _sut.CanStartGame;
 
@@ -196,7 +196,7 @@ public class StartNewGameViewModelTests
     public void CanStartGame_ShouldBeFalse_WhenPlayersHaveUnits_ButDidntJoin()
     {
         var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         _sut.Players.First().SelectedUnit = units.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
     
@@ -208,7 +208,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenPlayersHaveUnits_AndPlayerHasJoined()
     {
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
         _sut.Players.First().Player.Status = PlayerStatus.Joined;
@@ -221,7 +221,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits_AndPlayerIsReady()
     {
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
         _sut.Players.First().Player.Status = PlayerStatus.Ready;
@@ -234,8 +234,8 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenOnePlayerHasNoUnits()
     {
-        _sut.AddPlayerCommand.Execute(null); 
-        _sut.AddPlayerCommand.Execute(null); 
+        _sut.AddPlayerCommand!.Execute(null); 
+        _sut.AddPlayerCommand!.Execute(null); 
         _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
     
@@ -289,7 +289,7 @@ public class StartNewGameViewModelTests
     {
         await _sut.InitializeLobbyAndSubscribe(); 
 
-        _sut.AddPlayerCommand.Execute(null); 
+        _sut.AddPlayerCommand!.Execute(null); 
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null); 
@@ -329,7 +329,7 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
@@ -364,7 +364,7 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
@@ -400,7 +400,7 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
@@ -422,7 +422,7 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
@@ -458,7 +458,7 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
@@ -490,7 +490,7 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
         
         // Add a local player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
@@ -524,13 +524,13 @@ public class StartNewGameViewModelTests
         
         // Add two players
         // Add first player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var player1 = _sut.Players.First();
         player1.SelectedUnit = _sut.AvailableUnits.First();
         player1.AddUnitCommand.Execute(null);
         
         // Add a second player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var player2 = _sut.Players.Last();
         player2.SelectedUnit = _sut.AvailableUnits.First();
         player2.AddUnitCommand.Execute(null);
@@ -553,13 +553,13 @@ public class StartNewGameViewModelTests
         
         // Add two players
         // Add first player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var player1 = _sut.Players.First();
         player1.SelectedUnit = _sut.AvailableUnits.First();
         player1.AddUnitCommand.Execute(null);
         
         // Add a second player
-        _sut.AddPlayerCommand.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         var player2 = _sut.Players.Last();
         player2.SelectedUnit = _sut.AvailableUnits.First();
         player2.AddUnitCommand.Execute(null);

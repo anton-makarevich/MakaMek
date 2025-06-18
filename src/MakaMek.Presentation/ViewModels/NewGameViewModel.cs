@@ -31,7 +31,7 @@ public abstract class NewGameViewModel : BaseViewModel
     
     protected ClientGame? _localGame;
     
-    public ICommand AddPlayerCommand { get; protected set; }
+    public ICommand? AddPlayerCommand { get; protected set; }
 
     protected NewGameViewModel(IRulesProvider rulesProvider,
         IUnitsLoader unitsLoader,
