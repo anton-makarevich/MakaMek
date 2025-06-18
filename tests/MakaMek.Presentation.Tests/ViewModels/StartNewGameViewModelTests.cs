@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
@@ -49,12 +50,23 @@ public class StartNewGameViewModelTests
         _gameManager = Substitute.For<IGameManager>();
         _commandPublisher = Substitute.For<ICommandPublisher>(); 
         var toHitCalculator = Substitute.For<IToHitCalculator>(); 
+        var pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>(); 
         var dispatcherService = Substitute.For<IDispatcherService>(); 
         var gameFactory = Substitute.For<IGameFactory>(); 
         var mapFactory = Substitute.For<IBattleMapFactory>();
 
-        _clientGame = new ClientGame(rulesProvider, _mechFactory, _commandPublisher, toHitCalculator,mapFactory); 
-        gameFactory.CreateClientGame(rulesProvider, _mechFactory, _commandPublisher, toHitCalculator,mapFactory)
+        _clientGame = new ClientGame(rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            toHitCalculator,
+            pilotingSkillCalculator,
+            mapFactory); 
+        gameFactory.CreateClientGame(rulesProvider,
+                _mechFactory,
+                _commandPublisher,
+                toHitCalculator,
+                pilotingSkillCalculator,
+                mapFactory)
                     .Returns(_clientGame);
         
         // Set up server game ID
@@ -74,6 +86,7 @@ public class StartNewGameViewModelTests
             _mechFactory,
             _commandPublisher, 
             toHitCalculator, 
+            pilotingSkillCalculator,
             dispatcherService, 
             gameFactory,
             mapFactory); 

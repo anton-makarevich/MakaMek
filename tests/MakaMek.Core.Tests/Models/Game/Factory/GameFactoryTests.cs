@@ -19,6 +19,7 @@ public class GameFactoryTests
     private readonly ICommandPublisher _commandPublisher= Substitute.For<ICommandPublisher>();
     private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();
     private readonly IToHitCalculator _toHitCalculator= Substitute.For<IToHitCalculator>();
+    private readonly IPilotingSkillCalculator _pilotingSkillCalculator= Substitute.For<IPilotingSkillCalculator>();
     private readonly IBattleMapFactory _mapFactory= Substitute.For<IBattleMapFactory>();
     private readonly IMechFactory _mechFactory= Substitute.For<IMechFactory>();
 
@@ -50,6 +51,7 @@ public class GameFactoryTests
             _mechFactory,
             _commandPublisher, 
             _toHitCalculator,
+            _pilotingSkillCalculator,
             _mapFactory);
 
         // Assert

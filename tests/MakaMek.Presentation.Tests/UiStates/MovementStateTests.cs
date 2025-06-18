@@ -2,9 +2,11 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -28,6 +30,7 @@ namespace Sanet.MakaMek.Presentation.Tests.UiStates;
 
 public class MovementStateTests
 {
+    private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
     private readonly MovementState _sut;
     private readonly ClientGame _game;
     private readonly UnitData _unitData;
@@ -79,6 +82,7 @@ public class MovementStateTests
             mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
+            _pilotingSkillCalculator,
             Substitute.For<IBattleMapFactory>());
         
         _game.JoinGameWithUnits(_player,[]);
@@ -694,6 +698,12 @@ public class MovementStateTests
     {
         // Arrange
         var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, [])
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
         proneMech!.SetProne();
         _sut.HandleUnitSelection(proneMech);
 
@@ -702,13 +712,19 @@ public class MovementStateTests
 
         // Assert
         actions.Count.ShouldBe(1, "Only one action should be available for prone mech");
-        actions[0].Label.ShouldBe("Attempt Standup", "Action should be 'Attempt Standup'");
+        actions[0].Label.ShouldBe("Attempt Standup (92%)", "Action should be 'Attempt Standup'");
     }
 
     [Fact]
     public void GetAvailableActions_ProneMech_CannotStandup_ReturnsEmptyList()
     {
         // Arrange
+        _pilotingSkillCalculator.GetPsrBreakdown(Arg.Any<Mech>(), [])
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
         // Set up a prone Mech that cannot stand up
         var proneMech = _unit1 as Mech;
         proneMech!.SetProne();

@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -44,7 +45,9 @@ public class ClientGameTests
             rulesProvider,
             mechFactory,
             _commandPublisher,
-            Substitute.For<IToHitCalculator>(),_mapFactory);
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
+            _mapFactory);
     }
 
     [Fact]
@@ -1272,6 +1275,7 @@ public class ClientGameTests
             new MechFactory(rulesProvider,Substitute.For<ILocalizationService>()),
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             _mapFactory);
         var unitData = MechFactoryTests.CreateDummyMechData();
         clientGame.JoinGameWithUnits(localPlayer1,[unitData]);
@@ -1348,6 +1352,7 @@ public class ClientGameTests
             Substitute.For<IMechFactory>(),
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             _mapFactory);
         clientGame.JoinGameWithUnits(localPlayer1,[]);
         clientGame.JoinGameWithUnits(localPlayer2,[]);
