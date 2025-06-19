@@ -899,4 +899,31 @@ public class MovementStateTests
             cmd.PlayerId == _player.Id &&
             cmd.GameOriginId == _game.Id));
     }
+    
+    [Fact]
+    public void HandleStandupAttempt_ShouldNotSendTryStandupCommand_WhenNoActivePlayer()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        
+        // Set up a prone Mech
+        var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, [])
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+        var standupAction = _sut.GetAvailableActions().First();
+        SetPhase(PhaseNames.Start); //no active player in that phase
+        
+        // Act
+        standupAction.OnExecute();
+        
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<TryStandupCommand>());
+    }
 }

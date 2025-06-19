@@ -415,14 +415,14 @@ public class MovementState : IUiState
     // New method to handle standup attempts
     private void HandleStandupAttempt(Mech mech)
     {
-        if (_viewModel.Game == null) return;
+        if (_viewModel.Game?.ActivePlayer == null) return;
         
         // Create a standup command
         var standupCommand = new TryStandupCommand
         {
             GameOriginId = _viewModel.Game.Id,
             UnitId = mech.Id,
-            PlayerId = _viewModel.Game.ActivePlayer?.Id ?? Guid.Empty,
+            PlayerId = _viewModel.Game.ActivePlayer.Id
         };
         
         // Publish the command
