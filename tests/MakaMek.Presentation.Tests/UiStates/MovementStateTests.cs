@@ -39,6 +39,7 @@ public class MovementStateTests
     private readonly Player _player;
     private readonly Hex _hex1;
     private readonly BattleMapViewModel _battleMapViewModel;
+    private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
 
     public MovementStateTests()
     {
@@ -80,7 +81,7 @@ public class MovementStateTests
         _game = new ClientGame(
             rules,
             mechFactory,
-            Substitute.For<ICommandPublisher>(),
+            _commandPublisher,
             Substitute.For<IToHitCalculator>(),
             _pilotingSkillCalculator,
             Substitute.For<IBattleMapFactory>());
@@ -360,7 +361,7 @@ public class MovementStateTests
         
         // Act
         _sut.HandleHexSelection(unreachableHex);
-        
+
         // Assert
         _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeFalse();
         _battleMapViewModel.AvailableDirections.ShouldBeNull();
@@ -868,5 +869,34 @@ public class MovementStateTests
         
         // Assert
         result.ShouldBe(string.Empty);
+    }
+    
+    [Fact]
+    public void HandleStandupAttempt_SendsTryStandupCommand()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+
+        // Set up a prone Mech
+        var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, [])
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+        var standupAction = _sut.GetAvailableActions().First();
+        
+        // Act
+        standupAction.OnExecute();
+        
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<TryStandupCommand>(cmd => 
+            cmd.UnitId == proneMech.Id && 
+            cmd.PlayerId == _player.Id &&
+            cmd.GameOriginId == _game.Id));
     }
 }
