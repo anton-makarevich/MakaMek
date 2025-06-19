@@ -193,6 +193,12 @@ public sealed class ClientGame : BaseGame
         CommandPublisher.PublishCommand(command);
     }
 
+    public void TryStandupUnit(TryStandupCommand command)
+    {
+        if (!CanActivePlayerAct) return;
+        CommandPublisher.PublishCommand(command);
+    }
+
     public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
     {
         CommandPublisher.PublishCommand(statusCommand);
