@@ -163,35 +163,28 @@ public sealed class ClientGame : BaseGame
         }
     }
 
-    public void DeployUnit(DeployUnitCommand command)
+    /// <summary>
+    /// Sends a player action command if the active player can act
+    /// </summary>
+    /// <param name="command">Any client command to be sent</param>
+    /// <typeparam name="T">Type of command that implements IClientCommand</typeparam>
+    public void SendPlayerAction<T>(T command) where T : IClientCommand
     {
         if (!CanActivePlayerAct) return;
         CommandPublisher.PublishCommand(command);
     }
 
-    public void MoveUnit(MoveUnitCommand command)
-    {
-        if (!CanActivePlayerAct) return;
-        CommandPublisher.PublishCommand(command);
-    }
-
-    public void ConfigureUnitWeapons(WeaponConfigurationCommand command)
-    {
-        if (!CanActivePlayerAct) return;
-        CommandPublisher.PublishCommand(command);
-    }
-
-    public void DeclareWeaponAttack(WeaponAttackDeclarationCommand command)
-    {
-        if (!CanActivePlayerAct) return;
-        CommandPublisher.PublishCommand(command);
-    }
-
-    public void EndTurn(TurnEndedCommand command)
-    {
-        if (!CanActivePlayerAct) return;
-        CommandPublisher.PublishCommand(command);
-    }
+    public void DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
+    
+    public void MoveUnit(MoveUnitCommand command) => SendPlayerAction(command);
+    
+    public void ConfigureUnitWeapons(WeaponConfigurationCommand command) => SendPlayerAction(command);
+    
+    public void DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendPlayerAction(command);
+    
+    public void EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
+    
+    public void TryStandupUnit(TryStandupCommand command) => SendPlayerAction(command);
 
     public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
     {

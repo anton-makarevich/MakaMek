@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -414,6 +415,17 @@ public class MovementState : IUiState
     // New method to handle standup attempts
     private void HandleStandupAttempt(Mech mech)
     {
-        // Create a command to stand the Mech up
+        if (_viewModel.Game?.ActivePlayer == null) return;
+        
+        // Create a standup command
+        var standupCommand = new TryStandupCommand
+        {
+            GameOriginId = _viewModel.Game.Id,
+            UnitId = mech.Id,
+            PlayerId = _viewModel.Game.ActivePlayer.Id
+        };
+        
+        // Publish the command
+        _viewModel.Game.TryStandupUnit(standupCommand);
     }
 }
