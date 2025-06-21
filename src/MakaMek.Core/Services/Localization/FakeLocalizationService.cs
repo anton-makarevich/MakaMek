@@ -10,6 +10,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_MoveUnit" => "{0} moved {1} to {2} facing {3} using {4}.",
             "Command_DeployUnit" => "{0} deployed {1} to {2} facing {3}.",
             "Command_TryStandup" => "{0} attempts to stand up {1}.",
+            "Command_MechStandup" => "{0} {1}. {2}",
             "Command_RollDice" => "{0} rolls",
             "Command_DiceRolled" => "{0} rolled {1}.",
             "Command_UpdatePlayerStatus" => "{0}'s status is {1}.",

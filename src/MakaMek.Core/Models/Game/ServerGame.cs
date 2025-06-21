@@ -35,8 +35,9 @@ public class ServerGame : BaseGame, IDisposable
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
         IFallProcessor fallProcessor,
+        IPilotingSkillCalculator pilotingSkillCalculator,
         IPhaseManager? phaseManager = null)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator) 
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator) 
     {
         DiceRoller = diceRoller;
         CriticalHitsCalculator = criticalHitsCalculator;

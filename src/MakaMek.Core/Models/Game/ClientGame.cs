@@ -17,7 +17,6 @@ namespace Sanet.MakaMek.Core.Models.Game;
 
 public sealed class ClientGame : BaseGame
 {
-    public IPilotingSkillCalculator PilotingSkillCalculator { get; }
     private readonly Subject<IGameCommand> _commandSubject = new();
     private readonly List<IGameCommand> _commandLog = [];
     private readonly HashSet<Guid> _playersEndedTurn = [];
@@ -33,9 +32,8 @@ public sealed class ClientGame : BaseGame
         IToHitCalculator toHitCalculator, 
         IPilotingSkillCalculator pilotingSkillCalculator,
         IBattleMapFactory mapFactory)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator)
     {
-        PilotingSkillCalculator = pilotingSkillCalculator;
         _mapFactory = mapFactory;
     }
 
@@ -109,6 +107,9 @@ public sealed class ClientGame : BaseGame
                 break;
             case MechFallingCommand mechFallingCommand:
                 OnMechFalling(mechFallingCommand);
+                break;
+            case MechStandedUpCommand mechStandedUpCommand:
+                OnMechStandedUp(mechStandedUpCommand);
                 break;
             case HeatUpdatedCommand heatUpdateCommand:
                 OnHeatUpdate(heatUpdateCommand);
