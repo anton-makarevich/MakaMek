@@ -1,5 +1,8 @@
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -7,17 +10,81 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 {
     public override void HandleCommand(IGameCommand command)
     {
-        if (command is not MoveUnitCommand moveCommand) return;
-        HandleUnitAction(command, moveCommand.PlayerId);
+        switch (command)
+        {
+            case MoveUnitCommand moveCommand:
+                HandleUnitAction(command, moveCommand.PlayerId);
+                break;
+            case TryStandupCommand standupCommand:
+                HandleUnitAction(command, standupCommand.PlayerId);
+                break;
+        }
     }
 
     protected override void ProcessCommand(IGameCommand command)
     {
-        var moveCommand = (MoveUnitCommand)command;
+        switch (command)
+        {
+            case MoveUnitCommand moveCommand:
+                ProcessMoveCommand(moveCommand);
+                break;
+            case TryStandupCommand standupCommand:
+                ProcessStandupCommand(standupCommand);
+                break;
+        }
+    }
+
+    private void ProcessMoveCommand(MoveUnitCommand moveCommand)
+    {
         var broadcastCommand = moveCommand;
         broadcastCommand.GameOriginId = Game.Id;
         Game.OnMoveUnit(moveCommand);
         Game.CommandPublisher.PublishCommand(broadcastCommand);
+    }
+
+    private void ProcessStandupCommand(TryStandupCommand standupCommand)
+    {
+        // Find the unit
+        var player = Game.Players.FirstOrDefault(p => p.Id == standupCommand.PlayerId);
+        var unit = player?.Units.FirstOrDefault(u => u.Id == standupCommand.UnitId);
+        
+        if (unit == null) return;
+
+        // Calculate PSR for standup attempt - using no specific roll types means general PSR
+        var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, []);
+        
+        // Roll 2D6
+        var diceResult = Game.DiceRoller.Roll2D6();
+        
+        // Check if successful (roll >= target number)
+        var isSuccessful = diceResult.Total >= psrBreakdown.TargetNumber;
+        
+        // Create piloting skill roll data
+        var pilotingSkillRollData = new PilotingSkillRollData
+        {
+            TargetNumber = psrBreakdown.TargetNumber,
+            DiceRoll = diceResult,
+            IsSuccessful = isSuccessful,
+            Modifiers = psrBreakdown.Modifiers.ToList()
+        };
+
+        // If successful, stand the mech up
+        if (isSuccessful && unit is Mech mech)
+        {
+            mech.StandUp();
+        }
+
+        // Send result command to all clients
+        var resultCommand = new MechStandedUpCommand
+        {
+            GameOriginId = Game.Id,
+            Timestamp = DateTime.UtcNow,
+            UnitId = standupCommand.UnitId,
+            PilotingSkillRoll = pilotingSkillRollData,
+            IsSuccessful = isSuccessful
+        };
+        
+        Game.CommandPublisher.PublishCommand(resultCommand);
     }
 
     public override PhaseNames Name => PhaseNames.Movement;
