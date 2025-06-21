@@ -108,7 +108,7 @@ public sealed class ClientGame : BaseGame
             case MechFallingCommand mechFallingCommand:
                 OnMechFalling(mechFallingCommand);
                 break;
-            case MechStandedUpCommand mechStandedUpCommand:
+            case MechStandUpCommand mechStandedUpCommand:
                 OnMechStandedUp(mechStandedUpCommand);
                 break;
             case HeatUpdatedCommand heatUpdateCommand:

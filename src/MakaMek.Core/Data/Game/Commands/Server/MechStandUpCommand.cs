@@ -7,7 +7,7 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 /// <summary>
 /// Command sent when a mech successfully stands up from prone position
 /// </summary>
-public record struct MechStandedUpCommand : IGameCommand
+public record struct MechStandUpCommand : IGameCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
@@ -22,11 +22,6 @@ public record struct MechStandedUpCommand : IGameCommand
     /// </summary>
     public required PilotingSkillRollData PilotingSkillRoll { get; init; }
     
-    /// <summary>
-    /// Whether the standup attempt was successful
-    /// </summary>
-    public required bool IsSuccessful { get; init; }
-
     public string Render(ILocalizationService localizationService, IGame game)
     {
         var command = this;
@@ -36,8 +31,7 @@ public record struct MechStandedUpCommand : IGameCommand
             
         if (unit is null) return string.Empty;
         
-        var result = IsSuccessful ? "successfully stood up" : "failed to stand up";
         var localizedTemplate = localizationService.GetString("Command_MechStandup");
-        return string.Format(localizedTemplate, unit.Name, result, PilotingSkillRoll.Render(localizationService));
+        return string.Format(localizedTemplate, unit.Name, PilotingSkillRoll.Render(localizationService));
     }
 }

@@ -71,13 +71,12 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         // If successful, stand the mech up
         if (!isSuccessful || unit is not Mech) return;
         // Send result command to all clients
-        var resultCommand = new MechStandedUpCommand
+        var resultCommand = new MechStandUpCommand
         {
             GameOriginId = Game.Id,
             Timestamp = DateTime.UtcNow,
             UnitId = unit.Id,
             PilotingSkillRoll = pilotingSkillRollData,
-            IsSuccessful = isSuccessful
         };
 
         Game.CommandPublisher.PublishCommand(resultCommand);
