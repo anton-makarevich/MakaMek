@@ -50,7 +50,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         
         if (unit == null) return;
 
-        // Calculate PSR for standup attempt - using no specific roll types means general PSR
+        // Calculate PSR for standup attempt, TODO pass rollType to calculate modifiers
         var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, []);
         
         // Roll 2D6
@@ -69,22 +69,20 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         };
 
         // If successful, stand the mech up
-        if (isSuccessful && unit is Mech mech)
-        {
-            mech.StandUp();
-        }
-
+        if (!isSuccessful || unit is not Mech) return;
         // Send result command to all clients
         var resultCommand = new MechStandedUpCommand
         {
             GameOriginId = Game.Id,
             Timestamp = DateTime.UtcNow,
-            UnitId = standupCommand.UnitId,
+            UnitId = unit.Id,
             PilotingSkillRoll = pilotingSkillRollData,
             IsSuccessful = isSuccessful
         };
-        
+
         Game.CommandPublisher.PublishCommand(resultCommand);
+            
+        Game.OnMechStandedUp(resultCommand);
     }
 
     public override PhaseNames Name => PhaseNames.Movement;
