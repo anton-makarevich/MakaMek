@@ -24,13 +24,13 @@ public enum PilotingSkillRollType
     /// <summary>
     /// PSR required when a 'Mech takes 20 or more damage points in a single phase.
     /// </summary>
-    HeavyDamage
+    HeavyDamage,
     // Add other PSR types here in the future, e.g.:
     // ActuatorDamage,
     // PilotDamage,
     // LegDamage,
     // Shutdown,
-    // AttemptingToStand,
     // EnteringDeepWater,
     // Skid
+    StandupAttempt
 }

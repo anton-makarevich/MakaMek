@@ -54,18 +54,18 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, []);
         
         // Roll 2D6
-        var diceResult = Game.DiceRoller.Roll2D6();
+        var diceResults = Game.DiceRoller.Roll2D6();
+        var rollTotal = diceResults.Sum(d => d.Result);
         
         // Check if successful (roll >= target number)
-        var isSuccessful = diceResult.Total >= psrBreakdown.TargetNumber;
+        var isSuccessful = rollTotal >= psrBreakdown.ModifiedPilotingSkill;
         
-        // Create piloting skill roll data
         var pilotingSkillRollData = new PilotingSkillRollData
         {
-            TargetNumber = psrBreakdown.TargetNumber,
-            DiceRoll = diceResult,
+            RollType = PilotingSkillRollType.StandupAttempt,
+            DiceResults = diceResults.Select(d => d.Result).ToArray(),
             IsSuccessful = isSuccessful,
-            Modifiers = psrBreakdown.Modifiers.ToList()
+            PsrBreakdown = psrBreakdown
         };
 
         // If successful, stand the mech up
