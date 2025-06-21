@@ -1576,7 +1576,7 @@ public class ClientGameTests
             new DiceResult(4));
         
         // Create the mech falling command
-        var mechFallingCommand = new MechFallingCommand
+        var mechFallingCommand = new MechFallCommand
         {
             GameOriginId = Guid.NewGuid(),
             UnitId = unitId,
@@ -1592,7 +1592,7 @@ public class ClientGameTests
         
         // Assert
         // Verify the command was added to the log
-        _sut.CommandLog.ShouldContain(cmd => cmd is MechFallingCommand);
+        _sut.CommandLog.ShouldContain(cmd => cmd is MechFallCommand);
         
         // Get the unit and verify it's prone
         unit.ShouldNotBeNull();
@@ -1627,7 +1627,7 @@ public class ClientGameTests
             new DiceResult(4));
         
         // Create the mech falling command
-        var mechFallingCommand = new MechFallingCommand
+        var mechFallingCommand = new MechFallCommand
         {
             GameOriginId = Guid.NewGuid(),
             UnitId = nonExistentUnitId,
@@ -1641,6 +1641,6 @@ public class ClientGameTests
         
         // Assert
         exception.ShouldBeNull();
-        _sut.CommandLog.ShouldContain(cmd => cmd is MechFallingCommand);
+        _sut.CommandLog.ShouldContain(cmd => cmd is MechFallCommand);
     }
 }

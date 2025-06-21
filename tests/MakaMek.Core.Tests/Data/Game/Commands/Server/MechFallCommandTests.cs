@@ -16,7 +16,7 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 
-public class MechFallingCommandTests
+public class MechFallCommandTests
 {
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IGame _game = Substitute.For<IGame>();
@@ -42,7 +42,7 @@ public class MechFallingCommandTests
         };
     }
 
-    public MechFallingCommandTests()
+    public MechFallCommandTests()
     {
         var player =
             // Create player
@@ -96,9 +96,9 @@ public class MechFallingCommandTests
         return new FallingDamageData(HexDirection.Top, hitLocationsData, new DiceResult(1));
     }
 
-    private MechFallingCommand CreateBasicFallingCommand()
+    private MechFallCommand CreateBasicFallingCommand()
     {
-        return new MechFallingCommand
+        return new MechFallCommand
         {
             GameOriginId = _gameId,
             UnitId = _unit.Id,
@@ -109,19 +109,19 @@ public class MechFallingCommandTests
         };
     }
 
-    private MechFallingCommand CreateFallingWithLevelsCommand()
+    private MechFallCommand CreateFallingWithLevelsCommand()
     {
         var sut = CreateBasicFallingCommand();
         return sut with { LevelsFallen = 2 };
     }
 
-    private MechFallingCommand CreateJumpingFallCommand()
+    private MechFallCommand CreateJumpingFallCommand()
     {
         var sut = CreateBasicFallingCommand();
         return sut with { WasJumping = true };
     }
 
-    private MechFallingCommand CreatePilotInjuryCommand()
+    private MechFallCommand CreatePilotInjuryCommand()
     {
         var hitLocations = new List<HitLocationData>
         {
@@ -137,7 +137,7 @@ public class MechFallingCommandTests
             hitLocationsData,
             new DiceResult(1));
 
-        return new MechFallingCommand
+        return new MechFallCommand
         {
             GameOriginId = _gameId,
             UnitId = _unit.Id,
@@ -151,7 +151,7 @@ public class MechFallingCommandTests
         };
     }
 
-    private MechFallingCommand CreateComplexFallCommand()
+    private MechFallCommand CreateComplexFallCommand()
     {
         var hitLocations = new List<HitLocationData>
         {
@@ -168,7 +168,7 @@ public class MechFallingCommandTests
             hitLocationsData,
             new DiceResult(1));
 
-        return new MechFallingCommand
+        return new MechFallCommand
         {
             GameOriginId = _gameId,
             UnitId = _unit.Id,
@@ -337,7 +337,7 @@ public class MechFallingCommandTests
     {
         // Arrange
         var successfulPsr = CreateTestPsrData(true,[4, 3]);
-        var sut = new MechFallingCommand
+        var sut = new MechFallCommand
         {
             GameOriginId = _gameId,
             UnitId = _unit.Id,
@@ -380,7 +380,7 @@ public class MechFallingCommandTests
     public void Render_NoDamage_NoFallPsr_ShouldRenderMinimally()
     {
         // Arrange
-        var sut = new MechFallingCommand
+        var sut = new MechFallCommand
         {
             GameOriginId = _gameId,
             UnitId = _unit.Id,

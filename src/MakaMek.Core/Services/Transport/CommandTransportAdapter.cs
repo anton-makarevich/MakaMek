@@ -192,7 +192,7 @@ public class CommandTransportAdapter
             { nameof(ChangePhaseCommand), typeof(ChangePhaseCommand) },
             { nameof(ChangeActivePlayerCommand), typeof(ChangeActivePlayerCommand) },
             { nameof(SetBattleMapCommand), typeof(SetBattleMapCommand) },
-            { nameof(MechFallingCommand), typeof(MechFallingCommand) },
+            { nameof(MechFallCommand), typeof(MechFallCommand) },
         };
     }
     
