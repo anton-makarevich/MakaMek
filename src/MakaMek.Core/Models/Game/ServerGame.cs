@@ -24,8 +24,6 @@ public class ServerGame : BaseGame, IDisposable
     private IPhaseManager PhaseManager { get; }
     public IDiceRoller DiceRoller { get; }
     public ICriticalHitsCalculator CriticalHitsCalculator { get; }
-    public IFallProcessor FallProcessor { get; }
-    public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
 
     public ServerGame(
         IRulesProvider rulesProvider, 
@@ -34,8 +32,8 @@ public class ServerGame : BaseGame, IDisposable
         IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
-        IFallProcessor fallProcessor,
         IPilotingSkillCalculator pilotingSkillCalculator,
+        IFallProcessor fallProcessor,
         IPhaseManager? phaseManager = null)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator) 
     {
@@ -45,6 +43,10 @@ public class ServerGame : BaseGame, IDisposable
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }
+
+    public IFallProcessor FallProcessor { get; }
+
+    public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
 
     public override void SetBattleMap(BattleMap map)
     {
