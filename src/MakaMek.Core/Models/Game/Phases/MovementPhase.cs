@@ -81,7 +81,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 
         Game.CommandPublisher.PublishCommand(resultCommand);
             
-        Game.OnMechStandedUp(resultCommand);
+        Game.OnMechStandUp(resultCommand);
     }
 
     public override PhaseNames Name => PhaseNames.Movement;

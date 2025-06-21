@@ -234,18 +234,14 @@ public abstract class BaseGame : IGame
         mech?.SetProne();
     }
 
-    internal void OnMechStandedUp(MechStandUpCommand standUpCommand)
+    internal void OnMechStandUp(MechStandUpCommand standUpCommand)
     {
         // Find the unit with the given ID across all players
         var mech = _players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == standUpCommand.UnitId) as Mech;
         
-        // If the standup was successful, stand the mech up
-        if (standUpCommand.IsSuccessful && mech != null)
-        {
-            mech.StandUp();
-        }
+        mech?.StandUp();
     }
 
     internal void OnHeatUpdate(HeatUpdatedCommand heatUpdatedCommand)
