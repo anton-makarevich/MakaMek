@@ -1,7 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
@@ -43,42 +41,28 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
     {
         // Find the unit
         var player = Game.Players.FirstOrDefault(p => p.Id == standupCommand.PlayerId);
-        var unit = player?.Units.FirstOrDefault(u => u.Id == standupCommand.UnitId);
-        
-        if (unit == null) return;
 
-        // Calculate PSR for standup attempt, TODO pass rollType to calculate modifiers
-        var psrBreakdown = Game.PilotingSkillCalculator.GetPsrBreakdown(unit, []);
+        if (player?.Units.FirstOrDefault(u => u.Id == standupCommand.UnitId) is not Mech unit) return;
+
+        // Use the FallProcessor to process the standup attempt and get context data
+        var fallContextData = Game.FallProcessor.ProcessStandupAttempt(unit, Game);
         
-        // Roll 2D6
-        var diceResults = Game.DiceRoller.Roll2D6();
-        var rollTotal = diceResults.Sum(d => d.Result);
-        
-        // Check if successful (roll >= target number)
-        var isSuccessful = rollTotal >= psrBreakdown.ModifiedPilotingSkill;
-        
-        var pilotingSkillRollData = new PilotingSkillRollData
+        // Create and publish the appropriate command based on the result
+        if (fallContextData.IsFalling)
         {
-            RollType = PilotingSkillRollType.StandupAttempt,
-            DiceResults = diceResults.Select(d => d.Result).ToArray(),
-            IsSuccessful = isSuccessful,
-            PsrBreakdown = psrBreakdown
-        };
-
-        // If successful, stand the mech up
-        if (!isSuccessful || unit is not Mech) return;
-        // Send result command to all clients
-        var resultCommand = new MechStandUpCommand
+            // Standup failed - create and publish a fall command
+            var fallCommand = fallContextData.ToMechFallCommand();
+            if (fallCommand == null) return;
+            Game.CommandPublisher.PublishCommand(fallCommand);
+        }
+        else
         {
-            GameOriginId = Game.Id,
-            Timestamp = DateTime.UtcNow,
-            UnitId = unit.Id,
-            PilotingSkillRoll = pilotingSkillRollData,
-        };
-
-        Game.CommandPublisher.PublishCommand(resultCommand);
-            
-        Game.OnMechStandUp(resultCommand);
+            // Standup succeeded - create and publish a standup command
+            var standUpCommand = fallContextData.ToMechStandUpCommand();
+            if (standUpCommand == null) return;
+            Game.CommandPublisher.PublishCommand(standUpCommand);
+            Game.OnMechStandUp(standUpCommand.Value);
+        }
     }
 
     public override PhaseNames Name => PhaseNames.Movement;

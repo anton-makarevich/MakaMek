@@ -712,7 +712,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         };
         
         MockFallProcessor.ProcessPotentialFall(
-                Arg.Any<Unit>(),
+                Arg.Any<Mech>(),
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
                 Arg.Any<int>())
@@ -724,7 +724,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         // Verify that FallProcessor.ProcessPotentialFall was called
         MockFallProcessor.Received().ProcessPotentialFall(
-            Arg.Is<Unit>(u => u == _player1Unit1), // Target unit
+            Arg.Is<Mech>(u => u == _player1Unit1), // Target unit
             Arg.Is<IGame>(m => m == Game),
             Arg.Any<List<ComponentHitData>>(),
             Arg.Any<int>());
@@ -763,7 +763,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         };
         
         MockFallProcessor.ProcessPotentialFall(
-                Arg.Any<Unit>(),
+                Arg.Any<Mech>(),
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
                 Arg.Any<int>())
@@ -794,7 +794,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         // Configure MockFallProcessor to return an empty list (no fall conditions met)
         MockFallProcessor.ProcessPotentialFall(
-                Arg.Any<Unit>(),
+                Arg.Any<Mech>(),
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
                 Arg.Any<int>())

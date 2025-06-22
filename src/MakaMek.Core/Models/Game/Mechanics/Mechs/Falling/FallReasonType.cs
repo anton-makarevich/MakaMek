@@ -30,7 +30,12 @@ public enum FallReasonType
     /// <summary>
     /// Automatic fall due to destroyed leg (no PSR)
     /// </summary>
-    LegDestroyed
+    LegDestroyed,
+    
+    /// <summary>
+    /// Attempt to stand up from prone position (requires PSR)
+    /// </summary>
+    StandUpAttempt
 }
 
 /// <summary>
@@ -50,6 +55,7 @@ public static class FallReasonTypeExtensions
             FallReasonType.GyroHit => PilotingSkillRollType.GyroHit,
             FallReasonType.LowerLegActuatorHit => PilotingSkillRollType.LowerLegActuatorHit,
             FallReasonType.HeavyDamage => PilotingSkillRollType.HeavyDamage,
+            FallReasonType.StandUpAttempt => PilotingSkillRollType.StandupAttempt,
             _ => null // PSR is not required for that reason
         };
     }

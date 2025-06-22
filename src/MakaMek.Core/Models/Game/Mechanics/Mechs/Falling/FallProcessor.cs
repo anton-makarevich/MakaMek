@@ -36,7 +36,7 @@ public class FallProcessor : IFallProcessor
     }
 
     public IEnumerable<MechFallCommand> ProcessPotentialFall(
-        Unit unit,
+        Mech mech,
         IGame game,
         List<ComponentHitData> componentHits,
         int totalDamage,
@@ -58,7 +58,7 @@ public class FallProcessor : IFallProcessor
             // Special handling for gyro - check if it's destroyed
             if (componentType == MakaMekComponent.Gyro)
             {
-                var gyro = unit.GetAllComponents<Gyro>().FirstOrDefault();
+                var gyro = mech.GetAllComponents<Gyro>().FirstOrDefault();
                 if (gyro == null) continue;
                 if (gyro.IsDestroyed)
                 {
@@ -72,7 +72,7 @@ public class FallProcessor : IFallProcessor
 
         // Check for heavy damage
         var heavyDamageThreshold = _rulesProvider.GetHeavyDamageThreshold();
-        if (totalDamage >= heavyDamageThreshold && unit is Mech) // Ensure unit is a Mech for heavy damage PSR
+        if (totalDamage >= heavyDamageThreshold)
         {
             fallReasons.Add(FallReasonType.HeavyDamage);
         }
@@ -83,19 +83,26 @@ public class FallProcessor : IFallProcessor
             fallReasons.Add(FallReasonType.LegDestroyed);
         }
 
-        var commandsToReturn = GetFallCommandsForReasons(fallReasons, unit,game, totalDamage);
-        return commandsToReturn;
+        return GetFallContextForReasons(fallReasons, mech, game, totalDamage)
+            .Select(f => f.ToMechFallCommand());
     }
 
-    private List<MechFallCommand> GetFallCommandsForReasons(List<FallReasonType> fallReasons,
-        Unit unit,
+    public FallContextData ProcessStandupAttempt(Mech mech, IGame game)
+    {
+        return GetFallContextForReasons([FallReasonType.StandUpAttempt], mech, game, 0).First();
+    }
+    
+    private IEnumerable<FallContextData> GetFallContextForReasons(
+        List<FallReasonType> fallReasons,
+        Mech mech, 
         IGame game,
         int totalDamage)
     {
-        var commandsToReturn = new List<MechFallCommand>();
         if (fallReasons.Count == 0)
-            return commandsToReturn;
+            return [];
 
+        var results = new List<FallContextData>();
+        
         foreach (var reasonType in fallReasons)
         {
             var requiresPsr = reasonType.RequiresPilotingSkillRoll();
@@ -105,7 +112,7 @@ public class FallProcessor : IFallProcessor
 
             if (requiresPsr && reasonType.ToPilotingSkillRollType() is { } psrRollType)
             {
-                var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(unit, [psrRollType],
+                var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, [psrRollType],
                     game.BattleMap, totalDamage);
                 var diceResults = _diceRoller.Roll2D6();
                 var rollTotal = diceResults.Sum(d => d.Result);
@@ -122,10 +129,10 @@ public class FallProcessor : IFallProcessor
 
             PilotingSkillRollData? pilotDamagePsr = null;
 
-            if (isFallingNow)
+            if (isFallingNow && reasonType != FallReasonType.StandUpAttempt)
             {
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(
-                    unit,
+                    mech,
                     [PilotingSkillRollType.PilotDamageFromFall],
                     game.BattleMap,
                     totalDamage);
@@ -145,25 +152,29 @@ public class FallProcessor : IFallProcessor
                     };
                 }
             }
-
+            
             var fallingDamageData = isFallingNow
-                ? _fallingDamageCalculator.CalculateFallingDamage(unit, 0, false)
+                ? _fallingDamageCalculator.CalculateFallingDamage(mech, 0, false)
                 : null;
 
-            var command = new MechFallCommand
+            var fallContextData = new FallContextData
             {
-                UnitId = unit.Id,
+                UnitId = mech.Id,
+                GameId = game.Id,
+                IsFalling = isFallingNow,
+                ReasonType = reasonType,
+                PilotingSkillRoll = fallPsrData,
+                PilotDamagePilotingSkillRoll = pilotDamagePsr,
+                FallingDamageData = fallingDamageData,
                 LevelsFallen = 0,
-                WasJumping = false,
-                DamageData = fallingDamageData,
-                GameOriginId = game.Id,
-                FallPilotingSkillRoll = fallPsrData,
-                PilotDamagePilotingSkillRoll = pilotDamagePsr
+                WasJumping = false
             };
-            commandsToReturn.Add(command);
+
+            results.Add(fallContextData);
+            
             if (isFallingNow) break;
         }
 
-        return commandsToReturn;
+        return results;
     }
 }
