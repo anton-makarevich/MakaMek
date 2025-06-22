@@ -224,7 +224,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Make sure the unit is a Mech and is prone
         unit!.SetProne();
 
-        // Configure dice roller to return a successful roll (low enough to not pass)
+        // Configure dice roller to return a failed roll (low enough to not pass)
         var psrBreakdown = new PsrBreakdown
         {
             BasePilotingSkill = 4,
