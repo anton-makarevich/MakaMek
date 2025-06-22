@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -38,14 +37,11 @@ public class FallProcessor : IFallProcessor
 
     public IEnumerable<MechFallCommand> ProcessPotentialFall(
         Unit unit,
-        BattleMap? battleMap,
+        IGame game,
         List<ComponentHitData> componentHits,
         int totalDamage,
-        Guid gameId,
         List<PartLocation>? destroyedPartLocations = null)
     {
-        var commandsToReturn = new List<MechFallCommand>();
-
         var fallReasons = new List<FallReasonType>();
 
         // Check for component critical hits that may cause falling
@@ -87,6 +83,16 @@ public class FallProcessor : IFallProcessor
             fallReasons.Add(FallReasonType.LegDestroyed);
         }
 
+        var commandsToReturn = GetFallCommandsForReasons(fallReasons, unit,game, totalDamage);
+        return commandsToReturn;
+    }
+
+    private List<MechFallCommand> GetFallCommandsForReasons(List<FallReasonType> fallReasons,
+        Unit unit,
+        IGame game,
+        int totalDamage)
+    {
+        var commandsToReturn = new List<MechFallCommand>();
         if (fallReasons.Count == 0)
             return commandsToReturn;
 
@@ -100,7 +106,7 @@ public class FallProcessor : IFallProcessor
             if (requiresPsr && reasonType.ToPilotingSkillRollType() is { } psrRollType)
             {
                 var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(unit, [psrRollType],
-                    battleMap, totalDamage);
+                    game.BattleMap, totalDamage);
                 var diceResults = _diceRoller.Roll2D6();
                 var rollTotal = diceResults.Sum(d => d.Result);
                 isFallingNow = rollTotal < psrBreakdown.ModifiedPilotingSkill;
@@ -121,7 +127,7 @@ public class FallProcessor : IFallProcessor
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(
                     unit,
                     [PilotingSkillRollType.PilotDamageFromFall],
-                    battleMap,
+                    game.BattleMap,
                     totalDamage);
 
                 if (pilotPsrBreakdown.Modifiers.Any())
@@ -150,7 +156,7 @@ public class FallProcessor : IFallProcessor
                 LevelsFallen = 0,
                 WasJumping = false,
                 DamageData = fallingDamageData,
-                GameOriginId = gameId,
+                GameOriginId = game.Id,
                 FallPilotingSkillRoll = fallPsrData,
                 PilotDamagePilotingSkillRoll = pilotDamagePsr
             };

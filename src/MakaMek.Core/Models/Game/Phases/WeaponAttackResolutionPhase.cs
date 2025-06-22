@@ -345,10 +345,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Check for fall conditions
         var mechFallingCommands = Game.FallProcessor.ProcessPotentialFall(
             target, 
-            Game.BattleMap, 
+            Game, 
             allComponentHits, 
             resolution.HitLocationsData.TotalDamage, 
-            Game.Id,
             resolution.DestroyedParts).ToList();
 
         foreach (var fallingCommand in mechFallingCommands)

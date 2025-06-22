@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -712,10 +713,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         MockFallProcessor.ProcessPotentialFall(
                 Arg.Any<Unit>(),
-                Arg.Any<BattleMap>(),
+                Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
-                Arg.Any<int>(),
-                Arg.Any<Guid>())
+                Arg.Any<int>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
         
         // Act
@@ -725,10 +725,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Verify that FallProcessor.ProcessPotentialFall was called
         MockFallProcessor.Received().ProcessPotentialFall(
             Arg.Is<Unit>(u => u == _player1Unit1), // Target unit
-            Arg.Is<BattleMap>(m => m == Game.BattleMap),
+            Arg.Is<IGame>(m => m == Game),
             Arg.Any<List<ComponentHitData>>(),
-            Arg.Any<int>(),
-            Arg.Is<Guid>(g => g == Game.Id));
+            Arg.Any<int>());
         
         // Verify that the MechFallingCommand was published
         CommandPublisher.Received().PublishCommand(
@@ -765,10 +764,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         MockFallProcessor.ProcessPotentialFall(
                 Arg.Any<Unit>(),
-                Arg.Any<BattleMap>(),
+                Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
-                Arg.Any<int>(),
-                Arg.Any<Guid>())
+                Arg.Any<int>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
         
         // Get initial armor value to verify damage is applied
@@ -797,10 +795,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Configure MockFallProcessor to return an empty list (no fall conditions met)
         MockFallProcessor.ProcessPotentialFall(
                 Arg.Any<Unit>(),
-                Arg.Any<BattleMap>(),
+                Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
-                Arg.Any<int>(),
-                Arg.Any<Guid>())
+                Arg.Any<int>())
             .Returns(new List<MechFallCommand>());
         
         // Act
@@ -890,16 +887,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         });
     }
 
-    private class TestWeapon : Weapon
-    {
-        public TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null, int damage = 5)
-            : base(new WeaponDefinition(
-                "Test Weapon", damage, 3,
-                0, 3, 6, 9,
-                type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType))
-        {
-        }
-    }
+    private class TestWeapon(WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null, int damage = 5)
+        : Weapon(new WeaponDefinition(
+            "Test Weapon", damage, 3,
+            0, 3, 6, 9,
+            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType));
 
     // Custom cluster weapon class that allows setting damage for testing
     private class TestClusterWeapon(
