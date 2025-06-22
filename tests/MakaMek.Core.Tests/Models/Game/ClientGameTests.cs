@@ -1643,4 +1643,53 @@ public class ClientGameTests
         exception.ShouldBeNull();
         _sut.CommandLog.ShouldContain(cmd => cmd is MechFallCommand);
     }
+    
+    [Fact]
+    public void HandleCommand_ShouldStandUpMech_WhenMechStandUpCommandIsReceived()
+    {
+        // Arrange
+        // Add player and unit
+        var playerId = Guid.NewGuid();
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [unitData],
+            Tint = "#FF0000"
+        };
+        _sut.HandleCommand(joinCommand);
+        
+        // Get the unit and check initial heat
+        var unit = _sut.Players.First(p => p.Id == playerId).Units.First() as Mech;
+        unit!.SetProne();
+        unit.Status.ShouldHaveFlag(UnitStatus.Prone);
+        
+        // Create the standup command
+        var heatUpdateCommand = new MechStandUpCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitData.Id.Value,
+            Timestamp = DateTime.UtcNow,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.GyroHit,
+                DiceResults = [3,4],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 4,
+                    Modifiers = []
+                }
+            }
+        };
+        
+        // Act
+        _sut.HandleCommand(heatUpdateCommand);
+        
+        // Assert
+        unit.Status.ShouldNotHaveFlag(UnitStatus.Prone);
+    }
 }
