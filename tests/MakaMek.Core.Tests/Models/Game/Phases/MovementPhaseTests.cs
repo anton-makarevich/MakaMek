@@ -1,10 +1,13 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -167,5 +170,110 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Assert
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.Movement, Game);
         _mockNextPhase.Received(1).Enter();
+    }
+    
+    [Fact]
+    public void ProcessStandupCommand_WhenSuccessful_ShouldPublishMechStandUpCommand()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        // Make sure the unit is a Mech and is prone
+        unit!.SetProne();
+        
+        // Configure dice roller to return a successful roll (high enough to pass)
+        var psrBreakdown = new PsrBreakdown
+        {
+            BasePilotingSkill = 4,
+            Modifiers = [],
+        };
+        Game.PilotingSkillCalculator.GetPsrBreakdown(unit, Arg.Any<IEnumerable<PilotingSkillRollType>>())
+            .Returns(psrBreakdown);
+        
+        List<DiceResult> diceResults = 
+        [
+            new DiceResult(3),
+            new DiceResult (3)
+        ];
+        Game.DiceRoller.Roll2D6().Returns(diceResults);
+        
+        CommandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            Timestamp = DateTime.UtcNow
+        });
+        
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechStandUpCommand>(cmd =>
+            cmd.GameOriginId == Game.Id &&
+            cmd.UnitId == _unit1Id &&
+            cmd.PilotingSkillRoll.IsSuccessful));
+    }
+
+    [Fact]
+    public void ProcessStandupCommand_WhenFailed_ShouldNotPublishMechStandUpCommand()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        // Make sure the unit is a Mech and is prone
+        unit!.SetProne();
+
+        // Configure dice roller to return a successful roll (low enough to not pass)
+        var psrBreakdown = new PsrBreakdown
+        {
+            BasePilotingSkill = 4,
+            Modifiers = [],
+        };
+        Game.PilotingSkillCalculator.GetPsrBreakdown(unit, Arg.Any<IEnumerable<PilotingSkillRollType>>())
+            .Returns(psrBreakdown);
+
+        List<DiceResult> diceResults =
+        [
+            new DiceResult(1),
+            new DiceResult(1)
+        ];
+        Game.DiceRoller.Roll2D6().Returns(diceResults);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
+    }
+    
+    [Fact]
+    public void ProcessStandupCommand_WhenUnitNotFound_ShouldNotPublishCommand()
+    {
+        // Arrange
+        _sut.Enter();
+        var invalidUnitId = Guid.NewGuid();
+        
+        CommandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = invalidUnitId,
+            Timestamp = DateTime.UtcNow
+        });
+        
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
     }
 }

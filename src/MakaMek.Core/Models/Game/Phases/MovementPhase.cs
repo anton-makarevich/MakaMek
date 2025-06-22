@@ -16,7 +16,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 HandleUnitAction(command, moveCommand.PlayerId);
                 break;
             case TryStandupCommand standupCommand:
-                HandleUnitAction(command, standupCommand.PlayerId);
+                ProcessStandupCommand(standupCommand);  //HandleUnitAction moves to the new unit, should not happen here
                 break;
         }
     }
@@ -27,9 +27,6 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         {
             case MoveUnitCommand moveCommand:
                 ProcessMoveCommand(moveCommand);
-                break;
-            case TryStandupCommand standupCommand:
-                ProcessStandupCommand(standupCommand);
                 break;
         }
     }
