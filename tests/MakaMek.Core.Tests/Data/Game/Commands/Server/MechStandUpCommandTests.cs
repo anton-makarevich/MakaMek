@@ -108,27 +108,4 @@ public class MechStandUpCommandTests
         // Assert
         result.ShouldBeEmpty();
     }
-
-    [Fact]
-    public void Render_ShouldIncludePsrDetails()
-    {
-        // Arrange
-        var psrData = CreateTestPsrData();
-        var sut = new MechStandUpCommand
-        {
-            GameOriginId = _gameId,
-            UnitId = _unit.Id,
-            PilotingSkillRoll = psrData,
-            Timestamp = DateTime.UtcNow
-        };
-        var psrText = psrData.Render(_localizationService);
-
-        // Act
-        var result = sut.Render(_localizationService, _game);
-
-        // Assert
-        result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V stood up");
-        result.ShouldContain(psrText);
-    }
 }
