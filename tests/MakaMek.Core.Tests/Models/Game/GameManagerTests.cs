@@ -26,6 +26,7 @@ public class GameManagerTests : IDisposable
     private readonly INetworkHostService _networkHostService;
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
     private readonly ICriticalHitsCalculator _criticalHitsCalculator = Substitute.For<ICriticalHitsCalculator>();
+    private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
     private readonly IFallProcessor _fallProcessor = Substitute.For<IFallProcessor>();
 
     public GameManagerTests()
@@ -47,6 +48,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor
             );
         _gameFactory.CreateServerGame(
@@ -56,6 +58,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor).Returns(_serverGame);
         _commandPublisher.Adapter.Returns(_transportAdapter);
 
@@ -66,6 +69,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor,
             _gameFactory,
             _networkHostService);
@@ -94,6 +98,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor);
     }
     
@@ -128,6 +133,7 @@ public class GameManagerTests : IDisposable
             _diceRoller, 
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor);
     }
 
@@ -150,6 +156,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor);
     }
 
@@ -173,6 +180,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor);
     }
 
@@ -227,6 +235,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor,
             _gameFactory);
 
@@ -257,6 +266,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor,
             _gameFactory);
 
@@ -289,6 +299,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor);
     }
 
@@ -313,6 +324,7 @@ public class GameManagerTests : IDisposable
             _diceRoller,
             _toHitCalculator,
             _criticalHitsCalculator,
+            _pilotingSkillCalculator,
             _fallProcessor,
             _gameFactory);
 

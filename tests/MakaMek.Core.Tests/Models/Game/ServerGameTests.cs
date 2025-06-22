@@ -49,6 +49,7 @@ public class ServerGameTests
             _commandPublisher, diceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IFallProcessor>());
         _sut.SetBattleMap(battleMap);
     }
@@ -290,6 +291,7 @@ public class ServerGameTests
             diceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IFallProcessor>(),
             phaseManager);
         

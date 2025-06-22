@@ -23,6 +23,7 @@ public interface IGameFactory
         IDiceRoller diceRoller, 
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator,
         IFallProcessor fallProcessor);
 
     /// <summary>

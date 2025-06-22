@@ -36,7 +36,7 @@ public class FallProcessor : IFallProcessor
         _fallingDamageCalculator = fallingDamageCalculator;
     }
 
-    public IEnumerable<MechFallingCommand> ProcessPotentialFall(
+    public IEnumerable<MechFallCommand> ProcessPotentialFall(
         Unit unit,
         BattleMap? battleMap,
         List<ComponentHitData> componentHits,
@@ -44,7 +44,7 @@ public class FallProcessor : IFallProcessor
         Guid gameId,
         List<PartLocation>? destroyedPartLocations = null)
     {
-        var commandsToReturn = new List<MechFallingCommand>();
+        var commandsToReturn = new List<MechFallCommand>();
 
         var fallReasons = new List<FallReasonType>();
 
@@ -144,7 +144,7 @@ public class FallProcessor : IFallProcessor
                 ? _fallingDamageCalculator.CalculateFallingDamage(unit, 0, false)
                 : null;
 
-            var command = new MechFallingCommand
+            var command = new MechFallCommand
             {
                 UnitId = unit.Id,
                 LevelsFallen = 0,

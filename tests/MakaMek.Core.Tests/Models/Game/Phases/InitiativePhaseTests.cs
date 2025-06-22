@@ -316,6 +316,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
             CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IFallProcessor>(),
             mockPhaseManager)
         {

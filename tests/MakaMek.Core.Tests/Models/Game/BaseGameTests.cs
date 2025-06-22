@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -30,7 +31,8 @@ public class BaseGameTests : BaseGame
         new ClassicBattletechRulesProvider(),
         new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
         Substitute.For<ICommandPublisher>(),
-        Substitute.For<IToHitCalculator>())
+        Substitute.For<IToHitCalculator>(),
+        Substitute.For<IPilotingSkillCalculator>())
     {
         base.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
     }
@@ -131,7 +133,7 @@ public class BaseGameTests : BaseGame
             Tint = "#FF0000"
         };
         OnPlayerJoined(joinCommand);
-        var command = new MechFallingCommand
+        var command = new MechFallCommand
         {
             GameOriginId = Id,
             UnitId = Guid.NewGuid(),

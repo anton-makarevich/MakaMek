@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 
@@ -38,6 +39,7 @@ public abstract class BaseGame : IGame
     public IObservable<int> UnitsToPlayChanges => _unitsToPlaySubject.AsObservable();
     public BattleMap? BattleMap { get; protected set; }
     public IToHitCalculator ToHitCalculator { get; }
+    public IPilotingSkillCalculator PilotingSkillCalculator { get; }
     public IRulesProvider RulesProvider { get; }
     
     public int Turn
@@ -97,13 +99,15 @@ public abstract class BaseGame : IGame
         IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
-        IToHitCalculator toHitCalculator)
+        IToHitCalculator toHitCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator)
     {
         Id = Guid.NewGuid(); 
         RulesProvider = rulesProvider;
         CommandPublisher = commandPublisher;
         _mechFactory = mechFactory;
         ToHitCalculator = toHitCalculator;
+        PilotingSkillCalculator = pilotingSkillCalculator;
         CommandPublisher.Subscribe(HandleCommand);
     }
 
@@ -217,17 +221,27 @@ public abstract class BaseGame : IGame
         }
     }
     
-    internal void OnMechFalling(MechFallingCommand fallingCommand)
+    internal void OnMechFalling(MechFallCommand fallCommand)
     {
         // Find the unit with the given ID across all players
         var mech = _players
             .SelectMany(p => p.Units)
-            .FirstOrDefault(u => u.Id == fallingCommand.UnitId) as Mech;
+            .FirstOrDefault(u => u.Id == fallCommand.UnitId) as Mech;
         
         // Apply falling to the unit using the falling data from the command if present
-        if (fallingCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
+        if (fallCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
         mech?.ApplyDamage(hits);
         mech?.SetProne();
+    }
+
+    internal void OnMechStandUp(MechStandUpCommand standUpCommand)
+    {
+        // Find the unit with the given ID across all players
+        var mech = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == standUpCommand.UnitId) as Mech;
+        
+        mech?.StandUp();
     }
 
     internal void OnHeatUpdate(HeatUpdatedCommand heatUpdatedCommand)
@@ -282,7 +296,8 @@ public abstract class BaseGame : IGame
             HeatUpdatedCommand => true,
             TurnEndedCommand => true,
             RequestGameLobbyStatusCommand => true,
-            MechFallingCommand => true,
+            MechFallCommand => true,
+            MechStandUpCommand => true,
             _ => false
         };
     }

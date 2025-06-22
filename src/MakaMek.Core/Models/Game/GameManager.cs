@@ -17,6 +17,7 @@ public class GameManager : IGameManager
     private readonly IDiceRoller _diceRoller;
     private readonly IToHitCalculator _toHitCalculator;
     private readonly ICriticalHitsCalculator _criticalHitsCalculator;
+    private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
     private readonly IFallProcessor _fallProcessor;
     private readonly IGameFactory _gameFactory;
     private ServerGame? _serverGame;
@@ -28,6 +29,7 @@ public class GameManager : IGameManager
         ICommandPublisher commandPublisher, IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator, 
         ICriticalHitsCalculator criticalHitsCalculator,
+        IPilotingSkillCalculator pilotingSkillCalculator,
         IFallProcessor fallProcessor,
         IGameFactory gameFactory, 
         INetworkHostService? networkHostService = null)
@@ -39,6 +41,7 @@ public class GameManager : IGameManager
         _diceRoller = diceRoller;
         _toHitCalculator = toHitCalculator;
         _criticalHitsCalculator = criticalHitsCalculator;
+        _pilotingSkillCalculator = pilotingSkillCalculator;
         _fallProcessor = fallProcessor;
         _gameFactory = gameFactory;
         _networkHostService = networkHostService;
@@ -69,6 +72,7 @@ public class GameManager : IGameManager
                 _diceRoller,
                 _toHitCalculator,
                 _criticalHitsCalculator,
+                _pilotingSkillCalculator,
                 _fallProcessor
                 );
             // Start server listening loop in background

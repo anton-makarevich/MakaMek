@@ -34,6 +34,7 @@ public class GameFactoryTests
             _diceRoller, 
             _toHitCalculator,
             Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IFallProcessor>());
 
         // Assert

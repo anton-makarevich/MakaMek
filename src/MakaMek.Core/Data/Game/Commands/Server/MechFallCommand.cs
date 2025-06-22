@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 /// <summary>
 /// Command for applying falling damage to a mech
 /// </summary>
-public record struct MechFallingCommand : IGameCommand
+public record struct MechFallCommand : IGameCommand
 {
     /// <summary>
     /// The ID of the mech that fell

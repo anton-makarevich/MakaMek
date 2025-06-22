@@ -701,7 +701,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
         
         // Configure the MockFallProcessor to return MechFallingCommands
-        var mechFallingCommand = new MechFallingCommand
+        var mechFallingCommand = new MechFallCommand
         {
             UnitId = _player1Unit1.Id,
             LevelsFallen = 0,
@@ -716,7 +716,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<List<ComponentHitData>>(),
                 Arg.Any<int>(),
                 Arg.Any<Guid>())
-            .Returns(new List<MechFallingCommand> { mechFallingCommand });
+            .Returns(new List<MechFallCommand> { mechFallingCommand });
         
         // Act
         _sut.Enter();
@@ -732,7 +732,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         // Verify that the MechFallingCommand was published
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<MechFallingCommand>(cmd => 
+            Arg.Is<MechFallCommand>(cmd => 
                 cmd.UnitId == _player1Unit1.Id && 
                 cmd.GameOriginId == Game.Id));
     }
@@ -754,7 +754,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 5,
                 [])], TotalDamage: 5), new DiceResult(3));
         
-        var mechFallingCommand = new MechFallingCommand
+        var mechFallingCommand = new MechFallCommand
         {
             UnitId = _player1Unit1.Id,
             LevelsFallen = 0,
@@ -769,7 +769,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<List<ComponentHitData>>(),
                 Arg.Any<int>(),
                 Arg.Any<Guid>())
-            .Returns(new List<MechFallingCommand> { mechFallingCommand });
+            .Returns(new List<MechFallCommand> { mechFallingCommand });
         
         // Get initial armor value to verify damage is applied
         var targetPart = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
@@ -801,14 +801,14 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<List<ComponentHitData>>(),
                 Arg.Any<int>(),
                 Arg.Any<Guid>())
-            .Returns(new List<MechFallingCommand>());
+            .Returns(new List<MechFallCommand>());
         
         // Act
         _sut.Enter();
         
         // Assert
         // Verify that no MechFallingCommand was published
-        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallingCommand>());
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
     }
 
     private void SetupPlayer1WeaponTargets()

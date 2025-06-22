@@ -30,6 +30,7 @@ public class BattleTechPhaseManagerTests
             Substitute.For<IDiceRoller>(), // diceRoller
             Substitute.For<IToHitCalculator>(), // toHitCalculator
             Substitute.For<ICriticalHitsCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IFallProcessor>(),
             _sut  // phaseManager
         );
