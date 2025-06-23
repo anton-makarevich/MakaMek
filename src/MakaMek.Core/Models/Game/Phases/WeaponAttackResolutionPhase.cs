@@ -354,8 +354,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         {
             Game.CommandPublisher.PublishCommand(fallingCommand);
             if (fallingCommand.DamageData is null) continue;
-            targetMech.ApplyDamage(fallingCommand.DamageData.HitLocations.HitLocations);
-            targetMech.SetProne();
+            Game.OnMechFalling(fallingCommand);
         }
     }
     

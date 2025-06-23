@@ -52,8 +52,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         {
             // Standup failed - create and publish a fall command
             var fallCommand = fallContextData.ToMechFallCommand();
-            if (fallCommand == null) return;
             Game.CommandPublisher.PublishCommand(fallCommand);
+            Game.OnMechFalling(fallCommand);
         }
         else
         {
