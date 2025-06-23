@@ -764,6 +764,91 @@ public class FallProcessorTests
             Arg.Is<bool>(b => b == false));
     }
     
+    [Fact]
+    public void ProcessStandupAttempt_ShouldReturnFallContextData_WithSuccessfulStandupPsr()
+    {
+        // Arrange
+        // Setup StandupAttempt PSR to succeed
+        // BasePilotingSkill = 4. With modifierValue = 2, TargetNumber = 6.
+        SetupPsrFor(PilotingSkillRollType.StandupAttempt, 2, "Standing up from prone");
+        
+        // Dice roll: 7 for StandupAttempt PSR (7 >= 6 succeeds).
+        SetupDiceRolls(7);
+
+        // Act
+        var result = _sut.ProcessStandupAttempt(_testMech, _game);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.GameId.ShouldBe(_gameId);
+        result.ReasonType.ShouldBe(FallReasonType.StandUpAttempt);
+        result.IsFalling.ShouldBeFalse("Mech should not be falling when standup PSR succeeds");
+        
+        result.PilotingSkillRoll.ShouldNotBeNull();
+        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
+        result.PilotingSkillRoll.IsSuccessful.ShouldBeTrue();
+        result.PilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
+        result.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (standup mod)
+        
+        result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR should be made for successful standup");
+        result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for successful standup");
+        
+        // Verify GetPsrBreakdown was called for StandupAttempt
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.StandupAttempt)),
+            _map,
+            Arg.Is<int>(i => i == 0)); // totalDamage should be 0 for standup attempts
+            
+        // Verify no falling damage calculation occurred
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(
+            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessStandupAttempt_ShouldReturnFallContextData_WithFailedStandupPsr()
+    {
+        // Arrange
+        // Setup StandupAttempt PSR to fail
+        // BasePilotingSkill = 4. With modifierValue = 2, TargetNumber = 6.
+        SetupPsrFor(PilotingSkillRollType.StandupAttempt, 2, "Standing up from prone");
+        
+        // Dice roll: 5 for StandupAttempt PSR (5 < 6 fails).
+        SetupDiceRolls(5);
+
+        // Act
+        var result = _sut.ProcessStandupAttempt(_testMech, _game);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.GameId.ShouldBe(_gameId);
+        result.ReasonType.ShouldBe(FallReasonType.StandUpAttempt);
+        result.IsFalling.ShouldBeTrue("Mech should be considered 'falling' (remaining prone) when standup PSR fails");
+        
+        result.PilotingSkillRoll.ShouldNotBeNull();
+        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
+        result.PilotingSkillRoll.IsSuccessful.ShouldBeFalse();
+        result.PilotingSkillRoll.DiceResults.Sum().ShouldBe(5);
+        result.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (standup mod)
+        
+        // Unlike other fall types, standup attempts don't cause pilot damage PSRs even when failed
+        result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR should be made for failed standup");
+        result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for failed standup");
+        
+        // Verify GetPsrBreakdown was called for StandupAttempt
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.StandupAttempt)),
+            _map,
+            Arg.Is<int>(i => i == 0)); // totalDamage should be 0 for standup attempts
+            
+        // Verify falling damage calculation occurred
+        _mockFallingDamageCalculator.Received().CalculateFallingDamage(
+            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
     private void SetupPsrFor(PilotingSkillRollType psrType, int modifierValue, string modifierName)
     {
         _mockPilotingSkillCalculator.GetPsrBreakdown(
