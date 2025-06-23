@@ -2,7 +2,6 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -208,7 +207,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             WasJumping = false
         };
         
-        // Setup the Mock for ProcessStandupAttempt
+        // Set up the Mock for ProcessStandupAttempt
         Game.FallProcessor.ProcessStandupAttempt(unit, Game).Returns(successfulStandupData);
         
         CommandPublisher.ClearReceivedCalls();
@@ -254,7 +253,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             PsrBreakdown = psrBreakdown
         };
         
-        var failedfulStandupData = new FallContextData
+        var fallContextData = new FallContextData
         {
             UnitId = unit.Id,
             GameId = Game.Id,
@@ -265,8 +264,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
             WasJumping = false
         };
         
-        // Setup the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessStandupAttempt(unit, Game).Returns(failedfulStandupData);
+        // Set up the Mock for ProcessStandupAttempt
+        Game.FallProcessor.ProcessStandupAttempt(unit, Game).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
