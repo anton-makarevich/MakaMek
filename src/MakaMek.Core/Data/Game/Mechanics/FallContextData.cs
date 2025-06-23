@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 
-namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
 /// <summary>
 /// Contains all context data related to a unit's fall or standup attempt
