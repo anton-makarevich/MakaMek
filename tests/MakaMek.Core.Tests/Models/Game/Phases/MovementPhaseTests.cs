@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -181,21 +182,34 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Make sure the unit is a Mech and is prone
         unit!.SetProne();
         
-        // Configure dice roller to return a successful roll (high enough to pass)
+        // Configure the FallProcessor to return successful standup data
         var psrBreakdown = new PsrBreakdown
         {
             BasePilotingSkill = 4,
             Modifiers = [],
         };
-        Game.PilotingSkillCalculator.GetPsrBreakdown(unit, Arg.Any<IEnumerable<PilotingSkillRollType>>())
-            .Returns(psrBreakdown);
         
-        List<DiceResult> diceResults = 
-        [
-            new DiceResult(3),
-            new DiceResult (3)
-        ];
-        Game.DiceRoller.Roll2D6().Returns(diceResults);
+        var successfulPsrData = new PilotingSkillRollData
+        {
+            RollType = PilotingSkillRollType.StandupAttempt,
+            DiceResults = [3, 3],
+            IsSuccessful = true,
+            PsrBreakdown = psrBreakdown
+        };
+        
+        var successfulStandupData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = false, // Not falling = successful standup
+            ReasonType = FallReasonType.StandUpAttempt,
+            PilotingSkillRoll = successfulPsrData,
+            LevelsFallen = 0,
+            WasJumping = false
+        };
+        
+        // Setup the Mock for ProcessStandupAttempt
+        Game.FallProcessor.ProcessStandupAttempt(unit, Game).Returns(successfulStandupData);
         
         CommandPublisher.ClearReceivedCalls();
         
@@ -213,10 +227,11 @@ public class MovementPhaseTests : GamePhaseTestsBase
             cmd.GameOriginId == Game.Id &&
             cmd.UnitId == _unit1Id &&
             cmd.PilotingSkillRoll.IsSuccessful));
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
     }
 
     [Fact]
-    public void ProcessStandupCommand_WhenFailed_ShouldNotPublishMechStandUpCommand()
+    public void ProcessStandupCommand_WhenFailed_ShouldPublishMechFallCommand()
     {
         // Arrange
         _sut.Enter();
@@ -224,21 +239,34 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Make sure the unit is a Mech and is prone
         unit!.SetProne();
 
-        // Configure dice roller to return a failed roll (low enough to not pass)
+        // Configure the FallProcessor to return failed standup data
         var psrBreakdown = new PsrBreakdown
         {
             BasePilotingSkill = 4,
             Modifiers = [],
         };
-        Game.PilotingSkillCalculator.GetPsrBreakdown(unit, Arg.Any<IEnumerable<PilotingSkillRollType>>())
-            .Returns(psrBreakdown);
-
-        List<DiceResult> diceResults =
-        [
-            new DiceResult(1),
-            new DiceResult(1)
-        ];
-        Game.DiceRoller.Roll2D6().Returns(diceResults);
+        
+        var failedPsrData = new PilotingSkillRollData
+        {
+            RollType = PilotingSkillRollType.StandupAttempt,
+            DiceResults = [1, 1],
+            IsSuccessful = false,
+            PsrBreakdown = psrBreakdown
+        };
+        
+        var failedfulStandupData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true, // failed standup
+            ReasonType = FallReasonType.StandUpAttempt,
+            PilotingSkillRoll = failedPsrData,
+            LevelsFallen = 0,
+            WasJumping = false
+        };
+        
+        // Setup the Mock for ProcessStandupAttempt
+        Game.FallProcessor.ProcessStandupAttempt(unit, Game).Returns(failedfulStandupData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -253,6 +281,10 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd =>
+            cmd.GameOriginId == Game.Id &&
+            cmd.UnitId == _unit1Id &&
+            cmd.FallPilotingSkillRoll == failedPsrData));
     }
     
     [Fact]
