@@ -60,7 +60,6 @@ public record FallContextData
         {
             UnitId = UnitId,
             GameOriginId = GameId,
-            Timestamp = DateTime.UtcNow,
             LevelsFallen = LevelsFallen,
             WasJumping = WasJumping,
             DamageData = FallingDamageData,
@@ -78,7 +77,6 @@ public record FallContextData
         {
             UnitId = UnitId,
             GameOriginId = GameId,
-            Timestamp = DateTime.UtcNow,
             PilotingSkillRoll = PilotingSkillRoll
         };
     }
