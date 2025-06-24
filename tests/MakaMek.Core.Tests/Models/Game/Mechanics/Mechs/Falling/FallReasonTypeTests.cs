@@ -10,6 +10,7 @@ public class FallReasonTypeTests
     [InlineData(FallReasonType.GyroHit, PilotingSkillRollType.GyroHit)]
     [InlineData(FallReasonType.LowerLegActuatorHit, PilotingSkillRollType.LowerLegActuatorHit)]
     [InlineData(FallReasonType.HeavyDamage, PilotingSkillRollType.HeavyDamage)]
+    [InlineData(FallReasonType.StandUpAttempt, PilotingSkillRollType.StandupAttempt)]
     public void ToPilotingSkillRollType_ForTypesRequiringPSR_ReturnsCorrectType(FallReasonType reasonType, PilotingSkillRollType expected)
     {
         // Act
@@ -37,6 +38,7 @@ public class FallReasonTypeTests
     [InlineData(FallReasonType.HeavyDamage, true)]
     [InlineData(FallReasonType.GyroDestroyed, false)]
     [InlineData(FallReasonType.LegDestroyed, false)]
+    [InlineData(FallReasonType.StandUpAttempt, true)]
     public void RequiresPilotingSkillRoll_ReturnsCorrectValue(FallReasonType reasonType, bool expected)
     {
         // Act

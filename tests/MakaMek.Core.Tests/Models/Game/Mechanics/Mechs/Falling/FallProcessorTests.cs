@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Map;
@@ -22,11 +23,11 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 public class FallProcessorTests
 {
     private readonly FallProcessor _sut;
-    private readonly IRulesProvider _rulesProvider;
     private readonly IPilotingSkillCalculator _mockPilotingSkillCalculator;
     private readonly IDiceRoller _mockDiceRoller;
     private readonly IFallingDamageCalculator _mockFallingDamageCalculator;
 
+    private readonly IGame _game = Substitute.For<IGame>();
     private readonly Mech _testMech;
     private readonly BattleMap _map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10,
         new SingleTerrainGenerator(10,10, new ClearTerrain()));
@@ -34,19 +35,22 @@ public class FallProcessorTests
 
     public FallProcessorTests()
     {
-        _rulesProvider = new ClassicBattletechRulesProvider();
+        IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         _mockPilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
         _mockDiceRoller = Substitute.For<IDiceRoller>();
         _mockFallingDamageCalculator = Substitute.For<IFallingDamageCalculator>();
 
+        _game.BattleMap.Returns(_map);
+        _game.Id.Returns(_gameId);
+
         _sut = new FallProcessor(
-            _rulesProvider,
+            rulesProvider,
             _mockPilotingSkillCalculator,
             _mockDiceRoller,
             _mockFallingDamageCalculator);
 
         _testMech = new MechFactory(
-            _rulesProvider,
+            rulesProvider,
             Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData());
     }
@@ -79,7 +83,7 @@ public class FallProcessorTests
 
         // Act
         var results =
-            _sut.ProcessPotentialFall(_testMech, _map, componentHits, 10, _gameId).ToList();
+            _sut.ProcessPotentialFall(_testMech, _game, componentHits, 10).ToList();
 
         // Assert
         results.ShouldHaveSingleItem("A single command should be returned for a gyro hit PSR fail.");
@@ -123,7 +127,7 @@ public class FallProcessorTests
             .Returns(fallingDamageData);
 
         // Act
-        _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId);
+        _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt);
 
         // Assert
         // Verify that GetPsrBreakdown was called for PilotDamageFromFall with the correct 'totalDamageDealt'
@@ -162,7 +166,7 @@ public class FallProcessorTests
             .Returns(fallingDamageData);
     
         // Act
-        var result = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId)
+        var result = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt)
             .First();
     
         // Assert
@@ -192,7 +196,7 @@ public class FallProcessorTests
         SetupDiceRolls(8); 
 
         // Act
-        var result = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId)
+        var result = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt)
             .First();
 
         // Assert
@@ -243,7 +247,7 @@ public class FallProcessorTests
             .Returns(fallingDamageData);
 
         // Act
-        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt).ToList();
 
         // Assert
         results.Count.ShouldBe(1, "Mech falls on first command.");
@@ -297,7 +301,8 @@ public class FallProcessorTests
         SetupDiceRolls(8, 7);
 
         // Act
-        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt)
+            .ToList();
 
         // Assert
         results.Count.ShouldBe(2, "Two commands should be returned for Gyro hit and Heavy Damage PSR successes.");
@@ -355,7 +360,7 @@ public class FallProcessorTests
         // For this test, 5 damage should be safe.
 
         // Act
-        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt).ToList();
 
         // Assert
         results.ShouldBeEmpty("No commands should be returned when no fall conditions are met.");
@@ -401,7 +406,7 @@ public class FallProcessorTests
             .Returns(fallingDamageData);
 
         // Act
-        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt).ToList();
 
         // Assert
         results.ShouldHaveSingleItem("A single command should be returned for a failed Heavy Damage PSR.");
@@ -450,7 +455,7 @@ public class FallProcessorTests
         SetupDiceRolls(7);
         
         // Act
-        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt).ToList();
 
         // Assert
         results.ShouldHaveSingleItem("A single command should be returned for a successful Heavy Damage PSR.");
@@ -505,7 +510,10 @@ public class FallProcessorTests
         // (RulesProvider is ClassicBattletechRulesProvider, GetHeavyDamageThreshold defaults to 20)
 
         // Act
-        var commands = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId);
+        var commands = _sut.ProcessPotentialFall(_testMech,
+            _game,
+            componentHits,
+            totalDamageDealt);
 
         // Assert
         commands.ShouldBeEmpty();
@@ -551,7 +559,7 @@ public class FallProcessorTests
             .Returns(fallingDamageData);
 
         // Act
-        var result = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId)
+        var result = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt)
             .First();
 
         // Assert
@@ -618,7 +626,7 @@ public class FallProcessorTests
             .Returns(fallingDamageData);
 
         // Act
-        var result = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).First();
+        var result = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt).First();
 
         // Assert
         result.GameOriginId.ShouldBe(_gameId);
@@ -672,7 +680,7 @@ public class FallProcessorTests
         SetupDiceRolls(8); 
 
         // Act
-        var results = _sut.ProcessPotentialFall(_testMech, _map, componentHits, totalDamageDealt, _gameId).ToList();
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, totalDamageDealt).ToList();
 
         // Assert
         results.ShouldHaveSingleItem("A single command should be returned for a successful LLA PSR.");
@@ -726,8 +734,8 @@ public class FallProcessorTests
             .Returns(fallingDamageData);
         
         // Act
-        var result = _sut.ProcessPotentialFall(_testMech, _map, componentHits, 
-            totalDamageDealt, _gameId, destroyedLegLocations).First();
+        var result = _sut.ProcessPotentialFall(_testMech, _game, componentHits, 
+            totalDamageDealt, destroyedLegLocations).First();
         
         // Assert
         result.GameOriginId.ShouldBe(_gameId);
@@ -756,6 +764,91 @@ public class FallProcessorTests
             Arg.Is<bool>(b => b == false));
     }
     
+    [Fact]
+    public void ProcessStandupAttempt_ShouldReturnFallContextData_WithSuccessfulStandupPsr()
+    {
+        // Arrange
+        // Setup StandupAttempt PSR to succeed
+        // BasePilotingSkill = 4. With modifierValue = 2, TargetNumber = 6.
+        SetupPsrFor(PilotingSkillRollType.StandupAttempt, 2, "Standing up from prone");
+        
+        // Dice roll: 7 for StandupAttempt PSR (7 >= 6 succeeds).
+        SetupDiceRolls(7);
+
+        // Act
+        var result = _sut.ProcessStandupAttempt(_testMech, _game);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.GameId.ShouldBe(_gameId);
+        result.ReasonType.ShouldBe(FallReasonType.StandUpAttempt);
+        result.IsFalling.ShouldBeFalse("Mech should not be falling when standup PSR succeeds");
+        
+        result.PilotingSkillRoll.ShouldNotBeNull();
+        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
+        result.PilotingSkillRoll.IsSuccessful.ShouldBeTrue();
+        result.PilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
+        result.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (standup mod)
+        
+        result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR should be made for successful standup");
+        result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for successful standup");
+        
+        // Verify GetPsrBreakdown was called for StandupAttempt
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.StandupAttempt)),
+            _map,
+            Arg.Is<int>(i => i == 0)); // totalDamage should be 0 for standup attempts
+            
+        // Verify no falling damage calculation occurred
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(
+            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessStandupAttempt_ShouldReturnFallContextData_WithFailedStandupPsr()
+    {
+        // Arrange
+        // Setup StandupAttempt PSR to fail
+        // BasePilotingSkill = 4. With modifierValue = 2, TargetNumber = 6.
+        SetupPsrFor(PilotingSkillRollType.StandupAttempt, 2, "Standing up from prone");
+        
+        // Dice roll: 5 for StandupAttempt PSR (5 < 6 fails).
+        SetupDiceRolls(5);
+
+        // Act
+        var result = _sut.ProcessStandupAttempt(_testMech, _game);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.GameId.ShouldBe(_gameId);
+        result.ReasonType.ShouldBe(FallReasonType.StandUpAttempt);
+        result.IsFalling.ShouldBeTrue("Mech should be considered 'falling' (remaining prone) when standup PSR fails");
+        
+        result.PilotingSkillRoll.ShouldNotBeNull();
+        result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
+        result.PilotingSkillRoll.IsSuccessful.ShouldBeFalse();
+        result.PilotingSkillRoll.DiceResults.Sum().ShouldBe(5);
+        result.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (standup mod)
+        
+        // Unlike other fall types, standup attempts don't cause pilot damage PSRs even when failed
+        result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR should be made for failed standup");
+        result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for failed standup");
+        
+        // Verify GetPsrBreakdown was called for StandupAttempt
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.StandupAttempt)),
+            _map,
+            Arg.Is<int>(i => i == 0)); // totalDamage should be 0 for standup attempts
+            
+        // Verify falling damage calculation occurred
+        _mockFallingDamageCalculator.Received().CalculateFallingDamage(
+            Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
     private void SetupPsrFor(PilotingSkillRollType psrType, int modifierValue, string modifierName)
     {
         _mockPilotingSkillCalculator.GetPsrBreakdown(

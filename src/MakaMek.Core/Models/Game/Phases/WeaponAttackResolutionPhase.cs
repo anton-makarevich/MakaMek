@@ -335,8 +335,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         attacker.FireWeapon(command.WeaponData);
 
         Game.CommandPublisher.PublishCommand(command);
-        
         // Check for conditions that might cause the mech to fall
+        if (target is not Mech targetMech) return;
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
         
         // Check for component hits that can cause a fall
@@ -344,19 +344,17 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         // Check for fall conditions
         var mechFallingCommands = Game.FallProcessor.ProcessPotentialFall(
-            target, 
-            Game.BattleMap, 
+            targetMech, 
+            Game, 
             allComponentHits, 
             resolution.HitLocationsData.TotalDamage, 
-            Game.Id,
             resolution.DestroyedParts).ToList();
 
         foreach (var fallingCommand in mechFallingCommands)
         {
             Game.CommandPublisher.PublishCommand(fallingCommand);
-            if (fallingCommand.DamageData is null || target is not Mech mech) continue;
-            target.ApplyDamage(fallingCommand.DamageData.HitLocations.HitLocations);
-            mech.SetProne();
+            if (fallingCommand.DamageData is null) continue;
+            Game.OnMechFalling(fallingCommand);
         }
     }
     
