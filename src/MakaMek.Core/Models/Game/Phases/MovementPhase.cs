@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
@@ -43,6 +44,12 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         var player = Game.Players.FirstOrDefault(p => p.Id == standupCommand.PlayerId);
 
         if (player?.Units.FirstOrDefault(u => u.Id == standupCommand.UnitId) is not Mech unit) return;
+
+        // Check if unit can stand up (has sufficient MP, pilot is conscious, etc.)
+        if (!unit.CanStandup())
+        {
+            return; // Cannot stand up
+        }
 
         // Use the FallProcessor to process the standup attempt and get context data
         var fallContextData = Game.FallProcessor.ProcessStandupAttempt(unit, Game);
