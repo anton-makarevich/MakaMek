@@ -981,6 +981,20 @@ public class MechTests
         // Assert
         canStandup.ShouldBeTrue("Mech should be able to stand up when it has movement points and pilot is conscious and not shutdown");
     }
+    
+    [Fact]
+    public void AttemptStandup_ShouldIncrementCounter()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+
+        // Act
+        mech.AttemptStandup();
+        // Assert
+        mech.StandupAttempts.ShouldBe(1);
+        mech.MovementPointsSpent.ShouldBe(2);
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(2); // 4 initial - 2 spent
+    }
 
     [Fact]
     public void CanStandup_WhenHasMovementPointsAndPilotConsciousAndShutdown_ShouldReturnFalse()
