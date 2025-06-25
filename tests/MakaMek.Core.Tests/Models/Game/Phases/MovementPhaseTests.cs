@@ -8,7 +8,6 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -228,6 +227,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             cmd.UnitId == _unit1Id &&
             cmd.PilotingSkillRoll.IsSuccessful));
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
+        unit.StandupAttempts.ShouldBe(1);
     }
 
     [Fact]
@@ -281,10 +281,11 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
-        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd =>
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<MechFallCommand>(cmd =>
             cmd.GameOriginId == Game.Id &&
             cmd.UnitId == _unit1Id &&
             cmd.FallPilotingSkillRoll == failedPsrData));
+        unit.StandupAttempts.ShouldBe(1);
     }
     
     [Fact]
@@ -318,7 +319,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Make sure the unit is a Mech and is prone
         unit!.SetProne();
         
-        // Make the unit unable to stand up by setting its status to Shutdown
+        // Make the unit unable to stand up by setting its status to shut down
         unit.Shutdown();
         unit.CanStandup().ShouldBeFalse();
         
@@ -336,5 +337,6 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
+        unit.StandupAttempts.ShouldBe(0);
     }
 }

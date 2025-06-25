@@ -7,6 +7,7 @@ using System.Reactive.Subjects;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -228,6 +229,11 @@ public abstract class BaseGame : IGame
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == fallCommand.UnitId) as Mech;
         
+        if (fallCommand.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.StandupAttempt)
+        {
+            mech?.AttemptStandup();
+        }
+
         // Apply falling to the unit using the falling data from the command if present
         if (fallCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
         mech?.ApplyDamage(hits);
@@ -242,6 +248,7 @@ public abstract class BaseGame : IGame
             .FirstOrDefault(u => u.Id == standUpCommand.UnitId) as Mech;
         
         mech?.StandUp();
+        mech?.AttemptStandup();
     }
 
     internal void OnHeatUpdate(HeatUpdatedCommand heatUpdatedCommand)
