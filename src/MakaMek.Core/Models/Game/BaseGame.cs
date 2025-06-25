@@ -304,6 +304,7 @@ public abstract class BaseGame : IGame
             TurnEndedCommand => true,
             RequestGameLobbyStatusCommand => true,
             MechFallCommand => true,
+            TryStandupCommand => true,
             MechStandUpCommand => true,
             _ => false
         };
