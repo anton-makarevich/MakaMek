@@ -364,20 +364,21 @@ public class FallProcessorTests
         results.ShouldBeEmpty("No commands should be returned when no fall conditions are met.");
 
         // Verify no PSR calculations for fall reasons were attempted
+        // Verify no PSR calculations for fall reasons were attempted
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
-            _testMech,
+            Arg.Is<Unit>(u => u == _testMech),
             Arg.Is<PilotingSkillRollType>(type => 
-                types.Is(PilotingSkillRollType.GyroHit) || 
-                types.Contains(PilotingSkillRollType.LowerLegActuatorHit) || 
-                types.Contains(PilotingSkillRollType.HeavyDamage)),
-            _map,
-            totalDamageDealt);
+                type == PilotingSkillRollType.GyroHit || 
+                type == PilotingSkillRollType.LowerLegActuatorHit || 
+                type == PilotingSkillRollType.HeavyDamage),
+            Arg.Any<IGame>(),
+            Arg.Any<int>());
 
         // Verify no pilot damage PSR was attempted
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             _testMech,
             Arg.Any<PilotingSkillRollType>(),
-            _map,
+            _game,
             totalDamageDealt);
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -426,14 +427,14 @@ public class FallProcessorTests
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.HeavyDamage)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type==PilotingSkillRollType.HeavyDamage),
+            _game,
             Arg.Any<int>());
         
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type==PilotingSkillRollType.PilotDamageFromFall),
+            _game,
             Arg.Any<int>()); // totalDamageDealt is passed for context, even if not directly used by PilotDamage PSR modifiers in this setup
 
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
