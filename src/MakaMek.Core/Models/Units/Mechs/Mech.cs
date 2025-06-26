@@ -157,6 +157,10 @@ public class Mech : Unit
     public bool CanStandup()
     {
         if ((Status & UnitStatus.Shutdown)== UnitStatus.Shutdown) return false;
+        
+        var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
+        if (destroyedLegs >= 2) return false;
+        
         // Check if the Mech has at least one movement point available
         if (GetMovementPoints(MovementType.Walk) < 1) return false;
 

@@ -1034,4 +1034,70 @@ public class MechTests
         // Assert
         canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
     }
+    
+    [Fact]
+    public void CanStandup_WhenBothLegsDestroyed_ShouldReturnFalse()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.SetProne();
+        
+        var leftLeg = mech.Parts.First(p=> p.Location == PartLocation.LeftLeg);
+        leftLeg.ApplyDamage(100);
+        leftLeg.IsDestroyed.ShouldBeTrue();
+        var rightLeg = mech.Parts.First(p=> p.Location == PartLocation.RightLeg);
+        rightLeg.ApplyDamage(100);
+        rightLeg.IsDestroyed.ShouldBeTrue();
+        
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
+    }
+    
+    [Fact]
+    public void CanStandup_WhenBothLegsBlownOff_ShouldReturnFalse()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.SetProne();
+        
+        var leftLeg = mech.Parts.First(p=> p.Location == PartLocation.LeftLeg);
+        leftLeg.BlowOff();
+        leftLeg.IsBlownOff.ShouldBeTrue();
+        var rightLeg = mech.Parts.First(p=> p.Location == PartLocation.RightLeg);
+        rightLeg.BlowOff();
+        rightLeg.IsBlownOff.ShouldBeTrue();
+        
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
+    }
+    
+    [Fact]
+    public void CanStandup_WhenOneLegIsBlownOffAndAnotherIsDestroyed_ShouldReturnFalse()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.SetProne();
+        
+        var leftLeg = mech.Parts.First(p=> p.Location == PartLocation.LeftLeg);
+        leftLeg.BlowOff();
+        leftLeg.IsBlownOff.ShouldBeTrue();
+        var rightLeg = mech.Parts.First(p=> p.Location == PartLocation.RightLeg);
+        rightLeg.ApplyDamage(100);
+        rightLeg.IsDestroyed.ShouldBeTrue();
+        
+        // Act
+        var canStandup = mech.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
+    }
 }
