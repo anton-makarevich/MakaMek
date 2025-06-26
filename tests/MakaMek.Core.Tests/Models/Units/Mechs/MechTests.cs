@@ -983,17 +983,35 @@ public class MechTests
     }
     
     [Fact]
-    public void AttemptStandup_ShouldIncrementCounter()
+    public void AttemptStandup_WhenCalledMultipleTimes_ShouldIncrementCounterCorrectly()
     {
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
 
         // Act
         mech.AttemptStandup();
+        mech.AttemptStandup();
+        // Assert
+        mech.StandupAttempts.ShouldBe(2);
+        mech.MovementPointsSpent.ShouldBe(4);
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(0); // 4 initial - 2*2 spent
+    }
+    
+    [Theory]
+    [InlineData(1, 1)] // Less movement than standup cost
+    [InlineData(2, 2)] // Exactly standup cost  
+    [InlineData(4, 2)] // More movement than standup cost
+    public void AttemptStandup_ShouldSpendCorrectMovementPoints(int initialMovement, int expectedSpent)
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, initialMovement, CreateBasicPartsData());
+
+        // Act
+        mech.AttemptStandup();
         // Assert
         mech.StandupAttempts.ShouldBe(1);
-        mech.MovementPointsSpent.ShouldBe(2);
-        mech.GetMovementPoints(MovementType.Walk).ShouldBe(2); // 4 initial - 2 spent
+        mech.MovementPointsSpent.ShouldBe(expectedSpent);
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(initialMovement - expectedSpent); 
     }
 
     [Fact]
