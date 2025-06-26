@@ -9,6 +9,9 @@ namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
 public class Mech : Unit
 {
+    private const int StandupCost = 2;
+
+    public int StandupAttempts { private set; get; }
     public int PossibleTorsoRotation { get; }
     
     public HexDirection? TorsoDirection=> _parts.OfType<Torso>().FirstOrDefault()?.Facing;
@@ -167,6 +170,13 @@ public class Mech : Unit
         Status &= ~UnitStatus.Prone;
     }
 
+    public void AttemptStandup()
+    {
+        StandupAttempts++;
+        var pointsToSpend = Math.Min(GetMovementPoints(MovementType.Walk), StandupCost);
+        SpendMovementPoints(pointsToSpend);
+    }
+    
     public override HexPosition? Position
     {
         get => base.Position;
@@ -189,6 +199,8 @@ public class Mech : Unit
     public override void ResetTurnState()
     {
         base.ResetTurnState();
+
+        StandupAttempts = 0;
         
         // Reset torso rotation
         foreach (var torso in _parts.OfType<Torso>())

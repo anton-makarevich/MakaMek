@@ -781,7 +781,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         targetPart.CurrentArmor.ShouldBe(initialArmor - 5);
         
         // Verify that the mech was set to prone
-        (_player1Unit1 as Mech)!.Status.ShouldHaveFlag(UnitStatus.Prone);
+        var mech = _player1Unit1 as Mech;
+        mech!.Status.ShouldHaveFlag(UnitStatus.Prone);
+        mech.StandupAttempts.ShouldBe(0);
     }
     
     [Fact]

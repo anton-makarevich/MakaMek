@@ -183,6 +183,7 @@ public class CommandTransportAdapter
             { nameof(TurnEndedCommand), typeof(TurnEndedCommand) },
             { nameof(RollDiceCommand), typeof(RollDiceCommand) },
             { nameof(RequestGameLobbyStatusCommand), typeof(RequestGameLobbyStatusCommand) },
+            { nameof(TryStandupCommand), typeof(TryStandupCommand) },
             
             // Server commands 
             { nameof(WeaponAttackResolutionCommand), typeof(WeaponAttackResolutionCommand) },

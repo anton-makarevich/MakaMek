@@ -227,6 +227,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             cmd.UnitId == _unit1Id &&
             cmd.PilotingSkillRoll.IsSuccessful));
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
+        unit.StandupAttempts.ShouldBe(1);
     }
 
     [Fact]
@@ -280,10 +281,11 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
-        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd =>
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<MechFallCommand>(cmd =>
             cmd.GameOriginId == Game.Id &&
             cmd.UnitId == _unit1Id &&
             cmd.FallPilotingSkillRoll == failedPsrData));
+        unit.StandupAttempts.ShouldBe(1);
     }
     
     [Fact]
@@ -306,5 +308,35 @@ public class MovementPhaseTests : GamePhaseTestsBase
         
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
+    }
+
+    [Fact]
+    public void ProcessStandupCommand_WhenUnitCannotStandup_ShouldNotPublishCommand()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        // Make sure the unit is a Mech and is prone
+        unit!.SetProne();
+        
+        // Make the unit unable to stand up by setting its status to shut down
+        unit.Shutdown();
+        unit.CanStandup().ShouldBeFalse();
+        
+        CommandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            Timestamp = DateTime.UtcNow
+        });
+        
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
+        unit.StandupAttempts.ShouldBe(0);
     }
 }

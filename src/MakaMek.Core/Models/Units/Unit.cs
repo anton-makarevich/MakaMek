@@ -62,7 +62,7 @@ public abstract class Unit
     private int BaseMovement { get; }
     
     // Modified movement after applying effects (defaults to base movement)
-    private int ModifiedMovement => BaseMovement - MovementHeatPenalty;
+    private int ModifiedMovement => Math.Max(0, BaseMovement - MovementHeatPenalty - MovementPointsSpent);
     
     // Movement heat penalty
     public virtual int MovementHeatPenalty => 0;

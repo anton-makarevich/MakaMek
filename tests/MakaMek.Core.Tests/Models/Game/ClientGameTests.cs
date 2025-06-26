@@ -1691,5 +1691,6 @@ public class ClientGameTests
         
         // Assert
         unit.Status.ShouldNotHaveFlag(UnitStatus.Prone);
+        unit.StandupAttempts.ShouldBe(1);
     }
 }
