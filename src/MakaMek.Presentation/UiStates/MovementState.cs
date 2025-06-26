@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -352,8 +353,7 @@ public class MovementState : IUiState
             {
                 // Calculate piloting skill roll breakdown and success probability
                 var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
-                    mech,
-                    []);
+                    mech, PilotingSkillRollType.GyroHit);
                 
                 var successProbability = Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
                 

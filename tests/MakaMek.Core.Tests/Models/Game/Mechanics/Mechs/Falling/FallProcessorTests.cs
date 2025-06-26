@@ -134,9 +134,8 @@ public class FallProcessorTests
         // from the initial damage event, as this can influence pilot damage PSR modifiers.
         _mockPilotingSkillCalculator.Received().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types =>
-                types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            Arg.Any<BattleMap>(),
+            Arg.Any<PilotingSkillRollType>(),
+            Arg.Any<IGame>(),
             Arg.Any<int>());
     }
     
@@ -215,9 +214,8 @@ public class FallProcessorTests
         // Verify GetPsrBreakdown was called for GyroHit
         _mockPilotingSkillCalculator.Received().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types =>
-                types.Contains(PilotingSkillRollType.GyroHit)),
-            Arg.Any<BattleMap>(),
+            Arg.Any<PilotingSkillRollType>(),
+            Arg.Any<IGame>(),
             Arg.Any<int>());
 
         // Verify no FallingDamage calculation occurred
@@ -368,8 +366,8 @@ public class FallProcessorTests
         // Verify no PSR calculations for fall reasons were attempted
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => 
-                types.Contains(PilotingSkillRollType.GyroHit) || 
+            Arg.Is<PilotingSkillRollType>(type => 
+                types.Is(PilotingSkillRollType.GyroHit) || 
                 types.Contains(PilotingSkillRollType.LowerLegActuatorHit) || 
                 types.Contains(PilotingSkillRollType.HeavyDamage)),
             _map,
@@ -378,7 +376,7 @@ public class FallProcessorTests
         // Verify no pilot damage PSR was attempted
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
+            Arg.Any<PilotingSkillRollType>(),
             _map,
             totalDamageDealt);
 

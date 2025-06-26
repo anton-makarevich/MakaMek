@@ -112,8 +112,8 @@ public class FallProcessor : IFallProcessor
 
             if (requiresPsr && reasonType.ToPilotingSkillRollType() is { } psrRollType)
             {
-                var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, [psrRollType],
-                    game.BattleMap, totalDamage);
+                var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, psrRollType,
+                    game, totalDamage);
                 var diceResults = _diceRoller.Roll2D6();
                 var rollTotal = diceResults.Sum(d => d.Result);
                 isFallingNow = rollTotal < psrBreakdown.ModifiedPilotingSkill;
@@ -133,8 +133,8 @@ public class FallProcessor : IFallProcessor
             {
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(
                     mech,
-                    [PilotingSkillRollType.PilotDamageFromFall],
-                    game.BattleMap,
+                    PilotingSkillRollType.PilotDamageFromFall,
+                    game,
                     totalDamage);
 
                 if (pilotPsrBreakdown.Modifiers.Any())
