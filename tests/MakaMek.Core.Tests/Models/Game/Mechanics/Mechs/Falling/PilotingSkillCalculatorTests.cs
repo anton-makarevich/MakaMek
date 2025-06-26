@@ -155,27 +155,6 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         }
 
         [Fact]
-        public void GetPsrBreakdown_EmptyRollTypesList_NoModifiersApplied()
-        {
-            // Arrange
-            var torso = new CenterTorso("Test Torso", 10, 3, 5);
-            var gyro = torso.GetComponent<Gyro>()!;
-            gyro.Hit(); // Apply 1 hit to the gyro
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
-            
-            // Set up the rules provider to return a modifier value for gyro hits
-            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
-
-            // Act - provide an empty list of roll types
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
-
-            // Assert
-            result.BasePilotingSkill.ShouldBe(mech.Crew!.Piloting);
-            result.Modifiers.Count.ShouldBe(0); // No modifiers should be applied
-            result.ModifiedPilotingSkill.ShouldBe(mech.Crew.Piloting); // No change to difficulty
-        }
-
-        [Fact]
         public void GetPsrBreakdown_LowerLegActuatorHitRequested_AddsModifier()
         {
             // Arrange

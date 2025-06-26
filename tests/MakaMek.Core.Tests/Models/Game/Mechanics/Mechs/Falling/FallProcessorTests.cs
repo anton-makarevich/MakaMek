@@ -264,20 +264,20 @@ public class FallProcessorTests
         command.PilotDamagePilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.GyroHit)),
-            Arg.Any<BattleMap>(),
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit),
+            Arg.Any<IGame>(),
             Arg.Any<int>());
 
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.HeavyDamage)),
-            Arg.Any<BattleMap>(),
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.HeavyDamage),
+            Arg.Any<IGame>(),
             Arg.Any<int>());
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            Arg.Any<BattleMap>(),
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Any<IGame>(),
             Arg.Any<int>());
 
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -327,20 +327,20 @@ public class FallProcessorTests
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.GyroHit)),
-            Arg.Any<BattleMap>(),
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit),
+            Arg.Any<IGame>(),
             Arg.Any<int>());
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.HeavyDamage)),
-            Arg.Any<BattleMap>(),
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.HeavyDamage),
+            Arg.Any<IGame>(),
             Arg.Any<int>());
 
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            Arg.Any<BattleMap>(),
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Any<IGame>(),
             Arg.Any<int>());
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -473,14 +473,14 @@ public class FallProcessorTests
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.HeavyDamage)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type==PilotingSkillRollType.HeavyDamage),
+            _game,
             Arg.Any<int>());
         
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type==PilotingSkillRollType.PilotDamageFromFall),
+            _game,
             Arg.Any<int>());
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -520,16 +520,15 @@ public class FallProcessorTests
         // Ensure no PSR was attempted for a GyroHit because the mech has no gyro
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             _testMech, 
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => 
-                types.Contains(PilotingSkillRollType.GyroHit)), 
-            Arg.Any<BattleMap>(), 
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit), 
+            Arg.Any<IGame>(), 
             Arg.Any<int>());
         
         // Also ensure no pilot damage PSR was attempted as no fall should be processed
         _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
             _testMech, 
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)), 
-            Arg.Any<BattleMap>(), 
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall), 
+            Arg.Any<IGame>(), 
             Arg.Any<int>());
     }
 
@@ -584,15 +583,15 @@ public class FallProcessorTests
         // Verify GetPsrBreakdown was called for GyroHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.GyroHit)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit),
+            _game,
             Arg.Any<int>());
 
         // Verify GetPsrBreakdown was called for PilotDamageFromFall
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            _game,
             Arg.Any<int>());
             
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
@@ -650,15 +649,15 @@ public class FallProcessorTests
         // Verify GetPsrBreakdown was called for LowerLegActuatorHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.LowerLegActuatorHit)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.LowerLegActuatorHit),
+            _game,
             Arg.Any<int>());
 
         // Verify GetPsrBreakdown was called for PilotDamageFromFall
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            _game,
             Arg.Any<int>());
             
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
@@ -699,8 +698,8 @@ public class FallProcessorTests
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.LowerLegActuatorHit)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.LowerLegActuatorHit),
+            _game,
             totalDamageDealt);
             
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
@@ -751,9 +750,8 @@ public class FallProcessorTests
         // Verify that GetPsrBreakdown was called for PilotDamageFromFall
         _mockPilotingSkillCalculator.Received().GetPsrBreakdown(
             Arg.Any<Unit>(),
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => 
-                types.Contains(PilotingSkillRollType.PilotDamageFromFall)),
-            Arg.Any<BattleMap>(),
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            Arg.Any<IGame>(),
             Arg.Any<int>());
         
         // Verify falling damage was calculated
@@ -796,8 +794,8 @@ public class FallProcessorTests
         // Verify GetPsrBreakdown was called for StandupAttempt
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.StandupAttempt)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.StandupAttempt),
+            _game,
             Arg.Is<int>(i => i == 0)); // totalDamage should be 0 for standup attempts
             
         // Verify no falling damage calculation occurred
@@ -839,8 +837,8 @@ public class FallProcessorTests
         // Verify GetPsrBreakdown was called for StandupAttempt
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
-            Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(PilotingSkillRollType.StandupAttempt)),
-            _map,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.StandupAttempt),
+            _game,
             Arg.Is<int>(i => i == 0)); // totalDamage should be 0 for standup attempts
             
         // Verify falling damage calculation occurred
@@ -852,8 +850,8 @@ public class FallProcessorTests
     {
         _mockPilotingSkillCalculator.GetPsrBreakdown(
                 Arg.Any<Unit>(),
-                Arg.Is<IEnumerable<PilotingSkillRollType>>(types => types.Contains(psrType)),
-                Arg.Any<BattleMap>(),
+                Arg.Is<PilotingSkillRollType>(type => type == psrType),
+                Arg.Any<IGame>(),
                 Arg.Any<int>())
             .Returns(new PsrBreakdown
             {
