@@ -21,10 +21,16 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     
     // Units with weapons that have targets, organized by player
     private readonly Dictionary<Guid, List<Unit>> _unitsWithTargets = new();
+    
+    // Dictionary to track accumulated damage data for PSR calculations at phase end
+    private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamageData = new();
 
     public override void Enter()
     {
         base.Enter();
+        
+        // Clear any accumulated damage data from previous phases
+        _accumulatedDamageData.Clear();
         
         // Initialize the attack resolution process
         _playersInOrder = Game.InitiativeOrder.ToList();
@@ -61,6 +67,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Check if we've processed all players
         if (_currentPlayerIndex >= _playersInOrder.Count)
         {
+            // Calculate PSRs for all units that accumulated damage during this phase
+            CalculateEndOfPhasePsrs();
+            
             Game.TransitionToNextPhase(Name);
             return;
         }
@@ -336,26 +345,20 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         Game.CommandPublisher.PublishCommand(command);
         // Check for conditions that might cause the mech to fall
-        if (target is not Mech targetMech) return;
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
         
         // Check for component hits that can cause a fall
         var allComponentHits = GetAllComponentHits(resolution.HitLocationsData);
         
-        // Check for fall conditions
-        var mechFallingCommands = Game.FallProcessor.ProcessPotentialFall(
-            targetMech, 
-            Game, 
-            allComponentHits, 
-            resolution.HitLocationsData.TotalDamage, 
-            resolution.DestroyedParts).ToList();
-
-        foreach (var fallingCommand in mechFallingCommands)
+        // Add component hits to accumulated damage data
+        if (!_accumulatedDamageData.TryGetValue(target.Id, out var accumulatedDamage))
         {
-            Game.CommandPublisher.PublishCommand(fallingCommand);
-            if (fallingCommand.DamageData is null) continue;
-            Game.OnMechFalling(fallingCommand);
+            accumulatedDamage = new UnitPhaseAccumulatedDamage();
+            _accumulatedDamageData[target.Id] = accumulatedDamage;
         }
+        accumulatedDamage.AllComponentHits.AddRange(allComponentHits);
+        accumulatedDamage.TotalDamageReceived += resolution.HitLocationsData.TotalDamage;
+        accumulatedDamage.AllDestroyedParts.AddRange(resolution.DestroyedParts ?? []);
     }
     
     /// <summary>
@@ -392,4 +395,50 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     }
 
     public override PhaseNames Name => PhaseNames.WeaponAttackResolution;
+
+    /// <summary>
+    /// Calculates PSRs for all units that accumulated damage during the weapon attack resolution phase
+    /// This is called at the end of the phase to comply with BattleTech rules
+    /// </summary>
+    private void CalculateEndOfPhasePsrs()
+    {
+        foreach (var (unitId, accumulatedDamage) in _accumulatedDamageData)
+        {
+            // Find the unit
+            var unit = Game.Players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == unitId);
+                
+            if (unit is not Mech targetMech) continue;
+            
+            // Calculate PSRs using the accumulated damage data from the entire phase
+            var mechFallingCommands = Game.FallProcessor.ProcessPotentialFall(
+                targetMech,
+                Game,
+                accumulatedDamage.AllComponentHits,
+                accumulatedDamage.TotalDamageReceived,
+                accumulatedDamage.AllDestroyedParts);
+
+            foreach (var fallingCommand in mechFallingCommands)
+            {
+                Game.CommandPublisher.PublishCommand(fallingCommand);
+                if (fallingCommand.DamageData is null) continue;
+                Game.OnMechFalling(fallingCommand);
+            }
+        }
+        
+        // Clear the accumulated damage data after processing
+        _accumulatedDamageData.Clear();
+    }
+    
+    /// <summary>
+    /// Tracks accumulated damage data for a unit during the weapon attack resolution phase
+    /// Used to calculate PSRs at the end of the phase instead of after each individual attack
+    /// </summary>
+    private record UnitPhaseAccumulatedDamage
+    {
+        public List<ComponentHitData> AllComponentHits { get; } = [];
+        public List<PartLocation> AllDestroyedParts { get; } = [];
+        public int TotalDamageReceived { get; set; }
+    }
 }
