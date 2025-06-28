@@ -699,7 +699,7 @@ public class MovementStateTests
     {
         // Arrange
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, [])
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -720,7 +720,7 @@ public class MovementStateTests
     public void GetAvailableActions_ProneMech_CannotStandup_ReturnsEmptyList()
     {
         // Arrange
-        _pilotingSkillCalculator.GetPsrBreakdown(Arg.Any<Mech>(), [])
+        _pilotingSkillCalculator.GetPsrBreakdown(Arg.Any<Mech>(), PilotingSkillRollType.StandupAttempt)
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -880,7 +880,7 @@ public class MovementStateTests
 
         // Set up a prone Mech
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, [])
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,
@@ -909,7 +909,7 @@ public class MovementStateTests
         
         // Set up a prone Mech
         var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, [])
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
             .Returns(new PsrBreakdown
             {
                 BasePilotingSkill = 4,

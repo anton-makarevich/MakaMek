@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
@@ -78,6 +79,11 @@ public class UnitTests
             {
                 Status = UnitStatus.Destroyed;
             }
+        }
+
+        public void SetCrew(IPilot pilot)
+        {
+            Crew = pilot;
         }
     }
     
