@@ -1054,7 +1054,7 @@ public class MechTests
         var canStandup = mech.CanStandup();
 
         // Assert
-        canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
+        canStandup.ShouldBeFalse("Mech should not be able to stand up when both legs are destroyed");
     }
     
     [Fact]
@@ -1076,7 +1076,7 @@ public class MechTests
         var canStandup = mech.CanStandup();
 
         // Assert
-        canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
+        canStandup.ShouldBeFalse("Mech should not be able to stand up when both legs are blown off");
     }
     
     [Fact]
@@ -1098,6 +1098,6 @@ public class MechTests
         var canStandup = mech.CanStandup();
 
         // Assert
-        canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
+        canStandup.ShouldBeFalse("Mech should not be able to stand up when both legs are not available");
     }
 }

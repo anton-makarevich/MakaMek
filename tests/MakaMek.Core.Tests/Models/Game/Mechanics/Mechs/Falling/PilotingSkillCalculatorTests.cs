@@ -6,6 +6,8 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Tests.Models.Units;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
@@ -264,6 +266,31 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
 
             // Assert
             result.Modifiers.ShouldNotContain(m => m is LowerLegActuatorHitModifier);
+        }
+        
+        [Fact]
+        public void GetPsrBreakdown_ShouldReturnNoModifiers_ForNonMech()
+        {
+            // Arrange
+            var notMech = new UnitTests.TestUnit("Test", "TST-1A", 50, 4, []);
+            notMech.SetCrew(new MechWarrior("Test", "Test"));
+
+            // Act
+            var result = _sut.GetPsrBreakdown(notMech, PilotingSkillRollType.GyroHit);
+
+            // Assert
+            result.Modifiers.Count.ShouldBe(0);
+        }
+        
+        [Fact]
+        public void GetPsrBreakdown_ShouldThrow_WhenNoCrew()
+        {
+            // Arrange
+            var notMech = new UnitTests.TestUnit("Test", "TST-1A", 50, 4, []);
+
+            // Act & Assert
+            Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(notMech, PilotingSkillRollType.GyroHit))
+                .Message.ShouldContain("crew");
         }
     }
 }
