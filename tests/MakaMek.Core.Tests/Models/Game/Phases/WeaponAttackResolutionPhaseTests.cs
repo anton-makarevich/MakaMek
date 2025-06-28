@@ -715,7 +715,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Mech>(),
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
-                Arg.Any<int>())
+                Arg.Any<int>(),
+                Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
         
         // Act
@@ -727,7 +728,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Is<Mech>(u => u == _player1Unit1), // Target unit
             Arg.Is<IGame>(m => m == Game),
             Arg.Any<List<ComponentHitData>>(),
-            Arg.Any<int>());
+            Arg.Any<int>(),
+            Arg.Any<List<PartLocation>>());
         
         // Verify that the MechFallingCommand was published
         CommandPublisher.Received().PublishCommand(
@@ -766,7 +768,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Mech>(),
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
-                Arg.Any<int>())
+                Arg.Any<int>(),
+                Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
         
         // Get initial armor value to verify damage is applied
@@ -799,7 +802,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Mech>(),
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
-                Arg.Any<int>())
+                Arg.Any<int>(),
+                Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand>());
         
         // Act
