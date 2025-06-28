@@ -38,65 +38,86 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             throw new ArgumentException("Unit has no crew", nameof(unit));
         }
 
-        var modifiers = new List<RollModifier>();
-
         if (unit is not Mech mech)
             return new PsrBreakdown
             {
                 BasePilotingSkill = unit.Crew.Piloting,
-                Modifiers = modifiers
+                Modifiers = new List<RollModifier>()
             };
-        switch (rollType)
-        {
-            case PilotingSkillRollType.GyroHit:
-                // Check for damaged gyro
-                var gyroHits = GetGyroHits(mech);
-                if (gyroHits == 1)
-                {
-                    modifiers.Add(new DamagedGyroModifier
-                    {
-                        Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit),
-                        HitsCount = gyroHits
-                    });
-                }
-                break;
-                    
-            case PilotingSkillRollType.LowerLegActuatorHit:
-                modifiers.Add(new LowerLegActuatorHitModifier
-                {
-                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit)
-                });
-                break;
-                    
-            case PilotingSkillRollType.HeavyDamage:
-                modifiers.Add(new HeavyDamageModifier
-                {
-                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage),
-                    DamageTaken = totalDamage 
-                });
-                break;
-                    
-            case PilotingSkillRollType.PilotDamageFromFall:
-                // Calculate levels fallen if game with map is provided
-                var levelsFallen = 0;
-                    
-                // Add modifiers for levels fallen
-                // According to the rules, there's a +1 modifier for every level above 1 fallen
-                modifiers.Add(new FallingLevelsModifier
-                {
-                    Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
-                    LevelsFallen = levelsFallen
-                });
-                break;
-                    
-            // Add cases for other roll types as needed
-        }
+
+        var modifiers = new List<RollModifier>();
+        
+        // Add standard modifiers
+        modifiers.AddRange(GetStandardModifiers(mech, game, totalDamage));
+        
+        // Add special modifiers for specific roll types
+        modifiers.AddRange(GetModifiersForRoll(rollType, mech, game, totalDamage));
 
         return new PsrBreakdown
         {
             BasePilotingSkill = unit.Crew.Piloting,
             Modifiers = modifiers
         };
+    }
+
+    /// <summary>
+    /// Gets all standard modifiers that apply to piloting skill rolls
+    /// </summary>
+    /// <param name="mech">The mech making the piloting skill roll</param>
+    /// <param name="game">The game instance, used for accessing the map and other game state</param>
+    /// <param name="totalDamage">The total damage taken by the unit</param>
+    /// <returns>A collection of standard roll modifiers</returns>
+    private IEnumerable<RollModifier> GetStandardModifiers(Mech mech, IGame? game = null, int totalDamage = 0)
+    {
+        var modifiers = new List<RollModifier>();
+
+        // Check for damaged gyro
+        var gyroHits = GetGyroHits(mech);
+        if (gyroHits > 0)
+        {
+            modifiers.Add(new DamagedGyroModifier
+            {
+                Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit),
+                HitsCount = gyroHits
+            });
+        }
+
+        // Lower leg actuator hit modifier
+        modifiers.Add(new LowerLegActuatorHitModifier
+        {
+            Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit)
+        });
+
+        // Heavy damage modifier
+        modifiers.Add(new HeavyDamageModifier
+        {
+            Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage),
+            DamageTaken = totalDamage 
+        });
+
+        // Falling levels modifier
+        var levelsFallen = 0; // Calculate levels fallen if game with map is provided
+        modifiers.Add(new FallingLevelsModifier
+        {
+            Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
+            LevelsFallen = levelsFallen
+        });
+
+        return modifiers;
+    }
+
+    /// <summary>
+    /// Gets special modifiers that apply only to specific roll types
+    /// </summary>
+    /// <param name="rollType">The specific roll type</param>
+    /// <param name="mech">The mech making the piloting skill roll</param>
+    /// <param name="game">The game instance, used for accessing the map and other game state</param>
+    /// <param name="totalDamage">The total damage taken by the unit</param>
+    /// <returns>A collection of special roll modifiers for the specified roll type</returns>
+    private IEnumerable<RollModifier> GetModifiersForRoll(PilotingSkillRollType rollType, Mech mech, IGame? game = null, int totalDamage = 0)
+    {
+        // TODO: Implement special modifiers for specific roll types
+        return Enumerable.Empty<RollModifier>();
     }
 
     /// <summary>
