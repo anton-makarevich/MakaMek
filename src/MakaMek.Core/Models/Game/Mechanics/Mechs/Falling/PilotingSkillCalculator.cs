@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
@@ -83,25 +84,27 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
 
         // Lower leg actuator hit modifier
-        modifiers.Add(new LowerLegActuatorHitModifier
+        var lowerLegActuators = mech.GetAllComponents<LowerLegActuator>();
+        foreach (var actuator in lowerLegActuators)
         {
-            Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit)
-        });
+            if (actuator.IsDestroyed)
+            {
+                modifiers.Add(new LowerLegActuatorHitModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit)
+                });
+            }
+        }
 
         // Heavy damage modifier
-        modifiers.Add(new HeavyDamageModifier
+        if (totalDamage > _rules.GetHeavyDamageThreshold())
         {
-            Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage),
-            DamageTaken = totalDamage 
-        });
-
-        // Falling levels modifier
-        var levelsFallen = 0; // Calculate levels fallen if game with map is provided
-        modifiers.Add(new FallingLevelsModifier
-        {
-            Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
-            LevelsFallen = levelsFallen
-        });
+            modifiers.Add(new HeavyDamageModifier
+            {
+                Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage),
+                DamageTaken = totalDamage 
+            });
+        }
 
         return modifiers;
     }
@@ -116,8 +119,18 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// <returns>A collection of special roll modifiers for the specified roll type</returns>
     private IEnumerable<RollModifier> GetModifiersForRoll(PilotingSkillRollType rollType, Mech mech, IGame? game = null, int totalDamage = 0)
     {
-        // TODO: Implement special modifiers for specific roll types
-        return Enumerable.Empty<RollModifier>();
+        var modifiers = new List<RollModifier>();
+        if (rollType == PilotingSkillRollType.PilotDamageFromFall)
+        {
+            // Falling levels modifier
+            var levelsFallen = 0; // TODO: Calculate levels fallen if game with map is provided
+            modifiers.Add(new FallingLevelsModifier
+            {
+                Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
+                LevelsFallen = levelsFallen
+            });
+        }
+        return modifiers;
     }
 
     /// <summary>
