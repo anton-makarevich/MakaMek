@@ -357,7 +357,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             _accumulatedDamageData[target.Id] = accumulatedDamage;
         }
         accumulatedDamage.AllComponentHits.AddRange(allComponentHits);
-        accumulatedDamage.TotalDamageReceived += resolution.HitLocationsData.TotalDamage;
         accumulatedDamage.AllDestroyedParts.AddRange(resolution.DestroyedParts ?? []);
     }
     
@@ -416,7 +415,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 targetMech,
                 Game,
                 accumulatedDamage.AllComponentHits,
-                accumulatedDamage.TotalDamageReceived,
                 accumulatedDamage.AllDestroyedParts);
 
             foreach (var fallingCommand in mechFallingCommands)
@@ -439,6 +437,5 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     {
         public List<ComponentHitData> AllComponentHits { get; } = [];
         public List<PartLocation> AllDestroyedParts { get; } = [];
-        public int TotalDamageReceived { get; set; }
     }
 }

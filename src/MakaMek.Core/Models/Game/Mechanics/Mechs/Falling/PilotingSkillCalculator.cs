@@ -26,13 +26,11 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// <param name="unit">The unit making the piloting skill roll</param>
     /// <param name="rollType">The specific Piloting Skill Roll type to consider</param>
     /// <param name="game">The game instance, used for accessing the map and other game state</param>
-    /// <param name="totalDamage">The total damage taken by the unit, used specifically for the HeavyDamage modifier check.</param>
     /// <returns>A breakdown of the piloting skill roll calculation</returns>
     public PsrBreakdown GetPsrBreakdown(
         Unit unit, 
         PilotingSkillRollType rollType,
-        IGame? game = null, 
-        int totalDamage = 0)
+        IGame? game = null)
     {
         if (unit.Crew == null)
         {
@@ -49,10 +47,10 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         var modifiers = new List<RollModifier>();
         
         // Add standard modifiers
-        modifiers.AddRange(GetStandardModifiers(mech, game, totalDamage));
+        modifiers.AddRange(GetStandardModifiers(mech, game));
         
         // Add special modifiers for specific roll types
-        modifiers.AddRange(GetModifiersForRoll(rollType, mech, game, totalDamage));
+        modifiers.AddRange(GetModifiersForRoll(rollType, mech, game));
 
         return new PsrBreakdown
         {
@@ -66,9 +64,8 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// </summary>
     /// <param name="mech">The mech making the piloting skill roll</param>
     /// <param name="game">The game instance, used for accessing the map and other game state</param>
-    /// <param name="totalDamage">The total damage taken by the unit</param>
     /// <returns>A collection of standard roll modifiers</returns>
-    private IEnumerable<RollModifier> GetStandardModifiers(Mech mech, IGame? game = null, int totalDamage = 0)
+    private IEnumerable<RollModifier> GetStandardModifiers(Mech mech, IGame? game = null)
     {
         var modifiers = new List<RollModifier>();
 
@@ -97,12 +94,12 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
 
         // Heavy damage modifier
-        if (totalDamage > _rules.GetHeavyDamageThreshold())
+        if (mech.TotalPhaseDamage > _rules.GetHeavyDamageThreshold())
         {
             modifiers.Add(new HeavyDamageModifier
             {
                 Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage),
-                DamageTaken = totalDamage 
+                DamageTaken = mech.TotalPhaseDamage 
             });
         }
 
@@ -115,9 +112,8 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// <param name="rollType">The specific roll type</param>
     /// <param name="mech">The mech making the piloting skill roll</param>
     /// <param name="game">The game instance, used for accessing the map and other game state</param>
-    /// <param name="totalDamage">The total damage taken by the unit</param>
     /// <returns>A collection of special roll modifiers for the specified roll type</returns>
-    private IEnumerable<RollModifier> GetModifiersForRoll(PilotingSkillRollType rollType, Mech mech, IGame? game = null, int totalDamage = 0)
+    private IEnumerable<RollModifier> GetModifiersForRoll(PilotingSkillRollType rollType, Mech mech, IGame? game = null)
     {
         var modifiers = new List<RollModifier>();
         if (rollType == PilotingSkillRollType.PilotDamageFromFall)

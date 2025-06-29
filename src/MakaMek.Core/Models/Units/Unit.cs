@@ -209,6 +209,9 @@ public abstract class Unit
     public int DistanceCovered { get; private set; }
 
     public bool HasMoved => MovementTypeUsed.HasValue;
+
+    // Damage tracking
+    public int TotalPhaseDamage { get; private set; }
     
     /// <summary>
     /// Indicates whether this unit has declared weapon attacks for the current turn
@@ -236,6 +239,14 @@ public abstract class Unit
         HasAppliedHeat = false;
         ResetWeaponsTargets();
         ClearEvents();
+    }
+
+    /// <summary>
+    /// Resets the phase state for the unit
+    /// </summary>
+    public void ResetPhaseState()
+    {
+        TotalPhaseDamage = 0;
     }
 
     private void ResetWeaponsTargets()
@@ -351,6 +362,9 @@ public abstract class Unit
                     }
                 }
             }
+
+            // Track total damage for this phase
+            TotalPhaseDamage += totalDamage;
 
             // Apply the total damage (including any explosion damage)
             ApplyArmorAndStructureDamage(totalDamage, targetPart);
