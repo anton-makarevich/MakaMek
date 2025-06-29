@@ -1517,8 +1517,65 @@ public class ClientGameTests
         
         // Assert
         _sut.BattleMap.ShouldBe(newBattleMap);
-        _mapFactory.Received(1).CreateFromData(Arg.Is<List<HexData>>(data => 
+        _mapFactory.Received(1).CreateFromData(Arg.Is<List<HexData>>(data =>
             data.Count == mapData.Count));
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldResetTotalPhaseDamageForMultipleUnits_WhenChangePhaseCommandIsReceived()
+    {
+        // Arrange
+        var player1Id = Guid.NewGuid();
+        var player2Id = Guid.NewGuid();
+        var unit1Data = MechFactoryTests.CreateDummyMechData();
+        var unit2Data = MechFactoryTests.CreateDummyMechData();
+        unit1Data.Id = Guid.NewGuid();
+        unit2Data.Id = Guid.NewGuid();
+
+        // Add two players with units
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player1Id,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [unit1Data],
+            Tint = "#FF0000"
+        });
+
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player2Id,
+            PlayerName = "Player2",
+            GameOriginId = Guid.NewGuid(),
+            Units = [unit2Data],
+            Tint = "#00FF00"
+        });
+
+        // Get the units and apply damage to both
+        var player1 = _sut.Players.First(p => p.Id == player1Id);
+        var player2 = _sut.Players.First(p => p.Id == player2Id);
+        var unit1 = player1.Units.First();
+        var unit2 = player2.Units.First();
+
+        // Apply different amounts of damage to each unit
+        unit1.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, 9, [])]);
+        unit2.ApplyDamage([new HitLocationData(PartLocation.LeftLeg, 5, [])]);
+
+        // Verify damage was accumulated
+        unit1.TotalPhaseDamage.ShouldBe(9);
+        unit2.TotalPhaseDamage.ShouldBe(5);
+
+        // Act - Change phase
+        _sut.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.WeaponsAttack
+        });
+
+        // Assert - Both units should have TotalPhaseDamage reset to 0
+        unit1.TotalPhaseDamage.ShouldBe(0);
+        unit2.TotalPhaseDamage.ShouldBe(0);
+        _sut.TurnPhase.ShouldBe(PhaseNames.WeaponsAttack);
     }
 
     [Fact]

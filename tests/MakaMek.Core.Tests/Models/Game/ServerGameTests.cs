@@ -1,5 +1,6 @@
 using Shouldly;
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Map;
@@ -24,14 +25,13 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game;
 public class ServerGameTests
 {
     private readonly ServerGame _sut;
-    private readonly ICommandPublisher _commandPublisher;
+    private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
+    private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();
     public ServerGameTests()
     {
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5,5, new ClearTerrain()));
         
-        _commandPublisher = Substitute.For<ICommandPublisher>();
-        var diceRoller = Substitute.For<IDiceRoller>();
         var rulesProvider = Substitute.For<IRulesProvider>();
         rulesProvider.GetStructureValues(20).Returns(new Dictionary<PartLocation, int>
         {
@@ -46,7 +46,7 @@ public class ServerGameTests
         });
         _sut = new ServerGame(rulesProvider,
             new MechFactory(rulesProvider, Substitute.For<ILocalizationService>()),
-            _commandPublisher, diceRoller,
+            _commandPublisher, _diceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
@@ -325,8 +325,54 @@ public class ServerGameTests
         _sut.SetBattleMap(battleMap);
         
         // Assert
-        _commandPublisher.Received(1).PublishCommand(Arg.Is<SetBattleMapCommand>(cmd => 
-            cmd.GameOriginId == _sut.Id && 
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<SetBattleMapCommand>(cmd =>
+            cmd.GameOriginId == _sut.Id &&
             cmd.MapData.Count == battleMap.ToData().Count));
+    }
+
+    [Fact]
+    public void TransitionToNextPhase_ShouldResetTotalPhaseDamageForAllUnits_WhenPhaseChanges()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitData = MechFactoryIntegrationTests.LoadMechFromMtfFile("Resources/Mechs/LCT-1V.mtf");
+        unitData.Id = Guid.NewGuid();
+        _diceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(4)]);
+
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [unitData],
+            Tint = "#FF0000"
+        });
+
+        _sut.HandleCommand(new UpdatePlayerStatusCommand
+        {
+            PlayerId = playerId,
+            GameOriginId = Guid.NewGuid(),
+            PlayerStatus = PlayerStatus.Ready
+        });
+
+        // Get the unit and apply some damage to accumulate TotalPhaseDamage
+        var player = _sut.Players.First(p => p.Id == playerId);
+        var unit = player.Units.First();
+
+        // Apply damage to the unit
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.CenterTorso, 5, []),
+        };
+        unit.ApplyDamage(hitLocations);
+
+        // Verify damage was accumulated
+        unit.TotalPhaseDamage.ShouldBe(5);
+
+        // Act - Transition to next phase (from Deployment to Initiative)
+        _sut.TransitionToNextPhase(PhaseNames.Deployment);
+
+        // Assert - TotalPhaseDamage should be reset to 0
+        unit.TotalPhaseDamage.ShouldBe(0);
     }
 }
