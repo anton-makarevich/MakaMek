@@ -1607,7 +1607,104 @@ public class UnitTests
         // Assert
         engineHeatPenalty.ShouldBe(0);
     }
-    
+
+    [Fact]
+    public void TotalPhaseDamage_InitiallyZero()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+
+        // Act & Assert
+        sut.TotalPhaseDamage.ShouldBe(0);
+    }
+
+    [Fact]
+    public void ApplyDamage_ShouldIncrementTotalPhaseDamage()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.CenterTorso, 5, []),
+            new(PartLocation.LeftArm, 3, [])
+        };
+
+        // Act
+        sut.ApplyDamage(hitLocations);
+
+        // Assert
+        sut.TotalPhaseDamage.ShouldBe(8); // 5 + 3
+    }
+
+    [Fact]
+    public void ApplyDamage_WithMultipleCalls_ShouldAccumulateTotalPhaseDamage()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var firstHitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.CenterTorso, 4, [])
+        };
+        var secondHitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 6, [])
+        };
+
+        // Act
+        sut.ApplyDamage(firstHitLocations);
+        sut.ApplyDamage(secondHitLocations);
+
+        // Assert
+        sut.TotalPhaseDamage.ShouldBe(10); // 4 + 6
+    }
+
+    [Fact]
+    public void ApplyDamage_WithExplosionDamage_ShouldIncludeBothInTotalPhaseDamage()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var targetPart = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+
+        // Create an explodable component
+        var explodableComponent = new TestExplodableComponent("Explodable Component", 5);
+        targetPart.TryAddComponent(explodableComponent, [1]);
+
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.LeftArm, 3, [new DiceResult(3)],
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
+                    [CreateComponentHitData(1)])])
+        };
+
+        // Act
+        sut.ApplyDamage(hitLocations);
+
+        // Assert
+        sut.TotalPhaseDamage.ShouldBe(8); // 3 initial damage + 5 explosion damage
+    }
+
+    [Fact]
+    public void ResetPhase_ShouldResetTotalPhaseDamageToZero()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var hitLocations = new List<HitLocationData>
+        {
+            new(PartLocation.CenterTorso, 7, []),
+            new(PartLocation.LeftArm, 4, [])
+        };
+
+        // Apply damage to accumulate TotalPhaseDamage
+        sut.ApplyDamage(hitLocations);
+        sut.TotalPhaseDamage.ShouldBe(11); // Verify damage was accumulated
+
+        // Act
+        sut.ResetPhaseState();
+
+        // Assert
+        sut.TotalPhaseDamage.ShouldBe(0);
+    }
+
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)
     {

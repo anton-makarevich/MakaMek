@@ -64,6 +64,15 @@ public abstract class BaseGame : IGame
             _phaseSubject.OnNext(value);
             ActivePlayer = null;
             UnitsToPlayCurrentStep = 0;
+            
+            // Reset phase damage tracking for all units when phase changes
+            foreach (var player in AlivePlayers)
+            {
+                foreach (var unit in player.AliveUnits)
+                {
+                    unit.ResetPhaseState();
+                }
+            }
         }
     }
 

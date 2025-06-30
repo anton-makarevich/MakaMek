@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
@@ -206,10 +207,12 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage).Returns(1);
             _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
+            // apply damage
             const int specificDamage = 33;
+            mech.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, specificDamage, []),]);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage, null, specificDamage);
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage);
 
             // Assert
             var heavyDamageModifier = result.Modifiers.OfType<HeavyDamageModifier>().FirstOrDefault();
@@ -226,9 +229,10 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
             _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
             const int lowDamage = 15;
+            mech.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, lowDamage, []),]);
 
             // Act
-            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage, null, lowDamage);
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage);
 
             // Assert
             result.Modifiers.ShouldNotContain(m => m is HeavyDamageModifier);

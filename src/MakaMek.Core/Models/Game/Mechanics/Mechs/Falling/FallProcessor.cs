@@ -39,7 +39,6 @@ public class FallProcessor : IFallProcessor
         Mech mech,
         IGame game,
         List<ComponentHitData> componentHits,
-        int totalDamage,
         List<PartLocation>? destroyedPartLocations = null)
     {
         var fallReasons = new List<FallReasonType>();
@@ -72,7 +71,7 @@ public class FallProcessor : IFallProcessor
 
         // Check for heavy damage
         var heavyDamageThreshold = _rulesProvider.GetHeavyDamageThreshold();
-        if (totalDamage >= heavyDamageThreshold)
+        if (mech.TotalPhaseDamage >= heavyDamageThreshold)
         {
             fallReasons.Add(FallReasonType.HeavyDamage);
         }
@@ -83,20 +82,19 @@ public class FallProcessor : IFallProcessor
             fallReasons.Add(FallReasonType.LegDestroyed);
         }
 
-        return GetFallContextForReasons(fallReasons, mech, game, totalDamage)
+        return GetFallContextForReasons(fallReasons, mech, game)
             .Select(f => f.ToMechFallCommand());
     }
 
     public FallContextData ProcessStandupAttempt(Mech mech, IGame game)
     {
-        return GetFallContextForReasons([FallReasonType.StandUpAttempt], mech, game, 0).First();
+        return GetFallContextForReasons([FallReasonType.StandUpAttempt], mech, game).First();
     }
     
     private IEnumerable<FallContextData> GetFallContextForReasons(
         List<FallReasonType> fallReasons,
         Mech mech, 
-        IGame game,
-        int totalDamage)
+        IGame game)
     {
         if (fallReasons.Count == 0)
             return [];
@@ -113,7 +111,7 @@ public class FallProcessor : IFallProcessor
             if (requiresPsr && reasonType.ToPilotingSkillRollType() is { } psrRollType)
             {
                 var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, psrRollType,
-                    game, totalDamage);
+                    game);
                 var diceResults = _diceRoller.Roll2D6();
                 var rollTotal = diceResults.Sum(d => d.Result);
                 isFallingNow = rollTotal < psrBreakdown.ModifiedPilotingSkill;
@@ -134,8 +132,7 @@ public class FallProcessor : IFallProcessor
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(
                     mech,
                     PilotingSkillRollType.PilotDamageFromFall,
-                    game,
-                    totalDamage);
+                    game);
 
                 if (pilotPsrBreakdown.Modifiers.Any())
                 {

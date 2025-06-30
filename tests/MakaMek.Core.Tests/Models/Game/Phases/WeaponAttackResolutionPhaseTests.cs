@@ -715,7 +715,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Mech>(),
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
-                Arg.Any<int>(),
                 Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
         
@@ -728,7 +727,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Is<Mech>(u => u == _player1Unit1), // Target unit
             Arg.Is<IGame>(m => m == Game),
             Arg.Any<List<ComponentHitData>>(),
-            Arg.Any<int>(),
             Arg.Any<List<PartLocation>>());
         
         // Verify that the MechFallingCommand was published
@@ -768,7 +766,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Mech>(),
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
-                Arg.Any<int>(),
                 Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
         
@@ -802,7 +799,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Mech>(),
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
-                Arg.Any<int>(),
                 Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand>());
         
