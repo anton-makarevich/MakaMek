@@ -296,5 +296,108 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(notMech, PilotingSkillRollType.GyroHit))
                 .Message.ShouldContain("crew");
         }
+
+        [Fact]
+        public void GetPsrBreakdown_DestroyedHipActuator_AddsModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var leg = new Leg("Right Leg", PartLocation.RightLeg, 10, 5);
+            var hipActuator = leg.GetComponents<HipActuator>().First();
+            hipActuator.Hit(); // Destroy the hip actuator (assuming 1 health point)
+
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso, leg]);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.HipActuatorHit).Returns(2);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+
+            // Assert
+            result.Modifiers.ShouldContain(m => m is HipActuatorHitModifier && m.Value == 2);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_DestroyedFootActuator_AddsModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var leg = new Leg("Right Leg", PartLocation.RightLeg, 10, 5);
+            var footActuator = leg.GetComponents<FootActuator>().First();
+            footActuator.Hit(); // Destroy the foot actuator (assuming 1 health point)
+
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso, leg]);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.FootActuatorHit).Returns(1);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+
+            // Assert
+            result.Modifiers.ShouldContain(m => m is FootActuatorHitModifier && m.Value == 1);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_TwoDestroyedLegs_ForPilotDamageFromFall_AddsTwoSeparateModifiers()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var leftLeg = new Leg("Left Leg", PartLocation.LeftLeg, 10, 5);
+            var rightLeg = new Leg("Right Leg", PartLocation.RightLeg, 10, 5);
+            leftLeg.ApplyDamage(100); // Destroy the left leg
+            rightLeg.ApplyDamage(100); // Destroy the right leg
+
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso, leftLeg, rightLeg]);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed).Returns(5);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.PilotDamageFromFall);
+
+            // Assert
+            var legModifiers = result.Modifiers.OfType<LegDestroyedModifier>().ToList();
+            legModifiers.Count.ShouldBe(2); // Two separate modifiers, one for each destroyed leg
+            legModifiers.All(m => m.Value == 5).ShouldBeTrue(); // Each modifier should have base value of 5
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_GyroDestroyed_ForPilotDamageFromFall_AddsDestroyedGyroModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var gyro = torso.GetComponents<Gyro>().First();
+            gyro.Hit(); // First hit
+            gyro.Hit(); // Second hit - destroys gyro (2 health points)
+
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroDestroyed).Returns(6);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.PilotDamageFromFall);
+
+            // Assert
+            var gyroModifiers = result.Modifiers.OfType<DamagedGyroModifier>().ToList();
+            gyroModifiers.Count.ShouldBe(1);
+            gyroModifiers.First().Value.ShouldBe(6); // Destroyed gyro modifier
+            gyroModifiers.First().HitsCount.ShouldBe(2);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_GyroHit_AddsHitModifierNotDestroyedModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var gyro = torso.GetComponents<Gyro>().First();
+            gyro.Hit(); // Only one hit - damaged but not destroyed
+
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+
+            // Assert
+            var gyroModifiers = result.Modifiers.OfType<DamagedGyroModifier>().ToList();
+            gyroModifiers.Count.ShouldBe(1);
+            gyroModifiers.First().Value.ShouldBe(3); // Hit modifier, not destroyed modifier
+            gyroModifiers.First().HitsCount.ShouldBe(1);
+        }
     }
 }

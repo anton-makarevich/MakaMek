@@ -158,7 +158,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             {
                 modifiers.Add(new LegDestroyedModifier
                 {
-                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed) * destroyedLegs,
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed),
                 });
             }
             
