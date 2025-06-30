@@ -407,8 +407,12 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         return psrType switch
         {
             PilotingSkillRollType.GyroHit => 3,
+            PilotingSkillRollType.GyroDestroyed => 6,
             PilotingSkillRollType.LowerLegActuatorHit => 1,
             PilotingSkillRollType.HeavyDamage => 1, // +1 modifier for taking 20+ damage in a single phase
+            PilotingSkillRollType.HipActuatorHit => 2,
+            PilotingSkillRollType.FootActuatorHit => 1,
+            PilotingSkillRollType.LegDestroyed => 5, // +5 modifier for leg destroyed (pilot damage during fall)
             _ => throw new ArgumentOutOfRangeException(nameof(psrType), "Invalid piloting skill roll type")
         };
     }

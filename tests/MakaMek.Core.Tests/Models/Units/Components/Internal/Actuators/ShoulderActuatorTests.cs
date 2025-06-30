@@ -4,20 +4,20 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Internal.Actuators;
 
-public class HipTests
+public class ShoulderActuatorTests
 {
     [Fact]
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var sut = new Hip();
+        var sut = new ShoulderActuator();
 
         // Assert
-        sut.Name.ShouldBe("Hip");
+        sut.Name.ShouldBe("Shoulder");
         sut.MountedAtSlots.ToList().Count.ShouldBe(1);
         sut.MountedAtSlots.ShouldBe([0]);
         sut.IsDestroyed.ShouldBeFalse();
-        sut.ComponentType.ShouldBe(MakaMekComponent.Hip);
+        sut.ComponentType.ShouldBe(MakaMekComponent.Shoulder);
         sut.IsRemovable.ShouldBeFalse();
     }
 }

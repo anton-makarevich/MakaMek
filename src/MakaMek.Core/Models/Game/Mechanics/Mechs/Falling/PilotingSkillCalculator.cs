@@ -71,7 +71,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
 
         // Check for damaged gyro
         var gyroHits = GetGyroHits(mech);
-        if (gyroHits > 0)
+        if (gyroHits == 1)
         {
             modifiers.Add(new DamagedGyroModifier
             {
@@ -93,13 +93,39 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             }
         }
 
+        // Hip actuator hit modifier
+        var hipActuators = mech.GetAllComponents<HipActuator>();
+        foreach (var actuator in hipActuators)
+        {
+            if (actuator.IsDestroyed)
+            {
+                modifiers.Add(new HipActuatorHitModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HipActuatorHit)
+                });
+            }
+        }
+
+        // Foot actuator hit modifier
+        var footActuators = mech.GetAllComponents<FootActuator>();
+        foreach (var actuator in footActuators)
+        {
+            if (actuator.IsDestroyed)
+            {
+                modifiers.Add(new FootActuatorHitModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.FootActuatorHit)
+                });
+            }
+        }
+
         // Heavy damage modifier
         if (mech.TotalPhaseDamage > _rules.GetHeavyDamageThreshold())
         {
             modifiers.Add(new HeavyDamageModifier
             {
                 Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage),
-                DamageTaken = mech.TotalPhaseDamage 
+                DamageTaken = mech.TotalPhaseDamage
             });
         }
 
@@ -125,6 +151,27 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                 Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
                 LevelsFallen = levelsFallen
             });
+
+            // Leg destroyed modifier (for pilot damage during fall)
+            var destroyedLegs = mech.Parts.OfType<Leg>().Count(leg => leg.IsDestroyed || leg.IsBlownOff);
+            for (var i = 0; i < destroyedLegs; i++)
+            {
+                modifiers.Add(new LegDestroyedModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed) * destroyedLegs,
+                });
+            }
+            
+            // Check for destroyed gyro
+            var gyroHits = GetGyroHits(mech);
+            if (gyroHits > 1)
+            {
+                modifiers.Add(new DamagedGyroModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroDestroyed),
+                    HitsCount = gyroHits
+                });
+            }
         }
         return modifiers;
     }

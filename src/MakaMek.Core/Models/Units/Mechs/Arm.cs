@@ -8,7 +8,7 @@ public class Arm : UnitPart
         : base(name, location, maxArmor, maxStructure, 12)
     {
         // Add default components
-        TryAddComponent(new Shoulder());
+        TryAddComponent(new ShoulderActuator());
     }
 
     internal override bool CanBeBlownOff => true;
