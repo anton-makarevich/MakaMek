@@ -252,7 +252,7 @@ public class FallProcessorTests
         command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(6);
         command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7);
         command.DamageData.ShouldBe(fallingDamageData);
-        command.IsPilotTakingDamage.ShouldBeTrue(); // Pilot damage PSR is made because a fall occurred
+        command.IsPilotTakingDamage.ShouldBeFalse(); // Pilot damage PSR is made because a fall occurred
         command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
@@ -406,7 +406,7 @@ public class FallProcessorTests
         command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); 
 
         command.DamageData.ShouldBe(fallingDamageData);
-        command.IsPilotTakingDamage.ShouldBeTrue();
+        command.IsPilotTakingDamage.ShouldBeFalse();
         command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
@@ -613,8 +613,8 @@ public class FallProcessorTests
         result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(4);
         result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (LLA mod)
 
-        result.IsPilotingSkillRollRequired.ShouldBe(true);
-        result.IsPilotTakingDamage.ShouldBe(true); 
+        result.IsPilotingSkillRollRequired.ShouldBeTrue();
+        result.IsPilotTakingDamage.ShouldBeFalse(); 
         
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
@@ -948,9 +948,11 @@ public class FallProcessorTests
         // Setup StandupAttempt PSR to fail
         // BasePilotingSkill = 4. With modifierValue = 2, TargetNumber = 6.
         SetupPsrFor(PilotingSkillRollType.StandupAttempt, 2, "Standing up from prone");
-        
-        // Dice roll: 5 for StandupAttempt PSR (5 < 6 fails).
-        SetupDiceRolls(5);
+        // Setup PilotDamageFromFall PSR.
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        // Dice roll: 5 for StandupAttempt PSR (5 < 6 fails), 6 for pilot damage (6 > 4).
+        SetupDiceRolls(5,6);
 
         // Act
         var result = _sut.ProcessStandupAttempt(_testMech, _game);
@@ -968,8 +970,11 @@ public class FallProcessorTests
         result.PilotingSkillRoll.DiceResults.Sum().ShouldBe(5);
         result.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (standup mod)
         
-        // Unlike other fall types, standup attempts don't cause pilot damage PSRs even when failed
-        result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR should be made for failed standup");
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue(); // Based on dice roll 6 vs target 4
+        result.PilotDamagePilotingSkillRoll?.DiceResults.Sum().ShouldBe(6);
+        result.PilotDamagePilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(4);
         result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for failed standup");
         
         // Verify GetPsrBreakdown was called for StandupAttempt
