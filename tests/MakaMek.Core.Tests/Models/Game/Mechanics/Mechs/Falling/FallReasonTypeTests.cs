@@ -35,6 +35,8 @@ public class FallReasonTypeTests
     [Theory]
     [InlineData(FallReasonType.GyroHit, true)]
     [InlineData(FallReasonType.LowerLegActuatorHit, true)]
+    [InlineData(FallReasonType.HipActuatorHit, true)]
+    [InlineData(FallReasonType.FootActuatorHit, true)]
     [InlineData(FallReasonType.HeavyDamage, true)]
     [InlineData(FallReasonType.GyroDestroyed, false)]
     [InlineData(FallReasonType.LegDestroyed, false)]
