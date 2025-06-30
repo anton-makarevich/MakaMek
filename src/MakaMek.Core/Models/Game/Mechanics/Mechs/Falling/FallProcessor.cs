@@ -20,7 +20,9 @@ public class FallProcessor : IFallProcessor
     private static readonly Dictionary<MakaMekComponent, FallReasonType> ComponentFallReasonMap = new()
     {
         { MakaMekComponent.Gyro, FallReasonType.GyroHit },
-        { MakaMekComponent.LowerLegActuator, FallReasonType.LowerLegActuatorHit }
+        { MakaMekComponent.LowerLegActuator, FallReasonType.LowerLegActuatorHit },
+        { MakaMekComponent.Hip, FallReasonType.HipActuatorHit },
+        { MakaMekComponent.FootActuator, FallReasonType.FootActuatorHit }
     };
 
     public FallProcessor(
@@ -127,7 +129,7 @@ public class FallProcessor : IFallProcessor
 
             PilotingSkillRollData? pilotDamagePsr = null;
 
-            if (isFallingNow && reasonType != FallReasonType.StandUpAttempt)
+            if (isFallingNow)
             {
                 var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(
                     mech,

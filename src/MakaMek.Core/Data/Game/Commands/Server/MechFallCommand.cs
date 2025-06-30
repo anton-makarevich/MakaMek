@@ -33,12 +33,12 @@ public record struct MechFallCommand : IGameCommand
     /// <summary>
     /// Whether a piloting skill roll is required for this fall
     /// </summary>
-    public bool IsPilotingSkillRollRequired => FallPilotingSkillRoll != null;
+    public bool IsPilotingSkillRollRequired => FallPilotingSkillRoll is not null;
     
     /// <summary>
     /// Whether the pilot is taking damage from the fall
     /// </summary>
-    public bool IsPilotTakingDamage => PilotDamagePilotingSkillRoll != null;
+    public bool IsPilotTakingDamage => PilotDamagePilotingSkillRoll is { IsSuccessful: false };
 
     /// <summary>
     /// The piloting skill roll data for the fall check
