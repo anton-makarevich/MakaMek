@@ -334,6 +334,24 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             // Assert
             result.Modifiers.ShouldContain(m => m is FootActuatorHitModifier && m.Value == 1);
         }
+        
+        [Fact]
+        public void GetPsrBreakdown_BlownOffLeg_ForPilotDamageFromFall_AddsModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var leftLeg = new Leg("Left Leg", PartLocation.LeftLeg, 10, 5);
+            leftLeg.BlowOff(); // Blow off the left leg
+
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso, leftLeg]);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed).Returns(5);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.PilotDamageFromFall);
+
+            // Assert
+            result.Modifiers.ShouldContain(m => m is LegDestroyedModifier && m.Value == 5);
+        }
 
         [Fact]
         public void GetPsrBreakdown_TwoDestroyedLegs_ForPilotDamageFromFall_AddsTwoSeparateModifiers()
