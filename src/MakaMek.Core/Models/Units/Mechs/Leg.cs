@@ -8,7 +8,7 @@ public class Leg : UnitPart
         : base(name, location, maxArmor, maxStructure, 6)
     {
         // Add default components
-        TryAddComponent(new Hip());
+        TryAddComponent(new HipActuator());
         TryAddComponent(new UpperLegActuator());
         TryAddComponent(new LowerLegActuator());
         TryAddComponent(new FootActuator());

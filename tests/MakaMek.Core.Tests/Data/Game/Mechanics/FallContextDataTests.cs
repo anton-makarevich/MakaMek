@@ -71,7 +71,7 @@ public class FallContextDataTests
         result.FallPilotingSkillRoll.ShouldBe(pilotingSkillRoll);
         result.PilotDamagePilotingSkillRoll.ShouldBe(pilotDamageRoll);
         result.IsPilotingSkillRollRequired.ShouldBeTrue();
-        result.IsPilotTakingDamage.ShouldBeTrue();
+        result.IsPilotTakingDamage.ShouldBeFalse();
     }
     
     [Fact]

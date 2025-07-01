@@ -7,10 +7,10 @@ namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 public enum PilotingSkillRollType
 {
     /// <summary>
-    /// PSR modifier due to a damaged or destroyed gyro.
+    /// PSR modifiers due to a damaged or destroyed gyro.
     /// </summary>
     GyroHit,
-    
+    GyroDestroyed,
     /// <summary>
     /// PSR for determining if a MechWarrior takes damage when a mech falls.
     /// </summary>
@@ -25,10 +25,23 @@ public enum PilotingSkillRollType
     /// PSR required when a 'Mech takes 20 or more damage points in a single phase.
     /// </summary>
     HeavyDamage,
+
+    /// <summary>
+    /// PSR modifier due to a critical hit on a hip actuator.
+    /// </summary>
+    HipActuatorHit,
+
+    /// <summary>
+    /// PSR modifier due to a critical hit on a foot actuator.
+    /// </summary>
+    FootActuatorHit,
+
+    /// <summary>
+    /// PSR modifier due to a leg being destroyed (for pilot damage during fall).
+    /// </summary>
+    LegDestroyed,
+
     // Add other PSR types here in the future, e.g.:
-    // ActuatorDamage,
-    // PilotDamage,
-    // LegDamage,
     // Shutdown,
     // EnteringDeepWater,
     // Skid

@@ -101,7 +101,7 @@ public class MechFactory : IMechFactory
             MakaMekComponent.MachineGun => new MachineGun(),
             MakaMekComponent.AC5 => new Ac5(),
             MakaMekComponent.HeatSink => new HeatSink(),
-            MakaMekComponent.Shoulder => new Shoulder(),
+            MakaMekComponent.Shoulder => new ShoulderActuator(),
             MakaMekComponent.UpperArmActuator => new UpperArmActuator(),
             MakaMekComponent.LowerArmActuator => new LowerArmActuator(),
             MakaMekComponent.HandActuator => new HandActuator(),

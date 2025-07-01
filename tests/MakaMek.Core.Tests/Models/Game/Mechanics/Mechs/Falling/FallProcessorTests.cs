@@ -252,7 +252,7 @@ public class FallProcessorTests
         command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(6);
         command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7);
         command.DamageData.ShouldBe(fallingDamageData);
-        command.IsPilotTakingDamage.ShouldBeTrue(); // Pilot damage PSR is made because a fall occurred
+        command.IsPilotTakingDamage.ShouldBeFalse(); // Pilot damage PSR is made because a fall occurred
         command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
@@ -406,7 +406,7 @@ public class FallProcessorTests
         command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); 
 
         command.DamageData.ShouldBe(fallingDamageData);
-        command.IsPilotTakingDamage.ShouldBeTrue();
+        command.IsPilotTakingDamage.ShouldBeFalse();
         command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
@@ -613,8 +613,8 @@ public class FallProcessorTests
         result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(4);
         result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (LLA mod)
 
-        result.IsPilotingSkillRollRequired.ShouldBe(true);
-        result.IsPilotTakingDamage.ShouldBe(true); 
+        result.IsPilotingSkillRollRequired.ShouldBeTrue();
+        result.IsPilotTakingDamage.ShouldBeFalse(); 
         
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
@@ -674,6 +674,176 @@ public class FallProcessorTests
             Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.LowerLegActuatorHit),
             _game);
             
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnCommandWithFailedHipActuatorPsr_WhenHipActuatorPsrFails()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.Hip, 1); // Hip actuator hit
+
+        // Setup Hip Actuator Hit PSR to fail.
+        // BasePilotingSkill = 4. Hip Actuator Hit Mod +2. TargetNumber = 6.
+        SetupPsrFor(PilotingSkillRollType.HipActuatorHit, 2, "Hip Actuator Hit");
+
+        // Setup PilotDamageFromFall PSR.
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        // Dice rolls: Hip Actuator PSR (fails), PilotDamage PSR (succeeds)
+        SetupDiceRolls(5, 6);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessPotentialFall(_testMech, _game, componentHits).Single();
+
+        // Assert
+        result.GameOriginId.ShouldBe(_gameId);
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.DamageData.ShouldBe(fallingDamageData);
+
+        result.FallPilotingSkillRoll.ShouldNotBeNull();
+        result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.HipActuatorHit);
+        result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
+        result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(5);
+        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (hip actuator mod)
+
+        result.IsPilotingSkillRollRequired.ShouldBe(true);
+        result.IsPilotTakingDamage.ShouldBe(false); // Pilot damage PSR succeeded
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue();
+
+        // Verify GetPsrBreakdown was called for HipActuatorHit
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.HipActuatorHit),
+            _game);
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnCommandWithSuccessfulHipActuatorPsr_WhenHipActuatorPsrSucceeds()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.Hip, 1); // Hip actuator hit
+
+        // Setup Hip Actuator Hit PSR to succeed.
+        // BasePilotingSkill = 4. Hip Actuator Hit Mod +2. TargetNumber = 6.
+        SetupPsrFor(PilotingSkillRollType.HipActuatorHit, 2, "Hip Actuator Hit");
+
+        // Dice roll: 8 for Hip Actuator Hit PSR (8 >= 6 succeeds).
+        SetupDiceRolls(8);
+
+        // Act
+        var command = _sut.ProcessPotentialFall(_testMech, _game, componentHits)
+            .First();
+
+        // Assert
+        command.GameOriginId.ShouldBe(_gameId);
+        command.UnitId.ShouldBe(_testMech.Id);
+        command.IsPilotingSkillRollRequired.ShouldBeTrue();
+        command.FallPilotingSkillRoll.ShouldNotBeNull();
+        command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
+        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.HipActuatorHit);
+        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(8);
+        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (hip actuator mod)
+        command.DamageData.ShouldBeNull();
+        command.PilotDamagePilotingSkillRoll.ShouldBeNull();
+        command.IsPilotTakingDamage.ShouldBe(false);
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.HipActuatorHit),
+            _game);
+
+        _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnCommandWithFailedFootActuatorPsr_WhenFootActuatorPsrFails()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.FootActuator, 1); // Foot actuator hit
+
+        // Setup Foot Actuator Hit PSR to fail.
+        // BasePilotingSkill = 4. Foot Actuator Hit Mod +1. TargetNumber = 5.
+        SetupPsrFor(PilotingSkillRollType.FootActuatorHit, 1, "Foot Actuator Hit");
+
+        // Setup PilotDamageFromFall PSR.
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        // Dice rolls: Foot Actuator PSR (fails), PilotDamage PSR (succeeds)
+        SetupDiceRolls(4, 5);
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessPotentialFall(_testMech, _game, componentHits).Single();
+
+        // Assert
+        result.GameOriginId.ShouldBe(_gameId);
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.DamageData.ShouldBe(fallingDamageData);
+
+        result.FallPilotingSkillRoll.ShouldNotBeNull();
+        result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.FootActuatorHit);
+        result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
+        result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(4);
+        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (foot actuator mod)
+
+        result.IsPilotingSkillRollRequired.ShouldBe(true);
+        result.IsPilotTakingDamage.ShouldBe(false); // Pilot damage PSR succeeded
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue();
+
+        // Verify GetPsrBreakdown was called for FootActuatorHit
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.FootActuatorHit),
+            _game);
+    }
+
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnCommandWithSuccessfulFootActuatorPsr_WhenFootActuatorPsrSucceeds()
+    {
+        // Arrange
+        var componentHits = SetupCriticalHits(MakaMekComponent.FootActuator, 1); // Foot actuator hit
+
+        // Setup Foot Actuator Hit PSR to succeed.
+        // BasePilotingSkill = 4. Foot Actuator Hit Mod +1. TargetNumber = 5.
+        SetupPsrFor(PilotingSkillRollType.FootActuatorHit, 1, "Foot Actuator Hit");
+
+        // Dice roll: 7 for Foot Actuator Hit PSR (7 >= 5 succeeds).
+        SetupDiceRolls(7);
+
+        // Act
+        var command = _sut.ProcessPotentialFall(_testMech, _game, componentHits)
+            .First();
+
+        // Assert
+        command.GameOriginId.ShouldBe(_gameId);
+        command.UnitId.ShouldBe(_testMech.Id);
+        command.IsPilotingSkillRollRequired.ShouldBeTrue();
+        command.FallPilotingSkillRoll.ShouldNotBeNull();
+        command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
+        command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.FootActuatorHit);
+        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
+        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (foot actuator mod)
+        command.DamageData.ShouldBeNull();
+        command.PilotDamagePilotingSkillRoll.ShouldBeNull();
+        command.IsPilotTakingDamage.ShouldBe(false);
+
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.FootActuatorHit),
+            _game);
+
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
     }
 
@@ -778,9 +948,11 @@ public class FallProcessorTests
         // Setup StandupAttempt PSR to fail
         // BasePilotingSkill = 4. With modifierValue = 2, TargetNumber = 6.
         SetupPsrFor(PilotingSkillRollType.StandupAttempt, 2, "Standing up from prone");
-        
-        // Dice roll: 5 for StandupAttempt PSR (5 < 6 fails).
-        SetupDiceRolls(5);
+        // Setup PilotDamageFromFall PSR.
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
+
+        // Dice roll: 5 for StandupAttempt PSR (5 < 6 fails), 6 for pilot damage (6 > 4).
+        SetupDiceRolls(5,6);
 
         // Act
         var result = _sut.ProcessStandupAttempt(_testMech, _game);
@@ -798,8 +970,11 @@ public class FallProcessorTests
         result.PilotingSkillRoll.DiceResults.Sum().ShouldBe(5);
         result.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (standup mod)
         
-        // Unlike other fall types, standup attempts don't cause pilot damage PSRs even when failed
-        result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR should be made for failed standup");
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue(); // Based on dice roll 6 vs target 4
+        result.PilotDamagePilotingSkillRoll?.DiceResults.Sum().ShouldBe(6);
+        result.PilotDamagePilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(4);
         result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for failed standup");
         
         // Verify GetPsrBreakdown was called for StandupAttempt

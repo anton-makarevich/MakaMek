@@ -16,7 +16,17 @@ public enum FallReasonType
     /// Fall due to lower leg actuator hit (requires PSR)
     /// </summary>
     LowerLegActuatorHit,
-    
+
+    /// <summary>
+    /// Fall due to hip actuator hit (requires PSR)
+    /// </summary>
+    HipActuatorHit,
+
+    /// <summary>
+    /// Fall due to foot actuator hit (requires PSR)
+    /// </summary>
+    FootActuatorHit,
+
     /// <summary>
     /// Fall due to heavy damage (requires PSR)
     /// </summary>
@@ -54,6 +64,8 @@ public static class FallReasonTypeExtensions
         {
             FallReasonType.GyroHit => PilotingSkillRollType.GyroHit,
             FallReasonType.LowerLegActuatorHit => PilotingSkillRollType.LowerLegActuatorHit,
+            FallReasonType.HipActuatorHit => PilotingSkillRollType.HipActuatorHit,
+            FallReasonType.FootActuatorHit => PilotingSkillRollType.FootActuatorHit,
             FallReasonType.HeavyDamage => PilotingSkillRollType.HeavyDamage,
             FallReasonType.StandUpAttempt => PilotingSkillRollType.StandupAttempt,
             _ => null // PSR is not required for that reason

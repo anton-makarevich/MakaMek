@@ -87,6 +87,9 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_HeavyDamage" => "Heavy Damage ({0} points): +{1}",
             "Modifier_FallingLevels" => "Falling ({0} {1}): +{2}",
             "Modifier_LowerLegActuatorHit" => "Lower Leg Actuator Hit: +{0}",
+            "Modifier_HipActuatorHit" => "Hip Actuator Hit: +{0}",
+            "Modifier_FootActuatorHit" => "Foot Actuator Hit: +{0}",
+            "Modifier_LegDestroyed" => "Leg Destroyed: +{0}",
             "Hits" => "Hits",
             "Levels" => "Levels",
             // Attack information

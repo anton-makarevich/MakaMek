@@ -81,6 +81,9 @@ public class FakeLocalizationServiceTests
     [InlineData("Modifier_HeavyDamage", "Heavy Damage ({0} points): +{1}")]
     [InlineData("Modifier_FallingLevels", "Falling ({0} {1}): +{2}")]
     [InlineData("Modifier_LowerLegActuatorHit", "Lower Leg Actuator Hit: +{0}")]
+    [InlineData("Modifier_HipActuatorHit", "Hip Actuator Hit: +{0}")]
+    [InlineData("Modifier_FootActuatorHit", "Foot Actuator Hit: +{0}")]
+    [InlineData("Modifier_LegDestroyed", "Leg Destroyed: +{0}")]
     [InlineData("Hits", "Hits")]
     [InlineData("Levels", "Levels")]
     // Attack information
