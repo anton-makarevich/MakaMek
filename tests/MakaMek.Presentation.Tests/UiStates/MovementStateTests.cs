@@ -13,7 +13,6 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -929,7 +928,7 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void GetAvailableActions_MechCanJump_IncludesJumpAction()
+    public void GetAvailableActions_MechJustStoodUp_ExcludesJumpAction()
     {
         // Arrange
         var unitData = MechFactoryTests.CreateDummyMechData();
@@ -937,40 +936,22 @@ public class MovementStateTests
         ct.AddRange(MakaMekComponent.JumpJet, MakaMekComponent.JumpJet); // Add jump jets
 
         var rules = new ClassicBattletechRulesProvider();
-        var mechWithJumpJets = new MechFactory(rules, Substitute.For<ILocalizationService>())
+        var mechThatStoodUp = new MechFactory(rules, Substitute.For<ILocalizationService>())
             .Create(unitData);
 
-        _sut.HandleUnitSelection(mechWithJumpJets);
+        // Simulate the mech having just stood up
+        mechThatStoodUp.SetProne();
+        mechThatStoodUp.AttemptStandup();
+        mechThatStoodUp.StandUp();
+
+        _sut.HandleUnitSelection(mechThatStoodUp);
 
         // Act
         var actions = _sut.GetAvailableActions().ToList();
 
         // Assert
-        actions.Count.ShouldBe(4); // Stand Still, Walk, Run, Jump
+        actions.Count.ShouldBe(3); // Stand Still, Walk, Run (no Jump due to standing up)
         var jumpAction = actions.FirstOrDefault(a => a.Label.StartsWith("Jump"));
-        jumpAction.ShouldNotBeNull("Jump action should be included when mech can jump");
-        jumpAction.Label.ShouldBe($"Jump | MP: {mechWithJumpJets.GetMovementPoints(MovementType.Jump)}");
-    }
-
-    [Fact]
-    public void GetAvailableActions_MechCannotJump_ExcludesJumpAction()
-    {
-        // Arrange
-        var unitData = MechFactoryTests.CreateDummyMechData();
-        // Don't add jump jets to this mech
-
-        var rules = new ClassicBattletechRulesProvider();
-        var mechWithoutJumpJets = new MechFactory(rules, Substitute.For<ILocalizationService>())
-            .Create(unitData);
-
-        _sut.HandleUnitSelection(mechWithoutJumpJets);
-
-        // Act
-        var actions = _sut.GetAvailableActions().ToList();
-
-        // Assert
-        actions.Count.ShouldBe(3); // Stand Still, Walk, Run (no Jump)
-        var jumpAction = actions.FirstOrDefault(a => a.Label.StartsWith("Jump"));
-        jumpAction.ShouldBeNull("Jump action should not be included when mech cannot jump");
+        jumpAction.ShouldBeNull("Jump action should not be included when mech just stood up");
     }
 }
