@@ -835,7 +835,7 @@ public class MechTests
 
         var sut = new Mech("Test", "TST-1A", 50, 5, parts);
         sut.AttemptStandup(); // This increments StandupAttempts
-        sut.CanJump.ShouldBeFalse("Mech should still be prone after reset, so cannot jump");
+        sut.CanJump.ShouldBeFalse("Mech that attempted standup this phase should not be able to jump");
 
         // Reset turn state (this should reset StandupAttempts to 0)
         sut.ResetTurnState();
