@@ -247,6 +247,10 @@ public abstract class BaseGame : IGame
         if (fallCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
         mech?.ApplyDamage(hits);
         mech?.SetProne();
+        if (fallCommand.IsPilotTakingDamage)
+        {
+            mech?.Crew?.Hit();
+        }
     }
 
     internal void OnMechStandUp(MechStandUpCommand standUpCommand)

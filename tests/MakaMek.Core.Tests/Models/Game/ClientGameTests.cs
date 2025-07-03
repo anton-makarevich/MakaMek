@@ -1659,7 +1659,94 @@ public class ClientGameTests
         var currentArmor = unit.Parts.First(p => p.Location == PartLocation.CenterTorso).CurrentArmor;
         currentArmor.ShouldBe(initialArmor - 5);
     }
-    
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void HandleCommand_ShouldApplyPilotDamage_WhenMechFallsAndPilot(bool takesDamage)
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitId = Guid.NewGuid();
+        var player = new Player(playerId, "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = unitId;
+        
+        // Add player and unit to the game
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = "#FF0000"
+        });
+        
+        // Set up the map
+        _sut.HandleCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = []
+        });
+        
+        // Deploy the unit
+        _sut.HandleCommand(new DeployUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            UnitId = unitId,
+            Position = new HexCoordinateData(1, 1),
+            Direction = 0
+        });
+        
+        // Create hit locations data for the falling damage
+        var hitLocations = new List<HitLocationData>
+        {
+            new(
+                PartLocation.CenterTorso, 
+                5,
+                [new DiceResult(4)])
+        };
+        
+        var hitLocationsData = new HitLocationsData(hitLocations, 5);
+        
+        // Create the falling damage data
+        var fallingDamageData = new FallingDamageData(
+            HexDirection.Top,
+            hitLocationsData,
+            new DiceResult(4));
+        
+        // Create the mech falling command
+        var mechFallingCommand = new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitId,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = fallingDamageData,
+            PilotDamagePilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.GyroHit,
+                DiceResults = [3,3],
+                IsSuccessful = !takesDamage,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 4,
+                    Modifiers = []
+                }
+            }
+        };
+        var unit = _sut.Players.First().Units.First(u => u.Id == unitId);
+        var initialInjuries = unit.Crew!.Injuries;
+        var expectedInjuries = takesDamage ? initialInjuries + 1 : initialInjuries;
+        
+        // Act
+        _sut.HandleCommand(mechFallingCommand);
+        
+        // Assert
+        unit.Crew.Injuries.ShouldBe(expectedInjuries);
+    }
+
     [Fact]
     public void HandleCommand_ShouldNotProcessMechFallingCommand_WhenUnitDoesNotExist()
     {
