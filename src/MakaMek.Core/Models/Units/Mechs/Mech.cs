@@ -161,7 +161,7 @@ public class Mech : Unit
             if (StandupAttempts > 0) return false;
 
             // Cannot jump if no functional jump jets are available
-            if (!GetAvailableComponents<JumpJets>().Any()) return false;
+            if (GetMovementPoints(MovementType.Jump) < 1) return false;
 
             return true;
         }
