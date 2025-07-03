@@ -400,16 +400,15 @@ public class MovementState : IUiState
             };
 
             // Jump
+            if (!_selectedUnit.CanJump) return actions;
             var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump);
-            if (jumpPoints > 0)
-            {
-                actions.Add(new StateAction(
-                    string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
-                        _viewModel.LocalizationService.GetString("MovementType_Jump"), 
-                        jumpPoints),
-                    true,
-                    () => HandleMovementTypeSelection(MovementType.Jump)));
-            }
+                            
+            actions.Add(new StateAction(
+                string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
+                    _viewModel.LocalizationService.GetString("MovementType_Jump"),
+                    jumpPoints),
+                true,
+                () => HandleMovementTypeSelection(MovementType.Jump)));
 
             return actions;
         }

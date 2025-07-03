@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -148,6 +149,23 @@ public class Mech : Unit
     }
 
     public override bool CanMoveBackward(MovementType type) => type == MovementType.Walk;
+
+    public override bool CanJump
+    {
+        get
+        {
+            // Cannot jump if currently prone
+            if (IsProne) return false;
+
+            // Cannot jump if the mech stood up in this phase
+            if (StandupAttempts > 0) return false;
+
+            // Cannot jump if no functional jump jets are available
+            if (!GetAvailableComponents<JumpJets>().Any()) return false;
+
+            return true;
+        }
+    }
 
     public void SetProne()
     {
