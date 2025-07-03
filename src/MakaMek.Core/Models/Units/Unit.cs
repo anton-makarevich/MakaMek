@@ -80,7 +80,7 @@ public abstract class Unit
         {
             MovementType.Walk => ModifiedMovement,
             MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
-            MovementType.Jump => GetAllComponents<JumpJets>().Sum(j => j.JumpMp),
+            MovementType.Jump => GetAvailableComponents<JumpJets>().Sum(j => j.JumpMp),
             _ => 0
         };
     }
