@@ -753,6 +753,98 @@ public class MechTests
     }
 
     [Fact]
+    public void CanJump_WhenMechIsProne_ShouldReturnFalse()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets(2));
+
+        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+        sut.SetProne();
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse("Prone mechs should not be able to jump");
+    }
+
+    [Fact]
+    public void CanJump_WhenMechStoodUpThisPhase_ShouldReturnFalse()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets(2));
+
+        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+        sut.AttemptStandup(); // This increments StandupAttempts
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse("Mechs that stood up this phase should not be able to jump");
+    }
+
+    [Fact]
+    public void CanJump_WhenNoJumpJetsAvailable_ShouldReturnFalse()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse("Mechs without jump jets should not be able to jump");
+    }
+
+    [Fact]
+    public void CanJump_WhenJumpJetsDestroyed_ShouldReturnFalse()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        var jumpJets = new JumpJets(2);
+        leftLeg.TryAddComponent(jumpJets);
+
+        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+
+        // Destroy the jump jets
+        jumpJets.Hit();
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse("Mechs with destroyed jump jets should not be able to jump");
+    }
+
+    [Fact]
+    public void CanJump_WhenAllConditionsMet_ShouldReturnTrue()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets(2));
+
+        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+
+        // Act & Assert
+        sut.CanJump.ShouldBeTrue("Mechs with functional jump jets that are not prone and haven't stood up should be able to jump");
+    }
+
+    [Fact]
+    public void CanJump_AfterResetTurnState_ShouldReturnTrue()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets(2));
+
+        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+        sut.AttemptStandup(); // This increments StandupAttempts
+        sut.CanJump.ShouldBeFalse("Mech that attempted standup this phase should not be able to jump");
+
+        // Reset turn state (this should reset StandupAttempts to 0)
+        sut.ResetTurnState();
+
+        // Act & Assert
+        sut.CanJump.ShouldBeTrue("Mech should be able to jump after standing up and resetting turn state");
+    }
+
+    [Fact]
     public void EngineHeatSinks_ShouldBeTen()
     {
         var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());

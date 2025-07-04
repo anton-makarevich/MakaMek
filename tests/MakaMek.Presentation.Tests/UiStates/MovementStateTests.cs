@@ -926,4 +926,32 @@ public class MovementStateTests
         // Assert
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<TryStandupCommand>());
     }
+
+    [Fact]
+    public void GetAvailableActions_MechJustStoodUp_ExcludesJumpAction()
+    {
+        // Arrange
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var ct = unitData.LocationEquipment[PartLocation.CenterTorso];
+        ct.AddRange(MakaMekComponent.JumpJet, MakaMekComponent.JumpJet); // Add jump jets
+
+        var rules = new ClassicBattletechRulesProvider();
+        var mechThatStoodUp = new MechFactory(rules, Substitute.For<ILocalizationService>())
+            .Create(unitData);
+
+        // Simulate the mech having just stood up
+        mechThatStoodUp.SetProne();
+        mechThatStoodUp.AttemptStandup();
+        mechThatStoodUp.StandUp();
+
+        _sut.HandleUnitSelection(mechThatStoodUp);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(3); // Stand Still, Walk, Run (no Jump due to standing up)
+        var jumpAction = actions.FirstOrDefault(a => a.Label.StartsWith("Jump"));
+        jumpAction.ShouldBeNull("Jump action should not be included when mech just stood up");
+    }
 }

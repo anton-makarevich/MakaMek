@@ -80,7 +80,7 @@ public abstract class Unit
         {
             MovementType.Walk => ModifiedMovement,
             MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
-            MovementType.Jump => GetAllComponents<JumpJets>().Sum(j => j.JumpMp),
+            MovementType.Jump => GetAvailableComponents<JumpJets>().Sum(j => j.JumpMp),
             _ => 0
         };
     }
@@ -89,6 +89,11 @@ public abstract class Unit
     /// Determines if the unit can move backward with the given movement type
     /// </summary>
     public abstract bool CanMoveBackward(MovementType type);
+
+    /// <summary>
+    /// Determines if the unit can perform jump movement
+    /// </summary>
+    public virtual bool CanJump => false;
 
     // Location and facing
     public virtual HexPosition? Position { get; protected set; }

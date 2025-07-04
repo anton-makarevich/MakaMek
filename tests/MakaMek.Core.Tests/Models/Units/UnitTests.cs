@@ -1729,4 +1729,14 @@ public class UnitTests
             Type = MakaMekComponent.ISAmmoMG
         };
     }
+
+    [Fact]
+    public void CanJump_BaseUnitClass_ShouldReturnFalse()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse("Base Unit class should not be able to jump by default");
+    }
 }
