@@ -88,9 +88,9 @@ public class FallProcessor : IFallProcessor
             .Select(f => f.ToMechFallCommand());
     }
 
-    public FallContextData ProcessStandupAttempt(Mech mech, IGame game)
+    public FallContextData ProcessMovementAttempt(Mech mech, FallReasonType possibleFallReason, IGame game)
     {
-        return GetFallContextForReasons([FallReasonType.StandUpAttempt], mech, game).First();
+        return GetFallContextForReasons([possibleFallReason], mech, game).First();
     }
     
     private IEnumerable<FallContextData> GetFallContextForReasons(

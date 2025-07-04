@@ -912,7 +912,7 @@ public class FallProcessorTests
         SetupDiceRolls(7);
 
         // Act
-        var result = _sut.ProcessStandupAttempt(_testMech, _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, FallReasonType.StandUpAttempt, _game);
 
         // Assert
         result.ShouldNotBeNull();
@@ -955,7 +955,7 @@ public class FallProcessorTests
         SetupDiceRolls(5,6);
 
         // Act
-        var result = _sut.ProcessStandupAttempt(_testMech, _game);
+        var result = _sut.ProcessMovementAttempt(_testMech, FallReasonType.StandUpAttempt, _game);
 
         // Assert
         result.ShouldNotBeNull();

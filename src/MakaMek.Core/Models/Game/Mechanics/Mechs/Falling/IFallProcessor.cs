@@ -21,12 +21,13 @@ public interface IFallProcessor
         IGame game,
         List<ComponentHitData> componentHits,
         List<PartLocation>? destroyedPartLocations = null);
-        
+
     /// <summary>
     /// Processes a standup attempt for a unit
     /// </summary>
     /// <param name="mech">The mech attempting to stand up</param>
+    /// <param name="possibleFallReason">FallReason/PSR type during movement phase</param>
     /// <param name="game">The game instance</param>
     /// <returns>FallContextData containing the result of the standup attempt</returns>
-    FallContextData ProcessStandupAttempt(Mech mech, IGame game);
+    FallContextData ProcessMovementAttempt(Mech mech, FallReasonType possibleFallReason, IGame game);
 }

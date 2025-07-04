@@ -208,7 +208,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
         
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessStandupAttempt(unit, Game).Returns(successfulStandupData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(successfulStandupData);
         
         CommandPublisher.ClearReceivedCalls();
         
@@ -266,7 +266,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
         
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessStandupAttempt(unit, Game).Returns(fallContextData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
