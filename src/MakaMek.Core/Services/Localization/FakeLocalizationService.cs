@@ -69,6 +69,7 @@ public class FakeLocalizationService: ILocalizationService
             "PilotingSkillRollType_FallingLevels" => "Falling Levels",
             "PilotingSkillRollType_PilotDamageFromFall" => "Pilot Damage From Fall",
             "PilotingSkillRollType_LowerLegActuatorHit" => "Lower Leg Actuator Hit",
+            "PilotingSkillRollType_JumpWithDamagedGyro" => "Jump with Damaged Gyro",
             
             // Attack direction strings
             "AttackDirection_Left" => "Left",

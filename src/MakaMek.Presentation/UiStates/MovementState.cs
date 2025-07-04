@@ -402,11 +402,24 @@ public class MovementState : IUiState
             // Jump
             if (!_selectedUnit.CanJump) return actions;
             var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump);
-                            
+
+            var jumpActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
+                _viewModel.LocalizationService.GetString("MovementType_Jump"),
+                jumpPoints);
+
+            // Check if PSR is required for jumping with damaged components and add probability
+            if (_selectedUnit is Mech jumpMech && jumpMech.IsPsrForJumpRequired() && _viewModel.Game is not null)
+            {
+                var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
+                    jumpMech, PilotingSkillRollType.JumpWithDamagedGyro);
+
+                var successProbability = Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
+                var probabilityText = $" ({successProbability:0}%)";
+                jumpActionText += probabilityText;
+            }
+
             actions.Add(new StateAction(
-                string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
-                    _viewModel.LocalizationService.GetString("MovementType_Jump"),
-                    jumpPoints),
+                jumpActionText,
                 true,
                 () => HandleMovementTypeSelection(MovementType.Jump)));
 

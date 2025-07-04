@@ -2,7 +2,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
@@ -37,8 +36,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         // Check if PSR is required for jumping with damaged gyro
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         // Find the unit
-        var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId);
-        if (IsPsrRequired(unit) && moveCommand.MovementType == MovementType.Jump)
+        var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId) as Mech;
+        if (unit?.IsPsrForJumpRequired() == true && moveCommand.MovementType == MovementType.Jump)
         {
             ProcessJumpWithDamagedGyro(moveCommand, unit);
             return;
@@ -48,12 +47,6 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         broadcastCommand.GameOriginId = Game.Id;
         Game.OnMoveUnit(moveCommand);
         Game.CommandPublisher.PublishCommand(broadcastCommand);
-    }
-
-    private bool IsPsrRequired(Unit? unit)
-    {
-        var gyro = unit?.GetAvailableComponents<Gyro>().FirstOrDefault();
-        return gyro?.Hits ==1;
     }
 
     private void ProcessStandupCommand(TryStandupCommand standupCommand)
