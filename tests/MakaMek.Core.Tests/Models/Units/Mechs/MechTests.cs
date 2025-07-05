@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -842,6 +843,57 @@ public class MechTests
 
         // Act & Assert
         sut.CanJump.ShouldBeTrue("Mech should be able to jump after standing up and resetting turn state");
+    }
+    
+    [Fact]
+    public void IsPsrForJumpRequired_WithUndamagedGyro_ReturnsFalse()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        
+        var gyro = sut.GetAllComponents<Gyro>().First();
+        
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+        
+        // Assert
+        result.ShouldBeFalse();
+        gyro.Hits.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void IsPsrForJumpRequired_WithDamagedGyro_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var gyro = sut.GetAllComponents<Gyro>().First();
+        gyro.Hit(); // Damage the gyro (1 hit)
+        
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+        
+        // Assert
+        result.ShouldBeTrue();
+        gyro.Hits.ShouldBe(1);
+        gyro.IsDestroyed.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void IsPsrForJumpRequired_WithDestroyedGyro_ReturnsFalse()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var gyro = sut.GetAllComponents<Gyro>().First();
+        gyro.Hit(); // First hit
+        gyro.Hit(); // Second hit - destroys the gyro
+        
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+        
+        // Assert
+        result.ShouldBeFalse();
+        gyro.Hits.ShouldBe(2);
+        gyro.IsDestroyed.ShouldBeTrue();
     }
 
     [Fact]

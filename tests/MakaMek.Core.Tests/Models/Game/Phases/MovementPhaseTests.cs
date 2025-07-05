@@ -1,12 +1,15 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Shouldly;
 
@@ -208,7 +211,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
         
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessStandupAttempt(unit, Game).Returns(successfulStandupData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(successfulStandupData);
         
         CommandPublisher.ClearReceivedCalls();
         
@@ -266,7 +269,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         };
         
         // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessStandupAttempt(unit, Game).Returns(fallContextData);
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(fallContextData);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -338,5 +341,113 @@ public class MovementPhaseTests : GamePhaseTestsBase
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechStandUpCommand>());
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
         unit.StandupAttempts.ShouldBe(0);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenJumpWithDamagedGyroSucceeds_ShouldPublishMoveCommand()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+
+        // Damage the gyro to require PSR
+        var gyro = unit.GetAllComponents<Gyro>().First();
+        gyro.Hit();
+
+        // Mock successful PSR
+        var successfulFallContext = new FallContextData
+        {
+            UnitId = _unit1Id,
+            GameId = Game.Id,
+            IsFalling = false,
+            ReasonType = FallReasonType.JumpWithDamagedGyro,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.JumpWithDamagedGyro,
+                DiceResults = [6, 6],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            }
+        };
+
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamagedGyro, Game).Returns(successfulFallContext);
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = Game.ActivePlayer!.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                    .ToData()
+            ]
+        };
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Jump));
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
+    }
+
+    [Fact]
+    public void HandleCommand_WhenJumpWithDamagedGyroFails_ShouldPublishFallCommand()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+
+        // Damage the gyro to require PSR
+        var gyro = unit.GetAllComponents<Gyro>().First();
+        gyro.Hit();
+
+        // Mock failed PSR
+        var failedFallContext = new FallContextData
+        {
+            UnitId = _unit1Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            ReasonType = FallReasonType.JumpWithDamagedGyro,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.JumpWithDamagedGyro,
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3)
+            )
+        };
+
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamagedGyro, Game).Returns(failedFallContext);
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = Game.ActivePlayer!.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                    .ToData()
+            ]
+        };
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.DamageData != null));
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Jump));
     }
 }

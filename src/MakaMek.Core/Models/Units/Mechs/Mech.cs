@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Models.Map;
@@ -165,6 +166,15 @@ public class Mech : Unit
 
             return true;
         }
+    }
+
+    /// <summary>
+    /// Determines if a piloting skill roll is required for jumping due to damage
+    /// </summary>
+    public bool IsPsrForJumpRequired()
+    {
+        var gyro = GetAvailableComponents<Gyro>().FirstOrDefault();
+        return gyro?.Hits ==1;
     }
 
     public void SetProne()

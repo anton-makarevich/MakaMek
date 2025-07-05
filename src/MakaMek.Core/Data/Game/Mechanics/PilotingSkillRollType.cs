@@ -45,5 +45,6 @@ public enum PilotingSkillRollType
     // Shutdown,
     // EnteringDeepWater,
     // Skid
-    StandupAttempt
+    StandupAttempt,
+    JumpWithDamagedGyro
 }
