@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -953,5 +954,39 @@ public class MovementStateTests
         actions.Count.ShouldBe(3); // Stand Still, Walk, Run (no Jump due to standing up)
         var jumpAction = actions.FirstOrDefault(a => a.Label.StartsWith("Jump"));
         jumpAction.ShouldBeNull("Jump action should not be included when mech just stood up");
+    }
+
+    [Fact]
+    public void GetAvailableActions_WhenJumpWithDamagedGyro_ShouldIncludeProbability()
+    {
+        // Arrange
+        var mech = _unit1 as Mech;
+
+        // Damage the gyro to require PSR
+        var gyro = mech!.GetAllComponents<Gyro>().First();
+        gyro.Hit();
+
+        _sut.HandleUnitSelection(mech);
+
+        // Mock PSR breakdown for damaged gyro jump
+        var psrBreakdown = new PsrBreakdown
+        {
+            BasePilotingSkill = 4,
+            Modifiers = []
+        };
+
+        _pilotingSkillCalculator
+            .GetPsrBreakdown(mech, PilotingSkillRollType.JumpWithDamagedGyro)
+            .Returns(psrBreakdown);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        var jumpAction = actions.FirstOrDefault(a => a.Label.Contains("Jump"));
+        jumpAction.ShouldNotBeNull();
+        jumpAction.Label.ShouldContain("("); // Should contain probability percentage
+        jumpAction.Label.ShouldContain("%)"); // Should contain percentage symbol
+
     }
 }
