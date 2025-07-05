@@ -78,20 +78,20 @@ The MakaMek project has made significant progress toward the MVP goals outlined 
 ### ⚠️ **PARTIALLY IMPLEMENTED** - Critical Gaps
 
 #### 3.1 Movement System - **MAJOR GAPS**
-**Status**: 70% Complete
+**Status**: 85% Complete
 
 **✅ Implemented:**
 - Walking and running movement
 - Movement point calculation
 - Terrain costs
+- Torso twist mechanics
+- Facing change costs
 - Basic piloting skill rolls
 - Fall mechanics for damage and gyro hits
 
 **❌ Missing:**
 - **Jump movement heat effects**: Jump heat not properly applied to heat scale
-- **Torso twist mechanics**: Not implemented
 - **Advanced piloting skill roll triggers**: Missing some damage thresholds
-- **Facing change costs**: 1 MP per 60-degree turn not implemented
 
 #### 5.1 Heat Management System - **MAJOR GAPS**
 **Status**: 40% Complete
@@ -110,32 +110,25 @@ The MakaMek project has made significant progress toward the MVP goals outlined 
 - **Life support damage**: MechWarrior damage at heat 15+ when life support hit
 
 #### 4.4 Critical Hit Effects - **MODERATE GAPS**
-**Status**: 60% Complete
+**Status**: 80% Complete
 
 **✅ Implemented:**
 - Basic critical hit calculation
 - Component destruction
+- Gyro effects
+- Engine destruction
 - Engine hits with heat penalties
 
 **❌ Missing:**
 - **Cockpit hits**: Should destroy 'Mech and kill MechWarrior
-- **Engine destruction**: 3 hits should destroy 'Mech (partially implemented)
-- **Gyro effects**: Detailed PSR modifiers and immobilization
 - **Sensor effects**: To-hit penalties and weapon fire prevention
 
 ---
 
 ### ❌ **NOT IMPLEMENTED** - Missing Features
 
-#### Advanced Movement Features
-- **Sprint movement**: 2x walking speed
-- **MASC system**: Enhanced movement capability
-- **Detailed jump jet mechanics**: Individual jet tracking
-
 #### Advanced Combat Features
 - **Secondary target modifiers**: Partially implemented but needs refinement
-- **Physical attacks**: Not implemented (noted in memories)
-- **Weapon minimum range penalties**: Basic implementation exists but needs verification
 
 #### Victory Conditions Enhancement
 - **Pilot unconsciousness**: Basic injury tracking exists but unconsciousness effects missing
@@ -159,49 +152,11 @@ The MakaMek project has made significant progress toward the MVP goals outlined 
 
 3. **Complete Critical Hit Effects**
    - Implement cockpit destruction
-   - Complete engine destruction mechanics
    - Add sensor damage effects
 
-### **P1 - Important for MVP (Next Sprint)**
-
-1. **Torso Twist Mechanics**
-   - Allow shifting upper body firing arc
-   - Implement in weapon attack phase
-
-2. **Movement Facing Costs**
-   - Implement 1 MP per 60-degree turn
-   - Update movement validation
-
-3. **Enhanced Piloting Skill Rolls**
+4. **Enhanced Piloting Skill Rolls**
    - Complete all damage threshold triggers
    - Verify modifier calculations
-
-### **P2 - Nice to Have (Future)**
-
-1. **Advanced Movement Types**
-   - Sprint movement
-   - MASC system
-
-2. **Physical Combat**
-   - Punching, kicking mechanics
-   - Related PSR modifiers
-
-## Implementation Complexity Assessment
-
-### **Low Complexity** (1-2 days)
-- Heat movement penalties
-- Jump heat application
-- Facing change costs
-
-### **Medium Complexity** (3-5 days)
-- Heat weapon penalties
-- Shutdown risk mechanics
-- Torso twist implementation
-
-### **High Complexity** (1-2 weeks)
-- Ammunition explosion system
-- Complete critical hit effects
-- Advanced piloting skill roll system
 
 ## Critical Path Analysis
 
@@ -210,7 +165,6 @@ The critical path for achieving a functional MVP is:
 1. **Heat Management System** → Affects all unit performance
 2. **Jump Movement Heat** → Core movement mechanic
 3. **Critical Hit Effects** → Essential for unit destruction
-4. **Torso Twist** → Important for tactical combat
 
 ## Detailed Implementation Gaps
 
@@ -245,18 +199,6 @@ Heat Level | Movement Penalty | Weapon Penalty | Special Effects
 ```
 *Only if life support component is hit
 
-### Movement System Details
-
-**Missing Facing Change Implementation:**
-- Each 60-degree turn should cost 1 MP
-- Should be integrated into movement path calculation
-- UI should show facing change costs in movement planning
-
-**Missing Torso Twist:**
-- Allow upper body to face different direction than legs
-- Should affect weapon firing arcs
-- Should be available during weapon attack phase
-
 ## Testing Requirements
 
 ### Critical Test Cases Needed
@@ -269,17 +211,14 @@ Heat Level | Movement Penalty | Weapon Penalty | Special Effects
 
 2. **Movement System Tests**
    - Verify jump heat application
-   - Test facing change MP costs
-   - Validate torso twist mechanics
 
 3. **Critical Hit Tests**
    - Test cockpit destruction scenarios
-   - Verify engine destruction at 3 hits
    - Test sensor damage effects
 
 ## Conclusion
 
-The MakaMek project has achieved approximately **75% completion** of the MVP requirements. The foundation is solid with excellent architecture, comprehensive testing, and good separation of concerns. The missing features are well-defined and implementable within the existing architecture.
+The MakaMek project has achieved approximately **80% completion** of the MVP requirements. The foundation is solid with excellent architecture, comprehensive testing, and good separation of concerns. The missing features are well-defined and implementable within the existing architecture.
 
 **Key Strengths:**
 - Excellent technical architecture
@@ -291,7 +230,5 @@ The MakaMek project has achieved approximately **75% completion** of the MVP req
 - Heat management system incomplete
 - Jump movement heat not applied
 - Critical hit effects missing
-
-**Estimated time to MVP completion**: 3-4 weeks with focused development on the P0 and P1 items listed above.
 
 The project is well-positioned for rapid completion of the remaining MVP features due to its solid architectural foundation and comprehensive existing test suite.
