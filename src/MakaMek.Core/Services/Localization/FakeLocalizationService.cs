@@ -66,9 +66,14 @@ public class FakeLocalizationService: ILocalizationService
             
             // Piloting Skill Roll Types
             "PilotingSkillRollType_GyroHit" => "Gyro Hit",
-            "PilotingSkillRollType_FallingLevels" => "Falling Levels",
+            "PilotingSkillRollType_GyroDestroyed" => "Gyro Destroyed",
             "PilotingSkillRollType_PilotDamageFromFall" => "Pilot Damage From Fall",
             "PilotingSkillRollType_LowerLegActuatorHit" => "Lower Leg Actuator Hit",
+            "PilotingSkillRollType_HeavyDamage" => "Heavy Damage",
+            "PilotingSkillRollType_HipActuatorHit" => "Hip Actuator Hit",
+            "PilotingSkillRollType_FootActuatorHit" => "Foot Actuator Hit",
+            "PilotingSkillRollType_LegDestroyed" => "Leg Destroyed",
+            "PilotingSkillRollType_StandupAttempt" => "Standup Attempt",
             "PilotingSkillRollType_JumpWithDamagedGyro" => "Jump with Damaged Gyro",
             
             // Attack direction strings
