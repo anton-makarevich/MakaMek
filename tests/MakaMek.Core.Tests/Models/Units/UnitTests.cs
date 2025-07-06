@@ -85,6 +85,14 @@ public class UnitTests
         {
             Crew = pilot;
         }
+
+        /// <summary>
+        /// Helper method for testing - provides access to set the Status field
+        /// </summary>
+        public void SetStatusForTesting(UnitStatus status)
+        {
+            Status = status;
+        }
     }
     
     public static TestUnit CreateTestUnit(Guid? id = null)
@@ -1703,6 +1711,113 @@ public class UnitTests
 
         // Assert
         sut.TotalPhaseDamage.ShouldBe(0);
+    }
+
+    [Fact]
+    public void IsDestroyed_ShouldReturnTrue_WhenStatusContainsDestroyedFlag()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Test various combinations of status flags that include Destroyed
+        var statusCombinations = new[]
+        {
+            UnitStatus.Destroyed,
+            UnitStatus.Destroyed | UnitStatus.Active,
+            UnitStatus.Destroyed | UnitStatus.Shutdown,
+            UnitStatus.Destroyed | UnitStatus.Prone,
+            UnitStatus.Destroyed | UnitStatus.Immobile,
+            UnitStatus.Destroyed | UnitStatus.Active | UnitStatus.Prone,
+            UnitStatus.Destroyed | UnitStatus.Shutdown | UnitStatus.Immobile,
+            UnitStatus.Destroyed | UnitStatus.Active | UnitStatus.Shutdown | UnitStatus.Prone | UnitStatus.Immobile
+        };
+
+        foreach (var statusCombination in statusCombinations)
+        {
+            // Act
+            unit.SetStatusForTesting(statusCombination);
+
+            // Assert
+            unit.IsDestroyed.ShouldBeTrue($"IsDestroyed should be true for status combination: {statusCombination}");
+        }
+    }
+
+    [Fact]
+    public void IsDestroyed_ShouldReturnFalse_WhenStatusDoesNotContainDestroyedFlag()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Test various combinations of status flags that do NOT include Destroyed
+        var statusCombinations = new[]
+        {
+            UnitStatus.None,
+            UnitStatus.Active,
+            UnitStatus.Shutdown,
+            UnitStatus.Prone,
+            UnitStatus.Immobile,
+            UnitStatus.Active | UnitStatus.Prone,
+            UnitStatus.Shutdown | UnitStatus.Immobile,
+            UnitStatus.Active | UnitStatus.Shutdown | UnitStatus.Prone | UnitStatus.Immobile
+        };
+
+        foreach (var statusCombination in statusCombinations)
+        {
+            // Act
+            unit.SetStatusForTesting(statusCombination);
+
+            // Assert
+            unit.IsDestroyed.ShouldBeFalse($"IsDestroyed should be false for status combination: {statusCombination}");
+        }
+    }
+
+    [Fact]
+    public void Status_ShouldBeImmutableAfterDestruction_WhenAttemptingToChangeStatus()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Set the unit as destroyed
+        unit.SetStatusForTesting(UnitStatus.Destroyed);
+        unit.IsDestroyed.ShouldBeTrue("Unit should be destroyed initially");
+
+        // Test various attempts to change status after destruction
+        var attemptedStatusChanges = new[]
+        {
+            UnitStatus.None,
+            UnitStatus.Active,
+            UnitStatus.Shutdown,
+            UnitStatus.Prone,
+            UnitStatus.Immobile,
+            UnitStatus.Active | UnitStatus.Prone,
+            UnitStatus.Shutdown | UnitStatus.Immobile,
+            UnitStatus.Active | UnitStatus.Shutdown | UnitStatus.Prone | UnitStatus.Immobile
+        };
+
+        foreach (var attemptedStatus in attemptedStatusChanges)
+        {
+            // Act - Attempt to change status
+            unit.SetStatusForTesting(attemptedStatus);
+
+            // Assert - Status should remain Destroyed and not change
+            unit.Status.ShouldBe(UnitStatus.Destroyed,
+                $"Status should remain Destroyed after attempting to set it to: {attemptedStatus}");
+            unit.IsDestroyed.ShouldBeTrue(
+                $"IsDestroyed should remain true after attempting to set status to: {attemptedStatus}");
+        }
+    }
+
+    [Fact]
+    public void IsImmobile_ShouldReturnTrue_WhenStatusSetToImmobile()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Act
+        unit.SetStatusForTesting(UnitStatus.Immobile);
+
+        // Assert
+        unit.IsImmobile.ShouldBeTrue();
     }
 
     // Helper class for testing explodable components

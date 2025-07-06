@@ -54,8 +54,13 @@ public abstract class Unit
         get => _status;
         protected set
         {
+            if ((value & UnitStatus.Destroyed) == UnitStatus.Destroyed)
+            {
+                _status = UnitStatus.Destroyed;
+                return;
+            }
             // Once destroyed, prevent any further status changes
-            if (IsDestroyed && value != UnitStatus.Destroyed)
+            if (IsDestroyed)
                 return;
 
             _status = value;
