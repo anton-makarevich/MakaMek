@@ -63,9 +63,14 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_PilotingSkillRoll_RollResult", "Roll Result: {0}")]
     // Piloting Skill Roll Types
     [InlineData("PilotingSkillRollType_GyroHit", "Gyro Hit")]
-    [InlineData("PilotingSkillRollType_FallingLevels", "Falling Levels")]
+    [InlineData("PilotingSkillRollType_GyroDestroyed", "Gyro Destroyed")]
     [InlineData("PilotingSkillRollType_PilotDamageFromFall", "Pilot Damage From Fall")]
     [InlineData("PilotingSkillRollType_LowerLegActuatorHit", "Lower Leg Actuator Hit")]
+    [InlineData("PilotingSkillRollType_HeavyDamage", "Heavy Damage")]
+    [InlineData("PilotingSkillRollType_HipActuatorHit", "Hip Actuator Hit")]
+    [InlineData("PilotingSkillRollType_FootActuatorHit", "Foot Actuator Hit")]
+    [InlineData("PilotingSkillRollType_LegDestroyed", "Leg Destroyed")]
+    [InlineData("PilotingSkillRollType_StandupAttempt", "Standup Attempt")]
     [InlineData("PilotingSkillRollType_JumpWithDamagedGyro", "Jump with Damaged Gyro")]
     // Attack modifiers
     [InlineData("AttackDirection_Left", "Left")]
