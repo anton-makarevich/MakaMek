@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
-using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -184,7 +183,7 @@ public class Mech : Unit
 
     public bool CanStandup()
     {
-        if ((Status & UnitStatus.Shutdown)== UnitStatus.Shutdown) return false;
+        if (IsShutdown) return false;
         
         var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
         if (destroyedLegs >= 2) return false;

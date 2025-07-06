@@ -303,7 +303,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     {
         // Track destroyed parts before damage
         var destroyedPartsBefore = target.Parts.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
-        var wasDestroyedBefore = target.Status == UnitStatus.Destroyed;
+        var wasDestroyedBefore = target.IsDestroyed;
         
         // Apply damage to the target
         if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null })
@@ -316,7 +316,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var newlyDestroyedParts = destroyedPartsAfter.Except(destroyedPartsBefore).ToList();
         
         // Check if the unit was destroyed by this attack
-        var unitNewlyDestroyed = !wasDestroyedBefore && target.Status== UnitStatus.Destroyed;
+        var unitNewlyDestroyed = !wasDestroyedBefore && target.IsDestroyed;
         
         // Update the resolution data with destruction information
         resolution = resolution with 

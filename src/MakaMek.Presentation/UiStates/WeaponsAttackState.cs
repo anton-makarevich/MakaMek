@@ -74,7 +74,7 @@ public class WeaponsAttackState : IUiState
     {
         if (_game is { CanActivePlayerAct: false }) return;
         if (unit == null) return;
-        if (unit.Status == UnitStatus.Destroyed) return;
+        if (unit.IsDestroyed) return;
 
         if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
         {
