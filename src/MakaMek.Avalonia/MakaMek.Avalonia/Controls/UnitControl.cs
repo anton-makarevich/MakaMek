@@ -276,16 +276,15 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 .Subscribe(state =>
                 {
                     // Show/hide destroyed indicator
-                    destroyedCross.IsVisible = _unit.Status == UnitStatus.Destroyed;
-                    _healthBars.IsVisible = _unit.Status != UnitStatus.Destroyed;
+                    destroyedCross.IsVisible = _unit.IsDestroyed;
+                    _healthBars.IsVisible = !_unit.IsDestroyed;
                     
                     if (state.Position == null) return; // unit is not deployed, no need to display
                     
                     // Show/hide prone indicator (for mechs only)
                     if (_unit is Mech mech)
                     {
-                        proneIndicator.IsVisible = (mech.Status & UnitStatus.Prone) == UnitStatus.Prone 
-                                                   && mech.Status != UnitStatus.Destroyed;
+                        proneIndicator.IsVisible = mech is { IsProne: true, IsDestroyed: false };
                     }
                     else
                     {
@@ -321,7 +320,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     if (isMech)
                     {
                         torsoArrow.IsVisible = state.IsWeaponsPhase
-                                               && _unit.Status != UnitStatus.Destroyed
+                                               && !_unit.IsDestroyed
                                                && state is { TorsoDirection: not null, Position: not null };
                         if (!torsoArrow.IsVisible) return;
                         // Since control is rotated to torso direction, we need opposite delta

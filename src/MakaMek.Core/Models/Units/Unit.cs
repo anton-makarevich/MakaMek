@@ -47,7 +47,45 @@ public abstract class Unit
     
     public IPlayer? Owner { get; internal set; }
     
-    public UnitStatus Status { get; protected set; }
+    private UnitStatus _status;
+
+    public UnitStatus Status
+    {
+        get => _status;
+        protected set
+        {
+            if ((value & UnitStatus.Destroyed) == UnitStatus.Destroyed)
+            {
+                _status = UnitStatus.Destroyed;
+                return;
+            }
+            // Once destroyed, prevent any further status changes
+            if (IsDestroyed)
+                return;
+
+            _status = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets whether the unit is destroyed. Returns true if the Destroyed flag is set, regardless of other flags.
+    /// </summary>
+    public bool IsDestroyed => (_status & UnitStatus.Destroyed) == UnitStatus.Destroyed;
+
+    /// <summary>
+    /// Gets whether the unit is active. Returns true if the Active flag is set, regardless of other flags.
+    /// </summary>
+    public bool IsActive => (_status & UnitStatus.Active) == UnitStatus.Active;
+
+    /// <summary>
+    /// Gets whether the unit is shutdown. Returns true if the Shutdown flag is set, regardless of other flags.
+    /// </summary>
+    public bool IsShutdown => (_status & UnitStatus.Shutdown) == UnitStatus.Shutdown;
+
+    /// <summary>
+    /// Gets whether the unit is immobile. Returns true if the Immobile flag is set, regardless of other flags.
+    /// </summary>
+    public bool IsImmobile => (_status & UnitStatus.Immobile) == UnitStatus.Immobile;
 
     public WeightClass Class => Tonnage switch
     {
@@ -303,14 +341,14 @@ public abstract class Unit
     // Status management
     public virtual void Startup()
     {
-        if ((Status & UnitStatus.Shutdown) != UnitStatus.Shutdown) return;
+        if (!IsShutdown) return;
         Status &= ~UnitStatus.Shutdown;
         Status |= UnitStatus.Active;
     }
 
     public virtual void Shutdown()
     {
-        if ((Status & UnitStatus.Active) != UnitStatus.Active) return;
+        if (!IsActive) return;
         Status &= ~UnitStatus.Active;
         Status |= UnitStatus.Shutdown;
     }
@@ -396,7 +434,7 @@ public abstract class Unit
 
         }
 
-        if (Status == UnitStatus.Destroyed)
+        if (IsDestroyed)
         {
             AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
         }
