@@ -95,6 +95,7 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_LowerLegActuatorHit" => "Lower Leg Actuator Hit: +{0}",
             "Modifier_HipActuatorHit" => "Hip Actuator Hit: +{0}",
             "Modifier_FootActuatorHit" => "Foot Actuator Hit: +{0}",
+            "Modifier_UpperLegActuatorHit" => "Upper Leg Actuator Hit: +{0}",
             "Modifier_LegDestroyed" => "Leg Destroyed: +{0}",
             "Hits" => "Hits",
             "Levels" => "Levels",
