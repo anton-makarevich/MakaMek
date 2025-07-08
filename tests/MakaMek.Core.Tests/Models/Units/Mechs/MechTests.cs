@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -886,14 +887,162 @@ public class MechTests
         var gyro = sut.GetAllComponents<Gyro>().First();
         gyro.Hit(); // First hit
         gyro.Hit(); // Second hit - destroys the gyro
-        
+
         // Act
         var result = sut.IsPsrForJumpRequired();
-        
+
         // Assert
         result.ShouldBeFalse();
         gyro.Hits.ShouldBe(2);
         gyro.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsPsrForJumpRequired_WithOneDestroyedFootActuator_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var footActuator = sut.GetAllComponents<FootActuator>().First();
+        footActuator.Hit(); // Destroy the foot actuator
+
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+
+        // Assert
+        result.ShouldBeTrue();
+        footActuator.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsPsrForJumpRequired_WithMultipleDestroyedFootActuators_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var footActuators = sut.GetAllComponents<FootActuator>().ToList();
+
+        // Destroy all foot actuators
+        foreach (var actuator in footActuators)
+        {
+            actuator.Hit();
+        }
+
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+
+        // Assert
+        result.ShouldBeTrue();
+        footActuators.ShouldAllBe(actuator => actuator.IsDestroyed);
+    }
+
+    [Fact]
+    public void IsPsrForJumpRequired_WithOneDestroyedHipActuator_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var hipActuator = sut.GetAllComponents<HipActuator>().First();
+        hipActuator.Hit(); // Destroy the hip actuator
+
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+
+        // Assert
+        result.ShouldBeTrue();
+        hipActuator.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsPsrForJumpRequired_WithMultipleDestroyedHipActuators_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var hipActuators = sut.GetAllComponents<HipActuator>().ToList();
+
+        // Destroy all hip actuators
+        foreach (var actuator in hipActuators)
+        {
+            actuator.Hit();
+        }
+
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+
+        // Assert
+        result.ShouldBeTrue();
+        hipActuators.ShouldAllBe(actuator => actuator.IsDestroyed);
+    }
+
+    [Fact]
+    public void IsPsrForJumpRequired_WithOneDestroyedLowerLegActuator_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var lowerLegActuator = sut.GetAllComponents<LowerLegActuator>().First();
+        lowerLegActuator.Hit(); // Destroy the lower leg actuator
+
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+
+        // Assert
+        result.ShouldBeTrue();
+        lowerLegActuator.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsPsrForJumpRequired_WithMultipleDestroyedLowerLegActuators_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var lowerLegActuators = sut.GetAllComponents<LowerLegActuator>().ToList();
+
+        // Destroy all lower leg actuators
+        foreach (var actuator in lowerLegActuators)
+        {
+            actuator.Hit();
+        }
+
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+
+        // Assert
+        result.ShouldBeTrue();
+        lowerLegActuators.ShouldAllBe(actuator => actuator.IsDestroyed);
+    }
+
+    [Fact]
+    public void IsPsrForJumpRequired_WithOneDestroyedUpperLegActuator_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var upperLegActuator = sut.GetAllComponents<UpperLegActuator>().First();
+        upperLegActuator.Hit(); // Destroy the upper leg actuator
+
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+
+        // Assert
+        result.ShouldBeTrue();
+        upperLegActuator.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsPsrForJumpRequired_WithMultipleDestroyedUpperLegActuators_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var upperLegActuators = sut.GetAllComponents<UpperLegActuator>().ToList();
+
+        // Destroy all upper leg actuators
+        foreach (var actuator in upperLegActuators)
+        {
+            actuator.Hit();
+        }
+
+        // Act
+        var result = sut.IsPsrForJumpRequired();
+
+        // Assert
+        result.ShouldBeTrue();
+        upperLegActuators.ShouldAllBe(actuator => actuator.IsDestroyed);
     }
 
     [Fact]
