@@ -71,7 +71,7 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_FootActuatorHit", "Foot Actuator Hit")]
     [InlineData("PilotingSkillRollType_LegDestroyed", "Leg Destroyed")]
     [InlineData("PilotingSkillRollType_StandupAttempt", "Standup Attempt")]
-    [InlineData("PilotingSkillRollType_JumpWithDamagedGyro", "Jump with Damaged Gyro")]
+    [InlineData("PilotingSkillRollType_JumpWithDamage", "Jump with damage")]
     // Attack modifiers
     [InlineData("AttackDirection_Left", "Left")]
     [InlineData("AttackDirection_Right", "Right")]

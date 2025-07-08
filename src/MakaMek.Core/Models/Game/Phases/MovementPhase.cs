@@ -37,16 +37,14 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         // Find the unit
         var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId) as Mech;
-        if (unit?.IsPsrForJumpRequired() == true && moveCommand.MovementType == MovementType.Jump)
-        {
-            ProcessJumpWithDamagedGyro(moveCommand, unit);
-            return;
-        }
 
         var broadcastCommand = moveCommand;
         broadcastCommand.GameOriginId = Game.Id;
         Game.OnMoveUnit(moveCommand);
         Game.CommandPublisher.PublishCommand(broadcastCommand);
+
+        if (unit?.IsPsrForJumpRequired() != true || moveCommand.MovementType != MovementType.Jump) return;
+        ProcessJumpWithDamage(unit);
     }
 
     private void ProcessStandupCommand(TryStandupCommand standupCommand)
@@ -83,28 +81,17 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         }
     }
 
-    private void ProcessJumpWithDamagedGyro(MoveUnitCommand moveCommand, Unit? unit)
+    private void ProcessJumpWithDamage(Unit? unit)
     {
         // Use the FallProcessor to process the jump attempt with damaged gyro
         if (unit is not Mech mech) return;
-        var fallContextData = Game.FallProcessor.ProcessMovementAttempt(mech, FallReasonType.JumpWithDamagedGyro, Game);
+        var fallContextData = Game.FallProcessor.ProcessMovementAttempt(mech, FallReasonType.JumpWithDamage, Game);
         
-        // Create and publish the appropriate command based on the result
-        if (fallContextData.IsFalling)
-        {
-            // Jump failed - create and publish a fall command
-            var fallCommand = fallContextData.ToMechFallCommand();
-            Game.CommandPublisher.PublishCommand(fallCommand);
-            Game.OnMechFalling(fallCommand);
-        }
-        else
-        {
-            // Jump succeeded - process the movement normally
-            var broadcastCommand = moveCommand;
-            broadcastCommand.GameOriginId = Game.Id;
-            Game.OnMoveUnit(moveCommand);
-            Game.CommandPublisher.PublishCommand(broadcastCommand);
-        }
+        if (!fallContextData.IsFalling) return;
+        // Jump failed - create and publish a fall command
+        var fallCommand = fallContextData.ToMechFallCommand();
+        Game.CommandPublisher.PublishCommand(fallCommand);
+        Game.OnMechFalling(fallCommand);
     }
 
     public override PhaseNames Name => PhaseNames.Movement;

@@ -976,7 +976,7 @@ public class MovementStateTests
         };
 
         _pilotingSkillCalculator
-            .GetPsrBreakdown(mech, PilotingSkillRollType.JumpWithDamagedGyro)
+            .GetPsrBreakdown(mech, PilotingSkillRollType.JumpWithDamage)
             .Returns(psrBreakdown);
 
         // Act

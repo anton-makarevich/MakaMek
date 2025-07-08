@@ -361,17 +361,17 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             GameId = Game.Id,
             IsFalling = false,
-            ReasonType = FallReasonType.JumpWithDamagedGyro,
+            ReasonType = FallReasonType.JumpWithDamage,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.JumpWithDamagedGyro,
+                RollType = PilotingSkillRollType.JumpWithDamage,
                 DiceResults = [6, 6],
                 IsSuccessful = true,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
             }
         };
 
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamagedGyro, Game).Returns(successfulFallContext);
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamage, Game).Returns(successfulFallContext);
 
         var moveCommand = new MoveUnitCommand
         {
@@ -412,10 +412,10 @@ public class MovementPhaseTests : GamePhaseTestsBase
             UnitId = _unit1Id,
             GameId = Game.Id,
             IsFalling = true,
-            ReasonType = FallReasonType.JumpWithDamagedGyro,
+            ReasonType = FallReasonType.JumpWithDamage,
             PilotingSkillRoll = new PilotingSkillRollData
             {
-                RollType = PilotingSkillRollType.JumpWithDamagedGyro,
+                RollType = PilotingSkillRollType.JumpWithDamage,
                 DiceResults = [2, 2],
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
@@ -427,7 +427,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamagedGyro, Game).Returns(failedFallContext);
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamage, Game).Returns(failedFallContext);
 
         var moveCommand = new MoveUnitCommand
         {
@@ -447,7 +447,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Assert
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.DamageData != null));
-        CommandPublisher.DidNotReceive().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Jump));
     }
 }

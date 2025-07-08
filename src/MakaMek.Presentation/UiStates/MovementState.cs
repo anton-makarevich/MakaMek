@@ -411,7 +411,7 @@ public class MovementState : IUiState
             if (_selectedUnit is Mech jumpMech && jumpMech.IsPsrForJumpRequired() && _viewModel.Game is not null)
             {
                 var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
-                    jumpMech, PilotingSkillRollType.JumpWithDamagedGyro);
+                    jumpMech, PilotingSkillRollType.JumpWithDamage);
 
                 var successProbability = Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
                 var probabilityText = $" ({successProbability:0}%)";
