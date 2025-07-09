@@ -22,6 +22,11 @@ public enum PilotingSkillRollType
     LowerLegActuatorHit,
     
     /// <summary>
+    /// PSR modifier due to a critical hit on a upper leg actuator.
+    /// </summary>
+    UpperLegActuatorHit,
+    
+    /// <summary>
     /// PSR required when a 'Mech takes 20 or more damage points in a single phase.
     /// </summary>
     HeavyDamage,
@@ -46,5 +51,5 @@ public enum PilotingSkillRollType
     // EnteringDeepWater,
     // Skid
     StandupAttempt,
-    JumpWithDamagedGyro
+    JumpWithDamage
 }

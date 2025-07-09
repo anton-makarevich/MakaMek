@@ -271,7 +271,26 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             // Assert
             result.Modifiers.ShouldNotContain(m => m is LowerLegActuatorHitModifier);
         }
-        
+
+        [Fact]
+        public void GetPsrBreakdown_DestroyedUpperLegActuator_AddsModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var leg = new Leg("Right Leg", PartLocation.RightLeg, 10, 5);
+            var actuator = leg.GetComponents<UpperLegActuator>().First();
+            actuator.Hit(); // Destroy the actuator (assuming 1 health point)
+
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso,leg]);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.UpperLegActuatorHit).Returns(1);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+
+            // Assert
+            result.Modifiers.ShouldContain(m => m is UpperLegActuatorHitModifier);
+        }
+
         [Fact]
         public void GetPsrBreakdown_ShouldReturnNoModifiers_ForNonMech()
         {

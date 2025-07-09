@@ -119,6 +119,19 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             }
         }
 
+        // Upper leg actuator hit modifier
+        var upperLegActuators = mech.GetAllComponents<UpperLegActuator>();
+        foreach (var actuator in upperLegActuators)
+        {
+            if (actuator.IsDestroyed)
+            {
+                modifiers.Add(new UpperLegActuatorHitModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.UpperLegActuatorHit)
+                });
+            }
+        }
+
         // Heavy damage modifier
         if (mech.TotalPhaseDamage > _rules.GetHeavyDamageThreshold())
         {

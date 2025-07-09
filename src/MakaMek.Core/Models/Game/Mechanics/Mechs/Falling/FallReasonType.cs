@@ -48,9 +48,9 @@ public enum FallReasonType
     StandUpAttempt,
 
     /// <summary>
-    /// Jump attempt with damaged gyro (requires PSR)
+    /// Jump attempt with damaged gyro or foot/leg/hip actuators (requires PSR)
     /// </summary>
-    JumpWithDamagedGyro
+    JumpWithDamage
 }
 
 /// <summary>
@@ -73,7 +73,7 @@ public static class FallReasonTypeExtensions
             FallReasonType.FootActuatorHit => PilotingSkillRollType.FootActuatorHit,
             FallReasonType.HeavyDamage => PilotingSkillRollType.HeavyDamage,
             FallReasonType.StandUpAttempt => PilotingSkillRollType.StandupAttempt,
-            FallReasonType.JumpWithDamagedGyro => PilotingSkillRollType.JumpWithDamagedGyro,
+            FallReasonType.JumpWithDamage => PilotingSkillRollType.JumpWithDamage,
             _ => null // PSR is not required for that reason
         };
     }

@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -172,6 +173,19 @@ public class Mech : Unit
     /// </summary>
     public bool IsPsrForJumpRequired()
     {
+        var destroyedFootActuators = GetAllComponents<FootActuator>()
+            .Where(a=>a.IsDestroyed);
+        if (destroyedFootActuators.Any()) return true;
+        var destroyedHipActuators = GetAllComponents<HipActuator>()
+            .Where(a=>a.IsDestroyed);
+        if (destroyedHipActuators.Any()) return true;
+        var destroyedLowerLegActuators = GetAllComponents<LowerLegActuator>()
+            .Where(a=>a.IsDestroyed);
+        if (destroyedLowerLegActuators.Any()) return true;
+        var destroyedUpperLegActuators = GetAllComponents<UpperLegActuator>()
+            .Where(a=>a.IsDestroyed);
+        if (destroyedUpperLegActuators.Any()) return true;
+        
         var gyro = GetAvailableComponents<Gyro>().FirstOrDefault();
         return gyro?.Hits ==1;
     }
