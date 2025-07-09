@@ -186,6 +186,10 @@ The hybrid approach provides the best of both worlds:
 
 This architectural decision positions MakaMek for long-term success while respecting fundamental software design principles.
 
+### Note
+Even with the hybrid model we still must touch the MakaMekTerrains enum when a new terrain is introduced, so the core assembly is not completely “closed for modification”.
+The same is true for any *TypeEnums. That approach might be revisited.
+
 ---
 
 **Document Version**: 2.0  
