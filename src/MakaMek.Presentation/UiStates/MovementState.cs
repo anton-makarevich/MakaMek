@@ -463,13 +463,37 @@ public class MovementState : IUiState
         _builder.SetMovementType(MovementType.Walk);
         _movementPoints = mech.GetMovementPoints(MovementType.Walk);
 
-        // Show direction selector for the current hex
-        var availableDirections = Enum.GetValues<HexDirection>()
-            .Where(dir => dir != mech.Position.Facing) // Exclude current facing
-            .ToList();
+        // Calculate maximum rotation steps based on available movement points
+        var maxRotateSteps = Math.Min(3, _movementPoints);
+
+        // Reset possible directions
+        _possibleDirections = [];
+
+        var currentFacing = mech.Position.Facing;
+
+        void AddToPossibleDirections(HexDirection direction, int cost)
+        {
+            var pathSegments = new List<PathSegment>
+            {
+                new(mech.Position, mech.Position with { Facing = direction }, cost)
+            };
+            _possibleDirections[direction] = pathSegments;
+        }
+
+        // Generate possible directions by rotating from current facing
+        for (var steps = 1; steps <= maxRotateSteps; steps++)
+        {
+            var rotatedDirectionCw = currentFacing.Rotate(steps);
+            AddToPossibleDirections(rotatedDirectionCw, steps);
+        
+            if (steps == 3) break; // We don't want to duplicate opposite direction
+        
+            var rotatedDirectionCcw = currentFacing.Rotate(-steps);
+            AddToPossibleDirections(rotatedDirectionCcw, steps);
+        }
 
         CurrentMovementStep = MovementStep.SelectingDirection;
-        _viewModel.ShowDirectionSelector(mech.Position.Coordinates, availableDirections);
+        _viewModel.ShowDirectionSelector(mech.Position.Coordinates, _possibleDirections.Keys);
         _viewModel.NotifyStateChanged();
     }
 }
