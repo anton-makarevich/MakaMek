@@ -1,4 +1,6 @@
-﻿# Game Rules Architecture Analysis
+# Game Rules Architecture Analysis
+
+> **📋 Document Context**: This is the original analysis focusing on centralized rules provider benefits. For an updated perspective that addresses extensibility concerns and proposes a hybrid solution, see [Rules-Provider-Analysis-Updated.md](./Rules-Provider-Analysis-Updated.md). Both documents provide valuable insights for different architectural priorities and should be considered together when making implementation decisions.
 
 ## Overview
 
