@@ -351,29 +351,38 @@ public class MovementState : IUiState
             if (_selectedUnit is Mech { IsProne: true } mech
                 && _viewModel.Game is not null)
             {
-                // If Mech can't stand up, return empty actions list
-                if (!mech.CanStandup()) return [];
-                // Calculate piloting skill roll breakdown and success probability for standing up
-                var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
-                    mech, PilotingSkillRollType.StandupAttempt);
+                var proneActions = new List<StateAction>();
 
-                var successProbability =
-                    Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
+                // Add standup action if possible
+                if (mech.CanStandup())
+                {
+                    // Calculate piloting skill roll breakdown and success probability for standing up
+                    var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
+                        mech, PilotingSkillRollType.StandupAttempt);
 
-                // Format the probability as percentage
-                var probabilityText = $" ({successProbability:0}%)";
+                    var successProbability =
+                        Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
 
-                // If the Mech is prone, only offer the "Attempt Standup" action if it can stand up
+                    // Format the probability as percentage
+                    var probabilityText = $" ({successProbability:0}%)";
 
-                return
-                [
-                    new StateAction(
+                    proneActions.Add(new StateAction(
                         _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
                         true,
-                        () => HandleStandupAttempt(mech))
-                ];
+                        () => HandleStandupAttempt(mech)));
+                }
 
-                
+                // Add facing change action if possible
+                if (mech.CanChangeFacingWhileProne())
+                {
+                    var availableMp = mech.GetMovementPoints(MovementType.Walk);
+                    proneActions.Add(new StateAction(
+                        string.Format(_viewModel.LocalizationService.GetString("Action_ChangeFacing"), availableMp),
+                        true,
+                        () => HandleProneFacingChange(mech)));
+                }
+
+                return proneActions;
             }
 
             var actions = new List<StateAction>
@@ -431,7 +440,7 @@ public class MovementState : IUiState
     private void HandleStandupAttempt(Mech mech)
     {
         if (_viewModel.Game?.ActivePlayer == null) return;
-        
+
         // Create a standup command
         var standupCommand = new TryStandupCommand
         {
@@ -439,8 +448,52 @@ public class MovementState : IUiState
             UnitId = mech.Id,
             PlayerId = _viewModel.Game.ActivePlayer.Id
         };
-        
+
         // Publish the command
         _viewModel.Game.TryStandupUnit(standupCommand);
+    }
+
+    // New method to handle prone facing change
+    private void HandleProneFacingChange(Mech mech)
+    {
+        if (_viewModel.Game?.ActivePlayer == null) return;
+        if (mech.Position == null || !mech.IsProne) return;
+
+        // Set up for prone facing change movement
+        _builder.SetMovementType(MovementType.Walk);
+        _movementPoints = mech.GetMovementPoints(MovementType.Walk);
+
+        // Calculate maximum rotation steps based on available movement points
+        var maxRotateSteps = Math.Min(3, _movementPoints);
+
+        // Reset possible directions
+        _possibleDirections = [];
+
+        var currentFacing = mech.Position.Facing;
+
+        void AddToPossibleDirections(HexDirection direction, int cost)
+        {
+            var pathSegments = new List<PathSegment>
+            {
+                new(mech.Position, mech.Position with { Facing = direction }, cost)
+            };
+            _possibleDirections[direction] = pathSegments;
+        }
+
+        // Generate possible directions by rotating from current facing
+        for (var steps = 1; steps <= maxRotateSteps; steps++)
+        {
+            var rotatedDirectionCw = currentFacing.Rotate(steps);
+            AddToPossibleDirections(rotatedDirectionCw, steps);
+        
+            if (steps == 3) break; // We don't want to duplicate opposite direction
+        
+            var rotatedDirectionCcw = currentFacing.Rotate(-steps);
+            AddToPossibleDirections(rotatedDirectionCcw, steps);
+        }
+
+        CurrentMovementStep = MovementStep.SelectingDirection;
+        _viewModel.ShowDirectionSelector(mech.Position.Coordinates, _possibleDirections.Keys);
+        _viewModel.NotifyStateChanged();
     }
 }

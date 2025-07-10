@@ -198,14 +198,31 @@ public class Mech : Unit
     public bool CanStandup()
     {
         if (IsShutdown) return false;
-        
+
         var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
         if (destroyedLegs >= 2) return false;
-        
+
         // Check if the Mech has at least one movement point available
         if (GetMovementPoints(MovementType.Walk) < 1) return false;
 
         if (Crew?.IsUnconscious == true) return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Determines if the mech can change its facing while prone
+    /// </summary>
+    public bool CanChangeFacingWhileProne()
+    {
+        // Must be prone to use this action
+        if (!IsProne) return false;
+
+        // Cannot change facing if shutdown
+        if (IsShutdown) return false;
+
+        // Must have at least 1 movement point available
+        if (GetMovementPoints(MovementType.Walk) < 1) return false;
         
         return true;
     }

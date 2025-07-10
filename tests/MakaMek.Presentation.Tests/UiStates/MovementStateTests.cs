@@ -59,6 +59,7 @@ public class MovementStateTests
         localizationService.GetString("MovementType_Run").Returns("Run");
         localizationService.GetString("MovementType_Jump").Returns("Jump");
         localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
+        localizationService.GetString("Action_ChangeFacing").Returns("Change Facing | MP: {0}");
         
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
@@ -696,7 +697,7 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void GetAvailableActions_ProneMech_OnlyShowsAttemptStandupAction()
+    public void GetAvailableActions_ProneMech_ShowsStandupAction()
     {
         // Arrange
         var proneMech = _unit1 as Mech;
@@ -713,8 +714,10 @@ public class MovementStateTests
         var actions = _sut.GetAvailableActions().ToList();
 
         // Assert
-        actions.Count.ShouldBe(1, "Only one action should be available for prone mech");
-        actions[0].Label.ShouldBe("Attempt Standup (92%)", "Action should be 'Attempt Standup'");
+        actions.Count.ShouldBeGreaterThan(0, "Should have actions available for prone mech");
+        var standupAction = actions.FirstOrDefault(a => a.Label.Contains("Attempt Standup"));
+        standupAction.ShouldNotBeNull("Should have standup action");
+        standupAction.Label.ShouldBe("Attempt Standup (92%)", "Standup action should show probability");
     }
 
     [Fact]
@@ -988,5 +991,81 @@ public class MovementStateTests
         jumpAction.Label.ShouldContain("("); // Should contain probability percentage
         jumpAction.Label.ShouldContain("%)"); // Should contain percentage symbol
 
+    }
+
+    [Fact]
+    public void GetAvailableActions_ProneMech_ShowsBothStandupAndChangeFacingActions()
+    {
+        // Arrange
+        var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(2, "Prone mech should have both standup and change facing actions");
+
+        var standupAction = actions.FirstOrDefault(a => a.Label.Contains("Attempt Standup"));
+        standupAction.ShouldNotBeNull("Should have standup action");
+        standupAction.Label.ShouldBe("Attempt Standup (92%)");
+
+        var changeFacingAction = actions.FirstOrDefault(a => a.Label.Contains("Change Facing"));
+        changeFacingAction.ShouldNotBeNull("Should have change facing action");
+        changeFacingAction.Label.ShouldBe("Change Facing | MP: 8", "Should show available MP in localized format");
+    }
+
+    [Fact]
+    public void HandleProneFacingChange_ShowsDirectionSelector_WithValidDirections()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var proneMech = _unit1 as Mech;
+
+        // Set up piloting skill calculator mock
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        proneMech!.Deploy(position);
+        proneMech.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+
+        var actions = _sut.GetAvailableActions().ToList();
+        var changeFacingAction = actions.FirstOrDefault(a => a.Label.Contains("Change Facing"));
+        changeFacingAction.ShouldNotBeNull();
+
+        // Act
+        changeFacingAction.OnExecute();
+
+        // Assert
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue("Direction selector should be visible");
+        _battleMapViewModel.DirectionSelectorPosition.ShouldBe(position.Coordinates, "Direction selector should be at mech position");
+        _battleMapViewModel.AvailableDirections.ShouldNotBeNull("Available directions should not be null");
+
+        var availableDirections = _battleMapViewModel.AvailableDirections.ToList();
+        availableDirections.ShouldNotBeEmpty("Should have available directions");
+
+        // Should not include current facing direction
+        availableDirections.ShouldNotContain(HexDirection.Bottom, "Should not include current facing direction");
+
+        // With 4 MP, should be able to rotate up to 3 hexsides in either direction
+        // This means we can reach: Top (3 steps), TopRight (2 steps), BottomRight (1 step),
+        // BottomLeft (1 step), TopLeft (2 steps) - all except Bottom (current facing)
+        availableDirections.Count.ShouldBe(5, "Should have 5 available directions (all except current facing)");
+
+        _sut.ActionLabel.ShouldBe("Select facing direction", "Should transition to direction selection step");
     }
 }

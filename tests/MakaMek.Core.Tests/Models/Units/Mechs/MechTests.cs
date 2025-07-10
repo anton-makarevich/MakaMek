@@ -1393,4 +1393,48 @@ public class MechTests
         // Assert
         canStandup.ShouldBeFalse("Mech should not be able to stand up when both legs are not available");
     }
+
+    [Fact]
+    public void CanChangeFacingWhileProne_WhenMechIsNotProne_ShouldReturnFalse()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+
+        // Act & Assert
+        mech.CanChangeFacingWhileProne().ShouldBeFalse("Non-prone mechs should not be able to change facing while prone");
+    }
+
+    [Fact]
+    public void CanChangeFacingWhileProne_WhenMechIsProneAndHasMovementPoints_ShouldReturnTrue()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        mech.SetProne();
+
+        // Act & Assert
+        mech.CanChangeFacingWhileProne().ShouldBeTrue("Prone mechs with movement points should be able to change facing");
+    }
+
+    [Fact]
+    public void CanChangeFacingWhileProne_WhenMechIsProneButShutdown_ShouldReturnFalse()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        mech.SetProne();
+        mech.Shutdown();
+
+        // Act & Assert
+        mech.CanChangeFacingWhileProne().ShouldBeFalse("Shutdown mechs should not be able to change facing");
+    }
+
+    [Fact]
+    public void CanChangeFacingWhileProne_WhenMechIsProneButNoMovementPoints_ShouldReturnFalse()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        mech.SetProne();
+
+        // Act & Assert
+        mech.CanChangeFacingWhileProne().ShouldBeFalse("Mechs without movement points should not be able to change facing");
+    }
 }
