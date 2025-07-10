@@ -134,6 +134,7 @@ public class FakeLocalizationService: ILocalizationService
             "Action_MoveUnit" => "Move Unit",
             "Action_StandStill" => "Stand Still",
             "Action_AttemptStandup" => "Attempt Standup",
+            "Action_ChangeFacing" => "Change Facing | MP: {0}",
             "Action_MovementPoints" => "{0} | MP: {1}",
             
             // Movement types

@@ -377,7 +377,7 @@ public class MovementState : IUiState
                 {
                     var availableMp = mech.GetMovementPoints(MovementType.Walk);
                     proneActions.Add(new StateAction(
-                        $"Change Facing (MP: {availableMp})",
+                        string.Format(_viewModel.LocalizationService.GetString("Action_ChangeFacing"), availableMp),
                         true,
                         () => HandleProneFacingChange(mech)));
                 }
