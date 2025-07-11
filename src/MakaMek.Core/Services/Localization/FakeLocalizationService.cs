@@ -133,6 +133,7 @@ public class FakeLocalizationService: ILocalizationService
             "Action_SelectFacingDirection" => "Select facing direction",
             "Action_MoveUnit" => "Move Unit",
             "Action_StandStill" => "Stand Still",
+            "Action_StayProne" => "Stay Prone",
             "Action_AttemptStandup" => "Attempt Standup",
             "Action_ChangeFacing" => "Change Facing | MP: {0}",
             "Action_MovementPoints" => "{0} | MP: {1}",
