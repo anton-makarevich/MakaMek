@@ -54,6 +54,7 @@ public class MovementStateTests
         localizationService.GetString("Action_SelectFacingDirection").Returns("Select facing direction");
         localizationService.GetString("Action_MoveUnit").Returns("Move Unit");
         localizationService.GetString("Action_StandStill").Returns("Stand Still");
+        localizationService.GetString("Action_StayProne").Returns("Stay Prone");
         localizationService.GetString("Action_MovementPoints").Returns("{0} | MP: {1}");
         localizationService.GetString("MovementType_Walk").Returns("Walk");
         localizationService.GetString("MovementType_Run").Returns("Run");
@@ -721,7 +722,7 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void GetAvailableActions_ProneMech_CannotStandup_ReturnsEmptyList()
+    public void GetAvailableActions_ProneMech_CannotStandup_StillHasStayProneAction()
     {
         // Arrange
         _pilotingSkillCalculator.GetPsrBreakdown(Arg.Any<Mech>(), PilotingSkillRollType.StandupAttempt)
@@ -733,14 +734,16 @@ public class MovementStateTests
         // Set up a prone Mech that cannot stand up
         var proneMech = _unit1 as Mech;
         proneMech!.SetProne();
-        proneMech.Shutdown(); // shutdown cannot stand up 
+        proneMech.Shutdown(); // shutdown cannot stand up
         _sut.HandleUnitSelection(proneMech);
-        
+
         // Act
         var actions = _sut.GetAvailableActions().ToList();
-    
+
         // Assert
-        actions.Count.ShouldBe(0, "No actions should be available for prone mech that cannot stand up");
+        actions.Count.ShouldBe(1, "Prone mech that cannot stand up should still have stay prone action");
+        var stayProneAction = actions.FirstOrDefault(a => a.Label.Contains("Stay Prone"));
+        stayProneAction.ShouldNotBeNull("Should have stay prone action even when cannot stand up");
     }
 
     [Theory]
@@ -892,7 +895,7 @@ public class MovementStateTests
             });
         proneMech!.SetProne();
         _sut.HandleUnitSelection(proneMech);
-        var standupAction = _sut.GetAvailableActions().First();
+        var standupAction = _sut.GetAvailableActions().First(a=> a.Label.Contains("Attempt Standup"));
         
         // Act
         standupAction.OnExecute();
@@ -1011,7 +1014,7 @@ public class MovementStateTests
         var actions = _sut.GetAvailableActions().ToList();
 
         // Assert
-        actions.Count.ShouldBe(2, "Prone mech should have both standup and change facing actions");
+        actions.Count.ShouldBe(3, "Prone mech should have standup, change facing, and stay prone actions");
 
         var standupAction = actions.FirstOrDefault(a => a.Label.Contains("Attempt Standup"));
         standupAction.ShouldNotBeNull("Should have standup action");
@@ -1020,6 +1023,35 @@ public class MovementStateTests
         var changeFacingAction = actions.FirstOrDefault(a => a.Label.Contains("Change Facing"));
         changeFacingAction.ShouldNotBeNull("Should have change facing action");
         changeFacingAction.Label.ShouldBe("Change Facing | MP: 8", "Should show available MP in localized format");
+
+        var stayProneAction = actions.FirstOrDefault(a => a.Label.Contains("Stay Prone"));
+        stayProneAction.ShouldNotBeNull("Should have stay prone action");
+        stayProneAction.Label.ShouldBe("Stay Prone");
+    }
+
+    [Fact]
+    public void GetAvailableActions_ProneMech_StayProneAction_CompletesMovement()
+    {
+        // Arrange
+        var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+
+        var actions = _sut.GetAvailableActions().ToList();
+        var stayProneAction = actions.FirstOrDefault(a => a.Label.Contains("Stay Prone"));
+        stayProneAction.ShouldNotBeNull();
+
+        // Act
+        stayProneAction.OnExecute();
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed, "Stay prone should complete movement like standing still");
     }
 
     [Fact]

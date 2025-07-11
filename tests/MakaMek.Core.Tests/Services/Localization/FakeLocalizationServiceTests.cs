@@ -123,6 +123,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Action_SelectFacingDirection", "Select facing direction")]
     [InlineData("Action_MoveUnit", "Move Unit")]
     [InlineData("Action_StandStill", "Stand Still")]
+    [InlineData("Action_StayProne", "Stay Prone")]
     [InlineData("Action_MovementPoints", "{0} | MP: {1}")]
     [InlineData("Action_AttemptStandup", "Attempt Standup")]
     [InlineData("Action_ChangeFacing", "Change Facing | MP: {0}")]

@@ -351,7 +351,14 @@ public class MovementState : IUiState
             if (_selectedUnit is Mech { IsProne: true } mech
                 && _viewModel.Game is not null)
             {
-                var proneActions = new List<StateAction>();
+                var proneActions = new List<StateAction>
+                {
+                    // Add stay prone action (equivalent to standing still for prone mechs)
+                    new(
+                        _viewModel.LocalizationService.GetString("Action_StayProne"),
+                        true,
+                        () => HandleMovementTypeSelection(MovementType.StandingStill))
+                };
 
                 // Add standup action if possible
                 if (mech.CanStandup())
