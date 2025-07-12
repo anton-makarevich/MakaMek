@@ -63,7 +63,7 @@ The Units module provides the core abstractions and logic for all controllable u
 ### 7. Enums & Value Types
 - **ArmorLocation, PartLocation:** Enumerate possible part/armor locations for hit/damage logic.
 - **HitDirection:** Indicates direction of incoming damage (front, side, rear).
-- **MovementType:** Enumerates movement modes (walk, run, jump, sprint, masc, prone, etc.).
+- **MovementType:** Enumerates movement modes (walk, run, jump, sprint, MASC, prone, etc.).
 - **UnitStatus:** **Enhanced Flags Enum** tracks operational state with validation (Active, Shutdown, Prone, Immobile, Destroyed).
 - **ComponentStatus:** Tracks component operational state (Active, Destroyed, Removed, Lost, Deactivated, Damaged).
 - **WeightClass:** Categorizes units by tonnage (light, medium, heavy, assault).

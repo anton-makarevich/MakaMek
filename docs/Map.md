@@ -15,7 +15,7 @@ The Map module implements the core logic for the game's hex-based battle map. It
   - Pathfinding: Finds optimal paths between positions, considering movement cost, facing, and prohibited hexes. Supports both standard and jump movement.
   - Computes reachable hexes for a given unit, considering movement points, terrain, and prohibited areas.
   - Line-of-sight (LOS): Determines visibility between hexes, factoring in height, terrain, and intervening hexes. Uses a cache for performance.
-  - Exposes utility methods for LOS hex listing, LOS cache clearing, map boundary validation, and map boundary checks.
+  - Exposes utility methods for LOS hex listing, LOS cache clearing and map boundary validation.
   - Converts the map to data objects for serialization.
 
 ### 2. Hex
