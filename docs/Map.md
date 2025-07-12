@@ -1,7 +1,7 @@
-# Map Module Architecture (MakaMek.Core)
+﻿# Map Module Architecture (MakaMek.Core)
 
 ## Overview
-The Map module implements the core logic for the game’s hex-based battle map. It encapsulates the structure, manipulation, and querying of map tiles (hexes), terrain, movement/pathfinding, line-of-sight (LOS), and firing arcs. The design supports extensibility (e.g., new terrain types, custom map generation) and efficient spatial calculations critical for gameplay.
+The Map module implements the core logic for the game's hex-based battle map. It encapsulates the structure, manipulation, and querying of map tiles (hexes), terrain, movement/pathfinding, line-of-sight (LOS), and firing arcs. The design supports extensibility (e.g., new terrain types, custom map generation) and efficient spatial calculations critical for gameplay.
 
 ---
 
@@ -13,9 +13,9 @@ The Map module implements the core logic for the game’s hex-based battle map. 
   - Stores map dimensions and a dictionary of hexes (by coordinates).
   - Adds, retrieves, and iterates over hexes.
   - Pathfinding: Finds optimal paths between positions, considering movement cost, facing, and prohibited hexes. Supports both standard and jump movement.
-  - Computes reachable hexes for a given unit, considering movement points and terrain.
+  - Computes reachable hexes for a given unit, considering movement points, terrain, and prohibited areas.
   - Line-of-sight (LOS): Determines visibility between hexes, factoring in height, terrain, and intervening hexes. Uses a cache for performance.
-  - Exposes utility methods for LOS hex listing, LOS cache clearing, and map boundary checks.
+  - Exposes utility methods for LOS hex listing, LOS cache clearing and map boundary validation.
   - Converts the map to data objects for serialization.
 
 ### 2. Hex
@@ -36,7 +36,7 @@ The Map module implements the core logic for the game’s hex-based battle map. 
   - Supports conversion to/from data objects and string representations.
 
 ### 4. HexDirection & HexPosition
-- **HexDirection:** Enum or class representing the six possible directions in a hex grid (Top, TopRight, BottomRight, Bottom, BottomLeft, TopLeft).
+- **HexDirection:** Enum representing the six possible directions in a hex grid (Top, TopRight, BottomRight, Bottom, BottomLeft, TopLeft).
 - **HexPosition:** Combines a coordinate and facing direction, used for pathfinding and movement logic.
 
 ### 5. Pathfinding & Reachability
@@ -44,8 +44,9 @@ The Map module implements the core logic for the game’s hex-based battle map. 
   - The map supports both standard (terrain/facing-aware) and jump (distance-only) movement.
   - Standard pathfinding accounts for turning costs, movement costs per terrain, and optionally prohibited hexes.
   - Returns a sequence of `PathSegment` objects representing each step (move/turn) with associated cost.
-  - Reachability: Efficiently computes all hexes reachable within a movement budget, considering facing and terrain.
-- **Jump movement:** Ignores terrain/facing, each hex costs 1.
+  - **Enhanced Parameters:** Both `FindPath` and reachability methods now support `prohibitedHexes` parameter for avoiding specific areas.
+- **Reachability:** Efficiently computes all hexes reachable within a movement budget, considering facing, terrain, and prohibited areas.
+- **Jump movement:** Ignores terrain/facing, each hex costs 1. Supports prohibited hexes for tactical restrictions.
 
 ### 6. Line-of-Sight (LOS)
 - **LOS Calculation:**
@@ -53,7 +54,10 @@ The Map module implements the core logic for the game’s hex-based battle map. 
   - Uses a line-drawing algorithm on the hex grid, with special handling for ambiguous (divided) segments.
   - LOS is blocked if intervening height or total terrain factor exceeds thresholds.
   - LOS paths are cached for efficiency.
-- **LOS Hex Listing:** Returns all hexes along the LOS between two points.
+- **LOS Hex Listing:** 
+  - `GetHexesAlongLineOfSight` method returns detailed hex information along the LOS path.
+  - Returns all hexes along the LOS between two points for tactical analysis.
+- **Boundary Validation:** `IsOnMap` method provides efficient boundary checking for coordinate validation.
 
 ### 7. Firing Arcs
 - **FiringArc:** Enum representing forward, left, right, and rear arcs.
