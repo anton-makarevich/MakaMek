@@ -578,7 +578,6 @@ public class FallProcessorTests
     public void ProcessPotentialFall_ShouldReturnCommandWithFailedLlaPsrAndPilotDamagePsr_WhenLlaPsrFails()
     {
         // Arrange
-        // For LLA, the specific component (e.g., LeftLowerLegActuator) isn't as crucial as the fact it IS an LLA.
         // The FallProcessor uses FallInducingCriticalsMap which maps MakaMekComponent.LowerLegActuator.
         var componentHits = SetupCriticalHits(MakaMekComponent.LowerLegActuator, 1); 
 
@@ -626,6 +625,68 @@ public class FallProcessorTests
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
             Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.LowerLegActuatorHit),
+            _game);
+
+        // Verify GetPsrBreakdown was called for PilotDamageFromFall
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall),
+            _game);
+            
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(_testMech, 0, false);
+    }
+    
+    [Fact]
+    public void ProcessPotentialFall_ShouldReturnCommandWithFailedUlaPsrAndPilotDamagePsr_WhenUlaPsrFails()
+    {
+        // Arrange
+        // The FallProcessor uses FallInducingCriticalsMap which maps MakaMekComponent.UpperLegActuator.
+        var componentHits = SetupCriticalHits(MakaMekComponent.UpperLegActuator, 1); 
+
+        // Setup LLA Hit PSR to fail.
+        // BasePilotingSkill = 4. LLA Hit Mod +1 (from memory/typical rules). TargetNumber = 5.
+        SetupPsrFor(PilotingSkillRollType.UpperLegActuatorHit, 1, "Lower Leg Actuator Hit");
+        
+        // Setup PilotDamageFromFall PSR.
+        // BasePilotingSkill = 4. No specific modifier for this example. TargetNumber = 4.
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall"); 
+
+        // Dice rolls:
+        // First roll (4) for LLA Hit PSR (4 < 5 fails).
+        // Second roll (5) for PilotDamageFromFall PSR (5 >= 4 succeeds).
+        SetupDiceRolls(4, 5); 
+
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
+            .Returns(fallingDamageData);
+
+        // Act
+        var result = _sut.ProcessPotentialFall(_testMech, _game, componentHits).First();
+
+        // Assert
+        result.GameOriginId.ShouldBe(_gameId);
+        result.UnitId.ShouldBe(_testMech.Id);
+        result.DamageData.ShouldBe(fallingDamageData);
+
+        result.FallPilotingSkillRoll.ShouldNotBeNull();
+        result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.UpperLegActuatorHit);
+        result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
+        result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(4);
+        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (LLA mod)
+
+        result.IsPilotingSkillRollRequired.ShouldBeTrue();
+        result.IsPilotTakingDamage.ShouldBeFalse(); 
+        
+        result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
+        result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
+        result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue(); // Based on dice roll 5 vs target 4
+        result.PilotDamagePilotingSkillRoll?.DiceResults.Sum().ShouldBe(5);
+        result.PilotDamagePilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(4);
+
+        // Verify GetPsrBreakdown was called for UpperLegActuatorHit
+        _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
+            _testMech,
+            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.UpperLegActuatorHit),
             _game);
 
         // Verify GetPsrBreakdown was called for PilotDamageFromFall
