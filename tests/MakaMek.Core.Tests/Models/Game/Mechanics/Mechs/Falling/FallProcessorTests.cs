@@ -643,16 +643,16 @@ public class FallProcessorTests
         // The FallProcessor uses FallInducingCriticalsMap which maps MakaMekComponent.UpperLegActuator.
         var componentHits = SetupCriticalHits(MakaMekComponent.UpperLegActuator, 1); 
 
-        // Setup LLA Hit PSR to fail.
-        // BasePilotingSkill = 4. LLA Hit Mod +1 (from memory/typical rules). TargetNumber = 5.
-        SetupPsrFor(PilotingSkillRollType.UpperLegActuatorHit, 1, "Lower Leg Actuator Hit");
+        // Setup ULA Hit PSR to fail.
+        // BasePilotingSkill = 4. ULA Hit Mod +1 (from memory/typical rules). TargetNumber = 5.
+        SetupPsrFor(PilotingSkillRollType.UpperLegActuatorHit, 1, "Upper Leg Actuator Hit");
         
         // Setup PilotDamageFromFall PSR.
         // BasePilotingSkill = 4. No specific modifier for this example. TargetNumber = 4.
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall"); 
 
         // Dice rolls:
-        // First roll (4) for LLA Hit PSR (4 < 5 fails).
+        // First roll (4) for ULA Hit PSR (4 < 5 fails).
         // Second roll (5) for PilotDamageFromFall PSR (5 >= 4 succeeds).
         SetupDiceRolls(4, 5); 
 
@@ -672,7 +672,7 @@ public class FallProcessorTests
         result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.UpperLegActuatorHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
         result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(4);
-        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (LLA mod)
+        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (ULA mod)
 
         result.IsPilotingSkillRollRequired.ShouldBeTrue();
         result.IsPilotTakingDamage.ShouldBeFalse(); 
