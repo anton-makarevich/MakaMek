@@ -21,6 +21,7 @@ public class FallProcessor : IFallProcessor
     {
         { MakaMekComponent.Gyro, FallReasonType.GyroHit },
         { MakaMekComponent.LowerLegActuator, FallReasonType.LowerLegActuatorHit },
+        { MakaMekComponent.UpperLegActuator, FallReasonType.UpperLegActuatorHit },
         { MakaMekComponent.Hip, FallReasonType.HipActuatorHit },
         { MakaMekComponent.FootActuator, FallReasonType.FootActuatorHit }
     };

@@ -50,7 +50,8 @@ public enum FallReasonType
     /// <summary>
     /// Jump attempt with damaged gyro or foot/leg/hip actuators (requires PSR)
     /// </summary>
-    JumpWithDamage
+    JumpWithDamage,
+    UpperLegActuatorHit
 }
 
 /// <summary>
@@ -69,6 +70,7 @@ public static class FallReasonTypeExtensions
         {
             FallReasonType.GyroHit => PilotingSkillRollType.GyroHit,
             FallReasonType.LowerLegActuatorHit => PilotingSkillRollType.LowerLegActuatorHit,
+            FallReasonType.UpperLegActuatorHit => PilotingSkillRollType.UpperLegActuatorHit,
             FallReasonType.HipActuatorHit => PilotingSkillRollType.HipActuatorHit,
             FallReasonType.FootActuatorHit => PilotingSkillRollType.FootActuatorHit,
             FallReasonType.HeavyDamage => PilotingSkillRollType.HeavyDamage,

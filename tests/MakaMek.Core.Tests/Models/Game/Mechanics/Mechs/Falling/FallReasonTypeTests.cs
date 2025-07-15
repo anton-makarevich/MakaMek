@@ -9,6 +9,7 @@ public class FallReasonTypeTests
     [Theory]
     [InlineData(FallReasonType.GyroHit, PilotingSkillRollType.GyroHit)]
     [InlineData(FallReasonType.LowerLegActuatorHit, PilotingSkillRollType.LowerLegActuatorHit)]
+    [InlineData(FallReasonType.UpperLegActuatorHit, PilotingSkillRollType.UpperLegActuatorHit)]
     [InlineData(FallReasonType.HeavyDamage, PilotingSkillRollType.HeavyDamage)]
     [InlineData(FallReasonType.StandUpAttempt, PilotingSkillRollType.StandupAttempt)]
     [InlineData(FallReasonType.JumpWithDamage, PilotingSkillRollType.JumpWithDamage)]
