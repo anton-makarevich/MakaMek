@@ -1811,13 +1811,36 @@ public class UnitTests
     public void IsImmobile_ShouldReturnTrue_WhenStatusSetToImmobile()
     {
         // Arrange
-        var unit = CreateTestUnit();
+        var sut = CreateTestUnit();
 
         // Act
-        unit.SetStatusForTesting(UnitStatus.Immobile);
+        sut.SetStatusForTesting(UnitStatus.Immobile);
 
         // Assert
-        unit.IsImmobile.ShouldBeTrue();
+        sut.IsImmobile.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void CanJump_BaseUnitClass_ShouldReturnFalse()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+
+        // Act & Assert
+        sut.CanJump.ShouldBeFalse("Base Unit class should not be able to jump by default");
+    }
+    
+    [Fact]
+    public void CanFireWeapons_ShouldReturnTrue()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+
+        // Act
+        var result = sut.CanFireWeapons;
+
+        // Assert
+        result.ShouldBeTrue();
     }
 
     // Helper class for testing explodable components
@@ -1843,15 +1866,5 @@ public class UnitTests
             Slot = slot,
             Type = MakaMekComponent.ISAmmoMG
         };
-    }
-
-    [Fact]
-    public void CanJump_BaseUnitClass_ShouldReturnFalse()
-    {
-        // Arrange
-        var sut = CreateTestUnit();
-
-        // Act & Assert
-        sut.CanJump.ShouldBeFalse("Base Unit class should not be able to jump by default");
     }
 }

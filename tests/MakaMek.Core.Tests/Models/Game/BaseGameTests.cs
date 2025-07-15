@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -656,6 +657,72 @@ public class BaseGameTests : BaseGame
         playersList.Add(player2);
 
         AlivePlayers.ShouldBe([player1]);
+    }
+    
+    [Fact]
+    public void OnWeaponsAttack_ShouldProcessAttack_WhenSensorsAreIntact()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000"
+        };
+        OnPlayerJoined(joinCommand);
+        var player = Players.First();
+        var mech = player.Units.First() as Mech;
+        mech?.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft));
+        
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            AttackerId = mech!.Id,
+            WeaponTargets = []
+        };
+
+        // Act & Assert - Should not throw or return early
+        Should.NotThrow(() => OnWeaponsAttack(command));
+        mech.HasDeclaredWeaponAttack.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnWeaponsAttack_ShouldNotProcessAttack_WhenSensorsAreDestroyed()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000"
+        };
+        OnPlayerJoined(joinCommand);
+        var player = Players.First();
+        var mech = player.Units.First() as Mech;
+        mech?.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft));
+        var sensors = mech!.GetAllComponents<Sensors>().First();
+        sensors.Hit(); // First hit
+        sensors.Hit(); // Second hit - destroys sensors
+
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            AttackerId = mech.Id,
+            WeaponTargets = []
+        };
+
+        // Act
+        OnWeaponsAttack(command);
+
+        // Assert - Attack should not be processed
+        mech.HasDeclaredWeaponAttack.ShouldBeFalse();
+        mech.CanFireWeapons.ShouldBeFalse();
     }
 
     public override void HandleCommand(IGameCommand command)

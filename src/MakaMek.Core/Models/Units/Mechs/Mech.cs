@@ -104,6 +104,18 @@ public class Mech : Unit
     /// </summary>
     public override int EngineHeatPenalty => GetAllComponents<Engine>().FirstOrDefault()?.HeatPenalty ?? 0;
 
+    /// <summary>
+    /// Determines if this Mech can fire weapons. Returns false if sensors are destroyed (2 critical hits).
+    /// </summary>
+    public override bool CanFireWeapons
+    {
+        get
+        {
+            var sensors = GetAllComponents<Sensors>().FirstOrDefault();
+            return sensors?.IsAvailable == true;
+        }
+    }
+
     protected override void ApplyHeatEffects()
     {
         // Apply effects based on the current heat level
