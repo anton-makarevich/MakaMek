@@ -110,11 +110,11 @@ public class ToHitCalculator : IToHitCalculator
         if (attacker is Mech mech1)
         {
             var sensors = mech1.GetAllComponents<Sensors>().FirstOrDefault();
-            if (sensors?.Hits == 1)
+            if (sensors?.Hits >0)
             {
                 modifiers.Add(new SensorHitModifier
                 {
-                    Value = 2,
+                    Value = _rules.GetSensorHitModifier(sensors.Hits),
                     SensorHits = sensors.Hits
                 });
             }
