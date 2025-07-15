@@ -52,7 +52,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         foreach (var player in _playersInOrder)
         {
             var unitsWithWeaponTargets = player.Units
-                .Where(unit => unit.Parts.SelectMany(p=>p.GetComponents<Weapon>()).Any(weapon => weapon.Target != null))
+                .Where(unit => unit.CanFireWeapons 
+                               && unit.Parts.SelectMany(p=>p.GetComponents<Weapon>())
+                                   .Any(weapon => weapon.Target != null))
                 .ToList();
             
             if (unitsWithWeaponTargets.Count > 0)
