@@ -426,7 +426,7 @@ public class WeaponsAttackStateTests
         var actions = _sut.GetAvailableActions().ToList();
 
         // Assert
-        actions.Count.ShouldBe(2); // Turn Torso, Select Target, Skip Attack
+        actions.Count.ShouldBe(2); // Turn Torso, Skip Attack (Select Target excluded when sensors destroyed)
         actions[0].Label.ShouldBe("Turn Torso");
         actions[1].Label.ShouldBe("Skip Attack");
     }
