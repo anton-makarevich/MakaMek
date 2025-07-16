@@ -79,7 +79,6 @@ public class WeaponsAttackState : IUiState
         if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
         {
             if (unit.HasDeclaredWeaponAttack) return;
-            if (!unit.CanFireWeapons) return;
 
             Attacker = unit;
             CreateWeaponViewModels();
@@ -111,7 +110,7 @@ public class WeaponsAttackState : IUiState
         
         if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
         {
-            if (unit.Owner != _game.ActivePlayer || unit.HasDeclaredWeaponAttack || !unit.CanFireWeapons)
+            if (unit.Owner != _game.ActivePlayer || unit.HasDeclaredWeaponAttack)
                 return;
 
             if (Attacker is not null)

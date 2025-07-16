@@ -107,9 +107,9 @@ public class ToHitCalculator : IToHitCalculator
         }
 
         // Add sensor hit modifier for Mechs
-        if (attacker is Mech mech1)
+        if (attacker is Mech attackerMech)
         {
-            var sensors = mech1.GetAllComponents<Sensors>().FirstOrDefault();
+            var sensors = attackerMech.GetAllComponents<Sensors>().FirstOrDefault();
             if (sensors?.Hits >0)
             {
                 modifiers.Add(new SensorHitModifier
