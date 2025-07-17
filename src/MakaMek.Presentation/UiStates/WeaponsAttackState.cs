@@ -79,7 +79,7 @@ public class WeaponsAttackState : IUiState
         if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
         {
             if (unit.HasDeclaredWeaponAttack) return;
-            
+
             Attacker = unit;
             CreateWeaponViewModels();
             CurrentStep = WeaponsAttackStep.ActionSelection;
@@ -118,7 +118,7 @@ public class WeaponsAttackState : IUiState
                 ClearWeaponRangeHighlights();
                 ResetUnitSelection();
             }
-            
+
             _viewModel.SelectedUnit = unit;
             return;
         }
@@ -212,16 +212,19 @@ public class WeaponsAttackState : IUiState
                     }));
             }
 
-            // Add target selection action
-            actions.Add(new StateAction(
-                _viewModel.LocalizationService.GetString("Action_SelectTarget"),
-                true,
-                () => 
-                {
-                    CurrentStep = WeaponsAttackStep.TargetSelection;
-                    _viewModel.NotifyStateChanged();
-                }));
-                
+            if (Attacker.CanFireWeapons)
+            {
+                // Add target selection action
+                actions.Add(new StateAction(
+                    _viewModel.LocalizationService.GetString("Action_SelectTarget"),
+                    true,
+                    () =>
+                    {
+                        CurrentStep = WeaponsAttackStep.TargetSelection;
+                        _viewModel.NotifyStateChanged();
+                    }));
+            }
+
             // Add skip attack action
             actions.Add(new StateAction(
                 _viewModel.LocalizationService.GetString("Action_SkipAttack"),

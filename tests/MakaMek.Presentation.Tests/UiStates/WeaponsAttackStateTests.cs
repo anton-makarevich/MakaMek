@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services;
@@ -409,6 +410,25 @@ public class WeaponsAttackStateTests
         actions[0].Label.ShouldBe("Turn Torso");
         actions[1].Label.ShouldBe("Select Target");
         actions[2].Label.ShouldBe("Skip Attack");
+    }
+    
+    [Fact]
+    public void GetAvailableActions_InActionSelection_ShouldNotReturnTarget_WhenCanNotFire()
+    {
+        // Arrange
+        _sut.HandleUnitSelection(_unit1);
+        // Destroy sensors
+        var sensors = _unit1.GetAllComponents<Sensors>().First();
+        sensors.Hit(); 
+        sensors.Hit();
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(2); // Turn Torso, Skip Attack (Select Target excluded when sensors destroyed)
+        actions[0].Label.ShouldBe("Turn Torso");
+        actions[1].Label.ShouldBe("Skip Attack");
     }
 
     [Fact]

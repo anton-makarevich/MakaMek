@@ -549,5 +549,19 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             // Assert
             result.ShouldBe(20);
         }
+        
+        [Theory]
+        [InlineData(0, 0)]
+        [InlineData(1, 2)]
+        [InlineData(2, 13)]
+        [InlineData(3, 13)]
+        public void GetSensorHitModifier_ShouldReturnCorrectValue(int sensorHits, int expectedModifier)
+        {
+            // Act
+            var result = _sut.GetSensorHitModifier(sensorHits);
+
+            // Assert
+            result.ShouldBe(expectedModifier);
+        }
     }
 }

@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -304,5 +305,46 @@ public class ToHitCalculatorTests
         
         // Verify the total doesn't include a secondary target modifier
         breakdown.Total.ShouldBe(4); // Just the base gunnery skill
+    }
+    
+     [Fact]
+    public void GetModifierBreakdown_WithIntactSensors_DoesNotIncludeSensorModifier()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Assert
+        result.OtherModifiers.OfType<SensorHitModifier>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_WithOneSensorHit_IncludesSensorModifier()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+    
+        // Setup rules for a sensor hit modifier
+        _rules.GetSensorHitModifier(1).Returns(2);
+        
+        // Damage sensors once
+        var sensors = _attacker!.GetAllComponents<Sensors>().First();
+        sensors.Hit();
+    
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker, _target!, _weapon, map);
+    
+        // Assert
+        var sensorModifier = result.OtherModifiers.OfType<SensorHitModifier>().ShouldHaveSingleItem();
+        sensorModifier.Value.ShouldBe(2);
+        sensorModifier.SensorHits.ShouldBe(1);
     }
 }

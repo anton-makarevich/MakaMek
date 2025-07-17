@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -67,6 +68,28 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             q++;
             r++;
         }
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishCommands_WhenMechCannotFire()
+    {
+        // Arrange
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
+        SetMap();
+        
+        // Destroy sensors
+        var sensors = _player1Unit1.GetAllComponents<Sensors>().First();
+        sensors.Hit();
+        sensors.Hit();
+        
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify no commands were published
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Is<WeaponAttackResolutionCommand>(cmd =>
+            cmd.PlayerId == _player1Id));
     }
 
     [Fact]

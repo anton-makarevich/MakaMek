@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -101,6 +102,20 @@ public class ToHitCalculator : IToHitCalculator
                 {
                     IsInFrontArc = isInFrontArc,
                     Value = _rules.GetSecondaryTargetModifier(isInFrontArc)
+                });
+            }
+        }
+
+        // Add sensor hit modifier for Mechs
+        if (attacker is Mech attackerMech)
+        {
+            var sensors = attackerMech.GetAllComponents<Sensors>().FirstOrDefault();
+            if (sensors?.Hits >0)
+            {
+                modifiers.Add(new SensorHitModifier
+                {
+                    Value = _rules.GetSensorHitModifier(sensors.Hits),
+                    SensorHits = sensors.Hits
                 });
             }
         }

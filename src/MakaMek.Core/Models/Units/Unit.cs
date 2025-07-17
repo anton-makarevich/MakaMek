@@ -346,6 +346,11 @@ public abstract class Unit
         Status |= UnitStatus.Active;
     }
 
+    /// <summary>
+    /// Determines if this unit can fire weapons. Override in derived classes for specific rules.
+    /// </summary>
+    public virtual bool CanFireWeapons => true;
+
     public virtual void Shutdown()
     {
         if (!IsActive) return;

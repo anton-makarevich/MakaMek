@@ -1398,43 +1398,92 @@ public class MechTests
     public void CanChangeFacingWhileProne_WhenMechIsNotProne_ShouldReturnFalse()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
 
         // Act & Assert
-        mech.CanChangeFacingWhileProne().ShouldBeFalse("Non-prone mechs should not be able to change facing while prone");
+        sut.CanChangeFacingWhileProne().ShouldBeFalse("Non-prone mechs should not be able to change facing while prone");
     }
 
     [Fact]
     public void CanChangeFacingWhileProne_WhenMechIsProneAndHasMovementPoints_ShouldReturnTrue()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        mech.SetProne();
+        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        sut.SetProne();
 
         // Act & Assert
-        mech.CanChangeFacingWhileProne().ShouldBeTrue("Prone mechs with movement points should be able to change facing");
+        sut.CanChangeFacingWhileProne().ShouldBeTrue("Prone mechs with movement points should be able to change facing");
     }
 
     [Fact]
     public void CanChangeFacingWhileProne_WhenMechIsProneButShutdown_ShouldReturnFalse()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        mech.SetProne();
-        mech.Shutdown();
+        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        sut.SetProne();
+        sut.Shutdown();
 
         // Act & Assert
-        mech.CanChangeFacingWhileProne().ShouldBeFalse("Shutdown mechs should not be able to change facing");
+        sut.CanChangeFacingWhileProne().ShouldBeFalse("Shutdown mechs should not be able to change facing");
     }
 
     [Fact]
     public void CanChangeFacingWhileProne_WhenMechIsProneButNoMovementPoints_ShouldReturnFalse()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
-        mech.SetProne();
+        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        sut.SetProne();
 
         // Act & Assert
-        mech.CanChangeFacingWhileProne().ShouldBeFalse("Mechs without movement points should not be able to change facing");
+        sut.CanChangeFacingWhileProne().ShouldBeFalse("Mechs without movement points should not be able to change facing");
+    }
+    
+    
+    [Fact]
+    public void CanFireWeapons_ShouldReturnTrue_WhenSensorsAreIntact()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+
+        // Act
+        var result = sut.CanFireWeapons;
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanFireWeapons_ShouldReturnTrue_WhenSensorsHaveOneHit()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sensors = sut.GetAllComponents<Sensors>().First();
+        sensors.Hit();
+
+        // Act
+        var result = sut.CanFireWeapons;
+
+        // Assert
+        result.ShouldBeTrue();
+        sensors.Hits.ShouldBe(1);
+        sensors.IsDestroyed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanFireWeapons_ShouldReturnFalse_WhenSensorsAreDestroyed()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sensors = sut.GetAllComponents<Sensors>().First();
+        sensors.Hit(); // First hit
+        sensors.Hit(); // Second hit - destroys sensors
+
+        // Act
+        var result = sut.CanFireWeapons;
+
+        // Assert
+        result.ShouldBeFalse();
+        sensors.Hits.ShouldBe(2);
+        sensors.IsDestroyed.ShouldBeTrue();
     }
 }

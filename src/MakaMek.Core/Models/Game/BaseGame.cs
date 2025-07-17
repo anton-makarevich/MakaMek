@@ -191,18 +191,21 @@ public abstract class BaseGame : IGame
         // Find the attacking player
         var player = _players.FirstOrDefault(p => p.Id == attackCommand.PlayerId);
         if (player == null) return;
-        
+
         // Find the attacking unit
         var attackerUnit = player.Units.FirstOrDefault(u => u.Id == attackCommand.AttackerId);
         if (attackerUnit == null) return;
-        
+
+        // Validate that the unit can fire weapons
+        if (!attackerUnit.CanFireWeapons) return;
+
         // Find all target units
         var targetIds = attackCommand.WeaponTargets.Select(wt => wt.TargetId).Distinct().ToList();
         var targetUnits = _players
             .SelectMany(p => p.Units)
             .Where(u => targetIds.Contains(u.Id))
             .ToList();
-        
+
         // Declare the weapon attack
         attackerUnit.DeclareWeaponAttack(attackCommand.WeaponTargets, targetUnits);
     }
