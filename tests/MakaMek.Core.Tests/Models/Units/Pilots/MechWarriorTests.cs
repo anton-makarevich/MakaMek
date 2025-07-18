@@ -63,4 +63,61 @@ public class MechWarriorTests
         // Assert
         sut.Injuries.ShouldBe(3);
     }
+    
+    [Fact]
+    public void IsDead_IsFalse_ByDefault()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+        
+        // Assert
+        sut.IsDead.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsDead_WhenInjuriesLessThanHealth_ReturnsFalse()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+
+        // Act
+        sut.Hit();
+
+        // Assert
+        sut.IsDead.ShouldBeFalse();
+    }
+    
+        
+    [Fact]
+    public void IsDead_WhenInjuriesEqualToHealth_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+
+        // Act
+        do
+        {
+            sut.Hit();
+        } while (sut.Injuries < sut.Health);
+
+        // Assert
+        sut.IsDead.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsDead_WhenInjuriesGreaterThanHealth_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+
+        // Act
+        do
+        {
+            sut.Hit();
+        } while (sut.Injuries < sut.Health);
+        sut.Hit();
+
+        // Assert
+        sut.IsDead.ShouldBeTrue();
+    }
 }

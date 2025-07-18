@@ -24,4 +24,6 @@ public interface IPilot
     bool IsUnconscious { get; }
 
     void Hit();
+    
+    bool IsDead { get; }
 }
