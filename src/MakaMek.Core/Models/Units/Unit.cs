@@ -14,10 +14,10 @@ namespace Sanet.MakaMek.Core.Models.Units;
 
 public abstract class Unit
 {
-    protected readonly List<UnitPart> _parts; 
+    protected readonly List<UnitPart> _parts;
     private readonly Queue<UiEvent> _notifications = new();
     private readonly List<UiEvent> _events = new();
-    
+
     protected Unit(string chassis, string model, int tonnage,
         int walkMp,
         IEnumerable<UnitPart> parts,
@@ -34,6 +34,7 @@ public abstract class Unit
         {
             part.Unit = this;
         }
+
         if (id.HasValue)
         {
             Id = id.Value;
@@ -44,9 +45,9 @@ public abstract class Unit
     public string Model { get; }
     public string Name { get; }
     public int Tonnage { get; }
-    
+
     public IPlayer? Owner { get; internal set; }
-    
+
     private UnitStatus _status;
 
     public UnitStatus Status
@@ -59,6 +60,7 @@ public abstract class Unit
                 _status = UnitStatus.Destroyed;
                 return;
             }
+
             // Once destroyed, prevent any further status changes
             if (IsDestroyed)
                 return;
@@ -86,6 +88,8 @@ public abstract class Unit
     /// Gets whether the unit is immobile. Returns true if the Immobile flag is set, regardless of other flags.
     /// </summary>
     public bool IsImmobile => (_status & UnitStatus.Immobile) == UnitStatus.Immobile;
+
+    public bool IsOutOfCommission => IsDestroyed || Crew?.IsDead==true;
 
     public WeightClass Class => Tonnage switch
     {

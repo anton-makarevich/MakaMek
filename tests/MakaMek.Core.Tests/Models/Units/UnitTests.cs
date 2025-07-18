@@ -1794,6 +1794,41 @@ public class UnitTests
             unit.IsDestroyed.ShouldBeFalse($"IsDestroyed should be false for status combination: {statusCombination}");
         }
     }
+    
+    [Fact]
+    public void IsOutOfCommission_ShouldReturnFalse_ByDefault()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Act & Assert
+        unit.IsOutOfCommission.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void IsOutOfCommission_ShouldReturnTrue_WhenCrewIsDead()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        unit.SetCrew(new MechWarrior("John", "Doe"));
+        unit.Crew?.Kill();
+
+        // Act & Assert
+        unit.IsOutOfCommission.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsOutOfCommission_ShouldReturnTrue_WhenUnitIsDestroyed()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Set the unit as destroyed
+        unit.SetStatusForTesting(UnitStatus.Destroyed);
+
+        // Act & Assert
+        unit.IsOutOfCommission.ShouldBeTrue();
+    }
 
     [Fact]
     public void Status_ShouldBeImmutableAfterDestruction_WhenAttemptingToChangeStatus()
