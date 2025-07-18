@@ -20,12 +20,28 @@ public interface IPilot
     /// </summary>
     int Piloting { get; }
 
+    /// <summary>
+    /// Number of injuries sustained by the pilot
+    /// </summary>
     int Injuries { get; }
+    
+    /// <summary>
+    /// Indicates whether the pilot is unconscious
+    /// </summary>
     bool IsUnconscious { get; }
+    
+    /// <summary>
+    /// Indicates whether the pilot is dead
+    /// </summary>
+    bool IsDead { get; }
 
+    /// <summary>
+    /// Applies a hit to the pilot, increasing the number of injuries
+    /// </summary>
     void Hit();
     
+    /// <summary>
+    /// Kills the pilot, setting injuries to health
+    /// </summary>
     void Kill();
-    
-    bool IsDead { get; }
 }

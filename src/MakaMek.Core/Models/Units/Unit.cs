@@ -89,7 +89,7 @@ public abstract class Unit
     /// </summary>
     public bool IsImmobile => (_status & UnitStatus.Immobile) == UnitStatus.Immobile;
 
-    public bool IsOutOfCommission => IsDestroyed || Crew?.IsDead==true;
+    public bool IsOutOfCommission => IsDestroyed || Crew?.IsDead == true;
 
     public WeightClass Class => Tonnage switch
     {
