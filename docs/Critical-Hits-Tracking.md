@@ -7,7 +7,7 @@
 
 - [x] Arm Blown Off (Arm): Occurs on a roll of 12 on the Determining Critical Hits Table for an arm hit. The arm is blown off, and its weapons/equipment are lost. Explosive components in the arm do not explode.
 
-- [ ] Cockpit (Head): Destroys the slot, kills the MechWarrior, and puts the 'Mech out of commission. Small cockpits have the same effect.
+- [x] Cockpit (Head): Destroys the slot, kills the MechWarrior, and puts the 'Mech out of commission. Small cockpits have the same effect.
 
 - [x] Engine (Torso): Fusion engines have 3 shielding points.
   - [x] First hit: Increases heat build-up by 5 points per turn.
