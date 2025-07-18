@@ -7,9 +7,11 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
@@ -1140,6 +1142,28 @@ public class UnitTests
         unit.ApplyDamage([hitLocation]);
         // Assert
         critComponent.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ApplyDamage_WithCockpitCriticalHit_KillsPilot()
+    {
+        // Arrange
+        var head = new Head("Head", 10, 5);
+        var pilot = new MechWarrior("John", "Doe");
+        var unit = new TestUnit("Test", "Unit", 20, 4, [head]);
+        unit.SetCrew(pilot);
+        var hitLocation = new HitLocationData(PartLocation.Head, 0, [], 
+        [new LocationCriticalHitsData(PartLocation.Head, 10, 1, 
+            [CreateComponentHitData(2)])]);
+        var cockpit = unit.GetAllComponents<Cockpit>().First();
+    
+        // Pre-assert: component is not destroyed
+        cockpit.IsDestroyed.ShouldBeFalse();
+        // Act
+        unit.ApplyDamage([hitLocation]);
+        // Assert
+        cockpit.IsDestroyed.ShouldBeTrue();
+        pilot.IsDead.ShouldBeTrue();
     }
     
     [Fact]
