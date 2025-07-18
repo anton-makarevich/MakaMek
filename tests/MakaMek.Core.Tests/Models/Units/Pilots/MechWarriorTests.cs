@@ -120,4 +120,18 @@ public class MechWarriorTests
         // Assert
         sut.IsDead.ShouldBeTrue();
     }
+    
+    [Fact]
+    public void Kill_SetsInjuriesToHealth()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+
+        // Act
+        sut.Kill();
+
+        // Assert
+        sut.Injuries.ShouldBe(sut.Health);
+        sut.IsDead.ShouldBeTrue();
+    }
 }

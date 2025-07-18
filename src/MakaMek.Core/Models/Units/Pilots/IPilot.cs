@@ -25,5 +25,7 @@ public interface IPilot
 
     void Hit();
     
+    void Kill();
+    
     bool IsDead { get; }
 }
