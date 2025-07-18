@@ -276,7 +276,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 .Subscribe(state =>
                 {
                     // Show/hide destroyed indicator
-                    destroyedCross.IsVisible = _unit.IsDestroyed;
+                    destroyedCross.IsVisible = _unit.IsOutOfCommission;
                     _healthBars.IsVisible = !_unit.IsDestroyed;
                     
                     if (state.Position == null) return; // unit is not deployed, no need to display
