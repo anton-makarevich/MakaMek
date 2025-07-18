@@ -62,4 +62,11 @@ public class MechWarrior : IPilot
     {
         Injuries++;
     }
+
+    public void Kill()
+    {
+        Injuries = Health;
+    }
+
+    public bool IsDead => Injuries >= Health;
 }

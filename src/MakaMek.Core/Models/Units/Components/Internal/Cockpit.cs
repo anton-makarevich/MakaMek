@@ -6,4 +6,11 @@ public class Cockpit() : Component("Cockpit", [2])
 {
     public override MakaMekComponent ComponentType => MakaMekComponent.Cockpit;
     public override bool IsRemovable => false;
+
+    public override void Hit()
+    {
+        base.Hit();
+        // Kill the pilot
+        MountedOn?.Unit?.Crew?.Kill();
+    }
 }

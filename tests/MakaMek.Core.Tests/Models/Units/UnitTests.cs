@@ -7,9 +7,11 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
@@ -1143,6 +1145,28 @@ public class UnitTests
     }
     
     [Fact]
+    public void ApplyDamage_WithCockpitCriticalHit_KillsPilot()
+    {
+        // Arrange
+        var head = new Head("Head", 10, 5);
+        var pilot = new MechWarrior("John", "Doe");
+        var unit = new TestUnit("Test", "Unit", 20, 4, [head]);
+        unit.SetCrew(pilot);
+        var hitLocation = new HitLocationData(PartLocation.Head, 0, [], 
+        [new LocationCriticalHitsData(PartLocation.Head, 10, 1, 
+            [CreateComponentHitData(2)])]);
+        var cockpit = unit.GetAllComponents<Cockpit>().First();
+    
+        // Pre-assert: component is not destroyed
+        cockpit.IsDestroyed.ShouldBeFalse();
+        // Act
+        unit.ApplyDamage([hitLocation]);
+        // Assert
+        cockpit.IsDestroyed.ShouldBeTrue();
+        pilot.IsDead.ShouldBeTrue();
+    }
+    
+    [Fact]
     public void ApplyDamage_WithBlownOff_DestroysTheWholePart()
     {
         // Arrange
@@ -1769,6 +1793,41 @@ public class UnitTests
             // Assert
             unit.IsDestroyed.ShouldBeFalse($"IsDestroyed should be false for status combination: {statusCombination}");
         }
+    }
+    
+    [Fact]
+    public void IsOutOfCommission_ShouldReturnFalse_ByDefault()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Act & Assert
+        unit.IsOutOfCommission.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void IsOutOfCommission_ShouldReturnTrue_WhenCrewIsDead()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        unit.SetCrew(new MechWarrior("John", "Doe"));
+        unit.Crew?.Kill();
+
+        // Act & Assert
+        unit.IsOutOfCommission.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsOutOfCommission_ShouldReturnTrue_WhenUnitIsDestroyed()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+
+        // Set the unit as destroyed
+        unit.SetStatusForTesting(UnitStatus.Destroyed);
+
+        // Act & Assert
+        unit.IsOutOfCommission.ShouldBeTrue();
     }
 
     [Fact]
