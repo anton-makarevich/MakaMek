@@ -1880,16 +1880,6 @@ public class UnitTests
     }
     
     [Fact]
-    public void CanJump_BaseUnitClass_ShouldReturnFalse()
-    {
-        // Arrange
-        var sut = CreateTestUnit();
-
-        // Act & Assert
-        sut.CanJump.ShouldBeFalse("Base Unit class should not be able to jump by default");
-    }
-    
-    [Fact]
     public void CanFireWeapons_ShouldReturnTrue()
     {
         // Arrange

@@ -101,11 +101,12 @@ public abstract class Unit
     };
 
     // Base movement (walking)
-    private int BaseMovement { get; }
+    protected int BaseMovement { get; }
     
     // Modified movement after applying effects (defaults to base movement)
-    private int ModifiedMovement => Math.Max(0, BaseMovement - MovementHeatPenalty - MovementPointsSpent);
-    
+    protected int ModifiedMovement => Math.Max(0, DamageReducedMovement - MovementHeatPenalty - MovementPointsSpent);
+    public virtual int DamageReducedMovement => BaseMovement;
+
     // Movement heat penalty
     public virtual int MovementHeatPenalty => 0;
     
@@ -116,26 +117,15 @@ public abstract class Unit
     public virtual int EngineHeatPenalty => 0;
     
     // Movement capabilities
-    public virtual int GetMovementPoints(MovementType type)
+    public virtual int GetMovementPoints(MovementType _)
     {
-        return type switch
-        {
-            MovementType.Walk => ModifiedMovement,
-            MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
-            MovementType.Jump => GetAvailableComponents<JumpJets>().Sum(j => j.JumpMp),
-            _ => 0
-        };
+        return ModifiedMovement;
     }
 
     /// <summary>
     /// Determines if the unit can move backward with the given movement type
     /// </summary>
     public abstract bool CanMoveBackward(MovementType type);
-
-    /// <summary>
-    /// Determines if the unit can perform jump movement
-    /// </summary>
-    public virtual bool CanJump => false;
 
     // Location and facing
     public virtual HexPosition? Position { get; protected set; }

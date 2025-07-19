@@ -1601,15 +1601,15 @@ public class MechTests
 
         // Assert
         sut.GetMovementPoints(MovementType.Walk).ShouldBe(1, "Blown off leg should set walking MP to 1");
-        sut.GetMovementPoints(MovementType.Run).ShouldBe(1, "Blown off leg should prevent running (MP stays at 1)");
+        sut.CanRun.ShouldBeFalse();
         leftLeg.IsBlownOff.ShouldBeTrue();
     }
 
     [Theory]
-    [InlineData(6, 3, 2, 1, 1, 2)] // Base 6 MP: Hip halves to 3, foot -1 = 2, heat -1 = 1, run = 2
-    [InlineData(4, 2, 1, 0, 0, 0)] // Base 4 MP: Hip halves to 2, foot -1 = 1, heat -1 = 0, run = 0
-    [InlineData(8, 4, 3, 2, 2, 3)] // Base 8 MP: Hip halves to 4, foot -1 = 3, heat -1 = 2, run = 3
-    public void MovementPoints_ScenarioTest_HipFootAndHeatDamage(int baseMp, int afterHip, int afterFoot, int afterHeat, int expectedWalk, int expectedRun)
+    [InlineData(6, 3, 2, 1, 2)] // Base 6 MP: Hip halves to 3, foot -1 = 2, heat -1 = 1, run = 2
+    [InlineData(4, 2, 1, 0, 0)] // Base 4 MP: Hip halves to 2, foot -1 = 1, heat -1 = 0, run = 0
+    [InlineData(8, 4, 3, 2, 3)] // Base 8 MP: Hip halves to 4, foot -1 = 3, heat -1 = 2, run = 3
+    public void MovementPoints_ScenarioTest_HipFootAndHeatDamage(int baseMp, int afterHip, int afterFoot, int expectedWalk, int expectedRun)
     {
         // Arrange - Scenario: Destroyed Hip, Destroyed Foot, Heat Level 6 Points
         var sut = new Mech("Test", "TST-1A", 50, baseMp, CreateBasicPartsData());

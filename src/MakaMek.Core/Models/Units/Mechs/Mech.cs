@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -43,6 +44,17 @@ public class Mech : Unit
         // Assign a default mechwarrior with a generated name
         var randomId = Guid.NewGuid().ToString()[..6];
         Crew = new MechWarrior($"MechWarrior", randomId);
+    }
+
+    public override int GetMovementPoints(MovementType type)
+    {
+        return type switch
+        {
+            MovementType.Walk => ModifiedMovement,
+            MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
+            MovementType.Jump =>  GetAvailableComponents<JumpJets>().Sum(j => j.JumpMp),
+            _ => 0
+        };
     }
 
     public bool CanRotateTorso=> PossibleTorsoRotation > 0 && !HasUsedTorsoTwist;
@@ -143,6 +155,51 @@ public class Mech : Unit
             >= 5 => 1,
             _ => 0
         };
+
+    public override int DamageReducedMovement 
+    {
+        get
+        {
+            var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
+            if (destroyedLegs > 0) return 2-destroyedLegs; // This will reduce movement to 1 for one destroyed leg
+
+            var destroyedHips = GetAllComponents<HipActuator>().Count(a => a.IsDestroyed);
+
+            // If both hips are destroyed, movement is 0
+            if (destroyedHips >= 2)
+                return 0; // This will reduce movement to 0
+
+            // If one hip is destroyed, halve the movement (applied as a multiplier, not penalty)
+            var hipModifiedMovement = destroyedHips == 1 
+                ? (int)Math.Ceiling(BaseMovement * 0.5)
+                : BaseMovement;
+            
+            return Math.Max(0, hipModifiedMovement - MovementActuatorPenalty);
+        }
+    }
+
+    /// <summary>
+    /// Calculate movement penalty from damaged/destroyed actuators
+    /// Applied after hip actuator penalty but before heat penalty
+    /// </summary>
+    private int MovementActuatorPenalty
+    {
+        get
+        {
+            var penalty = 0;
+
+            // Count destroyed foot actuators (-1 MP each)
+            penalty += GetAllComponents<FootActuator>().Count(a => a.IsDestroyed);
+
+            // Count destroyed lower leg actuators (-1 MP each)
+            penalty += GetAllComponents<LowerLegActuator>().Count(a => a.IsDestroyed);
+
+            // Count destroyed upper leg actuators (-1 MP each)
+            penalty += GetAllComponents<UpperLegActuator>().Count(a => a.IsDestroyed);
+
+            return penalty;
+        }
+    }
     
     // Calculate attack penalty based on current heat
     public override int AttackHeatPenalty => CurrentHeat switch
@@ -163,7 +220,7 @@ public class Mech : Unit
 
     public override bool CanMoveBackward(MovementType type) => type == MovementType.Walk;
 
-    public override bool CanJump
+    public bool CanJump
     {
         get
         {
@@ -176,6 +233,16 @@ public class Mech : Unit
             // Cannot jump if no functional jump jets are available
             if (GetMovementPoints(MovementType.Jump) < 1) return false;
 
+            return true;
+        }
+    }
+    
+    public bool CanRun {
+        get
+        {
+            if (IsProne) return false;
+            var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
+            if (destroyedLegs > 0) return false;
             return true;
         }
     }

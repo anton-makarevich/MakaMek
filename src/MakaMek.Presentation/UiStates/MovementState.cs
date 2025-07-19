@@ -416,7 +416,7 @@ public class MovementState : IUiState
             };
 
             // Jump
-            if (!_selectedUnit.CanJump) return actions;
+            if (!(_selectedUnit is Mech {CanJump:true })) return actions;
             var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump);
 
             var jumpActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
