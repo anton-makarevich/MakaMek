@@ -39,20 +39,20 @@
 
 ### Legs
 - [x] Lower Leg Actuator: Destroys the actuator. Requires a PSR with a +1 modifier at the end of the phase and for subsequent PSRs.
-  - [ ] Reduces Walking MP by 1 (recalculate Running MP).
+  - [x] Reduces Walking MP by 1 (recalculate Running MP).
 
 - [x] Upper Leg Actuator: Destroys the actuator. Requires a PSR with a +1 modifier at the end of the phase and for subsequent PSRs.
-  - [ ] Reduces Walking MP by 1 (recalculate Running MP).
+  - [x] Reduces Walking MP by 1 (recalculate Running MP).
 
 - [ ] Hip: Freezes the affected leg. Requires a PSR with a +2 modifier at the end of the phase and for subsequent PSRs. Walking MP is halved (recalculate Running MP). 'Mech cannot make kick attacks. Ignores previous critical hit modifiers to that leg.
   - [ ] Second hip hit: Reduces 'Mech's MP to 0 and adds another +2 modifier to PSR (not immobile).
 
 - [x] Foot Actuator: Destroys the foot muscle. Requires a Piloting Skill Roll (PSR) with a +1 modifier at the end of the phase and for subsequent PSRs.
-  - [ ] Reduces Walking MP by 1 (recalculate Running MP).
+  - [x] Reduces Walking MP by 1 (recalculate Running MP).
 
 - [x] Leg Blown Off: Occurs on a roll of 12 on the Determining Critical Hits Table for a leg hit. The leg is blown off, and the 'Mech automatically falls (takes normal falling damage). Explosive components do not explode.
   - [ ] Single Attempt to stand up that counts as running.
-  - [ ] Only one MP if mech is standing up, no run
+  - [x] Only one MP if mech is standing up, no run
 
 ### Arms
 - [ ] Lower Arm Actuator: Destroys the actuator. Adds +1 modifier to weapons firing from that arm;
