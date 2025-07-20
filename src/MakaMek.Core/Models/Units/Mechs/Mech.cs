@@ -1,5 +1,10 @@
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.AttackPenalties;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -114,7 +119,7 @@ public class Mech : Unit
     /// <summary>
     /// Gets the heat penalty caused by engine damage
     /// </summary>
-    public override int EngineHeatPenalty => GetAllComponents<Engine>().FirstOrDefault()?.HeatPenalty ?? 0;
+    public override EngineHeatPenalty? EngineHeatPenalty => GetAllComponents<Engine>().FirstOrDefault()?.HeatPenalty;
 
     /// <summary>
     /// Determines if this Mech can fire weapons. Returns false if sensors are destroyed (2 critical hits).
@@ -146,22 +151,35 @@ public class Mech : Unit
     }
     
     // Calculate movement penalty based on current heat
-    public override int MovementHeatPenalty=> CurrentHeat switch
-        {
-            >= 25 => 5,
-            >= 20 => 4,
-            >= 15 => 3,
-            >= 10 => 2,
-            >= 5 => 1,
-            _ => 0
-        };
-
-    public override int DamageReducedMovement 
+    public override HeatMovementPenalty? MovementHeatPenalty
     {
         get
         {
-            var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
-            if (destroyedLegs > 0) return 2-destroyedLegs; // This will reduce movement to 1 for one destroyed leg
+            if (CurrentHeat < 5) return null;
+            var heatPenaltyValue = CurrentHeat switch
+            {
+                >= 25 => 5,
+                >= 20 => 4,
+                >= 15 => 3,
+                >= 10 => 2,
+                >= 5 => 1,
+                _ => 0
+            };
+            return new HeatMovementPenalty
+            {
+                HeatLevel = CurrentHeat,
+                Value = heatPenaltyValue
+            };
+        }
+    }
+
+    public override int DamageReducedMovement
+    {
+        get
+        {
+            var movementPenalties = GetMovementPenalties();
+            var destroyedLegsPenalty = movementPenalties.OfType<LegDestroyedPenalty>().FirstOrDefault();
+            if (destroyedLegsPenalty != null) return 2-destroyedLegsPenalty.DestroyedLegCount; // This will reduce movement to 1 for one destroyed leg
 
             var destroyedHips = GetAllComponents<HipActuator>().Count(a => a.IsDestroyed);
 
@@ -170,47 +188,122 @@ public class Mech : Unit
                 return 0; // This will reduce movement to 0
 
             // If one hip is destroyed, halve the movement (applied as a multiplier, not penalty)
-            var hipModifiedMovement = destroyedHips == 1 
+            var hipModifiedMovement = destroyedHips == 1
                 ? (int)Math.Ceiling(BaseMovement * 0.5)
                 : BaseMovement;
-            
-            return Math.Max(0, hipModifiedMovement - MovementActuatorPenalty);
-        }
-    }
 
-    /// <summary>
-    /// Calculate movement penalty from damaged/destroyed actuators
-    /// Applied after hip actuator penalty but before heat penalty
-    /// </summary>
-    private int MovementActuatorPenalty
-    {
-        get
-        {
-            var penalty = 0;
+            // Apply actuator penalties (excluding hip penalties which are handled above)
+            var actuatorPenalties = GetMovementPenalties()
+                .Where(p => p is not HipDestroyedPenalty)
+                .Sum(p => p.Value);
 
-            // Count destroyed foot actuators (-1 MP each)
-            penalty += GetAllComponents<FootActuator>().Count(a => a.IsDestroyed);
-
-            // Count destroyed lower leg actuators (-1 MP each)
-            penalty += GetAllComponents<LowerLegActuator>().Count(a => a.IsDestroyed);
-
-            // Count destroyed upper leg actuators (-1 MP each)
-            penalty += GetAllComponents<UpperLegActuator>().Count(a => a.IsDestroyed);
-
-            return penalty;
+            return Math.Max(0, hipModifiedMovement - actuatorPenalties);
         }
     }
     
     // Calculate attack penalty based on current heat
-    public override int AttackHeatPenalty => CurrentHeat switch
+    public override int AttackHeatPenalty => GetAttackPenalties().Sum(p => p.Value);
+
+    /// <summary>
+    /// Gets all movement penalties currently affecting this mech
+    /// </summary>
+    public IReadOnlyList<RollModifier> GetMovementPenalties()
+    {
+        var penalties = new List<RollModifier>();
+
+        var heatPenalty = MovementHeatPenalty;
+        if (heatPenalty != null)
         {
-            >= 24 => 4,
-            >= 17 => 3,
-            >= 13 => 2,
-            >= 8 => 1,
-            _ => 0
-        };
-    
+            penalties.Add(heatPenalty);
+        }
+
+        // Heat movement penalty
+        if (MovementHeatPenalty!=null)
+        {
+            penalties.Add(MovementHeatPenalty);
+        }
+        
+        // Leg destruction penalty
+        var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed);
+        var legDestructionPenalty = LegDestroyedPenalty.Create(destroyedLegs, BaseMovement);
+        if (legDestructionPenalty != null)
+        {
+            penalties.Add(legDestructionPenalty);
+        }
+
+        // Hip actuator penalty
+        var destroyedHips = GetAllComponents<HipActuator>().Count(a => a.IsDestroyed);
+        var hipDestroyedPenalty = HipDestroyedPenalty.Create(destroyedHips, BaseMovement);
+        if (hipDestroyedPenalty != null)
+        {
+            penalties.Add(hipDestroyedPenalty);
+        }
+
+        // Foot actuator penalty
+        var destroyedFoot = GetAllComponents<FootActuator>().Count(a => a.IsDestroyed);
+        if (destroyedFoot > 0)
+        {
+            penalties.Add(new LegActuatorMovementPenalty
+            {
+                DestroyedActuator = MakaMekComponent.FootActuator,
+                Value = destroyedFoot
+            });
+        }
+
+        // Lower leg actuator penalty
+        var destroyedLowerLeg = GetAllComponents<LowerLegActuator>().Count(a => a.IsDestroyed);
+        if (destroyedLowerLeg > 0)
+        {
+            penalties.Add(new LegActuatorMovementPenalty
+            {
+                DestroyedActuator = MakaMekComponent.LowerLegActuator,
+                Value = destroyedLowerLeg
+            });
+        }
+
+        // Upper leg actuator penalty
+        var destroyedUpperLeg = GetAllComponents<UpperLegActuator>().Count(a => a.IsDestroyed);
+        if (destroyedUpperLeg > 0)
+        {
+            penalties.Add(new LegActuatorMovementPenalty
+            {
+                DestroyedActuator = MakaMekComponent.UpperLegActuator,
+                Value = destroyedUpperLeg
+            });
+        }
+
+        return penalties;
+    }
+
+    /// <summary>
+    /// Gets all attack penalties currently affecting this mech
+    /// </summary>
+    public IReadOnlyList<RollModifier> GetAttackPenalties()
+    {
+        var penalties = new List<RollModifier>();
+
+        // Heat attack penalty
+        if (CurrentHeat >= 8)
+        {
+            var heatPenaltyValue = CurrentHeat switch
+            {
+                >= 24 => 4,
+                >= 17 => 3,
+                >= 13 => 2,
+                >= 8 => 1,
+                _ => 0
+            };
+
+            penalties.Add(new HeatAttackPenalty
+            {
+                HeatLevel = CurrentHeat,
+                Value = heatPenaltyValue
+            });
+        }
+
+        return penalties;
+    }
+
     public override int CalculateBattleValue()
     {
         var bv = Tonnage * 100; // Base value
