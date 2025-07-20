@@ -416,9 +416,9 @@ public class MechTests
 
 
     [Theory]
-    [InlineData(5, 8, 2)] // Standard mech without jump jets
-    [InlineData(4, 6, 0)] // Fast mech with jump jets
-    [InlineData(3, 5, 2)] // Slow mech with lots of jump jets
+    [InlineData(5, 8, 2)] 
+    [InlineData(4, 6, 0)] 
+    [InlineData(3, 5, 2)] 
     public void GetMovement_ReturnsCorrectMPs(int walkMp, int runMp, int jumpMp)
     {
         // Arrange
@@ -1636,7 +1636,7 @@ public class MechTests
     }
 
     [Fact]
-    public void MovementPoints_WithBlownOffLeg_ShouldSetWalkingMPToOne()
+    public void GetMovementPoints_WithBlownOffLeg_ShouldSetWalkingMPToOne()
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
@@ -1655,7 +1655,7 @@ public class MechTests
     [InlineData(6, 3, 2, 1, 2)] // Base 6 MP: Hip halves to 3, foot -1 = 2, heat -1 = 1, run = 2
     [InlineData(4, 2, 1, 0, 0)] // Base 4 MP: Hip halves to 2, foot -1 = 1, heat -1 = 0, run = 0
     [InlineData(8, 4, 3, 2, 3)] // Base 8 MP: Hip halves to 4, foot -1 = 3, heat -1 = 2, run = 3
-    public void MovementPoints_ScenarioTest_HipFootAndHeatDamage(int baseMp, int afterHip, int afterFoot, int expectedWalk, int expectedRun)
+    public void GetMovementPoints_ScenarioTest_HipFootAndHeatDamage(int baseMp, int afterHip, int afterFoot, int expectedWalk, int expectedRun)
     {
         // Arrange - Scenario: Destroyed Hip, Destroyed Foot, Heat Level 6 Points
         var sut = new Mech("Test", "TST-1A", 50, baseMp, CreateBasicPartsData());
@@ -1686,5 +1686,18 @@ public class MechTests
         // Final assertions
         sut.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalk, $"Final walking MP after all penalties: {expectedWalk}");
         sut.GetMovementPoints(MovementType.Run).ShouldBe(expectedRun, $"Final running MP: {expectedWalk} * 1.5 = {expectedRun}");
+    }
+    
+    [Fact]
+    public void GetMovementPoints_ForUnknownMovement_ShouldReturnZero()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+
+        // Act
+        var result = sut.GetMovementPoints((MovementType)233);
+
+        // Assert
+        result.ShouldBe(0);
     }
 }
