@@ -416,9 +416,9 @@ public class MechTests
 
 
     [Theory]
-    [InlineData(5, 8, 2)] // Standard mech without jump jets
-    [InlineData(4, 6, 0)] // Fast mech with jump jets
-    [InlineData(3, 5, 2)] // Slow mech with lots of jump jets
+    [InlineData(5, 8, 2)] 
+    [InlineData(4, 6, 0)] 
+    [InlineData(3, 5, 2)] 
     public void GetMovement_ReturnsCorrectMPs(int walkMp, int runMp, int jumpMp)
     {
         // Arrange
@@ -844,6 +844,52 @@ public class MechTests
 
         // Act & Assert
         sut.CanJump.ShouldBeTrue("Mech should be able to jump after standing up and resetting turn state");
+    }
+    
+    [Fact]
+    public void CanRun_ShouldReturnTrue_ForNewMech()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        
+        // Act & Assert
+        sut.CanRun.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void CanRun_WhenMechIsProne_ShouldReturnFalse()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5,CreateBasicPartsData());
+        sut.SetProne();
+
+        // Act & Assert
+        sut.CanRun.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanRun_ShouldReturnFalse_WhenLegIsBlownOff()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leg.BlowOff();
+        
+        // Act & Assert
+        sut.CanRun.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanRun_ShouldReturnFalse_WhenLegIsDestroyed()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leg.ApplyDamage(100);
+        leg.IsDestroyed.ShouldBeTrue();
+        
+        // Act & Assert
+        sut.CanRun.ShouldBeFalse();
     }
     
     [Fact]
@@ -1485,5 +1531,173 @@ public class MechTests
         result.ShouldBeFalse();
         sensors.Hits.ShouldBe(2);
         sensors.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void GetMovementPoints_WithDestroyedHipActuator_ShouldHalveWalkingMP()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var hipActuator = sut.GetAllComponents<HipActuator>().First();
+
+        // Act
+        hipActuator.Hit(); // Destroy hip actuator
+
+        // Assert
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(3, "Hip actuator damage should halve walking MP (6/2=3)");
+        sut.GetMovementPoints(MovementType.Run).ShouldBe(5, "Running MP should be 1.5 times walking MP rounded up (3*1.5=4.5→5)");
+        hipActuator.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetMovementPoints_WithTwoDestroyedHipActuators_ShouldReduceWalkingMPToZero()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var hipActuators = sut.GetAllComponents<HipActuator>().ToList();
+
+        // Act
+        foreach (var actuator in hipActuators)
+        {
+            actuator.Hit(); // Destroy both hip actuators
+        }
+
+        // Assert
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(0, "Two destroyed hip actuators should reduce walking MP to 0");
+        sut.GetMovementPoints(MovementType.Run).ShouldBe(0, "Running MP should also be 0");
+        hipActuators.ShouldAllBe(actuator => actuator.IsDestroyed);
+    }
+
+    [Fact]
+    public void GetMovementPoints_WithDestroyedFootActuator_ShouldReduceWalkingMPByOne()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var footActuator = sut.GetAllComponents<FootActuator>().First();
+
+        // Act
+        footActuator.Hit(); // Destroy foot actuator
+
+        // Assert
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Destroyed foot actuator should reduce walking MP by 1 (6-1=5)");
+        sut.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be 1.5 times walking MP rounded up (5*1.5=7.5→8)");
+        footActuator.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetMovementPoints_WithDestroyedLowerLegActuator_ShouldReduceWalkingMPByOne()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var lowerLegActuator = sut.GetAllComponents<LowerLegActuator>().First();
+
+        // Act
+        lowerLegActuator.Hit(); // Destroy lower leg actuator
+
+        // Assert
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Destroyed lower leg actuator should reduce walking MP by 1 (6-1=5)");
+        sut.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be 1.5 times walking MP rounded up (5*1.5=7.5→8)");
+        lowerLegActuator.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetMovementPoints_WithDestroyedUpperLegActuator_ShouldReduceWalkingMPByOne()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var upperLegActuator = sut.GetAllComponents<UpperLegActuator>().First();
+
+        // Act
+        upperLegActuator.Hit(); // Destroy upper leg actuator
+
+        // Assert
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Destroyed upper leg actuator should reduce walking MP by 1 (6-1=5)");
+        sut.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be 1.5 times walking MP rounded up (5*1.5=7.5→8)");
+        upperLegActuator.IsDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetMovementPoints_WithMultipleDestroyedActuators_ShouldStackPenalties()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var footActuator = sut.GetAllComponents<FootActuator>().First();
+        var lowerLegActuator = sut.GetAllComponents<LowerLegActuator>().First();
+        var upperLegActuator = sut.GetAllComponents<UpperLegActuator>().First();
+
+        // Act
+        footActuator.Hit(); // -1 MP
+        lowerLegActuator.Hit(); // -1 MP
+        upperLegActuator.Hit(); // -1 MP
+
+        // Assert
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(3, "Three destroyed actuators should reduce walking MP by 3 (6-3=3)");
+        sut.GetMovementPoints(MovementType.Run).ShouldBe(5, "Running MP should be 1.5 times walking MP rounded up (3*1.5=4.5→5)");
+    }
+
+    [Fact]
+    public void GetMovementPoints_WithBlownOffLeg_ShouldSetWalkingMPToOne()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+
+        // Act
+        leftLeg.BlowOff();
+
+        // Assert
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(1, "Blown off leg should set walking MP to 1");
+        sut.CanRun.ShouldBeFalse();
+        leftLeg.IsBlownOff.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(6, 3, 2, 1, 2)] // Base 6 MP: Hip halves to 3, foot -1 = 2, heat -1 = 1, run = 2
+    [InlineData(4, 2, 1, 0, 0)] // Base 4 MP: Hip halves to 2, foot -1 = 1, heat -1 = 0, run = 0
+    [InlineData(8, 4, 3, 2, 3)] // Base 8 MP: Hip halves to 4, foot -1 = 3, heat -1 = 2, run = 3
+    public void GetMovementPoints_ScenarioTest_HipFootAndHeatDamage(int baseMp, int afterHip, int afterFoot, int expectedWalk, int expectedRun)
+    {
+        // Arrange - Scenario: Destroyed Hip, Destroyed Foot, Heat Level 6 Points
+        var sut = new Mech("Test", "TST-1A", 50, baseMp, CreateBasicPartsData());
+
+        // Step 1: Apply Hip Actuator Critical Hit (halves walking MP, rounded up)
+        var hipActuator = sut.GetAllComponents<HipActuator>().First();
+        hipActuator.Hit();
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(afterHip, $"After hip damage: {baseMp}/2 = {afterHip}");
+
+        // Step 2: Apply Foot Actuator Critical Hit (reduce by 1)
+        var footActuator = sut.GetAllComponents<FootActuator>().First();
+        footActuator.Hit();
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(afterFoot, $"After foot damage: {afterHip}-1 = {afterFoot}");
+
+        // Step 3: Apply Heat Level Penalty (6 heat points = -1 MP)
+        var heatData = new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData
+            {
+                WeaponName = "TestWeapon",
+                HeatPoints = 6
+            }],
+            DissipationData = default
+        };
+        sut.ApplyHeat(heatData);
+
+        // Final assertions
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalk, $"Final walking MP after all penalties: {expectedWalk}");
+        sut.GetMovementPoints(MovementType.Run).ShouldBe(expectedRun, $"Final running MP: {expectedWalk} * 1.5 = {expectedRun}");
+    }
+    
+    [Fact]
+    public void GetMovementPoints_ForUnknownMovement_ShouldReturnZero()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+
+        // Act
+        var result = sut.GetMovementPoints((MovementType)233);
+
+        // Assert
+        result.ShouldBe(0);
     }
 }
