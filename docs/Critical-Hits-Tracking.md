@@ -31,7 +31,7 @@
   - [x] First hit: Adds +2 modifier to 'Mech's weapon to-hit numbers.
   - [x] Second hit: Makes it impossible to fire weapons.
 
-- [ ] Head Blown Off: Occurs on a roll of 12 on the Determining Critical Hits Table for a head hit. 
+- [x] Head Blown Off: Occurs on a roll of 12 on the Determining Critical Hits Table for a head hit. 
   - [ ] Destroys the 'Mech's head, kills the MechWarrior, and puts the 'Mech out of commission.
 
 - [ ] Life Support: System is permanently knocked out.
@@ -44,8 +44,8 @@
 - [x] Upper Leg Actuator: Destroys the actuator. Requires a PSR with a +1 modifier at the end of the phase and for subsequent PSRs.
   - [x] Reduces Walking MP by 1 (recalculate Running MP).
 
-- [ ] Hip: Freezes the affected leg. Requires a PSR with a +2 modifier at the end of the phase and for subsequent PSRs. Walking MP is halved (recalculate Running MP). 'Mech cannot make kick attacks. Ignores previous critical hit modifiers to that leg.
-  - [ ] Second hip hit: Reduces 'Mech's MP to 0 and adds another +2 modifier to PSR (not immobile).
+- [x] Hip: Freezes the affected leg. Requires a PSR with a +2 modifier at the end of the phase and for subsequent PSRs. Walking MP is halved (recalculate Running MP). 'Mech cannot make kick attacks. Ignores previous critical hit modifiers to that leg.
+  - [x] Second hip hit: Reduces 'Mech's MP to 0 and adds another +2 modifier to PSR (not immobile).
 
 - [x] Foot Actuator: Destroys the foot muscle. Requires a Piloting Skill Roll (PSR) with a +1 modifier at the end of the phase and for subsequent PSRs.
   - [x] Reduces Walking MP by 1 (recalculate Running MP).
