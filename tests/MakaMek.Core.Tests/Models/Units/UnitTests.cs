@@ -97,7 +97,7 @@ public class UnitTests
         }
     }
     
-    public static TestUnit CreateTestUnit(Guid? id = null)
+    public static TestUnit CreateTestUnit(Guid? id = null, int walkMp = 4)
     {
         var parts = new List<UnitPart>
         {
@@ -106,7 +106,7 @@ public class UnitTests
             new TestUnitPart("Right Arm", PartLocation.RightArm, 10, 5, 10)
         };
         
-        return new TestUnit("Test", "Unit", 20, 4, parts, id);
+        return new TestUnit("Test", "Unit", 20, walkMp, parts, id);
     }
     
     private void MountWeaponOnUnit(TestUnit unit, TestWeapon weapon, PartLocation location, int[] slots)
@@ -1890,6 +1890,37 @@ public class UnitTests
 
         // Assert
         result.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(MovementType.Walk)]
+    [InlineData(MovementType.Run)]
+    [InlineData(MovementType.Jump)]
+    public void GetMovementPoints_ShouldReturnWalkingPoints(MovementType movementType)
+    {
+        // Arrange
+        const int walkingPoints = 2;
+        var sut = CreateTestUnit(walkMp: walkingPoints);
+        
+        // Act
+        var result = sut.GetMovementPoints(movementType);
+        
+        // Assert
+        result.ShouldBe(walkingPoints);
+    }
+    
+    [Fact]
+    public void DamageReducedMovement_ShouldReturnWalkingPoints()
+    {
+        // Arrange
+        const int walkingPoints = 2;
+        var sut = CreateTestUnit(walkMp: walkingPoints);
+        
+        // Act
+        var result = sut.DamageReducedMovement;
+        
+        // Assert
+        result.ShouldBe(walkingPoints);
     }
 
     // Helper class for testing explodable components
