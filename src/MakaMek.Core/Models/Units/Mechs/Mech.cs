@@ -179,21 +179,19 @@ public class Mech : Unit
             var movementPenalties = GetMovementModifiers();
             var destroyedLegsPenalty = movementPenalties.OfType<LegDestroyedPenalty>().FirstOrDefault();
             if (destroyedLegsPenalty != null) return 2-destroyedLegsPenalty.DestroyedLegCount; // This will reduce movement to 1 for one destroyed leg
-
-            var destroyedHips = GetAllComponents<HipActuator>().Count(a => a.IsDestroyed);
-
+            
+            var destroyedHipsPenalty = movementPenalties.OfType<HipDestroyedPenalty>().FirstOrDefault();
             // If both hips are destroyed, movement is 0
-            if (destroyedHips >= 2)
+            if (destroyedHipsPenalty is { DestroyedHipCount: >= 2 })
                 return 0; // This will reduce movement to 0
 
-            // If one hip is destroyed, halve the movement (applied as a multiplier, not penalty)
-            var hipModifiedMovement = destroyedHips == 1
-                ? (int)Math.Ceiling(BaseMovement * 0.5)
-                : BaseMovement;
-
+            var hipModifiedMovement = BaseMovement - (destroyedHipsPenalty?.Value ?? 0);
+            
             // Apply actuator penalties (excluding hip penalties which are handled above)
             var actuatorPenalties = GetMovementModifiers()
-                .Where(p => p is not HipDestroyedPenalty)
+                .Where(p => p is FootActuatorMovementPenalty 
+                    or LowerLegActuatorMovementPenalty 
+                    or UpperLegActuatorMovementPenalty)
                 .Sum(p => p.Value);
 
             return Math.Max(0, hipModifiedMovement - actuatorPenalties);

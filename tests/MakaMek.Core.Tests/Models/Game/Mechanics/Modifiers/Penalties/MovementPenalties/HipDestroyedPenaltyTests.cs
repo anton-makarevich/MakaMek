@@ -16,9 +16,7 @@ public class HipDestroyedPenaltyTests
         var result = HipDestroyedPenalty.Create(0, 6);
 
         // Assert
-        result.Value.ShouldBe(0);
-        result.DestroyedHipCount.ShouldBe(0);
-        result.BaseWalkingMp.ShouldBe(6);
+        result.ShouldBeNull();
     }
 
     [Theory]
@@ -26,43 +24,30 @@ public class HipDestroyedPenaltyTests
     [InlineData(5, 2)] // 5 MP -> 3 MP (ceiling of 2.5), penalty = 5 - 3 = 2
     [InlineData(4, 2)] // 4 MP -> 2 MP (halved), penalty = 4 - 2 = 2
     [InlineData(3, 1)] // 3 MP -> 2 MP (ceiling of 1.5), penalty = 3 - 2 = 1
-    public void Create_WithOneDestroyedHip_ShouldHalveMovement(int baseMP, int expectedPenalty)
+    public void Create_WithOneDestroyedHip_ShouldHalveMovement(int baseMp, int expectedPenalty)
     {
         // Act
-        var result = HipDestroyedPenalty.Create(1, baseMP);
+        var result = HipDestroyedPenalty.Create(1, baseMp);
 
         // Assert
-        result.Value.ShouldBe(expectedPenalty);
+        result!.Value.ShouldBe(expectedPenalty);
         result.DestroyedHipCount.ShouldBe(1);
-        result.BaseWalkingMp.ShouldBe(baseMP);
+        result.BaseWalkingMp.ShouldBe(baseMp);
     }
 
     [Theory]
     [InlineData(6, 6)] // 6 MP -> 0 MP, penalty = 6
     [InlineData(4, 4)] // 4 MP -> 0 MP, penalty = 4
     [InlineData(8, 8)] // 8 MP -> 0 MP, penalty = 8
-    public void Create_WithTwoOrMoreDestroyedHips_ShouldReduceMovementToZero(int baseMP, int expectedPenalty)
+    public void Create_WithTwoOrMoreDestroyedHips_ShouldReduceMovementToZero(int baseMp, int expectedPenalty)
     {
         // Act
-        var result = HipDestroyedPenalty.Create(2, baseMP);
+        var result = HipDestroyedPenalty.Create(2, baseMp);
 
         // Assert
-        result.Value.ShouldBe(expectedPenalty);
+        result!.Value.ShouldBe(expectedPenalty);
         result.DestroyedHipCount.ShouldBe(2);
-        result.BaseWalkingMp.ShouldBe(baseMP);
-    }
-
-    [Fact]
-    public void Render_WithNoDestroyedHips_ShouldReturnEmpty()
-    {
-        // Arrange
-        var sut = HipDestroyedPenalty.Create(0, 6);
-
-        // Act
-        var result = sut.Render(_localizationService);
-
-        // Assert
-        result.ShouldBe(string.Empty);
+        result.BaseWalkingMp.ShouldBe(baseMp);
     }
 
     [Fact]
@@ -73,7 +58,7 @@ public class HipDestroyedPenaltyTests
         _localizationService.GetString("Penalty_HipDestroyed_Single").Returns("Hip Actuator Destroyed: -{0} MP (movement halved)");
 
         // Act
-        var result = sut.Render(_localizationService);
+        var result = sut!.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Hip Actuator Destroyed: -3 MP (movement halved)");
@@ -88,7 +73,7 @@ public class HipDestroyedPenaltyTests
         _localizationService.GetString("Penalty_HipDestroyed_Both").Returns("Both Hip Actuators Destroyed: Movement reduced to 0");
 
         // Act
-        var result = sut.Render(_localizationService);
+        var result = sut!.Render(_localizationService);
 
         // Assert
         result.ShouldBe("Both Hip Actuators Destroyed: Movement reduced to 0");
