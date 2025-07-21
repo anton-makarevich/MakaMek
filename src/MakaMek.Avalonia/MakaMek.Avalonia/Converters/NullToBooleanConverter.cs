@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Sanet.MakaMek.Avalonia.Converters;
 
-public class NullToVisibilityConverter : IValueConverter
+public class NullToBooleanConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

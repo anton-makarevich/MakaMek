@@ -4,9 +4,9 @@ using System.Globalization;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class NullToVisibilityConverterTests
+public class NullToBooleanConverterTests
 {
-    private readonly NullToVisibilityConverter _sut = new();
+    private readonly NullToBooleanConverter _sut = new();
 
     [Fact]
     public void Convert_WithNonNullValue_ReturnsTrue()
