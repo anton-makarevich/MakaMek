@@ -29,7 +29,7 @@ public record LegDestroyedPenalty : RollModifier
         var penaltyValue = destroyedLegCount switch
         {
             0 => 0,
-            1 => baseWalkingMp - (int)Math.Ceiling(baseWalkingMp * 0.5), // Penalty to achieve halved movement
+            1 => baseWalkingMp - 1, // Penalty to achieve 1 MP
             2 => baseWalkingMp, // 2+ hips destroyed = movement to 0, so penalty equals base movement
             _ => 0
         };
