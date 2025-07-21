@@ -223,9 +223,14 @@ public class Mech : Unit
     }
 
     /// <summary>
+    /// Gets all movement penalties currently affecting this mech as a property for UI binding
+    /// </summary>
+    public override IReadOnlyList<RollModifier> MovementModifiers => GetMovementModifiers();
+
+    /// <summary>
     /// Gets all movement penalties currently affecting this mech
     /// </summary>
-    public IReadOnlyList<RollModifier> GetMovementModifiers()
+    private IReadOnlyList<RollModifier> GetMovementModifiers()
     {
         var penalties = new List<RollModifier>();
 
@@ -288,11 +293,13 @@ public class Mech : Unit
 
         return penalties;
     }
+    
+    public override IReadOnlyList<RollModifier> AttackModifiers => GetAttackModifiers();
 
     /// <summary>
     /// Gets all attack penalties currently affecting this mech
     /// </summary>
-    public override IReadOnlyList<RollModifier> GetAttackModifiers()
+    private IReadOnlyList<RollModifier> GetAttackModifiers()
     {
         var penalties = new List<RollModifier>();
 

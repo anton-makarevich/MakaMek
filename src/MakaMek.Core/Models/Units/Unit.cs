@@ -121,10 +121,9 @@ public abstract class Unit
     // Engine heat penalty due to engine damage
     public virtual EngineHeatPenalty? EngineHeatPenalty => null;
 
-    public virtual IReadOnlyList<RollModifier> GetAttackModifiers()
-    {
-        return [];
-    }
+    public virtual IReadOnlyList<RollModifier> AttackModifiers => [];
+  
+    public virtual IReadOnlyList<RollModifier> MovementModifiers => [];
 
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType _)

@@ -13,6 +13,7 @@
             <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter"/>
             <converters:ContrastingForegroundConverter x:Key="ContrastingForegroundConverter"/>
             <converters:GreaterThanValueConverter x:Key="GreaterThanValueConverter"/>
+            <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Colors.axaml"/>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Animations.axaml"/>
