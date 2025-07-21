@@ -39,7 +39,7 @@ public class HipDestroyedPenaltyTests
     [InlineData(6, 6)] // 6 MP -> 0 MP, penalty = 6
     [InlineData(4, 4)] // 4 MP -> 0 MP, penalty = 4
     [InlineData(8, 8)] // 8 MP -> 0 MP, penalty = 8
-    public void Create_WithTwoOrMoreDestroyedHips_ShouldReduceMovementToZero(int baseMp, int expectedPenalty)
+    public void Create_WithTwoDestroyedHips_ShouldReduceMovementToZero(int baseMp, int expectedPenalty)
     {
         // Act
         var result = HipDestroyedPenalty.Create(2, baseMp);
