@@ -1922,6 +1922,19 @@ public class UnitTests
         // Assert
         result.ShouldBe(walkingPoints);
     }
+    
+    [Fact]
+    public void GetAttackModifiers_ShouldReturnEmptyList_ForBaseUnit()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Act
+        var result = sut.GetAttackModifiers();
+        
+        // Assert
+        result.ShouldBeEmpty();
+    }
 
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)
