@@ -28,7 +28,6 @@ public record LegDestroyedPenalty : RollModifier
         
         var penaltyValue = destroyedLegCount switch
         {
-            0 => 0,
             1 => baseWalkingMp - 1, // Penalty to achieve 1 MP
             2 => baseWalkingMp, // 2+ hips destroyed = movement to 0, so penalty equals base movement
             _ => 0
@@ -48,9 +47,9 @@ public record LegDestroyedPenalty : RollModifier
     {
         return DestroyedLegCount switch
         {
-            0 => string.Empty,
             1 => string.Format(localizationService.GetString("Penalty_LegDestroyed_Single"), Value),
-            _ => localizationService.GetString("Penalty_LegDestroyed_Both")
+            2 => localizationService.GetString("Penalty_LegDestroyed_Both"),
+            _ => string.Empty
         };
     }
 }
