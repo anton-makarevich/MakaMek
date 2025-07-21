@@ -9,6 +9,7 @@ using Sanet.MakaMek.Avalonia.Views;
 using Sanet.MakaMek.Avalonia.Views.JoinGame;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Avalonia.Views.MainMenu;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Sanet.MVVM.Navigation.Avalonia.Services;
@@ -34,6 +35,12 @@ public partial class App : Application
         services.RegisterViewModels();
 
         var serviceProvider = services.BuildServiceProvider();
+        
+        // Initialize converters that need DI
+        Converters.ModifierToTextConverter.Initialize(
+            serviceProvider.GetRequiredService<ILocalizationService>()
+            );
+        
         INavigationService navigationService;
 
         MainMenuViewModel? viewModel;

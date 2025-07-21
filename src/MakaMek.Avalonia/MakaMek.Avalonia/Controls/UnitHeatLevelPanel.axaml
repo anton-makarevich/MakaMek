@@ -3,9 +3,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:units="clr-namespace:Sanet.MakaMek.Core.Models.Units;assembly=Sanet.MakaMek.Core"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              x:DataType="units:Unit"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitHeatLevelPanel"
              mc:Ignorable="d">
+    <UserControl.Resources>
+        <converters:NullToBooleanConverter x:Key="NullToVisibilityConverter"/>
+        <converters:ModifierToTextConverter x:Key="ModifierToTextConverter"/>
+    </UserControl.Resources>
     <StackPanel>
         <TextBlock Text="Heat Level" Margin="0,0,0,5"/>
         <Grid Height="20" Margin="0,0,0,10">
@@ -27,17 +32,17 @@
         </Grid>
         <!-- Movement Heat Penalty Tag -->
         <WrapPanel ItemSpacing="2" LineSpacing="2" Orientation="Horizontal">
-            <Border IsVisible="{Binding MovementHeatPenalty, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"
+            <Border IsVisible="{Binding MovementHeatPenalty, Converter={StaticResource NullToVisibilityConverter}}"
                     Classes="statusTag">
-                <TextBlock Text="{Binding MovementHeatPenalty, StringFormat='MP -{0}'}"/>
+                <TextBlock Text="{Binding MovementHeatPenalty, Converter={StaticResource ModifierToTextConverter}}"/>
             </Border>
-            <Border IsVisible="{Binding AttackHeatPenalty, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"
+            <Border IsVisible="{Binding AttackHeatPenalty, Converter={StaticResource NullToVisibilityConverter}}"
                     Classes="statusTag">
-                <TextBlock Text="{Binding AttackHeatPenalty, StringFormat='ToHit Number +{0}'}"/>
+                <TextBlock Text="{Binding AttackHeatPenalty, Converter={StaticResource ModifierToTextConverter}}"/>
             </Border>
-            <Border IsVisible="{Binding EngineHeatPenalty, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"
+            <Border IsVisible="{Binding EngineHeatPenalty, Converter={StaticResource NullToVisibilityConverter}}"
                     Classes="statusTag">
-                <TextBlock Text="{Binding AttackHeatPenalty, StringFormat='Engine Heat +{0}'}"/>
+                <TextBlock Text="{Binding EngineHeatPenalty, Converter={StaticResource ModifierToTextConverter}}"/>
             </Border>
         </WrapPanel>
         
