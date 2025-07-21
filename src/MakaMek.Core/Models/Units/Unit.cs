@@ -2,10 +2,13 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
-using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -104,18 +107,25 @@ public abstract class Unit
     protected int BaseMovement { get; }
     
     // Modified movement after applying effects (defaults to base movement)
-    protected int ModifiedMovement => Math.Max(0, DamageReducedMovement - MovementHeatPenalty - MovementPointsSpent);
+    protected int ModifiedMovement => Math.Max(0, DamageReducedMovement 
+        - (MovementHeatPenalty?.Value ?? 0) 
+        - MovementPointsSpent);
     public virtual int DamageReducedMovement => BaseMovement;
 
     // Movement heat penalty
-    public virtual int MovementHeatPenalty => 0;
+    public virtual HeatMovementPenalty? MovementHeatPenalty => null;
     
     // Attack heat penalty
-    public virtual int AttackHeatPenalty => 0;
+    public virtual HeatRollModifier? AttackHeatPenalty => null;
     
     // Engine heat penalty due to engine damage
-    public virtual int EngineHeatPenalty => 0;
-    
+    public virtual EngineHeatPenalty? EngineHeatPenalty => null;
+
+    public virtual IReadOnlyList<RollModifier> GetAttackModifiers()
+    {
+        return [];
+    }
+
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType _)
     {
@@ -186,17 +196,7 @@ public abstract class Unit
                 HeatPoints = weapon.Heat
             });
         }
-
-        var engine = GetAllComponents<Engine>().FirstOrDefault();
-
-        EngineHeatData? engineHeatSource = (engine != null)
-            ? new EngineHeatData
-            {
-                Hits = engine.Hits,
-                HeatPoints = engine.HeatPenalty
-            }
-            : null;
-
+        
         // Get heat dissipation
         var heatSinks = GetAvailableComponents<HeatSink>().Count();
         var engineHeatSinks = EngineHeatSinks;
@@ -213,7 +213,7 @@ public abstract class Unit
             MovementHeatSources = movementHeatSources,
             WeaponHeatSources = weaponHeatSources,
             DissipationData = dissipationData,
-            EngineHeatSource = engineHeatSource
+            EngineHeatSource = EngineHeatPenalty
         };
     }
     

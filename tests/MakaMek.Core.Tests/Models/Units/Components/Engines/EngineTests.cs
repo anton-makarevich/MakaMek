@@ -77,6 +77,6 @@ public class EngineTests
         }
         
         // Assert
-        sut.HeatPenalty.ShouldBe(expectedPenalty);
+        sut.HeatPenalty?.Value.ShouldBe(expectedPenalty);
     }
 }

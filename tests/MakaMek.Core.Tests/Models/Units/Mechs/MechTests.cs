@@ -737,7 +737,7 @@ public class MechTests
         // Assert
         sut.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalkMp);
         sut.GetMovementPoints(MovementType.Run).ShouldBe(expectedRunMp);
-        sut.MovementHeatPenalty.ShouldBe(baseMovement-expectedWalkMp);
+        sut.MovementHeatPenalty?.Value.ShouldBe(baseMovement-expectedWalkMp);
 
         // Jumping MP should not be affected by heat
         var jumpJets = new JumpJets();
@@ -1174,7 +1174,7 @@ public class MechTests
         sut.ApplyHeat(heatData);
         
         // Assert
-        sut.AttackHeatPenalty.ShouldBe(expectedPenalty, $"Heat level {heat} should result in attack penalty of {expectedPenalty}");
+        sut.AttackHeatPenalty?.Value.ShouldBe(expectedPenalty, $"Heat level {heat} should result in attack penalty of {expectedPenalty}");
     }
     
     [Fact]
@@ -1197,7 +1197,7 @@ public class MechTests
         });
 
         // Verify initial state
-        sut.AttackHeatPenalty.ShouldBe(3, "Initial attack penalty should be +3");
+        sut.AttackHeatPenalty?.Value.ShouldBe(3, "Initial attack penalty should be +3");
 
         // Act - apply heat with dissipation that reduces heat to 7
         sut.ApplyHeat(new HeatData
@@ -1214,7 +1214,7 @@ public class MechTests
 
         // Assert
         sut.CurrentHeat.ShouldBe(7, "Heat should be reduced by dissipation");
-        sut.AttackHeatPenalty.ShouldBe(0, "Attack penalty should be removed");
+        sut.AttackHeatPenalty.ShouldBeNull();
     }
 
     [Fact]
@@ -1233,7 +1233,7 @@ public class MechTests
         var engineHeatPenalty = mech.EngineHeatPenalty;
 
         // Assert
-        engineHeatPenalty.ShouldBe(5, "Engine with one hit should have +5 heat penalty");
+        engineHeatPenalty?.Value.ShouldBe(5, "Engine with one hit should have +5 heat penalty");
     }
 
     [Fact]
@@ -1254,8 +1254,8 @@ public class MechTests
         // Assert
         heatData.TotalHeatPoints.ShouldBe(5, "Total heat should include engine heat penalty");
         heatData.EngineHeatSource.ShouldNotBeNull();
-        heatData.EngineHeatSource.Value.Hits.ShouldBe(1);
-        heatData.EngineHeatSource.Value.HeatPoints.ShouldBe(5);
+        heatData.EngineHeatSource.EngineHits.ShouldBe(1);
+        heatData.EngineHeatSource.Value.ShouldBe(5);
     }
 
     [Fact]

@@ -1615,8 +1615,8 @@ public class UnitTests
         // Assert
         // Verify no heat penalty for base unit
         sut.CurrentHeat.ShouldBe(15);
-        sut.MovementHeatPenalty.ShouldBe(0);
-        sut.AttackHeatPenalty.ShouldBe(0);
+        sut.MovementHeatPenalty.ShouldBeNull();
+        sut.AttackHeatPenalty.ShouldBeNull();
     }
 
     [Fact]
@@ -1628,7 +1628,7 @@ public class UnitTests
     }
     
     [Fact]
-    public void EngineHeatPenalty_ReturnsZero_ForBaseUnit()
+    public void EngineHeatPenalty_ReturnsNull_ForBaseUnit()
     {
         // Arrange
         var sut = CreateTestUnit();
@@ -1637,7 +1637,7 @@ public class UnitTests
         var engineHeatPenalty = sut.EngineHeatPenalty;
         
         // Assert
-        engineHeatPenalty.ShouldBe(0);
+        engineHeatPenalty.ShouldBeNull();
     }
 
     [Fact]
@@ -1921,6 +1921,19 @@ public class UnitTests
         
         // Assert
         result.ShouldBe(walkingPoints);
+    }
+    
+    [Fact]
+    public void GetAttackModifiers_ShouldReturnEmptyList_ForBaseUnit()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Act
+        var result = sut.GetAttackModifiers();
+        
+        // Assert
+        result.ShouldBeEmpty();
     }
 
     // Helper class for testing explodable components

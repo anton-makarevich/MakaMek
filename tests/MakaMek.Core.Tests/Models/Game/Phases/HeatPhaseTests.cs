@@ -213,8 +213,8 @@ public class HeatPhaseTests : GamePhaseTestsBase
             Arg.Is<HeatUpdatedCommand>(cmd => 
                 cmd.UnitId == _unit1Id && 
                 cmd.HeatData.EngineHeatSource != null &&
-                cmd.HeatData.EngineHeatSource.Value.Hits == 1 &&
-                cmd.HeatData.EngineHeatSource.Value.HeatPoints == 5));
+                cmd.HeatData.EngineHeatSource.EngineHits == 1 &&
+                cmd.HeatData.EngineHeatSource.Value == 5));
     }
     
     [Fact]

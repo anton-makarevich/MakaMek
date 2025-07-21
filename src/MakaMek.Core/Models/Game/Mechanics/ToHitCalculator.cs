@@ -77,13 +77,8 @@ public class ToHitCalculator : IToHitCalculator
 
     private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(Unit attacker, Unit target, bool isPrimaryTarget = true)
     {
-        var modifiers = new List<RollModifier> {
-            new HeatRollModifier
-            {
-                Value = attacker.AttackHeatPenalty,
-                HeatLevel = attacker.CurrentHeat
-            }
-        };
+        List<RollModifier> modifiers = [];
+        modifiers.AddRange(attacker.GetAttackModifiers());
 
         // Add secondary target modifier if not primary
         if (!isPrimaryTarget && attacker is { Position: not null } && target is { Position: not null })

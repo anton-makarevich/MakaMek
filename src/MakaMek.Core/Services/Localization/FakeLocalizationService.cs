@@ -179,6 +179,17 @@ public class FakeLocalizationService: ILocalizationService
             "Events_Unit_LocationDestroyed" => "{0} destroyed",
             "Events_Unit_UnitDestroyed" => "{0} has been destroyed!",
             
+            // Penalty messages
+            "Penalty_FootActuatorMovement" => "{0} destroyed foot actuator(s) | -{1} MP",
+            "Penalty_HeatMovement" => "Heat level {0} | -{1} MP",
+            "Penalty_EngineHeat"   => "Engine Heat Penalty ({0} hits): +{1} heat/turn",
+            "Penalty_LowerLegActuatorMovement" => "{0} destroyed lower leg actuator(s) | -{1} MP",
+            "Penalty_UpperLegActuatorMovement" => "{0} destroyed upper leg actuator(s) | -{1} MP",
+            "Penalty_LegDestroyed_Single" => "Leg destroyed | -{0} MP",
+            "Penalty_LegDestroyed_Both" => "Both legs destroyed | No movement",
+            "Penalty_HipDestroyed_Single" => "Hip destroyed | -{0} MP",
+            "Penalty_HipDestroyed_Both" => "Both hips destroyed | No movement",
+            
             _ => key
         };
     }
