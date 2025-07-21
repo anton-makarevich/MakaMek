@@ -101,6 +101,7 @@ public class FakeLocalizationServiceTests
     // Penalty messages
     [InlineData("Penalty_FootActuatorMovement", "{0} destroyed foot actuator(s) | -{1} MP")]
     [InlineData("Penalty_HeatMovement", "Heat level {0} | -{1} MP")]
+    [InlineData("Penalty_EngineHeat", "Engine Heat Penalty ({0} hits): +{1} heat/turn")]
     [InlineData("Penalty_LowerLegActuatorMovement", "{0} destroyed lower leg actuator(s) | -{1} MP")]
     [InlineData("Penalty_UpperLegActuatorMovement", "{0} destroyed upper leg actuator(s) | -{1} MP")]
     [InlineData("Penalty_LegDestroyed_Single", "Leg destroyed | -{0} MP")]

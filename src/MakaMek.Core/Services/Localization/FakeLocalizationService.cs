@@ -182,6 +182,7 @@ public class FakeLocalizationService: ILocalizationService
             // Penalty messages
             "Penalty_FootActuatorMovement" => "{0} destroyed foot actuator(s) | -{1} MP",
             "Penalty_HeatMovement" => "Heat level {0} | -{1} MP",
+            "Penalty_EngineHeat"   => "Engine Heat Penalty ({0} hits): +{1} heat/turn",
             "Penalty_LowerLegActuatorMovement" => "{0} destroyed lower leg actuator(s) | -{1} MP",
             "Penalty_UpperLegActuatorMovement" => "{0} destroyed upper leg actuator(s) | -{1} MP",
             "Penalty_LegDestroyed_Single" => "Leg destroyed | -{0} MP",
