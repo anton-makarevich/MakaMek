@@ -46,9 +46,9 @@ public record HipDestroyedPenalty : RollModifier
     {
         return DestroyedHipCount switch
         {
-            0 => string.Empty,
             1 => string.Format(localizationService.GetString("Penalty_HipDestroyed_Single"), Value),
-            _ => localizationService.GetString("Penalty_HipDestroyed_Both")
+            2 => localizationService.GetString("Penalty_HipDestroyed_Both"),
+            _ => string.Empty
         };
     }
 }

@@ -79,4 +79,23 @@ public class HipDestroyedPenaltyTests
         result.ShouldBe("Both Hip Actuators Destroyed: Movement reduced to 0");
         _localizationService.Received(1).GetString("Penalty_HipDestroyed_Both");
     }
+    
+    [Fact]
+    public void Render_WithZeroDestroyedHips_ShouldReturnEmptyString()
+    {
+        // Arrange
+        var sut = new HipDestroyedPenalty
+        {
+            DestroyedHipCount = 0,
+            BaseWalkingMp = 6,
+            Value = 0
+        };
+
+        // Act
+        var result = sut.Render(_localizationService);
+
+        // Assert
+        result.ShouldBeEmpty();
+        _localizationService.DidNotReceive().GetString("Penalty_HipDestroyed_Both");
+    }
 }

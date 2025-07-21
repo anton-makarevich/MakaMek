@@ -204,21 +204,21 @@ public class Mech : Unit
         get
         {
             if (CurrentHeat < 8) return null;
-            
-                var heatPenaltyValue = CurrentHeat switch
-                {
-                    >= 24 => 4,
-                    >= 17 => 3,
-                    >= 13 => 2,
-                    >= 8 => 1,
-                    _ => 0
-                };
 
-                return new HeatRollModifier
-                {
-                    HeatLevel = CurrentHeat,
-                    Value = heatPenaltyValue
-                };
+            var heatPenaltyValue = CurrentHeat switch
+            {
+                >= 24 => 4,
+                >= 17 => 3,
+                >= 13 => 2,
+                >= 8 => 1,
+                _ => 0
+            };
+
+            return new HeatRollModifier
+            {
+                HeatLevel = CurrentHeat,
+                Value = heatPenaltyValue
+            };
         }
     }
 
