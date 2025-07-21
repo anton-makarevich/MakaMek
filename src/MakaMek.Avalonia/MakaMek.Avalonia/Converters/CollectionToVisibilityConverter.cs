@@ -13,9 +13,10 @@ public class CollectionToVisibilityConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is System.Collections.IEnumerable enumerable)
+        if (value is not System.Collections.IEnumerable enumerable) return false;
+        foreach (var _ in enumerable)
         {
-            return enumerable.Cast<object>().Any();
+            return true;
         }
 
         return false;

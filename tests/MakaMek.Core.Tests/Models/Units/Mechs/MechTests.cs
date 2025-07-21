@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -1699,5 +1700,19 @@ public class MechTests
 
         // Assert
         result.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void MovementModifiers_ShouldIncludeDestroyedLeg()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+
+        // Act
+        leg.BlowOff();
+
+        // Assert
+        sut.MovementModifiers.ShouldContain(m => m is LegDestroyedPenalty);
     }
 }
