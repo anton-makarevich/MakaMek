@@ -51,7 +51,7 @@
   - [x] Reduces Walking MP by 1 (recalculate Running MP).
 
 - [x] Leg Blown Off: Occurs on a roll of 12 on the Determining Critical Hits Table for a leg hit. The leg is blown off, and the 'Mech automatically falls (takes normal falling damage). Explosive components do not explode.
-  - [ ] Single Attempt to stand up that counts as running.
+  - [ ] Single Attempt to stand up that counts as running. Should end the turn for the unit
   - [x] Only one MP if mech is standing up, no run
 
 ### Arms
