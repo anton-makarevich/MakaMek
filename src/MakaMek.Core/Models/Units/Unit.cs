@@ -126,6 +126,11 @@ public abstract class Unit
         return [];
     }
 
+    public virtual IReadOnlyList<RollModifier> GetMovementModifiers()
+    {
+        return [];
+    }
+
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType _)
     {

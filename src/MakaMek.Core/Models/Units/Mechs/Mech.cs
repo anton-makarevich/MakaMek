@@ -225,7 +225,7 @@ public class Mech : Unit
     /// <summary>
     /// Gets all movement penalties currently affecting this mech
     /// </summary>
-    public IReadOnlyList<RollModifier> GetMovementModifiers()
+    public override IReadOnlyList<RollModifier> GetMovementModifiers()
     {
         var penalties = new List<RollModifier>();
 

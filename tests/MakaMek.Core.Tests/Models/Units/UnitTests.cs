@@ -1935,6 +1935,19 @@ public class UnitTests
         // Assert
         result.ShouldBeEmpty();
     }
+    
+    [Fact]
+    public void GetMovementModifiers_ShouldReturnEmptyList_ForBaseUnit()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Act
+        var result = sut.GetMovementModifiers();
+        
+        // Assert
+        result.ShouldBeEmpty();
+    }
 
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)
