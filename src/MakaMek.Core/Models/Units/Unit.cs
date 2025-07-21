@@ -2,6 +2,8 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -114,11 +116,16 @@ public abstract class Unit
     public virtual HeatMovementPenalty? MovementHeatPenalty => null;
     
     // Attack heat penalty
-    public virtual int AttackHeatPenalty => 0;
+    public virtual HeatRollModifier? AttackHeatPenalty => null;
     
     // Engine heat penalty due to engine damage
     public virtual EngineHeatPenalty? EngineHeatPenalty => null;
-    
+
+    public virtual IReadOnlyList<RollModifier> GetAttackModifiers()
+    {
+        return [];
+    }
+
     // Movement capabilities
     public virtual int GetMovementPoints(MovementType _)
     {
