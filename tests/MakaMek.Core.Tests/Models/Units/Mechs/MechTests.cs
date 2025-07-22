@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
@@ -1283,6 +1284,13 @@ public class MechTests
 
         // Assert
         sut.Crew?.Injuries.ShouldBe(injuriesExpected);
+        if (injuriesExpected <= 0) return;
+        var uiEvent = sut.DequeueNotification();
+        uiEvent.ShouldNotBeNull();
+        uiEvent.Type.ShouldBe(UiEventType.PilotDamage);
+        uiEvent.Parameters.Length.ShouldBe(2);
+        uiEvent.Parameters[0].ShouldBe("MechWarrior");
+        uiEvent.Parameters[1].ShouldBe(injuriesExpected);
     }
 
     [Fact]
