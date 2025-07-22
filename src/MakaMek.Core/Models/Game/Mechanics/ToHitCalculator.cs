@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -42,7 +41,8 @@ public class ToHitCalculator : IToHitCalculator
             WeaponRange.OutOfRange => weapon.LongRange+1,
             _ => throw new ArgumentException($"Unknown weapon range: {range}")
         };
-        var otherModifiers = GetDetailedOtherModifiers(attacker, target, isPrimaryTarget);
+        var weaponLocation = weapon.MountedOn?.Location ?? throw new Exception($"Weapon {weapon.Name} is not mounted");
+        var otherModifiers = GetDetailedOtherModifiers(attacker, target,weaponLocation, isPrimaryTarget);
         var terrainModifiers = GetTerrainModifiers(attacker, target, map);
         
         return new ToHitBreakdown
@@ -75,10 +75,12 @@ public class ToHitCalculator : IToHitCalculator
         };
     }
 
-    private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(Unit attacker, Unit target, bool isPrimaryTarget = true)
+    private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(Unit attacker, Unit target, PartLocation weaponLocation, bool isPrimaryTarget = true)
     {
         List<RollModifier> modifiers = [];
-        modifiers.AddRange(attacker.AttackModifiers);
+        // Unit specific modifiers
+        // Depend on the unit type
+        modifiers.AddRange(attacker.GetAttackModifiers(weaponLocation));
 
         // Add secondary target modifier if not primary
         if (!isPrimaryTarget && attacker is { Position: not null } && target is { Position: not null })
@@ -100,24 +102,6 @@ public class ToHitCalculator : IToHitCalculator
                 });
             }
         }
-
-        // Add sensor hit modifier for Mechs
-        if (attacker is Mech attackerMech)
-        {
-            var sensors = attackerMech.GetAllComponents<Sensors>().FirstOrDefault();
-            if (sensors?.Hits >0)
-            {
-                modifiers.Add(new SensorHitModifier
-                {
-                    Value = _rules.GetSensorHitModifier(sensors.Hits),
-                    SensorHits = sensors.Hits
-                });
-            }
-        }
-
-        // TODO: Add other modifiers like:
-        // - Attacker damage (actuators)
-        // - Special terrain effects
 
         return modifiers;
     }

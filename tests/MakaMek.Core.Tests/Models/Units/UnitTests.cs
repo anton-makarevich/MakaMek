@@ -1924,13 +1924,13 @@ public class UnitTests
     }
     
     [Fact]
-    public void AttackModifiers_ShouldReturnEmptyList_ForBaseUnit()
+    public void GetAttackModifiers_ShouldReturnEmptyList_ForBaseUnit()
     {
         // Arrange
         var sut = CreateTestUnit();
         
         // Act
-        var result = sut.AttackModifiers;
+        var result = sut.GetAttackModifiers(PartLocation.CenterTorso);
         
         // Assert
         result.ShouldBeEmpty();

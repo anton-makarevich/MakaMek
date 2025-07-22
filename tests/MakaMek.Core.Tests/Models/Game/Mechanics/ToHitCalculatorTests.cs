@@ -64,6 +64,7 @@ public class ToHitCalculatorTests
         _attacker = _mechFactory.Create(attackerData);
         _attacker.Deploy(attackerPosition);
         _attacker.Move(MovementType.StandingStill, []);
+        _attacker.Parts.FirstOrDefault(p=>p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
 
         // Setup target
         var targetData = MechFactoryTests.CreateDummyMechData();
@@ -331,9 +332,6 @@ public class ToHitCalculatorTests
             new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
-    
-        // Setup rules for a sensor hit modifier
-        _rules.GetSensorHitModifier(1).Returns(2);
         
         // Damage sensors once
         var sensors = _attacker!.GetAllComponents<Sensors>().First();

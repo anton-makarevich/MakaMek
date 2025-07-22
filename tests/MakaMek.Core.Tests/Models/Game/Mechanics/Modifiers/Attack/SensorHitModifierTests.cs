@@ -45,4 +45,27 @@ public class SensorHitModifierTests
         sut.Value.ShouldBe(expectedValue);
         sut.SensorHits.ShouldBe(sensorHits);
     }
+    
+    [Theory]
+    [InlineData(1, 2)]
+    [InlineData(2, 13)]
+    [InlineData(3, 13)]
+    public void Create_ShouldReturnCorrectValue(int sensorHits, int expectedModifier)
+    {
+        // Act
+        var result = SensorHitModifier.Create(sensorHits);
+
+        // Assert
+        result!.Value.ShouldBe(expectedModifier);
+    }
+    
+    [Fact]
+    public void Create_WithZeroSensorHits_ShouldReturnNull()
+    {
+        // Act
+        var result = SensorHitModifier.Create(0);
+
+        // Assert
+        result.ShouldBeNull();
+    }
 }

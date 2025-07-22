@@ -294,12 +294,10 @@ public class Mech : Unit
         return penalties;
     }
     
-    public override IReadOnlyList<RollModifier> AttackModifiers => GetAttackModifiers();
-
     /// <summary>
     /// Gets all attack penalties currently affecting this mech
     /// </summary>
-    private IReadOnlyList<RollModifier> GetAttackModifiers()
+    public override IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location)
     {
         var penalties = new List<RollModifier>();
 
@@ -308,8 +306,70 @@ public class Mech : Unit
         {
             penalties.Add(AttackHeatPenalty);
         }
+        
+        // Add sensor hit modifier for Mechs
+        var sensors = GetAllComponents<Sensors>().FirstOrDefault(s=>s.Hits>0);
+        if (sensors!=null)
+        {
+            var sensorsHitModifier = SensorHitModifier.Create(sensors.Hits);
+            if (sensorsHitModifier!=null) penalties.Add(sensorsHitModifier);
+        }
+        
+        // Arm critical hit modifiers
+        var armCriticalModifiers = GetArmCriticalHitModifiers(location);
+        penalties.AddRange(armCriticalModifiers);
 
         return penalties;
+    }
+
+    /// <summary>
+    /// Gets all arm critical hit modifiers for the mech
+    /// </summary>
+    /// <param name="location"></param>
+    private IEnumerable<RollModifier> GetArmCriticalHitModifiers(PartLocation location)
+    {
+        // Check requested arm
+        var arm = _parts.OfType<Arm>().FirstOrDefault(a => a.Location == location && a.IsDestroyed == false);
+        if (arm == null) return [];
+
+        var modifiers = new List<RollModifier>();
+
+        // Check for shoulder actuator first (overrides other arm modifiers)
+        var shoulder = arm.GetComponents<ShoulderActuator>().FirstOrDefault(sh => sh.IsDestroyed);
+        if (shoulder != null)
+        {
+            modifiers.Add(new ShoulderActuatorHitModifier
+            {
+                ArmLocation = arm.Location,
+                Value = 4 // +4 modifier for destroyed shoulder
+            });
+            // Skip other checks for this arm as per rules
+            return modifiers;
+        }
+
+        // Check upper arm actuator
+        var upperArm = arm.GetComponents<UpperArmActuator>().FirstOrDefault(a=>a.IsDestroyed);
+        if (upperArm != null)
+        {
+            modifiers.Add(new UpperArmActuatorHitModifier
+            {
+                ArmLocation = arm.Location,
+                Value = 1 // +1 modifier for destroyed upper arm actuator
+            });
+        }
+
+        // Check lower arm actuator
+        var lowerArm = arm.GetComponents<LowerArmActuator>().FirstOrDefault(a=>a.IsDestroyed);
+        if (lowerArm != null)
+        {
+            modifiers.Add(new LowerArmActuatorHitModifier
+            {
+                ArmLocation = arm.Location,
+                Value = 1 // +1 modifier for destroyed lower arm actuator
+            });
+        }
+
+        return modifiers;
     }
 
     public override int CalculateBattleValue()

@@ -98,6 +98,10 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_UpperLegActuatorHit" => "Upper Leg Actuator Hit: +{0}",
             "Modifier_LegDestroyed" => "Leg Destroyed: +{0}",
             "Modifier_SensorHit" => "Sensor Hit: +{0}",
+            // Arm Critical Hit Modifiers
+            "Modifier_ShoulderActuatorHit" => "{0} Shoulder Destroyed: +{1}",
+            "Modifier_UpperArmActuatorHit" => "{0} Upper Arm Actuator Destroyed: +{1}",
+            "Modifier_LowerArmActuatorHit" => "{0} Lower Arm Actuator Destroyed: +{1}",
             "Hits" => "Hits",
             "Levels" => "Levels",
             // Attack information

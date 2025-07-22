@@ -79,5 +79,4 @@ public interface IRulesProvider
     int GetPilotingSkillRollModifier(PilotingSkillRollType psrType);
 
     int GetHeavyDamageThreshold();
-    int GetSensorHitModifier(int sensorsHits);
 }

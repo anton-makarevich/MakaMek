@@ -92,6 +92,9 @@ public class FakeLocalizationServiceTests
     [InlineData("Modifier_UpperLegActuatorHit", "Upper Leg Actuator Hit: +{0}")]
     [InlineData("Modifier_LegDestroyed", "Leg Destroyed: +{0}")]
     [InlineData("Modifier_SensorHit", "Sensor Hit: +{0}")]
+    [InlineData("Modifier_ShoulderActuatorHit", "{0} Shoulder Destroyed: +{1}")]
+    [InlineData("Modifier_UpperArmActuatorHit", "{0} Upper Arm Actuator Destroyed: +{1}")]
+    [InlineData("Modifier_LowerArmActuatorHit", "{0} Lower Arm Actuator Destroyed: +{1}")]
     [InlineData("Hits", "Hits")]
     [InlineData("Levels", "Levels")]
     // Attack information

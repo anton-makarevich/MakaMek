@@ -422,14 +422,4 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     {
         return 20;    
     }
-
-    public int GetSensorHitModifier(int sensorsHits)
-    {
-        return sensorsHits switch
-        {
-            1 => 2,
-            >1 => 13, // Impossible hit
-            _ => 0
-        };
-    }
 }
