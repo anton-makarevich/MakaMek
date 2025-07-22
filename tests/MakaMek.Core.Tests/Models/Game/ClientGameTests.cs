@@ -18,6 +18,7 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Data.Community;
@@ -1771,6 +1772,7 @@ public class ClientGameTests
             }
         };
         var unit = _sut.Players.First().Units.First(u => u.Id == unitId);
+        unit.AssignPilot(new MechWarrior("John", "Doe"));
         var initialInjuries = unit.Pilot!.Injuries;
         var expectedInjuries = takesDamage ? initialInjuries + 1 : initialInjuries;
         

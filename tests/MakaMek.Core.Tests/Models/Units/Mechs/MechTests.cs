@@ -1269,6 +1269,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
         if (destroyLifeSupport)
         {
             var lifeSupport = sut.GetAllComponents<LifeSupport>().First();
@@ -1297,7 +1298,7 @@ public class MechTests
         uiEvent.ShouldNotBeNull();
         uiEvent.Type.ShouldBe(UiEventType.PilotDamage);
         uiEvent.Parameters.Length.ShouldBe(2);
-        uiEvent.Parameters[0].ShouldBe("MechWarrior");
+        uiEvent.Parameters[0].ShouldBe("John");
         uiEvent.Parameters[1].ShouldBe(injuriesExpected);
     }
 
@@ -1333,7 +1334,7 @@ public class MechTests
 
         // Mock pilot - ensure it's conscious
         var pilot = Substitute.For<IPilot>();
-        pilot.IsConscious.Returns(false);
+        pilot.IsConscious.Returns(true);
         typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
@@ -1352,6 +1353,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, walkMp, parts);
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
         mech.SetProne();
 
         // Mock pilot with specified consciousness state

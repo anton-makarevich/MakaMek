@@ -448,13 +448,13 @@ public class Mech : Unit
     {
         if (IsShutdown) return false;
 
-        var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
+        var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed);
         if (destroyedLegs >= 2) return false;
 
         // Check if the Mech has at least one movement point available
         if (GetMovementPoints(MovementType.Walk) < 1) return false;
 
-        if (Pilot?.IsConscious == true) return false;
+        if (Pilot?.IsConscious == false) return false;
 
         return true;
     }
