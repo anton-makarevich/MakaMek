@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Map;
@@ -239,8 +240,8 @@ public class MechTests
         (mech.Status & UnitStatus.Prone).ShouldNotBe(UnitStatus.Prone);
         mech.IsProne.ShouldBeFalse();
     }
-    
-        [Theory]
+
+    [Theory]
     [InlineData(0, HexDirection.Top, HexDirection.TopRight, false)] // No rotation allowed
     [InlineData(1, HexDirection.Top, HexDirection.TopRight, true)] // 60 degrees allowed, within limit
     [InlineData(1, HexDirection.Top, HexDirection.Bottom, false)] // 60 degrees allowed, beyond limit
@@ -417,9 +418,9 @@ public class MechTests
 
 
     [Theory]
-    [InlineData(5, 8, 2)] 
-    [InlineData(4, 6, 0)] 
-    [InlineData(3, 5, 2)] 
+    [InlineData(5, 8, 2)]
+    [InlineData(4, 6, 0)]
+    [InlineData(3, 5, 2)]
     public void GetMovement_ReturnsCorrectMPs(int walkMp, int runMp, int jumpMp)
     {
         // Arrange
@@ -518,7 +519,7 @@ public class MechTests
         critsData.ShouldNotBeNull();
         critsData.HitComponents.ShouldNotBeNull();
         critsData.HitComponents.Length.ShouldBe(2);
-        critsData.HitComponents.FirstOrDefault(c=>c.Slot==6).ShouldNotBeNull();
+        critsData.HitComponents.FirstOrDefault(c => c.Slot == 6).ShouldNotBeNull();
     }
 
     [Fact]
@@ -723,7 +724,9 @@ public class MechTests
         var heatData = new HeatData
         {
             MovementHeatSources = [],
-            WeaponHeatSources = [new WeaponHeatData
+            WeaponHeatSources =
+            [
+                new WeaponHeatData
                 {
                     WeaponName = "TestWeapon",
                     HeatPoints = heat
@@ -738,7 +741,7 @@ public class MechTests
         // Assert
         sut.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalkMp);
         sut.GetMovementPoints(MovementType.Run).ShouldBe(expectedRunMp);
-        sut.MovementHeatPenalty?.Value.ShouldBe(baseMovement-expectedWalkMp);
+        sut.MovementHeatPenalty?.Value.ShouldBe(baseMovement - expectedWalkMp);
 
         // Jumping MP should not be affected by heat
         var jumpJets = new JumpJets();
@@ -825,7 +828,8 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 5, parts);
 
         // Act & Assert
-        sut.CanJump.ShouldBeTrue("Mechs with functional jump jets that are not prone and haven't stood up should be able to jump");
+        sut.CanJump.ShouldBeTrue(
+            "Mechs with functional jump jets that are not prone and haven't stood up should be able to jump");
     }
 
     [Fact]
@@ -846,28 +850,28 @@ public class MechTests
         // Act & Assert
         sut.CanJump.ShouldBeTrue("Mech should be able to jump after standing up and resetting turn state");
     }
-    
+
     [Fact]
     public void CanRun_ShouldReturnTrue_ForNewMech()
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
-        
+
         // Act & Assert
         sut.CanRun.ShouldBeTrue();
     }
-    
+
     [Fact]
     public void CanRun_WhenMechIsProne_ShouldReturnFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5,CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
         sut.SetProne();
 
         // Act & Assert
         sut.CanRun.ShouldBeFalse();
     }
-    
+
     [Fact]
     public void CanRun_ShouldReturnFalse_WhenLegIsBlownOff()
     {
@@ -875,11 +879,11 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
         var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
         leg.BlowOff();
-        
+
         // Act & Assert
         sut.CanRun.ShouldBeFalse();
     }
-    
+
     [Fact]
     public void CanRun_ShouldReturnFalse_WhenLegIsDestroyed()
     {
@@ -888,27 +892,27 @@ public class MechTests
         var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
         leg.ApplyDamage(100);
         leg.IsDestroyed.ShouldBeTrue();
-        
+
         // Act & Assert
         sut.CanRun.ShouldBeFalse();
     }
-    
+
     [Fact]
     public void IsPsrForJumpRequired_WithUndamagedGyro_ReturnsFalse()
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
-        
+
         var gyro = sut.GetAllComponents<Gyro>().First();
-        
+
         // Act
         var result = sut.IsPsrForJumpRequired();
-        
+
         // Assert
         result.ShouldBeFalse();
         gyro.Hits.ShouldBe(0);
     }
-    
+
     [Fact]
     public void IsPsrForJumpRequired_WithDamagedGyro_ReturnsTrue()
     {
@@ -916,16 +920,16 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
         var gyro = sut.GetAllComponents<Gyro>().First();
         gyro.Hit(); // Damage the gyro (1 hit)
-        
+
         // Act
         var result = sut.IsPsrForJumpRequired();
-        
+
         // Assert
         result.ShouldBeTrue();
         gyro.Hits.ShouldBe(1);
         gyro.IsDestroyed.ShouldBeFalse();
     }
-    
+
     [Fact]
     public void IsPsrForJumpRequired_WithDestroyedGyro_ReturnsFalse()
     {
@@ -1096,7 +1100,7 @@ public class MechTests
     public void EngineHeatSinks_ShouldBeTen()
     {
         var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        
+
         sut.EngineHeatSinks.ShouldBe(10);
     }
 
@@ -1110,7 +1114,9 @@ public class MechTests
         sut.ApplyHeat(new HeatData
         {
             MovementHeatSources = [],
-            WeaponHeatSources = [new WeaponHeatData
+            WeaponHeatSources =
+            [
+                new WeaponHeatData
                 {
                     WeaponName = "TestWeapon",
                     HeatPoints = 15
@@ -1142,9 +1148,9 @@ public class MechTests
     }
 
     [Theory]
-    [InlineData(0, 0)]  // No heat, no penalty
-    [InlineData(7, 0)]  // Below first threshold, no penalty
-    [InlineData(8, 1)]  // At first threshold, +1 penalty
+    [InlineData(0, 0)] // No heat, no penalty
+    [InlineData(7, 0)] // Below first threshold, no penalty
+    [InlineData(8, 1)] // At first threshold, +1 penalty
     [InlineData(12, 1)] // Between first and second threshold, +1 penalty
     [InlineData(13, 2)] // At second threshold, +2 penalty
     [InlineData(16, 2)] // Between second and third threshold, +2 penalty
@@ -1156,13 +1162,15 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
-        
+
         // Act
         // Set heat and apply effects
         var heatData = new HeatData
         {
             MovementHeatSources = [],
-            WeaponHeatSources = [new WeaponHeatData
+            WeaponHeatSources =
+            [
+                new WeaponHeatData
                 {
                     WeaponName = "TestWeapon",
                     HeatPoints = heat
@@ -1173,11 +1181,12 @@ public class MechTests
 
         // Apply heat effects
         sut.ApplyHeat(heatData);
-        
+
         // Assert
-        sut.AttackHeatPenalty?.Value.ShouldBe(expectedPenalty, $"Heat level {heat} should result in attack penalty of {expectedPenalty}");
+        sut.AttackHeatPenalty?.Value.ShouldBe(expectedPenalty,
+            $"Heat level {heat} should result in attack penalty of {expectedPenalty}");
     }
-    
+
     [Fact]
     public void HeatDissipation_ShouldReduceHeatAndRestoreAttackPenalty()
     {
@@ -1188,7 +1197,9 @@ public class MechTests
         sut.ApplyHeat(new HeatData
         {
             MovementHeatSources = [],
-            WeaponHeatSources = [new WeaponHeatData
+            WeaponHeatSources =
+            [
+                new WeaponHeatData
                 {
                     WeaponName = "TestWeapon",
                     HeatPoints = 17
@@ -1226,7 +1237,7 @@ public class MechTests
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
         var engine = centerTorso.GetComponent<Engine>()!;
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        
+
         // Apply one hit to the engine
         engine.Hit();
 
@@ -1245,7 +1256,7 @@ public class MechTests
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
         var engine = centerTorso.GetComponent<Engine>()!;
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        
+
         // Apply one hit to the engine
         engine.Hit();
 
@@ -1266,7 +1277,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
         mech.SetProne();
-        
+
         // Mock pilot - ensure it's conscious
         var pilot = Substitute.For<IPilot>();
         pilot.IsUnconscious.Returns(false);
@@ -1280,16 +1291,16 @@ public class MechTests
     }
 
     [Theory]
-    [InlineData(0, false)]  // No movement points, unconscious pilot
-    [InlineData(0, true)]   // No movement points, conscious pilot 
-    [InlineData(4, true)]   // Has movement points, unconscious pilot
+    [InlineData(0, false)] // No movement points, unconscious pilot
+    [InlineData(0, true)] // No movement points, conscious pilot 
+    [InlineData(4, true)] // Has movement points, unconscious pilot
     public void CanStandup_WhenMissingRequirements_ShouldReturnFalse(int walkMp, bool pilotUnconscious)
     {
         // Arrange
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, walkMp, parts);
         mech.SetProne();
-        
+
         // Mock pilot with specified consciousness state
         var pilot = Substitute.For<IPilot>();
         pilot.IsUnconscious.Returns(pilotUnconscious);
@@ -1299,7 +1310,8 @@ public class MechTests
         var canStandup = mech.CanStandup();
 
         // Assert
-        canStandup.ShouldBe(false, $"Mech should not stand up with walkMP={walkMp} and pilotUnconscious={pilotUnconscious}");
+        canStandup.ShouldBe(false,
+            $"Mech should not stand up with walkMP={walkMp} and pilotUnconscious={pilotUnconscious}");
     }
 
     [Fact]
@@ -1309,7 +1321,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
         mech.SetProne();
-        
+
         // Mock pilot - ensure it's conscious
         var pilot = Substitute.For<IPilot>();
         pilot.IsUnconscious.Returns(false);
@@ -1319,9 +1331,10 @@ public class MechTests
         var canStandup = mech.CanStandup();
 
         // Assert
-        canStandup.ShouldBeTrue("Mech should be able to stand up when it has movement points and pilot is conscious and not shutdown");
+        canStandup.ShouldBeTrue(
+            "Mech should be able to stand up when it has movement points and pilot is conscious and not shutdown");
     }
-    
+
     [Fact]
     public void AttemptStandup_WhenCalledMultipleTimes_ShouldIncrementCounterCorrectly()
     {
@@ -1336,7 +1349,7 @@ public class MechTests
         mech.MovementPointsSpent.ShouldBe(4);
         mech.GetMovementPoints(MovementType.Walk).ShouldBe(0); // 4 initial - 2*2 spent
     }
-    
+
     [Theory]
     [InlineData(1, 1)] // Less movement than standup cost
     [InlineData(2, 2)] // Exactly standup cost  
@@ -1351,7 +1364,7 @@ public class MechTests
         // Assert
         mech.StandupAttempts.ShouldBe(1);
         mech.MovementPointsSpent.ShouldBe(expectedSpent);
-        mech.GetMovementPoints(MovementType.Walk).ShouldBe(initialMovement - expectedSpent); 
+        mech.GetMovementPoints(MovementType.Walk).ShouldBe(initialMovement - expectedSpent);
     }
 
     [Fact]
@@ -1362,7 +1375,7 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
         mech.SetProne();
         mech.Shutdown();
-        
+
         // Mock pilot - ensure it's conscious
         var pilot = Substitute.For<IPilot>();
         pilot.IsUnconscious.Returns(false);
@@ -1372,9 +1385,10 @@ public class MechTests
         var canStandup = mech.CanStandup();
 
         // Assert
-        canStandup.ShouldBeFalse("Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
+        canStandup.ShouldBeFalse(
+            "Mech should not be able to stand up when it has movement points and pilot is conscious but shutdown");
     }
-    
+
     [Fact]
     public void CanStandup_WhenBothLegsDestroyed_ShouldReturnFalse()
     {
@@ -1382,21 +1396,21 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
         mech.SetProne();
-        
-        var leftLeg = mech.Parts.First(p=> p.Location == PartLocation.LeftLeg);
+
+        var leftLeg = mech.Parts.First(p => p.Location == PartLocation.LeftLeg);
         leftLeg.ApplyDamage(100);
         leftLeg.IsDestroyed.ShouldBeTrue();
-        var rightLeg = mech.Parts.First(p=> p.Location == PartLocation.RightLeg);
+        var rightLeg = mech.Parts.First(p => p.Location == PartLocation.RightLeg);
         rightLeg.ApplyDamage(100);
         rightLeg.IsDestroyed.ShouldBeTrue();
-        
+
         // Act
         var canStandup = mech.CanStandup();
 
         // Assert
         canStandup.ShouldBeFalse("Mech should not be able to stand up when both legs are destroyed");
     }
-    
+
     [Fact]
     public void CanStandup_WhenBothLegsBlownOff_ShouldReturnFalse()
     {
@@ -1404,21 +1418,21 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
         mech.SetProne();
-        
-        var leftLeg = mech.Parts.First(p=> p.Location == PartLocation.LeftLeg);
+
+        var leftLeg = mech.Parts.First(p => p.Location == PartLocation.LeftLeg);
         leftLeg.BlowOff();
         leftLeg.IsBlownOff.ShouldBeTrue();
-        var rightLeg = mech.Parts.First(p=> p.Location == PartLocation.RightLeg);
+        var rightLeg = mech.Parts.First(p => p.Location == PartLocation.RightLeg);
         rightLeg.BlowOff();
         rightLeg.IsBlownOff.ShouldBeTrue();
-        
+
         // Act
         var canStandup = mech.CanStandup();
 
         // Assert
         canStandup.ShouldBeFalse("Mech should not be able to stand up when both legs are blown off");
     }
-    
+
     [Fact]
     public void CanStandup_WhenOneLegIsBlownOffAndAnotherIsDestroyed_ShouldReturnFalse()
     {
@@ -1426,14 +1440,14 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
         mech.SetProne();
-        
-        var leftLeg = mech.Parts.First(p=> p.Location == PartLocation.LeftLeg);
+
+        var leftLeg = mech.Parts.First(p => p.Location == PartLocation.LeftLeg);
         leftLeg.BlowOff();
         leftLeg.IsBlownOff.ShouldBeTrue();
-        var rightLeg = mech.Parts.First(p=> p.Location == PartLocation.RightLeg);
+        var rightLeg = mech.Parts.First(p => p.Location == PartLocation.RightLeg);
         rightLeg.ApplyDamage(100);
         rightLeg.IsDestroyed.ShouldBeTrue();
-        
+
         // Act
         var canStandup = mech.CanStandup();
 
@@ -1448,7 +1462,8 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
 
         // Act & Assert
-        sut.CanChangeFacingWhileProne().ShouldBeFalse("Non-prone mechs should not be able to change facing while prone");
+        sut.CanChangeFacingWhileProne()
+            .ShouldBeFalse("Non-prone mechs should not be able to change facing while prone");
     }
 
     [Fact]
@@ -1459,7 +1474,8 @@ public class MechTests
         sut.SetProne();
 
         // Act & Assert
-        sut.CanChangeFacingWhileProne().ShouldBeTrue("Prone mechs with movement points should be able to change facing");
+        sut.CanChangeFacingWhileProne()
+            .ShouldBeTrue("Prone mechs with movement points should be able to change facing");
     }
 
     [Fact]
@@ -1482,10 +1498,11 @@ public class MechTests
         sut.SetProne();
 
         // Act & Assert
-        sut.CanChangeFacingWhileProne().ShouldBeFalse("Mechs without movement points should not be able to change facing");
+        sut.CanChangeFacingWhileProne()
+            .ShouldBeFalse("Mechs without movement points should not be able to change facing");
     }
-    
-    
+
+
     [Fact]
     public void CanFireWeapons_ShouldReturnTrue_WhenSensorsAreIntact()
     {
@@ -1533,7 +1550,7 @@ public class MechTests
         sensors.Hits.ShouldBe(2);
         sensors.IsDestroyed.ShouldBeTrue();
     }
-    
+
     [Fact]
     public void GetMovementPoints_WithDestroyedHipActuator_ShouldHalveWalkingMP()
     {
@@ -1546,7 +1563,8 @@ public class MechTests
 
         // Assert
         sut.GetMovementPoints(MovementType.Walk).ShouldBe(3, "Hip actuator damage should halve walking MP (6/2=3)");
-        sut.GetMovementPoints(MovementType.Run).ShouldBe(5, "Running MP should be 1.5 times walking MP rounded up (3*1.5=4.5→5)");
+        sut.GetMovementPoints(MovementType.Run)
+            .ShouldBe(5, "Running MP should be 1.5 times walking MP rounded up (3*1.5=4.5→5)");
         hipActuator.IsDestroyed.ShouldBeTrue();
     }
 
@@ -1564,7 +1582,8 @@ public class MechTests
         }
 
         // Assert
-        sut.GetMovementPoints(MovementType.Walk).ShouldBe(0, "Two destroyed hip actuators should reduce walking MP to 0");
+        sut.GetMovementPoints(MovementType.Walk)
+            .ShouldBe(0, "Two destroyed hip actuators should reduce walking MP to 0");
         sut.GetMovementPoints(MovementType.Run).ShouldBe(0, "Running MP should also be 0");
         hipActuators.ShouldAllBe(actuator => actuator.IsDestroyed);
     }
@@ -1580,8 +1599,10 @@ public class MechTests
         footActuator.Hit(); // Destroy foot actuator
 
         // Assert
-        sut.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Destroyed foot actuator should reduce walking MP by 1 (6-1=5)");
-        sut.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be 1.5 times walking MP rounded up (5*1.5=7.5→8)");
+        sut.GetMovementPoints(MovementType.Walk)
+            .ShouldBe(5, "Destroyed foot actuator should reduce walking MP by 1 (6-1=5)");
+        sut.GetMovementPoints(MovementType.Run)
+            .ShouldBe(8, "Running MP should be 1.5 times walking MP rounded up (5*1.5=7.5→8)");
         footActuator.IsDestroyed.ShouldBeTrue();
     }
 
@@ -1596,8 +1617,10 @@ public class MechTests
         lowerLegActuator.Hit(); // Destroy lower leg actuator
 
         // Assert
-        sut.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Destroyed lower leg actuator should reduce walking MP by 1 (6-1=5)");
-        sut.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be 1.5 times walking MP rounded up (5*1.5=7.5→8)");
+        sut.GetMovementPoints(MovementType.Walk)
+            .ShouldBe(5, "Destroyed lower leg actuator should reduce walking MP by 1 (6-1=5)");
+        sut.GetMovementPoints(MovementType.Run)
+            .ShouldBe(8, "Running MP should be 1.5 times walking MP rounded up (5*1.5=7.5→8)");
         lowerLegActuator.IsDestroyed.ShouldBeTrue();
     }
 
@@ -1612,8 +1635,10 @@ public class MechTests
         upperLegActuator.Hit(); // Destroy upper leg actuator
 
         // Assert
-        sut.GetMovementPoints(MovementType.Walk).ShouldBe(5, "Destroyed upper leg actuator should reduce walking MP by 1 (6-1=5)");
-        sut.GetMovementPoints(MovementType.Run).ShouldBe(8, "Running MP should be 1.5 times walking MP rounded up (5*1.5=7.5→8)");
+        sut.GetMovementPoints(MovementType.Walk)
+            .ShouldBe(5, "Destroyed upper leg actuator should reduce walking MP by 1 (6-1=5)");
+        sut.GetMovementPoints(MovementType.Run)
+            .ShouldBe(8, "Running MP should be 1.5 times walking MP rounded up (5*1.5=7.5→8)");
         upperLegActuator.IsDestroyed.ShouldBeTrue();
     }
 
@@ -1632,8 +1657,10 @@ public class MechTests
         upperLegActuator.Hit(); // -1 MP
 
         // Assert
-        sut.GetMovementPoints(MovementType.Walk).ShouldBe(3, "Three destroyed actuators should reduce walking MP by 3 (6-3=3)");
-        sut.GetMovementPoints(MovementType.Run).ShouldBe(5, "Running MP should be 1.5 times walking MP rounded up (3*1.5=4.5→5)");
+        sut.GetMovementPoints(MovementType.Walk)
+            .ShouldBe(3, "Three destroyed actuators should reduce walking MP by 3 (6-3=3)");
+        sut.GetMovementPoints(MovementType.Run)
+            .ShouldBe(5, "Running MP should be 1.5 times walking MP rounded up (3*1.5=4.5→5)");
     }
 
     [Fact]
@@ -1656,7 +1683,8 @@ public class MechTests
     [InlineData(6, 3, 2, 1, 2)] // Base 6 MP: Hip halves to 3, foot -1 = 2, heat -1 = 1, run = 2
     [InlineData(4, 2, 1, 0, 0)] // Base 4 MP: Hip halves to 2, foot -1 = 1, heat -1 = 0, run = 0
     [InlineData(8, 4, 3, 2, 3)] // Base 8 MP: Hip halves to 4, foot -1 = 3, heat -1 = 2, run = 3
-    public void GetMovementPoints_ScenarioTest_HipFootAndHeatDamage(int baseMp, int afterHip, int afterFoot, int expectedWalk, int expectedRun)
+    public void GetMovementPoints_ScenarioTest_HipFootAndHeatDamage(int baseMp, int afterHip, int afterFoot,
+        int expectedWalk, int expectedRun)
     {
         // Arrange - Scenario: Destroyed Hip, Destroyed Foot, Heat Level 6 Points
         var sut = new Mech("Test", "TST-1A", 50, baseMp, CreateBasicPartsData());
@@ -1675,20 +1703,25 @@ public class MechTests
         var heatData = new HeatData
         {
             MovementHeatSources = [],
-            WeaponHeatSources = [new WeaponHeatData
-            {
-                WeaponName = "TestWeapon",
-                HeatPoints = 6
-            }],
+            WeaponHeatSources =
+            [
+                new WeaponHeatData
+                {
+                    WeaponName = "TestWeapon",
+                    HeatPoints = 6
+                }
+            ],
             DissipationData = default
         };
         sut.ApplyHeat(heatData);
 
         // Final assertions
-        sut.GetMovementPoints(MovementType.Walk).ShouldBe(expectedWalk, $"Final walking MP after all penalties: {expectedWalk}");
-        sut.GetMovementPoints(MovementType.Run).ShouldBe(expectedRun, $"Final running MP: {expectedWalk} * 1.5 = {expectedRun}");
+        sut.GetMovementPoints(MovementType.Walk)
+            .ShouldBe(expectedWalk, $"Final walking MP after all penalties: {expectedWalk}");
+        sut.GetMovementPoints(MovementType.Run)
+            .ShouldBe(expectedRun, $"Final running MP: {expectedWalk} * 1.5 = {expectedRun}");
     }
-    
+
     [Fact]
     public void GetMovementPoints_ForUnknownMovement_ShouldReturnZero()
     {
@@ -1701,7 +1734,7 @@ public class MechTests
         // Assert
         result.ShouldBe(0);
     }
-    
+
     [Fact]
     public void MovementModifiers_ShouldIncludeDestroyedLeg()
     {
@@ -1714,5 +1747,102 @@ public class MechTests
 
         // Assert
         sut.MovementModifiers.ShouldContain(m => m is LegDestroyedPenalty);
+    }
+
+    [Fact]
+    public void GetAttackModifiers_ReturnsNoModifiers_WhenArmIsDestroyed()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        leftArm.BlowOff();
+
+        // Act
+        var modifiers = sut.GetAttackModifiers(PartLocation.LeftArm);
+
+        // Assert
+        modifiers.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAttackModifiers_ReturnsOnlyShoulderModifier_WhenShoulderIsDestroyed()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var shoulderActuator = leftArm.GetComponent<ShoulderActuator>();
+        shoulderActuator!.Hit();
+    
+        // Act
+        var modifiers = sut.GetAttackModifiers(PartLocation.LeftArm);
+    
+        // Assert
+        modifiers.ShouldHaveSingleItem().ShouldBeOfType<ShoulderActuatorHitModifier>();
+        var modifier = (ShoulderActuatorHitModifier)modifiers[0];
+        modifier.ArmLocation.ShouldBe(PartLocation.LeftArm);
+        modifier.Value.ShouldBe(4);
+    }
+    
+    [Fact]
+    public void GetAttackModifiers_ReturnsBothUpperAndLowerArmModifiers_WhenActuatorsAreDestroyed()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var upperArmActuator = new UpperArmActuator();
+        leftArm.TryAddComponent(upperArmActuator);
+        var lowerArmActuator = new LowerArmActuator();
+        leftArm.TryAddComponent(lowerArmActuator);
+        upperArmActuator.Hit();
+        lowerArmActuator.Hit();
+    
+        // Act
+        var modifiers = sut.GetAttackModifiers(PartLocation.LeftArm);
+    
+        // Assert
+        modifiers.Count.ShouldBe(2);
+    
+        var upperArmModifier = modifiers.OfType<UpperArmActuatorHitModifier>().Single();
+        upperArmModifier.ArmLocation.ShouldBe(PartLocation.LeftArm);
+        upperArmModifier.Value.ShouldBe(1);
+    
+        var lowerArmModifier = modifiers.OfType<LowerArmActuatorHitModifier>().Single();
+        lowerArmModifier.ArmLocation.ShouldBe(PartLocation.LeftArm);
+        lowerArmModifier.Value.ShouldBe(1);
+    }
+    
+    [Fact]
+    public void GetAttackModifiers_ReturnsNoModifiers_ForNonArmLocation()
+    {
+        // Act
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var modifiers = sut.GetAttackModifiers(PartLocation.CenterTorso);
+    
+        // Assert
+        modifiers.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void GetAttackModifiers_ReturnsShoulderModifier_WhenAllActuatorsAreDestroyed()
+    {
+        // Arrange - destroy all actuators, but shoulder should take precedence
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var upperArmActuator = new UpperArmActuator();
+        leftArm.TryAddComponent(upperArmActuator);
+        var lowerArmActuator = new LowerArmActuator();
+        leftArm.TryAddComponent(lowerArmActuator);
+        var shoulderActuator = leftArm.GetComponent<ShoulderActuator>();
+        shoulderActuator!.Hit();
+        upperArmActuator.Hit();
+        lowerArmActuator.Hit();
+    
+        // Act
+        var modifiers = sut.GetAttackModifiers(PartLocation.LeftArm);
+    
+        // Assert - Should only return shoulder modifier
+        var modifier = modifiers.ShouldHaveSingleItem().ShouldBeOfType<ShoulderActuatorHitModifier>();
+        modifier.ArmLocation.ShouldBe(PartLocation.LeftArm);
+        modifier.Value.ShouldBe(4);
     }
 }
