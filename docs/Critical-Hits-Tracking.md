@@ -55,10 +55,10 @@
   - [x] Only one MP if mech is standing up, no run
 
 ### Arms
-- [ ] Lower Arm Actuator: Destroys the actuator. Adds +1 modifier to weapons firing from that arm;
+- [x] Lower Arm Actuator: Destroys the actuator. Adds +1 modifier to weapons firing from that arm;
 
 - [x] Arm Blown Off: Occurs on a roll of 12 on the Determining Critical Hits Table for an arm hit. The arm is blown off, and its weapons/equipment are lost. Explosive components in the arm do not explode.
 
-- [ ] Shoulder: Freezes the shoulder joint. Adds +4 modifier to weapon attacks made with weapons mounted on that arm, ignoring other arm critical hit weapon modifiers.
+- [x] Shoulder: Freezes the shoulder joint. Adds +4 modifier to weapon attacks made with weapons mounted on that arm, ignoring other arm critical hit weapon modifiers.
 
-- [ ] Upper Arm Actuator: Destroys the actuator. Adds +1 modifier to weapons firing from that arm
+- [x] Upper Arm Actuator: Destroys the actuator. Adds +1 modifier to weapons firing from that arm
