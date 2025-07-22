@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
@@ -146,7 +147,15 @@ public class Mech : Unit
             // To be implemented
         }
         
-        // Movement penalties are calculated on-demand in ModifiedMovement
+        if (CurrentHeat >= 15)
+        {
+            Crew?.Hit();
+            AddEvent(new UiEvent(UiEventType.PilotDamage, "Mechwarrior hit"));
+            if (CurrentHeat >=26)
+            {
+                Crew?.Hit();
+            }
+        }
     }
     
     // Calculate movement penalty based on current heat
