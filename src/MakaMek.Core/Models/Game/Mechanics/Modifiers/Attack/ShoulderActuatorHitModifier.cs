@@ -14,10 +14,14 @@ public record ShoulderActuatorHitModifier : RollModifier
     /// </summary>
     public required PartLocation ArmLocation { get; init; }
 
-    public override string Render(ILocalizationService localizationService) =>
-        string.Format(
+    public override string Render(ILocalizationService localizationService)
+    {
+        var partKey = $"MechPart_{ArmLocation}";
+        var partName = localizationService.GetString(partKey);
+        return string.Format(
             localizationService.GetString("Modifier_ShoulderActuatorHit"), 
-            ArmLocation.ToString().ToLower(), 
+            partName,
             Value
         );
+    }
 }
