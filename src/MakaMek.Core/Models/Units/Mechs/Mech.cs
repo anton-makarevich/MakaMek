@@ -147,7 +147,8 @@ public class Mech : Unit
             // To be implemented
         }
         
-        if (CurrentHeat >= 15)
+        var lifeSupport = GetAllComponents<LifeSupport>().FirstOrDefault(ls=>ls.IsDestroyed);
+        if (lifeSupport!=null && CurrentHeat >= 15)
         {
             Crew?.Hit();
             AddEvent(new UiEvent(UiEventType.PilotDamage, "Mechwarrior hit"));

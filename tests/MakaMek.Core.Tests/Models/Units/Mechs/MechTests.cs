@@ -1253,10 +1253,18 @@ public class MechTests
     [InlineData(15, 1)]
     [InlineData(26, 2)]
     [InlineData(30, 2)]
-    public void ApplyHeat_ShouldDamagePilot_WhenHeatIsHigh(int heatPoints, int injuriesExpected)
+    [InlineData(15, 0, false)]
+    [InlineData(26, 0, false)]
+    [InlineData(30, 0, false)]
+    public void ApplyHeat_ShouldDamagePilot_WhenHeatIsHigh_AndLifeSupportIsDestroyed(int heatPoints, int injuriesExpected, bool destroyLifeSupport = true)
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        if (destroyLifeSupport)
+        {
+            var lifeSupport = sut.GetAllComponents<LifeSupport>().First();
+            lifeSupport.Hit();
+        }
 
         // Act
         sut.ApplyHeat(new HeatData
