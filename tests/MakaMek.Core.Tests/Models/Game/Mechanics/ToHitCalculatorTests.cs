@@ -64,6 +64,7 @@ public class ToHitCalculatorTests
         _attacker = _mechFactory.Create(attackerData);
         _attacker.Deploy(attackerPosition);
         _attacker.Move(MovementType.StandingStill, []);
+        _attacker.Parts.FirstOrDefault(p=>p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
 
         // Setup target
         var targetData = MechFactoryTests.CreateDummyMechData();
