@@ -78,6 +78,8 @@ public class ToHitCalculator : IToHitCalculator
     private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(Unit attacker, Unit target, bool isPrimaryTarget = true)
     {
         List<RollModifier> modifiers = [];
+        // Unit specific modifiers
+        // Depend on the unit type
         modifiers.AddRange(attacker.AttackModifiers);
 
         // Add secondary target modifier if not primary
@@ -100,24 +102,6 @@ public class ToHitCalculator : IToHitCalculator
                 });
             }
         }
-
-        // Add sensor hit modifier for Mechs
-        if (attacker is Mech attackerMech)
-        {
-            var sensors = attackerMech.GetAllComponents<Sensors>().FirstOrDefault();
-            if (sensors?.Hits >0)
-            {
-                modifiers.Add(new SensorHitModifier
-                {
-                    Value = _rules.GetSensorHitModifier(sensors.Hits),
-                    SensorHits = sensors.Hits
-                });
-            }
-        }
-
-        // TODO: Add other modifiers like:
-        // - Attacker damage (actuators)
-        // - Special terrain effects
 
         return modifiers;
     }

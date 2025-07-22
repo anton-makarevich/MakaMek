@@ -331,9 +331,6 @@ public class ToHitCalculatorTests
             new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
-    
-        // Setup rules for a sensor hit modifier
-        _rules.GetSensorHitModifier(1).Returns(2);
         
         // Damage sensors once
         var sensors = _attacker!.GetAllComponents<Sensors>().First();

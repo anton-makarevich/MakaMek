@@ -308,6 +308,13 @@ public class Mech : Unit
         {
             penalties.Add(AttackHeatPenalty);
         }
+        
+        // Add sensor hit modifier for Mechs
+        var sensors = GetAllComponents<Sensors>().FirstOrDefault();
+        if (sensors?.Hits >0)
+        {
+            penalties.Add(SensorHitModifier.Create(sensors.Hits));
+        }
 
         return penalties;
     }
