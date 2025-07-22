@@ -18,7 +18,7 @@ public class MechWarriorTests
         sut.Piloting.ShouldBe(MechWarrior.DefaultPiloting);
         sut.Health.ShouldBe(MechWarrior.DefaultHealth);
         sut.Injuries.ShouldBe(0);
-        sut.IsConscious.ShouldBe(false);
+        sut.IsConscious.ShouldBe(true);
     }
 
     [Fact]

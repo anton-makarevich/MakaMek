@@ -1353,13 +1353,12 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, walkMp, parts);
-        mech.AssignPilot(new MechWarrior("John", "Doe"));
         mech.SetProne();
 
         // Mock pilot with specified consciousness state
         var pilot = Substitute.For<IPilot>();
-        pilot.IsConscious.Returns(pilotUnconscious);
-        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+        pilot.IsConscious.Returns(!pilotUnconscious);
+        typeof(Mech).GetProperty("Pilot")?.SetValue(mech, pilot);
 
         // Act
         var canStandup = mech.CanStandup();
