@@ -125,9 +125,9 @@ public class PlayerViewModel : BindableBase
             {
                 _unitPilots[unit.Id!.Value] = pilotAssignment.PilotData;
             }
-            else
+            else if (unitToAdd.Id != null)
             {
-                CreateDefaultPilotForUnit(unit.Id!.Value);
+                CreateDefaultPilotForUnit(unitToAdd.Id.Value);
             }
         }
         _onUnitChanged?.Invoke();
