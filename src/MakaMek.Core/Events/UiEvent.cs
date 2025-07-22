@@ -10,7 +10,7 @@ public class UiEvent
     /// </summary>
     /// <param name="type">The type of event</param>
     /// <param name="parameters">Optional parameters for localization (e.g., damage amount)</param>
-    public UiEvent(UiEventType type, params string[] parameters)
+    public UiEvent(UiEventType type, params object[] parameters)
     {
         Type = type;
         Parameters = parameters;
@@ -24,5 +24,5 @@ public class UiEvent
     /// <summary>
     /// Parameters for localization
     /// </summary>
-    public string[] Parameters { get; }
+    public object?[] Parameters { get; }
 }

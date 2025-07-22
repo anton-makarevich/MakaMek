@@ -1443,7 +1443,7 @@ public class UnitTests
         var foundExplosionEvent = false;
         while (unit.DequeueNotification() is { } uiEvent)
         {
-            if (uiEvent.Type == UiEventType.Explosion && uiEvent.Parameters[0] == "LRM-5 Ammo")
+            if (uiEvent.Type == UiEventType.Explosion && uiEvent.Parameters[0]?.ToString() == "LRM-5 Ammo")
             {
                 foundExplosionEvent = true;
                 break;
@@ -1476,7 +1476,7 @@ public class UnitTests
         unit.Status.ShouldBe(UnitStatus.Destroyed);
         
         // Dequeue all events and check for unit destroyed event
-        bool foundUnitDestroyedEvent = false;
+        var foundUnitDestroyedEvent = false;
         while (unit.DequeueNotification() is { } uiEvent)
         {
             if (uiEvent.Type == UiEventType.UnitDestroyed && uiEvent.Parameters[0] == unit.Name)
