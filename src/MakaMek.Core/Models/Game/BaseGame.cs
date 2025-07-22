@@ -13,6 +13,8 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -133,13 +135,39 @@ public abstract class BaseGame : IGame
     {
         if (!ValidateJoinCommand(joinGameCommand)) return;
         var player = new Player(joinGameCommand.PlayerId, joinGameCommand.PlayerName,joinGameCommand.Tint);
-        foreach (var unit in joinGameCommand.Units.Select(unitData => _mechFactory.Create(unitData)))
+
+        // Create units from unit data
+        foreach (var unitData in joinGameCommand.Units)
         {
+            var unit = _mechFactory.Create(unitData);
+
+            // Find and assign pilot for this unit
+            var pilotAssignment = joinGameCommand.PilotAssignments.FirstOrDefault(pa => pa.UnitId == unitData.Id);
+            if (pilotAssignment.UnitId != Guid.Empty)
+            {
+                var pilot = CreatePilotFromData(pilotAssignment.PilotData);
+                unit.AssignPilot(pilot);
+            }
+
             player.AddUnit(unit);
         }
 
         player.Status = PlayerStatus.Joined;
         _players.Add(player);
+    }
+
+    /// <summary>
+    /// Creates a pilot instance from pilot data
+    /// </summary>
+    /// <param name="pilotData">The pilot data to create from</param>
+    /// <returns>A new pilot instance</returns>
+    private static IPilot CreatePilotFromData(PilotData pilotData)
+    {
+        return new MechWarrior(
+            pilotData.FirstName,
+            pilotData.LastName,
+            pilotData.Gunnery,
+            pilotData.Piloting);
     }
     
     internal void OnPlayerStatusUpdated(UpdatePlayerStatusCommand updatePlayerStatusCommand)
@@ -252,7 +280,7 @@ public abstract class BaseGame : IGame
         mech?.SetProne();
         if (fallCommand.IsPilotTakingDamage)
         {
-            mech?.Crew?.Hit();
+            mech?.Pilot?.Hit();
         }
     }
 

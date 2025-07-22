@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Units;
+
 namespace Sanet.MakaMek.Core.Models.Units.Pilots;
 
 /// <summary>
@@ -5,6 +7,8 @@ namespace Sanet.MakaMek.Core.Models.Units.Pilots;
 /// </summary>
 public interface IPilot
 {
+    Guid Id { get; }
+
     /// <summary>
     /// Current health of the pilot
     /// </summary>
@@ -28,7 +32,7 @@ public interface IPilot
     /// <summary>
     /// Indicates whether the pilot is unconscious
     /// </summary>
-    bool IsUnconscious { get; }
+    bool IsConscious { get; }
     
     /// <summary>
     /// Indicates whether the pilot is dead
@@ -44,4 +48,6 @@ public interface IPilot
     /// Kills the pilot, setting injuries to health
     /// </summary>
     void Kill();
+
+    PilotData ToData();
 }

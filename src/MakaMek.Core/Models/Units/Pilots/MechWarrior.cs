@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Units;
+
 namespace Sanet.MakaMek.Core.Models.Units.Pilots;
 
 /// <summary>
@@ -30,6 +32,8 @@ public class MechWarrior : IPilot
     /// </summary>
     public string LastName { get; }
 
+    public Guid Id { get; }
+
     /// <summary>
     /// Current health of the pilot
     /// </summary>
@@ -47,7 +51,7 @@ public class MechWarrior : IPilot
 
     public int Injuries { get; private set; }
 
-    public bool IsUnconscious { get;private set; }
+    public bool IsConscious { get;private set; }
 
     public MechWarrior(string firstName, string lastName, int? gunnery = null, int? piloting = null)
     {
@@ -66,6 +70,21 @@ public class MechWarrior : IPilot
     public void Kill()
     {
         Injuries = Health;
+    }
+
+    public PilotData ToData()
+    {
+        return new PilotData
+        {
+            Id = Id,
+            FirstName = FirstName,
+            LastName = LastName,
+            Gunnery = Gunnery,
+            Piloting = Piloting,
+            Health = Health,
+            Injuries = Injuries,
+            IsConcious = IsConscious
+        };
     }
 
     public bool IsDead => Injuries >= Health;

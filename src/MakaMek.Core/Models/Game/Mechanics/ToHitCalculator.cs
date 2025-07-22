@@ -49,7 +49,7 @@ public class ToHitCalculator : IToHitCalculator
         {
             GunneryBase = new GunneryRollModifier
             {
-                Value = attacker.Crew!.Gunnery
+                Value = attacker.Pilot!.Gunnery
             },
             AttackerMovement = new AttackerMovementModifier
             {

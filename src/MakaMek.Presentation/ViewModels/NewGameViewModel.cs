@@ -66,7 +66,15 @@ public abstract class NewGameViewModel : BaseViewModel
     protected void PublishJoinCommand(PlayerViewModel playerVm)
     {
         if (!playerVm.IsLocalPlayer || !CanPublishCommands || _localGame == null) return;
-        _localGame.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList());
+
+        // Create pilot assignments for each unit
+        var pilotAssignments = playerVm.Units.Select(unit => new PilotAssignmentData
+        {
+            UnitId = unit.Id ?? Guid.NewGuid(),
+            PilotData = playerVm.GetPilotDataForUnit(unit.Id ?? Guid.NewGuid())
+        }).ToList();
+
+        _localGame.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList(), pilotAssignments);
     }
 
     protected void PublishSetReadyCommand(PlayerViewModel playerVm)

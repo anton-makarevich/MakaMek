@@ -54,7 +54,7 @@ public class DeploymentStateTests
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IBattleMapFactory>());
-        _game.JoinGameWithUnits(player,[]);
+        _game.JoinGameWithUnits(player,[],[]);
         _game.SetBattleMap(battleMap);
         
         _battleMapViewModel.Game = _game;
@@ -75,7 +75,8 @@ public class DeploymentStateTests
             Units = [unitData],
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id,
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         _game.HandleCommand(new ChangeActivePlayerCommand
         {

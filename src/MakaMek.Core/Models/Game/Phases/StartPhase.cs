@@ -38,11 +38,15 @@ public class StartPhase(ServerGame game) : GamePhase(game)
         {
             // Create units data from player's units
             var unitDataList = new List<UnitData>();
+            var pilotAssignments = new List<PilotAssignmentData>();
             foreach (var unit in player.Units)
             {
-                // Assuming there's a way to convert a unit to UnitData
-                // This might need adjustment based on your actual implementation
                 unitDataList.Add(unit.ToData());
+                pilotAssignments.Add(new PilotAssignmentData
+                {
+                    UnitId = unit.Id,
+                    PilotData = unit.Pilot!.ToData()
+                });
             }
             
             // Create and send a JoinGameCommand for this player
@@ -53,7 +57,8 @@ public class StartPhase(ServerGame game) : GamePhase(game)
                 Tint = player.Tint,
                 Units = unitDataList,
                 GameOriginId = Game.Id,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                PilotAssignments = pilotAssignments
             };
             
             // Send directly to the requesting client

@@ -32,7 +32,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         PilotingSkillRollType rollType,
         IGame? game = null)
     {
-        if (unit.Crew == null)
+        if (unit.Pilot == null)
         {
             throw new ArgumentException("Unit has no crew", nameof(unit));
         }
@@ -40,7 +40,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         if (unit is not Mech mech)
             return new PsrBreakdown
             {
-                BasePilotingSkill = unit.Crew.Piloting,
+                BasePilotingSkill = unit.Pilot.Piloting,
                 Modifiers = new List<RollModifier>()
             };
 
@@ -54,7 +54,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
 
         return new PsrBreakdown
         {
-            BasePilotingSkill = unit.Crew.Piloting,
+            BasePilotingSkill = unit.Pilot.Piloting,
             Modifiers = modifiers
         };
     }

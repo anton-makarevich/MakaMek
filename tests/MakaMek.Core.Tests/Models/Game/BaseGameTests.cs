@@ -47,8 +47,11 @@ public class BaseGameTests : BaseGame
             PlayerId = Guid.NewGuid(),
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
-            Units = [],
-            Tint = "#FF0000"
+            Units =
+            [
+            ],
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
 
         // Act
@@ -98,7 +101,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         OnPlayerJoined(joinCommand);
         var player = Players.First();
@@ -131,7 +135,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [MechFactoryTests.CreateDummyMechData()],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         OnPlayerJoined(joinCommand);
         var command = new MechFallCommand
@@ -158,7 +163,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [MechFactoryTests.CreateDummyMechData()],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         OnPlayerJoined(joinCommand);
         var player = Players.First();
@@ -213,7 +219,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         OnPlayerJoined(joinCommand);
         var player = Players.First();
@@ -247,7 +254,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Attacker",
             GameOriginId = Guid.NewGuid(),
             Units = [attackerUnitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         OnPlayerJoined(attackerJoinCommand);
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
@@ -264,7 +272,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Target",
             GameOriginId = Guid.NewGuid(),
             Units = [targetUnitData],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         };
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
@@ -319,7 +328,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Attacker",
             GameOriginId = Guid.NewGuid(),
             Units = [attackerUnitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         OnPlayerJoined(attackerJoinCommand);
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
@@ -338,7 +348,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Target1",
             GameOriginId = Guid.NewGuid(),
             Units = [targetUnitData1,targetUnitData2],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         };
         OnPlayerJoined(targetJoinCommand1);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId1);
@@ -442,7 +453,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Target",
             GameOriginId = Guid.NewGuid(),
             Units = [targetUnitData],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         };
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
@@ -506,7 +518,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Target",
             GameOriginId = Guid.NewGuid(),
             Units = [targetUnitData],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         };
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
@@ -554,7 +567,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Attacker",
             GameOriginId = Guid.NewGuid(),
             Units = [attackerUnitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         OnPlayerJoined(attackerJoinCommand);
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
@@ -571,7 +585,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Target",
             GameOriginId = Guid.NewGuid(),
             Units = [targetUnitData],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         };
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
@@ -669,7 +684,8 @@ public class BaseGameTests : BaseGame
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [MechFactoryTests.CreateDummyMechData()],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         OnPlayerJoined(joinCommand);
         var player = Players.First();
@@ -698,8 +714,12 @@ public class BaseGameTests : BaseGame
             PlayerId = Guid.NewGuid(),
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
-            Units = [MechFactoryTests.CreateDummyMechData()],
-            Tint = "#FF0000"
+            Units =
+            [
+                MechFactoryTests.CreateDummyMechData()
+            ],
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         OnPlayerJoined(joinCommand);
         var player = Players.First();

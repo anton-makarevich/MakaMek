@@ -270,7 +270,8 @@ public class StartNewGameViewModelTests
             PlayerName = playerName,
             Units = units,
             Tint = playerTint,
-            GameOriginId = Guid.NewGuid()
+            GameOriginId = Guid.NewGuid(),
+            PilotAssignments = []
         };
 
         _sut.HandleServerCommand(joinCommand); 
@@ -347,7 +348,8 @@ public class StartNewGameViewModelTests
             PlayerName = localPlayerVm.Player.Name,
             Units = localPlayerVm.Units.ToList(),
             Tint = localPlayerVm.Player.Tint,
-            GameOriginId = serverGameId // This makes it look like it came from the server
+            GameOriginId = serverGameId, // This makes it look like it came from the server
+            PilotAssignments = []
         };
         
         // Act
@@ -383,7 +385,8 @@ public class StartNewGameViewModelTests
             PlayerName = localPlayerVm.Player.Name,
             Units = localPlayerVm.Units.ToList(),
             Tint = localPlayerVm.Player.Tint,
-            GameOriginId = clientGameId // Different from server ID
+            GameOriginId = clientGameId, // Different from server ID
+            PilotAssignments = []
         };
         
         // Act
@@ -438,7 +441,8 @@ public class StartNewGameViewModelTests
             PlayerName = localPlayerVm.Player.Name,
             Units = [],
             Tint = localPlayerVm.Player.Tint,
-            GameOriginId = Guid.NewGuid()
+            GameOriginId = Guid.NewGuid(),
+            PilotAssignments = []
         });
         
         // Act

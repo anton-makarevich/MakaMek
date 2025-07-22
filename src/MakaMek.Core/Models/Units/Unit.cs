@@ -92,7 +92,7 @@ public abstract class Unit
     /// </summary>
     public bool IsImmobile => (_status & UnitStatus.Immobile) == UnitStatus.Immobile;
 
-    public bool IsOutOfCommission => IsDestroyed || Crew?.IsDead == true;
+    public bool IsOutOfCommission => IsDestroyed || Pilot?.IsDead == true;
 
     public WeightClass Class => Tonnage switch
     {
@@ -234,7 +234,16 @@ public abstract class Unit
     // Parts management
     public IReadOnlyList<UnitPart> Parts =>_parts;
     public Guid Id { get; private set; } = Guid.Empty;
-    public IPilot? Crew { get; protected set; }
+    public IPilot? Pilot { get; protected set; }
+
+    /// <summary>
+    /// Assigns a pilot to this unit
+    /// </summary>
+    /// <param name="pilot">The pilot to assign</param>
+    public void AssignPilot(IPilot pilot)
+    {
+        Pilot = pilot;
+    }
 
     // Armor and Structure totals
     public int TotalMaxArmor => _parts.Sum(p => p.MaxArmor);

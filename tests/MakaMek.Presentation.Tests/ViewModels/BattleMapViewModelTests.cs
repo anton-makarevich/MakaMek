@@ -76,14 +76,15 @@ public class BattleMapViewModelTests
         });
         _sut.TurnPhaseName.ShouldBe(PhaseNames.Deployment);
         var player = new Player(Guid.NewGuid(), "Player1", "#FF0000");
-        _game.JoinGameWithUnits(player, []);
+        _game.JoinGameWithUnits(player, [],[]);
         _game.HandleCommand(new JoinGameCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id,
             PlayerName = player.Name,
             Units = [],
-            Tint = player.Tint
+            Tint = player.Tint,
+            PilotAssignments = []
         });
 
         _game.HandleCommand(new ChangeActivePlayerCommand
@@ -110,7 +111,7 @@ public class BattleMapViewModelTests
         var unitData = MechFactoryTests.CreateDummyMechData();
 
         _game = CreateClientGame();
-        _game.JoinGameWithUnits(player,[unitData]);
+        _game.JoinGameWithUnits(player,[unitData],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
                                                          new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
@@ -126,7 +127,8 @@ public class BattleMapViewModelTests
             Units = [unitData],
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         // Act
@@ -160,23 +162,25 @@ public class BattleMapViewModelTests
 
         var mechData = MechFactoryTests.CreateDummyMechData();
     
-        _game.JoinGameWithUnits(player1, [mechData]);
+        _game.JoinGameWithUnits(player1, [mechData],[]);
         _game.HandleCommand(new JoinGameCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = player1.Id,
             PlayerName = player1.Name,
             Units = [mechData],
-            Tint = player1.Tint
+            Tint = player1.Tint,
+            PilotAssignments = []
         });
-        _game.JoinGameWithUnits(player2, [mechData,mechData]);
+        _game.JoinGameWithUnits(player2, [mechData,mechData],[]);
         _game.HandleCommand(new JoinGameCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = player2.Id,
             PlayerName = player2.Name,
             Units = [mechData,mechData],
-            Tint = player2.Tint
+            Tint = player2.Tint,
+            PilotAssignments = []
         });
 
         // Act
@@ -200,7 +204,7 @@ public class BattleMapViewModelTests
         var playerId = Guid.NewGuid();
         var player = new Player(playerId, "Player1");
         var clientGame = CreateClientGame();
-        clientGame.JoinGameWithUnits(player, []);
+        clientGame.JoinGameWithUnits(player, [],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())) );
         _sut.Game = clientGame;
 
@@ -210,7 +214,8 @@ public class BattleMapViewModelTests
             PlayerName = "Player2",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
 
         // Act
@@ -228,7 +233,7 @@ public class BattleMapViewModelTests
         var playerId = Guid.NewGuid();
         var player = new Player(playerId, "Player1");
         var clientGame = CreateClientGame();
-        clientGame.JoinGameWithUnits(player,[]);
+        clientGame.JoinGameWithUnits(player,[],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
@@ -238,7 +243,8 @@ public class BattleMapViewModelTests
             PlayerName = "Player2",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
 
         var phaseCommand = new ChangePhaseCommand
@@ -291,7 +297,7 @@ public class BattleMapViewModelTests
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = CreateClientGame();
-        _game.JoinGameWithUnits(player,[]);
+        _game.JoinGameWithUnits(player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
                                                          new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
@@ -307,7 +313,8 @@ public class BattleMapViewModelTests
             Units = [MechFactoryTests.CreateDummyMechData()],
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         
         // Act
@@ -329,7 +336,7 @@ public class BattleMapViewModelTests
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = CreateClientGame();
-        _game.JoinGameWithUnits(player,[]);
+        _game.JoinGameWithUnits(player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
@@ -339,7 +346,8 @@ public class BattleMapViewModelTests
             Units = [MechFactoryTests.CreateDummyMechData()],
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         _game.HandleCommand(new ChangePhaseCommand()
         {
@@ -367,7 +375,7 @@ public class BattleMapViewModelTests
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = CreateClientGame();
-        _game.JoinGameWithUnits(player,[]);
+        _game.JoinGameWithUnits(player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = _game;
@@ -383,7 +391,8 @@ public class BattleMapViewModelTests
             Units = [],
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         
         // Act
@@ -633,7 +642,7 @@ public class BattleMapViewModelTests
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player = new Player(Guid.NewGuid(), "Player1");
         var game = CreateClientGame();
-        game.JoinGameWithUnits(player,[]);
+        game.JoinGameWithUnits(player,[],[]);
         game.SetBattleMap(battleMap);
         _sut.Game = game;
         game.HandleCommand(new JoinGameCommand
@@ -642,7 +651,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = player.Id
+            PlayerId = player.Id,
+            PilotAssignments = []
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -696,7 +706,7 @@ public class BattleMapViewModelTests
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player = new Player(Guid.NewGuid(), "Player1");
         var game = CreateClientGame();
-        game.JoinGameWithUnits(player,[]);
+        game.JoinGameWithUnits(player,[],[]);
         game.SetBattleMap(battleMap);
         _sut.Game = game;
         game.HandleCommand(new JoinGameCommand
@@ -705,7 +715,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = player.Id
+            PlayerId = player.Id,
+            PilotAssignments = []
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -748,8 +759,8 @@ public class BattleMapViewModelTests
         var player1 = new Player(Guid.NewGuid(), "Player1");
         var player2 = new Player(Guid.NewGuid(), "Player2");
         var game = CreateClientGame();
-        game.JoinGameWithUnits(player1,[]);
-        game.JoinGameWithUnits(player2,[]);
+        game.JoinGameWithUnits(player1,[],[]);
+        game.JoinGameWithUnits(player2,[],[]);
         game.SetBattleMap(battleMap);
         
         _sut.Game = game;
@@ -759,7 +770,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = player1.Id
+            PlayerId = player1.Id,
+            PilotAssignments = []
         });
         game.HandleCommand(new JoinGameCommand
         {
@@ -767,7 +779,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#00FF00",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = player2.Id
+            PlayerId = player2.Id,
+            PilotAssignments = []
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -826,8 +839,8 @@ public class BattleMapViewModelTests
         var player1 = new Player(Guid.NewGuid(), "Player1");
         var player2 = new Player(Guid.NewGuid(), "Player2");
         var game = CreateClientGame();
-        game.JoinGameWithUnits(player1,[]);
-        game.JoinGameWithUnits(player2,[]);
+        game.JoinGameWithUnits(player1,[],[]);
+        game.JoinGameWithUnits(player2,[],[]);
         game.SetBattleMap(battleMap);
         
         _sut.Game = game;
@@ -837,7 +850,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = player1.Id
+            PlayerId = player1.Id,
+            PilotAssignments = []
         });
         game.HandleCommand(new JoinGameCommand
         {
@@ -845,7 +859,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#00FF00",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = player2.Id
+            PlayerId = player2.Id,
+            PilotAssignments = []
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -920,7 +935,7 @@ public class BattleMapViewModelTests
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player1 = new Player(Guid.NewGuid(), "Player1");
         var game = CreateClientGame();
-        game.JoinGameWithUnits(player1,[]);
+        game.JoinGameWithUnits(player1,[],[]);
         game.SetBattleMap(battleMap);
 
         _sut.Game = game;
@@ -930,7 +945,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = player1.Id
+            PlayerId = player1.Id,
+            PilotAssignments = []
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -973,7 +989,7 @@ public class BattleMapViewModelTests
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
         var player1 = new Player(Guid.NewGuid(), "Player1");
         var game = CreateClientGame();
-        game.JoinGameWithUnits(player1, []);
+        game.JoinGameWithUnits(player1, [],[]);
         game.SetBattleMap(battleMap);
 
         _sut.Game = game;
@@ -983,7 +999,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = player1.Id
+            PlayerId = player1.Id,
+            PilotAssignments = []
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -1009,8 +1026,8 @@ public class BattleMapViewModelTests
         mechData.Id = Guid.NewGuid();
         // Create a game with the players
         var game = CreateClientGame();
-        game.JoinGameWithUnits(player, []);
-        game.JoinGameWithUnits(targetPlayer, []);
+        game.JoinGameWithUnits(player, [],[]);
+        game.JoinGameWithUnits(targetPlayer, [],[]);
         game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
         
         _sut.Game = game;
@@ -1020,7 +1037,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#ffffff",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId
+            PlayerId = playerId,
+            PilotAssignments = []
         });
         mechData.Id = Guid.NewGuid();
         game.HandleCommand(new JoinGameCommand
@@ -1029,7 +1047,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = targetPlayerId
+            PlayerId = targetPlayerId,
+            PilotAssignments = []
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -1106,8 +1125,8 @@ public class BattleMapViewModelTests
         
         // Create a game with the players
         var game = CreateClientGame();
-        game.JoinGameWithUnits(activePlayer, []);
-        game.JoinGameWithUnits(targetPlayer, []);
+        game.JoinGameWithUnits(activePlayer, [],[]);
+        game.JoinGameWithUnits(targetPlayer, [],[]);
         game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
         _sut.Game = game;
         
@@ -1121,7 +1140,8 @@ public class BattleMapViewModelTests
             Units = [mechData,mechData2],
             Tint = "#ffffff",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId
+            PlayerId = playerId,
+            PilotAssignments = []
         });
         
         // Create a target unit
@@ -1133,7 +1153,8 @@ public class BattleMapViewModelTests
             Units = [targetMechData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = targetPlayerId
+            PlayerId = targetPlayerId,
+            PilotAssignments = []
         });
         
         // Set player statuses
@@ -1249,8 +1270,8 @@ public class BattleMapViewModelTests
         
         // Create a game with the players
         var game = CreateClientGame();
-        game.JoinGameWithUnits(player, [mechData]);
-        game.JoinGameWithUnits(targetPlayer, []);
+        game.JoinGameWithUnits(player, [mechData],[]);
+        game.JoinGameWithUnits(targetPlayer, [],[]);
         game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
         _sut.Game = game;
         
@@ -1261,7 +1282,8 @@ public class BattleMapViewModelTests
             Units = [mechData],
             Tint = "#ffffff",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId
+            PlayerId = playerId,
+            PilotAssignments = []
         });
         
         // Create a target unit
@@ -1273,7 +1295,8 @@ public class BattleMapViewModelTests
             Units = [targetMechData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = targetPlayerId
+            PlayerId = targetPlayerId,
+            PilotAssignments = []
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -1378,7 +1401,7 @@ public class BattleMapViewModelTests
         var playerId = Guid.NewGuid();
         var player = new Player(playerId, "Player1");
         var clientGame = CreateClientGame();
-        clientGame.JoinGameWithUnits(player, []);
+        clientGame.JoinGameWithUnits(player, [],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
@@ -1389,7 +1412,8 @@ public class BattleMapViewModelTests
             Units = [],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId
+            PlayerId = playerId,
+            PilotAssignments = []
         });
 
         // Act
@@ -1418,7 +1442,7 @@ public class BattleMapViewModelTests
         var playerId = Guid.NewGuid();
         var player = new Player(playerId, "Player1");
         var clientGame = CreateClientGame();
-        clientGame.JoinGameWithUnits(player, []);
+        clientGame.JoinGameWithUnits(player, [],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
@@ -1430,7 +1454,8 @@ public class BattleMapViewModelTests
             Units = [MechFactoryTests.CreateDummyMechData()],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId
+            PlayerId = playerId,
+            PilotAssignments = []
         });
         // Set up the game state for the End phase
         clientGame.HandleCommand(new ChangePhaseCommand
@@ -1458,7 +1483,7 @@ public class BattleMapViewModelTests
         var playerId = Guid.NewGuid();
         var player = new Player(playerId, "Player1");
         var clientGame = CreateClientGame();
-        clientGame.JoinGameWithUnits(player, []);
+        clientGame.JoinGameWithUnits(player, [],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
 
@@ -1469,7 +1494,8 @@ public class BattleMapViewModelTests
             Units = [],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId
+            PlayerId = playerId,
+            PilotAssignments = []
         });
         // Set up the game state for the End phase
         clientGame.HandleCommand(new ChangePhaseCommand
@@ -1499,7 +1525,7 @@ public class BattleMapViewModelTests
         // Arrange
         var clientGame = CreateClientGame();
         var player = new Player(Guid.NewGuid(), "Player1");
-        clientGame.JoinGameWithUnits(player,[]);
+        clientGame.JoinGameWithUnits(player,[],[]);
         clientGame.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -1507,6 +1533,7 @@ public class BattleMapViewModelTests
             Units = [],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
+            PilotAssignments = []
         });
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         _sut.Game = clientGame;
@@ -1538,14 +1565,15 @@ public class BattleMapViewModelTests
         unitData.Id = unitId;
         
         var player = new Player(Guid.NewGuid(), "Player1");
-        _game.JoinGameWithUnits(player, [unitData]);
+        _game.JoinGameWithUnits(player, [unitData],[]);
         _game.HandleCommand(new JoinGameCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id,
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = player.Tint
+            Tint = player.Tint,
+            PilotAssignments = []
         });
         
         var unit = _game.Players[0].Units[0];

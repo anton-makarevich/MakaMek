@@ -85,7 +85,7 @@ public class UnitTests
 
         public void SetCrew(IPilot pilot)
         {
-            Crew = pilot;
+            Pilot = pilot;
         }
 
         /// <summary>
@@ -1479,7 +1479,7 @@ public class UnitTests
         var foundUnitDestroyedEvent = false;
         while (unit.DequeueNotification() is { } uiEvent)
         {
-            if (uiEvent.Type == UiEventType.UnitDestroyed && uiEvent.Parameters[0] == unit.Name)
+            if (uiEvent.Type == UiEventType.UnitDestroyed && uiEvent.Parameters[0]?.ToString() == unit.Name)
             {
                 foundUnitDestroyedEvent = true;
                 break;
@@ -1811,7 +1811,7 @@ public class UnitTests
         // Arrange
         var unit = CreateTestUnit();
         unit.SetCrew(new MechWarrior("John", "Doe"));
-        unit.Crew?.Kill();
+        unit.Pilot?.Kill();
 
         // Act & Assert
         unit.IsOutOfCommission.ShouldBeTrue();

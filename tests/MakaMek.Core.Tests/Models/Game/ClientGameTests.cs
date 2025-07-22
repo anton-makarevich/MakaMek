@@ -60,7 +60,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
 
         // Act
@@ -81,7 +82,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             Units = [],
             GameOriginId = _sut.Id, // Set to this game's ID
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
 
         // Act
@@ -100,7 +102,7 @@ public class ClientGameTests
         var player = new Player(Guid.NewGuid(), "Player1");
 
         // Act
-        _sut.JoinGameWithUnits(player, units);
+        _sut.JoinGameWithUnits(player, units,[]);
 
         // Assert
         _commandPublisher.Received(1).PublishCommand(Arg.Is<JoinGameCommand>(cmd =>
@@ -120,7 +122,8 @@ public class ClientGameTests
             PlayerId = player.Id,
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name, Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         var statusCommand = new UpdatePlayerStatusCommand
@@ -168,7 +171,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         var readyCommand = new UpdatePlayerStatusCommand
@@ -217,7 +221,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         var actualPlayer = _sut.Players.FirstOrDefault(p => p.Id == player.Id);
         var command = new ChangeActivePlayerCommand
@@ -246,7 +251,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
 
         // Act
@@ -267,7 +273,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             Units = [],
             GameOriginId = _sut.Id,
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
 
         // Act
@@ -287,7 +294,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         var receivedCommands = new List<IGameCommand>();
         using var subscription = _sut.Commands.Subscribe(cmd => receivedCommands.Add(cmd));
@@ -311,7 +319,7 @@ public class ClientGameTests
         unitData.Id= Guid.NewGuid();
         if (isLocalPlayer)
         {
-            _sut.JoinGameWithUnits(player,[]);
+            _sut.JoinGameWithUnits(player,[],[]);
         }
         _sut.HandleCommand(new JoinGameCommand
         {
@@ -319,7 +327,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -385,7 +394,7 @@ public class ClientGameTests
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
         {
-            _sut.JoinGameWithUnits(player, []);
+            _sut.JoinGameWithUnits(player, [],[]);
         }
         _sut.HandleCommand(new JoinGameCommand
         {
@@ -393,7 +402,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -461,7 +471,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = [] 
         });
 
         var deployCommand = new DeployUnitCommand
@@ -497,7 +508,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         var firstDeployCommand = new DeployUnitCommand
@@ -542,7 +554,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         // First deploy the unit
@@ -586,7 +599,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         var moveCommand = new MoveUnitCommand
@@ -613,7 +627,7 @@ public class ClientGameTests
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
         {
-            _sut.JoinGameWithUnits(player, []);
+            _sut.JoinGameWithUnits(player, [],[]);
         }
         _sut.HandleCommand(new JoinGameCommand
         {
@@ -621,7 +635,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
@@ -693,7 +708,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         // First deploy the unit
@@ -738,7 +754,7 @@ public class ClientGameTests
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
         {
-            _sut.JoinGameWithUnits(player,[]);
+            _sut.JoinGameWithUnits(player,[],[]);
         }
         _sut.HandleCommand(new JoinGameCommand
         {
@@ -746,7 +762,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
@@ -765,7 +782,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = targetPlayer.Name,
             Units = [targetUnitData],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         });
 
         var command = new WeaponAttackDeclarationCommand
@@ -848,7 +866,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = attackerPlayer.Name,
             Units = [attackerUnitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         // Deploy the attacker unit
@@ -872,7 +891,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = targetPlayer.Name,
             Units = [targetUnitData],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         });
 
         // Deploy the target unit
@@ -932,7 +952,8 @@ public class ClientGameTests
             PlayerName = "Target",
             GameOriginId = Guid.NewGuid(),
             Units = [targetUnitData],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         };
         _sut.HandleCommand(targetJoinCommand);
         var targetPlayer = _sut.Players.First(p => p.Id == targetPlayerId);
@@ -996,7 +1017,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         _sut.HandleCommand(joinCommand);
         
@@ -1063,7 +1085,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         _sut.HandleCommand(joinCommand);
         
@@ -1130,7 +1153,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         _sut.HandleCommand(joinCommand);
         
@@ -1195,7 +1219,7 @@ public class ClientGameTests
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
         {
-            _sut.JoinGameWithUnits(player,[]);
+            _sut.JoinGameWithUnits(player,[],[]);
         }
         _sut.HandleCommand(new JoinGameCommand
         {
@@ -1203,7 +1227,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         _sut.HandleCommand(new ChangePhaseCommand
         {
@@ -1278,8 +1303,8 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             _mapFactory);
         var unitData = MechFactoryTests.CreateDummyMechData();
-        clientGame.JoinGameWithUnits(localPlayer1,[unitData]);
-        clientGame.JoinGameWithUnits(localPlayer2,[unitData]);
+        clientGame.JoinGameWithUnits(localPlayer1,[unitData],[]);
+        clientGame.JoinGameWithUnits(localPlayer2,[unitData],[]);
         clientGame.SetBattleMap(battleMap);
         
         // Add the local players to the game
@@ -1290,7 +1315,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer1.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         
         clientGame.HandleCommand(new JoinGameCommand
@@ -1299,7 +1325,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer2.Name,
             Units = [unitData],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         });
         
         // Simulate a player ending their turn (to verify it gets cleared)
@@ -1354,9 +1381,9 @@ public class ClientGameTests
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             _mapFactory);
-        clientGame.JoinGameWithUnits(localPlayer1,[]);
-        clientGame.JoinGameWithUnits(localPlayer2,[]);
-        clientGame.JoinGameWithUnits(localPlayer3,[]);
+        clientGame.JoinGameWithUnits(localPlayer1,[],[]);
+        clientGame.JoinGameWithUnits(localPlayer2,[],[]);
+        clientGame.JoinGameWithUnits(localPlayer3,[],[]);
         clientGame.SetBattleMap(battleMap);
         
         // Add the local players to the game
@@ -1366,7 +1393,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer1.Name,
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         
         clientGame.HandleCommand(new JoinGameCommand
@@ -1375,7 +1403,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer2.Name,
             Units = [],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         });
         
         clientGame.HandleCommand(new JoinGameCommand
@@ -1384,7 +1413,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer3.Name,
             Units = [],
-            Tint = "#0000FF"
+            Tint = "#0000FF",
+            PilotAssignments = []
         });
         
         // Set the game to End phase
@@ -1539,7 +1569,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [unit1Data],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         _sut.HandleCommand(new JoinGameCommand
@@ -1548,7 +1579,8 @@ public class ClientGameTests
             PlayerName = "Player2",
             GameOriginId = Guid.NewGuid(),
             Units = [unit2Data],
-            Tint = "#00FF00"
+            Tint = "#00FF00",
+            PilotAssignments = []
         });
 
         // Get the units and apply damage to both
@@ -1595,7 +1627,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         
         // Set up the map
@@ -1679,7 +1712,8 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = player.Name,
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         
         // Set up the map
@@ -1737,14 +1771,14 @@ public class ClientGameTests
             }
         };
         var unit = _sut.Players.First().Units.First(u => u.Id == unitId);
-        var initialInjuries = unit.Crew!.Injuries;
+        var initialInjuries = unit.Pilot!.Injuries;
         var expectedInjuries = takesDamage ? initialInjuries + 1 : initialInjuries;
         
         // Act
         _sut.HandleCommand(mechFallingCommand);
         
         // Assert
-        unit.Crew.Injuries.ShouldBe(expectedInjuries);
+        unit.Pilot.Injuries.ShouldBe(expectedInjuries);
     }
 
     [Fact]
@@ -1802,7 +1836,8 @@ public class ClientGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         _sut.HandleCommand(joinCommand);
         

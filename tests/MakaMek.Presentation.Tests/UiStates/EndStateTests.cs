@@ -59,7 +59,7 @@ public class EndStateTests
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IBattleMapFactory>());
-        _game.JoinGameWithUnits(_player,[]);
+        _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         
         _battleMapViewModel.Game = _game;
@@ -70,7 +70,8 @@ public class EndStateTests
             Units = [unitData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = _player.Id
+            PlayerId = _player.Id,
+            PilotAssignments = []
         });
         _unit1 = _battleMapViewModel.Units.First();
     

@@ -358,13 +358,21 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
 
         // Assert
-        mech.Crew.ShouldNotBeNull();
-        mech.Crew.ShouldBeOfType<MechWarrior>();
-        var pilot = (MechWarrior)mech.Crew;
-        pilot.FirstName.ShouldBe("MechWarrior");
-        pilot.LastName.Length.ShouldBe(6); // Random GUID substring
-        pilot.Gunnery.ShouldBe(MechWarrior.DefaultGunnery);
-        pilot.Piloting.ShouldBe(MechWarrior.DefaultPiloting);
+        mech.Pilot.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AssignPilot_WithValidPilot_AssignsPilotSuccessfully()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var pilot = new MechWarrior("John", "Doe");
+
+        // Act
+        mech.AssignPilot(pilot);
+
+        // Assert
+        mech.Pilot.ShouldBe(pilot);
     }
 
     [Fact]
@@ -1283,7 +1291,7 @@ public class MechTests
         });
 
         // Assert
-        sut.Crew?.Injuries.ShouldBe(injuriesExpected);
+        sut.Pilot?.Injuries.ShouldBe(injuriesExpected);
         if (injuriesExpected <= 0) return;
         var uiEvent = sut.DequeueNotification();
         uiEvent.ShouldNotBeNull();
@@ -1325,7 +1333,7 @@ public class MechTests
 
         // Mock pilot - ensure it's conscious
         var pilot = Substitute.For<IPilot>();
-        pilot.IsUnconscious.Returns(false);
+        pilot.IsConscious.Returns(false);
         typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
@@ -1348,7 +1356,7 @@ public class MechTests
 
         // Mock pilot with specified consciousness state
         var pilot = Substitute.For<IPilot>();
-        pilot.IsUnconscious.Returns(pilotUnconscious);
+        pilot.IsConscious.Returns(pilotUnconscious);
         typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
@@ -1369,7 +1377,7 @@ public class MechTests
 
         // Mock pilot - ensure it's conscious
         var pilot = Substitute.For<IPilot>();
-        pilot.IsUnconscious.Returns(false);
+        pilot.IsConscious.Returns(false);
         typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
@@ -1423,7 +1431,7 @@ public class MechTests
 
         // Mock pilot - ensure it's conscious
         var pilot = Substitute.For<IPilot>();
-        pilot.IsUnconscious.Returns(false);
+        pilot.IsConscious.Returns(false);
         typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act

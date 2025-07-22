@@ -36,19 +36,16 @@ public class Mech : Unit
 
     public Mech(
         string chassis,
-        string model, 
-        int tonnage, 
+        string model,
+        int tonnage,
         int walkMp,
         IEnumerable<UnitPart> parts,
         int possibleTorsoRotation = 1,
-        Guid? id = null) 
+        Guid? id = null)
         : base(chassis, model, tonnage, walkMp, parts, id)
     {
         PossibleTorsoRotation = possibleTorsoRotation;
         Status = UnitStatus.Active;
-        // Assign a default mechwarrior with a generated name
-        var randomId = Guid.NewGuid().ToString()[..6];
-        Crew = new MechWarrior($"MechWarrior", randomId);
     }
 
     public override int GetMovementPoints(MovementType type)
@@ -148,7 +145,7 @@ public class Mech : Unit
         }
         
         var lifeSupport = GetAllComponents<LifeSupport>().FirstOrDefault(ls=>ls.IsDestroyed);
-        if (lifeSupport!=null && CurrentHeat >= 15 && Crew is MechWarrior mw)
+        if (lifeSupport!=null && CurrentHeat >= 15 && Pilot is MechWarrior mw)
         {
             mw.Hit();
             var hits = 1;
@@ -457,7 +454,7 @@ public class Mech : Unit
         // Check if the Mech has at least one movement point available
         if (GetMovementPoints(MovementType.Walk) < 1) return false;
 
-        if (Crew?.IsUnconscious == true) return false;
+        if (Pilot?.IsConscious == true) return false;
 
         return true;
     }

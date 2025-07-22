@@ -109,7 +109,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                         _ => {}, // No set ready action needed for remote
                         () => NotifyPropertyChanged(nameof(CanStartGame))); 
                     
-                    remotePlayerVm.AddUnits(joinCmd.Units); // Add units received from command
+                    remotePlayerVm.AddUnits(joinCmd.Units, joinCmd.PilotAssignments); // Add units received from command
                     _players.Add(remotePlayerVm);
                     NotifyPropertyChanged(nameof(CanAddPlayer));
                     NotifyPropertyChanged(nameof(CanStartGame));

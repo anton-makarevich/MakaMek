@@ -149,7 +149,8 @@ public class CommandTransportAdapterTests
             Timestamp = DateTime.MinValue,
             PlayerName = "Player1",
             Units = [],
-            Tint = ""
+            Tint = "",
+            PilotAssignments = []
         }; 
         var payload = JsonSerializer.Serialize(originalCommand);
         
@@ -368,7 +369,7 @@ public class CommandTransportAdapterTests
     public void Initialize_CalledMultipleTimes_SubscribesOnlyOnce()
     {
         // Arrange
-        SetupAdapter(1);
+        SetupAdapter();
 
         // Act
         _sut.Initialize(_=>{ });

@@ -81,7 +81,8 @@ public class ServerGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
 
         // Act
@@ -101,7 +102,8 @@ public class ServerGameTests
             PlayerName = "Player1",
             Units = [],
             GameOriginId = _sut.Id, // Set to this game's ID
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
 
         // Act
@@ -123,7 +125,8 @@ public class ServerGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = "Player1",
             Units=[],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         var statusCommand = new UpdatePlayerStatusCommand
@@ -153,7 +156,8 @@ public class ServerGameTests
             GameOriginId = Guid.NewGuid(),
             PlayerName = "Player1",
             Units=[],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
         _sut.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -183,7 +187,8 @@ public class ServerGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         _sut.HandleCommand(new JoinGameCommand
@@ -192,7 +197,8 @@ public class ServerGameTests
             PlayerName = "Player2",
             GameOriginId = Guid.NewGuid(),
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         _sut.HandleCommand(new UpdatePlayerStatusCommand
@@ -231,7 +237,8 @@ public class ServerGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
     
         _sut.HandleCommand(new UpdatePlayerStatusCommand
@@ -345,7 +352,8 @@ public class ServerGameTests
             PlayerName = "Player1",
             GameOriginId = Guid.NewGuid(),
             Units = [unitData],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         });
 
         _sut.HandleCommand(new UpdatePlayerStatusCommand
