@@ -19,7 +19,7 @@ public abstract class Unit
 {
     protected readonly List<UnitPart> _parts;
     private readonly Queue<UiEvent> _notifications = new();
-    private readonly List<UiEvent> _events = new();
+    private readonly List<UiEvent> _events = [];
 
     protected Unit(string chassis, string model, int tonnage,
         int walkMp,

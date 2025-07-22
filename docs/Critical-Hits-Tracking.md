@@ -34,8 +34,8 @@
 - [x] Head Blown Off: Occurs on a roll of 12 on the Determining Critical Hits Table for a head hit. 
   - [ ] Destroys the 'Mech's head, kills the MechWarrior, and puts the 'Mech out of commission.
 
-- [ ] Life Support: System is permanently knocked out.
-  - [ ] Pilot takes 1 point of damage at the end of every Heat Phase if heat is 15-25, or 2 points of damage if heat is 26+.
+- [x] Life Support: System is permanently knocked out.
+  - [x] Pilot takes 1 point of damage at the end of every Heat Phase if heat is 15-25, or 2 points of damage if heat is 26+.
 
 ### Legs
 - [x] Lower Leg Actuator: Destroys the actuator. Requires a PSR with a +1 modifier at the end of the phase and for subsequent PSRs.

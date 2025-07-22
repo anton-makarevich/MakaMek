@@ -1247,6 +1247,43 @@ public class MechTests
         // Assert
         engineHeatPenalty?.Value.ShouldBe(5, "Engine with one hit should have +5 heat penalty");
     }
+    
+    [Theory]
+    [InlineData(2, 0)]
+    [InlineData(15, 1)]
+    [InlineData(26, 2)]
+    [InlineData(30, 2)]
+    [InlineData(15, 0, false)]
+    [InlineData(26, 0, false)]
+    [InlineData(30, 0, false)]
+    public void ApplyHeat_ShouldDamagePilot_WhenHeatIsHigh_AndLifeSupportIsDestroyed(int heatPoints, int injuriesExpected, bool destroyLifeSupport = true)
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        if (destroyLifeSupport)
+        {
+            var lifeSupport = sut.GetAllComponents<LifeSupport>().First();
+            lifeSupport.Hit();
+        }
+
+        // Act
+        sut.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources =
+            [
+                new WeaponHeatData
+                {
+                    WeaponName = "TestWeapon",
+                    HeatPoints = heatPoints
+                }
+            ],
+            DissipationData = default
+        });
+
+        // Assert
+        sut.Crew?.Injuries.ShouldBe(injuriesExpected);
+    }
 
     [Fact]
     public void GetHeatData_IncludesEngineHeatInTotalHeatPoints()

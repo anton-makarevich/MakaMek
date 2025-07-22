@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
@@ -146,7 +147,18 @@ public class Mech : Unit
             // To be implemented
         }
         
-        // Movement penalties are calculated on-demand in ModifiedMovement
+        var lifeSupport = GetAllComponents<LifeSupport>().FirstOrDefault(ls=>ls.IsDestroyed);
+        if (lifeSupport!=null && CurrentHeat >= 15 && Crew is MechWarrior mw)
+        {
+            mw.Hit();
+            var hits = 1;
+            if (CurrentHeat >=26)
+            {
+                mw.Hit();
+                hits++;
+            }
+            AddEvent(new UiEvent(UiEventType.PilotDamage, mw.FirstName,hits));
+        }
     }
     
     // Calculate movement penalty based on current heat

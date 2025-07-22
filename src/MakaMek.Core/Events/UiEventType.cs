@@ -11,5 +11,6 @@ public enum UiEventType
     CriticalHit,
     ComponentDestroyed,
     LocationDestroyed,
-    UnitDestroyed
+    UnitDestroyed,
+    PilotDamage
 }
