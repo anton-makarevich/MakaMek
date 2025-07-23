@@ -352,7 +352,7 @@ public class MechTests
     }
 
     [Fact]
-    public void Constructor_AssignsDefaultMechwarrior()
+    public void Constructor_DoesNotAssignPilot()
     {
         // Arrange & Act
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
@@ -1330,12 +1330,8 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
         mech.SetProne();
-
-        // Mock pilot - ensure it's conscious
-        var pilot = Substitute.For<IPilot>();
-        pilot.IsConscious.Returns(true);
-        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
         var canStandup = mech.CanStandup();
@@ -1374,12 +1370,8 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
         mech.SetProne();
-
-        // Mock pilot - ensure it's conscious
-        var pilot = Substitute.For<IPilot>();
-        pilot.IsConscious.Returns(false);
-        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
         var canStandup = mech.CanStandup();
@@ -1426,14 +1418,10 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A"  , 50, 4, parts);
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
         mech.SetProne();
         mech.Shutdown();
-
-        // Mock pilot - ensure it's conscious
-        var pilot = Substitute.For<IPilot>();
-        pilot.IsConscious.Returns(false);
-        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
         var canStandup = mech.CanStandup();
