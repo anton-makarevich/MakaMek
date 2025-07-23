@@ -309,7 +309,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             // Arrange
             var notMech = new UnitTests.TestUnit("Test", "TST-1A", 50, 4, []);
-            notMech.SetCrew(new MechWarrior("Test", "Test"));
+            notMech.AssignPilot(new MechWarrior("Test", "Test"));
 
             // Act
             var result = _sut.GetPsrBreakdown(notMech, PilotingSkillRollType.GyroHit);

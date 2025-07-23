@@ -83,11 +83,6 @@ public class UnitTests
             }
         }
 
-        public void SetCrew(IPilot pilot)
-        {
-            Pilot = pilot;
-        }
-
         /// <summary>
         /// Helper method for testing - provides access to set the Status field
         /// </summary>
@@ -1151,7 +1146,7 @@ public class UnitTests
         var head = new Head("Head", 10, 5);
         var pilot = new MechWarrior("John", "Doe");
         var unit = new TestUnit("Test", "Unit", 20, 4, [head]);
-        unit.SetCrew(pilot);
+        unit.AssignPilot(pilot);
         var hitLocation = new HitLocationData(PartLocation.Head, 0, [], 
         [new LocationCriticalHitsData(PartLocation.Head, 10, 1, 
             [CreateComponentHitData(2)])]);
@@ -1810,7 +1805,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        unit.SetCrew(new MechWarrior("John", "Doe"));
+        unit.AssignPilot(new MechWarrior("John", "Doe"));
         unit.Pilot?.Kill();
 
         // Act & Assert
