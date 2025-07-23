@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Events;
 
 namespace Sanet.MakaMek.Core.Models.Units.Pilots;
 
@@ -80,14 +81,16 @@ public class MechWarrior : IPilot
         IsConscious = pilotData.IsConscious;
     }
 
-    public void Hit()
+    public void Hit(int hits = 1)
     {
-        Injuries++;
+        Injuries += hits;
+        AssignedTo?.AddEvent(new UiEvent(UiEventType.PilotDamage, FirstName,hits));
     }
 
     public void Kill()
     {
         Injuries = Health;
+        AssignedTo?.AddEvent(new UiEvent(UiEventType.PilotDead, FirstName));
     }
 
     public PilotData ToData()

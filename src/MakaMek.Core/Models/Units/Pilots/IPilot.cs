@@ -47,7 +47,7 @@ public interface IPilot
     /// <summary>
     /// Applies a hit to the pilot, increasing the number of injuries
     /// </summary>
-    void Hit();
+    void Hit(int hits = 1);
 
     /// <summary>
     /// Kills the pilot, setting injuries to health

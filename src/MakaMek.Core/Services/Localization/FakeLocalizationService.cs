@@ -183,6 +183,7 @@ public class FakeLocalizationService: ILocalizationService
             "Events_Unit_LocationDestroyed" => "{0} destroyed",
             "Events_Unit_UnitDestroyed" => "{0} has been destroyed!",
             "Events_Unit_PilotDamage" => "{0} took damage | -{1}",
+            "Events_Unit_PilotDead" => "{0} was killed",
             
             // Penalty messages
             "Penalty_FootActuatorMovement" => "{0} destroyed foot actuator(s) | -{1} MP",

@@ -147,14 +147,12 @@ public class Mech : Unit
         var lifeSupport = GetAllComponents<LifeSupport>().FirstOrDefault(ls=>ls.IsDestroyed);
         if (lifeSupport!=null && CurrentHeat >= 15 && Pilot is MechWarrior mw)
         {
-            mw.Hit();
             var hits = 1;
             if (CurrentHeat >=26)
             {
-                mw.Hit();
                 hits++;
             }
-            AddEvent(new UiEvent(UiEventType.PilotDamage, mw.FirstName,hits));
+            mw.Hit(hits);
         }
     }
     

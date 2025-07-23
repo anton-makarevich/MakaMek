@@ -50,6 +50,20 @@ public class MechWarriorTests
     }
     
     [Fact]
+    public void Hit_IncrementsInjuriesByProvidedAmount()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+        var initialInjuries = sut.Injuries;
+        
+        // Act
+        sut.Hit(2);
+        
+        // Assert
+        sut.Injuries.ShouldBe(initialInjuries + 2);
+    }
+    
+    [Fact]
     public void Hit_MultipleTimesIncrementsInjuriesCorrectly()
     {
         // Arrange
@@ -62,6 +76,22 @@ public class MechWarriorTests
         
         // Assert
         sut.Injuries.ShouldBe(3);
+    }
+    
+    [Fact]
+    public void Hit_AddsEvent()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+        unit.AssignPilot(sut);
+        var initialEventsCount = sut.AssignedTo?.Events.Count ?? 0;
+        
+        // Act
+        sut.Hit();
+        
+        // Assert
+        sut.AssignedTo?.Events.Count.ShouldBe(initialEventsCount + 1);
     }
     
     [Fact]
@@ -133,6 +163,22 @@ public class MechWarriorTests
         // Assert
         sut.Injuries.ShouldBe(sut.Health);
         sut.IsDead.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void Kill_AddsEvent()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+        unit.AssignPilot(sut);
+        var initialEventsCount = sut.AssignedTo?.Events.Count ?? 0;
+        
+        // Act
+        sut.Kill();
+        
+        // Assert
+        sut.AssignedTo?.Events.Count.ShouldBe(initialEventsCount + 1);
     }
 
     [Fact]

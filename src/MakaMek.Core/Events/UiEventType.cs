@@ -12,5 +12,6 @@ public enum UiEventType
     ComponentDestroyed,
     LocationDestroyed,
     UnitDestroyed,
-    PilotDamage
+    PilotDamage,
+    PilotDead
 }
