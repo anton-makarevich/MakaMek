@@ -34,7 +34,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     {
         if (unit.Pilot == null)
         {
-            throw new ArgumentException("Unit has no crew", nameof(unit));
+            throw new ArgumentException("Unit has no pilot", nameof(unit));
         }
 
         if (unit is not Mech mech)

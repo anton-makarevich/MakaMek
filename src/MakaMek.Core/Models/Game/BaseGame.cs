@@ -13,7 +13,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 
 namespace Sanet.MakaMek.Core.Models.Game;
@@ -145,7 +144,7 @@ public abstract class BaseGame : IGame
             var pilotAssignment = joinGameCommand.PilotAssignments.FirstOrDefault(pa => pa.UnitId == unitData.Id);
             if (pilotAssignment.UnitId != Guid.Empty)
             {
-                var pilot = CreatePilotFromData(pilotAssignment.PilotData);
+                var pilot = new MechWarrior(pilotAssignment.PilotData);
                 unit.AssignPilot(pilot);
             }
 
@@ -154,20 +153,6 @@ public abstract class BaseGame : IGame
 
         player.Status = PlayerStatus.Joined;
         _players.Add(player);
-    }
-
-    /// <summary>
-    /// Creates a pilot instance from pilot data
-    /// </summary>
-    /// <param name="pilotData">The pilot data to create from</param>
-    /// <returns>A new pilot instance</returns>
-    private static IPilot CreatePilotFromData(PilotData pilotData)
-    {
-        return new MechWarrior(
-            pilotData.FirstName,
-            pilotData.LastName,
-            pilotData.Gunnery,
-            pilotData.Piloting);
     }
     
     internal void OnPlayerStatusUpdated(UpdatePlayerStatusCommand updatePlayerStatusCommand)

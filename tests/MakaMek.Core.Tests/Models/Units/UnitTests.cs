@@ -1801,7 +1801,7 @@ public class UnitTests
     }
     
     [Fact]
-    public void IsOutOfCommission_ShouldReturnTrue_WhenCrewIsDead()
+    public void IsOutOfCommission_ShouldReturnTrue_WhenPilotIsDead()
     {
         // Arrange
         var unit = CreateTestUnit();

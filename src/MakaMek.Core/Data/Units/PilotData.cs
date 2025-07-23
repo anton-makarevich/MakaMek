@@ -39,5 +39,5 @@ public record struct PilotData
     /// <summary>
     /// Indicates whether the pilot is conscious
     /// </summary>
-    public bool IsConcious { get; init; }
+    public bool IsConscious { get; init; }
 }

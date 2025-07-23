@@ -55,11 +55,24 @@ public class MechWarrior : IPilot
 
     public MechWarrior(string firstName, string lastName, int? gunnery = null, int? piloting = null)
     {
+        Id = Guid.NewGuid();
         FirstName = firstName;
         LastName = lastName;
         Health = DefaultHealth;
         Gunnery = gunnery ?? DefaultGunnery;
         Piloting = piloting ?? DefaultPiloting;
+    }
+    
+    public MechWarrior(PilotData pilotData)
+    {
+        Id = pilotData.Id;
+        FirstName = pilotData.FirstName;
+        LastName = pilotData.LastName;
+        Health = pilotData.Health;
+        Gunnery = pilotData.Gunnery;
+        Piloting = pilotData.Piloting;
+        Injuries = pilotData.Injuries;
+        IsConscious = pilotData.IsConscious;
     }
 
     public void Hit()
@@ -83,7 +96,7 @@ public class MechWarrior : IPilot
             Piloting = Piloting,
             Health = Health,
             Injuries = Injuries,
-            IsConcious = IsConscious
+            IsConscious = IsConscious
         };
     }
 

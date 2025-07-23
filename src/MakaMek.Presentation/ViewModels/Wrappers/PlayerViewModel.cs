@@ -151,7 +151,7 @@ public class PlayerViewModel : BindableBase
             Piloting = MechWarrior.DefaultPiloting,
             Health = MechWarrior.DefaultHealth,
             Injuries = 0,
-            IsConcious = true
+            IsConscious = true
         };
 
         _unitPilots[unitId] = pilotData;

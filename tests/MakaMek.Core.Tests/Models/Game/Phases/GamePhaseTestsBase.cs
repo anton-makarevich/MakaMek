@@ -101,7 +101,7 @@ public abstract class GamePhaseTestsBase
                 Piloting = 5,
                 Health = 6,
                 Injuries = 0,
-                IsConcious = true
+                IsConscious = true
             };
 
             pilotAssignments.Add(new PilotAssignmentData

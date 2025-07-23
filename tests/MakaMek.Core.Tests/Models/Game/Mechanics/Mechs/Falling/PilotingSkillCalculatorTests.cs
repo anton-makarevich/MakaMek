@@ -319,14 +319,14 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         }
         
         [Fact]
-        public void GetPsrBreakdown_ShouldThrow_WhenNoCrew()
+        public void GetPsrBreakdown_ShouldThrow_WhenNoPilot()
         {
             // Arrange
             var notMech = new UnitTests.TestUnit("Test", "TST-1A", 50, 4, []);
 
             // Act & Assert
             Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(notMech, PilotingSkillRollType.GyroHit))
-                .Message.ShouldContain("crew");
+                .Message.ShouldContain("pilot");
         }
 
         [Fact]
