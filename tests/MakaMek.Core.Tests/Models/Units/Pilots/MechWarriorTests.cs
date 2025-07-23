@@ -134,4 +134,43 @@ public class MechWarriorTests
         sut.Injuries.ShouldBe(sut.Health);
         sut.IsDead.ShouldBeTrue();
     }
+
+    [Fact]
+    public void AssignedTo_InitiallyNull()
+    {
+        // Arrange & Act
+        var sut = new MechWarrior("John", "Doe");
+
+        // Assert
+        sut.AssignedTo.ShouldBeNull();
+    }
+
+    [Fact]
+    public void SetAssignedUnit_WithUnit_SetsAssignedTo()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+
+        // Act
+        sut.AssignedTo = unit;
+
+        // Assert
+        sut.AssignedTo.ShouldBe(unit);
+    }
+
+    [Fact]
+    public void SetAssignedUnit_WithNull_ClearsAssignedTo()
+    {
+        // Arrange
+        var sut = new MechWarrior("John", "Doe");
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+        sut.AssignedTo = unit;
+
+        // Act
+        sut.AssignedTo =null;
+
+        // Assert
+        sut.AssignedTo.ShouldBeNull();
+    }
 }

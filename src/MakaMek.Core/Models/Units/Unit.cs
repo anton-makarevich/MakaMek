@@ -242,7 +242,29 @@ public abstract class Unit
     /// <param name="pilot">The pilot to assign</param>
     public void AssignPilot(IPilot pilot)
     {
+        // If this unit already has a pilot, unassign it first
+        if (Pilot is not null)
+        {
+            Pilot.AssignedTo = null;
+        }
+
+        // If the new pilot is already assigned to another unit, unassign it first
+        pilot.AssignedTo?.UnassignPilot();
+
+        // Assign the pilot to this unit
         Pilot = pilot;
+
+        // Set the bidirectional relationship
+        Pilot.AssignedTo = this;
+    }
+
+    /// <summary>
+    /// Unassigns the current pilot from this unit
+    /// </summary>
+    public void UnassignPilot()
+    {
+        if (Pilot?.AssignedTo != null) Pilot.AssignedTo = null;
+        Pilot = null;
     }
 
     // Armor and Structure totals

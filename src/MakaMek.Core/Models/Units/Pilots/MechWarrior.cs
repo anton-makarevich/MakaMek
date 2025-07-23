@@ -53,6 +53,11 @@ public class MechWarrior : IPilot
 
     public bool IsConscious { get; private set; } = true;
 
+    /// <summary>
+    /// The unit this pilot is currently assigned to, if any
+    /// </summary>
+    public Unit? AssignedTo { get; set; }
+
     public MechWarrior(string firstName, string lastName, int? gunnery = null, int? piloting = null)
     {
         Id = Guid.NewGuid();
