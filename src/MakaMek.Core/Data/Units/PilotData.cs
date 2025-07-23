@@ -40,4 +40,19 @@ public record struct PilotData
     /// Indicates whether the pilot is conscious
     /// </summary>
     public bool IsConscious { get; init; }
+
+    public static PilotData CreateDefaultPilot(string firstName ,string lastName)
+    {
+        return new PilotData
+        {
+            Id = Guid.NewGuid(),
+            FirstName = firstName,
+            LastName = lastName,
+            Gunnery = 4,
+            Piloting = 5,
+            Health = 6,
+            Injuries = 0,
+            IsConscious = true
+        };
+    }
 }

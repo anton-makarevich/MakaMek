@@ -71,7 +71,7 @@ public abstract class NewGameViewModel : BaseViewModel
         var pilotAssignments = playerVm.Units.Select(unit => new PilotAssignmentData
         {
             UnitId = unit.Id ?? Guid.NewGuid(),
-            PilotData = playerVm.GetPilotDataForUnit(unit.Id ?? Guid.NewGuid())
+            PilotData = playerVm.GetPilotDataForUnit(unit.Id ?? Guid.NewGuid())?? PilotData.CreateDefaultPilot("MechWarrior","")
         }).ToList();
 
         _localGame.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList(), pilotAssignments);

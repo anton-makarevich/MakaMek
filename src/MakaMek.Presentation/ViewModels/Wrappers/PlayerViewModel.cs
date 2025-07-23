@@ -3,7 +3,6 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -97,11 +96,12 @@ public class PlayerViewModel : BindableBase
         if (!CanAddUnit) return Task.CompletedTask;
 
         var unit = SelectedUnit!.Value;
-        unit.Id = Guid.NewGuid();
+        var unitId = Guid.NewGuid();
+        unit.Id = unitId;
         Units.Add(unit);
 
         // Create a default pilot for this unit
-        CreateDefaultPilotForUnit(unit.Id!.Value);
+        _unitPilots[unitId] = PilotData.CreateDefaultPilot("MechWarrior","");
 
         NotifyPropertyChanged(nameof(CanJoin));
         _onUnitChanged?.Invoke();
@@ -127,7 +127,7 @@ public class PlayerViewModel : BindableBase
             }
             else if (unitToAdd.Id != null)
             {
-                CreateDefaultPilotForUnit(unitToAdd.Id.Value);
+                _unitPilots[unitToAdd.Id.Value] = PilotData.CreateDefaultPilot("MechWarrior","");
             }
         }
         _onUnitChanged?.Invoke();
@@ -136,35 +136,14 @@ public class PlayerViewModel : BindableBase
     public bool CanSetReady => IsLocalPlayer && Status == PlayerStatus.Joined;
 
     /// <summary>
-    /// Creates a default pilot for the specified unit
-    /// </summary>
-    /// <param name="unitId">The ID of the unit to create a pilot for</param>
-    private void CreateDefaultPilotForUnit(Guid unitId)
-    {
-        var randomId = Guid.NewGuid();
-        var pilotData = new PilotData
-        {
-            Id = randomId,
-            FirstName = "MechWarrior",
-            LastName = randomId.ToString()[..6],
-            Gunnery = MechWarrior.DefaultGunnery,
-            Piloting = MechWarrior.DefaultPiloting,
-            Health = MechWarrior.DefaultHealth,
-            Injuries = 0,
-            IsConscious = true
-        };
-
-        _unitPilots[unitId] = pilotData;
-    }
-
-    /// <summary>
     /// Gets the pilot data for the specified unit
     /// </summary>
     /// <param name="unitId">The ID of the unit</param>
     /// <returns>The pilot data for the unit</returns>
-    public PilotData GetPilotDataForUnit(Guid unitId)
+    public PilotData? GetPilotDataForUnit(Guid unitId)
     {
-        return _unitPilots.GetValueOrDefault(unitId);
+        if (_unitPilots.TryGetValue(unitId, out var pilotData)) return pilotData;
+        return null;
     }
 
     /// <summary>
