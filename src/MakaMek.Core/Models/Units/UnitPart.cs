@@ -195,7 +195,7 @@ public abstract class UnitPart
     /// Blows off this part as a result of a critical hit
     /// </summary>
     /// <returns>True if the part was successfully blown off, false otherwise</returns>
-    public bool BlowOff()
+    public virtual bool BlowOff()
     {
         if (!CanBeBlownOff)
             return false;
