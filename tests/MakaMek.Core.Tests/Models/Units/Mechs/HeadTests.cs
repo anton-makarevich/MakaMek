@@ -2,6 +2,7 @@ using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 
@@ -11,21 +12,37 @@ public class HeadTests
     public void Head_ShouldBeInitializedCorrectly()
     {
         // Arrange & Act
-        var head = new Head("Head",  8, 3);
+        var sut = new Head("Head",  8, 3);
 
         // Assert
-        head.Name.ShouldBe("Head");
-        head.Location.ShouldBe(PartLocation.Head);
-        head.MaxArmor.ShouldBe(8);
-        head.CurrentArmor.ShouldBe(8);
-        head.MaxStructure.ShouldBe(3);
-        head.CurrentStructure.ShouldBe(3);
-        head.TotalSlots.ShouldBe(6);
-        head.CanBeBlownOff.ShouldBeTrue();
+        sut.Name.ShouldBe("Head");
+        sut.Location.ShouldBe(PartLocation.Head);
+        sut.MaxArmor.ShouldBe(8);
+        sut.CurrentArmor.ShouldBe(8);
+        sut.MaxStructure.ShouldBe(3);
+        sut.CurrentStructure.ShouldBe(3);
+        sut.TotalSlots.ShouldBe(6);
+        sut.CanBeBlownOff.ShouldBeTrue();
 
         // Verify default components
-        head.GetComponent<LifeSupport>().ShouldNotBeNull();
-        head.GetComponent<Sensors>().ShouldNotBeNull();
-        head.GetComponent<Cockpit>().ShouldNotBeNull();
+        sut.GetComponent<LifeSupport>().ShouldNotBeNull();
+        sut.GetComponent<Sensors>().ShouldNotBeNull();
+        sut.GetComponent<Cockpit>().ShouldNotBeNull();
+    }
+    
+    [Fact]
+    public void BlowOff_ShouldKillPilot()
+    {
+        // Arrange
+        var sut = new Head("Head",  8, 3);
+        var mech = new Mech("Test", "TST-1A", 50, 6, [sut]);
+        var pilot = new MechWarrior("John", "Doe");
+        mech.AssignPilot(pilot);
+
+        // Act
+        sut.BlowOff();
+
+        // Assert
+        pilot.IsDead.ShouldBeTrue();
     }
 }
