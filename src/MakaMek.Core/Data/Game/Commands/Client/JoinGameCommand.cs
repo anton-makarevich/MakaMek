@@ -8,6 +8,7 @@ public record struct JoinGameCommand: IClientCommand
 {
     public required string PlayerName { get; init; }
     public required List<UnitData> Units { get; init; }
+    public required List<PilotAssignmentData> PilotAssignments { get; init; }
     public required string Tint { get; init; }
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }

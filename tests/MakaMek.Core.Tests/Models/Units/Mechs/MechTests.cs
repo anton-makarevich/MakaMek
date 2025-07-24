@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
@@ -351,19 +352,109 @@ public class MechTests
     }
 
     [Fact]
-    public void Constructor_AssignsDefaultMechwarrior()
+    public void Constructor_DoesNotAssignPilot()
     {
         // Arrange & Act
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
 
         // Assert
-        mech.Crew.ShouldNotBeNull();
-        mech.Crew.ShouldBeOfType<MechWarrior>();
-        var pilot = (MechWarrior)mech.Crew;
-        pilot.FirstName.ShouldBe("MechWarrior");
-        pilot.LastName.Length.ShouldBe(6); // Random GUID substring
-        pilot.Gunnery.ShouldBe(MechWarrior.DefaultGunnery);
-        pilot.Piloting.ShouldBe(MechWarrior.DefaultPiloting);
+        mech.Pilot.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AssignPilot_WithValidPilot_AssignsPilotSuccessfully()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var pilot = new MechWarrior("John", "Doe");
+
+        // Act
+        mech.AssignPilot(pilot);
+
+        // Assert
+        mech.Pilot.ShouldBe(pilot);
+    }
+
+    [Fact]
+    public void AssignPilot_WithValidPilot_SetsBidirectionalRelationship()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var pilot = new MechWarrior("John", "Doe");
+
+        // Act
+        mech.AssignPilot(pilot);
+
+        // Assert
+        mech.Pilot.ShouldBe(pilot);
+        pilot.AssignedTo.ShouldBe(mech);
+    }
+
+    [Fact]
+    public void AssignPilot_WhenPilotAlreadyAssignedToAnotherUnit_ReassignsPilot()
+    {
+        // Arrange
+        var mech1 = new Mech("Test1", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech2 = new Mech("Test2", "TST-2A", 60, 4, CreateBasicPartsData());
+        var pilot = new MechWarrior("John", "Doe");
+
+        // Initially assign pilot to mech1
+        mech1.AssignPilot(pilot);
+
+        // Act - reassign pilot to mech2
+        mech2.AssignPilot(pilot);
+
+        // Assert
+        mech1.Pilot.ShouldBeNull();
+        mech2.Pilot.ShouldBe(pilot);
+        pilot.AssignedTo.ShouldBe(mech2);
+    }
+
+    [Fact]
+    public void AssignPilot_WhenUnitAlreadyHasPilot_UnassignsPreviousPilot()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var pilot1 = new MechWarrior("John", "Doe");
+        var pilot2 = new MechWarrior("Jane", "Smith");
+
+        // Initially assign pilot1
+        mech.AssignPilot(pilot1);
+
+        // Act - assign pilot2
+        mech.AssignPilot(pilot2);
+
+        // Assert
+        mech.Pilot.ShouldBe(pilot2);
+        pilot1.AssignedTo.ShouldBeNull();
+        pilot2.AssignedTo.ShouldBe(mech);
+    }
+
+    [Fact]
+    public void UnassignPilot_WithAssignedPilot_RemovesBidirectionalRelationship()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var pilot = new MechWarrior("John", "Doe");
+        mech.AssignPilot(pilot);
+
+        // Act
+        mech.UnassignPilot();
+
+        // Assert
+        mech.Pilot.ShouldBeNull();
+        pilot.AssignedTo.ShouldBeNull();
+    }
+
+    [Fact]
+    public void UnassignPilot_WithNoPilot_DoesNotThrow()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+
+        // Act & Assert - should not throw
+        mech.UnassignPilot();
+        mech.Pilot.ShouldBeNull();
     }
 
     [Fact]
@@ -1260,6 +1351,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
         if (destroyLifeSupport)
         {
             var lifeSupport = sut.GetAllComponents<LifeSupport>().First();
@@ -1282,7 +1374,14 @@ public class MechTests
         });
 
         // Assert
-        sut.Crew?.Injuries.ShouldBe(injuriesExpected);
+        sut.Pilot?.Injuries.ShouldBe(injuriesExpected);
+        if (injuriesExpected <= 0) return;
+        var uiEvent = sut.DequeueNotification();
+        uiEvent.ShouldNotBeNull();
+        uiEvent.Type.ShouldBe(UiEventType.PilotDamage);
+        uiEvent.Parameters.Length.ShouldBe(2);
+        uiEvent.Parameters[0].ShouldBe("John");
+        uiEvent.Parameters[1].ShouldBe(injuriesExpected);
     }
 
     [Fact]
@@ -1313,12 +1412,8 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
         mech.SetProne();
-
-        // Mock pilot - ensure it's conscious
-        var pilot = Substitute.For<IPilot>();
-        pilot.IsUnconscious.Returns(false);
-        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
         var canStandup = mech.CanStandup();
@@ -1340,8 +1435,8 @@ public class MechTests
 
         // Mock pilot with specified consciousness state
         var pilot = Substitute.For<IPilot>();
-        pilot.IsUnconscious.Returns(pilotUnconscious);
-        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
+        pilot.IsConscious.Returns(!pilotUnconscious);
+        typeof(Mech).GetProperty("Pilot")?.SetValue(mech, pilot);
 
         // Act
         var canStandup = mech.CanStandup();
@@ -1357,12 +1452,8 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
         mech.SetProne();
-
-        // Mock pilot - ensure it's conscious
-        var pilot = Substitute.For<IPilot>();
-        pilot.IsUnconscious.Returns(false);
-        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
         var canStandup = mech.CanStandup();
@@ -1409,14 +1500,10 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A"  , 50, 4, parts);
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
         mech.SetProne();
         mech.Shutdown();
-
-        // Mock pilot - ensure it's conscious
-        var pilot = Substitute.For<IPilot>();
-        pilot.IsUnconscious.Returns(false);
-        typeof(Mech).GetProperty("Crew")?.SetValue(mech, pilot);
 
         // Act
         var canStandup = mech.CanStandup();

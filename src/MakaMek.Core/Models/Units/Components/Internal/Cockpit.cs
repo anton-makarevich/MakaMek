@@ -11,6 +11,6 @@ public class Cockpit() : Component("Cockpit", [2])
     {
         base.Hit();
         // Kill the pilot
-        MountedOn?.Unit?.Crew?.Kill();
+        MountedOn?.Unit?.Pilot?.Kill();
     }
 }

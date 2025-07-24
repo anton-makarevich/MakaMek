@@ -301,7 +301,8 @@ public class JoinGameViewModelTests
             PlayerId = remotePlayerId,
             PlayerName = "Remote Player",
             Units = [MechFactoryTests.CreateDummyMechData()],
-            Tint = "#FFFFFF"
+            Tint = "#FFFFFF",
+            PilotAssignments = []
         };
         
         // Act
@@ -331,7 +332,8 @@ public class JoinGameViewModelTests
             PlayerId = playerId,
             PlayerName = player.Player.Name,
             Units = [MechFactoryTests.CreateDummyMechData()],
-            Tint = "#FFFFFF"
+            Tint = "#FFFFFF",
+            PilotAssignments = []
         };
         
         // Act

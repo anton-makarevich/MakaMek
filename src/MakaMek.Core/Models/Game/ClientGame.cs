@@ -137,7 +137,7 @@ public sealed class ClientGame : BaseGame
                                       && LocalPlayers.Contains(ActivePlayer.Id) 
                                       && ActivePlayer.CanAct;
 
-    public void JoinGameWithUnits(IPlayer player, List<UnitData> units)
+    public void JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
     {
         var joinCommand = new JoinGameCommand
         {
@@ -145,7 +145,8 @@ public sealed class ClientGame : BaseGame
             PlayerName = player.Name,
             GameOriginId = Id,
             Tint = player.Tint,
-            Units = units
+            Units = units,
+            PilotAssignments = pilotAssignments
         };
         player.Status = PlayerStatus.Joining;
         LocalPlayers.Add(player.Id);

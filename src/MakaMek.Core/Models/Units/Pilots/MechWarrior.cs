@@ -1,3 +1,6 @@
+using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Events;
+
 namespace Sanet.MakaMek.Core.Models.Units.Pilots;
 
 /// <summary>
@@ -30,6 +33,8 @@ public class MechWarrior : IPilot
     /// </summary>
     public string LastName { get; }
 
+    public Guid Id { get; }
+
     /// <summary>
     /// Current health of the pilot
     /// </summary>
@@ -47,25 +52,60 @@ public class MechWarrior : IPilot
 
     public int Injuries { get; private set; }
 
-    public bool IsUnconscious { get;private set; }
+    public bool IsConscious { get; private set; } = true;
+
+    /// <summary>
+    /// The unit this pilot is currently assigned to, if any
+    /// </summary>
+    public Unit? AssignedTo { get; set; }
 
     public MechWarrior(string firstName, string lastName, int? gunnery = null, int? piloting = null)
     {
+        Id = Guid.NewGuid();
         FirstName = firstName;
         LastName = lastName;
         Health = DefaultHealth;
         Gunnery = gunnery ?? DefaultGunnery;
         Piloting = piloting ?? DefaultPiloting;
     }
-
-    public void Hit()
+    
+    public MechWarrior(PilotData pilotData)
     {
-        Injuries++;
+        Id = pilotData.Id;
+        FirstName = pilotData.FirstName;
+        LastName = pilotData.LastName;
+        Health = pilotData.Health;
+        Gunnery = pilotData.Gunnery;
+        Piloting = pilotData.Piloting;
+        Injuries = pilotData.Injuries;
+        IsConscious = pilotData.IsConscious;
+    }
+
+    public void Hit(int hits = 1)
+    {
+        Injuries += hits;
+        AssignedTo?.AddEvent(new UiEvent(UiEventType.PilotDamage, FirstName,hits));
     }
 
     public void Kill()
     {
         Injuries = Health;
+        AssignedTo?.AddEvent(new UiEvent(UiEventType.PilotDead, FirstName));
+    }
+
+    public PilotData ToData()
+    {
+        return new PilotData
+        {
+            Id = Id,
+            FirstName = FirstName,
+            LastName = LastName,
+            Gunnery = Gunnery,
+            Piloting = Piloting,
+            Health = Health,
+            Injuries = Injuries,
+            IsConscious = IsConscious
+        };
     }
 
     public bool IsDead => Injuries >= Health;

@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -133,8 +134,20 @@ public abstract class BaseGame : IGame
     {
         if (!ValidateJoinCommand(joinGameCommand)) return;
         var player = new Player(joinGameCommand.PlayerId, joinGameCommand.PlayerName,joinGameCommand.Tint);
-        foreach (var unit in joinGameCommand.Units.Select(unitData => _mechFactory.Create(unitData)))
+
+        // Create units from unit data
+        foreach (var unitData in joinGameCommand.Units)
         {
+            var unit = _mechFactory.Create(unitData);
+
+            // Find and assign pilot for this unit
+            var pilotAssignment = joinGameCommand.PilotAssignments.FirstOrDefault(pa => pa.UnitId == unitData.Id);
+            if (pilotAssignment.UnitId != Guid.Empty)
+            {
+                var pilot = new MechWarrior(pilotAssignment.PilotData);
+                unit.AssignPilot(pilot);
+            }
+
             player.AddUnit(unit);
         }
 
@@ -252,7 +265,7 @@ public abstract class BaseGame : IGame
         mech?.SetProne();
         if (fallCommand.IsPilotTakingDamage)
         {
-            mech?.Crew?.Hit();
+            mech?.Pilot?.Hit();
         }
     }
 

@@ -118,7 +118,8 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
             PlayerId = playerId,
             PlayerName = "Player 1",
             Units = [unit1, unit2],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
         Game.HandleCommand(joinCommand);
         Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));

@@ -27,7 +27,8 @@ public class JoinGameCommandTests
             PlayerId = _player1.Id,
             PlayerName = _player1.Name,
             Units = [],
-            Tint = "#FF0000"
+            Tint = "#FF0000",
+            PilotAssignments = []
         };
     }
 

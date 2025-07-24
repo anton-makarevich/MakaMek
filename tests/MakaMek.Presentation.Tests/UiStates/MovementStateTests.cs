@@ -89,7 +89,7 @@ public class MovementStateTests
             _pilotingSkillCalculator,
             Substitute.For<IBattleMapFactory>());
         
-        _game.JoinGameWithUnits(_player,[]);
+        _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(battleMap);
         
         _battleMapViewModel.Game = _game;
@@ -122,7 +122,8 @@ public class MovementStateTests
             Units = [_unitData],
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = _player.Id
+            PlayerId = _player.Id,
+            PilotAssignments = []
         });
         _game.HandleCommand(new JoinGameCommand
         {
@@ -130,7 +131,8 @@ public class MovementStateTests
             Units = [_unitData],
             Tint = "#FFFF00",
             GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId2
+            PlayerId = playerId2,
+            PilotAssignments = []
         });
         _game.HandleCommand(new UpdatePlayerStatusCommand
         {

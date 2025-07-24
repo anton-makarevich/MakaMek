@@ -83,19 +83,41 @@ public abstract class GamePhaseTestsBase
     protected JoinGameCommand CreateJoinCommand(Guid playerId, string playerName, int unitsCount=1)
     {
         List<UnitData> units = [];
+        List<PilotAssignmentData> pilotAssignments = [];
+
         for (var i = 0; i < unitsCount ; i++)
         {
             var mechData = MechFactoryTests.CreateDummyMechData();
             mechData.Id = Guid.NewGuid();
             units.Add(mechData);
+
+            // Create a default pilot for this unit
+            var randomId = Guid.NewGuid().ToString()[..6];
+            var pilotData = new PilotData
+            {
+                FirstName = "MechWarrior",
+                LastName = randomId,
+                Gunnery = 4,
+                Piloting = 5,
+                Health = 6,
+                Injuries = 0,
+                IsConscious = true
+            };
+
+            pilotAssignments.Add(new PilotAssignmentData
+            {
+                UnitId = mechData.Id!.Value,
+                PilotData = pilotData
+            });
         }
-        
+
         return new JoinGameCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId,
             PlayerName = playerName,
             Units = units,
+            PilotAssignments = pilotAssignments,
             Tint = "#FF0000"
         };
     }
