@@ -145,6 +145,20 @@ public class ToHitCalculatorTests
     }
 
     [Fact]
+    public void GetModifierBreakdown_ShouldThrow_WhenPilotIsNotAssigned()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        _attacker!.UnassignPilot();
+
+        // Act & Assert
+        Should.Throw<Exception>(() => _sut.GetModifierBreakdown(_attacker, _target!, _weapon, map));
+    }
+
+    [Fact]
     public void GetModifierBreakdown_ValidShot_ReturnsDetailedBreakdown()
     {
         // Arrange

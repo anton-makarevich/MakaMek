@@ -29,6 +29,10 @@ public class ToHitCalculator : IToHitCalculator
 
     public ToHitBreakdown GetModifierBreakdown(Unit attacker, Unit target, Weapon weapon, BattleMap map, bool isPrimaryTarget = true)
     {
+        if (attacker.Pilot is null)
+        {
+            throw new Exception("Attacker pilot is not assigned");
+        }
         var hasLos = map.HasLineOfSight(attacker.Position!.Coordinates, target.Position!.Coordinates);
         var distance = attacker.Position!.Coordinates.DistanceTo(target.Position!.Coordinates);
         var range = weapon.GetRangeBracket(distance);
@@ -49,7 +53,7 @@ public class ToHitCalculator : IToHitCalculator
         {
             GunneryBase = new GunneryRollModifier
             {
-                Value = attacker.Pilot!.Gunnery
+                Value = attacker.Pilot.Gunnery
             },
             AttackerMovement = new AttackerMovementModifier
             {
