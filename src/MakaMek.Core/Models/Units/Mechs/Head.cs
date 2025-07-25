@@ -14,4 +14,12 @@ public class Head : UnitPart
     }
 
     internal override bool CanBeBlownOff => true;
+
+    public override bool BlowOff()
+    {
+        var isBlownOff = base.BlowOff();
+        if (isBlownOff)
+            Unit?.Pilot?.Kill();
+        return isBlownOff;
+    }
 }
