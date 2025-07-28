@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
@@ -445,6 +444,8 @@ public class Mech : Unit
     public bool CanStandup()
     {
         if (IsShutdown) return false;
+        
+        if (!IsGyroAvailable) return false;
 
         var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed);
         if (destroyedLegs >= 2) return false;
@@ -455,6 +456,14 @@ public class Mech : Unit
         if (Pilot?.IsConscious == false) return false;
 
         return true;
+    }
+
+    private bool IsGyroAvailable {
+        get
+        {
+            var gyro = GetAvailableComponents<Gyro>().FirstOrDefault();
+            return gyro != null;
+        }
     }
 
     /// <summary>
