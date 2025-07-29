@@ -22,7 +22,7 @@
 - [x] Gyro (Torso): Can survive only one critical hit; the second destroys it.
   - [x] First hit: Requires a PSR with a +3 modifier when applied and every time the 'Mech runs or jumps.
   - [x] Second hit: Gyro is destroyed, the 'Mech automatically falls (if standing)
-  - [ ] and becomes immobile (cannot stand, cannot move, only hexside changes possible).
+  - [x] cannot stand up, cannot move, only hexside changes possible, but not considered immobile.
 
 ### Head
 - [x] Cockpit: Destroys the slot, kills the MechWarrior, and puts the 'Mech out of commission. Small cockpits have the same effect.

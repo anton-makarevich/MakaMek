@@ -1407,16 +1407,16 @@ public class MechTests
     }
 
     [Fact]
-    public void CanStandup_WhenHasMovementPointsAndPilotConscious_ShouldReturnTrue()
+    public void CanStandup_ShouldReturnTrue_WhenHasMovementPointsAndPilotConscious()
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        mech.AssignPilot(new MechWarrior("John", "Doe"));
-        mech.SetProne();
+        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
+        sut.SetProne();
 
         // Act
-        var canStandup = mech.CanStandup();
+        var canStandup = sut.CanStandup();
 
         // Assert
         canStandup.ShouldBeTrue("Mech should be able to stand up when it has movement points and pilot is conscious");
@@ -1426,41 +1426,24 @@ public class MechTests
     [InlineData(0, false)] // No movement points, unconscious pilot
     [InlineData(0, true)] // No movement points, conscious pilot 
     [InlineData(4, true)] // Has movement points, unconscious pilot
-    public void CanStandup_WhenMissingRequirements_ShouldReturnFalse(int walkMp, bool pilotUnconscious)
+    public void CanStandup_ShouldReturnFalse_WhenPilotUnconscious(int walkMp, bool pilotUnconscious)
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, walkMp, parts);
-        mech.SetProne();
+        var sut = new Mech("Test", "TST-1A", 50, walkMp, parts);
+        sut.SetProne();
 
         // Mock pilot with specified consciousness state
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(!pilotUnconscious);
-        typeof(Mech).GetProperty("Pilot")?.SetValue(mech, pilot);
+        typeof(Mech).GetProperty("Pilot")?.SetValue(sut, pilot);
 
         // Act
-        var canStandup = mech.CanStandup();
+        var canStandup = sut.CanStandup();
 
         // Assert
         canStandup.ShouldBe(false,
             $"Mech should not stand up with walkMP={walkMp} and pilotUnconscious={pilotUnconscious}");
-    }
-
-    [Fact]
-    public void CanStandup_WhenHasMovementPointsAndPilotConsciousAndNotShutdown_ShouldReturnTrue()
-    {
-        // Arrange
-        var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        mech.AssignPilot(new MechWarrior("John", "Doe"));
-        mech.SetProne();
-
-        // Act
-        var canStandup = mech.CanStandup();
-
-        // Assert
-        canStandup.ShouldBeTrue(
-            "Mech should be able to stand up when it has movement points and pilot is conscious and not shutdown");
     }
 
     [Fact]
@@ -1496,17 +1479,17 @@ public class MechTests
     }
 
     [Fact]
-    public void CanStandup_WhenHasMovementPointsAndPilotConsciousAndShutdown_ShouldReturnFalse()
+    public void CanStandup_ShouldReturnFalse_WhenHasMovementPointsAndPilotConsciousAndShutdown()
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A"  , 50, 4, parts);
-        mech.AssignPilot(new MechWarrior("John", "Doe"));
-        mech.SetProne();
-        mech.Shutdown();
+        var sut = new Mech("Test", "TST-1A"  , 50, 4, parts);
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
+        sut.SetProne();
+        sut.Shutdown();
 
         // Act
-        var canStandup = mech.CanStandup();
+        var canStandup = sut.CanStandup();
 
         // Assert
         canStandup.ShouldBeFalse(
@@ -1514,71 +1497,91 @@ public class MechTests
     }
 
     [Fact]
-    public void CanStandup_WhenBothLegsDestroyed_ShouldReturnFalse()
+    public void CanStandup_ShouldReturnFalse_WhenBothLegsDestroyed()
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        mech.SetProne();
+        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        sut.SetProne();
 
-        var leftLeg = mech.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
         leftLeg.ApplyDamage(100);
         leftLeg.IsDestroyed.ShouldBeTrue();
-        var rightLeg = mech.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
         rightLeg.ApplyDamage(100);
         rightLeg.IsDestroyed.ShouldBeTrue();
 
         // Act
-        var canStandup = mech.CanStandup();
+        var canStandup = sut.CanStandup();
 
         // Assert
         canStandup.ShouldBeFalse("Mech should not be able to stand up when both legs are destroyed");
     }
 
     [Fact]
-    public void CanStandup_WhenBothLegsBlownOff_ShouldReturnFalse()
+    public void CanStandup_ShouldReturnFalse_WhenBothLegsBlownOff()
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        mech.SetProne();
+        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        sut.SetProne();
 
-        var leftLeg = mech.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
         leftLeg.BlowOff();
         leftLeg.IsBlownOff.ShouldBeTrue();
-        var rightLeg = mech.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
         rightLeg.BlowOff();
         rightLeg.IsBlownOff.ShouldBeTrue();
 
         // Act
-        var canStandup = mech.CanStandup();
+        var canStandup = sut.CanStandup();
 
         // Assert
         canStandup.ShouldBeFalse("Mech should not be able to stand up when both legs are blown off");
     }
 
     [Fact]
-    public void CanStandup_WhenOneLegIsBlownOffAndAnotherIsDestroyed_ShouldReturnFalse()
+    public void CanStandup_ShouldReturnFalse_WhenOneLegIsBlownOffAndAnotherIsDestroyed()
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
-        mech.SetProne();
+        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        sut.SetProne();
 
-        var leftLeg = mech.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
         leftLeg.BlowOff();
         leftLeg.IsBlownOff.ShouldBeTrue();
-        var rightLeg = mech.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
         rightLeg.ApplyDamage(100);
         rightLeg.IsDestroyed.ShouldBeTrue();
 
         // Act
-        var canStandup = mech.CanStandup();
+        var canStandup = sut.CanStandup();
 
         // Assert
         canStandup.ShouldBeFalse("Mech should not be able to stand up when both legs are not available");
     }
 
+    [Fact]
+    public void CanStandup_ShouldReturnFalse_WhenGyroIsDestroyed()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        sut.SetProne();
+
+        var gyro = sut.GetAvailableComponents<Gyro>().First();
+        gyro.Hit();
+        gyro.Hit();
+        gyro.IsDestroyed.ShouldBeTrue();
+
+        // Act
+        var canStandup = sut.CanStandup();
+
+        // Assert
+        canStandup.ShouldBeFalse("Mech should not be able to stand up when gyro is destroyed");
+    }
+    
     [Fact]
     public void CanChangeFacingWhileProne_WhenMechIsNotProne_ShouldReturnFalse()
     {
