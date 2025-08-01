@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
@@ -68,16 +69,17 @@ public record FallContextData
         };
     }
 
-    public MechStandUpCommand? ToMechStandUpCommand()
+    public MechStandUpCommand? ToMechStandUpCommand(HexDirection newFacing)
     {
         if (IsFalling || PilotingSkillRoll is null)
             return null;
-            
+
         return new MechStandUpCommand
         {
             UnitId = UnitId,
             GameOriginId = GameId,
-            PilotingSkillRoll = PilotingSkillRoll
+            PilotingSkillRoll = PilotingSkillRoll,
+            NewFacing = newFacing
         };
     }
 }

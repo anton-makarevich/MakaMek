@@ -32,7 +32,7 @@
   - [x] Second hit: Makes it impossible to fire weapons.
 
 - [x] Head Blown Off: Occurs on a roll of 12 on the Determining Critical Hits Table for a head hit. 
-  - [ ] Destroys the 'Mech's head, kills the MechWarrior, and puts the 'Mech out of commission.
+  - [x] Destroys the 'Mech's head, kills the MechWarrior, and puts the 'Mech out of commission.
 
 - [x] Life Support: System is permanently knocked out.
   - [x] Pilot takes 1 point of damage at the end of every Heat Phase if heat is 15-25, or 2 points of damage if heat is 26+.

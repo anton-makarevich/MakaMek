@@ -143,9 +143,20 @@ public class MovementState : IUiState
         if (CurrentMovementStep == MovementStep.ConfirmMovement)
         {
             ConfirmMovement();
+            return;
         }
+        
+        // Check if this is a standup direction selection
+        if (CurrentMovementStep == MovementStep.SelectingStandingUpDirection)
+        {
+            // This is a standup with direction selection - send the standup command immediately
+            HandleStandupWithDirection(direction);
+            return;
+        }
+        
         if (CurrentMovementStep != MovementStep.SelectingDirection) return;
-        var path = _possibleDirections[direction]; 
+
+        var path = _possibleDirections[direction];
         _builder.SetMovementPath(path);
         _viewModel.ShowDirectionSelector(path.Last().To.Coordinates, [direction]);
         _viewModel.ShowMovementPath(path);
@@ -376,7 +387,7 @@ public class MovementState : IUiState
                     proneActions.Add(new StateAction(
                         _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
                         true,
-                        () => HandleStandupAttempt(mech)));
+                        HandleStandupAttempt));
                 }
 
                 // Add facing change action if possible
@@ -444,20 +455,38 @@ public class MovementState : IUiState
     }
 
     // New method to handle standup attempts
-    private void HandleStandupAttempt(Mech mech)
+    private void HandleStandupAttempt()
     {
         if (_viewModel.Game?.ActivePlayer == null) return;
+        if (_selectedUnit?.Position == null) return;
+        // Reset possible directions and populate with all 6 directions
+        
+        CurrentMovementStep = MovementStep.SelectingStandingUpDirection;
+        _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
+        _viewModel.NotifyStateChanged();
+    }
 
-        // Create a standup command
+    // New method to handle standup with direction selection
+    private void HandleStandupWithDirection(HexDirection direction)
+    {
+        if (_viewModel.Game?.ActivePlayer == null) return;
+        if (_selectedUnit?.Position == null) return;
+
+        // Create a standup command with the selected direction
         var standupCommand = new TryStandupCommand
         {
             GameOriginId = _viewModel.Game.Id,
-            UnitId = mech.Id,
-            PlayerId = _viewModel.Game.ActivePlayer.Id
+            UnitId = _selectedUnit.Id,
+            PlayerId = _viewModel.Game.ActivePlayer.Id,
+            NewFacing = direction
         };
 
         // Publish the command
         _viewModel.Game.TryStandupUnit(standupCommand);
+
+        // Reset the movement state
+        _viewModel.HideDirectionSelector();
+        _viewModel.NotifyStateChanged();
     }
 
     // New method to handle prone facing change

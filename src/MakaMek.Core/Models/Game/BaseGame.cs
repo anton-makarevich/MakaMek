@@ -275,8 +275,8 @@ public abstract class BaseGame : IGame
         var mech = _players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == standUpCommand.UnitId) as Mech;
-        
-        mech?.StandUp();
+
+        mech?.StandUp(standUpCommand.NewFacing);
         mech?.AttemptStandup();
     }
 

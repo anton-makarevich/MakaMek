@@ -47,12 +47,12 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         ProcessJumpWithDamage(unit);
     }
 
-    private void ProcessStandupCommand(TryStandupCommand standupCommand)
+    private void ProcessStandupCommand(TryStandupCommand tryStandUpCommand)
     {
         // Find the unit
-        var player = Game.Players.FirstOrDefault(p => p.Id == standupCommand.PlayerId);
+        var player = Game.Players.FirstOrDefault(p => p.Id == tryStandUpCommand.PlayerId);
 
-        if (player?.Units.FirstOrDefault(u => u.Id == standupCommand.UnitId) is not Mech unit) return;
+        if (player?.Units.FirstOrDefault(u => u.Id == tryStandUpCommand.UnitId) is not Mech unit) return;
 
         // Check if unit can stand up (has sufficient MP, pilot is conscious, etc.)
         if (!unit.CanStandup())
@@ -74,7 +74,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         else
         {
             // Standup succeeded - create and publish a standup command
-            var standUpCommand = fallContextData.ToMechStandUpCommand();
+            var standUpCommand = fallContextData.ToMechStandUpCommand(tryStandUpCommand.NewFacing);
             if (standUpCommand == null) return;
             Game.CommandPublisher.PublishCommand(standUpCommand);
             Game.OnMechStandUp(standUpCommand.Value);
