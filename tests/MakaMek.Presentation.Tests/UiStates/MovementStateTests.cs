@@ -371,6 +371,34 @@ public class MovementStateTests
         _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeFalse();
         _battleMapViewModel.AvailableDirections.ShouldBeNull();
     }
+    
+    [Fact]
+    public void HandleFacingSelection_ShouldPublishCommand_WhenInSelectingStandingUpDirectionStep()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _battleMapViewModel.Units.First() as Mech;
+        unit!.Deploy(position);
+        unit.SetProne();
+        _pilotingSkillCalculator.GetPsrBreakdown(unit, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        _sut.HandleUnitSelection(unit);
+        _sut.GetAvailableActions().First(a => a.Label.Contains("Attempt Standup")).OnExecute();
+        
+        // Act
+        _sut.HandleFacingSelection(HexDirection.BottomLeft);
+        
+        // Assert
+        _commandPublisher.Received().PublishCommand(Arg.Is<TryStandupCommand>(cmd =>
+            cmd.UnitId == unit.Id && cmd.NewFacing == HexDirection.BottomLeft));
+    }
 
     [Fact]
     public void HandleFacingSelection_DisplaysPath_WhenInDirectionSelectionStep()
