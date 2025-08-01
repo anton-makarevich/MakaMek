@@ -398,6 +398,7 @@ public class MovementStateTests
         // Assert
         _commandPublisher.Received().PublishCommand(Arg.Is<TryStandupCommand>(cmd =>
             cmd.UnitId == unit.Id && cmd.NewFacing == HexDirection.BottomLeft));
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeFalse();
     }
 
     [Fact]
