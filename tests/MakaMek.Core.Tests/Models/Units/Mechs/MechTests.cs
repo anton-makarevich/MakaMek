@@ -232,14 +232,16 @@ public class MechTests
     {
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
         mech.SetProne();
 
         // Act
-        mech.StandUp();
+        mech.StandUp(HexDirection.Bottom);
 
         // Assert
         (mech.Status & UnitStatus.Prone).ShouldNotBe(UnitStatus.Prone);
         mech.IsProne.ShouldBeFalse();
+        mech.Position!.Facing.ShouldBe(HexDirection.Bottom);
     }
 
     [Theory]

@@ -100,13 +100,14 @@ public class FallContextDataTests
         };
         
         // Act
-        var result = fallContextData.ToMechStandUpCommand();
+        var result = fallContextData.ToMechStandUpCommand(HexDirection.Bottom);
         
         // Assert
         result.ShouldNotBeNull();
         result.Value.UnitId.ShouldBe(_unitId);
         result.Value.GameOriginId.ShouldBe(_gameId);
         result.Value.PilotingSkillRoll.ShouldBe(pilotingSkillRoll);
+        result.Value.NewFacing.ShouldBe(HexDirection.Bottom);
     }
     
     [Fact]
@@ -135,7 +136,7 @@ public class FallContextDataTests
         };
         
         // Act
-        var result = fallContextData.ToMechStandUpCommand();
+        var result = fallContextData.ToMechStandUpCommand(HexDirection.Bottom);
         
         // Assert
         result.ShouldBeNull();
@@ -155,7 +156,7 @@ public class FallContextDataTests
         };
         
         // Act
-        var result = fallContextData.ToMechStandUpCommand();
+        var result = fallContextData.ToMechStandUpCommand(HexDirection.Bottom);
         
         // Assert
         result.ShouldBeNull();

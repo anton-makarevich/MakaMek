@@ -881,7 +881,7 @@ public class MovementStateTests
     }
     
     [Fact]
-    public void HandleStandupAttempt_SendsTryStandupCommand()
+    public void HandleStandupAttempt_ShowsDirectionSelector()
     {
         // Arrange
         SetPhase(PhaseNames.Movement);
@@ -895,7 +895,8 @@ public class MovementStateTests
                 BasePilotingSkill = 4,
                 Modifiers = []
             });
-        proneMech!.SetProne();
+        proneMech!.Deploy(new HexPosition(1,1,HexDirection.Bottom));
+        proneMech.SetProne();
         _sut.HandleUnitSelection(proneMech);
         var standupAction = _sut.GetAvailableActions().First(a=> a.Label.Contains("Attempt Standup"));
         
@@ -903,10 +904,7 @@ public class MovementStateTests
         standupAction.OnExecute();
         
         // Assert
-        _commandPublisher.Received(1).PublishCommand(Arg.Is<TryStandupCommand>(cmd => 
-            cmd.UnitId == proneMech.Id && 
-            cmd.PlayerId == _player.Id &&
-            cmd.GameOriginId == _game.Id));
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
     }
     
     [Fact]
@@ -951,7 +949,7 @@ public class MovementStateTests
         // Simulate the mech having just stood up
         mechThatStoodUp.SetProne();
         mechThatStoodUp.AttemptStandup();
-        mechThatStoodUp.StandUp();
+        mechThatStoodUp.StandUp(HexDirection.Bottom);
 
         _sut.HandleUnitSelection(mechThatStoodUp);
 
