@@ -483,9 +483,12 @@ public class Mech : Unit
         return true;
     }
 
-    public void StandUp()
+    public void StandUp(HexDirection newFacing)
     {
         Status &= ~UnitStatus.Prone;
+
+        // update the mech's facing
+        if (Position != null) Position = Position with { Facing = newFacing };
     }
 
     public void AttemptStandup()

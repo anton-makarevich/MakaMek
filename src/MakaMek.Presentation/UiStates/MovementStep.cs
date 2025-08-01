@@ -7,5 +7,6 @@ public enum MovementStep
     SelectingTargetHex,
     SelectingDirection,
     ConfirmMovement,
-    Completed
+    Completed,
+    SelectingStandingUpDirection
 }
