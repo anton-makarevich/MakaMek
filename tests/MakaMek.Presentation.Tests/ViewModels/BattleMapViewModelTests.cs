@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game;
@@ -53,6 +54,9 @@ public class BattleMapViewModelTests
         _localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
         _localizationService.GetString("Action_SelectUnitToDeploy").Returns("Select Unit");
         _localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End turn");
+        _localizationService.GetString("Action_MovementPoints").Returns("{0} | MP: {1}");
+        _localizationService.GetString("MovementType_Walk").Returns("Walk");
+        _localizationService.GetString("MovementType_Run").Returns("Run");
         _mechFactory = new MechFactory(rules, _localizationService);
         _game = CreateClientGame();
         _sut.Game = _game;
@@ -1592,6 +1596,91 @@ public class BattleMapViewModelTests
         _sut.SelectedUnitEvents.Count.ShouldBe(2);
         _sut.SelectedUnitEvents[0].Type.ShouldBe(UiEventType.ArmorDamage);
         _sut.SelectedUnitEvents[1].Type.ShouldBe(UiEventType.Explosion);
+    }
+
+    [Fact]
+    public void ProcessMechStandUp_ShouldCallResumeMovementAfterStandup_WhenInMovementStateWithMatchingUnit()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var player = new Player(playerId, "Player1");
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        mechData.Id = Guid.NewGuid();
+        var game = CreateClientGame();
+        game.JoinGameWithUnits(player, [mechData], []);
+        game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+
+        game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            Units = [mechData],
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            Phase = PhaseNames.Movement,
+            GameOriginId = Guid.NewGuid()
+        });
+
+        game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+
+        // Deploy and select a unit to enter MovementState
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _sut.Units.First() as Mech;
+        unit!.Deploy(position);
+        unit.SetProne();
+        _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
+        
+        game.PilotingSkillCalculator.GetPsrBreakdown(unit, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+
+        // Verify we're in MovementState
+        var movementState = _sut.CurrentState as MovementState;
+        movementState.ShouldNotBeNull();
+        _sut.SelectedUnit.ShouldBe(unit);
+        var action = movementState.GetAvailableActions()
+            .First(a=> a.Label.StartsWith("Walk"));
+        action.OnExecute();
+
+        var standUpCommand = new MechStandUpCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.StandupAttempt,
+                DiceResults = [5, 6],
+                IsSuccessful = true,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 4,
+                    Modifiers = []
+                }
+            },
+            NewFacing = HexDirection.Top
+        };
+
+        // Act
+        game.HandleCommand(standUpCommand);
+
+        // Assert
+        var highlightedHexes = game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        highlightedHexes.ShouldNotBeEmpty();
     }
 
     private ClientGame CreateClientGame()

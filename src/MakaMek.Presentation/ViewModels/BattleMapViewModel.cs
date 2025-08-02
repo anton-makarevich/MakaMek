@@ -162,7 +162,7 @@ public class BattleMapViewModel : BaseViewModel
             && standUpCommand.UnitId == SelectedUnit?.Id)
         {
             movementState.ResumeMovementAfterStandup();
-        };
+        }
     }
 
     private void ProcessWeaponAttackDeclaration(WeaponAttackDeclarationCommand command)
