@@ -139,6 +139,11 @@ public abstract class Unit
     /// </summary>
     public abstract bool CanMoveBackward(MovementType type);
 
+    /// <summary>
+    /// Determines if the unit is in a minimum movement situation (1 MP available)
+    /// </summary>
+    public virtual bool IsMinimumMovement => false;
+
     // Location and facing
     public virtual HexPosition? Position { get; protected set; }
 

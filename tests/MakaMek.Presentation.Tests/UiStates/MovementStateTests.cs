@@ -60,6 +60,7 @@ public class MovementStateTests
         localizationService.GetString("MovementType_Run").Returns("Run");
         localizationService.GetString("MovementType_Jump").Returns("Jump");
         localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
+        localizationService.GetString("Action_StandupWithMovementType").Returns("{0} ({1}%)");
         localizationService.GetString("Action_ChangeFacing").Returns("Change Facing | MP: {0}");
         
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
