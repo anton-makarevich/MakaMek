@@ -79,6 +79,17 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             Game.CommandPublisher.PublishCommand(standUpCommand);
             Game.OnMechStandUp(standUpCommand.Value);
         }
+
+        if (unit.GetMovementPoints(tryStandUpCommand.MovementTypeAfterStandup) > 0) return;
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = tryStandUpCommand.MovementTypeAfterStandup,
+            GameOriginId = Game.Id,
+            PlayerId = tryStandUpCommand.PlayerId,
+            UnitId = tryStandUpCommand.UnitId,
+            MovementPath = []
+        };
+        Game.CommandPublisher.PublishCommand(moveCommand);
     }
 
     private void ProcessJumpWithDamage(Unit? unit)
