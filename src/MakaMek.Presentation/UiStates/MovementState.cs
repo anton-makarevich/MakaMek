@@ -500,6 +500,8 @@ public class MovementState : IUiState
 
         // Set the selected movement type for later use
         _selectedMovementType = movementType;
+        // Ensure the builder has the movement type set
+        _builder.SetMovementType(_selectedMovementType.Value);
 
         CurrentMovementStep = MovementStep.SelectingStandingUpDirection;
         _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
