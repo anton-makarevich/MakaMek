@@ -955,14 +955,14 @@ public class MechTests
     }
 
     [Fact]
-    public void CanRun_WhenMechIsProne_ShouldReturnFalse()
+    public void CanRun_WhenMechIsProne_ShouldReturnTrue()
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
         sut.SetProne();
 
         // Act & Assert
-        sut.CanRun.ShouldBeFalse();
+        sut.CanRun.ShouldBeTrue();
     }
 
     [Fact]

@@ -60,7 +60,6 @@ public class MovementStateTests
         localizationService.GetString("MovementType_Run").Returns("Run");
         localizationService.GetString("MovementType_Jump").Returns("Jump");
         localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
-        localizationService.GetString("Action_StandupWithMovementType").Returns("{0} ({1}%)");
         localizationService.GetString("Action_ChangeFacing").Returns("Change Facing | MP: {0}");
         
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
@@ -391,7 +390,7 @@ public class MovementStateTests
                 Modifiers = []
             });
         _sut.HandleUnitSelection(unit);
-        _sut.GetAvailableActions().First(a => a.Label.Contains("Attempt Standup")).OnExecute();
+        _sut.GetAvailableActions().First(a => a.Label.Contains("Walk")).OnExecute();
         
         // Act
         _sut.HandleFacingSelection(HexDirection.BottomLeft);
@@ -728,9 +727,10 @@ public class MovementStateTests
         actions.Count.ShouldBe(3); // Stand Still, Walk, Run
         actions.ShouldNotContain(a => a.Label.StartsWith("Jump"));
     }
-
+    
+    
     [Fact]
-    public void GetAvailableActions_ProneMech_ShowsStandupAction()
+    public void GetAvailableActions_ProneMech_ShowsBothStandupAndChangeFacingActions()
     {
         // Arrange
         var proneMech = _unit1 as Mech;
@@ -747,12 +747,25 @@ public class MovementStateTests
         var actions = _sut.GetAvailableActions().ToList();
 
         // Assert
-        actions.Count.ShouldBeGreaterThan(0, "Should have actions available for prone mech");
-        var standupAction = actions.FirstOrDefault(a => a.Label.Contains("Attempt Standup"));
-        standupAction.ShouldNotBeNull("Should have standup action");
-        standupAction.Label.ShouldBe("Attempt Standup (92%)", "Standup action should show probability");
-    }
+        actions.Count.ShouldBe(4, "Prone mech should have 2 standup actions, change facing, and stay prone actions");
 
+        var standupWalkAction = actions.FirstOrDefault(a => a.Label.Contains("Walk"));
+        standupWalkAction.ShouldNotBeNull("Should have standup action for walk");
+        standupWalkAction.Label.ShouldBe("Walk | MP: 8 (92%)");
+
+        var standupRunAction = actions.FirstOrDefault(a => a.Label.Contains("Run"));
+        standupRunAction.ShouldNotBeNull("Should have standup action for walk");
+        standupRunAction.Label.ShouldBe("Run | MP: 12 (92%)");
+        
+        var changeFacingAction = actions.FirstOrDefault(a => a.Label.Contains("Change Facing"));
+        changeFacingAction.ShouldNotBeNull("Should have change facing action");
+        changeFacingAction.Label.ShouldBe("Change Facing | MP: 8", "Should show available MP in localized format");
+
+        var stayProneAction = actions.FirstOrDefault(a => a.Label.Contains("Stay Prone"));
+        stayProneAction.ShouldNotBeNull("Should have stay prone action");
+        stayProneAction.Label.ShouldBe("Stay Prone");
+    }
+    
     [Fact]
     public void GetAvailableActions_ProneMech_CannotStandup_StillHasStayProneAction()
     {
@@ -928,7 +941,7 @@ public class MovementStateTests
         proneMech!.Deploy(new HexPosition(1,1,HexDirection.Bottom));
         proneMech.SetProne();
         _sut.HandleUnitSelection(proneMech);
-        var standupAction = _sut.GetAvailableActions().First(a=> a.Label.Contains("Attempt Standup"));
+        var standupAction = _sut.GetAvailableActions().First(a=> a.Label.Contains("Walk"));
         
         // Act
         standupAction.OnExecute();
@@ -1024,39 +1037,6 @@ public class MovementStateTests
         jumpAction.Label.ShouldContain("("); // Should contain probability percentage
         jumpAction.Label.ShouldContain("%)"); // Should contain percentage symbol
 
-    }
-
-    [Fact]
-    public void GetAvailableActions_ProneMech_ShowsBothStandupAndChangeFacingActions()
-    {
-        // Arrange
-        var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
-            .Returns(new PsrBreakdown
-            {
-                BasePilotingSkill = 4,
-                Modifiers = []
-            });
-        proneMech!.SetProne();
-        _sut.HandleUnitSelection(proneMech);
-
-        // Act
-        var actions = _sut.GetAvailableActions().ToList();
-
-        // Assert
-        actions.Count.ShouldBe(3, "Prone mech should have standup, change facing, and stay prone actions");
-
-        var standupAction = actions.FirstOrDefault(a => a.Label.Contains("Attempt Standup"));
-        standupAction.ShouldNotBeNull("Should have standup action");
-        standupAction.Label.ShouldBe("Attempt Standup (92%)");
-
-        var changeFacingAction = actions.FirstOrDefault(a => a.Label.Contains("Change Facing"));
-        changeFacingAction.ShouldNotBeNull("Should have change facing action");
-        changeFacingAction.Label.ShouldBe("Change Facing | MP: 8", "Should show available MP in localized format");
-
-        var stayProneAction = actions.FirstOrDefault(a => a.Label.Contains("Stay Prone"));
-        stayProneAction.ShouldNotBeNull("Should have stay prone action");
-        stayProneAction.Label.ShouldBe("Stay Prone");
     }
 
     [Fact]
