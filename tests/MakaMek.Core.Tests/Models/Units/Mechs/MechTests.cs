@@ -1974,4 +1974,47 @@ public class MechTests
         modifier.ArmLocation.ShouldBe(PartLocation.LeftArm);
         modifier.Value.ShouldBe(4);
     }
+    
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_ByDefault()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnTrue_WhenProneAndOneMovementPointAndNoStandupAttempts()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 1, CreateBasicPartsData());
+        sut.SetProne();
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnTrue_WhenProneAndOneLegIsDestroyed()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        sut.SetProne();
+        var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leg.ApplyDamage(100);
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeTrue();
+    }
 }
