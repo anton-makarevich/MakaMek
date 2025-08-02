@@ -390,7 +390,7 @@ public class MovementStateTests
                 Modifiers = []
             });
         _sut.HandleUnitSelection(unit);
-        _sut.GetAvailableActions().First(a => a.Label.Contains("Attempt Standup")).OnExecute();
+        _sut.GetAvailableActions().First(a => a.Label.Contains("Walk")).OnExecute();
         
         // Act
         _sut.HandleFacingSelection(HexDirection.BottomLeft);
@@ -727,9 +727,10 @@ public class MovementStateTests
         actions.Count.ShouldBe(3); // Stand Still, Walk, Run
         actions.ShouldNotContain(a => a.Label.StartsWith("Jump"));
     }
-
+    
+    
     [Fact]
-    public void GetAvailableActions_ProneMech_ShowsStandupAction()
+    public void GetAvailableActions_ProneMech_ShowsBothStandupAndChangeFacingActions()
     {
         // Arrange
         var proneMech = _unit1 as Mech;
@@ -746,12 +747,50 @@ public class MovementStateTests
         var actions = _sut.GetAvailableActions().ToList();
 
         // Assert
-        actions.Count.ShouldBeGreaterThan(0, "Should have actions available for prone mech");
-        var standupAction = actions.FirstOrDefault(a => a.Label.Contains("Attempt Standup"));
-        standupAction.ShouldNotBeNull("Should have standup action");
-        standupAction.Label.ShouldBe("Attempt Standup (92%)", "Standup action should show probability");
+        actions.Count.ShouldBe(4, "Prone mech should have 2 standup actions, change facing, and stay prone actions");
+
+        var standupWalkAction = actions.FirstOrDefault(a => a.Label.Contains("Walk"));
+        standupWalkAction.ShouldNotBeNull("Should have standup action for walk");
+        standupWalkAction.Label.ShouldBe("Walk | MP: 8 (92%)");
+
+        var standupRunAction = actions.FirstOrDefault(a => a.Label.Contains("Run"));
+        standupRunAction.ShouldNotBeNull("Should have standup action for walk");
+        standupRunAction.Label.ShouldBe("Run | MP: 12 (92%)");
+        
+        var changeFacingAction = actions.FirstOrDefault(a => a.Label.Contains("Change Facing"));
+        changeFacingAction.ShouldNotBeNull("Should have change facing action");
+        changeFacingAction.Label.ShouldBe("Change Facing | MP: 8", "Should show available MP in localized format");
+
+        var stayProneAction = actions.FirstOrDefault(a => a.Label.Contains("Stay Prone"));
+        stayProneAction.ShouldNotBeNull("Should have stay prone action");
+        stayProneAction.Label.ShouldBe("Stay Prone");
     }
 
+    [Fact]
+    public void GetAvailableActions_ShouldContainAttmptStandupWithoutMovementAction_WhenMechIsProne_AndHasMinimumMovement()
+    {
+        // Arrange
+        var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.SetProne();
+        var leg = proneMech.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leg.ApplyDamage(100); // Destroy the leg
+        _sut.HandleUnitSelection(proneMech);
+        
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(3, "Prone mech with minimum movement should have 1 standup action, stay prone action and change facing action");
+        var standupAction = actions.FirstOrDefault(a => a.Label.Contains("Attempt Standup"));
+        standupAction.ShouldNotBeNull("Should have standup action");
+    }
+    
     [Fact]
     public void GetAvailableActions_ProneMech_CannotStandup_StillHasStayProneAction()
     {
@@ -927,7 +966,7 @@ public class MovementStateTests
         proneMech!.Deploy(new HexPosition(1,1,HexDirection.Bottom));
         proneMech.SetProne();
         _sut.HandleUnitSelection(proneMech);
-        var standupAction = _sut.GetAvailableActions().First(a=> a.Label.Contains("Attempt Standup"));
+        var standupAction = _sut.GetAvailableActions().First(a=> a.Label.Contains("Walk"));
         
         // Act
         standupAction.OnExecute();
@@ -1026,39 +1065,6 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void GetAvailableActions_ProneMech_ShowsBothStandupAndChangeFacingActions()
-    {
-        // Arrange
-        var proneMech = _unit1 as Mech;
-        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
-            .Returns(new PsrBreakdown
-            {
-                BasePilotingSkill = 4,
-                Modifiers = []
-            });
-        proneMech!.SetProne();
-        _sut.HandleUnitSelection(proneMech);
-
-        // Act
-        var actions = _sut.GetAvailableActions().ToList();
-
-        // Assert
-        actions.Count.ShouldBe(3, "Prone mech should have standup, change facing, and stay prone actions");
-
-        var standupAction = actions.FirstOrDefault(a => a.Label.Contains("Attempt Standup"));
-        standupAction.ShouldNotBeNull("Should have standup action");
-        standupAction.Label.ShouldBe("Attempt Standup (92%)");
-
-        var changeFacingAction = actions.FirstOrDefault(a => a.Label.Contains("Change Facing"));
-        changeFacingAction.ShouldNotBeNull("Should have change facing action");
-        changeFacingAction.Label.ShouldBe("Change Facing | MP: 8", "Should show available MP in localized format");
-
-        var stayProneAction = actions.FirstOrDefault(a => a.Label.Contains("Stay Prone"));
-        stayProneAction.ShouldNotBeNull("Should have stay prone action");
-        stayProneAction.Label.ShouldBe("Stay Prone");
-    }
-
-    [Fact]
     public void GetAvailableActions_ProneMech_StayProneAction_CompletesMovement()
     {
         // Arrange
@@ -1128,5 +1134,66 @@ public class MovementStateTests
         availableDirections.Count.ShouldBe(5, "Should have 5 available directions (all except current facing)");
 
         _sut.ActionLabel.ShouldBe("Select facing direction", "Should transition to direction selection step");
+    }
+    
+    [Fact]
+    public void ResumeMovementAfterStandup_ShouldHighlightReachableHexes_WhenMechStoodUp()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        _unit1.Deploy(position);
+        var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+
+        var walkStandupAction = _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        walkStandupAction.OnExecute();
+        proneMech.StandUp(HexDirection.Bottom);
+        
+        // Act
+        _sut.ResumeMovementAfterStandup();
+
+        // Assert
+        var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
+            .Where(h => h.IsHighlighted)
+            .Select(h => h.Coordinates)
+            .ToList();
+        reachableHexes.ShouldNotBeEmpty();
+    }
+    
+    [Fact]
+    public void ResumeMovementAfterStandup_ShouldNotHighlightReachableHexes_WhenMechIsProne()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        _unit1.Deploy(position);
+        var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+
+        var walkStandupAction = _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        walkStandupAction.OnExecute();
+        
+        // Act
+        _sut.ResumeMovementAfterStandup();
+
+        // Assert
+        var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
+            .Where(h => h.IsHighlighted)
+            .Select(h => h.Coordinates)
+            .ToList();
+        reachableHexes.ShouldBeEmpty();
     }
 }

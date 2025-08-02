@@ -387,6 +387,17 @@ public class Mech : Unit
 
     public override bool CanMoveBackward(MovementType type) => type == MovementType.Walk;
 
+    public override bool IsMinimumMovement
+    {
+        get
+        {
+            if (IsProne 
+                && GetMovementPoints(MovementType.Walk) == 1 
+                && StandupAttempts == 0) return true;
+            return false;
+        }
+    }
+
     public bool CanJump
     {
         get
@@ -407,7 +418,6 @@ public class Mech : Unit
     public bool CanRun {
         get
         {
-            if (IsProne) return false;
             var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
             if (destroyedLegs > 0) return false;
             return true;

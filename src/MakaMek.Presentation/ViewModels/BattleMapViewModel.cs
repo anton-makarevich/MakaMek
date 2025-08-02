@@ -149,8 +149,20 @@ public class BattleMapViewModel : BaseViewModel
                 case WeaponAttackResolutionCommand resolutionCommand:
                     ProcessWeaponAttackResolution(resolutionCommand);
                     break;
+                case MechStandUpCommand standUpCommand:
+                    ProcessMechStandUp(standUpCommand);
+                    break;
             }
         });
+    }
+
+    private void ProcessMechStandUp(MechStandUpCommand standUpCommand)
+    {
+        if (CurrentState is MovementState movementState 
+            && standUpCommand.UnitId == SelectedUnit?.Id)
+        {
+            movementState.ResumeMovementAfterStandup();
+        }
     }
 
     private void ProcessWeaponAttackDeclaration(WeaponAttackDeclarationCommand command)

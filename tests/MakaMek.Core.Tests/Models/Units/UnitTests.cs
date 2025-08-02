@@ -1943,6 +1943,19 @@ public class UnitTests
         // Assert
         result.ShouldBeEmpty();
     }
+    
+    [Fact]
+    public void IsMinimumMovement_ShouldReturnFalse_ByDefault()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Act
+        var result = sut.IsMinimumMovement;
+        
+        // Assert
+        result.ShouldBeFalse();
+    }
 
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)

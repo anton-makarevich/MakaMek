@@ -43,12 +43,6 @@ public sealed class ClientGame : BaseGame
     {
         if (!ShouldHandleCommand(command)) return;
         
-        // Log the command
-        _commandLog.Add(command);
-        
-        // Publish the command to subscribers
-        _commandSubject.OnNext(command);
-        
         // Handle specific command types
         switch (command)
         {
@@ -131,6 +125,12 @@ public sealed class ClientGame : BaseGame
                 }
                 break;
         }
+        
+        // Log the command
+        _commandLog.Add(command);
+        
+        // Publish the command to subscribers
+        _commandSubject.OnNext(command);
     }
 
     public bool CanActivePlayerAct => ActivePlayer != null 

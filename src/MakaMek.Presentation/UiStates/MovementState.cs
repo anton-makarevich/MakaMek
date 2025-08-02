@@ -26,14 +26,14 @@ public class MovementState : IUiState
         _viewModel = viewModel;
         if (_viewModel.Game == null)
         {
-            throw new InvalidOperationException("Game is null"); 
+            throw new InvalidOperationException("Game is null");
         }
         if (_viewModel.Game.ActivePlayer == null)
         {
-            throw new InvalidOperationException("Active player is null"); 
+            throw new InvalidOperationException("Active player is null");
         }
         _builder = new MoveUnitCommandBuilder(_viewModel.Game.Id, _viewModel.Game.ActivePlayer.Id);
-        
+
         // Get hexes with enemy units - these will be excluded from pathfinding
         _prohibitedHexes = _viewModel.Units
             .Where(u=>u.Owner?.Id != _viewModel.Game.ActivePlayer?.Id && u.Position!=null)
@@ -65,6 +65,13 @@ public class MovementState : IUiState
         _selectedMovementType = movementType;
         _builder.SetMovementType(movementType);
         
+        HighlightReachableHexes();
+    }
+
+    private void HighlightReachableHexes()
+    {
+        if (_selectedMovementType == null) return;
+        var movementType = _selectedMovementType.Value;
         if (movementType == MovementType.StandingStill)
         {
             // For standing still, we create a single path segment with same From and To positions
@@ -150,7 +157,7 @@ public class MovementState : IUiState
         if (CurrentMovementStep == MovementStep.SelectingStandingUpDirection)
         {
             // This is a standup with direction selection - send the standup command immediately
-            HandleStandupWithDirection(direction);
+            CompleteStandupAttempt(direction);
             return;
         }
         
@@ -383,11 +390,42 @@ public class MovementState : IUiState
 
                     // Format the probability as percentage
                     var probabilityText = $" ({successProbability:0}%)";
+                    
+                    // Check if this is a minimum movement situation
+                    if (mech.IsMinimumMovement)
+                    {
+                        // Minimum movement case: single "Attempt Standup" button, automatically use running
+                        proneActions.Add(new StateAction(
+                            _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
+                            true,
+                            () => HandleStandupAttempt(MovementType.Run)));
+                    }
+                    else
+                    {
+                        // Non-minimum movement case: separate Walk and Run actions
+                        // Walk standup action
+                        var walkActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
+                            _viewModel.LocalizationService.GetString("MovementType_Walk"), 
+                            _selectedUnit.GetMovementPoints(MovementType.Walk)) + probabilityText;
 
-                    proneActions.Add(new StateAction(
-                        _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
-                        true,
-                        HandleStandupAttempt));
+                        proneActions.Add(new StateAction(
+                            walkActionText,
+                            true,
+                            () => HandleStandupAttempt(MovementType.Walk)));
+
+                        // Run standup action (only if mech can run)
+                        if (mech.CanRun)
+                        {
+                            var runActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
+                                _viewModel.LocalizationService.GetString("MovementType_Run"), 
+                                _selectedUnit.GetMovementPoints(MovementType.Run)) + probabilityText;
+
+                            proneActions.Add(new StateAction(
+                                runActionText,
+                                true,
+                                () => HandleStandupAttempt(MovementType.Run)));
+                        }
+                    }
                 }
 
                 // Add facing change action if possible
@@ -455,19 +493,21 @@ public class MovementState : IUiState
     }
 
     // New method to handle standup attempts
-    private void HandleStandupAttempt()
+    private void HandleStandupAttempt(MovementType movementType)
     {
         if (_viewModel.Game?.ActivePlayer == null) return;
         if (_selectedUnit?.Position == null) return;
-        // Reset possible directions and populate with all 6 directions
-        
+
+        // Set the selected movement type for later use
+        _selectedMovementType = movementType;
+
         CurrentMovementStep = MovementStep.SelectingStandingUpDirection;
         _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
         _viewModel.NotifyStateChanged();
     }
 
     // New method to handle standup with direction selection
-    private void HandleStandupWithDirection(HexDirection direction)
+    private void CompleteStandupAttempt(HexDirection direction)
     {
         if (_viewModel.Game?.ActivePlayer == null) return;
         if (_selectedUnit?.Position == null) return;
@@ -487,6 +527,16 @@ public class MovementState : IUiState
         // Reset the movement state
         _viewModel.HideDirectionSelector();
         _viewModel.NotifyStateChanged();
+    }
+
+    // Method to resume movement after successful standup
+    public void ResumeMovementAfterStandup()
+    {
+        // Check if the unit is no longer prone (standup was successful)
+        if (_selectedUnit is Mech { IsProne: false })
+        {
+            HighlightReachableHexes();
+        }
     }
 
     // New method to handle prone facing change
