@@ -535,7 +535,9 @@ public class MovementState : IUiState
     public void ResumeMovementAfterStandup()
     {
         // Check if the unit is no longer prone (standup was successful)
-        if (_selectedUnit is Mech { IsProne: false })
+        if (_selectedMovementType!=null &&
+            _selectedUnit is Mech { IsProne: false } mech 
+            && mech.GetMovementPoints(_selectedMovementType.Value) > 0)
         {
             HighlightReachableHexes();
         }
