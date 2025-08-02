@@ -767,7 +767,7 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void GetAvailableActions_ShouldContainAttmptStandupWithoutMovementAction_WhenMechIsProne_AndHasMinimumMovement()
+    public void GetAvailableActions_ShouldContainAttemptStandupWithoutMovementAction_WhenMechIsProne_AndHasMinimumMovement()
     {
         // Arrange
         var proneMech = _unit1 as Mech;
@@ -1209,7 +1209,7 @@ public class MovementStateTests
                 Modifiers = []
             });
         var leg = proneMech!.Parts.First(p => p.Location == PartLocation.LeftLeg);
-        proneMech!.SetProne();
+        proneMech.SetProne();
         _sut.HandleUnitSelection(proneMech);
 
         var walkStandupAction = _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
