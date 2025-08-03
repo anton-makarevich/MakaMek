@@ -33,7 +33,6 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
 
     private void ProcessMoveCommand(MoveUnitCommand moveCommand)
     {
-        // Check if PSR is required for jumping with damaged gyro
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         // Find the unit
         var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId) as Mech;
@@ -42,7 +41,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         broadcastCommand.GameOriginId = Game.Id;
         Game.OnMoveUnit(moveCommand);
         Game.CommandPublisher.PublishCommand(broadcastCommand);
-
+        
+        // Check if PSR is required for jumping with damaged gyro
         if (unit?.IsPsrForJumpRequired() != true || moveCommand.MovementType != MovementType.Jump) return;
         ProcessJumpWithDamage(unit);
     }
@@ -89,7 +89,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             UnitId = tryStandUpCommand.UnitId,
             MovementPath = []
         };
-        Game.CommandPublisher.PublishCommand(moveCommand);
+        HandleUnitAction(moveCommand, tryStandUpCommand.PlayerId);
     }
 
     private void ProcessJumpWithDamage(Unit? unit)
