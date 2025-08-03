@@ -87,7 +87,7 @@ public class MechTests
     }
 
     [Fact]
-    public void MoveTo_ShouldUpdatePosition()
+    public void Move_ShouldUpdatePosition()
     {
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
@@ -105,9 +105,28 @@ public class MechTests
         mech.DistanceCovered.ShouldBe(1);
         mech.MovementPointsSpent.ShouldBe(0);
     }
+    
+    [Fact]
+    public void Move_ShouldKeepPosition_WhenNoPathSegments()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        mech.Deploy(deployPosition);
+
+        // Act
+        mech.Move(MovementType.Walk, []);
+
+        // Assert
+        mech.Position.ShouldBe(deployPosition);
+        mech.HasMoved.ShouldBeTrue();
+        mech.MovementTypeUsed.ShouldBe(MovementType.Walk);
+        mech.DistanceCovered.ShouldBe(0);
+        mech.MovementPointsSpent.ShouldBe(0);
+    }
 
     [Fact]
-    public void MoveTo_ShouldThrowException_WhenNotDeployed()
+    public void Move_ShouldThrowException_WhenNotDeployed()
     {
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
