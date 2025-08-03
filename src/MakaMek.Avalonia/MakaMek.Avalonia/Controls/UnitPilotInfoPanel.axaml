@@ -11,38 +11,30 @@
         <converters:NullToBooleanConverter x:Key="NullToVisibilityConverter"/>
     </UserControl.Resources>
     
-    <StackPanel Margin="10" Spacing="10" IsVisible="{Binding Converter={StaticResource NullToVisibilityConverter}}">
+    <StackPanel Classes="verticalSpaced" IsVisible="{Binding Converter={StaticResource NullToVisibilityConverter}}">
         <!-- Pilot Name Section -->
-        <StackPanel Spacing="5">
-            <TextBlock Text="Pilot Information" Classes="h3" Margin="0,0,0,5"/>
-            <StackPanel Orientation="Horizontal" Spacing="5">
-                <TextBlock Text="Name:" FontWeight="Bold"/>
-                <TextBlock Text="{Binding Name}"/>
+        <StackPanel Classes="verticalSpaced">
+            <TextBlock Text="Pilot Information" Classes="h4"/>
+            <StackPanel Classes="horizontalSpaced">
+                <TextBlock Text="Name:" Classes="labelLarge"/>
+                <TextBlock Text="{Binding Name}" Classes="body"/>
             </StackPanel>
         </StackPanel>
 
         <!-- Skills Section -->
-        <StackPanel Spacing="5">
-            <TextBlock Text="Skills" Classes="h4" Margin="0,0,0,5"/>
-            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto" Margin="10,0,0,10">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Gunnery:" FontWeight="Bold" Margin="0,0,10,5"/>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Gunnery}" Margin="0,0,20,5"/>
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="Piloting:" FontWeight="Bold" Margin="0,0,10,5"/>
-                <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding Piloting}" Margin="0,0,0,5"/>
+        <StackPanel Classes="verticalSpaced">
+            <TextBlock Text="Skills" Classes="h4"/>
+            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Gunnery:" Classes="labelLarge" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Gunnery}" Classes="body" />
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="Piloting:" Classes="labelLarge" />
+                <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding Piloting}" Classes="body"/>
             </Grid>
         </StackPanel>
 
         <!-- Health Section -->
-        <StackPanel Spacing="5">
-            <TextBlock Text="Health Status" Classes="h4" Margin="0,0,0,5"/>
-
-            <!-- Health Information -->
-            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto" Margin="10,0,0,10">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Max Health:" FontWeight="Bold" Margin="0,0,10,5"/>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Health}" Margin="0,0,20,5"/>
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="Injuries:" FontWeight="Bold" Margin="0,0,10,5"/>
-                <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding Injuries}" Margin="0,0,0,5"/>
-            </Grid>
+        <StackPanel Classes="verticalSpaced">
+            <TextBlock Text="Health Status" Classes="h4"/>
 
             <!-- Injuries Progress Bar -->
             <Grid Height="25" Margin="0,0,0,10">
@@ -68,16 +60,15 @@
         </StackPanel>
 
         <!-- Status Section -->
-        <StackPanel Spacing="5">
-            <TextBlock Text="Status" Classes="h4" Margin="0,0,0,5"/>
+        <StackPanel Classes="verticalSpaced">
+            <TextBlock Text="Status" Classes="h4"/>
             <WrapPanel ItemSpacing="5" LineSpacing="5" Orientation="Horizontal">
                 <!-- Consciousness Status -->
                 <Border Classes="statusTag">
                     <Border.Background>
-                        <SolidColorBrush Color="{Binding IsConscious, Converter={StaticResource BooleanToColorConverter}}"/>
+                        <SolidColorBrush Color="{Binding IsConscious, Converter={StaticResource ConsciousnessColorConverter}}"/>
                     </Border.Background>
-                    <TextBlock Text="{Binding IsConscious, Converter={StaticResource ConsciousnessStatusConverter}}" 
-                             Foreground="White" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding IsConscious, Converter={StaticResource ConsciousnessStatusConverter}}"/>
                 </Border>
                 
                 <!-- Death Status -->
@@ -85,7 +76,7 @@
                     <Border.Background>
                         <SolidColorBrush Color="{DynamicResource ErrorColor}"/>
                     </Border.Background>
-                    <TextBlock Text="DEAD" Foreground="White" FontWeight="Bold"/>
+                    <TextBlock Text="DEAD"/>
                 </Border>
             </WrapPanel>
         </StackPanel>

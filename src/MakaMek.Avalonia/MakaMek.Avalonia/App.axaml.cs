@@ -37,9 +37,9 @@ public partial class App : Application
         var serviceProvider = services.BuildServiceProvider();
         
         // Initialize converters that need DI
-        Converters.ModifierToTextConverter.Initialize(
-            serviceProvider.GetRequiredService<ILocalizationService>()
-            );
+        var localizationService = serviceProvider.GetRequiredService<ILocalizationService>();
+        Converters.ModifierToTextConverter.Initialize(localizationService);
+        Converters.ConsciousnessStatusConverter.Initialize(localizationService);
         
         INavigationService navigationService;
 

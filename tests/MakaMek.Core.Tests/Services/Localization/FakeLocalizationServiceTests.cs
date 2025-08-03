@@ -177,6 +177,11 @@ public class FakeLocalizationServiceTests
     [InlineData("Events_Unit_UnitDestroyed", "{0} has been destroyed!")]
     [InlineData("Events_Unit_PilotDamage", "{0} took damage | -{1}")]
     [InlineData("Events_Unit_PilotDead", "{0} was killed")]
+    
+    // Pilot status
+    [InlineData("Pilot_Status_Unknown", "UNKNOWN")]
+    [InlineData("Pilot_Status_Conscious", "CONSCIOUS")]
+    [InlineData("Pilot_Status_Unconscious", "UNCONSCIOUS")]
     // Default
     [InlineData("Key_Not_Found", "Key_Not_Found")]
     public void GetString_ReturnsExpectedString(string key, string expected)

@@ -195,7 +195,11 @@ public class FakeLocalizationService: ILocalizationService
             "Penalty_LegDestroyed_Both" => "Both legs destroyed | No movement",
             "Penalty_HipDestroyed_Single" => "Hip destroyed | -{0} MP",
             "Penalty_HipDestroyed_Both" => "Both hips destroyed | No movement",
-            
+
+            // Pilot status
+            "Pilot_Status_Unknown" => "UNKNOWN",
+            "Pilot_Status_Conscious" => "CONSCIOUS",
+            "Pilot_Status_Unconscious" => "UNCONSCIOUS",
             _ => key
         };
     }
