@@ -5,7 +5,7 @@
 MakaMek is a cross-platform implementation of the classic BattleTech tabletop game. The MVP is targeting simplified 3025-era combat mechanics and focuses on core turn-based tactical combat featuring BattleMechs on hex-based maps with essential game mechanics including movement, combat, heat management, and critical damage systems.
 
 **Primary Objectives:**
-- Deliver a playable BattleTech experience with simplified rules
+- Deliver a playable BattleTech experience with simplified rules (Level 1)
 - Support cross-platform deployment (Desktop, Web, Mobile)
 - Provide multiplayer capabilities (local and LAN)
 - Maintain compatibility with standard BattleTech community data formats (MTF)
