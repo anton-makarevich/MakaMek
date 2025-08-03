@@ -9,6 +9,8 @@
              mc:Ignorable="d">
     <UserControl.Resources>
         <converters:NullToBooleanConverter x:Key="NullToVisibilityConverter"/>
+        <converters:ConsciousnessColorConverter x:Key="ConsciousnessColorConverter"/>
+        <converters:ConsciousnessStatusConverter x:Key="ConsciousnessStatusConverter"/>
     </UserControl.Resources>
     
     <StackPanel Classes="verticalSpaced" IsVisible="{Binding Converter={StaticResource NullToVisibilityConverter}}">

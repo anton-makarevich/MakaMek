@@ -34,6 +34,9 @@ public class MechWarrior : IPilot
     /// </summary>
     public string LastName { get; }
 
+    /// <summary>
+    /// Optional call sign or nickname of the MechWarrior
+    /// </summary>
     public string CallSign { get; }
     
     public string Name =>
