@@ -3,8 +3,7 @@
 
 ### General
 - [x] Ammunition: If a critical hit destroys a slot with explosive ammunition, the ammo explodes. The 'Mech takes internal structure damage based on the total Damage Value of the ammo in the slot, multiplied by shots remaining.
-  - [ ] If the location has CASE, excess damage dissipates.
-  - [ ] The MechWarrior automatically takes 2 points of damage and requires a Consciousness Roll.
+  - [x] The MechWarrior automatically takes 2 points of damage.
 
 - [x] Weapons: The first critical hit to a weapon (even multi-slot ones) knocks out the weapon. Additional hits to multi-slot weapons have no further effect.
 

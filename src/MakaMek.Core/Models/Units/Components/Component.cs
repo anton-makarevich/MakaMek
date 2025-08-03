@@ -67,6 +67,11 @@ public abstract class Component : IManufacturedItem
     public virtual void Hit()
     {
         Hits++;
+        if (CanExplode && !HasExploded)
+        {
+            HasExploded = true;
+            MountedOn?.Unit?.Pilot?.ExplosionHit();
+        }
     }
 
     public int HealthPoints { get; }

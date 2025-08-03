@@ -55,4 +55,10 @@ public interface IPilot
     void Kill();
 
     PilotData ToData();
+        
+    /// <summary>
+    /// Applies explosion damage to the pilot, typically from exploding components
+    /// Requires a sepaeate method as should be implemented differently for different pilot types
+    /// </summary>
+    void ExplosionHit();
 }

@@ -36,7 +36,6 @@ public class Ammo : Component
     public override void Hit()
     {
         base.Hit();
-        HasExploded = true;
         _remainingShots = 0;
     }
 
