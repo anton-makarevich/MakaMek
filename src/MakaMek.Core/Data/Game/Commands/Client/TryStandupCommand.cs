@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -16,7 +17,9 @@ public record struct TryStandupCommand : IClientCommand
     /// The desired facing direction when standing up.
     /// </summary>
     public HexDirection NewFacing { get; init; }
-    
+
+    public MovementType MovementTypeAfterStandup { get; init; }
+
     public string Render(ILocalizationService localizationService, IGame game)
     {
         var command = this;

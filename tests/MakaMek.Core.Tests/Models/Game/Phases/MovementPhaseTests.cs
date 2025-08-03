@@ -11,7 +11,6 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -177,13 +176,14 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
     
     [Fact]
-    public void ProcessStandupCommand_WhenSuccessful_ShouldPublishMechStandUpCommand()
+    public void ProcessStandupCommand_ShouldPublishMechStandUpCommand_WhenSuccessful()
     {
         // Arrange
         _sut.Enter();
         var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
-        unit!.SetProne();
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit.SetProne();
         
         // Configure the FallProcessor to return successful standup data
         var psrBreakdown = new PsrBreakdown
@@ -235,13 +235,14 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void ProcessStandupCommand_WhenFailed_ShouldPublishMechFallCommand()
+    public void ProcessStandupCommand_ShouldPublishMechFallCommand_WhenFailed()
     {
         // Arrange
         _sut.Enter();
         var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
-        unit!.SetProne();
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit.SetProne();
 
         // Configure the FallProcessor to return failed standup data
         var psrBreakdown = new PsrBreakdown
@@ -293,7 +294,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
     
     [Fact]
-    public void ProcessStandupCommand_WhenUnitNotFound_ShouldNotPublishCommand()
+    public void ProcessStandupCommand_ShouldNotPublishCommand_WhenUnitNotFound()
     {
         // Arrange
         _sut.Enter();
@@ -315,7 +316,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void ProcessStandupCommand_WhenUnitCannotStandup_ShouldNotPublishCommand()
+    public void ProcessStandupCommand_ShouldNotPublishCommand_WhenUnitCannotStandup()
     {
         // Arrange
         _sut.Enter();
@@ -345,7 +346,70 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void HandleCommand_WhenJumpWithDamagedGyroSucceeds_ShouldPublishMoveCommand()
+    public void ProcessStandupCommand_ShouldCompleteUitMovement_WhenNoMpAfterStandup()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        // Make sure the unit is a Mech and is prone
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        // destroy the left leg to remove MP
+        var leg = unit.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leg.ApplyDamage(100);
+        unit.SetProne();
+
+        // Configure the FallProcessor to return successful standup data
+        var psrBreakdown = new PsrBreakdown
+        {
+            BasePilotingSkill = 4,
+            Modifiers = [],
+        };
+
+        var successfulPsrData = new PilotingSkillRollData
+        {
+            RollType = PilotingSkillRollType.StandupAttempt,
+            DiceResults = [3, 3],
+            IsSuccessful = true,
+            PsrBreakdown = psrBreakdown
+        };
+
+        var successfulStandupData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = false, // Not falling = successful standup
+            ReasonType = FallReasonType.StandUpAttempt,
+            PilotingSkillRoll = successfulPsrData,
+            LevelsFallen = 0,
+            WasJumping = false
+        };
+
+        // Set up the Mock for ProcessStandupAttempt
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game)
+            .Returns(successfulStandupData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            Timestamp = DateTime.UtcNow,
+            MovementTypeAfterStandup = MovementType.Run
+        });
+
+        // Assert
+        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Run));
+
+        CommandPublisher.Received().PublishCommand(Arg.Is<ChangeActivePlayerCommand>(cmd =>
+            cmd.GameOriginId == Game.Id));
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldPublishMoveCommand_WhenJumpWithDamagedGyroSucceeds()
     {
         // Arrange
         _sut.Enter();

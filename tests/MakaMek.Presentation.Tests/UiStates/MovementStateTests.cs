@@ -767,7 +767,7 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void GetAvailableActions_ShouldContainAttmptStandupWithoutMovementAction_WhenMechIsProne_AndHasMinimumMovement()
+    public void GetAvailableActions_ShouldContainAttemptStandupWithoutMovementAction_WhenMechIsProne_AndHasMinimumMovement()
     {
         // Arrange
         var proneMech = _unit1 as Mech;
@@ -1162,7 +1162,6 @@ public class MovementStateTests
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
             .Where(h => h.IsHighlighted)
-            .Select(h => h.Coordinates)
             .ToList();
         reachableHexes.ShouldNotBeEmpty();
     }
@@ -1192,7 +1191,39 @@ public class MovementStateTests
         // Assert
         var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
             .Where(h => h.IsHighlighted)
-            .Select(h => h.Coordinates)
+            .ToList();
+        reachableHexes.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void ResumeMovementAfterStandup_ShouldNotHighlightReachableHexes_WhenMechHasNoMp()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        _unit1.Deploy(position);
+        var proneMech = _unit1 as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        var leg = proneMech!.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        proneMech.SetProne();
+        _sut.HandleUnitSelection(proneMech);
+
+        var walkStandupAction = _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        walkStandupAction.OnExecute();
+        proneMech.StandUp(HexDirection.Bottom);
+        leg.ApplyDamage(100); // Destroy the leg
+        proneMech.AttemptStandup();
+        
+        // Act
+        _sut.ResumeMovementAfterStandup();
+
+        // Assert
+        var reachableHexes = _battleMapViewModel.Game!.BattleMap!.GetHexes()
+            .Where(h => h.IsHighlighted)
             .ToList();
         reachableHexes.ShouldBeEmpty();
     }

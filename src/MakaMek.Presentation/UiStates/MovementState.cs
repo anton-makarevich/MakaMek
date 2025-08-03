@@ -513,6 +513,7 @@ public class MovementState : IUiState
     {
         if (_viewModel.Game?.ActivePlayer == null) return;
         if (_selectedUnit?.Position == null) return;
+        if (_selectedMovementType == null) return;
 
         // Create a standup command with the selected direction
         var standupCommand = new TryStandupCommand
@@ -520,7 +521,8 @@ public class MovementState : IUiState
             GameOriginId = _viewModel.Game.Id,
             UnitId = _selectedUnit.Id,
             PlayerId = _viewModel.Game.ActivePlayer.Id,
-            NewFacing = direction
+            NewFacing = direction,
+            MovementTypeAfterStandup = _selectedMovementType.Value
         };
 
         // Publish the command
@@ -535,7 +537,9 @@ public class MovementState : IUiState
     public void ResumeMovementAfterStandup()
     {
         // Check if the unit is no longer prone (standup was successful)
-        if (_selectedUnit is Mech { IsProne: false })
+        if (_selectedMovementType!=null &&
+            _selectedUnit is Mech { IsProne: false } mech 
+            && mech.GetMovementPoints(_selectedMovementType.Value) > 0)
         {
             HighlightReachableHexes();
         }

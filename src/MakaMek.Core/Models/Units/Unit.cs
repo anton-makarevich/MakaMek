@@ -600,7 +600,7 @@ public abstract class Unit
         {
             throw new InvalidOperationException("Unit is not deployed.");
         } 
-        var position = movementType==MovementType.StandingStill
+        var position = movementType==MovementType.StandingStill || movementPath.Count == 0
             ? Position
             :new HexPosition(movementPath.Last().To);
         var distance = Position.Coordinates.DistanceTo(position.Coordinates);
