@@ -14,6 +14,8 @@
             <converters:ContrastingForegroundConverter x:Key="ContrastingForegroundConverter"/>
             <converters:GreaterThanValueConverter x:Key="GreaterThanValueConverter"/>
             <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
+            <converters:BooleanToColorConverter x:Key="BooleanToColorConverter"/>
+            <converters:ConsciousnessStatusConverter x:Key="ConsciousnessStatusConverter"/>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Colors.axaml"/>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Animations.axaml"/>

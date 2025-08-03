@@ -176,6 +176,12 @@
                 </TabItem>
                 <TabItem>
                     <TabItem.Header>
+                        <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf007;"/>
+                    </TabItem.Header>
+                    <controls:UnitPilotInfoPanel DataContext="{Binding SelectedUnit.Pilot}" />
+                </TabItem>
+                <TabItem>
+                    <TabItem.Header>
                         <TextBlock Classes="h3" FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf132;"/>
                     </TabItem.Header>
                     <controls:UnitHealthIndicator Unit="{Binding SelectedUnit}"/>

@@ -1,0 +1,93 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:pilots="clr-namespace:Sanet.MakaMek.Core.Models.Units.Pilots;assembly=Sanet.MakaMek.Core"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
+             x:DataType="pilots:IPilot"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitPilotInfoPanel"
+             mc:Ignorable="d">
+    <UserControl.Resources>
+        <converters:NullToBooleanConverter x:Key="NullToVisibilityConverter"/>
+    </UserControl.Resources>
+    
+    <StackPanel Margin="10" Spacing="10" IsVisible="{Binding Converter={StaticResource NullToVisibilityConverter}}">
+        <!-- Pilot Name Section -->
+        <StackPanel Spacing="5">
+            <TextBlock Text="Pilot Information" Classes="h3" Margin="0,0,0,5"/>
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <TextBlock Text="Name:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Name}"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Skills Section -->
+        <StackPanel Spacing="5">
+            <TextBlock Text="Skills" Classes="h4" Margin="0,0,0,5"/>
+            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto" Margin="10,0,0,10">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Gunnery:" FontWeight="Bold" Margin="0,0,10,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Gunnery}" Margin="0,0,20,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="Piloting:" FontWeight="Bold" Margin="0,0,10,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding Piloting}" Margin="0,0,0,5"/>
+            </Grid>
+        </StackPanel>
+
+        <!-- Health Section -->
+        <StackPanel Spacing="5">
+            <TextBlock Text="Health Status" Classes="h4" Margin="0,0,0,5"/>
+
+            <!-- Health Information -->
+            <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto" Margin="10,0,0,10">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Max Health:" FontWeight="Bold" Margin="0,0,10,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Health}" Margin="0,0,20,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="Injuries:" FontWeight="Bold" Margin="0,0,10,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding Injuries}" Margin="0,0,0,5"/>
+            </Grid>
+
+            <!-- Injuries Progress Bar -->
+            <Grid Height="25" Margin="0,0,0,10">
+                <ProgressBar Value="{Binding Injuries}"
+                           Maximum="{Binding Health}"
+                           Height="25"
+                           MinHeight="0"
+                           Foreground="{DynamicResource ErrorBrush}"
+                           Background="{DynamicResource SurfaceBrush}">
+                </ProgressBar>
+                <TextBlock HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         FontWeight="Bold"
+                         Foreground="White">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="Injuries: {0}/{1}">
+                            <Binding Path="Injuries"/>
+                            <Binding Path="Health"/>
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+            </Grid>
+        </StackPanel>
+
+        <!-- Status Section -->
+        <StackPanel Spacing="5">
+            <TextBlock Text="Status" Classes="h4" Margin="0,0,0,5"/>
+            <WrapPanel ItemSpacing="5" LineSpacing="5" Orientation="Horizontal">
+                <!-- Consciousness Status -->
+                <Border Classes="statusTag">
+                    <Border.Background>
+                        <SolidColorBrush Color="{Binding IsConscious, Converter={StaticResource BooleanToColorConverter}}"/>
+                    </Border.Background>
+                    <TextBlock Text="{Binding IsConscious, Converter={StaticResource ConsciousnessStatusConverter}}" 
+                             Foreground="White" FontWeight="Bold"/>
+                </Border>
+                
+                <!-- Death Status -->
+                <Border Classes="statusTag" IsVisible="{Binding IsDead}">
+                    <Border.Background>
+                        <SolidColorBrush Color="{DynamicResource ErrorColor}"/>
+                    </Border.Background>
+                    <TextBlock Text="DEAD" Foreground="White" FontWeight="Bold"/>
+                </Border>
+            </WrapPanel>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

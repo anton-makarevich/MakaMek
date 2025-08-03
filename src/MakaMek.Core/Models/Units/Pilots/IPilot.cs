@@ -39,6 +39,8 @@ public interface IPilot
     /// </summary>
     bool IsDead { get; }
 
+    string Name { get; }
+    
     /// <summary>
     /// The unit this pilot is currently assigned to, if any
     /// </summary>
