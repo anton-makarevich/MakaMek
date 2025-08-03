@@ -1245,10 +1245,12 @@ public class UnitTests
     }
 
     [Fact]
-    public void ApplyDamage_WithExplodableComponent_ShouldAddExplosionDamage()
+    public void ApplyDamage_WithExplodableComponent_ShouldAddExplosionDamage_AndHitPilot()
     {
         // Arrange
         var unit = CreateTestUnit();
+        var pilot = new MechWarrior("John", "Doe");
+        unit.AssignPilot(pilot);
         var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
         
         // Create an explodable component
@@ -1273,6 +1275,7 @@ public class UnitTests
         explodableComponent.HasExploded.ShouldBeTrue();
         // Verify that the total damage applied was the initial damage (5) plus the explosion damage (5)
         targetPart.CurrentArmor.ShouldBe(0); // 10 - (5 + 5) = 0
+        pilot.Injuries.ShouldBe(2);
     }
     
     [Fact]

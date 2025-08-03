@@ -55,4 +55,5 @@ public interface IPilot
     void Kill();
 
     PilotData ToData();
+    void ExplosionHit();
 }

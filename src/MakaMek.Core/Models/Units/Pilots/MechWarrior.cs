@@ -8,6 +8,7 @@ namespace Sanet.MakaMek.Core.Models.Units.Pilots;
 /// </summary>
 public class MechWarrior : IPilot
 {
+    private const int MechWarriorExplosionDamage = 2;
     /// <summary>
     /// Default gunnery skill for Inner Sphere MechWarriors
     /// </summary>
@@ -106,6 +107,11 @@ public class MechWarrior : IPilot
             Injuries = Injuries,
             IsConscious = IsConscious
         };
+    }
+
+    public void ExplosionHit()
+    {
+        Hit(MechWarriorExplosionDamage);
     }
 
     public bool IsDead => Injuries >= Health;
