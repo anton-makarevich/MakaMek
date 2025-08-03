@@ -664,6 +664,41 @@ public class MovementStateTests
             .Any(h => h.IsHighlighted)
             .ShouldBeFalse(); // No highlighted hexes
     }
+    
+    [Fact]
+    public void HandleTargetHexSelection_ShouldNotResetSelection_WhenClickingOutsideReachableHexes_ButInPostStandupMovement()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        var proneMech = _battleMapViewModel.Units.First() as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.Deploy(position);
+        proneMech.SetProne();
+        var unitHex = _game.BattleMap!.GetHex(proneMech.Position!.Coordinates)!;
+        _sut.HandleHexSelection(unitHex);
+        _sut.HandleUnitSelection(proneMech);
+
+        var walkStandupAction = _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        walkStandupAction.OnExecute();
+        _sut.HandleFacingSelection(HexDirection.Bottom);
+        proneMech.StandUp(HexDirection.Bottom);
+        _sut.ResumeMovementAfterStandup();
+        var unreachableHex = _battleMapViewModel.Game!.BattleMap!.GetHex(new HexCoordinates(1, 11)); // Far away hex
+ 
+        // Act
+        _sut.HandleHexSelection(unreachableHex!);
+
+        // Assert
+        _battleMapViewModel.SelectedUnit.ShouldBe(proneMech); // Selection should be reset
+        _battleMapViewModel.Game.BattleMap.GetHexes()
+            .Any(h => h.IsHighlighted)
+            .ShouldBeTrue();
+    } 
 
     [Fact]
     public void GetAvailableActions_NoSelectedUnit_ReturnsEmpty()

@@ -20,6 +20,7 @@ public class MovementState : IUiState
     private int _movementPoints;
     private Dictionary<HexDirection, List<PathSegment>> _possibleDirections = [];
     private readonly Lock _stateLock = new();
+    private bool _isPostStandupMovement;
 
     public MovementState(BattleMapViewModel viewModel)
     {
@@ -49,9 +50,10 @@ public class MovementState : IUiState
             if (unit == null) return;
             if (unit.Status == UnitStatus.Destroyed) return;
             if (unit.HasMoved) return;
-            
+
             _selectedUnit = unit;
             _builder.SetUnit(unit);
+            _isPostStandupMovement = false; // Reset post-standup state when selecting a new unit
             CurrentMovementStep = MovementStep.SelectingMovementType;
             _viewModel.NotifyStateChanged();
         }
@@ -195,6 +197,7 @@ public class MovementState : IUiState
 
     private void ResetUnitSelection()
     {
+        if (_isPostStandupMovement) return;
         lock (_stateLock)
         {
             if (_viewModel.SelectedUnit == null) return;
@@ -220,8 +223,9 @@ public class MovementState : IUiState
 
         var isForwardReachable = _forwardReachableHexes.Contains(hex.Coordinates);
         var isBackwardReachable = _backwardReachableHexes.Contains(hex.Coordinates);
-        
+
         // Reset selection if clicked outside reachable hexes during target hex selection
+        // BUT NOT if the unit is in post-standup movement state (must complete declared movement)
         if (!isForwardReachable && !isBackwardReachable)
         {
             ResetUnitSelection();
@@ -317,13 +321,14 @@ public class MovementState : IUiState
                 _viewModel.HideDirectionSelector();
                 clientGame.MoveUnit(command.Value);
             }
-            
+
             _builder.Reset();
             var allReachableHexes = _forwardReachableHexes.Union(_backwardReachableHexes).ToList();
             _viewModel.HighlightHexes(allReachableHexes,false);
             _forwardReachableHexes = [];
             _backwardReachableHexes = [];
             _selectedUnit = null;
+            _isPostStandupMovement = false; // Reset post-standup state when movement is completed
             CurrentMovementStep = MovementStep.Completed;
             _viewModel.NotifyStateChanged();
         }
@@ -398,7 +403,7 @@ public class MovementState : IUiState
                         proneActions.Add(new StateAction(
                             _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
                             true,
-                            () => HandleStandupAttempt(MovementType.Run)));
+                            () => AttemptStandup(MovementType.Run)));
                     }
                     else
                     {
@@ -411,7 +416,7 @@ public class MovementState : IUiState
                         proneActions.Add(new StateAction(
                             walkActionText,
                             true,
-                            () => HandleStandupAttempt(MovementType.Walk)));
+                            () => AttemptStandup(MovementType.Walk)));
 
                         // Run standup action (only if mech can run)
                         if (mech.CanRun)
@@ -423,7 +428,7 @@ public class MovementState : IUiState
                             proneActions.Add(new StateAction(
                                 runActionText,
                                 true,
-                                () => HandleStandupAttempt(MovementType.Run)));
+                                () => AttemptStandup(MovementType.Run)));
                         }
                     }
                 }
@@ -493,7 +498,7 @@ public class MovementState : IUiState
     }
 
     // New method to handle standup attempts
-    private void HandleStandupAttempt(MovementType movementType)
+    private void AttemptStandup(MovementType movementType)
     {
         if (_viewModel.Game?.ActivePlayer == null) return;
         if (_selectedUnit?.Position == null) return;
@@ -538,9 +543,10 @@ public class MovementState : IUiState
     {
         // Check if the unit is no longer prone (standup was successful)
         if (_selectedMovementType!=null &&
-            _selectedUnit is Mech { IsProne: false } mech 
+            _selectedUnit is Mech { IsProne: false } mech
             && mech.GetMovementPoints(_selectedMovementType.Value) > 0)
         {
+            _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
             HighlightReachableHexes();
         }
     }

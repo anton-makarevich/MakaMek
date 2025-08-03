@@ -7,7 +7,6 @@
   - [ ] The MechWarrior automatically takes 2 points of damage and requires a Consciousness Roll.
 
 - [x] Weapons: The first critical hit to a weapon (even multi-slot ones) knocks out the weapon. Additional hits to multi-slot weapons have no further effect.
-  - [ ] Explosive components (e.g., Gauss rifles) explode similarly to ammunition explosions
 
 - [x] Jump Jet: That jump jet can no longer deliver thrust. Reduces the 'Mech's Jumping MP by 1 for each hit.
 
@@ -51,7 +50,7 @@
   - [x] Reduces Walking MP by 1 (recalculate Running MP).
 
 - [x] Leg Blown Off: Occurs on a roll of 12 on the Determining Critical Hits Table for a leg hit. The leg is blown off, and the 'Mech automatically falls (takes normal falling damage). Explosive components do not explode.
-  - [ ] Single Attempt to stand up that counts as running. Should end the turn for the unit
+  - [x] Single Attempt to stand up that counts as running. Should end the turn for the unit
   - [x] Only one MP if mech is standing up, no run
 
 ### Arms
