@@ -183,7 +183,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
-        unit!.SetProne();
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit.SetProne();
         
         // Configure the FallProcessor to return successful standup data
         var psrBreakdown = new PsrBreakdown
@@ -241,7 +242,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
-        unit!.SetProne();
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit.SetProne();
 
         // Configure the FallProcessor to return failed standup data
         var psrBreakdown = new PsrBreakdown
