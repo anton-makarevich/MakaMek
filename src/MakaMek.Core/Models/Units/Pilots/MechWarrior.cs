@@ -34,6 +34,16 @@ public class MechWarrior : IPilot
     /// </summary>
     public string LastName { get; }
 
+    /// <summary>
+    /// Optional call sign or nickname of the MechWarrior
+    /// </summary>
+    public string CallSign { get; }
+    
+    public string Name =>
+        string.IsNullOrEmpty(CallSign) 
+            ? $"{FirstName} {LastName}" 
+            : $"{FirstName} \"{CallSign}\" {LastName}";
+
     public Guid Id { get; }
 
     /// <summary>
@@ -60,11 +70,12 @@ public class MechWarrior : IPilot
     /// </summary>
     public Unit? AssignedTo { get; set; }
 
-    public MechWarrior(string firstName, string lastName, int? gunnery = null, int? piloting = null)
+    public MechWarrior(string firstName, string lastName, string callSign = "", int? gunnery = null, int? piloting = null)
     {
         Id = Guid.NewGuid();
         FirstName = firstName;
         LastName = lastName;
+        CallSign = callSign;
         Health = DefaultHealth;
         Gunnery = gunnery ?? DefaultGunnery;
         Piloting = piloting ?? DefaultPiloting;
