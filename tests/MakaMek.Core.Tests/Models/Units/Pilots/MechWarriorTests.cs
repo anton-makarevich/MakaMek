@@ -20,6 +20,26 @@ public class MechWarriorTests
         sut.Injuries.ShouldBe(0);
         sut.IsConscious.ShouldBe(true);
     }
+    
+    [Fact]
+    public void Name_ShouldReturnFullName_WhenCreatedWithoutCallSign()
+    {
+        // Arrange & Act
+        var sut = new MechWarrior("John", "Doe");
+
+        // Assert
+        sut.Name.ShouldBe("John Doe");
+    }
+    
+    [Fact]
+    public void Name_ShouldReturnFullNameWithCallSign_WithCallSign()
+    {
+        // Arrange & Act
+        var sut = new MechWarrior("John", "Doe", "JD");
+
+        // Assert
+        sut.Name.ShouldBe("John \"JD\" Doe");
+    }
 
     [Fact]
     public void Constructor_WithCustomSkills_SetsProvidedValues()
