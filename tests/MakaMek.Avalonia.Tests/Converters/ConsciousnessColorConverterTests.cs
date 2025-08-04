@@ -15,7 +15,8 @@ public class ConsciousnessColorConverterTests
     public ConsciousnessColorConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        _sut = new ConsciousnessColorConverter(_resourcesLocator);
+        ConsciousnessColorConverter.Initialize(_resourcesLocator);
+        _sut = new ConsciousnessColorConverter();
     }
 
     [Fact]

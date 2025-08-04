@@ -19,7 +19,8 @@ public class ComponentStatusBackgroundConverterTests
     public ComponentStatusBackgroundConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        _sut = new ComponentStatusBackgroundConverter(_resourcesLocator);
+        ComponentStatusBackgroundConverter.Initialize(_resourcesLocator);
+        _sut = new ComponentStatusBackgroundConverter();
     }
 
     [Fact]

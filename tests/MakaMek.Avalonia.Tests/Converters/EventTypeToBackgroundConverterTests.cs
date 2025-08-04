@@ -16,7 +16,8 @@ public class EventTypeToBackgroundConverterTests
     public EventTypeToBackgroundConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        _sut = new EventTypeToBackgroundConverter(_resourcesLocator);
+        EventTypeToBackgroundConverter.Initialize(_resourcesLocator);
+        _sut = new EventTypeToBackgroundConverter();
     }
 
     [Theory]
