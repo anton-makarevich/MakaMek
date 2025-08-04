@@ -12,22 +12,15 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class ComponentStatusBackgroundConverter : IValueConverter
 {
-    private readonly IAvaloniaResourcesLocator _resourcesLocator;
+    private static IAvaloniaResourcesLocator? _resourcesLocator;
 
     /// <summary>
-    /// Creates a new instance of ComponentStatusBackgroundConverter with a specific resources locator
+    /// Initializes the converter with the resources locator
     /// </summary>
     /// <param name="resourcesLocator">The resource locator to use</param>
-    public ComponentStatusBackgroundConverter(IAvaloniaResourcesLocator resourcesLocator)
+    public static void Initialize(IAvaloniaResourcesLocator resourcesLocator)
     {
         _resourcesLocator = resourcesLocator;
-    }
-
-    /// <summary>
-    /// Creates a new instance of ComponentStatusBackgroundConverter with the default resources locator
-    /// </summary>
-    public ComponentStatusBackgroundConverter() : this(new AvaloniaResourcesLocator())
-    {
     }
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
@@ -43,8 +36,8 @@ public class ComponentStatusBackgroundConverter : IValueConverter
 
         return status switch
         {
-            ComponentStatus.Destroyed => _resourcesLocator.TryFindResource("DestroyedBrush") ?? new SolidColorBrush(Colors.Red),
-            ComponentStatus.Damaged => _resourcesLocator.TryFindResource("DamagedBrush") ?? new SolidColorBrush(Colors.Orange),
+            ComponentStatus.Destroyed => _resourcesLocator?.TryFindResource("DestroyedBrush") ?? new SolidColorBrush(Colors.Red),
+            ComponentStatus.Damaged => _resourcesLocator?.TryFindResource("DamagedBrush") ?? new SolidColorBrush(Colors.Orange),
             ComponentStatus.Active => new SolidColorBrush(Colors.Transparent),
             _ => new SolidColorBrush(Colors.Gray)
         };

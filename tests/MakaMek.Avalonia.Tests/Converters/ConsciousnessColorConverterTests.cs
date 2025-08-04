@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class ConsciousnessColorConverterTests
+public class ConsciousnessColorConverterTests:IDisposable
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly ConsciousnessColorConverter _sut;
@@ -15,7 +15,8 @@ public class ConsciousnessColorConverterTests
     public ConsciousnessColorConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        _sut = new ConsciousnessColorConverter(_resourcesLocator);
+        ConsciousnessColorConverter.Initialize(_resourcesLocator);
+        _sut = new ConsciousnessColorConverter();
     }
 
     [Fact]
@@ -58,12 +59,38 @@ public class ConsciousnessColorConverterTests
         // Assert
         result.ShouldBe(Colors.Green);
     }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForConsciousTrue_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ConsciousnessColorConverter.Initialize(null!);
+
+        // Act
+        var result = _sut.Convert(true, typeof(Color), null, CultureInfo.InvariantCulture);
+
+        // Assert
+        result.ShouldBe(Colors.Green);
+    }
 
     [Fact]
     public void Convert_ShouldReturnDefault_ForConsciousFalse_WhenResourceNotFound()
     {
         // Arrange
         _resourcesLocator.TryFindResource("ErrorColor").Returns(null);
+
+        // Act
+        var result = _sut.Convert(false, typeof(Color), null, CultureInfo.InvariantCulture);
+
+        // Assert
+        result.ShouldBe(Colors.Red);
+    }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForConsciousFalse_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ConsciousnessColorConverter.Initialize(null!);
 
         // Act
         var result = _sut.Convert(false, typeof(Color), null, CultureInfo.InvariantCulture);
@@ -88,6 +115,19 @@ public class ConsciousnessColorConverterTests
 
         // Assert
         result.ShouldBe(expectedColor);
+    }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForInvalidInput_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ConsciousnessColorConverter.Initialize(null!);
+
+        // Act
+        var result = _sut.Convert("invalid", typeof(Color), null, CultureInfo.InvariantCulture);
+
+        // Assert
+        result.ShouldBe(Colors.Gray);
     }
 
     [Fact]
@@ -116,5 +156,10 @@ public class ConsciousnessColorConverterTests
     {
         // Act & Assert
         Should.NotThrow(() => new ConsciousnessColorConverter());
+    }
+    
+    public void Dispose()
+    {
+        ConsciousnessColorConverter.Initialize(null!);
     }
 }

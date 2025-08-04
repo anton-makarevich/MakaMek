@@ -11,7 +11,7 @@ using Sanet.MakaMek.Avalonia.Services;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class ComponentStatusBackgroundConverterTests
+public class ComponentStatusBackgroundConverterTests:IDisposable
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly ComponentStatusBackgroundConverter _sut;
@@ -19,7 +19,8 @@ public class ComponentStatusBackgroundConverterTests
     public ComponentStatusBackgroundConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        _sut = new ComponentStatusBackgroundConverter(_resourcesLocator);
+        ComponentStatusBackgroundConverter.Initialize(_resourcesLocator);
+        _sut = new ComponentStatusBackgroundConverter();
     }
 
     [Fact]
@@ -88,9 +89,26 @@ public class ComponentStatusBackgroundConverterTests
     }
 
     [Fact]
-    public void Convert_DestroyedWeapon_ReturnsDefaultWhenResourceNotFound()
+    public void Convert_ShouldReturnDefault_ForDestroyed_WhenResourceNotFound()
     {
         // Arrange
+        var weapon = new TestWeapon();
+        weapon.Hit();
+        var sut = new ComponentStatusBackgroundConverter();
+
+        // Act
+        var result = sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Color.ShouldBe(Colors.Red);
+    }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForDestroyed_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ComponentStatusBackgroundConverter.Initialize(null!);
         var weapon = new TestWeapon();
         weapon.Hit();
         var sut = new ComponentStatusBackgroundConverter();
@@ -182,6 +200,21 @@ public class ComponentStatusBackgroundConverterTests
         result.ShouldNotBeNull();
         result.Color.ShouldBe(Colors.Orange);
     }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForDamaged_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ComponentStatusBackgroundConverter.Initialize(null!);
+        var sut = new ComponentStatusBackgroundConverter();
+
+        // Act
+        var result = sut.Convert(ComponentStatus.Damaged, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Color.ShouldBe(Colors.Orange);
+    }
 
     [Fact]
     public void Convert_InvalidTargetType_ReturnsTransparent()
@@ -203,5 +236,10 @@ public class ComponentStatusBackgroundConverterTests
         // Act & Assert
         Should.Throw<NotImplementedException>(() =>
             _sut.ConvertBack(null, typeof(object), null, CultureInfo.InvariantCulture));
+    }
+    
+    public void Dispose()
+    {
+        ComponentStatusBackgroundConverter.Initialize(null!);
     }
 }

@@ -23,6 +23,7 @@ public static class CoreServices
     {
         services.AddSingleton<IImageService, AvaloniaAssetImageService>();
         services.AddSingleton<ILocalizationService, FakeLocalizationService>();
+        services.AddSingleton<IAvaloniaResourcesLocator, AvaloniaResourcesLocator>();
         
         // Register RxTransportPublisher for local players
         services.AddSingleton<RxTransportPublisher>();
