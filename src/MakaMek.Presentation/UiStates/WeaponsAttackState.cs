@@ -111,31 +111,34 @@ public class WeaponsAttackState : IUiState
     {
         var unit = _viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
         if (unit == null) return;
-        
-        if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
+        lock (_stateLock)
         {
-            if (unit.Owner != _game.ActivePlayer || unit.HasDeclaredWeaponAttack)
-                return;
-
-            if (Attacker is not null)
+            if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
             {
-                ClearWeaponRangeHighlights();
-                ResetUnitSelection();
+                if (unit.Owner != _game.ActivePlayer || unit.HasDeclaredWeaponAttack)
+                    return;
+
+                if (Attacker is not null)
+                {
+                    ClearWeaponRangeHighlights();
+                    ResetUnitSelection();
+                }
+
+                _viewModel.SelectedUnit = unit;
+                return;
             }
 
-            _viewModel.SelectedUnit = unit;
-            return;
-        }
+            if (CurrentStep == WeaponsAttackStep.TargetSelection)
+            {
+                if (unit.Owner == _game.ActivePlayer) return;
+                if (!IsHexInWeaponRange(hex.Coordinates)) return;
 
-        if (CurrentStep == WeaponsAttackStep.TargetSelection)
-        {
-            if (unit.Owner == _game.ActivePlayer) return;
-            if (!IsHexInWeaponRange(hex.Coordinates)) return;
-            
-            _viewModel.SelectedUnit = null;
-            _viewModel.SelectedUnit = unit;
+                _viewModel.SelectedUnit = null;
+                _viewModel.SelectedUnit = unit;
+            }
+
+            _viewModel.NotifyStateChanged();
         }
-        _viewModel.NotifyStateChanged();
     }
 
     private bool IsHexInWeaponRange(HexCoordinates coordinates)
@@ -151,25 +154,27 @@ public class WeaponsAttackState : IUiState
             || !_availableDirections.Contains(direction)) return;
         
         _viewModel.HideDirectionSelector();
-        
-        // Send command to server
-        var command = new WeaponConfigurationCommand
+        lock (_stateLock)
         {
-            GameOriginId = _game.Id,
-            PlayerId = _game.ActivePlayer!.Id,
-            UnitId = mech.Id,
-            Configuration = new WeaponConfiguration
+            // Send command to server
+            var command = new WeaponConfigurationCommand
             {
-                Type = WeaponConfigurationType.TorsoRotation,
-                Value = (int)direction
-            }
-        };
-        
-        _game.ConfigureUnitWeapons(command);
-        
-        // Return to action selection after rotation
-        CurrentStep = WeaponsAttackStep.ActionSelection;
-        _viewModel.NotifyStateChanged();
+                GameOriginId = _game.Id,
+                PlayerId = _game.ActivePlayer!.Id,
+                UnitId = mech.Id,
+                Configuration = new WeaponConfiguration
+                {
+                    Type = WeaponConfigurationType.TorsoRotation,
+                    Value = (int)direction
+                }
+            };
+
+            _game.ConfigureUnitWeapons(command);
+
+            // Return to action selection after rotation
+            CurrentStep = WeaponsAttackStep.ActionSelection;
+            _viewModel.NotifyStateChanged();
+        }
     }
 
     public void HandleTorsoRotation(Guid unitId)
@@ -181,15 +186,18 @@ public class WeaponsAttackState : IUiState
 
     private void ResetUnitSelection()
     {
-        Attacker = null;
-        SelectedTarget = null;
-        PrimaryTarget = null;
-        _weaponTargets.Clear();
-        _weaponRanges.Clear();
-        _weaponViewModels.Clear();
-        _viewModel.SelectedUnit = null;
-        CurrentStep = WeaponsAttackStep.SelectingUnit;
-        _viewModel.NotifyStateChanged();
+        lock (_stateLock)
+        {
+            Attacker = null;
+            SelectedTarget = null;
+            PrimaryTarget = null;
+            _weaponTargets.Clear();
+            _weaponRanges.Clear();
+            _weaponViewModels.Clear();
+            _viewModel.SelectedUnit = null;
+            CurrentStep = WeaponsAttackStep.SelectingUnit;
+            _viewModel.NotifyStateChanged();
+        }
     }
 
     public IEnumerable<StateAction> GetAvailableActions()
