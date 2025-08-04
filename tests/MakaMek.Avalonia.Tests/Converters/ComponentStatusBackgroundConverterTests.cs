@@ -11,7 +11,7 @@ using Sanet.MakaMek.Avalonia.Services;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class ComponentStatusBackgroundConverterTests
+public class ComponentStatusBackgroundConverterTests:IDisposable
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly ComponentStatusBackgroundConverter _sut;
@@ -236,5 +236,10 @@ public class ComponentStatusBackgroundConverterTests
         // Act & Assert
         Should.Throw<NotImplementedException>(() =>
             _sut.ConvertBack(null, typeof(object), null, CultureInfo.InvariantCulture));
+    }
+    
+    public void Dispose()
+    {
+        ComponentStatusBackgroundConverter.Initialize(null!);
     }
 }

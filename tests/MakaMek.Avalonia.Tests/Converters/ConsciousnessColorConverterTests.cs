@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class ConsciousnessColorConverterTests
+public class ConsciousnessColorConverterTests:IDisposable
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly ConsciousnessColorConverter _sut;
@@ -156,5 +156,10 @@ public class ConsciousnessColorConverterTests
     {
         // Act & Assert
         Should.NotThrow(() => new ConsciousnessColorConverter());
+    }
+    
+    public void Dispose()
+    {
+        ConsciousnessColorConverter.Initialize(null!);
     }
 }

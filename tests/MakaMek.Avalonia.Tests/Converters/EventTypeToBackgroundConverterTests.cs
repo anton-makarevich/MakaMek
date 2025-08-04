@@ -8,7 +8,7 @@ using Sanet.MakaMek.Avalonia.Services;
 
 namespace MakaMek.Avalonia.Tests.Converters;
 
-public class EventTypeToBackgroundConverterTests
+public class EventTypeToBackgroundConverterTests:IDisposable
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly EventTypeToBackgroundConverter _sut;
@@ -202,5 +202,10 @@ public class EventTypeToBackgroundConverterTests
         // Act & Assert
         Should.Throw<NotImplementedException>(() =>
             _sut.ConvertBack(null, typeof(UiEventType), null, CultureInfo.InvariantCulture));
+    }
+    
+    public void Dispose()
+    {
+        EventTypeToBackgroundConverter.Initialize(null!);
     }
 }
