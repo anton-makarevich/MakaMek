@@ -89,9 +89,26 @@ public class ComponentStatusBackgroundConverterTests
     }
 
     [Fact]
-    public void Convert_DestroyedWeapon_ReturnsDefaultWhenResourceNotFound()
+    public void Convert_ShouldReturnDefault_ForDestroyed_WhenResourceNotFound()
     {
         // Arrange
+        var weapon = new TestWeapon();
+        weapon.Hit();
+        var sut = new ComponentStatusBackgroundConverter();
+
+        // Act
+        var result = sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Color.ShouldBe(Colors.Red);
+    }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForDestroyed_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ComponentStatusBackgroundConverter.Initialize(null!);
         var weapon = new TestWeapon();
         weapon.Hit();
         var sut = new ComponentStatusBackgroundConverter();
@@ -178,6 +195,21 @@ public class ComponentStatusBackgroundConverterTests
 
         // Act
         var result = _sut.Convert(ComponentStatus.Damaged, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Color.ShouldBe(Colors.Orange);
+    }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForDamaged_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ComponentStatusBackgroundConverter.Initialize(null!);
+        var sut = new ComponentStatusBackgroundConverter();
+
+        // Act
+        var result = sut.Convert(ComponentStatus.Damaged, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
 
         // Assert
         result.ShouldNotBeNull();

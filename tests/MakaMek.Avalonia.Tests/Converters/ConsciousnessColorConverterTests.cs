@@ -59,12 +59,38 @@ public class ConsciousnessColorConverterTests
         // Assert
         result.ShouldBe(Colors.Green);
     }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForConsciousTrue_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ConsciousnessColorConverter.Initialize(null!);
+
+        // Act
+        var result = _sut.Convert(true, typeof(Color), null, CultureInfo.InvariantCulture);
+
+        // Assert
+        result.ShouldBe(Colors.Green);
+    }
 
     [Fact]
     public void Convert_ShouldReturnDefault_ForConsciousFalse_WhenResourceNotFound()
     {
         // Arrange
         _resourcesLocator.TryFindResource("ErrorColor").Returns(null);
+
+        // Act
+        var result = _sut.Convert(false, typeof(Color), null, CultureInfo.InvariantCulture);
+
+        // Assert
+        result.ShouldBe(Colors.Red);
+    }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForConsciousFalse_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ConsciousnessColorConverter.Initialize(null!);
 
         // Act
         var result = _sut.Convert(false, typeof(Color), null, CultureInfo.InvariantCulture);
@@ -89,6 +115,19 @@ public class ConsciousnessColorConverterTests
 
         // Assert
         result.ShouldBe(expectedColor);
+    }
+    
+    [Fact]
+    public void Convert_ShouldReturnDefault_ForInvalidInput_WhenLocatorNotInitialized()
+    {
+        // Arrange
+        ConsciousnessColorConverter.Initialize(null!);
+
+        // Act
+        var result = _sut.Convert("invalid", typeof(Color), null, CultureInfo.InvariantCulture);
+
+        // Assert
+        result.ShouldBe(Colors.Gray);
     }
 
     [Fact]
