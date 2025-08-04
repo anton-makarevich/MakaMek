@@ -61,13 +61,16 @@ public class MovementState : IUiState
 
     public void HandleMovementTypeSelection(MovementType movementType)
     {
-        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
-        if (_selectedUnit == null) return;
-        if (CurrentMovementStep != MovementStep.SelectingMovementType) return;
-        _selectedMovementType = movementType;
-        _builder.SetMovementType(movementType);
-        
-        HighlightReachableHexes();
+        lock (_stateLock)
+        {
+            if (_viewModel.Game is { CanActivePlayerAct: false }) return;
+            if (_selectedUnit == null) return;
+            if (CurrentMovementStep != MovementStep.SelectingMovementType) return;
+            _selectedMovementType = movementType;
+            _builder.SetMovementType(movementType);
+
+            HighlightReachableHexes();
+        }
     }
 
     private void HighlightReachableHexes()
@@ -149,28 +152,31 @@ public class MovementState : IUiState
 
     public void HandleFacingSelection(HexDirection direction)
     {
-        if (CurrentMovementStep == MovementStep.ConfirmMovement)
+        lock (_stateLock)
         {
-            ConfirmMovement();
-            return;
-        }
-        
-        // Check if this is a standup direction selection
-        if (CurrentMovementStep == MovementStep.SelectingStandingUpDirection)
-        {
-            // This is a standup with direction selection - send the standup command immediately
-            CompleteStandupAttempt(direction);
-            return;
-        }
-        
-        if (CurrentMovementStep != MovementStep.SelectingDirection) return;
+            if (CurrentMovementStep == MovementStep.ConfirmMovement)
+            {
+                ConfirmMovement();
+                return;
+            }
 
-        var path = _possibleDirections[direction];
-        _builder.SetMovementPath(path);
-        _viewModel.ShowDirectionSelector(path.Last().To.Coordinates, [direction]);
-        _viewModel.ShowMovementPath(path);
-        CurrentMovementStep = MovementStep.ConfirmMovement;
-        _viewModel.NotifyStateChanged();
+            // Check if this is a standup direction selection
+            if (CurrentMovementStep == MovementStep.SelectingStandingUpDirection)
+            {
+                // This is a standup with direction selection - send the standup command immediately
+                CompleteStandupAttempt(direction);
+                return;
+            }
+
+            if (CurrentMovementStep != MovementStep.SelectingDirection) return;
+
+            var path = _possibleDirections[direction];
+            _builder.SetMovementPath(path);
+            _viewModel.ShowDirectionSelector(path.Last().To.Coordinates, [direction]);
+            _viewModel.ShowMovementPath(path);
+            CurrentMovementStep = MovementStep.ConfirmMovement;
+            _viewModel.NotifyStateChanged();
+        }
     }
 
     private void ConfirmMovement()
@@ -500,54 +506,63 @@ public class MovementState : IUiState
     // New method to handle standup attempts
     private void AttemptStandup(MovementType movementType)
     {
-        if (_viewModel.Game?.ActivePlayer == null) return;
-        if (_selectedUnit?.Position == null) return;
+        lock (_stateLock)
+        {
+            if (_viewModel.Game?.ActivePlayer == null) return;
+            if (_selectedUnit?.Position == null) return;
 
-        // Set the selected movement type for later use
-        _selectedMovementType = movementType;
-        // Ensure the builder has the movement type set
-        _builder.SetMovementType(_selectedMovementType.Value);
+            // Set the selected movement type for later use
+            _selectedMovementType = movementType;
+            // Ensure the builder has the movement type set
+            _builder.SetMovementType(_selectedMovementType.Value);
 
-        CurrentMovementStep = MovementStep.SelectingStandingUpDirection;
-        _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
-        _viewModel.NotifyStateChanged();
+            CurrentMovementStep = MovementStep.SelectingStandingUpDirection;
+            _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
+            _viewModel.NotifyStateChanged();
+        }
     }
 
     // New method to handle standup with direction selection
     private void CompleteStandupAttempt(HexDirection direction)
     {
-        if (_viewModel.Game?.ActivePlayer == null) return;
-        if (_selectedUnit?.Position == null) return;
-        if (_selectedMovementType == null) return;
-
-        // Create a standup command with the selected direction
-        var standupCommand = new TryStandupCommand
+        lock (_stateLock)
         {
-            GameOriginId = _viewModel.Game.Id,
-            UnitId = _selectedUnit.Id,
-            PlayerId = _viewModel.Game.ActivePlayer.Id,
-            NewFacing = direction,
-            MovementTypeAfterStandup = _selectedMovementType.Value
-        };
+            if (_viewModel.Game?.ActivePlayer == null) return;
+            if (_selectedUnit?.Position == null) return;
+            if (_selectedMovementType == null) return;
 
-        // Publish the command
-        _viewModel.Game.TryStandupUnit(standupCommand);
+            // Create a standup command with the selected direction
+            var standupCommand = new TryStandupCommand
+            {
+                GameOriginId = _viewModel.Game.Id,
+                UnitId = _selectedUnit.Id,
+                PlayerId = _viewModel.Game.ActivePlayer.Id,
+                NewFacing = direction,
+                MovementTypeAfterStandup = _selectedMovementType.Value
+            };
 
-        // Reset the movement state
-        _viewModel.HideDirectionSelector();
-        _viewModel.NotifyStateChanged();
+            // Publish the command
+            _viewModel.Game.TryStandupUnit(standupCommand);
+
+            // Reset the movement state
+            _viewModel.HideDirectionSelector();
+            _viewModel.NotifyStateChanged();
+        }
     }
 
     // Method to resume movement after successful standup
     public void ResumeMovementAfterStandup()
     {
-        // Check if the unit is no longer prone (standup was successful)
-        if (_selectedMovementType!=null &&
-            _selectedUnit is Mech { IsProne: false } mech
-            && mech.GetMovementPoints(_selectedMovementType.Value) > 0)
+        lock (_stateLock)
         {
-            _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
-            HighlightReachableHexes();
+            // Check if the unit is no longer prone (standup was successful)
+            if (_selectedMovementType != null &&
+                _selectedUnit is Mech { IsProne: false } mech
+                && mech.GetMovementPoints(_selectedMovementType.Value) > 0)
+            {
+                _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
+                HighlightReachableHexes();
+            }
         }
     }
 

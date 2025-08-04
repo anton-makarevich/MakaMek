@@ -19,6 +19,7 @@ public class WeaponsAttackState : IUiState
     private readonly Dictionary<Weapon, Unit> _weaponTargets = new();
     private readonly List<WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly ClientGame _game;
+    private readonly Lock _stateLock = new();
 
     public WeaponsAttackStep CurrentStep { get; private set; } = WeaponsAttackStep.SelectingUnit;
 
@@ -72,30 +73,33 @@ public class WeaponsAttackState : IUiState
 
     public void HandleUnitSelection(Unit? unit)
     {
-        if (_game is { CanActivePlayerAct: false }) return;
-        if (unit == null) return;
-        if (unit.IsDestroyed) return;
-
-        if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
+        lock (_stateLock)
         {
-            if (unit.HasDeclaredWeaponAttack) return;
+            if (_game is { CanActivePlayerAct: false }) return;
+            if (unit == null) return;
+            if (unit.IsDestroyed) return;
 
-            Attacker = unit;
-            CreateWeaponViewModels();
-            CurrentStep = WeaponsAttackStep.ActionSelection;
+            if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
+            {
+                if (unit.HasDeclaredWeaponAttack) return;
 
-            // Highlight weapon ranges for the newly selected unit
-            HighlightWeaponRanges();
+                Attacker = unit;
+                CreateWeaponViewModels();
+                CurrentStep = WeaponsAttackStep.ActionSelection;
+
+                // Highlight weapon ranges for the newly selected unit
+                HighlightWeaponRanges();
+            }
+
+            if (CurrentStep == WeaponsAttackStep.TargetSelection)
+            {
+                SelectedTarget = unit;
+                UpdateWeaponViewModels();
+                _viewModel.IsWeaponSelectionVisible = true;
+            }
+
+            _viewModel.NotifyStateChanged();
         }
-
-        if (CurrentStep == WeaponsAttackStep.TargetSelection)
-        {
-            SelectedTarget = unit;
-            UpdateWeaponViewModels();
-            _viewModel.IsWeaponSelectionVisible = true;
-        }
-
-        _viewModel.NotifyStateChanged();
     }
 
     public void HandleHexSelection(Hex hex)
