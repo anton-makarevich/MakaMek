@@ -26,7 +26,7 @@
                 </ProgressBar.Foreground>
             </ProgressBar>
             <TextBlock Text="{Binding CurrentHeat}"
-                     Classes="labelProgressBar"/>
+                     Classes="progressBarLabel"/>
         </Grid>
         <!-- Movement Heat Penalty Tag -->
         <WrapPanel ItemSpacing="2" LineSpacing="2" Orientation="Horizontal">

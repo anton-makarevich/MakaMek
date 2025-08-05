@@ -44,7 +44,7 @@
                            Maximum="{Binding Health}"
                            Classes="infoPanel">
                 </ProgressBar>
-                <TextBlock  Classes="labelProgressBar">
+                <TextBlock  Classes="progressBarLabel">
                     <TextBlock.Text>
                         <MultiBinding StringFormat="Injuries: {0}/{1}">
                             <Binding Path="Injuries"/>
