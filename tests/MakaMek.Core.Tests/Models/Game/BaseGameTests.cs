@@ -33,7 +33,8 @@ public class BaseGameTests : BaseGame
         new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
         Substitute.For<ICommandPublisher>(),
         Substitute.For<IToHitCalculator>(),
-        Substitute.For<IPilotingSkillCalculator>())
+        Substitute.For<IPilotingSkillCalculator>(),
+        Substitute.For<IConsciousnessCalculator>())
     {
         base.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
     }

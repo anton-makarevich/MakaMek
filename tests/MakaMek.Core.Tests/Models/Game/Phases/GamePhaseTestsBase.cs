@@ -27,6 +27,7 @@ public abstract class GamePhaseTestsBase
     protected readonly IDiceRoller DiceRoller;
     protected readonly IPhaseManager MockPhaseManager;
     protected readonly IFallProcessor MockFallProcessor;
+    protected readonly IConsciousnessCalculator MockConsciousnessCalculator;
     protected readonly IPilotingSkillCalculator MockPilotingSkillCalculator;
     private readonly IMechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),Substitute.For<ILocalizationService>());
 
@@ -36,6 +37,7 @@ public abstract class GamePhaseTestsBase
         DiceRoller = Substitute.For<IDiceRoller>();
         MockPhaseManager = Substitute.For<IPhaseManager>();
         MockFallProcessor = Substitute.For<IFallProcessor>();
+        MockConsciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
         MockPilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         
@@ -43,6 +45,7 @@ public abstract class GamePhaseTestsBase
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             MockPilotingSkillCalculator,
+            MockConsciousnessCalculator,
             MockFallProcessor,
             MockPhaseManager);
     }
@@ -53,6 +56,7 @@ public abstract class GamePhaseTestsBase
             Substitute.For<IToHitCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             MockPilotingSkillCalculator,
+            MockConsciousnessCalculator,
             MockFallProcessor,
             MockPhaseManager);
     }

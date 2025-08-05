@@ -32,6 +32,7 @@ namespace Sanet.MakaMek.Presentation.Tests.UiStates;
 public class MovementStateTests
 {
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
+    private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
     private readonly MovementState _sut;
     private readonly ClientGame _game;
     private readonly UnitData _unitData;
@@ -87,6 +88,7 @@ public class MovementStateTests
             _commandPublisher,
             Substitute.For<IToHitCalculator>(),
             _pilotingSkillCalculator,
+            _consciousnessCalculator,
             Substitute.For<IBattleMapFactory>());
         
         _game.JoinGameWithUnits(_player,[],[]);

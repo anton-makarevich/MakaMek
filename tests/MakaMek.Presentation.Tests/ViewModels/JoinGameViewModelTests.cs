@@ -27,6 +27,7 @@ public class JoinGameViewModelTests
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
     private readonly IPilotingSkillCalculator  _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
+    private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
     private readonly IGameFactory _gameFactory = Substitute.For<IGameFactory>();
     private readonly ITransportFactory _transportFactory = Substitute.For<ITransportFactory>();
@@ -46,6 +47,7 @@ public class JoinGameViewModelTests
             _commandPublisher, 
             _toHitCalculator,
             _pilotingSkillCalculator,
+            _consciousnessCalculator,
             _mapFactory);
         // Configure the adapter to be accessible from the command publisher
         _commandPublisher.Adapter.Returns(_adapter);
@@ -60,6 +62,7 @@ public class JoinGameViewModelTests
                 _commandPublisher,
                 _toHitCalculator,
                 _pilotingSkillCalculator,
+                _consciousnessCalculator,
                 _mapFactory)
             .Returns(clientGame);
         
@@ -167,6 +170,7 @@ public class JoinGameViewModelTests
             _commandPublisher,
             _toHitCalculator,
             _pilotingSkillCalculator,
+            _consciousnessCalculator,
             _mapFactory);
     }
     
@@ -188,6 +192,7 @@ public class JoinGameViewModelTests
             Arg.Any<ICommandPublisher>(), 
             Arg.Any<IToHitCalculator>(),
             Arg.Any<IPilotingSkillCalculator>(),
+            Arg.Any<IConsciousnessCalculator>(),
             Arg.Any<IBattleMapFactory>());
     }
     

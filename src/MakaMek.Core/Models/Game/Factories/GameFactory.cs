@@ -21,8 +21,9 @@ public class GameFactory : IGameFactory
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        IFallProcessor fallProcessor,
-        IConsciousnessCalculator consciousnessCalculator)
+        IConsciousnessCalculator consciousnessCalculator,
+        IFallProcessor fallProcessor
+        )
     {
         return new ServerGame(
             rulesProvider,
@@ -32,8 +33,8 @@ public class GameFactory : IGameFactory
             toHitCalculator,
             criticalHitsCalculator,
             pilotingSkillCalculator,
-            fallProcessor,
-            consciousnessCalculator
+            consciousnessCalculator,
+            fallProcessor
             );
     }
 

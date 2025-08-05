@@ -1691,6 +1691,7 @@ public class BattleMapViewModelTests
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
             _mapFactory);
     }
 }

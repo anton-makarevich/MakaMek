@@ -31,8 +31,8 @@ public class GameManager : IGameManager
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        IFallProcessor fallProcessor,
         IConsciousnessCalculator consciousnessCalculator,
+        IFallProcessor fallProcessor,
         IGameFactory gameFactory,
         INetworkHostService? networkHostService = null)
     {
@@ -76,9 +76,9 @@ public class GameManager : IGameManager
                 _toHitCalculator,
                 _criticalHitsCalculator,
                 _pilotingSkillCalculator,
-                _fallProcessor,
-                _consciousnessCalculator
-                );
+                _consciousnessCalculator,
+                _fallProcessor
+            );
             // Start server listening loop in background
             _ = Task.Run(() => _serverGame?.Start());
         }

@@ -24,8 +24,9 @@ public interface IGameFactory
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        IFallProcessor fallProcessor,
-        IConsciousnessCalculator consciousnessCalculator);
+        IConsciousnessCalculator consciousnessCalculator,
+        IFallProcessor fallProcessor
+        );
 
     /// <summary>
     /// Creates a new client-side game instance.

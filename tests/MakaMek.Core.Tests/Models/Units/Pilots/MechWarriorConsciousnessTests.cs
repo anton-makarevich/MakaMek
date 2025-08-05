@@ -131,17 +131,12 @@ public class MechWarriorConsciousnessTests
         // Assert
         data.IsConscious.ShouldBeFalse();
         data.UnconsciousInTurn.ShouldBe(5);
-        data.PendingConsciousnessNumbers.Count.ShouldBe(2);
     }
     
     [Fact]
     public void Constructor_FromPilotData_RestoresConsciousnessState()
     {
         // Arrange
-        var pendingNumbers = new Queue<int>();
-        pendingNumbers.Enqueue(3);
-        pendingNumbers.Enqueue(5);
-        
         var pilotData = new Sanet.MakaMek.Core.Data.Units.PilotData
         {
             Id = Guid.NewGuid(),
@@ -153,7 +148,6 @@ public class MechWarriorConsciousnessTests
             Injuries = 2,
             IsConscious = false,
             UnconsciousInTurn = 3,
-            PendingConsciousnessNumbers = pendingNumbers
         };
         
         // Act

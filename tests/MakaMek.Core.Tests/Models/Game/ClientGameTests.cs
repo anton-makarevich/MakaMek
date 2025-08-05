@@ -48,6 +48,7 @@ public class ClientGameTests
             _commandPublisher,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
             _mapFactory);
     }
 
@@ -1302,6 +1303,7 @@ public class ClientGameTests
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
             _mapFactory);
         var unitData = MechFactoryTests.CreateDummyMechData();
         clientGame.JoinGameWithUnits(localPlayer1,[unitData],[]);
@@ -1381,6 +1383,7 @@ public class ClientGameTests
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
             _mapFactory);
         clientGame.JoinGameWithUnits(localPlayer1,[],[]);
         clientGame.JoinGameWithUnits(localPlayer2,[],[]);
