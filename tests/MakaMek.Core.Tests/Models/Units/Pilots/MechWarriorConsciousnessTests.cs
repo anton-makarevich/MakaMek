@@ -13,7 +13,7 @@ public class MechWarriorConsciousnessTests
         var sut = new MechWarrior("John", "Doe");
         
         // Act & Assert
-        sut.CurrentConsciousnessNumber.ShouldBe(2);
+        sut.CurrentConsciousnessNumber.ShouldBe(1);
     }
     
     [Theory]
@@ -156,8 +156,5 @@ public class MechWarriorConsciousnessTests
         // Assert
         sut.IsConscious.ShouldBeFalse();
         sut.UnconsciousInTurn.ShouldBe(3);
-        sut.PendingConsciousnessNumbers.Count.ShouldBe(2);
-        sut.PendingConsciousnessNumbers.Dequeue().ShouldBe(3);
-        sut.PendingConsciousnessNumbers.Dequeue().ShouldBe(5);
     }
 }

@@ -39,6 +39,7 @@ public abstract class NewGameViewModel : BaseViewModel
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
+        IConsciousnessCalculator consciousnessCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory)
     {
@@ -47,6 +48,7 @@ public abstract class NewGameViewModel : BaseViewModel
         _commandPublisher = commandPublisher;
         _toHitCalculator = toHitCalculator;
         _pilotingSkillCalculator = pilotingSkillCalculator;
+        _consciousnessCalculator = consciousnessCalculator;
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
     }

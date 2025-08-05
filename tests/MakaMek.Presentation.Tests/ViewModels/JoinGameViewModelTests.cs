@@ -77,6 +77,7 @@ public class JoinGameViewModelTests
             _commandPublisher,
             _toHitCalculator,
             _pilotingSkillCalculator,
+            _consciousnessCalculator,
             _dispatcherService,
             _gameFactory,
             _transportFactory,

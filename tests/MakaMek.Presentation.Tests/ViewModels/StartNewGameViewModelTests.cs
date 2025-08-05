@@ -90,6 +90,7 @@ public class StartNewGameViewModelTests
             _commandPublisher, 
             toHitCalculator, 
             pilotingSkillCalculator,
+            consciousnessCalculator,
             dispatcherService, 
             gameFactory,
             mapFactory); 
