@@ -61,12 +61,13 @@ public class MechWarriorTests
         // Arrange
         var sut = new MechWarrior("John", "Doe");
         var initialInjuries = sut.Injuries;
-        
+
         // Act
         sut.Hit();
-        
+
         // Assert
         sut.Injuries.ShouldBe(initialInjuries + 1);
+        sut.PendingConsciousnessNumbers.Count.ShouldBe(1);
     }
     
     [Fact]
@@ -75,12 +76,13 @@ public class MechWarriorTests
         // Arrange
         var sut = new MechWarrior("John", "Doe");
         var initialInjuries = sut.Injuries;
-        
+
         // Act
         sut.Hit(2);
-        
+
         // Assert
         sut.Injuries.ShouldBe(initialInjuries + 2);
+        sut.PendingConsciousnessNumbers.Count.ShouldBe(2);
     }
     
     [Fact]
@@ -88,14 +90,15 @@ public class MechWarriorTests
     {
         // Arrange
         var sut = new MechWarrior("John", "Doe");
-        
+
         // Act
         sut.Hit();
         sut.Hit();
         sut.Hit();
-        
+
         // Assert
         sut.Injuries.ShouldBe(3);
+        sut.PendingConsciousnessNumbers.Count.ShouldBe(3);
     }
     
     [Fact]

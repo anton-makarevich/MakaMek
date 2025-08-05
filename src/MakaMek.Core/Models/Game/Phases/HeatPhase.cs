@@ -102,7 +102,29 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         };
         
         Game.OnHeatUpdate(command);
-        
+
         Game.CommandPublisher.PublishCommand(command);
+
+        // Process consciousness rolls for any heat damage to pilot
+        ProcessConsciousnessRollsForUnit(unit);
+    }
+
+    /// <summary>
+    /// Processes consciousness rolls for a unit's pilot
+    /// </summary>
+    /// <param name="unit">The unit whose pilot needs consciousness rolls</param>
+    private void ProcessConsciousnessRollsForUnit(Unit unit)
+    {
+        if (unit.Pilot == null) return;
+
+        var consciousnessCommands = Game.ConsciousnessCalculator.MakeConsciousnessRolls(unit.Pilot);
+
+        foreach (var command in consciousnessCommands)
+        {
+            var broadcastCommand = command;
+            broadcastCommand.GameOriginId = Game.Id;
+            Game.OnPilotConsciousnessRoll(broadcastCommand);
+            Game.CommandPublisher.PublishCommand(broadcastCommand);
+        }
     }
 }

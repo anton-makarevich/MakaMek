@@ -8,6 +8,7 @@ namespace Sanet.MakaMek.Core.Models.Units.Pilots;
 /// </summary>
 public class MechWarrior : IPilot
 {
+    private int _injuries;
     private const int MechWarriorExplosionDamage = 2;
     /// <summary>
     /// Default gunnery skill for Inner Sphere MechWarriors
@@ -61,7 +62,15 @@ public class MechWarrior : IPilot
     /// </summary>
     public int Piloting { get; }
 
-    public int Injuries { get; private set; }
+    public int Injuries
+    {
+        get => _injuries;
+        private set
+        {
+            _injuries = value;
+            PendingConsciousnessNumbers.Enqueue(CurrentConsciousnessNumber);
+        }
+    }
 
     public bool IsConscious { get; private set; } = true;
 
@@ -85,7 +94,7 @@ public class MechWarrior : IPilot
                 4 => 10,
                 5 => 11,
                 >= 6 => 12, // Impossible roll (dead)
-                _ => 2 // No injuries, very easy roll
+                _ => 1 // No injuries, always conscious
             };
         }
     }
@@ -111,6 +120,7 @@ public class MechWarrior : IPilot
         Id = pilotData.Id;
         FirstName = pilotData.FirstName;
         LastName = pilotData.LastName;
+        CallSign = string.Empty; // Default to empty string for data constructor
         Health = pilotData.Health;
         Gunnery = pilotData.Gunnery;
         Piloting = pilotData.Piloting;
@@ -122,12 +132,9 @@ public class MechWarrior : IPilot
 
     public void Hit(int hits = 1)
     {
-        Injuries += hits;
-
-        // Enqueue consciousness numbers for each hit
         for (var i = 0; i < hits; i++)
         {
-            PendingConsciousnessNumbers.Enqueue(CurrentConsciousnessNumber);
+            Injuries++;
         }
 
         AssignedTo?.AddEvent(new UiEvent(UiEventType.PilotDamage, FirstName, hits));

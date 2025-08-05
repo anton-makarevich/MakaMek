@@ -26,7 +26,7 @@ public class ServerGame : BaseGame, IDisposable
     public ICriticalHitsCalculator CriticalHitsCalculator { get; }
 
     public ServerGame(
-        IRulesProvider rulesProvider, 
+        IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IDiceRoller diceRoller,
@@ -34,8 +34,9 @@ public class ServerGame : BaseGame, IDisposable
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IFallProcessor fallProcessor,
+        IConsciousnessCalculator consciousnessCalculator,
         IPhaseManager? phaseManager = null)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator) 
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator)
     {
         DiceRoller = diceRoller;
         CriticalHitsCalculator = criticalHitsCalculator;

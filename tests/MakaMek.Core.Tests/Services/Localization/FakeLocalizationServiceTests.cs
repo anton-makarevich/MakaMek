@@ -177,7 +177,15 @@ public class FakeLocalizationServiceTests
     [InlineData("Events_Unit_UnitDestroyed", "{0} has been destroyed!")]
     [InlineData("Events_Unit_PilotDamage", "{0} took damage | -{1}")]
     [InlineData("Events_Unit_PilotDead", "{0} was killed")]
-    
+    [InlineData("Events_Unit_PilotUnconscious", "{0} fell unconscious")]
+    [InlineData("Events_Unit_PilotRecovered", "{0} regained consciousness")]
+
+    // Consciousness roll commands
+    [InlineData("Command_PilotConsciousnessRoll_Consciousness", "consciousness")]
+    [InlineData("Command_PilotConsciousnessRoll_Recovery", "consciousness recovery")]
+    [InlineData("Command_PilotConsciousnessRoll_Success", "{0} {1} roll succeeded: [{2}] = {3} vs {4}")]
+    [InlineData("Command_PilotConsciousnessRoll_Failure", "{0} {1} roll failed: [{2}] = {3} vs {4}")]
+
     // Pilot status
     [InlineData("Pilot_Status_Unknown", "UNKNOWN")]
     [InlineData("Pilot_Status_Conscious", "CONSCIOUS")]

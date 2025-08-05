@@ -311,6 +311,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null })
         {
             target.ApplyDamage(resolution.HitLocationsData.HitLocations);
+            ProcessConsciousnessRollsForUnit(target);
         }
         
         // Check which parts are newly destroyed
@@ -425,10 +426,32 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 if (fallingCommand.DamageData is null) continue;
                 Game.OnMechFalling(fallingCommand);
             }
+
+            // Process consciousness rolls for pilot damage accumulated during this phase
+            ProcessConsciousnessRollsForUnit(targetMech);
         }
         
         // Clear the accumulated damage data after processing
         _accumulatedDamageData.Clear();
+    }
+
+    /// <summary>
+    /// Processes consciousness rolls for a unit's pilot
+    /// </summary>
+    /// <param name="unit">The unit whose pilot needs consciousness rolls</param>
+    private void ProcessConsciousnessRollsForUnit(Unit unit)
+    {
+        if (unit.Pilot == null) return;
+
+        var consciousnessCommands = Game.ConsciousnessCalculator.MakeConsciousnessRolls(unit.Pilot);
+
+        foreach (var command in consciousnessCommands)
+        {
+            var broadcastCommand = command;
+            broadcastCommand.GameOriginId = Game.Id;
+            Game.OnPilotConsciousnessRoll(broadcastCommand);
+            Game.CommandPublisher.PublishCommand(broadcastCommand);
+        }
     }
     
     /// <summary>

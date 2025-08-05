@@ -1,0 +1,173 @@
+﻿using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Services.Localization;
+using Shouldly;
+
+namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
+
+public class PilotConsciousnessRollCommandTests
+{
+    private readonly ILocalizationService _localizationService;
+    private readonly IGame _game;
+    private readonly Guid _unitId;
+    private readonly Guid _pilotId;
+
+    public PilotConsciousnessRollCommandTests()
+    {
+        _localizationService = Substitute.For<ILocalizationService>();
+        _game = Substitute.For<IGame>();
+        var pilot = Substitute.For<IPilot>();
+        _unitId = Guid.NewGuid();
+        _pilotId = Guid.NewGuid();
+
+        // Setup pilot
+        pilot.Id.Returns(_pilotId);
+        pilot.Name.Returns("John Doe");
+
+        // Setup unit
+        var unit = Substitute.For<Sanet.MakaMek.Core.Models.Units.Unit>();
+        unit.Id.Returns(_unitId);
+        unit.Pilot.Returns(pilot);
+
+        // Setup player
+        var player = Substitute.For<IPlayer>();
+        player.Units.Returns(new List<Sanet.MakaMek.Core.Models.Units.Unit> { unit });
+
+        // Setup game
+        _game.Players.Returns(new List<IPlayer> { player });
+    }
+
+    [Fact]
+    public void Render_WithSuccessfulConsciousnessRoll_ReturnsFormattedString()
+    {
+        // Arrange
+        var command = new PilotConsciousnessRollCommand
+        {
+            UnitId = _unitId,
+            PilotId = _pilotId,
+            ConsciousnessNumber = 7,
+            DiceResults = new List<int> { 4, 5 },
+            IsSuccessful = true,
+            IsRecoveryAttempt = false,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Consciousness").Returns("consciousness");
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Success")
+            .Returns("{0} {1} roll succeeded: [{2}] = {3} vs {4}");
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe("John Doe consciousness roll succeeded: [4, 5] = 9 vs 7");
+    }
+
+    [Fact]
+    public void Render_WithFailedConsciousnessRoll_ReturnsFormattedString()
+    {
+        // Arrange
+        var command = new PilotConsciousnessRollCommand
+        {
+            UnitId = _unitId,
+            PilotId = _pilotId,
+            ConsciousnessNumber = 10,
+            DiceResults = new List<int> { 2, 3 },
+            IsSuccessful = false,
+            IsRecoveryAttempt = false,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Consciousness").Returns("consciousness");
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Failure")
+            .Returns("{0} {1} roll failed: [{2}] = {3} vs {4}");
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe("John Doe consciousness roll failed: [2, 3] = 5 vs 10");
+    }
+
+    [Fact]
+    public void Render_WithSuccessfulRecoveryRoll_ReturnsFormattedString()
+    {
+        // Arrange
+        var command = new PilotConsciousnessRollCommand
+        {
+            UnitId = _unitId,
+            PilotId = _pilotId,
+            ConsciousnessNumber = 5,
+            DiceResults = new List<int> { 3, 4 },
+            IsSuccessful = true,
+            IsRecoveryAttempt = true,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Recovery").Returns("consciousness recovery");
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Success")
+            .Returns("{0} {1} roll succeeded: [{2}] = {3} vs {4}");
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe("John Doe consciousness recovery roll succeeded: [3, 4] = 7 vs 5");
+    }
+
+    [Fact]
+    public void Render_WithFailedRecoveryRoll_ReturnsFormattedString()
+    {
+        // Arrange
+        var command = new PilotConsciousnessRollCommand
+        {
+            UnitId = _unitId,
+            PilotId = _pilotId,
+            ConsciousnessNumber = 11,
+            DiceResults = new List<int> { 1, 6 },
+            IsSuccessful = false,
+            IsRecoveryAttempt = true,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Recovery").Returns("consciousness recovery");
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Failure")
+            .Returns("{0} {1} roll failed: [{2}] = {3} vs {4}");
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe("John Doe consciousness recovery roll failed: [1, 6] = 7 vs 11");
+    }
+
+    [Fact]
+    public void Render_WithNonExistentUnit_ReturnsEmptyString()
+    {
+        // Arrange
+        var command = new PilotConsciousnessRollCommand
+        {
+            UnitId = Guid.NewGuid(), // Different unit ID
+            PilotId = _pilotId,
+            ConsciousnessNumber = 7,
+            DiceResults = new List<int> { 4, 5 },
+            IsSuccessful = true,
+            IsRecoveryAttempt = false,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe(string.Empty);
+    }
+}

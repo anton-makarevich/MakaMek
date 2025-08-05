@@ -26,6 +26,7 @@ public abstract class NewGameViewModel : BaseViewModel
     protected readonly ICommandPublisher _commandPublisher;
     protected readonly IToHitCalculator _toHitCalculator;
     protected readonly IPilotingSkillCalculator _pilotingSkillCalculator;
+    protected readonly IConsciousnessCalculator _consciousnessCalculator;
     private readonly IDispatcherService _dispatcherService;
     protected readonly IGameFactory _gameFactory;
     

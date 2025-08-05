@@ -20,20 +20,20 @@ public record struct PilotConsciousnessRollCommand : IGameCommand
         var pilot = game.Players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == command.UnitId)?.Pilot;
-            
+
         if (pilot == null)
         {
             return string.Empty;
         }
 
-        var rollType = IsRecoveryAttempt ? "Recovery" : "Consciousness";
-        var resultText = IsSuccessful ? "Success" : "Failure";
+        var rollTypeKey = IsRecoveryAttempt ? "Command_PilotConsciousnessRoll_Recovery" : "Command_PilotConsciousnessRoll_Consciousness";
+        var rollType = localizationService.GetString(rollTypeKey);
+
+        var resultKey = IsSuccessful ? "Command_PilotConsciousnessRoll_Success" : "Command_PilotConsciousnessRoll_Failure";
         var diceText = string.Join(", ", DiceResults);
         var total = DiceResults.Sum();
 
-        var template = localizationService.GetString($"Command_PilotConsciousnessRoll_{resultText}");
-        var header = string.Format(template, pilot.Name, rollType, diceText, total, ConsciousnessNumber);
-
-        return header;
+        var template = localizationService.GetString(resultKey);
+        return string.Format(template, pilot.Name, rollType, diceText, total, ConsciousnessNumber);
     }
 }

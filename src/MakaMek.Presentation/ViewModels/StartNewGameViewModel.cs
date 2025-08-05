@@ -61,6 +61,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _commandPublisher, 
             _toHitCalculator,
             _pilotingSkillCalculator,
+            _consciousnessCalculator,
             _mapFactory);
         // Update server IP initially if needed
         NotifyPropertyChanged(nameof(ServerIpAddress));

@@ -155,6 +155,12 @@ public class FakeLocalizationService: ILocalizationService
             "Command_HeatUpdated_WeaponHeat" => "  + Firing {0}: {1} heat",
             "Command_HeatUpdated_TotalGenerated" => "Total heat generated: {0}",
             "Command_HeatUpdated_Dissipation" => "  - Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat",
+
+            // Consciousness roll command strings
+            "Command_PilotConsciousnessRoll_Consciousness" => "consciousness",
+            "Command_PilotConsciousnessRoll_Recovery" => "consciousness recovery",
+            "Command_PilotConsciousnessRoll_Success" => "{0} {1} roll succeeded: [{2}] = {3} vs {4}",
+            "Command_PilotConsciousnessRoll_Failure" => "{0} {1} roll failed: [{2}] = {3} vs {4}",
             
             // Start phase
             "StartPhase_ActionLabel" => "Ready to play",
@@ -184,6 +190,8 @@ public class FakeLocalizationService: ILocalizationService
             "Events_Unit_UnitDestroyed" => "{0} has been destroyed!",
             "Events_Unit_PilotDamage" => "{0} took damage | -{1}",
             "Events_Unit_PilotDead" => "{0} was killed",
+            "Events_Unit_PilotUnconscious" => "{0} fell unconscious",
+            "Events_Unit_PilotRecovered" => "{0} regained consciousness",
             
             // Penalty messages
             "Penalty_FootActuatorMovement" => "{0} destroyed foot actuator(s) | -{1} MP",

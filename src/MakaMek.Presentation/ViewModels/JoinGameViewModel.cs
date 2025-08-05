@@ -150,6 +150,7 @@ public class JoinGameViewModel : NewGameViewModel
                 _commandPublisher,
                 _toHitCalculator,
                 _pilotingSkillCalculator,
+                _consciousnessCalculator,
                 _mapFactory);
             IsConnected = true;
             _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
