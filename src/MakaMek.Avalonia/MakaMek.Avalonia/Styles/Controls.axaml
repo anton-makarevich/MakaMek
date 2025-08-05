@@ -20,6 +20,14 @@
         <Setter Property="Foreground" Value="{DynamicResource MechStructureBrush}"/>
     </Style>
     
+    <!-- Progressbar style for info panels -->
+    <Style Selector="ProgressBar.infoPanel">
+        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="MinHeight" Value="0"/>
+    </Style>
+    
     <!-- Destroyed part styles -->
     <Style Selector="ProgressBar.destroyed">
         <Setter Property="Background" Value="{DynamicResource DestroyedBrush}"/>

@@ -16,8 +16,7 @@
         <Grid Height="20" Margin="0,0,0,10">
             <ProgressBar Value="{Binding CurrentHeat}" 
                        Maximum="30"
-                       Height="20"
-                       MinHeight="0">
+                       Classes="infoPanel">
                 <ProgressBar.Foreground>
                     <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
                         <GradientStop Offset="0" Color="#ADD8E6"/>
@@ -27,8 +26,7 @@
                 </ProgressBar.Foreground>
             </ProgressBar>
             <TextBlock Text="{Binding CurrentHeat}"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center"/>
+                     Classes="progressBarLabel"/>
         </Grid>
         <!-- Movement Heat Penalty Tag -->
         <WrapPanel ItemSpacing="2" LineSpacing="2" Orientation="Horizontal">
