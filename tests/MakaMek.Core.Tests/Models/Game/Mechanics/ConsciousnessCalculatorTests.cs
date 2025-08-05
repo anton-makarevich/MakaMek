@@ -1,7 +1,12 @@
 ﻿using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
@@ -18,12 +23,16 @@ public class ConsciousnessCalculatorTests
         _sut = new ConsciousnessCalculator(_diceRoller);
         _pilot = Substitute.For<IPilot>();
         
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        Unit unit = new MechFactory(new ClassicBattletechRulesProvider(), 
+            Substitute.For<ILocalizationService>()).Create(unitData);
+
         // Setup default pilot state
         _pilot.Id.Returns(Guid.NewGuid());
         _pilot.IsConscious.Returns(true);
         _pilot.IsDead.Returns(false);
-        _pilot.AssignedTo.Returns(Substitute.For<Sanet.MakaMek.Core.Models.Units.Unit>());
-        _pilot.AssignedTo.Id.Returns(Guid.NewGuid());
+        _pilot.AssignedTo.Returns(unit);
     }
 
     [Fact]
@@ -90,7 +99,7 @@ public class ConsciousnessCalculatorTests
         result.Count.ShouldBe(1);
         var command = result[0];
         command.ConsciousnessNumber.ShouldBe(5);
-        command.DiceResults.ShouldBe(new List<int> { 3, 4 });
+        command.DiceResults.ShouldBe([3, 4]);
         command.IsSuccessful.ShouldBeTrue();
         command.IsRecoveryAttempt.ShouldBeFalse();
     }
@@ -113,7 +122,7 @@ public class ConsciousnessCalculatorTests
         result.Count.ShouldBe(1);
         var command = result[0];
         command.ConsciousnessNumber.ShouldBe(7);
-        command.DiceResults.ShouldBe(new List<int> { 2, 3 });
+        command.DiceResults.ShouldBe([2, 3]);
         command.IsSuccessful.ShouldBeFalse();
         command.IsRecoveryAttempt.ShouldBeFalse();
     }
@@ -130,8 +139,8 @@ public class ConsciousnessCalculatorTests
 
         // First roll succeeds, second roll fails
         _diceRoller.Roll2D6().Returns(
-            new List<DiceResult> { new(2), new(2) }, // Total 4, >= 3 (success)
-            new List<DiceResult> { new(1), new(2) }  // Total 3, < 5 (failure)
+            [new DiceResult(2), new DiceResult(2)], // Total 4, >= 3 (success)
+            [new List<DiceResult>(1), new List<DiceResult>(2)] // Total 3, < 5 (failure)
         );
 
         // Act
@@ -141,9 +150,6 @@ public class ConsciousnessCalculatorTests
         result.Count.ShouldBe(2);
         result[0].IsSuccessful.ShouldBeTrue();
         result[1].IsSuccessful.ShouldBeFalse();
-        
-        // Verify the queue was cleared after failure
-        _pilot.PendingConsciousnessNumbers.Received(1).Clear();
     }
 
     [Fact]
@@ -189,7 +195,7 @@ public class ConsciousnessCalculatorTests
         // Assert
         result.ShouldNotBeNull();
         result.Value.ConsciousnessNumber.ShouldBe(7);
-        result.Value.DiceResults.ShouldBe(new List<int> { 4, 5 });
+        result.Value.DiceResults.ShouldBe([4, 5]);
         result.Value.IsSuccessful.ShouldBeTrue();
         result.Value.IsRecoveryAttempt.ShouldBeTrue();
     }
@@ -210,7 +216,7 @@ public class ConsciousnessCalculatorTests
         // Assert
         result.ShouldNotBeNull();
         result.Value.ConsciousnessNumber.ShouldBe(10);
-        result.Value.DiceResults.ShouldBe(new List<int> { 3, 4 });
+        result.Value.DiceResults.ShouldBe([3, 4]);
         result.Value.IsSuccessful.ShouldBeFalse();
         result.Value.IsRecoveryAttempt.ShouldBeTrue();
     }

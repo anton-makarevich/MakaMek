@@ -5,7 +5,6 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
-using Sanet.MakaMek.Core.Tests.Models.Units;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
@@ -54,7 +53,7 @@ public class PilotConsciousnessRollCommandTests
             UnitId = _unitId,
             PilotId = _pilotId,
             ConsciousnessNumber = 7,
-            DiceResults = new List<int> { 4, 5 },
+            DiceResults = [4, 5],
             IsSuccessful = true,
             IsRecoveryAttempt = false,
             GameOriginId = Guid.NewGuid(),
@@ -108,7 +107,7 @@ public class PilotConsciousnessRollCommandTests
             UnitId = _unitId,
             PilotId = _pilotId,
             ConsciousnessNumber = 5,
-            DiceResults = new List<int> { 3, 4 },
+            DiceResults = [3, 4],
             IsSuccessful = true,
             IsRecoveryAttempt = true,
             GameOriginId = Guid.NewGuid(),
@@ -135,7 +134,7 @@ public class PilotConsciousnessRollCommandTests
             UnitId = _unitId,
             PilotId = _pilotId,
             ConsciousnessNumber = 11,
-            DiceResults = new List<int> { 1, 6 },
+            DiceResults = [1, 6],
             IsSuccessful = false,
             IsRecoveryAttempt = true,
             GameOriginId = Guid.NewGuid(),
@@ -162,7 +161,7 @@ public class PilotConsciousnessRollCommandTests
             UnitId = Guid.NewGuid(), // Different unit ID
             PilotId = _pilotId,
             ConsciousnessNumber = 7,
-            DiceResults = new List<int> { 4, 5 },
+            DiceResults = [4, 5],
             IsSuccessful = true,
             IsRecoveryAttempt = false,
             GameOriginId = Guid.NewGuid(),
