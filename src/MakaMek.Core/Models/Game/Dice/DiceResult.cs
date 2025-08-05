@@ -1,6 +1,6 @@
 namespace Sanet.MakaMek.Core.Models.Game.Dice;
 
-public class DiceResult
+public record DiceResult
 {
     private int _result;
 
