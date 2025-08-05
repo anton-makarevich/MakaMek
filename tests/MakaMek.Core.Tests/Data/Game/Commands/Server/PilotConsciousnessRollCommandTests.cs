@@ -4,6 +4,10 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Units;
+using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
@@ -28,9 +32,10 @@ public class PilotConsciousnessRollCommandTests
         pilot.Name.Returns("John Doe");
 
         // Setup unit
-        var unit = Substitute.For<Sanet.MakaMek.Core.Models.Units.Unit>();
-        unit.Id.Returns(_unitId);
-        unit.Pilot.Returns(pilot);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = _unitId;
+        var unit = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService).Create(unitData);
+        unit.AssignPilot(pilot);
 
         // Setup player
         var player = Substitute.For<IPlayer>();
@@ -76,7 +81,7 @@ public class PilotConsciousnessRollCommandTests
             UnitId = _unitId,
             PilotId = _pilotId,
             ConsciousnessNumber = 10,
-            DiceResults = new List<int> { 2, 3 },
+            DiceResults = [2, 3],
             IsSuccessful = false,
             IsRecoveryAttempt = false,
             GameOriginId = Guid.NewGuid(),
