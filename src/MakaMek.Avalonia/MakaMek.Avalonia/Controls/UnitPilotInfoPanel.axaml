@@ -42,15 +42,9 @@
             <Grid Height="25" Margin="0,0,0,10">
                 <ProgressBar Value="{Binding Injuries}"
                            Maximum="{Binding Health}"
-                           Height="25"
-                           MinHeight="0"
-                           Foreground="{DynamicResource ErrorBrush}"
-                           Background="{DynamicResource SurfaceBrush}">
+                           Classes="infoPanel">
                 </ProgressBar>
-                <TextBlock HorizontalAlignment="Center"
-                         VerticalAlignment="Center"
-                         FontWeight="Bold"
-                         Foreground="White">
+                <TextBlock  Classes="labelProgressBar">
                     <TextBlock.Text>
                         <MultiBinding StringFormat="Injuries: {0}/{1}">
                             <Binding Path="Injuries"/>

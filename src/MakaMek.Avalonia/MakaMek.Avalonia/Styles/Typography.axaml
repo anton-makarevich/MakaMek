@@ -67,6 +67,14 @@
         <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
     </Style>
     
+    <Style Selector="TextBlock.labelProgressBar">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    </Style>
+    
     <!-- Caption Styles -->
     <Style Selector="TextBlock.caption">
         <Setter Property="FontSize" Value="10"/>
