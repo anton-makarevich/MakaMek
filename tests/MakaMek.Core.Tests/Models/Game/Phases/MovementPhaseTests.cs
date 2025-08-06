@@ -119,7 +119,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         var player2 = Game.Players[1];
         CommandPublisher.ClearReceivedCalls();
     
-        // Move all units of first player
+        // Move all units of the first player
         foreach (var unit in Game.ActivePlayer!.Units)
         {
             unit.Deploy(new HexPosition(1,2,HexDirection.Top));
@@ -291,6 +291,76 @@ public class MovementPhaseTests : GamePhaseTestsBase
             cmd.UnitId == _unit1Id &&
             cmd.FallPilotingSkillRoll == failedPsrData));
         unit.StandupAttempts.ShouldBe(1);
+    }
+    
+    [Fact]
+    public void ProcessStandupCommand_ShouldPublishConsciousnessCommand_WhenFailedAndPilotTookDamage()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        // Make sure the unit is a Mech and is prone
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit.SetProne();
+
+        // Configure the FallProcessor to return failed standup data
+        var psrBreakdown = new PsrBreakdown
+        {
+            BasePilotingSkill = 4,
+            Modifiers = [],
+        };
+        
+        var failedPsrData = new PilotingSkillRollData
+        {
+            RollType = PilotingSkillRollType.StandupAttempt,
+            DiceResults = [1, 1],
+            IsSuccessful = false,
+            PsrBreakdown = psrBreakdown
+        };
+        
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true, // failed standup
+            ReasonType = FallReasonType.StandUpAttempt,
+            PilotingSkillRoll = failedPsrData,
+            LevelsFallen = 0,
+            WasJumping = false
+        };
+        
+        // Set up the Mock for ProcessStandupAttempt
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(fallContextData);
+
+        var consciousnessCommand = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = unit.Pilot!.Id,
+            UnitId = unit.Id,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [7, 2],
+            IsSuccessful = false 
+        };
+        MockConsciousnessCalculator.MakeConsciousnessRolls(unit.Pilot!).Returns([consciousnessCommand]);
+        
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<PilotConsciousnessRollCommand>(cmd => 
+                cmd.GameOriginId == Game.Id &&
+                cmd.IsRecoveryAttempt == false &&
+                cmd.IsSuccessful == false));
     }
     
     [Fact]
@@ -492,7 +562,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             )
         };
 
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamage, Game).Returns(failedFallContext);
+        MockFallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamage, Game).Returns(failedFallContext);
 
         var moveCommand = new MoveUnitCommand
         {
@@ -514,5 +584,75 @@ public class MovementPhaseTests : GamePhaseTestsBase
             cmd.UnitId == _unit1Id && cmd.DamageData != null));
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Jump));
+    }
+    
+    [Fact]
+    public void HandleCommand_WhenJumpWithDamagedGyroFails_ShouldPublishConsciousnessCommand_WhenPilotTakesDamage()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+
+        // Damage the gyro to require PSR
+        var gyro = unit.GetAllComponents<Gyro>().First();
+        gyro.Hit();
+
+        // Mock failed PSR
+        var failedFallContext = new FallContextData
+        {
+            UnitId = _unit1Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            ReasonType = FallReasonType.JumpWithDamage,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.JumpWithDamage,
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3)
+            )
+        };
+
+        MockFallProcessor.ProcessMovementAttempt(unit, FallReasonType.JumpWithDamage, Game).Returns(failedFallContext);
+
+        var moveCommand = new MoveUnitCommand
+        {
+            MovementType = MovementType.Jump,
+            GameOriginId = Game.Id,
+            PlayerId = Game.ActivePlayer!.Id,
+            UnitId = _unit1Id,
+            MovementPath = [
+                new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
+                    .ToData()
+            ]
+        };
+        
+        var consciousnessCommand = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = unit.Pilot!.Id,
+            UnitId = unit.Id,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [7, 2],
+            IsSuccessful = false 
+        };
+        MockConsciousnessCalculator.MakeConsciousnessRolls(unit.Pilot!).Returns([consciousnessCommand]);
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<PilotConsciousnessRollCommand>(cmd => 
+                cmd.GameOriginId == Game.Id &&
+                cmd.IsRecoveryAttempt == false &&
+                cmd.IsSuccessful == false));
     }
 }
