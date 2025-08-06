@@ -334,7 +334,7 @@ public class Mech : Unit
     /// <param name="location"></param>
     private IEnumerable<RollModifier> GetArmCriticalHitModifiers(PartLocation location)
     {
-        // Check requested arm
+        // Check the requested arm
         var arm = _parts.OfType<Arm>().FirstOrDefault(a => a.Location == location && a.IsDestroyed == false);
         if (arm == null) return [];
 
@@ -519,6 +519,31 @@ public class Mech : Unit
             {
                 torso.ResetRotation();
             }
+        }
+    }
+
+    /// <summary>
+    /// Determines if the mech is immobile based on the rules:
+    /// </summary>
+    public override bool IsImmobile
+    {
+        get
+        {   // A mech is immobile if it's shutdown
+            if (IsShutdown)
+                return true;
+
+            // A mech with an unconscious pilot is immobile
+            if (Pilot?.IsConscious == false)
+                return true;
+
+            // A mech with both legs and both arms destroyed/blown off is immobile
+            var destroyedLegs = _parts.OfType<Leg>().Count(leg => leg.IsDestroyed);
+            if (destroyedLegs < 2) return false;
+            var destroyedArms = _parts.OfType<Arm>().Count(arm => arm.IsDestroyed);
+            if (destroyedArms >= 2)
+                return true;
+
+            return false;
         }
     }
 

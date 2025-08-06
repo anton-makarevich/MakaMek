@@ -55,7 +55,11 @@ public abstract class Unit
 
     public UnitStatus Status
     {
-        get => _status;
+        get
+        {
+            if (IsImmobile) return UnitStatus.Immobile;
+            return _status;
+        }
         protected set
         {
             if ((value & UnitStatus.Destroyed) == UnitStatus.Destroyed)
@@ -88,9 +92,9 @@ public abstract class Unit
     public bool IsShutdown => (_status & UnitStatus.Shutdown) == UnitStatus.Shutdown;
 
     /// <summary>
-    /// Gets whether the unit is immobile. Returns true if the Immobile flag is set, regardless of other flags.
+    /// Gets whether the unit is immobile.
     /// </summary>
-    public bool IsImmobile => (_status & UnitStatus.Immobile) == UnitStatus.Immobile;
+    public virtual bool IsImmobile => (_status & UnitStatus.Immobile) == UnitStatus.Immobile;
 
     public bool IsOutOfCommission => IsDestroyed || Pilot?.IsDead == true;
 

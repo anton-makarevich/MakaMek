@@ -1884,6 +1884,152 @@ public class MechTests
     }
 
     [Fact]
+    public void IsImmobile_ShouldReturnTrue_WhenPilotIsUnconscious()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(false);
+        sut.AssignPilot(pilot);
+
+        // Act & Assert
+        sut.IsImmobile.ShouldBeTrue("A mech with unconscious pilot should be immobile");
+    }
+
+    [Fact]
+    public void Status_ShouldBeImmobile_WhenIsImmobileIsTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(false);
+        sut.AssignPilot(pilot);
+
+        // Act
+        sut.Status.ShouldBe(UnitStatus.Immobile);
+    }
+
+    [Fact]
+    public void IsImmobile_WhenPilotIsConscious_ShouldReturnFalse()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
+
+        // Act & Assert
+        sut.IsImmobile.ShouldBeFalse("A mech with conscious pilot should not be immobile");
+    }
+
+    [Fact]
+    public void IsImmobile_WhenMechIsShutdown_ShouldReturnTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        sut.Shutdown();
+
+        // Act & Assert
+        sut.IsImmobile.ShouldBeTrue("A shutdown mech should be immobile");
+    }
+
+    [Fact]
+    public void IsImmobile_WhenBothLegsAndBothArmsDestroyed_ShouldReturnTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+
+        // Destroy both legs
+        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.ApplyDamage(100);
+        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        rightLeg.ApplyDamage(100);
+
+        // Destroy both arms
+        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        leftArm.ApplyDamage(100);
+        var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
+        rightArm.ApplyDamage(100);
+
+        // Act & Assert
+        sut.IsImmobile.ShouldBeTrue("A mech with both legs and both arms destroyed should be immobile");
+    }
+
+    [Fact]
+    public void IsImmobile_WhenBothLegsButOnlyOneArmDestroyed_ShouldReturnFalse()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+
+        // Destroy both legs
+        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.ApplyDamage(100);
+        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        rightLeg.ApplyDamage(100);
+
+        // Destroy one arm
+        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        leftArm.ApplyDamage(100);
+
+        // Act & Assert
+        sut.IsImmobile.ShouldBeFalse("A mech with both legs but only one arm destroyed should not be immobile");
+    }
+
+    [Fact]
+    public void IsImmobile_WhenOnlyLegsDestroyed_ShouldReturnFalse()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+
+        // Destroy both legs
+        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.ApplyDamage(100);
+        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        rightLeg.ApplyDamage(100);
+
+        // Act & Assert
+        sut.IsImmobile.ShouldBeFalse("A mech with only legs destroyed should not be immobile");
+    }
+
+    [Fact]
+    public void IsImmobile_WhenOnlyArmsDestroyed_ShouldReturnFalse()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+
+        // Destroy both arms
+        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        leftArm.ApplyDamage(100);
+        var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
+        rightArm.ApplyDamage(100);
+
+        // Act & Assert
+        sut.IsImmobile.ShouldBeFalse("A mech with only arms destroyed should not be immobile");
+    }
+
+    [Fact]
+    public void IsImmobile_WithMixOfBlownOffAndDestroyedParts_ShouldReturnTrue()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+
+        // Destroy one leg, blow off another
+        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.ApplyDamage(100);
+        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        rightLeg.BlowOff();
+
+        // Destroy one arm, blow off another
+        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        leftArm.ApplyDamage(100);
+        var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
+        rightArm.BlowOff();
+
+        // Act & Assert
+        sut.IsImmobile.ShouldBeTrue("A mech with both legs and arms lost (mix of destroyed/blown off) should be immobile");
+    }
+
+    [Fact]
     public void MovementModifiers_ShouldIncludeDestroyedLeg()
     {
         // Arrange
