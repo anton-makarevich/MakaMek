@@ -1920,7 +1920,7 @@ public class ClientGameTests
         };
 
         // Act
-        _sut.OnPilotConsciousnessRoll(command);
+        _sut.HandleCommand(command);
 
         // Assert
         pilot.IsConscious.ShouldBeFalse();
