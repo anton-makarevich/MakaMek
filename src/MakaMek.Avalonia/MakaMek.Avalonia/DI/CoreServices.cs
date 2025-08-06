@@ -38,6 +38,7 @@ public static class CoreServices
         services.AddSingleton<IMechFactory, MechFactory>();
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
+        services.AddSingleton<IConsciousnessCalculator, ConsciousnessCalculator>();
         services.AddSingleton<IToHitCalculator, ToHitCalculator>();
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
