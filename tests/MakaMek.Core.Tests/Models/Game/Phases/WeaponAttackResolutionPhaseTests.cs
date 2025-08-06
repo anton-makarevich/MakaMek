@@ -810,7 +810,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
     
     [Fact]
-    public void Enter_ShoulPublishConsciousnessCommand_WhenMechFallingAndPilotTakesDamage()
+    public void Enter_ShouldPublishConsciousnessCommand_WhenMechFallingAndPilotTakesDamage()
     {
         // Arrange
         SetMap();
