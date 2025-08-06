@@ -72,7 +72,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             Game.OnMechFalling(fallCommand);
 
             // Process consciousness rolls after fall
-            ProcessConsciousnessRollsAfterFall(unit);
+            ProcessConsciousnessRollsForUnit(unit);
         }
         else
         {
@@ -108,26 +108,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         Game.OnMechFalling(fallCommand);
 
         // Process consciousness rolls after fall
-        ProcessConsciousnessRollsAfterFall(mech);
-    }
-
-    /// <summary>
-    /// Processes consciousness rolls for a unit's pilot after a fall
-    /// </summary>
-    /// <param name="unit">The unit whose pilot needs consciousness rolls</param>
-    private void ProcessConsciousnessRollsAfterFall(Unit unit)
-    {
-        if (unit.Pilot == null) return;
-
-        var consciousnessCommands = Game.ConsciousnessCalculator.MakeConsciousnessRolls(unit.Pilot);
-
-        foreach (var command in consciousnessCommands)
-        {
-            var broadcastCommand = command;
-            broadcastCommand.GameOriginId = Game.Id;
-            Game.OnPilotConsciousnessRoll(broadcastCommand);
-            Game.CommandPublisher.PublishCommand(broadcastCommand);
-        }
+        ProcessConsciousnessRollsForUnit(mech);
     }
 
     public override PhaseNames Name => PhaseNames.Movement;

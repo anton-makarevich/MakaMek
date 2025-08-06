@@ -434,29 +434,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Clear the accumulated damage data after processing
         _accumulatedDamageData.Clear();
     }
-
-    /// <summary>
-    /// Processes consciousness rolls for a unit's pilot
-    /// </summary>
-    /// <param name="unit">The unit whose pilot needs consciousness rolls</param>
-    private void ProcessConsciousnessRollsForUnit(Unit unit)
-    {
-        if (unit.Pilot == null) return;
-
-        var consciousnessCommands = Game.ConsciousnessCalculator.MakeConsciousnessRolls(unit.Pilot);
-
-        foreach (var command in consciousnessCommands)
-        {
-            var broadcastCommand = command;
-            broadcastCommand.GameOriginId = Game.Id;
-            Game.OnPilotConsciousnessRoll(broadcastCommand);
-            Game.CommandPublisher.PublishCommand(broadcastCommand);
-        }
-    }
     
     /// <summary>
     /// Tracks accumulated damage data for a unit during the weapon attack resolution phase
-    /// Used to calculate PSRs at the end of the phase instead of after each individual attack
+    /// Used to calculate PSRs at the end of the phase instead of after each attack
     /// </summary>
     private record UnitPhaseAccumulatedDamage
     {
