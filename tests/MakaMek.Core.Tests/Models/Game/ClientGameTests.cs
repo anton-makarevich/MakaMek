@@ -1877,4 +1877,52 @@ public class ClientGameTests
         unit.Status.ShouldNotHaveFlag(UnitStatus.Prone);
         unit.StandupAttempts.ShouldBe(1);
     }
+    
+    [Fact]
+    public void HandleCommand_ShouldUpdatePilotConsciousness_WhenConsciousnessCommandIsReceived()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+        
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = true, Health = 6}
+                }
+            ]
+        };
+        
+        _sut.OnPlayerJoined(joinCommand);
+        var mech = _sut.Players.SelectMany(p => p.Units).First() as Mech;
+        var pilot = mech?.Pilot;
+        pilot!.Id.ShouldBe(pilotId);
+        
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilotId,
+            UnitId = unitId,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [1, 2],
+            IsSuccessful = false // This should trigger KnockUnconscious
+        };
+
+        // Act
+        _sut.OnPilotConsciousnessRoll(command);
+
+        // Assert
+        pilot.IsConscious.ShouldBeFalse();
+    }
 }

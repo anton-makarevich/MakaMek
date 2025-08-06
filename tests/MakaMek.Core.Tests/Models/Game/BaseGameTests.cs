@@ -459,7 +459,7 @@ public class BaseGameTests : BaseGame
         };
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
-        var targetMech = targetPlayer.Units.First() as Mech;
+        var targetMech = targetPlayer.Units[0] as Mech;
         targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
         
         // Create hit locations data
@@ -746,8 +746,225 @@ public class BaseGameTests : BaseGame
         mech.CanFireWeapons.ShouldBeFalse();
     }
 
-    public override void HandleCommand(IGameCommand command)
+    [Fact]
+    public void OnPilotConsciousnessRoll_DoesNothing_WhenPilotNotFound()
     {
-        throw new NotImplementedException();
+        // Arrange
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Id,
+            PilotId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [2, 3],
+            IsSuccessful = false
+        };
+
+        // Act & Assert - Should not throw
+        Should.NotThrow(() => OnPilotConsciousnessRoll(command));
     }
-}
+
+    [Fact]
+    public void OnPilotConsciousnessRoll_KnocksPilotUnconscious_WhenConsciousnessCheckFails()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+        
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = true, Health = 6}
+                }
+            ]
+        };
+        
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        var pilot = mech?.Pilot;
+        pilot!.Id.ShouldBe(pilotId);
+        
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilotId,
+            UnitId = unitId,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [1, 2],
+            IsSuccessful = false // This should trigger KnockUnconscious
+        };
+
+        // Act
+        OnPilotConsciousnessRoll(command);
+
+        // Assert
+        pilot.IsConscious.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OnPilotConsciousnessRoll_DoesNotKnockPilotUnconscious_WhenConsciousnessCheckSucceeds()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+        
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = true, Health = 6 }
+                }
+            ]
+        };
+        
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        var pilot = mech?.Pilot;
+        
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilotId,
+            UnitId = unitId,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [2, 2],
+            IsSuccessful = true // This should not trigger KnockUnconscious
+        };
+
+        // Act
+        OnPilotConsciousnessRoll(command);
+
+        // Assert
+        pilot.ShouldNotBeNull();
+        pilot.IsConscious.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnPilotConsciousnessRoll_RecoversPilot_WhenRecoveryAttemptSucceeds()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+        
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = false, Health = 6 }
+                }
+            ]
+        };
+        
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        var pilot = mech?.Pilot;
+        
+        pilot?.KnockUnconscious(1); // Make sure pilot is unconscious
+        pilot?.IsConscious.ShouldBeFalse();
+        
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilotId,
+            UnitId = unitId,
+            IsRecoveryAttempt = true,
+            ConsciousnessNumber = 4,
+            DiceResults = [2, 2],
+            IsSuccessful = true // This should trigger recovery
+        };
+
+        // Act
+        OnPilotConsciousnessRoll(command);
+
+        // Assert - pilot should be conscious
+        pilot.ShouldNotBeNull();
+        pilot.IsConscious.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnPilotConsciousnessRoll_DoesNotRecoverPilot_WhenRecoveryAttemptFails()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+        
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = false, Health = 6 }
+                }
+            ]
+        };
+        
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        var pilot = mech?.Pilot;
+        
+        pilot?.KnockUnconscious(1); // Make sure pilot is unconscious
+        pilot?.IsConscious.ShouldBeFalse();
+        
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilotId,
+            UnitId = unitId,
+            IsRecoveryAttempt = true,
+            ConsciousnessNumber = 4,
+            DiceResults = [1, 2],
+            IsSuccessful = false // This should not trigger recovery
+        };
+
+        // Act
+        OnPilotConsciousnessRoll(command);
+
+        // Assert - pilot should remain unconscious
+        pilot.ShouldNotBeNull();
+        pilot.IsConscious.ShouldBeFalse();
+    }
+
+        public override void HandleCommand(IGameCommand command)
+        {
+            throw new NotImplementedException();
+        }
+    }
