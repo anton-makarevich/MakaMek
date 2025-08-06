@@ -193,7 +193,7 @@ public class EndPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldRecoverConsciousness_AndPublishCommand_WhenTheRollIsSuccessful()
     {
         // Arrange
-        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         var pilot = unit.Pilot;
         pilot!.KnockUnconscious(0);
         var consciousnessCommand = new PilotConsciousnessRollCommand
@@ -223,7 +223,7 @@ public class EndPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldNotRecoverConsciousness_AndDontPublishCommand_WhenTheRollIsNotHappening()
     {
         // Arrange
-        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         var pilot = unit.Pilot;
         pilot!.KnockUnconscious(0);
         

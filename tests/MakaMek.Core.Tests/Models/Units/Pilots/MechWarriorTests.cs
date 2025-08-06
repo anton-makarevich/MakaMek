@@ -245,7 +245,7 @@ public class MechWarriorTests
     }
     
     [Fact]
-    public void CurrentConsciousnessNumber_WithNoInjuries_Returns2()
+    public void CurrentConsciousnessNumber_WithNoInjuries_Returns1()
     {
         // Arrange
         var sut = new MechWarrior("John", "Doe");
