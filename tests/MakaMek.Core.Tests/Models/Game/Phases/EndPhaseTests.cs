@@ -188,4 +188,53 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Verify the unit's turn state was reset
         unit.MovementTypeUsed.ShouldBeNull();
     }
+
+    [Fact]
+    public void Enter_ShouldRecoverConsciousness_AndPublishCommand_WhenTheRollIsSuccessful()
+    {
+        // Arrange
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var pilot = unit.Pilot;
+        pilot!.KnockUnconscious(0);
+        var consciousnessCommand = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilot.Id,
+            UnitId = unit.Id,
+            IsRecoveryAttempt = true,
+            ConsciousnessNumber = 4,
+            DiceResults = [7, 2],
+            IsSuccessful = true 
+        };
+        MockConsciousnessCalculator.MakeRecoveryConsciousnessRoll(pilot).Returns(consciousnessCommand);
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        pilot.IsConscious.ShouldBeTrue();
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<PilotConsciousnessRollCommand>(cmd => 
+                cmd.GameOriginId == Game.Id &&
+                cmd.IsRecoveryAttempt == true &&
+                cmd.IsSuccessful == true));
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotRecoverConsciousness_AndDontPublishCommand_WhenTheRollIsNotHappening()
+    {
+        // Arrange
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var pilot = unit.Pilot;
+        pilot!.KnockUnconscious(0);
+        
+        PilotConsciousnessRollCommand? consciousnessCommand = null;
+        
+        MockConsciousnessCalculator.MakeRecoveryConsciousnessRoll(pilot).Returns(consciousnessCommand);
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        pilot.IsConscious.ShouldBeFalse();
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PilotConsciousnessRollCommand>());
+    }
 }
