@@ -28,34 +28,17 @@ public class ConsciousnessCalculator : IConsciousnessCalculator
         while (pilot.PendingConsciousnessNumbers.Count != 0)
         {
             var consciousnessNumber = pilot.PendingConsciousnessNumbers.Dequeue();
-            var diceResults = _diceRoller.Roll2D6();
-            var rollTotal = diceResults.Sum(d => d.Result);
-            var isSuccessful = rollTotal >= consciousnessNumber;
-
-            var command = new PilotConsciousnessRollCommand
-            {
-                UnitId = pilot.AssignedTo?.Id ?? Guid.Empty,
-                PilotId = pilot.Id,
-                ConsciousnessNumber = consciousnessNumber,
-                DiceResults = diceResults.Select(d => d.Result).ToList(),
-                IsSuccessful = isSuccessful,
-                IsRecoveryAttempt = false,
-                GameOriginId = Guid.Empty, // Will be set by the calling phase
-                Timestamp = DateTime.UtcNow
-            };
+            var command = CreateCommand(pilot, consciousnessNumber, false);
 
             yield return command;
 
-            // If the roll failed, pilot becomes unconscious and we stop processing
-            if (!isSuccessful)
-            {
-                // Clear any remaining pending rolls since pilot is now unconscious
-                pilot.PendingConsciousnessNumbers.Clear();
-                break;
-            }
+            // If the roll failed, the pilot becomes unconscious and we stop processing
+            if (command.IsSuccessful) continue;
+            // Clear any remaining pending rolls since the pilot is now unconscious
+            pilot.PendingConsciousnessNumbers.Clear();
+            break;
         }
     }
-
     public PilotConsciousnessRollCommand? MakeRecoveryConsciousnessRoll(IPilot pilot)
     {
         // Only unconscious, living pilots can attempt recovery
@@ -65,20 +48,26 @@ public class ConsciousnessCalculator : IConsciousnessCalculator
         }
 
         var consciousnessNumber = pilot.CurrentConsciousnessNumber;
+        return CreateCommand(pilot, consciousnessNumber, true);
+    }
+    
+    private PilotConsciousnessRollCommand CreateCommand(IPilot pilot, int consciousnessNumber, bool isRecovery)
+    {
         var diceResults = _diceRoller.Roll2D6();
         var rollTotal = diceResults.Sum(d => d.Result);
         var isSuccessful = rollTotal >= consciousnessNumber;
 
-        return new PilotConsciousnessRollCommand
+        var command = new PilotConsciousnessRollCommand
         {
             UnitId = pilot.AssignedTo?.Id ?? Guid.Empty,
             PilotId = pilot.Id,
             ConsciousnessNumber = consciousnessNumber,
             DiceResults = diceResults.Select(d => d.Result).ToList(),
             IsSuccessful = isSuccessful,
-            IsRecoveryAttempt = true,
+            IsRecoveryAttempt = isRecovery,
             GameOriginId = Guid.Empty, // Will be set by the calling phase
             Timestamp = DateTime.UtcNow
         };
+        return command;
     }
 }
