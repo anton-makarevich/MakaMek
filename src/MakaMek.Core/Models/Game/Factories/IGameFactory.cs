@@ -17,23 +17,26 @@ public interface IGameFactory
     /// Creates a new server-side game instance.
     /// </summary>
     ServerGame CreateServerGame(
-        IRulesProvider rulesProvider, 
+        IRulesProvider rulesProvider,
         IMechFactory mechFactory,
-        ICommandPublisher commandPublisher, 
-        IDiceRoller diceRoller, 
+        ICommandPublisher commandPublisher,
+        IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        IFallProcessor fallProcessor);
+        IConsciousnessCalculator consciousnessCalculator,
+        IFallProcessor fallProcessor
+        );
 
     /// <summary>
     /// Creates a new client-side game instance.
     /// </summary>
     ClientGame CreateClientGame(
-        IRulesProvider rulesProvider, 
+        IRulesProvider rulesProvider,
         IMechFactory mechFactory,
-        ICommandPublisher commandPublisher, 
+        ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
+        IConsciousnessCalculator consciousnessCalculator,
         IBattleMapFactory mapFactory);
 }

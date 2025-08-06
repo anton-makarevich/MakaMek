@@ -18,7 +18,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
     {
         base.Enter();
         
-        // Initialize heat resolution process
+        // Initialize a heat resolution process
         _playersInOrder = Game.InitiativeOrder.ToList();
         _currentPlayerIndex = 0;
         _currentUnitIndex = 0;
@@ -102,7 +102,10 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         };
         
         Game.OnHeatUpdate(command);
-        
+
         Game.CommandPublisher.PublishCommand(command);
+
+        // Process consciousness rolls for any heat damage to pilot
+        ProcessConsciousnessRollsForUnit(unit);
     }
 }

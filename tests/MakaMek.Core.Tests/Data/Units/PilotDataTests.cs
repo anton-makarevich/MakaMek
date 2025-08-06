@@ -24,6 +24,7 @@ public class PilotDataTests
         pilot.Health.ShouldBe(6);
         pilot.Injuries.ShouldBe(0);
         pilot.IsConscious.ShouldBeTrue();
+        pilot.UnconsciousInTurn.ShouldBeNull();
     }
 
     [Fact]

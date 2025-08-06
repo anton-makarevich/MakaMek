@@ -43,6 +43,7 @@ public abstract class BaseGame : IGame
     public IToHitCalculator ToHitCalculator { get; }
     public IPilotingSkillCalculator PilotingSkillCalculator { get; }
     public IRulesProvider RulesProvider { get; }
+    public IConsciousnessCalculator ConsciousnessCalculator { get; }
     
     public int Turn
     {
@@ -111,14 +112,16 @@ public abstract class BaseGame : IGame
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
-        IPilotingSkillCalculator pilotingSkillCalculator)
+        IPilotingSkillCalculator pilotingSkillCalculator,
+        IConsciousnessCalculator consciousnessCalculator)
     {
-        Id = Guid.NewGuid(); 
+        Id = Guid.NewGuid();
         RulesProvider = rulesProvider;
         CommandPublisher = commandPublisher;
         _mechFactory = mechFactory;
         ToHitCalculator = toHitCalculator;
         PilotingSkillCalculator = pilotingSkillCalculator;
+        ConsciousnessCalculator = consciousnessCalculator;
         CommandPublisher.Subscribe(HandleCommand);
     }
 
@@ -315,6 +318,30 @@ public abstract class BaseGame : IGame
     {
         Console.WriteLine("physical attack");
     }
+
+    /// <summary>
+    /// Handles a pilot consciousness roll command by updating the pilot's consciousness state
+    /// </summary>
+    /// <param name="command">The consciousness roll command</param>
+    internal void OnPilotConsciousnessRoll(PilotConsciousnessRollCommand command)
+    {
+        var pilot = _players
+            .SelectMany(p => p.Units)
+            .Select(u => u.Pilot)
+            .FirstOrDefault(p => p?.Id == command.PilotId);
+        if (pilot == null) return;
+
+        if (command.IsRecoveryAttempt)
+        {
+            if (command.IsSuccessful)
+                pilot.RecoverConsciousness();
+        }
+        else
+        {
+            if (!command.IsSuccessful)
+                pilot.KnockUnconscious(Turn);
+        }
+    }
     
     protected bool ValidateCommand(IGameCommand command)
     {
@@ -335,6 +362,7 @@ public abstract class BaseGame : IGame
             MechFallCommand => true,
             TryStandupCommand => true,
             MechStandUpCommand => true,
+            PilotConsciousnessRollCommand => true,
             _ => false
         };
     }

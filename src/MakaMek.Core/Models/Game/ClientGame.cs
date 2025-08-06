@@ -29,10 +29,11 @@ public sealed class ClientGame : BaseGame
         IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
-        IToHitCalculator toHitCalculator, 
+        IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
+        IConsciousnessCalculator consciousnessCalculator,
         IBattleMapFactory mapFactory)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator)
     {
         _mapFactory = mapFactory;
     }
@@ -112,10 +113,10 @@ public sealed class ClientGame : BaseGame
                 OnTurnEnded(turnEndedCommand);
                 // Record that this player has ended their turn
                 _playersEndedTurn.Add(turnEndedCommand.PlayerId);
-                
+
                 // If we're in the End phase and the player who just ended their turn was the active player
-                if (TurnPhase == PhaseNames.End && 
-                    ActivePlayer != null && 
+                if (TurnPhase == PhaseNames.End &&
+                    ActivePlayer != null &&
                     turnEndedCommand.PlayerId == ActivePlayer.Id)
                 {
                     // Set the next local player who hasn't ended their turn as active
@@ -123,6 +124,9 @@ public sealed class ClientGame : BaseGame
                         .Where(p => _playersEndedTurn.Contains(p.Id) == false)
                         .FirstOrDefault(p => LocalPlayers.Any(lp => lp == p.Id));
                 }
+                break;
+            case PilotConsciousnessRollCommand consciousnessRollCommand:
+                OnPilotConsciousnessRoll(consciousnessRollCommand);
                 break;
         }
         

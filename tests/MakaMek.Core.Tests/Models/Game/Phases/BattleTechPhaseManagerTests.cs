@@ -31,6 +31,7 @@ public class BattleTechPhaseManagerTests
             Substitute.For<IToHitCalculator>(), // toHitCalculator
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IFallProcessor>(),
             _sut  // phaseManager
         );

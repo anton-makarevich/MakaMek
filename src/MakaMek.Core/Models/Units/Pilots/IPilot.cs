@@ -39,6 +39,21 @@ public interface IPilot
     /// </summary>
     bool IsDead { get; }
 
+    /// <summary>
+    /// The turn number when the pilot became unconscious, null if conscious
+    /// </summary>
+    int? UnconsciousInTurn { get; }
+
+    /// <summary>
+    /// Queue of consciousness numbers for pending consciousness rolls
+    /// </summary>
+    Queue<int> PendingConsciousnessNumbers { get; }
+
+    /// <summary>
+    /// Gets the current consciousness number based on injury level
+    /// </summary>
+    int CurrentConsciousnessNumber { get; }
+
     string Name { get; }
     
     /// <summary>
@@ -63,4 +78,15 @@ public interface IPilot
     /// Requires a sepaeate method as should be implemented differently for different pilot types
     /// </summary>
     void ExplosionHit();
+
+    /// <summary>
+    /// Knocks the pilot unconscious in the specified turn
+    /// </summary>
+    /// <param name="turn">The turn number when the pilot became unconscious</param>
+    void KnockUnconscious(int turn);
+
+    /// <summary>
+    /// Recovers the pilot from unconsciousness
+    /// </summary>
+    void RecoverConsciousness();
 }

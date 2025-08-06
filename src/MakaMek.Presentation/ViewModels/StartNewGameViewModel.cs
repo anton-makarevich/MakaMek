@@ -37,11 +37,13 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
+        IConsciousnessCalculator consciousnessCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         IBattleMapFactory mapFactory)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
            pilotingSkillCalculator, 
+           consciousnessCalculator,
             dispatcherService, gameFactory)
     {
         _gameManager = gameManager;
@@ -61,6 +63,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _commandPublisher, 
             _toHitCalculator,
             _pilotingSkillCalculator,
+            _consciousnessCalculator,
             _mapFactory);
         // Update server IP initially if needed
         NotifyPropertyChanged(nameof(ServerIpAddress));

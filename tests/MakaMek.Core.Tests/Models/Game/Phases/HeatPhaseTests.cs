@@ -89,7 +89,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         _sut.Enter();
 
         // Assert
-        // Verify heat updated command was published with correct movement heat source
+        // Verify heat updated command was published with a correct movement heat source
         CommandPublisher.Received(1).PublishCommand(
             Arg.Is<HeatUpdatedCommand>(cmd => 
                 cmd.UnitId == _unit1Id && 
@@ -108,7 +108,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         _sut.Enter();
 
         // Assert
-        // Verify heat updated command was published with correct weapon heat source
+        // Verify heat updated command was published with a correct weapon heat source
         CommandPublisher.Received(1).PublishCommand(
             Arg.Is<HeatUpdatedCommand>(cmd => 
                 cmd.UnitId == _unit2Id && 
@@ -208,7 +208,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         
         // Assert
-        // Verify heat updated command was published with engine heat source
+        // Verify heat updated command was published with an engine heat source
         CommandPublisher.Received(1).PublishCommand(
             Arg.Is<HeatUpdatedCommand>(cmd => 
                 cmd.UnitId == _unit1Id && 
@@ -236,10 +236,54 @@ public class HeatPhaseTests : GamePhaseTestsBase
                 cmd.UnitId == _unit1Id && 
                 cmd.HeatData.TotalHeatPoints == 10)); // 5 + 2 + 3 = 10
     }
-
-    #region Helper Methods
-
-    private void SetupUnitWithMovement(Unit unit, MovementType movementType)
+    
+    [Fact]
+    public void Enter_ShouldSetConsciousness_AndPublishCommand_WhenCalculatorReturnsIt()
+    {
+        // Arrange
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
+        var pilot = unit.Pilot;
+        pilot!.IsConscious.ShouldBeTrue();
+        var consciousnessCommand = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilot.Id,
+            UnitId = unit.Id,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [7, 2],
+            IsSuccessful = false 
+        };
+        MockConsciousnessCalculator.MakeConsciousnessRolls(pilot).Returns([consciousnessCommand]);
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        pilot.IsConscious.ShouldBeFalse();
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<PilotConsciousnessRollCommand>(cmd => 
+                cmd.GameOriginId == Game.Id &&
+                cmd.IsRecoveryAttempt == false &&
+                cmd.IsSuccessful == false));
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotSetConsciousness_AndNotPublishCommand_WhenCalculatorDoesntReturnAny()
+    {
+        // Arrange
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
+        var pilot = unit.Pilot;
+        pilot!.IsConscious.ShouldBeTrue();
+        MockConsciousnessCalculator.MakeConsciousnessRolls(pilot).Returns([]);
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        pilot.IsConscious.ShouldBeTrue();
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PilotConsciousnessRollCommand>());
+    }
+    
+    private static void SetupUnitWithMovement(Unit unit, MovementType movementType)
     {
         var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
         unit.Deploy(deployPosition);
@@ -257,11 +301,11 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Find a weapon on the unit or add one if needed
         var weapon = unit.GetAllComponents<Weapon>().First(w=>w.Heat>0);
         
-        // If a weapon exists, just set its target
+        // If a weapon exists, set its target
         weapon.Target = _unit2;
     }
     
-    private void SetupUnitWithEngineDamage(Unit unit, int hits)
+    private static void SetupUnitWithEngineDamage(Unit unit, int hits)
     {
         // Find the engine component on the unit
         var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
@@ -269,11 +313,10 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // If engine exists, apply hits
         if (engine != null)
         {
-            for (int i = 0; i < hits; i++)
+            for (var i = 0; i < hits; i++)
             {
                 engine.Hit();
             }
         }
     }
-    #endregion
 }

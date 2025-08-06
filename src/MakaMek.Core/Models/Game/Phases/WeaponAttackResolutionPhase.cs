@@ -311,6 +311,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null })
         {
             target.ApplyDamage(resolution.HitLocationsData.HitLocations);
+            ProcessConsciousnessRollsForUnit(target);
         }
         
         // Check which parts are newly destroyed
@@ -425,6 +426,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 if (fallingCommand.DamageData is null) continue;
                 Game.OnMechFalling(fallingCommand);
             }
+
+            // Process consciousness rolls for pilot damage accumulated during this phase
+            ProcessConsciousnessRollsForUnit(targetMech);
         }
         
         // Clear the accumulated damage data after processing
@@ -433,7 +437,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     
     /// <summary>
     /// Tracks accumulated damage data for a unit during the weapon attack resolution phase
-    /// Used to calculate PSRs at the end of the phase instead of after each individual attack
+    /// Used to calculate PSRs at the end of the phase instead of after each attack
     /// </summary>
     private record UnitPhaseAccumulatedDamage
     {

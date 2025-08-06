@@ -10,7 +10,7 @@ public class DiceResultTests
     {
         // Act & Assert
         var ex = Should.Throw<ArgumentOutOfRangeException>(() => new DiceResult(7));
-        ex.ParamName.ShouldBe("value");
+        ex.ParamName.ShouldBe("Result");
     }
 
     [Theory]

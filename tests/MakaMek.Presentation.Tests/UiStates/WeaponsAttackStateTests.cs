@@ -78,6 +78,7 @@ public class WeaponsAttackStateTests
             _commandPublisher,
             _toHitCalculator,
             Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(battleMap);

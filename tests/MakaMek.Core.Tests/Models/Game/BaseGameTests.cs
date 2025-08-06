@@ -33,9 +33,11 @@ public class BaseGameTests : BaseGame
         new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
         Substitute.For<ICommandPublisher>(),
         Substitute.For<IToHitCalculator>(),
-        Substitute.For<IPilotingSkillCalculator>())
+        Substitute.For<IPilotingSkillCalculator>(),
+        Substitute.For<IConsciousnessCalculator>())
     {
-        base.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
+        base.SetBattleMap(
+            BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain())));
     }
 
     [Fact]
@@ -124,7 +126,7 @@ public class BaseGameTests : BaseGame
         // Assert
         // No exception should be thrown
     }
-    
+
     [Fact]
     public void OnMechFalling_DoesNothing_WhenNoDamageData()
     {
@@ -189,7 +191,7 @@ public class BaseGameTests : BaseGame
         // Assert
         mech.TorsoDirection.ShouldBe(HexDirection.Bottom);
     }
-    
+
     [Fact]
     public void OnWeaponsAttack_DoesNothing_WhenPlayerNotFound()
     {
@@ -208,7 +210,7 @@ public class BaseGameTests : BaseGame
         // Assert
         // No exception should be thrown
     }
-    
+
     [Fact]
     public void OnWeaponsAttack_DoesNothing_WhenAttackerNotFound()
     {
@@ -224,7 +226,7 @@ public class BaseGameTests : BaseGame
         };
         OnPlayerJoined(joinCommand);
         var player = Players.First();
-        
+
         var command = new WeaponAttackDeclarationCommand
         {
             GameOriginId = Id,
@@ -239,7 +241,7 @@ public class BaseGameTests : BaseGame
         // Assert
         // No exception should be thrown
     }
-    
+
     [Fact]
     public void OnWeaponsAttack_ShouldDeclareWeaponAttack_WhenAttackerAndTargetsFound()
     {
@@ -261,7 +263,7 @@ public class BaseGameTests : BaseGame
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
         attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        
+
         // Add a target player and unit
         var targetPlayerId = Guid.NewGuid();
         var targetUnitData = MechFactoryTests.CreateDummyMechData();
@@ -279,18 +281,19 @@ public class BaseGameTests : BaseGame
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
         var targetMech = targetPlayer.Units.First() as Mech;
         targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
-        
+
         // Get a weapon from the attacker mech
         var weapon = attackerMech.GetComponentsAtLocation<Weapon>(PartLocation.RightArm).FirstOrDefault();
         weapon.ShouldNotBeNull();
-        
+
         // Create the attack command
         var command = new WeaponAttackDeclarationCommand
         {
             GameOriginId = Id,
             PlayerId = attackerPlayerId,
             AttackerId = attackerMech.Id,
-            WeaponTargets = [
+            WeaponTargets =
+            [
                 new WeaponTargetData
                 {
                     Weapon = new WeaponData
@@ -313,7 +316,7 @@ public class BaseGameTests : BaseGame
         weapon.Target.ShouldNotBeNull();
         weapon.Target.ShouldBe(targetMech);
     }
-    
+
     [Fact]
     public void OnWeaponsAttack_ShouldHandleMultipleTargets()
     {
@@ -335,7 +338,7 @@ public class BaseGameTests : BaseGame
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
         attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        
+
         // Add first target player and unit
         var targetPlayerId1 = Guid.NewGuid();
         var targetUnitData1 = MechFactoryTests.CreateDummyMechData();
@@ -347,7 +350,7 @@ public class BaseGameTests : BaseGame
             PlayerId = targetPlayerId1,
             PlayerName = "Target1",
             GameOriginId = Guid.NewGuid(),
-            Units = [targetUnitData1,targetUnitData2],
+            Units = [targetUnitData1, targetUnitData2],
             Tint = "#00FF00",
             PilotAssignments = []
         };
@@ -357,20 +360,21 @@ public class BaseGameTests : BaseGame
         targetMech1!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
         var targetMech2 = targetPlayer.Units[1] as Mech;
         targetMech2!.Deploy(new HexPosition(new HexCoordinates(1, 3), HexDirection.Top));
-        
+
         // Get weapons from the attacker mech
         var rightArmWeapon = attackerMech.GetComponentsAtLocation<Weapon>(PartLocation.RightArm).FirstOrDefault();
         var leftArmWeapon = attackerMech.GetComponentsAtLocation<Weapon>(PartLocation.LeftArm).FirstOrDefault();
         rightArmWeapon.ShouldNotBeNull();
         leftArmWeapon.ShouldNotBeNull();
-        
+
         // Create the attack command
         var command = new WeaponAttackDeclarationCommand
         {
             GameOriginId = Id,
             PlayerId = attackerPlayerId,
             AttackerId = attackerMech.Id,
-            WeaponTargets = [
+            WeaponTargets =
+            [
                 new WeaponTargetData
                 {
                     Weapon = new WeaponData
@@ -401,10 +405,10 @@ public class BaseGameTests : BaseGame
 
         // Assert
         attackerMech.HasDeclaredWeaponAttack.ShouldBeTrue();
-        
+
         rightArmWeapon.Target.ShouldNotBeNull();
         rightArmWeapon.Target.ShouldBe(targetMech1);
-        
+
         leftArmWeapon.Target.ShouldNotBeNull();
         leftArmWeapon.Target.ShouldBe(targetMech2);
     }
@@ -438,7 +442,7 @@ public class BaseGameTests : BaseGame
         var action = () => OnWeaponsAttackResolution(command);
         action.ShouldNotThrow();
     }
-    
+
     [Fact]
     public void OnWeaponsAttackResolution_DoesNotApplyDamage_WhenAttackMissed()
     {
@@ -458,16 +462,16 @@ public class BaseGameTests : BaseGame
         };
         OnPlayerJoined(targetJoinCommand);
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
-        var targetMech = targetPlayer.Units.First() as Mech;
+        var targetMech = targetPlayer.Units[0] as Mech;
         targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
-        
+
         // Create hit locations data
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.CenterTorso, 5, []),
             new(PartLocation.LeftArm, 3, [])
         };
-        
+
         // Create the attack resolution command with IsHit = false
         var command = new WeaponAttackResolutionCommand
         {
@@ -525,7 +529,7 @@ public class BaseGameTests : BaseGame
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
         var targetMech = targetPlayer.Units.First() as Mech;
         targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
-        
+
         // Create the attack resolution command with a non-existent attacker ID
         var command = new WeaponAttackResolutionCommand
         {
@@ -552,7 +556,7 @@ public class BaseGameTests : BaseGame
         var action = () => OnWeaponsAttackResolution(command);
         action.ShouldNotThrow();
     }
-    
+
     [Fact]
     public void OnWeaponsAttackResolution_ShouldFireWeaponAndApplyDamage()
     {
@@ -574,7 +578,7 @@ public class BaseGameTests : BaseGame
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
         attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        
+
         // Add a target player and unit
         var targetPlayerId = Guid.NewGuid();
         var targetUnitData = MechFactoryTests.CreateDummyMechData();
@@ -592,24 +596,24 @@ public class BaseGameTests : BaseGame
         var targetPlayer = Players.First(p => p.Id == targetPlayerId);
         var targetMech = targetPlayer.Units.First() as Mech;
         targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
-        
+
         // Get a weapon from the attacker mech
         var weapon = attackerMech.GetComponentsAtLocation<Weapon>(PartLocation.RightArm).FirstOrDefault();
         weapon.ShouldNotBeNull();
-        
+
         // Create hit locations data
         var hitLocations = new List<HitLocationData>
         {
             new(PartLocation.CenterTorso, 5, []),
             new(PartLocation.LeftArm, 3, [])
         };
-        
+
         // Get initial values for verification
         var centerTorsoPart = targetMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
         var leftArmPart = targetMech.Parts.First(p => p.Location == PartLocation.LeftArm);
         var initialCenterTorsoArmor = centerTorsoPart.CurrentArmor;
         var initialLeftArmArmor = leftArmPart.CurrentArmor;
-        
+
         // Create the attack resolution command
         var command = new WeaponAttackResolutionCommand
         {
@@ -639,11 +643,11 @@ public class BaseGameTests : BaseGame
         centerTorsoPart.CurrentArmor.ShouldBe(initialCenterTorsoArmor - 5);
         leftArmPart.CurrentArmor.ShouldBe(initialLeftArmArmor - 3);
     }
-    
+
     [Fact]
     public void AlivePlayers_ShouldReturnOnlyReadyPlayersWithAliveUnits()
     {
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),Substitute.For<ILocalizationService>());
+        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>());
         // Create alive and destroyed mechs
         var aliveMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
         var destroyedMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
@@ -663,17 +667,18 @@ public class BaseGameTests : BaseGame
             Status = PlayerStatus.Ready
         };
         player2.AddUnit(destroyedMech);
-        
+
 
         // Use reflection to add players to the protected _players list
-        var playersField = typeof(BaseGame).GetField("_players", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var playersField = typeof(BaseGame).GetField("_players",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         var playersList = (List<IPlayer>)playersField!.GetValue(this)!;
         playersList.Add(player1);
         playersList.Add(player2);
 
         AlivePlayers.ShouldBe([player1]);
     }
-    
+
     [Fact]
     public void OnWeaponsAttack_ShouldProcessAttack_WhenSensorsAreIntact()
     {
@@ -691,7 +696,7 @@ public class BaseGameTests : BaseGame
         var player = Players.First();
         var mech = player.Units.First() as Mech;
         mech?.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft));
-        
+
         var command = new WeaponAttackDeclarationCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -743,6 +748,249 @@ public class BaseGameTests : BaseGame
         // Assert - Attack should not be processed
         mech.HasDeclaredWeaponAttack.ShouldBeFalse();
         mech.CanFireWeapons.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OnPilotConsciousnessRoll_DoesNothing_WhenPilotNotFound()
+    {
+        // Arrange
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Id,
+            PilotId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [2, 3],
+            IsSuccessful = false
+        };
+
+        // Act & Assert - Should not throw
+        Should.NotThrow(() => OnPilotConsciousnessRoll(command));
+    }
+
+    [Fact]
+    public void OnPilotConsciousnessRoll_KnocksPilotUnconscious_WhenConsciousnessCheckFails()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments =
+            [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = true, Health = 6 }
+                }
+            ]
+        };
+
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        var pilot = mech?.Pilot;
+        pilot!.Id.ShouldBe(pilotId);
+
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilotId,
+            UnitId = unitId,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [1, 2],
+            IsSuccessful = false // This should trigger KnockUnconscious
+        };
+
+        // Act
+        OnPilotConsciousnessRoll(command);
+
+        // Assert
+        pilot.IsConscious.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OnPilotConsciousnessRoll_DoesNotKnockPilotUnconscious_WhenConsciousnessCheckSucceeds()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments =
+            [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = true, Health = 6 }
+                }
+            ]
+        };
+
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        var pilot = mech?.Pilot;
+
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilotId,
+            UnitId = unitId,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [2, 2],
+            IsSuccessful = true // This should not trigger KnockUnconscious
+        };
+
+        // Act
+        OnPilotConsciousnessRoll(command);
+
+        // Assert
+        pilot.ShouldNotBeNull();
+        pilot.IsConscious.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnPilotConsciousnessRoll_RecoversPilot_WhenRecoveryAttemptSucceeds()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments =
+            [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = false, Health = 6 }
+                }
+            ]
+        };
+
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        var pilot = mech?.Pilot;
+
+        pilot?.KnockUnconscious(1); // Make sure pilot is unconscious
+        pilot?.IsConscious.ShouldBeFalse();
+
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilotId,
+            UnitId = unitId,
+            IsRecoveryAttempt = true,
+            ConsciousnessNumber = 4,
+            DiceResults = [2, 2],
+            IsSuccessful = true // This should trigger recovery
+        };
+
+        // Act
+        OnPilotConsciousnessRoll(command);
+
+        // Assert - pilot should be conscious
+        pilot.ShouldNotBeNull();
+        pilot.IsConscious.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnPilotConsciousnessRoll_DoesNotRecoverPilot_WhenRecoveryAttemptFails()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments =
+            [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = false, Health = 6 }
+                }
+            ]
+        };
+
+        OnPlayerJoined(joinCommand);
+        var mech = Players.SelectMany(p => p.Units).First() as Mech;
+        var pilot = mech?.Pilot;
+
+        pilot?.KnockUnconscious(1); // Make sure pilot is unconscious
+        pilot?.IsConscious.ShouldBeFalse();
+
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilotId,
+            UnitId = unitId,
+            IsRecoveryAttempt = true,
+            ConsciousnessNumber = 4,
+            DiceResults = [1, 2],
+            IsSuccessful = false // This should not trigger recovery
+        };
+
+        // Act
+        OnPilotConsciousnessRoll(command);
+
+        // Assert - pilot should remain unconscious
+        pilot.ShouldNotBeNull();
+        pilot.IsConscious.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidatePilotConsciousnessRollCommand()
+    {
+        // Arrange
+        var command = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            IsRecoveryAttempt = true,
+            ConsciousnessNumber = 4,
+            DiceResults = [1, 2],
+            IsSuccessful = false 
+        };
+        
+        // Act
+        var result = ValidateCommand(command);
+        
+        // Assert 
+        result.ShouldBeTrue();
     }
 
     public override void HandleCommand(IGameCommand command)

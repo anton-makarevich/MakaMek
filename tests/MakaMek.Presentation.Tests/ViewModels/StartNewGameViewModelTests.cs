@@ -51,6 +51,7 @@ public class StartNewGameViewModelTests
         _commandPublisher = Substitute.For<ICommandPublisher>(); 
         var toHitCalculator = Substitute.For<IToHitCalculator>(); 
         var pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>(); 
+        var consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
         var dispatcherService = Substitute.For<IDispatcherService>(); 
         var gameFactory = Substitute.For<IGameFactory>(); 
         var mapFactory = Substitute.For<IBattleMapFactory>();
@@ -60,12 +61,14 @@ public class StartNewGameViewModelTests
             _commandPublisher,
             toHitCalculator,
             pilotingSkillCalculator,
+            consciousnessCalculator,
             mapFactory); 
         gameFactory.CreateClientGame(rulesProvider,
                 _mechFactory,
                 _commandPublisher,
                 toHitCalculator,
                 pilotingSkillCalculator,
+                consciousnessCalculator,
                 mapFactory)
                     .Returns(_clientGame);
         
@@ -87,6 +90,7 @@ public class StartNewGameViewModelTests
             _commandPublisher, 
             toHitCalculator, 
             pilotingSkillCalculator,
+            consciousnessCalculator,
             dispatcherService, 
             gameFactory,
             mapFactory); 

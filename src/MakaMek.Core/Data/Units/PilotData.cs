@@ -41,6 +41,11 @@ public record struct PilotData
     /// </summary>
     public bool IsConscious { get; init; }
 
+    /// <summary>
+    /// The turn number when the pilot became unconscious, null if conscious
+    /// </summary>
+    public int? UnconsciousInTurn { get; init; }
+    
     public static PilotData CreateDefaultPilot(string firstName ,string lastName)
     {
         return new PilotData
@@ -52,7 +57,8 @@ public record struct PilotData
             Piloting = 5,
             Health = 6,
             Injuries = 0,
-            IsConscious = true
+            IsConscious = true,
+            UnconsciousInTurn = null,
         };
     }
 }

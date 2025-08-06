@@ -14,41 +14,46 @@ namespace Sanet.MakaMek.Core.Models.Game.Factories;
 public class GameFactory : IGameFactory
 {
     public ServerGame CreateServerGame(
-        IRulesProvider rulesProvider, 
+        IRulesProvider rulesProvider,
         IMechFactory mechFactory,
-        ICommandPublisher commandPublisher, 
-        IDiceRoller diceRoller, 
+        ICommandPublisher commandPublisher,
+        IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        IFallProcessor fallProcessor)
+        IConsciousnessCalculator consciousnessCalculator,
+        IFallProcessor fallProcessor
+        )
     {
         return new ServerGame(
-            rulesProvider, 
-            mechFactory, 
-            commandPublisher, 
-            diceRoller, 
-            toHitCalculator, 
+            rulesProvider,
+            mechFactory,
+            commandPublisher,
+            diceRoller,
+            toHitCalculator,
             criticalHitsCalculator,
             pilotingSkillCalculator,
+            consciousnessCalculator,
             fallProcessor
             );
     }
 
     public ClientGame CreateClientGame(
-        IRulesProvider rulesProvider, 
+        IRulesProvider rulesProvider,
         IMechFactory mechFactory,
-        ICommandPublisher commandPublisher, 
+        ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
+        IConsciousnessCalculator consciousnessCalculator,
         IBattleMapFactory mapFactory)
     {
         return new ClientGame(
             rulesProvider,
             mechFactory,
             commandPublisher,
-            toHitCalculator, 
+            toHitCalculator,
             pilotingSkillCalculator,
+            consciousnessCalculator,
             mapFactory);
     }
 }

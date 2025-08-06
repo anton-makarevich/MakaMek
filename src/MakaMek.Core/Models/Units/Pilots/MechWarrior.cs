@@ -8,6 +8,7 @@ namespace Sanet.MakaMek.Core.Models.Units.Pilots;
 /// </summary>
 public class MechWarrior : IPilot
 {
+    private int _injuries;
     private const int MechWarriorExplosionDamage = 2;
     /// <summary>
     /// Default gunnery skill for Inner Sphere MechWarriors
@@ -61,9 +62,42 @@ public class MechWarrior : IPilot
     /// </summary>
     public int Piloting { get; }
 
-    public int Injuries { get; private set; }
+    public int Injuries
+    {
+        get => _injuries;
+        private set
+        {
+            _injuries = value;
+            PendingConsciousnessNumbers.Enqueue(CurrentConsciousnessNumber);
+        }
+    }
 
     public bool IsConscious { get; private set; } = true;
+
+    public int? UnconsciousInTurn { get; private set; }
+
+    public Queue<int> PendingConsciousnessNumbers { get; private set; } = new();
+
+    /// <summary>
+    /// Gets the current consciousness number based on injury level
+    /// BattleTech consciousness table: 1 injury→3, 2→5, 3→7, 4→10, 5→11, 6→Dead
+    /// </summary>
+    public int CurrentConsciousnessNumber
+    {
+        get
+        {
+            return Injuries switch
+            {
+                1 => 3,
+                2 => 5,
+                3 => 7,
+                4 => 10,
+                5 => 11,
+                >= 6 => 12, // Impossible roll (dead)
+                _ => 1 // No injuries, always conscious
+            };
+        }
+    }
 
     /// <summary>
     /// The unit this pilot is currently assigned to, if any
@@ -86,17 +120,24 @@ public class MechWarrior : IPilot
         Id = pilotData.Id;
         FirstName = pilotData.FirstName;
         LastName = pilotData.LastName;
+        CallSign = string.Empty; // Default to empty string for data constructor
         Health = pilotData.Health;
         Gunnery = pilotData.Gunnery;
         Piloting = pilotData.Piloting;
         Injuries = pilotData.Injuries;
         IsConscious = pilotData.IsConscious;
+        UnconsciousInTurn = pilotData.UnconsciousInTurn;
+        PendingConsciousnessNumbers = new Queue<int>();
     }
 
     public void Hit(int hits = 1)
     {
-        Injuries += hits;
-        AssignedTo?.AddEvent(new UiEvent(UiEventType.PilotDamage, FirstName,hits));
+        for (var i = 0; i < hits; i++)
+        {
+            Injuries++;
+        }
+
+        AssignedTo?.AddEvent(new UiEvent(UiEventType.PilotDamage, FirstName, hits));
     }
 
     public void Kill()
@@ -116,7 +157,8 @@ public class MechWarrior : IPilot
             Piloting = Piloting,
             Health = Health,
             Injuries = Injuries,
-            IsConscious = IsConscious
+            IsConscious = IsConscious,
+            UnconsciousInTurn = UnconsciousInTurn
         };
     }
 
@@ -126,4 +168,22 @@ public class MechWarrior : IPilot
     }
 
     public bool IsDead => Injuries >= Health;
+
+    public void KnockUnconscious(int turn)
+    {
+        if (IsDead) return; // Dead pilots can't be unconscious
+
+        IsConscious = false;
+        UnconsciousInTurn = turn;
+        AssignedTo?.AddEvent(new UiEvent(UiEventType.PilotUnconscious, FirstName));
+    }
+
+    public void RecoverConsciousness()
+    {
+        if (IsDead) return; // Dead pilots can't recover
+
+        IsConscious = true;
+        UnconsciousInTurn = null;
+        AssignedTo?.AddEvent(new UiEvent(UiEventType.PilotRecovered, FirstName));
+    }
 }

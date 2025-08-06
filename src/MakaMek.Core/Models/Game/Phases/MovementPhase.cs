@@ -70,6 +70,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             var fallCommand = fallContextData.ToMechFallCommand();
             Game.CommandPublisher.PublishCommand(fallCommand);
             Game.OnMechFalling(fallCommand);
+
+            // Process consciousness rolls after fall
+            ProcessConsciousnessRollsForUnit(unit);
         }
         else
         {
@@ -103,6 +106,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         var fallCommand = fallContextData.ToMechFallCommand();
         Game.CommandPublisher.PublishCommand(fallCommand);
         Game.OnMechFalling(fallCommand);
+
+        // Process consciousness rolls after fall
+        ProcessConsciousnessRollsForUnit(mech);
     }
 
     public override PhaseNames Name => PhaseNames.Movement;

@@ -810,6 +810,67 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
     
     [Fact]
+    public void Enter_ShouldPublishConsciousnessCommand_WhenMechFallingAndPilotTakesDamage()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+        
+        var damageData = new FallingDamageData(HexDirection.Bottom,
+            new HitLocationsData(
+                HitLocations: [
+                    new HitLocationData(
+                        PartLocation.CenterTorso,
+                        5,
+                        [])], TotalDamage: 5), new DiceResult(3));
+        
+        var mechFallingCommand = new MechFallCommand
+        {
+            UnitId = _player1Unit1.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = damageData,
+            GameOriginId = Game.Id
+        };
+        
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Any<Mech>(),
+                Arg.Any<IGame>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<List<PartLocation>>())
+            .Returns(new List<MechFallCommand> { mechFallingCommand });
+        
+        // Get initial armor value to verify damage is applied
+        var targetPart = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var initialArmor = targetPart.CurrentArmor;
+        
+        var consciousnessCommand = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = _player1Unit1.Pilot!.Id,
+            UnitId = _player1Unit1.Id,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 4,
+            DiceResults = [7, 2],
+            IsSuccessful = false 
+        };
+        MockConsciousnessCalculator.MakeConsciousnessRolls(_player1Unit1.Pilot!)
+            .Returns([consciousnessCommand]);
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        CommandPublisher.Received(2).PublishCommand( // Expecting it 2 times - from weapon and fell damage
+            Arg.Is<PilotConsciousnessRollCommand>(cmd => 
+                cmd.GameOriginId == Game.Id &&
+                cmd.IsRecoveryAttempt == false &&
+                cmd.IsSuccessful == false));
+    }
+    
+    [Fact]
     public void Enter_ShouldNotPublishMechFallingCommands_WhenNoFallConditionsAreMet()
     {
         // Arrange

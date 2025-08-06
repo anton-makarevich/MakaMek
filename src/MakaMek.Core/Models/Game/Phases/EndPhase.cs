@@ -11,6 +11,9 @@ public class EndPhase(ServerGame game) : GamePhase(game)
     {
         // Clear the set of players who have ended their turn
         _playersEndedTurn.Clear();
+
+        // Process consciousness recovery rolls for unconscious pilots
+        ProcessConsciousnessRecoveryRolls();
     }
 
     public override void HandleCommand(IGameCommand command)
@@ -45,6 +48,38 @@ public class EndPhase(ServerGame game) : GamePhase(game)
     {
         // Check if all players in the game have ended their turn
         return Game.AlivePlayers.All(player => _playersEndedTurn.Contains(player.Id));
+    }
+
+    /// <summary>
+    /// Processes consciousness recovery rolls for unconscious pilots
+    /// Recovery attempts are made for pilots who became unconscious in previous turns
+    /// </summary>
+    private void ProcessConsciousnessRecoveryRolls()
+    {
+        foreach (var player in Game.AlivePlayers)
+        {
+            foreach (var unit in player.AliveUnits)
+            {
+                if (unit.Pilot == null) continue;
+
+                // Only attempt recovery for pilots who became unconscious in previous turns
+                if (unit.Pilot.IsConscious ||
+                    unit.Pilot.IsDead ||
+                    unit.Pilot.UnconsciousInTurn == null ||
+                    unit.Pilot.UnconsciousInTurn >= Game.Turn)
+                {
+                    continue;
+                }
+
+                var recoveryCommand = Game.ConsciousnessCalculator.MakeRecoveryConsciousnessRoll(unit.Pilot);
+                if (recoveryCommand == null) continue;
+
+                var broadcastCommand = recoveryCommand.Value;
+                broadcastCommand.GameOriginId = Game.Id;
+                Game.OnPilotConsciousnessRoll(broadcastCommand);
+                Game.CommandPublisher.PublishCommand(broadcastCommand);
+            }
+        }
     }
 
     public override PhaseNames Name => PhaseNames.End;
