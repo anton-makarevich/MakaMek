@@ -28,6 +28,7 @@ public class Srm2Tests
         sut.WeaponSize.ShouldBe(2); // 2 clusters * 1 missile per cluster
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.SRM2);
+        sut.IsAimShotCapable.ShouldBeFalse();
         sut.IsRemovable.ShouldBeTrue();
     }
 

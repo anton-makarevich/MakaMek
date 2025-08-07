@@ -39,6 +39,11 @@ public abstract class Weapon : Component
     
     public override MakaMekComponent ComponentType => _definition.WeaponComponentType;
     
+    /// <summary>
+    /// Indicates whether this weapon is capable of making aimed shots
+    /// </summary>
+    public virtual bool IsAimShotCapable => true;
+    
     public WeaponData ToData()
     {
         return new WeaponData

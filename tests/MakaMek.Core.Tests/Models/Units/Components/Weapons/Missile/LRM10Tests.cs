@@ -25,6 +25,7 @@ public class Lrm10Tests
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.LRM10);
         sut.IsRemovable.ShouldBeTrue();
+        sut.IsAimShotCapable.ShouldBeFalse();
     }
 
     [Fact]

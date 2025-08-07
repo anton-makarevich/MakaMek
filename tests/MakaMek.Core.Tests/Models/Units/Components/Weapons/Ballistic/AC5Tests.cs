@@ -21,6 +21,7 @@ public class Ac5Tests
         sut.AmmoType.ShouldBe(MakaMekComponent.ISAmmoAC5);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.AC5);
+        sut.IsAimShotCapable.ShouldBeTrue();
         sut.IsRemovable.ShouldBeTrue();
     }
 

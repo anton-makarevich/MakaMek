@@ -6,6 +6,9 @@ namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 public class Lrm10() : Weapon(Definition)
 {
     // Static definition for this weapon type
+    /// <inheritdoc />
+    public override bool IsAimShotCapable => false;
+
     public static readonly WeaponDefinition Definition = new(
         Name: "LRM-10",
         ElementaryDamage: 1,
