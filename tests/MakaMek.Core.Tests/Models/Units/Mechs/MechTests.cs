@@ -16,6 +16,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Utils.TechRules;
+using Shouldly.ShouldlyExtensionMethods;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 
@@ -131,11 +132,11 @@ public class MechTests
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
-
+    
         // Act
         var act = () => mech.Move(MovementType.Walk,
             [new PathSegment(new HexPosition(1, 1, HexDirection.Bottom), newCoordinates, 1).ToData()]);
-
+    
         // Assert
         var ex = Should.Throw<InvalidOperationException>(act);
         ex.Message.ShouldBe("Unit is not deployed.");
@@ -215,7 +216,7 @@ public class MechTests
         mech.Shutdown();
 
         // Assert
-        mech.Status.ShouldBe(UnitStatus.Shutdown);
+        mech.Status.ShouldHaveFlag(UnitStatus.Shutdown);
     }
 
     [Fact]
@@ -266,7 +267,7 @@ public class MechTests
     [Theory]
     [InlineData(0, HexDirection.Top, HexDirection.TopRight, false)] // No rotation allowed
     [InlineData(1, HexDirection.Top, HexDirection.TopRight, true)] // 60 degrees allowed, within limit
-    [InlineData(1, HexDirection.Top, HexDirection.Bottom, false)] // 60 degrees allowed, beyond limit
+    [InlineData(1, HexDirection.Top, HexDirection.Bottom, false)] // 60 degrees allowed, beyond the limit
     [InlineData(2, HexDirection.Top, HexDirection.BottomRight, true)] // 120 degrees allowed, within limit
     [InlineData(3, HexDirection.Top, HexDirection.Bottom, true)] // 180 degrees allowed, within limit
     public void RotateTorso_ShouldRespectPossibleTorsoRotation(
@@ -487,7 +488,7 @@ public class MechTests
         var mech = new Mech("Test", "TST-1A", 50, 4, parts);
         mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
 
-        // Rotate torsos to a different direction
+        // Rotate torsos in a different direction
         mech.RotateTorso(HexDirection.Bottom);
 
         // Verify torsos are rotated
@@ -512,7 +513,7 @@ public class MechTests
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
         var weapon = new MediumLaser();
-        // Attach weapon to a part (e.g., right arm)
+        // Attach a weapon to a part (e.g., right arm)
         var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
         rightArm.TryAddComponent(weapon);
         // Set a dummy target
@@ -866,7 +867,7 @@ public class MechTests
         // Check shutdown status for high heat
         if (heat >= 30)
         {
-            sut.Status.ShouldBe(UnitStatus.Shutdown, "Mech should shutdown at 30+ heat");
+            sut.Status.ShouldHaveFlag(UnitStatus.Shutdown, "Mech should shutdown at 30+ heat");
         }
     }
 
@@ -1031,7 +1032,7 @@ public class MechTests
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
         var gyro = sut.GetAllComponents<Gyro>().First();
-        gyro.Hit(); // Damage the gyro (1 hit)
+        gyro.Hit(); // Damage to the gyro (1 hit)
 
         // Act
         var result = sut.IsPsrForJumpRequired();
@@ -1222,7 +1223,7 @@ public class MechTests
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
 
-        // Set initial heat to 15 (3 MP penalty)
+        // Set the initial heat to 15 (3 MP penalty)
         sut.ApplyHeat(new HeatData
         {
             MovementHeatSources = [],
@@ -1261,15 +1262,15 @@ public class MechTests
 
     [Theory]
     [InlineData(0, 0)] // No heat, no penalty
-    [InlineData(7, 0)] // Below first threshold, no penalty
-    [InlineData(8, 1)] // At first threshold, +1 penalty
-    [InlineData(12, 1)] // Between first and second threshold, +1 penalty
-    [InlineData(13, 2)] // At second threshold, +2 penalty
-    [InlineData(16, 2)] // Between second and third threshold, +2 penalty
-    [InlineData(17, 3)] // At third threshold, +3 penalty
-    [InlineData(23, 3)] // Between third and fourth threshold, +3 penalty
-    [InlineData(24, 4)] // At fourth threshold, +4 penalty
-    [InlineData(30, 4)] // Above fourth threshold, +4 penalty
+    [InlineData(7, 0)] // Below the first threshold, no penalty
+    [InlineData(8, 1)] // At the first threshold, +1 penalty
+    [InlineData(12, 1)] // Between the first and second threshold, +1 penalty
+    [InlineData(13, 2)] // At the second threshold, +2 penalty
+    [InlineData(16, 2)] // Between the second and third threshold, +2 penalty
+    [InlineData(17, 3)] // At the third threshold, +3 penalty
+    [InlineData(23, 3)] // Between the third and fourth threshold, +3 penalty
+    [InlineData(24, 4)] // At the fourth threshold, +4 penalty
+    [InlineData(30, 4)] // Above the fourth threshold, +4 penalty
     public void AttackHeatPenalty_ShouldReturnCorrectPenalty(int heat, int expectedPenalty)
     {
         // Arrange
@@ -1454,7 +1455,7 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, walkMp, parts);
         sut.SetProne();
 
-        // Mock pilot with specified consciousness state
+        // Mock pilot with a specified consciousness state
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(!pilotUnconscious);
         typeof(Mech).GetProperty("Pilot")?.SetValue(sut, pilot);
@@ -1762,7 +1763,7 @@ public class MechTests
         var lowerLegActuator = sut.GetAllComponents<LowerLegActuator>().First();
 
         // Act
-        lowerLegActuator.Hit(); // Destroy lower leg actuator
+        lowerLegActuator.Hit(); // Destroy the lower leg actuator
 
         // Assert
         sut.GetMovementPoints(MovementType.Walk)
@@ -1906,7 +1907,7 @@ public class MechTests
         sut.AssignPilot(pilot);
 
         // Act
-        sut.Status.ShouldBe(UnitStatus.Immobile);
+        sut.Status.ShouldHaveFlag(UnitStatus.Immobile);
     }
 
     [Fact]
