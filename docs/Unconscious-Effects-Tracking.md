@@ -4,10 +4,10 @@ Version: **0.41.x**
 #### 1. Mech Status: Immobile and Inactive
 
 * [x] Set the unit movement state to **immobile**.
-* [ ] Prevent all **movement actions** (walk, run, jump, etc.).
-* [ ] Prevent all **firing/actions** (no weapons fire, no physical attacks, etc.).
-* [ ] Allow player to **declare "No Movement"** in the movement phase (for initiative mechanics or targeting).
-* [ ] Allow player to **Skip Attack** in the weapon attack declaration phase.
+* [x] Prevent all **movement actions** (walk, run, jump, etc.).
+* [x] Prevent all **firing/actions** (no weapons fire, no physical attacks, etc.).
+* [x] Allow player to **declare "No Movement"** in the movement phase (for initiative mechanics or targeting).
+* [x] Allow player to **Skip Attack** in the weapon attack declaration phase.
 * [x] Display a status icon or flag for "Pilot Unconscious".
 
 #### 2. Skill Roll Handling
