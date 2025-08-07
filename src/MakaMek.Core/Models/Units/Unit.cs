@@ -55,15 +55,17 @@ public abstract class Unit
 
     public UnitStatus Status
     {
-        get => _status;
+        get
+        {
+            if ((_status & UnitStatus.Destroyed) == UnitStatus.Destroyed)
+            {
+                return UnitStatus.Destroyed;
+            }
+            if (IsImmobile) return _status | UnitStatus.Immobile;
+            return _status;
+        }
         protected set
         {
-            if ((value & UnitStatus.Destroyed) == UnitStatus.Destroyed)
-            {
-                _status = UnitStatus.Destroyed;
-                return;
-            }
-
             // Once destroyed, prevent any further status changes
             if (IsDestroyed)
                 return;
@@ -88,9 +90,9 @@ public abstract class Unit
     public bool IsShutdown => (_status & UnitStatus.Shutdown) == UnitStatus.Shutdown;
 
     /// <summary>
-    /// Gets whether the unit is immobile. Returns true if the Immobile flag is set, regardless of other flags.
+    /// Gets whether the unit is immobile.
     /// </summary>
-    public bool IsImmobile => (_status & UnitStatus.Immobile) == UnitStatus.Immobile;
+    public virtual bool IsImmobile => false;
 
     public bool IsOutOfCommission => IsDestroyed || Pilot?.IsDead == true;
 
@@ -374,8 +376,8 @@ public abstract class Unit
     public virtual void Startup()
     {
         if (!IsShutdown) return;
-        Status &= ~UnitStatus.Shutdown;
-        Status |= UnitStatus.Active;
+        _status &= ~UnitStatus.Shutdown;
+        _status |= UnitStatus.Active;
     }
 
     /// <summary>

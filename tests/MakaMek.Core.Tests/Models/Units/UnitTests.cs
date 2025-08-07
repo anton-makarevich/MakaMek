@@ -1865,7 +1865,7 @@ public class UnitTests
     }
 
     [Fact]
-    public void IsImmobile_ShouldReturnTrue_WhenStatusSetToImmobile()
+    public void IsImmobile_ShouldReturnFalse_ForBaseUnit_RegardlessOfStatusSet()
     {
         // Arrange
         var sut = CreateTestUnit();
@@ -1874,7 +1874,7 @@ public class UnitTests
         sut.SetStatusForTesting(UnitStatus.Immobile);
 
         // Assert
-        sut.IsImmobile.ShouldBeTrue();
+        sut.IsImmobile.ShouldBeFalse();
     }
     
     [Fact]
