@@ -134,14 +134,16 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             throw new Exception("Battle map is null");
         }
         
-        // Calculate to-hit number
-        var toHitNumber = Game.ToHitCalculator.GetToHitNumber(
+        // Calculate to-hit number, including aimed shot modifiers if applicable
+        var toHitBreakdown = Game.ToHitCalculator.GetModifierBreakdown(
             attacker,
             target,
             weapon,
             Game.BattleMap,
             weaponTargetData.IsPrimaryTarget);
-
+        
+        var toHitNumber = toHitBreakdown.Total;
+        
         // Roll 2D6 for attack
         var attackRoll = Game.DiceRoller.Roll2D6();
         var totalRoll = attackRoll.Sum(d => d.Result);
