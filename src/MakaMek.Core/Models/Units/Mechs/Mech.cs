@@ -533,7 +533,7 @@ public class Mech : Unit
                 return true;
 
             // A mech with an unconscious pilot is immobile
-            if (Pilot?.IsConscious == false)
+            if (Pilot == null || Pilot.IsConscious == false)
                 return true;
 
             // A mech with both legs and both arms destroyed/blown off is immobile

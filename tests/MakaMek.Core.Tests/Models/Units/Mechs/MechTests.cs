@@ -200,10 +200,13 @@ public class MechTests
     public void Status_StartsActive()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
 
         // Assert
-        mech.Status.ShouldBe(UnitStatus.Active);
+        sut.Status.ShouldBe(UnitStatus.Active);
     }
 
     [Fact]
@@ -223,14 +226,17 @@ public class MechTests
     public void Startup_ChangesStatusToActive()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        mech.Shutdown();
+        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
+        sut.Shutdown();
 
         // Act
-        mech.Startup();
+        sut.Startup();
 
         // Assert
-        mech.Status.ShouldBe(UnitStatus.Active);
+        sut.Status.ShouldBe(UnitStatus.Active);
     }
 
     [Fact]
@@ -1883,6 +1889,16 @@ public class MechTests
         // Assert
         result.ShouldBe(0);
     }
+    
+    [Fact]
+    public void IsImmobile_ShouldReturnTrue_WhenPilotIsNotAssigned()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+
+        // Act & Assert
+        sut.IsImmobile.ShouldBeTrue("A mech without a pilot should be immobile");
+    }
 
     [Fact]
     public void IsImmobile_ShouldReturnTrue_WhenPilotIsUnconscious()
@@ -1961,6 +1977,9 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
 
         // Destroy both legs
         var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
@@ -1981,6 +2000,9 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
 
         // Destroy both legs
         var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
@@ -1997,6 +2019,9 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        sut.AssignPilot(pilot);
 
         // Destroy both arms
         var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
