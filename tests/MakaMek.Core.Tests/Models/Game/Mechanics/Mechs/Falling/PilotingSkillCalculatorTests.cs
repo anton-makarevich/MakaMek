@@ -1,7 +1,9 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
@@ -17,12 +19,14 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
     public class PilotingSkillCalculatorTests
     {
         private readonly IRulesProvider _mockRulesProvider;
+        private readonly IDiceRoller _mockDiceRoller;
         private readonly IPilotingSkillCalculator _sut;
-        
+
         public PilotingSkillCalculatorTests()
         {
             _mockRulesProvider = Substitute.For<IRulesProvider>();
-            _sut = new PilotingSkillCalculator(_mockRulesProvider);
+            _mockDiceRoller = Substitute.For<IDiceRoller>();
+            _sut = new PilotingSkillCalculator(_mockRulesProvider, _mockDiceRoller);
         }
 
         [Fact]
@@ -454,6 +458,109 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             gyroModifiers.Count.ShouldBe(1);
             gyroModifiers.First().Value.ShouldBe(3); // Hit modifier, not destroyed modifier
             gyroModifiers.First().HitsCount.ShouldBe(1);
+        }
+
+        [Fact]
+        public void EvaluateRoll_UnconsciousPilot_ShouldReturnAutomaticFailure()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var pilot = new MechWarrior("John", "Doe");
+            pilot.KnockUnconscious(1); // Make pilot unconscious
+            mech.AssignPilot(pilot);
+
+            var psrBreakdown = new PsrBreakdown
+            {
+                BasePilotingSkill = 5,
+                Modifiers = new List<RollModifier>()
+            };
+
+            // Act
+            var result = _sut.EvaluateRoll(psrBreakdown, mech, PilotingSkillRollType.GyroHit);
+
+            // Assert
+            result.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
+            result.IsSuccessful.ShouldBeFalse();
+            result.DiceResults.ShouldBe([]); // Automatic failure representation
+            result.PsrBreakdown.ShouldBe(psrBreakdown);
+            // Verify no dice were rolled for unconscious pilot
+            _mockDiceRoller.DidNotReceive().Roll2D6();
+        }
+
+        [Fact]
+        public void EvaluateRoll_ConsciousPilotSuccessfulRoll_ShouldReturnSuccessData()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+
+            var psrBreakdown = new PsrBreakdown
+            {
+                BasePilotingSkill = 5,
+                Modifiers = new List<RollModifier>()
+            };
+
+            // Mock dice roll that succeeds (7 >= 5)
+            _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(4)]);
+
+            // Act
+            var result = _sut.EvaluateRoll(psrBreakdown, mech, PilotingSkillRollType.StandupAttempt);
+
+            // Assert
+            result.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
+            result.IsSuccessful.ShouldBeTrue();
+            result.DiceResults.ShouldBe([3, 4]);
+            result.PsrBreakdown.ShouldBe(psrBreakdown);
+            _mockDiceRoller.Received(1).Roll2D6();
+        }
+
+        [Fact]
+        public void EvaluateRoll_ConsciousPilotFailedRoll_ShouldReturnFailureData()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+
+            var psrBreakdown = new PsrBreakdown
+            {
+                BasePilotingSkill = 8,
+                Modifiers = new List<RollModifier>()
+            };
+
+            // Mock dice roll that fails (4 < 8)
+            _mockDiceRoller.Roll2D6().Returns([new DiceResult(2), new DiceResult(2)]);
+
+            // Act
+            var result = _sut.EvaluateRoll(psrBreakdown, mech, PilotingSkillRollType.JumpWithDamage);
+
+            // Assert
+            result.RollType.ShouldBe(PilotingSkillRollType.JumpWithDamage);
+            result.IsSuccessful.ShouldBeFalse();
+            result.DiceResults.ShouldBe([2, 2]);
+            result.PsrBreakdown.ShouldBe(psrBreakdown);
+            _mockDiceRoller.Received(1).Roll2D6();
+        }
+
+        [Fact]
+        public void EvaluateRoll_NoPilot_ShouldThrowArgumentException()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            // No pilot assigned
+
+            var psrBreakdown = new PsrBreakdown
+            {
+                BasePilotingSkill = 5,
+                Modifiers = new List<RollModifier>()
+            };
+
+            // Act & Assert
+            Should.Throw<ArgumentException>(() => _sut.EvaluateRoll(psrBreakdown, mech, PilotingSkillRollType.GyroHit))
+                .Message.ShouldContain("pilot");
         }
     }
 }
