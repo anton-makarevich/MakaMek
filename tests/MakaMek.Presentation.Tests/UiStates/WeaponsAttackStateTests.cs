@@ -17,6 +17,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -44,6 +45,7 @@ public class WeaponsAttackStateTests
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>(); 
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly MechFactory _mechFactory;
+    private readonly IPilot _pilot = Substitute.For<IPilot>();
 
     public WeaponsAttackStateTests()
     {
@@ -67,7 +69,10 @@ public class WeaponsAttackStateTests
         _unitData = MechFactoryTests.CreateDummyMechData();
         _unit1 = _mechFactory.Create(_unitData);
         _unit2 = _mechFactory.Create(_unitData);
-
+        
+        _pilot.IsConscious.Returns(true);
+        _unit1.AssignPilot(_pilot);
+        
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
@@ -250,6 +255,7 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
         
         // Setup target (enemy unit)
@@ -287,6 +293,7 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
         
         // Set up another friendly unit
@@ -347,6 +354,7 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
         
         // Set up an enemy unit far away (out of weapon range)
@@ -410,9 +418,24 @@ public class WeaponsAttackStateTests
 
         // Assert
         actions.Count.ShouldBe(3); // Turn Torso, Select Target, Skip Attack
-        actions[0].Label.ShouldBe("Turn Torso");
-        actions[1].Label.ShouldBe("Select Target");
-        actions[2].Label.ShouldBe("Skip Attack");
+        actions[0].Label.ShouldBe("Skip Attack");
+        actions[1].Label.ShouldBe("Turn Torso");
+        actions[2].Label.ShouldBe("Select Target");
+    }
+    
+    [Fact]
+    public void GetAvailableActions_InActionSelection_ReturnsSkipOnly_WhenUnitIsImmobile()
+    {
+        // Arrange
+        _sut.HandleUnitSelection(_unit1);
+        _unit1.Shutdown();
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(1); // Turn Torso, Select Target, Skip Attack
+        actions[0].Label.ShouldBe("Skip Attack");
     }
     
     [Fact]
@@ -430,8 +453,8 @@ public class WeaponsAttackStateTests
 
         // Assert
         actions.Count.ShouldBe(2); // Turn Torso, Skip Attack (Select Target excluded when sensors destroyed)
-        actions[0].Label.ShouldBe("Turn Torso");
-        actions[1].Label.ShouldBe("Skip Attack");
+        actions[0].Label.ShouldBe("Skip Attack");
+        actions[1].Label.ShouldBe("Turn Torso");
     }
 
     [Fact]
@@ -796,6 +819,7 @@ public class WeaponsAttackStateTests
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
@@ -826,6 +850,7 @@ public class WeaponsAttackStateTests
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
@@ -859,6 +884,7 @@ public class WeaponsAttackStateTests
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
@@ -896,6 +922,7 @@ public class WeaponsAttackStateTests
         // Place units in a triangle
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         var target1Position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target1.Deploy(target1Position);
         var target2Position = new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom);
@@ -937,6 +964,7 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Top);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         target.Deploy(targetPosition);
         
         // Select attacker and target
@@ -973,8 +1001,9 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(10, 10), HexDirection.Top);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         target.Deploy(targetPosition);
-        
+
         // Select attacker and target
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
@@ -1013,6 +1042,7 @@ public class WeaponsAttackStateTests
         var targetInOtherPosition = new HexPosition(new HexCoordinates(7, 5), HexDirection.Bottom);
         
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         targetInForwardArc.Deploy(targetInForwardPosition);
         targetInOtherArc.Deploy(targetInOtherPosition);
         
@@ -1059,6 +1089,7 @@ public class WeaponsAttackStateTests
         var secondaryTargetPosition = new HexPosition(new HexCoordinates(7, 5), HexDirection.Bottom);
         
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         primaryTarget.Deploy(primaryTargetPosition);
         secondaryTarget.Deploy(secondaryTargetPosition);
         
@@ -1154,6 +1185,7 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         target.Deploy(targetPosition);
         
         // Set active player
@@ -1208,6 +1240,7 @@ public class WeaponsAttackStateTests
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
         
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         target.Deploy(targetPosition);
         
         // Set up the state
@@ -1246,6 +1279,7 @@ public class WeaponsAttackStateTests
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
         
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         target.Deploy(targetPosition);
         
         // Set up the state
@@ -1276,9 +1310,9 @@ public class WeaponsAttackStateTests
 
         // Assert
         actions.Count.ShouldBe(3); // Turn Torso, Select Target, Skip Attack
-        actions[0].Label.ShouldBe("Turn Torso");
-        actions[1].Label.ShouldBe("Select Target");
-        actions[2].Label.ShouldBe("Skip Attack");
+        actions[0].Label.ShouldBe("Skip Attack");
+        actions[1].Label.ShouldBe("Turn Torso");
+        actions[2].Label.ShouldBe("Select Target");
     }
 
     [Fact]
@@ -1345,6 +1379,7 @@ public class WeaponsAttackStateTests
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
@@ -1378,6 +1413,7 @@ public class WeaponsAttackStateTests
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         target.Deploy(targetPosition);
         
@@ -1404,6 +1440,7 @@ public class WeaponsAttackStateTests
         // Place unit
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
@@ -1428,6 +1465,7 @@ public class WeaponsAttackStateTests
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
         target.Deploy(targetPosition);
 
         // Set up the state (mirroring the reference test)

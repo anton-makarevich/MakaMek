@@ -16,6 +16,7 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -814,6 +815,9 @@ public class BattleMapViewModelTests
         // Place units
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _sut.Units.First(u => u.Owner!.Id == player1.Id);
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        attacker.AssignPilot(pilot);
         attacker.Deploy(attackerPosition);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
@@ -894,6 +898,9 @@ public class BattleMapViewModelTests
         // Place units
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _sut.Units.First(u => u.Owner!.Id == player1.Id);
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        attacker.AssignPilot(pilot);
         attacker.Deploy(attackerPosition);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
@@ -1638,7 +1645,10 @@ public class BattleMapViewModelTests
         // Deploy and select a unit to enter MovementState
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _sut.Units.First() as Mech;
-        unit!.Deploy(position);
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        unit!.AssignPilot(pilot);
+        unit.Deploy(position);
         unit.SetProne();
         _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
         
