@@ -41,13 +41,20 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly ProgressBar _structureBar;
         private readonly StackPanel _eventsPanel;
         private readonly TimeSpan _eventDisplayDuration = TimeSpan.FromSeconds(5);
+
         private readonly IAvaloniaResourcesLocator _resourcesLocator = new AvaloniaResourcesLocator();
+
+        // Get the contrasting foreground converter from resources
+        private readonly ContrastingForegroundConverter? _contrastingForegroundConverter;
 
         public UnitControl(Unit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel)
         {
             _unit = unit;
             _imageService = imageService;
             _viewModel = viewModel;
+
+            _contrastingForegroundConverter = _resourcesLocator
+                .TryFindResource("ContrastingForegroundConverter") as ContrastingForegroundConverter;
 
             IsHitTestVisible = false;
             Width = HexCoordinates.HexWidth;
@@ -219,39 +226,33 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 context.LineTo(new Point(0, crossSize));
             }
 
-            // Get the contrasting foreground converter from resources
-            var contrastingForegroundConverter = _resourcesLocator
-                .TryFindResource("ContrastingForegroundConverter") as ContrastingForegroundConverter;
-
-            // Create prone indicator
-            var proneIndicator = new Border
+            // Create status indicators panel
+            var statusPanel = new StackPanel
             {
-                Width = Width * 0.8,
-                Height = Height * 0.2,
-                Background = new SolidColorBrush(color),
-                CornerRadius = new CornerRadius(4),
-                IsVisible = false,
+                Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom,
+                IsVisible = false,
                 Margin = new Thickness(0, 0, 0, 5),
-                Child = new TextBlock
-                {
-                    Text = "PRONE",
-                    Foreground = contrastingForegroundConverter != null 
-                        ? contrastingForegroundConverter.Convert(_unit.Owner?.Tint, typeof(IBrush), null, null) as IBrush 
-                        : new SolidColorBrush(Colors.White),
-                    FontWeight = FontWeight.Bold,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
+                Spacing = 2
             };
+
+            // Create prone indicator (circular)
+            var proneIndicator = CreateStatusIndicator("PR", color);
+
+            // Create immobile indicator (circular)
+            var immobileIndicator = CreateStatusIndicator("IM", color);
+
+            // Add indicators to status panel
+            statusPanel.Children.Add(proneIndicator);
+            statusPanel.Children.Add(immobileIndicator);
 
             Children.Add(selectionBorder);
             Children.Add(_unitImage);
             Children.Add(_tintBorder);
             Children.Add(torsoArrow);
             Children.Add(destroyedCross);
-            Children.Add(proneIndicator);
+            Children.Add(statusPanel);
 
             // Create an observable that polls the unit's position and selection state
             Observable
@@ -271,26 +272,34 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     Status = _unit.Status,
                     Events = _unit.Notifications
                 })
-                .DistinctUntilChanged() 
+                .DistinctUntilChanged()
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
                 .Subscribe(state =>
                 {
                     // Show/hide destroyed indicator
                     destroyedCross.IsVisible = _unit.IsOutOfCommission;
                     _healthBars.IsVisible = !_unit.IsDestroyed;
-                    
+
                     if (state.Position == null) return; // unit is not deployed, no need to display
-                    
-                    // Show/hide prone indicator (for mechs only)
+
+                    // Show/hide status indicators (for mechs only)
                     if (_unit is Mech mech)
                     {
-                        proneIndicator.IsVisible = mech is { IsProne: true, IsDestroyed: false };
+                        var isProne = mech is { IsProne: true, IsDestroyed: false };
+                        var isImmobile = mech is { IsImmobile: true, IsDestroyed: false };
+
+                        proneIndicator.IsVisible = isProne;
+                        immobileIndicator.IsVisible = isImmobile;
+                        statusPanel.IsVisible = isProne || isImmobile;
                     }
                     else
                     {
                         proneIndicator.IsVisible = false;
+                        immobileIndicator.IsVisible = false;
+                        statusPanel.IsVisible = false;
                     }
-                    
+
+
                     Render();
                     selectionBorder.IsVisible = state.SelectedUnit == _unit
                                                 || _viewModel.CurrentState is WeaponsAttackState attackState &&
@@ -435,7 +444,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
 
             Canvas.SetLeft(_eventsPanel, leftPos);
-            Canvas.SetTop(_eventsPanel, topPos - 40-_eventsPanel.Children.Count*10);
+            Canvas.SetTop(_eventsPanel, topPos - 40 - _eventsPanel.Children.Count * 10);
         }
 
         /// <summary>
@@ -489,7 +498,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
             // Add to the events panel
             _eventsPanel.Children.Add(textBlock);
-            
+
             // Start animation
             _ = AnimateDamageLabel(textBlock);
         }
@@ -553,5 +562,31 @@ namespace Sanet.MakaMek.Avalonia.Controls
         }
 
         public StackPanel ActionButtons => _actionButtons;
+
+        private Border CreateStatusIndicator(string label, Color color)
+        {
+            return new Border
+            {
+                Width = 24,
+                Height = 24,
+                Background = new SolidColorBrush(color),
+                CornerRadius = new CornerRadius(12), // Make it circular
+                IsVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock
+                {
+                    Text = label.ToUpper(),
+                    Foreground = _contrastingForegroundConverter != null
+                        ? _contrastingForegroundConverter.Convert(_unit.Owner?.Tint, typeof(IBrush), null, null) as
+                            IBrush
+                        : new SolidColorBrush(Colors.White),
+                    FontWeight = FontWeight.Bold,
+                    FontSize = 12,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+        }
     }
 }
