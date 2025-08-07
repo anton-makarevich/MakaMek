@@ -44,8 +44,10 @@ public class TurnOrder
                 if (!remainingUnits.ContainsKey(player) || remainingUnits[player] <= 0)
                     continue;
 
-                // Calculate how many units this player should move
-                var unitsToMove = remainingUnits[player] >= minUnits * 2 ? 2 : 1;
+                // Calculate how many units this player should move based on ratio
+                // If a team has N times as many units as the minimum, they move N units
+                var ratio = remainingUnits[player] / minUnits;
+                var unitsToMove = Math.Max(1, ratio); // At least 1 unit
                 unitsToMove = Math.Min(unitsToMove, remainingUnits[player]); // Don't move more units than remaining
 
                 _steps.Add(new TurnStep(player, unitsToMove));
