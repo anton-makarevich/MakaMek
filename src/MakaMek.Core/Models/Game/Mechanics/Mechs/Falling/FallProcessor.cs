@@ -2,7 +2,6 @@ using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -14,7 +13,6 @@ public class FallProcessor : IFallProcessor
 {
     private readonly IRulesProvider _rulesProvider;
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
-    private readonly IDiceRoller _diceRoller;
     private readonly IFallingDamageCalculator _fallingDamageCalculator;
 
     private static readonly Dictionary<MakaMekComponent, FallReasonType> ComponentFallReasonMap = new()
@@ -29,12 +27,10 @@ public class FallProcessor : IFallProcessor
     public FallProcessor(
         IRulesProvider rulesProvider,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        IDiceRoller diceRoller,
         IFallingDamageCalculator fallingDamageCalculator)
     {
         _rulesProvider = rulesProvider;
         _pilotingSkillCalculator = pilotingSkillCalculator;
-        _diceRoller = diceRoller;
         _fallingDamageCalculator = fallingDamageCalculator;
     }
 
@@ -113,19 +109,9 @@ public class FallProcessor : IFallProcessor
 
             if (requiresPsr && reasonType.ToPilotingSkillRollType() is { } psrRollType)
             {
-                var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, psrRollType,
-                    game);
-                var diceResults = _diceRoller.Roll2D6();
-                var rollTotal = diceResults.Sum(d => d.Result);
-                isFallingNow = rollTotal < psrBreakdown.ModifiedPilotingSkill;
-
-                fallPsrData = new PilotingSkillRollData
-                {
-                    RollType = psrRollType,
-                    DiceResults = diceResults.Select(d => d.Result).ToArray(),
-                    IsSuccessful = !isFallingNow,
-                    PsrBreakdown = psrBreakdown
-                };
+                var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, psrRollType, game);
+                fallPsrData = _pilotingSkillCalculator.EvaluateRoll(psrBreakdown, mech, psrRollType);
+                isFallingNow = !fallPsrData.IsSuccessful;
             }
 
             PilotingSkillRollData? pilotDamagePsr = null;
@@ -139,17 +125,10 @@ public class FallProcessor : IFallProcessor
 
                 if (pilotPsrBreakdown.Modifiers.Any())
                 {
-                    var pilotDiceResults = _diceRoller.Roll2D6();
-                    var pilotRollTotal = pilotDiceResults.Sum(d => d.Result);
-                    var isPilotDamageSuccessful = pilotRollTotal >= pilotPsrBreakdown.ModifiedPilotingSkill;
-
-                    pilotDamagePsr = new PilotingSkillRollData
-                    {
-                        RollType = PilotingSkillRollType.PilotDamageFromFall,
-                        DiceResults = pilotDiceResults.Select(d => d.Result).ToArray(),
-                        IsSuccessful = isPilotDamageSuccessful,
-                        PsrBreakdown = pilotPsrBreakdown
-                    };
+                    pilotDamagePsr = _pilotingSkillCalculator.EvaluateRoll(
+                        pilotPsrBreakdown,
+                        mech,
+                        PilotingSkillRollType.PilotDamageFromFall);
                 }
             }
             

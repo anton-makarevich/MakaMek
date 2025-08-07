@@ -24,7 +24,6 @@ public class FallProcessorTests
 {
     private readonly FallProcessor _sut;
     private readonly IPilotingSkillCalculator _mockPilotingSkillCalculator;
-    private readonly IDiceRoller _mockDiceRoller;
     private readonly IFallingDamageCalculator _mockFallingDamageCalculator;
 
     private readonly IGame _game = Substitute.For<IGame>();
@@ -37,7 +36,6 @@ public class FallProcessorTests
     {
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         _mockPilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
-        _mockDiceRoller = Substitute.For<IDiceRoller>();
         _mockFallingDamageCalculator = Substitute.For<IFallingDamageCalculator>();
 
         _game.BattleMap.Returns(_map);
@@ -46,7 +44,6 @@ public class FallProcessorTests
         _sut = new FallProcessor(
             rulesProvider,
             _mockPilotingSkillCalculator,
-            _mockDiceRoller,
             _mockFallingDamageCalculator);
 
         _testMech = new MechFactory(
@@ -70,8 +67,9 @@ public class FallProcessorTests
         // Assuming base piloting skill 4, +3 for Pilot Damage = Target Number 7
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
         
-        // roll for PSR (failed roll - 6 is less than 7 needed)
-        SetupDiceRolls(6);
+        // roll for PSR (failed)
+        SetupRollResult(false, PilotingSkillRollType.GyroHit);
+        SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall);
 
         // Setup falling damage calculator
         var fallingDamageData = GetFallingDamageData();
@@ -113,9 +111,10 @@ public class FallProcessorTests
         
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage"); 
 
-        // First roll (6) is for GyroHit PSR (6 < 7 fails).
-        // Second roll (5) is for PilotDamageFromFall PSR.
-        SetupDiceRolls(6, 5); 
+        // First roll: GyroHit PSR (fails).
+        // Second roll: PilotDamageFromFall PSR.
+        SetupRollResult(false, PilotingSkillRollType.GyroHit); 
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall); 
 
         // Setup falling damage calculator (necessary for the FallProcessor to complete the fall logic).
         var fallingDamageData = GetFallingDamageData();
@@ -145,7 +144,7 @@ public class FallProcessorTests
         // Setup piloting skill calculator for pilot damage
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
     
-        SetupDiceRolls(5);
+        SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall);
         // Destroy the gyro with 2 hits
         var gyro = _testMech.GetAllComponents<Gyro>().First();
         gyro.Hit();
@@ -186,8 +185,8 @@ public class FallProcessorTests
         // BasePilotingSkill = 4. With modifierValue = 3, TargetNumber = 7.
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
         
-        // Dice roll: 8 for GyroHit PSR (8 >= 7 succeeds).
-        SetupDiceRolls(8); 
+        // Dice roll: GyroHit PSR (succeeds).
+        SetupRollResult(true, PilotingSkillRollType.GyroHit); 
 
         // Act
         var result = _sut.ProcessPotentialFall(_testMech, _game, componentHits)
@@ -200,8 +199,6 @@ public class FallProcessorTests
         result.FallPilotingSkillRoll.ShouldNotBeNull();
         result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeTrue();
-        result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(8);
-        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7); // 4 (base) + 3 (gyro hit mod)
         result.IsPilotingSkillRollRequired.ShouldBe(true);
         result.IsPilotTakingDamage.ShouldBe(false); // No fall, so no pilot damage PSR
         result.PilotDamagePilotingSkillRoll.ShouldBeNull();
@@ -233,7 +230,9 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot Damage PSR");
 
         // Dice rolls: Gyro (fails), HeavyDamage (fails), PilotDamage (succeeds)
-        SetupDiceRolls(6,7,5,7);
+        SetupRollResult(false, PilotingSkillRollType.GyroHit);
+        SetupRollResult(false, PilotingSkillRollType.HeavyDamage);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
@@ -249,14 +248,11 @@ public class FallProcessorTests
         var command = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.GyroHit);
         command.IsPilotingSkillRollRequired.ShouldBeTrue();
         command.FallPilotingSkillRoll!.IsSuccessful.ShouldBeFalse();
-        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(6);
-        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7);
         command.DamageData.ShouldBe(fallingDamageData);
         command.IsPilotTakingDamage.ShouldBeFalse(); // Pilot damage PSR is made because a fall occurred
         command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
-        command.PilotDamagePilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             Arg.Any<Unit>(),
             Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit),
@@ -289,7 +285,8 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
 
         // Dice rolls: Gyro (succeeds), HeavyDamage (succeeds)
-        SetupDiceRolls(8, 7);
+        SetupRollResult(true, PilotingSkillRollType.GyroHit);
+        SetupRollResult(true, PilotingSkillRollType.HeavyDamage);
 
         // Act
         var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits)
@@ -302,8 +299,6 @@ public class FallProcessorTests
         var gyroCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.GyroHit);
         gyroCommand.IsPilotingSkillRollRequired.ShouldBeTrue();
         gyroCommand.FallPilotingSkillRoll!.IsSuccessful.ShouldBeTrue();
-        gyroCommand.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(8);
-        gyroCommand.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7);
         gyroCommand.DamageData.ShouldBeNull();
         gyroCommand.IsPilotTakingDamage.ShouldBeFalse();
         gyroCommand.PilotDamagePilotingSkillRoll.ShouldBeNull();
@@ -312,8 +307,6 @@ public class FallProcessorTests
         var heavyDamageCommand = results.FirstOrDefault(c => c.FallPilotingSkillRoll?.RollType == PilotingSkillRollType.HeavyDamage);
         heavyDamageCommand.IsPilotingSkillRollRequired.ShouldBeTrue();
         heavyDamageCommand.FallPilotingSkillRoll!.IsSuccessful.ShouldBeTrue();
-        heavyDamageCommand.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
-        heavyDamageCommand.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6);
         heavyDamageCommand.DamageData.ShouldBeNull();
         heavyDamageCommand.IsPilotTakingDamage.ShouldBeFalse();
         heavyDamageCommand.PilotDamagePilotingSkillRoll.ShouldBeNull();
@@ -385,7 +378,8 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot Damage PSR");
 
         // Dice rolls: First for HeavyDamage (fails), second for PilotDamage (succeeds)
-        SetupDiceRolls(5, 7);
+        SetupRollResult(false, PilotingSkillRollType.HeavyDamage);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
         
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
@@ -402,15 +396,12 @@ public class FallProcessorTests
         command.FallPilotingSkillRoll.ShouldNotBeNull();
         command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.HeavyDamage);
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeFalse();
-        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(5);
-        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); 
 
         command.DamageData.ShouldBe(fallingDamageData);
         command.IsPilotTakingDamage.ShouldBeFalse();
         command.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         command.PilotDamagePilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         command.PilotDamagePilotingSkillRoll.IsSuccessful.ShouldBeTrue(); // Rolled 7 vs TN 4
-        command.PilotDamagePilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
 
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
@@ -437,7 +428,7 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
         
         // Dice roll for HeavyDamage PSR (succeeds)
-        SetupDiceRolls(7);
+        SetupRollResult(true, PilotingSkillRollType.HeavyDamage);
         
         // Act
         var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits).ToList();
@@ -450,9 +441,7 @@ public class FallProcessorTests
         command.FallPilotingSkillRoll.ShouldNotBeNull();
         command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.HeavyDamage);
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
-        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
-        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6);
-
+        
         command.DamageData.ShouldBeNull();
         command.PilotDamagePilotingSkillRoll.ShouldBeNull();
         command.IsPilotTakingDamage.ShouldBeFalse();
@@ -527,9 +516,10 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage"); 
 
         // Dice rolls:
-        // First roll (6) for GyroHit PSR (6 < 7 fails).
-        // Second roll (6) for PilotDamageFromFall PSR (6 < 7 fails).
-        SetupDiceRolls(6, 6); 
+        // First roll: GyroHit PSR fails.
+        // Second roll: PilotDamageFromFall PSR fails.
+        SetupRollResult(false, PilotingSkillRollType.GyroHit); 
+        SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall); 
 
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
@@ -547,8 +537,6 @@ public class FallProcessorTests
         result.FallPilotingSkillRoll.ShouldNotBeNull();
         result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.GyroHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(6);
-        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7);
 
         result.IsPilotingSkillRollRequired.ShouldBe(true);
         result.IsPilotTakingDamage.ShouldBe(true); 
@@ -556,9 +544,7 @@ public class FallProcessorTests
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        result.PilotDamagePilotingSkillRoll?.DiceResults.Sum().ShouldBe(6);
-        result.PilotDamagePilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(7);
-
+        
         // Verify GetPsrBreakdown was called for GyroHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
@@ -590,9 +576,10 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall"); 
 
         // Dice rolls:
-        // First roll (4) for LLA Hit PSR (4 < 5 fails).
-        // Second roll (5) for PilotDamageFromFall PSR (5 >= 4 succeeds).
-        SetupDiceRolls(4, 5); 
+        // First roll: LLA Hit PSR fails.
+        // Second roll PilotDamageFromFall PSR succeeds.
+        SetupRollResult(false, PilotingSkillRollType.LowerLegActuatorHit); 
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall); 
 
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
@@ -609,18 +596,14 @@ public class FallProcessorTests
         result.FallPilotingSkillRoll.ShouldNotBeNull();
         result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.LowerLegActuatorHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(4);
-        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (LLA mod)
-
+        
         result.IsPilotingSkillRollRequired.ShouldBeTrue();
         result.IsPilotTakingDamage.ShouldBeFalse(); 
         
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue(); // Based on dice roll 5 vs target 4
-        result.PilotDamagePilotingSkillRoll?.DiceResults.Sum().ShouldBe(5);
-        result.PilotDamagePilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(4);
-
+        
         // Verify GetPsrBreakdown was called for LowerLegActuatorHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
@@ -652,9 +635,10 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall"); 
 
         // Dice rolls:
-        // First roll (4) for ULA Hit PSR (4 < 5 fails).
-        // Second roll (5) for PilotDamageFromFall PSR (5 >= 4 succeeds).
-        SetupDiceRolls(4, 5); 
+        // First rol: ULA Hit PSR fails.
+        // Second roll: PilotDamageFromFall succeeds.
+        SetupRollResult(false, PilotingSkillRollType.UpperLegActuatorHit); 
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall); 
 
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
@@ -671,18 +655,14 @@ public class FallProcessorTests
         result.FallPilotingSkillRoll.ShouldNotBeNull();
         result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.UpperLegActuatorHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(4);
-        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (ULA mod)
-
+        
         result.IsPilotingSkillRollRequired.ShouldBeTrue();
         result.IsPilotTakingDamage.ShouldBeFalse(); 
         
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue(); // Based on dice roll 5 vs target 4
-        result.PilotDamagePilotingSkillRoll?.DiceResults.Sum().ShouldBe(5);
-        result.PilotDamagePilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(4);
-
+        
         // Verify GetPsrBreakdown was called for UpperLegActuatorHit
         _mockPilotingSkillCalculator.Received(1).GetPsrBreakdown(
             _testMech,
@@ -708,8 +688,8 @@ public class FallProcessorTests
         // BasePilotingSkill = 4. LLA Hit Mod +1. TargetNumber = 5.
         SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
         
-        // Dice roll: 8 for LLA Hit PSR (8 >= 5 succeeds).
-        SetupDiceRolls(8); 
+        // Dice roll: LLA Hit PSR succeeds
+        SetupRollResult(true, PilotingSkillRollType.LowerLegActuatorHit); 
 
         // Act
         var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits).ToList();
@@ -724,8 +704,6 @@ public class FallProcessorTests
         command.FallPilotingSkillRoll.ShouldNotBeNull();
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
         command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.LowerLegActuatorHit);
-        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(8);
-        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (LLA mod)
         command.DamageData.ShouldBeNull();
         command.PilotDamagePilotingSkillRoll.ShouldBeNull();
         command.IsPilotTakingDamage.ShouldBeFalse();
@@ -752,7 +730,8 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
 
         // Dice rolls: Hip Actuator PSR (fails), PilotDamage PSR (succeeds)
-        SetupDiceRolls(5, 6);
+        SetupRollResult(false, PilotingSkillRollType.HipActuatorHit);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
@@ -769,9 +748,7 @@ public class FallProcessorTests
         result.FallPilotingSkillRoll.ShouldNotBeNull();
         result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.HipActuatorHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(5);
-        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (hip actuator mod)
-
+        
         result.IsPilotingSkillRollRequired.ShouldBe(true);
         result.IsPilotTakingDamage.ShouldBe(false); // Pilot damage PSR succeeded
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
@@ -796,7 +773,7 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.HipActuatorHit, 2, "Hip Actuator Hit");
 
         // Dice roll: 8 for Hip Actuator Hit PSR (8 >= 6 succeeds).
-        SetupDiceRolls(8);
+        SetupRollResult(true, PilotingSkillRollType.HipActuatorHit);
 
         // Act
         var command = _sut.ProcessPotentialFall(_testMech, _game, componentHits)
@@ -809,8 +786,6 @@ public class FallProcessorTests
         command.FallPilotingSkillRoll.ShouldNotBeNull();
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
         command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.HipActuatorHit);
-        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(8);
-        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (hip actuator mod)
         command.DamageData.ShouldBeNull();
         command.PilotDamagePilotingSkillRoll.ShouldBeNull();
         command.IsPilotTakingDamage.ShouldBe(false);
@@ -837,7 +812,8 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
 
         // Dice rolls: Foot Actuator PSR (fails), PilotDamage PSR (succeeds)
-        SetupDiceRolls(4, 5);
+        SetupRollResult(false, PilotingSkillRollType.FootActuatorHit);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(_testMech, 0, false)
@@ -854,9 +830,7 @@ public class FallProcessorTests
         result.FallPilotingSkillRoll.ShouldNotBeNull();
         result.FallPilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.FootActuatorHit);
         result.FallPilotingSkillRoll?.IsSuccessful.ShouldBeFalse();
-        result.FallPilotingSkillRoll?.DiceResults.Sum().ShouldBe(4);
-        result.FallPilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (foot actuator mod)
-
+        
         result.IsPilotingSkillRollRequired.ShouldBe(true);
         result.IsPilotTakingDamage.ShouldBe(false); // Pilot damage PSR succeeded
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
@@ -880,8 +854,8 @@ public class FallProcessorTests
         // BasePilotingSkill = 4. Foot Actuator Hit Mod +1. TargetNumber = 5.
         SetupPsrFor(PilotingSkillRollType.FootActuatorHit, 1, "Foot Actuator Hit");
 
-        // Dice roll: 7 for Foot Actuator Hit PSR (7 >= 5 succeeds).
-        SetupDiceRolls(7);
+        // Dice roll: Actuator Hit PSR succeeds
+        SetupRollResult(true, PilotingSkillRollType.FootActuatorHit);
 
         // Act
         var command = _sut.ProcessPotentialFall(_testMech, _game, componentHits)
@@ -894,8 +868,6 @@ public class FallProcessorTests
         command.FallPilotingSkillRoll.ShouldNotBeNull();
         command.FallPilotingSkillRoll.IsSuccessful.ShouldBeTrue();
         command.FallPilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.FootActuatorHit);
-        command.FallPilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
-        command.FallPilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(5); // 4 (base) + 1 (foot actuator mod)
         command.DamageData.ShouldBeNull();
         command.PilotDamagePilotingSkillRoll.ShouldBeNull();
         command.IsPilotTakingDamage.ShouldBe(false);
@@ -922,7 +894,7 @@ public class FallProcessorTests
         // Setup piloting skill calculator for pilot damage
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
         
-        SetupDiceRolls(5); // For pilot damage PSR
+        SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall); // For pilot damage PSR
         
         // Setup falling damage calculator
         var fallingDamageData = GetFallingDamageData();
@@ -969,8 +941,8 @@ public class FallProcessorTests
         // BasePilotingSkill = 4. With modifierValue = 2, TargetNumber = 6.
         SetupPsrFor(PilotingSkillRollType.StandupAttempt, 2, "Standing up from prone");
         
-        // Dice roll: 7 for StandupAttempt PSR (7 >= 6 succeeds).
-        SetupDiceRolls(7);
+        // Dice roll: StandupAttempt PSR  succeeds.
+        SetupRollResult(true, PilotingSkillRollType.StandupAttempt);
 
         // Act
         var result = _sut.ProcessMovementAttempt(_testMech, FallReasonType.StandUpAttempt, _game);
@@ -985,8 +957,6 @@ public class FallProcessorTests
         result.PilotingSkillRoll.ShouldNotBeNull();
         result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
         result.PilotingSkillRoll.IsSuccessful.ShouldBeTrue();
-        result.PilotingSkillRoll.DiceResults.Sum().ShouldBe(7);
-        result.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (standup mod)
         
         result.PilotDamagePilotingSkillRoll.ShouldBeNull("No pilot damage PSR should be made for successful standup");
         result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for successful standup");
@@ -1012,8 +982,9 @@ public class FallProcessorTests
         // Setup PilotDamageFromFall PSR.
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
 
-        // Dice roll: 5 for StandupAttempt PSR (5 < 6 fails), 6 for pilot damage (6 > 4).
-        SetupDiceRolls(5,6);
+        // Dice roll: fails for StandupAttempt PSR, success for pilot damage
+        SetupRollResult(false, PilotingSkillRollType.StandupAttempt);
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
         // Act
         var result = _sut.ProcessMovementAttempt(_testMech, FallReasonType.StandUpAttempt, _game);
@@ -1028,14 +999,11 @@ public class FallProcessorTests
         result.PilotingSkillRoll.ShouldNotBeNull();
         result.PilotingSkillRoll.RollType.ShouldBe(PilotingSkillRollType.StandupAttempt);
         result.PilotingSkillRoll.IsSuccessful.ShouldBeFalse();
-        result.PilotingSkillRoll.DiceResults.Sum().ShouldBe(5);
-        result.PilotingSkillRoll.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(6); // 4 (base) + 2 (standup mod)
         
         result.PilotDamagePilotingSkillRoll.ShouldNotBeNull();
         result.PilotDamagePilotingSkillRoll?.RollType.ShouldBe(PilotingSkillRollType.PilotDamageFromFall);
         result.PilotDamagePilotingSkillRoll?.IsSuccessful.ShouldBeTrue(); // Based on dice roll 6 vs target 4
-        result.PilotDamagePilotingSkillRoll?.DiceResults.Sum().ShouldBe(6);
-        result.PilotDamagePilotingSkillRoll?.PsrBreakdown.ModifiedPilotingSkill.ShouldBe(4);
+
         result.FallingDamageData.ShouldBeNull("No falling damage should be calculated for failed standup");
         
         // Verify GetPsrBreakdown was called for StandupAttempt
@@ -1076,29 +1044,26 @@ public class FallProcessorTests
         ];
     }
 
-    private void SetupDiceRolls(params int[] rolls)
+    private void SetupRollResult(bool isSuccessful, PilotingSkillRollType rollType)
     {
-        var diceResults = new List<List<DiceResult>>();
-
-        // Create dice results for each roll
-        foreach (var roll in rolls)
-        {
-            var diceResult = new List<DiceResult>
+        _mockPilotingSkillCalculator.EvaluateRoll(
+                Arg.Any<PsrBreakdown>(),
+                Arg.Any<Unit>(), 
+                rollType)
+            .Returns(
+            new PilotingSkillRollData
             {
-                new(roll / 2 + roll % 2),
-                new(roll / 2)
-            };
-            diceResults.Add(diceResult);
-        }
-
-        // Set up the dice roller to return the predefined results
-        var callCount = 0;
-        _mockDiceRoller.Roll2D6().Returns(_ =>
-        {
-            var result = diceResults[callCount % diceResults.Count];
-            callCount++;
-            return result;
-        });
+                DiceResults = [2,2],
+                IsSuccessful = isSuccessful,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 4,
+                    Modifiers =
+                    [
+                    ]
+                },
+                RollType = rollType
+            });
     }
 
     private FallingDamageData GetFallingDamageData()

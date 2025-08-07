@@ -12,12 +12,10 @@ Version: **0.41.x**
 
 #### 2. Skill Roll Handling
 
-* [ ] Automatically **fail all Piloting Skill Rolls**.
+* [x] Automatically **fail all Piloting Skill Rolls**.
 
 #### 3. Falling Damage
-
-* [ ] If the 'Mech **falls while the pilot is unconscious**, apply normal falling damage.
-* [ ] Automatically apply **pilot damage from fall** (no roll to resist).
+* [x] Automatically apply **pilot damage from fall** (no roll to resist).
 
 #### 4. Targeting Modifiers
 * [ ] Allow **aimed shots** (e.g. called shots to location) against the unit.

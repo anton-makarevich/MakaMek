@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 using Sanet.MakaMek.Core.Models.Units;
@@ -15,9 +16,12 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 public class PilotingSkillCalculator : IPilotingSkillCalculator
 {
     private readonly IRulesProvider _rules;
-    public PilotingSkillCalculator(IRulesProvider rules)
+    private readonly IDiceRoller _diceRoller;
+
+    public PilotingSkillCalculator(IRulesProvider rules, IDiceRoller diceRoller)
     {
         _rules = rules;
+        _diceRoller = diceRoller;
     }
     
     /// <summary>
@@ -56,6 +60,46 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         {
             BasePilotingSkill = unit.Pilot.Piloting,
             Modifiers = modifiers
+        };
+    }
+
+    /// <summary>
+    /// Evaluates a piloting skill roll and returns complete roll data
+    /// </summary>
+    /// <param name="psrBreakdown">The PSR breakdown containing target number and modifiers</param>
+    /// <param name="unit">The unit making the piloting skill roll</param>
+    /// <param name="rollType">The type of piloting skill roll</param>
+    /// <returns>Complete piloting skill roll data including dice results</returns>
+    public PilotingSkillRollData EvaluateRoll(PsrBreakdown psrBreakdown, Unit unit, PilotingSkillRollType rollType)
+    {
+        if (unit.Pilot == null)
+        {
+            throw new ArgumentException("Unit has no pilot", nameof(unit));
+        }
+
+        // For unconscious pilots, create automatic failure data without rolling dice
+        if (!unit.Pilot.IsConscious)
+        {
+            return new PilotingSkillRollData
+            {
+                RollType = rollType,
+                DiceResults = [], 
+                IsSuccessful = false,
+                PsrBreakdown = psrBreakdown
+            };
+        }
+
+        // Perform 2d6 dice roll
+        var diceResults = _diceRoller.Roll2D6();
+        var rollTotal = diceResults.Sum(d => d.Result);
+        var isSuccessful = rollTotal >= psrBreakdown.ModifiedPilotingSkill;
+
+        return new PilotingSkillRollData
+        {
+            RollType = rollType,
+            DiceResults = diceResults.Select(d => d.Result).ToArray(),
+            IsSuccessful = isSuccessful,
+            PsrBreakdown = psrBreakdown
         };
     }
 
@@ -166,7 +210,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             });
 
             // Leg destroyed modifier (for pilot damage during fall)
-            var destroyedLegs = mech.Parts.OfType<Leg>().Count(leg => leg.IsDestroyed || leg.IsBlownOff);
+            var destroyedLegs = mech.Parts.OfType<Leg>().Count(leg => leg.IsDestroyed);
             for (var i = 0; i < destroyedLegs; i++)
             {
                 modifiers.Add(new LegDestroyedModifier
