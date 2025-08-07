@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -42,6 +43,7 @@ public class MovementStateTests
     private readonly Hex _hex1;
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
+    private readonly IPilot _pilot = Substitute.For<IPilot>();
 
     public MovementStateTests()
     {
@@ -66,6 +68,7 @@ public class MovementStateTests
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
         
+        _pilot.IsConscious.Returns(true);
         
         var rules = new ClassicBattletechRulesProvider();
         _unitData = MechFactoryTests.CreateDummyMechData();
@@ -74,6 +77,7 @@ public class MovementStateTests
         var mechFactory = new MechFactory(rules,localizationService);
         _unit1 = mechFactory.Create(_unitData);
         _unit2 = mechFactory.Create(_unitData);
+        _unit1.AssignPilot(_pilot);
         
         // Create two adjacent hexes
         _hex1 = new Hex(new HexCoordinates(1, 1));
@@ -384,6 +388,7 @@ public class MovementStateTests
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First() as Mech;
         unit!.Deploy(position);
+        unit.AssignPilot(_pilot);
         unit.SetProne();
         _pilotingSkillCalculator.GetPsrBreakdown(unit, PilotingSkillRollType.StandupAttempt)
             .Returns(new PsrBreakdown
@@ -680,6 +685,7 @@ public class MovementStateTests
                 Modifiers = []
             });
         proneMech!.Deploy(position);
+        proneMech.AssignPilot(_pilot);
         proneMech.SetProne();
         var unitHex = _game.BattleMap!.GetHex(proneMech.Position!.Coordinates)!;
         _sut.HandleHexSelection(unitHex);
@@ -746,6 +752,39 @@ public class MovementStateTests
         actions[2].Label.ShouldBe($"Run | MP: {_unit1.GetMovementPoints(MovementType.Run)}");
         actions[3].Label.ShouldBe($"Jump | MP: {_unit1.GetMovementPoints(MovementType.Jump)}");
     }
+    
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnRunOption_WhenMechCannotRun()
+    {
+        // Arrange
+        _sut.HandleUnitSelection(_unit1);
+        var leg = _unit1.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        leg.ApplyDamage(100); // Destroy the leg
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(3); // Stand Still, Walk, Jump (since the unit has jump jets)
+        actions[0].Label.ShouldBe("Stand Still");
+        actions[1].Label.ShouldBe($"Walk | MP: {_unit1.GetMovementPoints(MovementType.Walk)}");
+        actions[2].Label.ShouldBe($"Jump | MP: {_unit1.GetMovementPoints(MovementType.Jump)}");
+    }
+    
+    [Fact]
+    public void GetAvailableActions_ShouldReturnStillOnly_InMovementTypeSelection_WhenUnitIsImmobile()
+    {
+        // Arrange
+        _sut.HandleUnitSelection(_unit1);
+        _unit1.Shutdown();
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(1); // Stand Still only
+        actions[0].Label.ShouldBe("Stand Still");
+    }
 
     [Fact]
     public void GetAvailableActions_NoJumpJets_DoesNotShowJumpOption()
@@ -756,6 +795,7 @@ public class MovementStateTests
         var unitWithoutJumpJets = new MechFactory(rules, Substitute.For<ILocalizationService>())
             .Create(unitData);
         _sut.HandleUnitSelection(unitWithoutJumpJets);
+        unitWithoutJumpJets.AssignPilot(_pilot);
 
         // Act
         var actions = _sut.GetAvailableActions().ToList();
@@ -801,6 +841,23 @@ public class MovementStateTests
         var stayProneAction = actions.FirstOrDefault(a => a.Label.Contains("Stay Prone"));
         stayProneAction.ShouldNotBeNull("Should have stay prone action");
         stayProneAction.Label.ShouldBe("Stay Prone");
+    }
+    
+    [Fact]
+    public void GetAvailableActions_ForProneMech_ShouldReturnStillOnly_WhenUnitIsImmobile()
+    {
+        // Arrange
+        _sut.HandleUnitSelection(_unit1);
+        var proneMech = _unit1 as Mech;
+        proneMech!.SetProne();
+        proneMech.Shutdown();
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.Count.ShouldBe(1); // Stand Still only
+        actions[0].Label.ShouldBe("Stay Prone");
     }
 
     [Fact]
@@ -1050,6 +1107,7 @@ public class MovementStateTests
         var rules = new ClassicBattletechRulesProvider();
         var mechThatStoodUp = new MechFactory(rules, Substitute.For<ILocalizationService>())
             .Create(unitData);
+        mechThatStoodUp.AssignPilot(_pilot);
 
         // Simulate the mech having just stood up
         mechThatStoodUp.SetProne();

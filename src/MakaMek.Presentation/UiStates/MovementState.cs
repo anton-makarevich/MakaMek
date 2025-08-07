@@ -389,6 +389,8 @@ public class MovementState : IUiState
                         () => HandleMovementTypeSelection(MovementType.StandingStill))
                 };
 
+                if (mech.IsImmobile) return proneActions;
+
                 // Add standup action if possible
                 if (mech.CanStandup())
                 {
@@ -401,7 +403,7 @@ public class MovementState : IUiState
 
                     // Format the probability as percentage
                     var probabilityText = $" ({successProbability:0}%)";
-                    
+
                     // Check if this is a minimum movement situation
                     if (mech.IsMinimumMovement)
                     {
@@ -415,8 +417,9 @@ public class MovementState : IUiState
                     {
                         // Non-minimum movement case: separate Walk and Run actions
                         // Walk standup action
-                        var walkActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
-                            _viewModel.LocalizationService.GetString("MovementType_Walk"), 
+                        var walkActionText = string.Format(
+                            _viewModel.LocalizationService.GetString("Action_MovementPoints"),
+                            _viewModel.LocalizationService.GetString("MovementType_Walk"),
                             _selectedUnit.GetMovementPoints(MovementType.Walk)) + probabilityText;
 
                         proneActions.Add(new StateAction(
@@ -427,8 +430,9 @@ public class MovementState : IUiState
                         // Run standup action (only if mech can run)
                         if (mech.CanRun)
                         {
-                            var runActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
-                                _viewModel.LocalizationService.GetString("MovementType_Run"), 
+                            var runActionText = string.Format(
+                                _viewModel.LocalizationService.GetString("Action_MovementPoints"),
+                                _viewModel.LocalizationService.GetString("MovementType_Run"),
                                 _selectedUnit.GetMovementPoints(MovementType.Run)) + probabilityText;
 
                             proneActions.Add(new StateAction(
@@ -459,24 +463,31 @@ public class MovementState : IUiState
                     _viewModel.LocalizationService.GetString("Action_StandStill"),
                     true,
                     () => HandleMovementTypeSelection(MovementType.StandingStill)),
-                // Walk
-                new(
-                    string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
-                        _viewModel.LocalizationService.GetString("MovementType_Walk"), 
-                        _selectedUnit.GetMovementPoints(MovementType.Walk)),
-                    true,
-                    () => HandleMovementTypeSelection(MovementType.Walk)),
-                // Run
-                new(
-                    string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"), 
-                        _viewModel.LocalizationService.GetString("MovementType_Run"), 
+
+            };
+            if (_selectedUnit.IsImmobile) return actions;
+            
+            // Walk
+            actions.Add(new(
+                string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
+                    _viewModel.LocalizationService.GetString("MovementType_Walk"),
+                    _selectedUnit.GetMovementPoints(MovementType.Walk)),
+                true,
+                () => HandleMovementTypeSelection(MovementType.Walk)));
+            
+            // Run
+            if (_selectedUnit is Mech mechUnit && mechUnit.CanRun)
+            {
+                actions.Add(new(
+                    string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
+                        _viewModel.LocalizationService.GetString("MovementType_Run"),
                         _selectedUnit.GetMovementPoints(MovementType.Run)),
                     true,
-                    () => HandleMovementTypeSelection(MovementType.Run))
-            };
+                    () => HandleMovementTypeSelection(MovementType.Run)));
+            }
 
             // Jump
-            if (!(_selectedUnit is Mech {CanJump:true })) return actions;
+            if (!(_selectedUnit is Mech { CanJump: true })) return actions;
             var jumpPoints = _selectedUnit.GetMovementPoints(MovementType.Jump);
 
             var jumpActionText = string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),
@@ -489,7 +500,8 @@ public class MovementState : IUiState
                 var psrBreakdown = _viewModel.Game.PilotingSkillCalculator.GetPsrBreakdown(
                     jumpMech, PilotingSkillRollType.JumpWithDamage);
 
-                var successProbability = Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
+                var successProbability =
+                    Core.Utils.DiceUtils.Calculate2d6Probability(psrBreakdown.ModifiedPilotingSkill);
                 var probabilityText = $" ({successProbability:0}%)";
                 jumpActionText += probabilityText;
             }
