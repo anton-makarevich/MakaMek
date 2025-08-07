@@ -815,6 +815,9 @@ public class BattleMapViewModelTests
         // Place units
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _sut.Units.First(u => u.Owner!.Id == player1.Id);
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        attacker.AssignPilot(pilot);
         attacker.Deploy(attackerPosition);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
@@ -895,6 +898,9 @@ public class BattleMapViewModelTests
         // Place units
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _sut.Units.First(u => u.Owner!.Id == player1.Id);
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        attacker.AssignPilot(pilot);
         attacker.Deploy(attackerPosition);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);

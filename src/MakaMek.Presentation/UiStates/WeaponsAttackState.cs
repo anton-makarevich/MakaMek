@@ -209,6 +209,14 @@ public class WeaponsAttackState : IUiState
 
         if (CurrentStep == WeaponsAttackStep.ActionSelection)
         {
+            // Add skip attack action
+            actions.Add(new StateAction(
+                _viewModel.LocalizationService.GetString("Action_SkipAttack"),
+                true,
+                ConfirmWeaponSelections));
+
+            if (Attacker.IsImmobile) return actions;
+            
             // Add torso rotation action if available
             if (Attacker is Mech { CanRotateTorso: true } mech)
             {
@@ -237,11 +245,7 @@ public class WeaponsAttackState : IUiState
                     }));
             }
 
-            // Add skip attack action
-            actions.Add(new StateAction(
-                _viewModel.LocalizationService.GetString("Action_SkipAttack"),
-                true,
-                ConfirmWeaponSelections));
+            
         }
         else if (CurrentStep == WeaponsAttackStep.TargetSelection)
         {
