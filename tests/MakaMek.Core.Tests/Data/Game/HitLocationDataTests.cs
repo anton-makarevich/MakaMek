@@ -25,6 +25,14 @@ public class HitLocationDataTests
             .Returns("{0}: {1} damage (Roll: {2})");
         _localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer")
             .Returns("{0} → {1}: {2} damage (Roll: {3})");
+        _localizationService.GetString("Command_WeaponAttackResolution_AimedShotSuccessful")
+            .Returns("{0}: {1} damage (Aimed Shot: {2}, successful)");
+        _localizationService.GetString("Command_WeaponAttackResolution_AimedShotFailed")
+            .Returns("{0}: {1} damage (Aimed Shot: {2}, failed, Roll: {3})");
+        _localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferSuccessful")
+            .Returns("{0} → {1}: {2} damage (Aimed Shot: {3}, successful)");
+        _localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferFailed")
+            .Returns("{0} → {1}: {2} damage (Aimed Shot: {3}, failed, Roll: {4})");
         _localizationService.GetString("Command_WeaponAttackResolution_CriticalHit")
             .Returns("Critical hit in {0} slot {1}: {2}");
         _localizationService.GetString("Command_WeaponAttackResolution_CritRoll")
@@ -51,7 +59,8 @@ public class HitLocationDataTests
         var sut = new HitLocationData(
             PartLocation.CenterTorso,
             5,
-            [new DiceResult(6)]
+            [], // No aimed shot roll
+            [6] // Location roll
         );
 
         // Act
@@ -69,7 +78,8 @@ public class HitLocationDataTests
         var sut = new HitLocationData(
             PartLocation.CenterTorso,
             5,
-            [new DiceResult(6)],
+            [], // No aimed shot roll
+            [6], // Location roll
             null,
             PartLocation.RightTorso // Initial location before transfer
         );
@@ -106,7 +116,8 @@ public class HitLocationDataTests
         var sut = new HitLocationData(
             PartLocation.CenterTorso,
             5,
-            [new DiceResult(6)],
+            [], // No aimed shot roll
+            [6], // Location roll
             criticalHits
         );
 
@@ -139,7 +150,8 @@ public class HitLocationDataTests
         var sut = new HitLocationData(
             PartLocation.LeftArm,
             5,
-            [new DiceResult(6)],
+            [], // No aimed shot roll
+            [6], // Location roll
             criticalHits
         );
 
@@ -178,7 +190,8 @@ public class HitLocationDataTests
         var sut = new HitLocationData(
             PartLocation.CenterTorso, // Hit was in center torso
             5,
-            [new DiceResult(6)],
+            [], // No aimed shot roll
+            [6], // Location roll
             criticalHits
         );
 
@@ -218,7 +231,8 @@ public class HitLocationDataTests
         var sut = new HitLocationData(
             PartLocation.CenterTorso,
             5,
-            [new DiceResult(6)],
+            [], // No aimed shot roll
+            [6], // Location roll
             criticalHits
         );
 
@@ -231,5 +245,168 @@ public class HitLocationDataTests
         result.ShouldContain("Critical roll: 8");
         result.ShouldContain("Critical hit in LeftArm slot 4: AC5 Ammo"); // Slot is 0-indexed in code but 1-indexed in display
         result.ShouldContain("Ammo EXPLODES! Damage: 50");
+    }
+
+    [Fact]
+    public void Render_SuccessfulAimedShot_ReturnsCorrectOutput()
+    {
+        // Arrange
+        var sut = new HitLocationData(
+            PartLocation.Head,
+            5,
+            [3, 4], // Aimed shot roll: 7 (successful)
+            [] // No location roll since aimed shot was successful
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.Trim().ShouldBe("Head: 5 damage (Aimed Shot: 7, successful)");
+    }
+
+    [Fact]
+    public void Render_FailedAimedShot_ReturnsCorrectOutput()
+    {
+        // Arrange
+        var sut = new HitLocationData(
+            PartLocation.CenterTorso,
+            5,
+            [2, 3], // Aimed shot roll: 5 (failed)
+            [4, 3] // Location roll: 7 (used for normal hit location)
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.Trim().ShouldBe("CenterTorso: 5 damage (Aimed Shot: 5, failed, Roll: 7)");
+    }
+
+    [Fact]
+    public void Render_SuccessfulAimedShotWithTransfer_ReturnsCorrectOutput()
+    {
+        // Arrange
+        var sut = new HitLocationData(
+            PartLocation.CenterTorso,
+            5,
+            [3, 3], // Aimed shot roll: 6 (successful)
+            [], // No location roll since aimed shot was successful
+            null,
+            PartLocation.LeftTorso // Initial location before transfer
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.Trim().ShouldBe("LeftTorso → CenterTorso: 5 damage (Aimed Shot: 6, successful)");
+    }
+
+    [Fact]
+    public void Render_FailedAimedShotWithTransfer_ReturnsCorrectOutput()
+    {
+        // Arrange
+        var sut = new HitLocationData(
+            PartLocation.CenterTorso,
+            5,
+            [1, 3], // Aimed shot roll: 4 (failed)
+            [5, 2], // Location roll: 7 (used for normal hit location)
+            null,
+            PartLocation.RightTorso // Initial location before transfer
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.Trim().ShouldBe("RightTorso → CenterTorso: 5 damage (Aimed Shot: 4, failed, Roll: 7)");
+    }
+
+    [Theory]
+    [InlineData(6, true)]
+    [InlineData(7, true)]
+    [InlineData(8, true)]
+    [InlineData(5, false)]
+    [InlineData(9, false)]
+    [InlineData(2, false)]
+    [InlineData(12, false)]
+    public void Render_AimedShotRollBoundaryConditions_ReturnsCorrectOutput(int rollTotal, bool shouldSucceed)
+    {
+        // Arrange
+        var aimedShotRoll = rollTotal == 6 ? new[] { 3, 3 } :
+                           rollTotal == 7 ? new[] { 3, 4 } :
+                           rollTotal == 8 ? new[] { 4, 4 } :
+                           rollTotal == 5 ? new[] { 2, 3 } :
+                           rollTotal == 9 ? new[] { 4, 5 } :
+                           rollTotal == 2 ? new[] { 1, 1 } :
+                           new[] { 6, 6 }; // 12
+
+        var locationRoll = shouldSucceed ? new int[0] : new[] { 3, 4 }; // Only present if aimed shot failed
+
+        var sut = new HitLocationData(
+            PartLocation.RightArm,
+            8,
+            aimedShotRoll,
+            locationRoll
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        if (shouldSucceed)
+        {
+            result.Trim().ShouldBe($"RightArm: 8 damage (Aimed Shot: {rollTotal}, successful)");
+        }
+        else
+        {
+            result.Trim().ShouldBe($"RightArm: 8 damage (Aimed Shot: {rollTotal}, failed, Roll: 7)");
+        }
+    }
+
+    [Fact]
+    public void Render_AimedShotWithCriticals_ReturnsCorrectOutput()
+    {
+        // Arrange
+        // Add component to right arm for critical hit
+        var rightArm = _unit.Parts.First(p => p.Location == PartLocation.RightArm);
+        var weapon = new MachineGun();
+        rightArm.TryAddComponent(weapon, [1]);
+
+        var criticalHits = new List<LocationCriticalHitsData>
+        {
+            new(
+                PartLocation.RightArm,
+                8, // Critical roll result
+                1, // Number of critical hits
+                [
+                    WeaponAttackResolutionCommandTests.CreateComponentHitData(1) // Hit in slot 1
+                ]
+            )
+        };
+
+        var sut = new HitLocationData(
+            PartLocation.RightArm,
+            5,
+            [4, 4], // Aimed shot roll: 8 (successful)
+            [], // No location roll since aimed shot was successful
+            criticalHits
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("RightArm: 5 damage (Aimed Shot: 8, successful)");
+        result.ShouldContain("Critical roll: 8");
+        result.ShouldContain("Criticals: 1");
+        result.ShouldContain("Critical hit in RightArm slot 2: Machine Gun"); // Slot is 0-indexed in code but 1-indexed in display
     }
 }

@@ -27,11 +27,6 @@ public class ToHitCalculator : IToHitCalculator
         return breakdown.Total;
     }
 
-    public ToHitBreakdown GetModifierBreakdown(Unit attacker, Unit target, Weapon weapon, BattleMap map, bool isPrimaryTarget = true)
-    {
-        return GetModifierBreakdown(attacker, target, weapon, map, isPrimaryTarget, null);
-    }
-
     public ToHitBreakdown GetModifierBreakdown(Unit attacker, Unit target, Weapon weapon, BattleMap map, bool isPrimaryTarget = true, PartLocation? aimedShotTarget = null)
     {
         if (attacker.Pilot is null)

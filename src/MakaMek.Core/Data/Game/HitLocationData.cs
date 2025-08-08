@@ -25,25 +25,78 @@ public record HitLocationData(
     public string Render(ILocalizationService localizationService, Unit unit)
     {
         var stringBuilder = new StringBuilder();
-        var locationRollTotal = LocationRoll.Sum(d => d);
-        
+
+        // Check if this was an aimed shot
+        var isAimedShot = AimedShotRoll.Length > 0;
+        var aimedShotTotal = isAimedShot ? AimedShotRoll.Sum() : 0;
+        var aimedShotSuccessful = isAimedShot && aimedShotTotal is >= 6 and <= 8;
+        var locationRollTotal = LocationRoll.Length > 0 ? LocationRoll.Sum() : 0;
+
         // If there was a location transfer, show both the initial and final locations
         if (InitialLocation.HasValue && InitialLocation.Value != Location)
         {
-            stringBuilder.AppendLine(string.Format(
-                localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer"),
-                InitialLocation.Value,
-                Location,
-                Damage,
-                locationRollTotal));
+            if (isAimedShot)
+            {
+                if (aimedShotSuccessful)
+                {
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferSuccessful"),
+                        InitialLocation.Value,
+                        Location,
+                        Damage,
+                        aimedShotTotal));
+                }
+                else
+                {
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferFailed"),
+                        InitialLocation.Value,
+                        Location,
+                        Damage,
+                        aimedShotTotal,
+                        locationRollTotal));
+                }
+            }
+            else
+            {
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer"),
+                    InitialLocation.Value,
+                    Location,
+                    Damage,
+                    locationRollTotal));
+            }
         }
         else
         {
-            stringBuilder.AppendLine(string.Format(
-                localizationService.GetString("Command_WeaponAttackResolution_HitLocation"),
-                Location,
-                Damage,
-                locationRollTotal));
+            if (isAimedShot)
+            {
+                if (aimedShotSuccessful)
+                {
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_AimedShotSuccessful"),
+                        Location,
+                        Damage,
+                        aimedShotTotal));
+                }
+                else
+                {
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_AimedShotFailed"),
+                        Location,
+                        Damage,
+                        aimedShotTotal,
+                        locationRollTotal));
+                }
+            }
+            else
+            {
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_WeaponAttackResolution_HitLocation"),
+                    Location,
+                    Damage,
+                    locationRollTotal));
+            }
         }
         
         // Process all critical hits for this hit location
