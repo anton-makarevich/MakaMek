@@ -14,6 +14,9 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 using Shouldly.ShouldlyExtensionMethods;
@@ -574,9 +577,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
     // Helper to invoke private method
     private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg,
-        Unit? target)
+        Unit? target, WeaponTargetData? weaponTargetData = null)
     {
-        var weaponTargetData = new WeaponTargetData
+        weaponTargetData ??= new WeaponTargetData
         {
             Weapon = new WeaponData
             {
@@ -690,7 +693,84 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
         data.Location.ShouldBe(PartLocation.CenterTorso);
     }
+    
+    [Fact]
+    public void DetermineHitLocation_WithSuccessfulAimedShot_ShouldHitIntendedLocation()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var mech = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
+        mech.Shutdown();
+        
+        // Configure dice rolls for hit location
+        DiceRoller.Roll2D6().Returns(
+            [new DiceResult(5), new DiceResult(3)] // 8 is in 6-8 range
+        );
+        
+        var weaponTargetData = new WeaponTargetData
+        {
+            Weapon = new WeaponData
+            {
+                Name = "Test Weapon",
+                Location = PartLocation.RightArm,
+                Slots = [1, 2]
+            },
+            TargetId = Guid.NewGuid(),
+            IsPrimaryTarget = false,
+            AimedShotTarget = PartLocation.LeftArm
+        };
 
+        var sut = new WeaponAttackResolutionPhase(Game);
+
+        // Act
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech, weaponTargetData);
+
+        // Assert
+        // Should have transferred from LeftArm to LeftTorso to CenterTorso
+        data.Location.ShouldBe(PartLocation.LeftArm);
+    }
+    
+    [Fact]
+    public void DetermineHitLocation_WithUnsuccessfulAimedShot_ShouldHitLocationByTable()
+    {
+        // Arrange
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var mech = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
+        mech.Shutdown();
+
+        // Configure the rules provider to return LeftArm as the initial hit location
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.CenterTorso);
+
+        // Configure dice rolls for hit location
+        DiceRoller.Roll2D6().Returns(
+            [new DiceResult(5), new DiceResult(5)] // 10 is outside the 6-8 range
+        );
+        
+        var weaponTargetData = new WeaponTargetData
+        {
+            Weapon = new WeaponData
+            {
+                Name = "Test Weapon",
+                Location = PartLocation.RightArm,
+                Slots = [1, 2]
+            },
+            TargetId = Guid.NewGuid(),
+            IsPrimaryTarget = false,
+            AimedShotTarget = PartLocation.LeftArm
+        };
+
+        var sut = new WeaponAttackResolutionPhase(Game);
+
+        // Act
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech, weaponTargetData);
+
+        // Assert
+        // Should have transferred from LeftArm to LeftTorso to CenterTorso
+        data.Location.ShouldBe(PartLocation.CenterTorso);
+    }
+    
     [Fact]
     public void Enter_ShouldTrackDestroyedParts_WhenApplyingDamage()
     {
