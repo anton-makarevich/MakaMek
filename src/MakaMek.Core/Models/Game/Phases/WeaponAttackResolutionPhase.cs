@@ -48,15 +48,13 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     private void PrepareUnitsWithTargets()
     {
         _unitsWithTargets.Clear();
-        
+
         foreach (var player in _playersInOrder)
         {
             var unitsWithWeaponTargets = player.Units
-                .Where(unit => unit.CanFireWeapons 
-                               && unit.Parts.SelectMany(p=>p.GetComponents<Weapon>())
-                                   .Any(weapon => weapon.Target != null))
+                .Where(unit => unit is { CanFireWeapons: true, HasDeclaredWeaponAttack: true })
                 .ToList();
-            
+
             if (unitsWithWeaponTargets.Count > 0)
             {
                 _unitsWithTargets[player.Id] = unitsWithWeaponTargets;
@@ -95,24 +93,24 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
 
         var currentUnit = unitsWithTargets[_currentUnitIndex];
-        var weaponsWithTargets = currentUnit.Parts.SelectMany(p => p.GetComponents<Weapon>())
-            .Where(weapon => weapon.Target != null)
-            .ToList();
+        var weaponTargets = currentUnit.GetAllWeaponTargetsData();
 
-        // Check if we've processed all weapons for the current unit
-        if (_currentWeaponIndex >= weaponsWithTargets.Count)
+        // Check if we've processed all weapon targets for the current unit
+        if (_currentWeaponIndex >= weaponTargets.Count)
         {
             MoveToNextUnit();
             ResolveNextAttack();
             return;
         }
 
-        var currentWeapon = weaponsWithTargets[_currentWeaponIndex];
-        var targetUnit = currentWeapon.Target;
+        var currentWeaponTarget = weaponTargets[_currentWeaponIndex];
+        
+        var allUnits = Game.AlivePlayers.SelectMany(p => p.AliveUnits);
+        var targetUnit = allUnits.FirstOrDefault(u => u.Id == currentWeaponTarget.TargetId);
 
-        if (targetUnit != null)
+        if ( targetUnit != null)
         {
-            var resolution = ResolveAttack(currentUnit, targetUnit, currentWeapon);
+            var resolution = ResolveAttack(currentUnit, targetUnit, currentWeaponTarget);
             PublishAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
         }
 
@@ -123,19 +121,26 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         ResolveNextAttack();
     }
 
-    private AttackResolutionData ResolveAttack(Unit attacker, Unit target, Weapon weapon)
+    private AttackResolutionData ResolveAttack(Unit attacker, Unit target, WeaponTargetData weaponTargetData)
     {
-        
+
         if (Game.BattleMap == null)
         {
             throw new Exception("Battle map is null");
         }
+        // Find the weapon and target unit
+        var weapon = attacker.GetMountedComponentAtLocation<Weapon>(
+            weaponTargetData.Weapon.Location,
+            weaponTargetData.Weapon.Slots);
+
+        
         // Calculate to-hit number
         var toHitNumber = Game.ToHitCalculator.GetToHitNumber(
             attacker,
             target,
             weapon,
-            Game.BattleMap);
+            Game.BattleMap,
+            weaponTargetData.IsPrimaryTarget);
 
         // Roll 2D6 for attack
         var attackRoll = Game.DiceRoller.Roll2D6();
@@ -157,7 +162,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (weapon.WeaponSize > 1)
         {
             // It's a cluster weapon, handle multiple hits
-            hitLocationsData = ResolveClusterWeaponHit(weapon, attackDirection.Value);
+            hitLocationsData = ResolveClusterWeaponHit(weapon, target, attackDirection.Value);
 
             // Create hit locations data with multiple hits
             return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
@@ -177,12 +182,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
     }
 
-    private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon, FiringArc attackDirection)
+    private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon, Unit target, FiringArc attackDirection)
     {
-        if (weapon.Target == null)
-        {
-            throw new InvalidOperationException("Weapon's target cannot be null");
-        }
         // Roll for cluster hits
         var clusterRoll = Game.DiceRoller.Roll2D6();
         var clusterRollTotal = clusterRoll.Sum(d => d.Result);
@@ -207,7 +208,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var clusterDamage = weapon.ClusterSize * damagePerMissile;
             
             // Determine the hit location for this cluster
-            var hitLocationData = DetermineHitLocation(attackDirection, clusterDamage, weapon.Target);
+            var hitLocationData = DetermineHitLocation(attackDirection, clusterDamage, target);
             
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
@@ -221,7 +222,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var partialClusterDamage = remainingMissiles * damagePerMissile;
             
             // Determine the hit location for the partial cluster
-            var hitLocationData = DetermineHitLocation(attackDirection, partialClusterDamage, weapon.Target);
+            var hitLocationData = DetermineHitLocation(attackDirection, partialClusterDamage, target);
             
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);

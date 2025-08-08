@@ -31,11 +31,6 @@ public abstract class Weapon : Component
     /// Indicates whether this weapon requires ammunition to fire
     /// </summary>
     public bool RequiresAmmo => _definition.RequiresAmmo;
-    
-    /// <summary>
-    /// The target unit for this weapon in the current attack declaration
-    /// </summary>
-    public Unit? Target { get; set; }
 
     /// <summary>
     /// Gets the range bracket for a given distance

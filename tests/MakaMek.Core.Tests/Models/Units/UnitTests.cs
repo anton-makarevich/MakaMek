@@ -296,8 +296,10 @@ public class UnitTests
         attacker.DeclareWeaponAttack(weaponTargets, [target]);
         
         // Assert
-        weapon.Target.ShouldNotBeNull();
-        weapon.Target.ShouldBe(target);
+        var weaponTargetData = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        weaponTargetData.ShouldNotBeNull();
+        weaponTargetData.TargetId.ShouldBe(targetId);
+        weaponTargetData.IsPrimaryTarget.ShouldBeTrue();
         attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
     
@@ -353,12 +355,16 @@ public class UnitTests
         attacker.DeclareWeaponAttack(weaponTargets, [target1, target2]);
         
         // Assert
-        weapon1.Target.ShouldNotBeNull();
-        weapon1.Target.ShouldBe(target1);
-        
-        weapon2.Target.ShouldNotBeNull();
-        weapon2.Target.ShouldBe(target2);
-        
+        var weapon1Target = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        weapon1Target.ShouldNotBeNull();
+        weapon1Target.TargetId.ShouldBe(targetId1);
+        weapon1Target.IsPrimaryTarget.ShouldBeTrue();
+
+        var weapon2Target = attacker.GetWeaponTargetData(PartLocation.RightArm, [2, 3]);
+        weapon2Target.ShouldNotBeNull();
+        weapon2Target.TargetId.ShouldBe(targetId2);
+        weapon2Target.IsPrimaryTarget.ShouldBeTrue();
+
         attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
     
@@ -408,8 +414,10 @@ public class UnitTests
         attacker.DeclareWeaponAttack(weaponTargets, [target]);
         
         // Assert
-        weapon.Target.ShouldNotBeNull();
-        weapon.Target.ShouldBe(target);
+        var weaponTarget = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        weaponTarget.ShouldNotBeNull();
+        weaponTarget.TargetId.ShouldBe(targetId);
+        weaponTarget.IsPrimaryTarget.ShouldBeTrue();
         attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
     
@@ -463,11 +471,14 @@ public class UnitTests
         attacker.DeclareWeaponAttack(weaponTargets, [target]);
         
         // Assert
-        weapon1.Target.ShouldNotBeNull();
-        weapon1.Target.ShouldBe(target);
-        
-        weapon2.Target.ShouldBeNull();
-        
+        var weapon1Target = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        weapon1Target.ShouldNotBeNull();
+        weapon1Target.TargetId.ShouldBe(targetId);
+        weapon1Target.IsPrimaryTarget.ShouldBeTrue();
+
+        var weapon2Target = attacker.GetWeaponTargetData(PartLocation.RightArm, [2, 3]);
+        weapon2Target.ShouldBeNull(); // Should be null because target doesn't exist
+
         attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
     
@@ -945,7 +956,19 @@ public class UnitTests
         MountWeaponOnUnit(unit, weapon, PartLocation.RightArm,[3]);
         
         // Set the weapon's target
-        weapon.Target = targetUnit;
+        unit.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = new WeaponData
+                {
+                    Name = "Test Laser",
+                    Location = PartLocation.RightArm,
+                    Slots = [3]
+                },
+                TargetId = targetUnit.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
         
         // Act
         var heatData = unit.GetHeatData(rulesProvider);
