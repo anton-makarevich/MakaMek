@@ -223,7 +223,7 @@ public abstract class BaseGame : IGame
             .ToList();
 
         // Declare the weapon attack
-        attackerUnit.DeclareWeaponAttack(attackCommand.WeaponTargets, targetUnits);
+        attackerUnit.DeclareWeaponAttack(attackCommand.WeaponTargets);
     }
     
     internal void OnWeaponsAttackResolution(WeaponAttackResolutionCommand attackResolutionCommand)

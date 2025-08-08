@@ -193,11 +193,15 @@ public abstract class Unit
         }
         
         // Calculate weapon heat for weapons with targets
-        var weaponsWithTargets = GetAllComponents<Weapon>()
-            .Where(weapon => weapon.Target != null);
-            
-        foreach (var weapon in weaponsWithTargets)
+        var weaponTargets = GetAllWeaponTargetsData();
+
+        foreach (var weaponTarget in weaponTargets)
         {
+            var weapon = GetMountedComponentAtLocation<Weapon>(
+                weaponTarget.Weapon.Location,
+                weaponTarget.Weapon.Slots);
+            if (weapon == null) continue;
+
             if (weapon.Heat <= 0) continue;
             weaponHeatSources.Add(new WeaponHeatData
             {
@@ -289,16 +293,21 @@ public abstract class Unit
 
     // Damage tracking
     public int TotalPhaseDamage { get; private set; }
-    
+
     /// <summary>
     /// Indicates whether this unit has declared weapon attacks for the current turn
     /// </summary>
-    public bool HasDeclaredWeaponAttack { get; protected set; }
-    
+    public bool HasDeclaredWeaponAttack { get; private set; }
+
     /// <summary>
     /// Indicates whether this unit has applied heat for the current turn
     /// </summary>
     public bool HasAppliedHeat { get; protected set; }
+
+    /// <summary>
+    /// Collection of weapon targeting data for the current attack declaration
+    /// </summary>
+    private readonly List<WeaponTargetData> _weaponTargets = [];
 
     private void ResetMovement()
     { 
@@ -328,11 +337,7 @@ public abstract class Unit
 
     private void ResetWeaponsTargets()
     {
-        var weapons = GetAllComponents<Weapon>();
-        foreach (var weapon in weapons)
-        {
-            weapon.Target = null;
-        }
+        _weaponTargets.Clear();
         HasDeclaredWeaponAttack = false;
     }
 
@@ -341,34 +346,42 @@ public abstract class Unit
     /// </summary>
     /// <param name="weaponTargets">The weapon target data containing weapon locations, slots and target IDs</param>
     /// <param name="targetUnits">The list of target units</param>
-    public void DeclareWeaponAttack(List<WeaponTargetData> weaponTargets, List<Unit> targetUnits)
+    public void DeclareWeaponAttack(List<WeaponTargetData> weaponTargets)
     {
         if (!IsDeployed)
         {
             throw new InvalidOperationException("Unit is not deployed.");
         }
         
-        foreach (var weaponTarget in weaponTargets)
-        {
-            // Find the weapon at the specified location and slots
-            var weapon = GetMountedComponentAtLocation<Weapon>(
-                weaponTarget.Weapon.Location, 
-                weaponTarget.Weapon.Slots);
-                
-            if (weapon == null) continue;
-            
-            // Find the target unit
-            var targetUnit = targetUnits.FirstOrDefault(u => u.Id == weaponTarget.TargetId);
-            if (targetUnit == null) continue;
-            
-            // Assign the target to the weapon
-            weapon.Target = targetUnit;
-        }
+        // Validate and store weapon targets
+        _weaponTargets.Clear();
+        _weaponTargets.AddRange(weaponTargets);
         
-        // Mark that this unit has declared weapon attacks
         HasDeclaredWeaponAttack = true;
     }
-    
+
+    /// <summary>
+    /// Gets all weapon targeting data for this unit
+    /// </summary>
+    /// <returns>Read-only collection of weapon target data</returns>
+    public IReadOnlyList<WeaponTargetData> GetAllWeaponTargetsData()
+    {
+        return _weaponTargets.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Gets weapon targeting data for a specific weapon
+    /// </summary>
+    /// <param name="weaponLocation">The location of the weapon</param>
+    /// <param name="weaponSlots">The slots where the weapon is mounted</param>
+    /// <returns>The weapon target data if found, null otherwise</returns>
+    public WeaponTargetData? GetWeaponTargetData(PartLocation weaponLocation, int[] weaponSlots)
+    {
+        return _weaponTargets.FirstOrDefault(wt =>
+            wt.Weapon.Location == weaponLocation &&
+            wt.Weapon.Slots.SequenceEqual(weaponSlots));
+    }
+
     // Methods
     public abstract int CalculateBattleValue();
     
@@ -569,11 +582,11 @@ public abstract class Unit
     /// <param name="location">The location to check</param>
     /// <param name="slots">The slots where the component is mounted</param>
     /// <returns>Components of the specified type at the specified location and slots</returns>
-    public T? GetMountedComponentAtLocation<T>(PartLocation location, int[] slots) where T : Component
+    public T? GetMountedComponentAtLocation<T>(PartLocation? location, int[] slots) where T : Component
     {
-        if (slots.Length == 0)
+        if (location == null || slots.Length == 0)
             return null;
-        var components = GetComponentsAtLocation<T>(location);
+        var components = GetComponentsAtLocation<T>(location.Value);
   
         return components.FirstOrDefault(c => 
            c.MountedAtSlots.SequenceEqual(slots));

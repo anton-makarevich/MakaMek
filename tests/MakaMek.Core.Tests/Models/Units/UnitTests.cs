@@ -254,7 +254,7 @@ public class UnitTests
         };
         
         // Act
-        var act = () => unit.DeclareWeaponAttack(weaponTargets, [targetUnit]);
+        var act = () => unit.DeclareWeaponAttack(weaponTargets);
         
         // Assert
         var ex = Should.Throw<InvalidOperationException>(act);
@@ -293,11 +293,13 @@ public class UnitTests
         };
         
         // Act
-        attacker.DeclareWeaponAttack(weaponTargets, [target]);
+        attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
-        weapon.Target.ShouldNotBeNull();
-        weapon.Target.ShouldBe(target);
+        var weaponTargetData = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        weaponTargetData.ShouldNotBeNull();
+        weaponTargetData.TargetId.ShouldBe(targetId);
+        weaponTargetData.IsPrimaryTarget.ShouldBeTrue();
         attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
     
@@ -350,15 +352,19 @@ public class UnitTests
         };
         
         // Act
-        attacker.DeclareWeaponAttack(weaponTargets, [target1, target2]);
+        attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
-        weapon1.Target.ShouldNotBeNull();
-        weapon1.Target.ShouldBe(target1);
-        
-        weapon2.Target.ShouldNotBeNull();
-        weapon2.Target.ShouldBe(target2);
-        
+        var weapon1Target = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        weapon1Target.ShouldNotBeNull();
+        weapon1Target.TargetId.ShouldBe(targetId1);
+        weapon1Target.IsPrimaryTarget.ShouldBeTrue();
+
+        var weapon2Target = attacker.GetWeaponTargetData(PartLocation.RightArm, [2, 3]);
+        weapon2Target.ShouldNotBeNull();
+        weapon2Target.TargetId.ShouldBe(targetId2);
+        weapon2Target.IsPrimaryTarget.ShouldBeTrue();
+
         attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
     
@@ -405,69 +411,13 @@ public class UnitTests
         };
         
         // Act
-        attacker.DeclareWeaponAttack(weaponTargets, [target]);
+        attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
-        weapon.Target.ShouldNotBeNull();
-        weapon.Target.ShouldBe(target);
-        attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
-    }
-    
-    [Fact]
-    public void DeclareWeaponAttack_ShouldSkipTargetsNotFound()
-    {
-        // Arrange
-        var attackerId = Guid.NewGuid();
-        var targetId = Guid.NewGuid();
-        var nonExistentTargetId = Guid.NewGuid();
-        
-        var attacker = CreateTestUnit(attackerId);
-        var target = CreateTestUnit(targetId);
-        
-        var weapon1 = new TestWeapon("Weapon 1", [0, 1]);
-        var weapon2 = new TestWeapon("Weapon 2", [2, 3]);
-        
-        MountWeaponOnUnit(attacker, weapon1, PartLocation.LeftArm, [0, 1]);
-        MountWeaponOnUnit(attacker, weapon2, PartLocation.RightArm, [2, 3]);
-        
-        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
-        
-        var weaponTargets = new List<WeaponTargetData>
-        {
-            new()
-            {
-                Weapon = new WeaponData
-                {
-                    Name = "Weapon 1",
-                    Location = PartLocation.LeftArm,
-                    Slots = [0, 1]
-                },
-                TargetId = targetId,
-                IsPrimaryTarget = true
-            },
-            new()
-            {
-                Weapon = new WeaponData
-                {
-                    Name = "Weapon 2",
-                    Location = PartLocation.RightArm,
-                    Slots = [2, 3]
-                },
-                TargetId = nonExistentTargetId,
-                IsPrimaryTarget = true
-            }
-        };
-        
-        // Act
-        attacker.DeclareWeaponAttack(weaponTargets, [target]);
-        
-        // Assert
-        weapon1.Target.ShouldNotBeNull();
-        weapon1.Target.ShouldBe(target);
-        
-        weapon2.Target.ShouldBeNull();
-        
+        var weaponTarget = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        weaponTarget.ShouldNotBeNull();
+        weaponTarget.TargetId.ShouldBe(targetId);
+        weaponTarget.IsPrimaryTarget.ShouldBeTrue();
         attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
     
@@ -939,13 +889,26 @@ public class UnitTests
         var unit = CreateTestUnit();
         var targetUnit = CreateTestUnit();
         var rulesProvider = Substitute.For<IRulesProvider>();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         
         // Add a weapon to the unit
         var weapon = new TestWeapon("Test Laser", [3]);
         MountWeaponOnUnit(unit, weapon, PartLocation.RightArm,[3]);
         
         // Set the weapon's target
-        weapon.Target = targetUnit;
+        unit.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = new WeaponData
+                {
+                    Name = "Test Laser",
+                    Location = PartLocation.RightArm,
+                    Slots = [3]
+                },
+                TargetId = targetUnit.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
         
         // Act
         var heatData = unit.GetHeatData(rulesProvider);
@@ -967,17 +930,24 @@ public class UnitTests
         var targetUnit = CreateTestUnit();
         var rulesProvider = new ClassicBattletechRulesProvider();
         
-        // Add a weapon to the unit
-        var weapon = new TestWeapon("Test Laser", [3]);
-        MountWeaponOnUnit(unit, weapon, PartLocation.RightArm,[3]);
-        
-        // Set the weapon's target
-        weapon.Target = targetUnit;
-        
         // Deploy and move the unit
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         unit.Deploy(deployPosition);
         
+                // Add a weapon to the unit
+        var weapon = new TestWeapon("Test Laser", [3]);
+        MountWeaponOnUnit(unit, weapon, PartLocation.RightArm,[3]);
+        
+        // Set the weapon's target
+        unit.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = weapon.ToData(),
+                TargetId = targetUnit.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
+
         // Move the unit with Jump movement type
         unit.Move(MovementType.Jump, [
             new PathSegmentData

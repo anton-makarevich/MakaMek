@@ -324,12 +324,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Get the target unit (player2's unit)
         var targetUnit = _player2Unit1;
 
-        // Remove targets for the target unit
-        var targetWeapons = targetUnit.GetAllComponents<Weapon>();
-        foreach (var targetWeapon in targetWeapons)
-        {
-            targetWeapon.Target = null;
-        }
+        // Clear weapon targets for the target unit
+        targetUnit.ResetTurnState();
 
         // Get the part we want to target (left arm)
         var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
@@ -342,8 +338,23 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var attackingUnit = _player1Unit1;
         var weaponWithoutTarget = attackingUnit.Parts[1].GetComponents<Weapon>().First();
 
-        // Set target for the second weapon (same as first weapon)
-        weaponWithoutTarget.Target = targetUnit;
+        // Set target for the second weapon (same as first weapon) using new system
+        var additionalWeaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new WeaponData
+                {
+                    Name = weaponWithoutTarget.Name,
+                    Location = attackingUnit.Parts[1].Location,
+                    Slots = [2]
+                },
+                TargetId = targetUnit.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        attackingUnit.DeclareWeaponAttack(
+            attackingUnit.GetAllWeaponTargetsData().Concat(additionalWeaponTargets).ToList());
 
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for first attack (hit)
@@ -402,14 +413,30 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var clusterWeapon = new TestClusterWeapon(1, 5);
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
-        clusterWeapon.Target = _player2Unit1; // Set target for the cluster weapon
+        // Set target for the cluster weapon using new system
+        var clusterWeaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new WeaponData
+                {
+                    Name = clusterWeapon.Name,
+                    Location = part1.Location,
+                    Slots = [1]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets);
 
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
                 Arg.Any<Unit>(),
                 Arg.Any<Unit>(),
                 Arg.Any<Weapon>(),
-                Arg.Any<BattleMap>())
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>())
             .Returns(7); // Return a to-hit number of 7
 
         // Setup dice rolls: first for attack (8), second for cluster (9), third and fourth for hit locations
@@ -448,14 +475,30 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); // 6 missiles, 1 damage per missile
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
-        clusterWeapon.Target = _player2Unit1; // Set a target for the cluster weapon
+        // Set target for the cluster weapon using new system
+        var clusterWeaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new WeaponData
+                {
+                    Name = clusterWeapon.Name,
+                    Location = part1.Location,
+                    Slots = [1]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets);
 
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
                 Arg.Any<Unit>(),
                 Arg.Any<Unit>(),
                 Arg.Any<Weapon>(),
-                Arg.Any<BattleMap>())
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>())
             .Returns(7); // Return a to-hit number of 7
 
         // Setup dice rolls: first for attack (8), second for cluster (9 = 5 hits), third for hit location
@@ -484,14 +527,30 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var clusterWeapon = new TestClusterWeapon(1010, 5); // LRM-10
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
-        clusterWeapon.Target = _player2Unit1; // Set target for the cluster weapon
+        // Set target for the cluster weapon using new system
+        var clusterWeaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new WeaponData
+                {
+                    Name = clusterWeapon.Name,
+                    Location = part1.Location,
+                    Slots = [1]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets);
 
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
                 Arg.Any<Unit>(),
                 Arg.Any<Unit>(),
                 Arg.Any<Weapon>(),
-                Arg.Any<BattleMap>())
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>())
             .Returns(7); // Return a to-hit number of 7
 
         // Setup dice rolls: first for attack (6), which is less than to-hit number (7)
@@ -842,10 +901,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
         
-        // Get initial armor value to verify damage is applied
-        var targetPart = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var initialArmor = targetPart.CurrentArmor;
-        
         var consciousnessCommand = new PilotConsciousnessRollCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -900,12 +955,43 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var weapon1 = new TestWeapon();
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(weapon1, [1]);
-        weapon1.Target = _player2Unit1; // Set target for weapon1
+
+        // Set up weapon targets using the new system
+        var weaponTargets1 = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new WeaponData
+                {
+                    Name = weapon1.Name,
+                    Location = part1.Location,
+                    Slots = [1]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(weaponTargets1);
 
         var weapon2 = new TestWeapon();
         var part2 = _player2Unit1.Parts[0];
         part2.TryAddComponent(weapon2, [1]);
-        weapon2.Target = _player1Unit1; // Set target for weapon2
+
+        var weaponTargets2 = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new WeaponData
+                {
+                    Name = weapon2.Name,
+                    Location = part2.Location,
+                    Slots = [1]
+                },
+                TargetId = _player1Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player2Unit1.DeclareWeaponAttack(weaponTargets2);
 
         // Add a third weapon without a target to test that it's properly skipped
         var weaponWithoutTarget = new TestWeapon();
@@ -918,7 +1004,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Unit>(),
                 Arg.Any<Unit>(),
                 Arg.Any<Weapon>(),
-                Arg.Any<BattleMap>())
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>())
             .Returns(7); // Return a default to-hit number of 7
     }
     

@@ -313,8 +313,7 @@ public class BaseGameTests : BaseGame
 
         // Assert
         attackerMech.HasDeclaredWeaponAttack.ShouldBeTrue();
-        weapon.Target.ShouldNotBeNull();
-        weapon.Target.ShouldBe(targetMech);
+        attackerMech.GetAllWeaponTargetsData().Count.ShouldBe(1);
     }
 
     [Fact]
@@ -405,12 +404,7 @@ public class BaseGameTests : BaseGame
 
         // Assert
         attackerMech.HasDeclaredWeaponAttack.ShouldBeTrue();
-
-        rightArmWeapon.Target.ShouldNotBeNull();
-        rightArmWeapon.Target.ShouldBe(targetMech1);
-
-        leftArmWeapon.Target.ShouldNotBeNull();
-        leftArmWeapon.Target.ShouldBe(targetMech2);
+        attackerMech.GetAllWeaponTargetsData().Count.ShouldBe(2);
     }
 
     [Fact]

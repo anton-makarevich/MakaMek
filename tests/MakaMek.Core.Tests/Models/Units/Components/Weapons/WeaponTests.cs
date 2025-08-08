@@ -31,61 +31,7 @@ public class WeaponTests
         result.ShouldBe(expectedRange);
     }
     
-    [Fact]
-    public void Target_ShouldBeNull_ByDefault()
-    {
-        // Arrange
-        var weapon = new Lrm5();
-        
-        // Assert
-        weapon.Target.ShouldBeNull();
-    }
-    
-    [Fact]
-    public void Target_ShouldBeSettable()
-    {
-        // Arrange
-        var weapon = new Lrm5();
-        var mockUnit = new MockUnit();
-        
-        // Act
-        weapon.Target = mockUnit;
-        
-        // Assert
-        weapon.Target.ShouldBe(mockUnit);
-    }
-    
-    [Fact]
-    public void Target_ShouldBeResettable()
-    {
-        // Arrange
-        var weapon = new Lrm5();
-        var mockUnit = new MockUnit();
-        weapon.Target = mockUnit;
-        
-        // Act
-        weapon.Target = null;
-        
-        // Assert
-        weapon.Target.ShouldBeNull();
-    }
-    
-    [Fact]
-    public void Target_CanBeChanged()
-    {
-        // Arrange
-        var weapon = new Lrm5();
-        var mockUnit1 = new MockUnit();
-        var mockUnit2 = new MockUnit();
-        
-        // Act
-        weapon.Target = mockUnit1;
-        weapon.Target = mockUnit2;
-        
-        // Assert
-        weapon.Target.ShouldBe(mockUnit2);
-        weapon.Target.ShouldNotBe(mockUnit1);
-    }
+
     
     [Theory]
     [InlineData(WeaponType.Energy, null, false)]

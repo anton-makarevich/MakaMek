@@ -522,17 +522,26 @@ public class MechTests
         // Attach a weapon to a part (e.g., right arm)
         var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
         rightArm.TryAddComponent(weapon);
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
         // Set a dummy target
         var dummyTarget = new Mech("Dummy", "DMY-1A", 50, 4, CreateBasicPartsData());
-        weapon.Target = dummyTarget;
-        weapon.Target.ShouldNotBeNull();
+        sut.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = weapon.ToData(),
+                TargetId = dummyTarget.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
+        sut.HasDeclaredWeaponAttack.ShouldBeTrue();
+        sut.GetAllWeaponTargetsData().ShouldNotBeEmpty();
 
         // Act
         sut.ResetTurnState();
 
         // Assert
         sut.HasDeclaredWeaponAttack.ShouldBeFalse();
-        weapon.Target.ShouldBeNull();
+        sut.GetAllWeaponTargetsData().ShouldBeEmpty();
     }
 
 
