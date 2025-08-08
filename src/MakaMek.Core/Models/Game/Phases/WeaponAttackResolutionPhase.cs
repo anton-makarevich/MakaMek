@@ -135,14 +135,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
         
         // Calculate to-hit number, including aimed shot modifiers if applicable
-        var toHitBreakdown = Game.ToHitCalculator.GetModifierBreakdown(
+        var toHitNumber = Game.ToHitCalculator.GetToHitNumber(
             attacker,
             target,
             weapon,
             Game.BattleMap,
             weaponTargetData.IsPrimaryTarget);
-        
-        var toHitNumber = toHitBreakdown.Total;
         
         // Roll 2D6 for attack
         var attackRoll = Game.DiceRoller.Roll2D6();

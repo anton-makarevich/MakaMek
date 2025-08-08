@@ -462,8 +462,8 @@ public class BaseGameTests : BaseGame
         // Create hit locations data
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, []),
-            new(PartLocation.LeftArm, 3, [])
+            new(PartLocation.CenterTorso, 5, [],[]),
+            new(PartLocation.LeftArm, 3, [],[])
         };
 
         // Create the attack resolution command with IsHit = false
@@ -598,8 +598,8 @@ public class BaseGameTests : BaseGame
         // Create hit locations data
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, []),
-            new(PartLocation.LeftArm, 3, [])
+            new(PartLocation.CenterTorso, 5, [],[]),
+            new(PartLocation.LeftArm, 3, [],[])
         };
 
         // Get initial values for verification

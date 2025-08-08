@@ -34,8 +34,6 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_HitLocationTransfer" => "{0} → {1}: {2} damage (Roll: {3})",
             "Command_WeaponAttackResolution_AimedShotSuccessful" => "{0}: {1} damage (Aimed Shot: {2}, successful)",
             "Command_WeaponAttackResolution_AimedShotFailed" => "{0}: {1} damage (Aimed Shot: {2}, failed, Roll: {3})",
-            "Command_WeaponAttackResolution_AimedShotTransferSuccessful" => "{0} → {1}: {2} damage (Aimed Shot: {3}, successful)",
-            "Command_WeaponAttackResolution_AimedShotTransferFailed" => "{0} → {1}: {2} damage (Aimed Shot: {3}, failed, Roll: {4})",
             "Command_WeaponAttackResolution_CriticalHit" => "Critical hit in {0} slot {1}: {2}",
             "Command_WeaponAttackResolution_CritRoll" => "Critical Roll: {0}",
             "Command_WeaponAttackResolution_NumCrits" => "Num Crits: {0}",

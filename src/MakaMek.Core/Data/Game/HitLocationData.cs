@@ -33,39 +33,15 @@ public record HitLocationData(
         var locationRollTotal = LocationRoll.Length > 0 ? LocationRoll.Sum() : 0;
 
         // If there was a location transfer, show both the initial and final locations
+        // Note: Aimed shots should never have location transfers since they only target non-destroyed locations
         if (InitialLocation.HasValue && InitialLocation.Value != Location)
         {
-            if (isAimedShot)
-            {
-                if (aimedShotSuccessful)
-                {
-                    stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferSuccessful"),
-                        InitialLocation.Value,
-                        Location,
-                        Damage,
-                        aimedShotTotal));
-                }
-                else
-                {
-                    stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferFailed"),
-                        InitialLocation.Value,
-                        Location,
-                        Damage,
-                        aimedShotTotal,
-                        locationRollTotal));
-                }
-            }
-            else
-            {
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer"),
-                    InitialLocation.Value,
-                    Location,
-                    Damage,
-                    locationRollTotal));
-            }
+            stringBuilder.AppendLine(string.Format(
+                localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer"),
+                InitialLocation.Value,
+                Location,
+                Damage,
+                locationRollTotal));
         }
         else
         {

@@ -122,7 +122,7 @@ public class WeaponAttackResolutionCommandTests
         // Create a hit with a single location
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, [new(6)])
+            new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -174,9 +174,9 @@ public class WeaponAttackResolutionCommandTests
         // Create a hit with multiple locations and cluster weapon
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.LeftArm, 2, [new(2), new(3)]),
-            new(PartLocation.RightArm, 2, [new(2), new(1)]),
-            new(PartLocation.CenterTorso, 6, [new(5), new(3)])
+            new(PartLocation.LeftArm, 2, [], [2, 3]), // No aimed shot, location roll 2,3
+            new(PartLocation.RightArm, 2, [], [2, 1]), // No aimed shot, location roll 2,1
+            new(PartLocation.CenterTorso, 6, [], [5, 3]) // No aimed shot, location roll 5,3
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -334,7 +334,7 @@ public class WeaponAttackResolutionCommandTests
         // Arrange
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, [new(6)])
+            new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -381,7 +381,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftArm,
                 5,
-                new List<DiceResult>(),
+                [], // No aimed shot
+                [], // No location roll for this test
                 [new LocationCriticalHitsData(PartLocation.LeftArm,7, 0, null)]
             )
         };
@@ -429,7 +430,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftArm,
                 5,
-                [],
+                [], // No aimed shot
+                [], // No location roll for this test
                 [new LocationCriticalHitsData(PartLocation.LeftArm,10, 1, [
                     CreateComponentHitData(2)
                 ])]
@@ -474,7 +476,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftTorso,  // Final location
                 5,
-                [new DiceResult(6), new DiceResult(4)],        // Roll total 10
+                [], // No aimed shot
+                [6, 4], // Location roll total 10
                 null,                    // No crits
                 PartLocation.LeftArm     // Initial location
             )
@@ -520,8 +523,9 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.Head,
                 5,
-                [new DiceResult(6), new DiceResult(6)], // Roll of 12
-                [new LocationCriticalHitsData(PartLocation.Head, 5, 0, null, true)] 
+                [], // No aimed shot
+                [6, 6], // Location roll of 12
+                [new LocationCriticalHitsData(PartLocation.Head, 5, 0, null, true)]
             )
         };
         
@@ -571,7 +575,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.CenterTorso,
                 5,
-                [new DiceResult(6)],
+                [], // No aimed shot
+                [6], // Location roll 6
                 [
                     new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
                         CreateComponentHitData(2)
@@ -628,7 +633,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftArm,
                 5,
-                [new DiceResult(6)],
+                [], // No aimed shot
+                [6], // Location roll 6
                 [
                     new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2, [
                         CreateComponentHitData(2),
@@ -688,11 +694,12 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.CenterTorso,
                 5,
-                [new DiceResult(6)],
+                [], // No aimed shot
+                [6], // Location roll 6
                 [
                     new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
                         CreateComponentHitData(2)]),
-                    new LocationCriticalHitsData(PartLocation.RightArm, 11, 1, [ 
+                    new LocationCriticalHitsData(PartLocation.RightArm, 11, 1, [
                         CreateComponentHitData(3)])
                 ]
             )
@@ -743,7 +750,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.CenterTorso,
                 10,
-                [new DiceResult(6)],
+                [], // No aimed shot
+                [6], // Location roll 6
                 [
                     new LocationCriticalHitsData(PartLocation.LeftArm, 10, 0, null, true),
                     new LocationCriticalHitsData(PartLocation.RightArm, 11, 0, null, true)
@@ -792,7 +800,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.CenterTorso,
                 5,
-                [new DiceResult(6)],
+                [], // No aimed shot
+                [6], // Location roll 6
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, null)]
             )
         };
@@ -839,7 +848,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftArm,
                 5,
-                [new DiceResult(6)],
+                [], // No aimed shot
+                [6], // Location roll 6
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
                     CreateComponentHitData(5)])]  // Slot that doesn't exist or has no component
             )
@@ -894,7 +904,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftArm,
                 5,
-                new List<DiceResult>(),
+                [], // No aimed shot
+                [], // No location roll for this test
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
                     CreateComponentHitData(2)])]
             )
@@ -945,7 +956,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftArm,
                 5,
-                new List<DiceResult>(),
+                [], // No aimed shot
+                [], // No location roll for this test
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
                     CreateComponentHitData(2)])]
             )
@@ -1000,7 +1012,8 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftArm,
                 5,
-                new List<DiceResult>(),
+                [], // No aimed shot
+                [], // No location roll for this test
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
                     CreateComponentHitData(2)])]
             )
@@ -1053,8 +1066,9 @@ public class WeaponAttackResolutionCommandTests
             new(
                 PartLocation.LeftArm,
                 5,
-                new List<DiceResult>(),
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, 
+                [], // No aimed shot
+                [], // No location roll for this test
+                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1,
                     [CreateComponentHitData(2)])]
             )
         };
@@ -1097,7 +1111,7 @@ public class WeaponAttackResolutionCommandTests
         // Arrange
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, [new DiceResult(6)])
+            new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -1143,7 +1157,7 @@ public class WeaponAttackResolutionCommandTests
         // Arrange
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, [new DiceResult(6)])
+            new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(

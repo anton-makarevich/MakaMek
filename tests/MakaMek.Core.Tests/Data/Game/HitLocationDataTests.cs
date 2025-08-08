@@ -1,6 +1,5 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
@@ -285,47 +284,7 @@ public class HitLocationDataTests
         result.Trim().ShouldBe("CenterTorso: 5 damage (Aimed Shot: 5, failed, Roll: 7)");
     }
 
-    [Fact]
-    public void Render_SuccessfulAimedShotWithTransfer_ReturnsCorrectOutput()
-    {
-        // Arrange
-        var sut = new HitLocationData(
-            PartLocation.CenterTorso,
-            5,
-            [3, 3], // Aimed shot roll: 6 (successful)
-            [], // No location roll since aimed shot was successful
-            null,
-            PartLocation.LeftTorso // Initial location before transfer
-        );
 
-        // Act
-        var result = sut.Render(_localizationService, _unit);
-
-        // Assert
-        result.ShouldNotBeEmpty();
-        result.Trim().ShouldBe("LeftTorso → CenterTorso: 5 damage (Aimed Shot: 6, successful)");
-    }
-
-    [Fact]
-    public void Render_FailedAimedShotWithTransfer_ReturnsCorrectOutput()
-    {
-        // Arrange
-        var sut = new HitLocationData(
-            PartLocation.CenterTorso,
-            5,
-            [1, 3], // Aimed shot roll: 4 (failed)
-            [5, 2], // Location roll: 7 (used for normal hit location)
-            null,
-            PartLocation.RightTorso // Initial location before transfer
-        );
-
-        // Act
-        var result = sut.Render(_localizationService, _unit);
-
-        // Assert
-        result.ShouldNotBeEmpty();
-        result.Trim().ShouldBe("RightTorso → CenterTorso: 5 damage (Aimed Shot: 4, failed, Roll: 7)");
-    }
 
     [Theory]
     [InlineData(6, true)]
@@ -338,15 +297,15 @@ public class HitLocationDataTests
     public void Render_AimedShotRollBoundaryConditions_ReturnsCorrectOutput(int rollTotal, bool shouldSucceed)
     {
         // Arrange
-        var aimedShotRoll = rollTotal == 6 ? new[] { 3, 3 } :
-                           rollTotal == 7 ? new[] { 3, 4 } :
-                           rollTotal == 8 ? new[] { 4, 4 } :
-                           rollTotal == 5 ? new[] { 2, 3 } :
-                           rollTotal == 9 ? new[] { 4, 5 } :
-                           rollTotal == 2 ? new[] { 1, 1 } :
-                           new[] { 6, 6 }; // 12
+        var aimedShotRoll = rollTotal == 6 ? [3, 3] :
+                           rollTotal == 7 ? [3, 4] :
+                           rollTotal == 8 ? [4, 4] :
+                           rollTotal == 5 ? [2, 3] :
+                           rollTotal == 9 ? [4, 5] :
+                           rollTotal != 2 ? new[] { 6, 6 } :
+                           new[] { 1, 1 }; // 12
 
-        var locationRoll = shouldSucceed ? new int[0] : new[] { 3, 4 }; // Only present if aimed shot failed
+        int[] locationRoll = shouldSucceed ? [] : [3, 4]; // Only present if aimed shot failed
 
         var sut = new HitLocationData(
             PartLocation.RightArm,
@@ -360,14 +319,9 @@ public class HitLocationDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        if (shouldSucceed)
-        {
-            result.Trim().ShouldBe($"RightArm: 8 damage (Aimed Shot: {rollTotal}, successful)");
-        }
-        else
-        {
-            result.Trim().ShouldBe($"RightArm: 8 damage (Aimed Shot: {rollTotal}, failed, Roll: 7)");
-        }
+        result.Trim().ShouldBe(shouldSucceed
+            ? $"RightArm: 8 damage (Aimed Shot: {rollTotal}, successful)"
+            : $"RightArm: 8 damage (Aimed Shot: {rollTotal}, failed, Roll: 7)");
     }
 
     [Fact]
@@ -386,7 +340,7 @@ public class HitLocationDataTests
                 8, // Critical roll result
                 1, // Number of critical hits
                 [
-                    WeaponAttackResolutionCommandTests.CreateComponentHitData(1) // Hit in slot 1
+                    WeaponAttackResolutionCommandTests.CreateComponentHitData(2) // Hit in slot 2
                 ]
             )
         };
@@ -403,10 +357,9 @@ public class HitLocationDataTests
         var result = sut.Render(_localizationService, _unit);
 
         // Assert
-        result.ShouldNotBeEmpty();
         result.ShouldContain("RightArm: 5 damage (Aimed Shot: 8, successful)");
         result.ShouldContain("Critical roll: 8");
         result.ShouldContain("Criticals: 1");
-        result.ShouldContain("Critical hit in RightArm slot 2: Machine Gun"); // Slot is 0-indexed in code but 1-indexed in display
+        result.ShouldContain("Critical hit in RightArm slot 3: Medium Laser"); // Slot is 0-indexed in code but 1-indexed in display
     }
 }

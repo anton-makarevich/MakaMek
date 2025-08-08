@@ -229,6 +229,7 @@ public class EndStateTests
         _unit1.ApplyDamage([new HitLocationData(
             PartLocation.CenterTorso,
             100,
+            [],
             [])]);
         
         // Act & Assert
@@ -245,6 +246,7 @@ public class EndStateTests
         _unit1.ApplyDamage([new HitLocationData(
             PartLocation.CenterTorso,
             100,
+            [],
             [])]);
         
         // Act & Assert

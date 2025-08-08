@@ -576,9 +576,20 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg,
         Unit? target)
     {
+        var weaponTargetData = new WeaponTargetData
+        {
+            Weapon = new WeaponData
+            {
+                Name = "Test Weapon",
+                Location = PartLocation.RightArm,
+                Slots = [1, 2]
+            },
+            TargetId = Guid.NewGuid(),
+            IsPrimaryTarget = false
+        };
         var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target])!;
+        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target, weaponTargetData])!;
     }
 
     [Fact]
@@ -833,6 +844,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 new HitLocationData(
                 PartLocation.CenterTorso,
                 5,
+                [],
                 [])], TotalDamage: 5), new DiceResult(3));
         
         var mechFallingCommand = new MechFallCommand
@@ -883,6 +895,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     new HitLocationData(
                         PartLocation.CenterTorso,
                         5,
+                        [],
                         [])], TotalDamage: 5), new DiceResult(3));
         
         var mechFallingCommand = new MechFallCommand
