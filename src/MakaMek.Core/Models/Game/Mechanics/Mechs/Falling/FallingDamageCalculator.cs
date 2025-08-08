@@ -72,13 +72,14 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         // Local function to determine hit location and create HitLocationData
         HitLocationData DetermineHitLocationData(int damageAmount)
         {
-            var locationRolls = _diceRoller.Roll2D6();
-            var locationRollResult = locationRolls.Sum(r => r.Result);
+            var locationRolls = _diceRoller.Roll2D6().Select(d => d.Result).ToArray();
+            var locationRollResult = locationRolls.Sum();
             var hitLocation = _rulesProvider.GetHitLocation(locationRollResult, attackDirection);
             
             return new HitLocationData(
                 hitLocation,
                 damageAmount,
+                [],
                 locationRolls
             );
         }

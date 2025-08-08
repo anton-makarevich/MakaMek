@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using System.Text;
@@ -11,7 +10,8 @@ namespace Sanet.MakaMek.Core.Data.Game;
 public record HitLocationData(
     PartLocation Location,
     int Damage,
-    List<DiceResult> LocationRoll,
+    int[] AimedShotRoll,
+    int[] LocationRoll,
     List<LocationCriticalHitsData>? CriticalHits = null, // Optional: detailed critical hits info for all affected locations, null if none
     PartLocation? InitialLocation = null
 )
@@ -25,7 +25,7 @@ public record HitLocationData(
     public string Render(ILocalizationService localizationService, Unit unit)
     {
         var stringBuilder = new StringBuilder();
-        var locationRollTotal = LocationRoll.Sum(d => d.Result);
+        var locationRollTotal = LocationRoll.Sum(d => d);
         
         // If there was a location transfer, show both the initial and final locations
         if (InitialLocation.HasValue && InitialLocation.Value != Location)
