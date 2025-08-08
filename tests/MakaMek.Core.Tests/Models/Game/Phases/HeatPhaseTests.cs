@@ -63,6 +63,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Arrange
         // Setup units with heat sources
         SetupUnitWithMovement(_unit1, MovementType.Run);
+        _unit2.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
         SetupUnitWithWeaponFired(_unit2);
 
         // Act
@@ -102,6 +103,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_WithWeaponHeat_ShouldCalculateAndApplyCorrectHeat()
     {
         // Arrange
+        _unit2.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
         SetupUnitWithWeaponFired(_unit2);
 
         // Act

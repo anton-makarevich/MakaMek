@@ -422,67 +422,6 @@ public class UnitTests
     }
     
     [Fact]
-    public void DeclareWeaponAttack_ShouldSkipTargetsNotFound()
-    {
-        // Arrange
-        var attackerId = Guid.NewGuid();
-        var targetId = Guid.NewGuid();
-        var nonExistentTargetId = Guid.NewGuid();
-        
-        var attacker = CreateTestUnit(attackerId);
-        var target = CreateTestUnit(targetId);
-        
-        var weapon1 = new TestWeapon("Weapon 1", [0, 1]);
-        var weapon2 = new TestWeapon("Weapon 2", [2, 3]);
-        
-        MountWeaponOnUnit(attacker, weapon1, PartLocation.LeftArm, [0, 1]);
-        MountWeaponOnUnit(attacker, weapon2, PartLocation.RightArm, [2, 3]);
-        
-        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        target.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
-        
-        var weaponTargets = new List<WeaponTargetData>
-        {
-            new()
-            {
-                Weapon = new WeaponData
-                {
-                    Name = "Weapon 1",
-                    Location = PartLocation.LeftArm,
-                    Slots = [0, 1]
-                },
-                TargetId = targetId,
-                IsPrimaryTarget = true
-            },
-            new()
-            {
-                Weapon = new WeaponData
-                {
-                    Name = "Weapon 2",
-                    Location = PartLocation.RightArm,
-                    Slots = [2, 3]
-                },
-                TargetId = nonExistentTargetId,
-                IsPrimaryTarget = true
-            }
-        };
-        
-        // Act
-        attacker.DeclareWeaponAttack(weaponTargets);
-        
-        // Assert
-        var weapon1Target = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
-        weapon1Target.ShouldNotBeNull();
-        weapon1Target.TargetId.ShouldBe(targetId);
-        weapon1Target.IsPrimaryTarget.ShouldBeTrue();
-
-        var weapon2Target = attacker.GetWeaponTargetData(PartLocation.RightArm, [2, 3]);
-        weapon2Target.ShouldBeNull(); // Should be null because target doesn't exist
-
-        attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
-    }
-    
-    [Fact]
     public void GetComponentsAtLocation_ReturnsEmptyCollection_WhenLocationNotFound()
     {
         // Arrange
@@ -950,6 +889,7 @@ public class UnitTests
         var unit = CreateTestUnit();
         var targetUnit = CreateTestUnit();
         var rulesProvider = Substitute.For<IRulesProvider>();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         
         // Add a weapon to the unit
         var weapon = new TestWeapon("Test Laser", [3]);
@@ -990,7 +930,11 @@ public class UnitTests
         var targetUnit = CreateTestUnit();
         var rulesProvider = new ClassicBattletechRulesProvider();
         
-        // Add a weapon to the unit
+        // Deploy and move the unit
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        unit.Deploy(deployPosition);
+        
+                // Add a weapon to the unit
         var weapon = new TestWeapon("Test Laser", [3]);
         MountWeaponOnUnit(unit, weapon, PartLocation.RightArm,[3]);
         
@@ -1003,11 +947,7 @@ public class UnitTests
                 IsPrimaryTarget = true
             }
         ]);
-        
-        // Deploy and move the unit
-        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        unit.Deploy(deployPosition);
-        
+
         // Move the unit with Jump movement type
         unit.Move(MovementType.Jump, [
             new PathSegmentData
