@@ -16,5 +16,5 @@ public record WeaponTargetData
     /// The specific body part being targeted for aimed shots.
     /// Null indicates a normal (non-aimed) shot.
     /// </summary>
-    public PartLocation? AimShotTarget { get; init; }
+    public PartLocation? AimedShotTarget { get; init; }
 }

@@ -169,7 +169,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
 
         // Standard weapon, single hit location
-        var hitLocationData = DetermineHitLocation(attackDirection.Value, weapon.Damage, target, weaponTargetData);
+        var hitLocationData = DetermineHitLocation(attackDirection.Value, weapon.Damage, target, weapon, weaponTargetData);
 
         // Create hit locations data with a single hit
         hitLocationsData = new AttackHitLocationsData(
@@ -208,7 +208,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var clusterDamage = weapon.ClusterSize * damagePerMissile;
             
             // Determine the hit location for this cluster
-            var hitLocationData = DetermineHitLocation(attackDirection, clusterDamage, target, weaponTargetData);
+            var hitLocationData = DetermineHitLocation(attackDirection,
+                clusterDamage, 
+                target, 
+                weapon, 
+                weaponTargetData);
             
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
@@ -222,7 +226,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var partialClusterDamage = remainingMissiles * damagePerMissile;
             
             // Determine the hit location for the partial cluster
-            var hitLocationData = DetermineHitLocation(attackDirection, partialClusterDamage, target, weaponTargetData);
+            var hitLocationData = DetermineHitLocation(
+                attackDirection,
+                partialClusterDamage,
+                target, 
+                weapon,
+                weaponTargetData);
             
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
@@ -238,21 +247,34 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// <param name="attackDirection">The direction of the attack</param>
     /// <param name="damage">The damage to be applied to this location</param>
     /// <param name="target">The target unit</param>
+    /// <param name="weapon">The firing weapon</param>
     /// <param name="weaponTargetData">Weapon's target data</param>
     /// <returns>Hit location data with location, damage and dice roll</returns>
-    private HitLocationData DetermineHitLocation(FiringArc attackDirection, int damage, Unit target, WeaponTargetData weaponTargetData)
+    private HitLocationData DetermineHitLocation(
+        FiringArc attackDirection,
+        int damage,
+        Unit target,
+        Weapon weapon,
+        WeaponTargetData weaponTargetData)
     {
         // If the weapon target data specifies a specific location, use that
         PartLocation? aimedShotLocation = null;
         int[] aimedShotRolResult = [];
-        if (weaponTargetData.AimShotTarget.HasValue)
+        if (IsAimedShotPossible(target, weapon, weaponTargetData))
         {
             aimedShotRolResult = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
             var aimedShotRoll = aimedShotRolResult.Sum();
             if (aimedShotRoll is >= 6 and <= 8)
             {
-                aimedShotLocation = weaponTargetData.AimShotTarget;
+                aimedShotLocation = weaponTargetData.AimedShotTarget;
             }
+        }
+
+        bool IsAimedShotPossible(Unit unit, Weapon weapon1, WeaponTargetData weaponTargetData1)
+        {
+            return unit.IsImmobile // Immobile target
+                   && weapon1.IsAimShotCapable // Aimed shot capable weapon
+                   && weaponTargetData1.AimedShotTarget.HasValue; // Aimed shot target specified
         }
 
         // Get hit location based on the roll and attack direction

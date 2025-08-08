@@ -587,9 +587,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             TargetId = Guid.NewGuid(),
             IsPrimaryTarget = false
         };
+        var weapon = new TestWeapon();
         var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target, weaponTargetData])!;
+        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target, weapon, weaponTargetData])!;
     }
 
     [Fact]
