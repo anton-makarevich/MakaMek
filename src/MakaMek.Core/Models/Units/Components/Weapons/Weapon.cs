@@ -33,12 +33,6 @@ public abstract class Weapon : Component
     public bool RequiresAmmo => _definition.RequiresAmmo;
 
     /// <summary>
-    /// The specific body part being targeted for aimed shots.
-    /// Null indicates a normal (non-aimed) shot.
-    /// </summary>
-    public PartLocation? AimedShotTarget { get; set; }
-
-    /// <summary>
     /// Gets the range bracket for a given distance
     /// </summary>
     public WeaponRange GetRangeBracket(int distance) => _definition.GetRangeBracket(distance);

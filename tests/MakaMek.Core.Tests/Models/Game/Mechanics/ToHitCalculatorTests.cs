@@ -361,4 +361,85 @@ public class ToHitCalculatorTests
         sensorModifier.Value.ShouldBe(2);
         sensorModifier.SensorHits.ShouldBe(1);
     }
+
+    [Fact]
+    public void GetModifierBreakdown_WithAimedShotAtHead_ShouldIncludeAimedShotModifier()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map, true, PartLocation.Head);
+
+        // Assert
+        var aimedShotModifier = result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
+        aimedShotModifier.Value.ShouldBe(3);
+        aimedShotModifier.TargetLocation.ShouldBe(PartLocation.Head);
+    }
+
+    [Theory]
+    [InlineData(PartLocation.CenterTorso)]
+    [InlineData(PartLocation.LeftArm)]
+    [InlineData(PartLocation.RightArm)]
+    [InlineData(PartLocation.LeftTorso)]
+    [InlineData(PartLocation.RightTorso)]
+    [InlineData(PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightLeg)]
+    public void GetModifierBreakdown_WithAimedShotAtBodyPart_ShouldIncludeAimedShotModifier(PartLocation targetLocation)
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map, true, targetLocation);
+
+        // Assert
+        var aimedShotModifier = result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
+        aimedShotModifier.Value.ShouldBe(-4);
+        aimedShotModifier.TargetLocation.ShouldBe(targetLocation);
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_WithoutAimedShot_ShouldNotIncludeAimedShotModifier()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map, true, null);
+
+        // Assert
+        result.OtherModifiers.OfType<AimedShotModifier>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_WithAimedShotAndOtherModifiers_ShouldIncludeBoth()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Damage sensors to create another modifier
+        var sensors = _attacker!.GetAllComponents<Sensors>().First();
+        sensors.Hit();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(_attacker, _target!, _weapon, map, true, PartLocation.CenterTorso);
+
+        // Assert
+        result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
+        result.OtherModifiers.OfType<SensorHitModifier>().ShouldHaveSingleItem();
+        result.OtherModifiers.Count.ShouldBe(2);
+    }
 }
