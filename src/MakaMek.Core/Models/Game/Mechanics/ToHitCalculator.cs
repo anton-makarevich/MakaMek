@@ -21,13 +21,25 @@ public class ToHitCalculator : IToHitCalculator
         _rules = rules;
     }
 
-    public int GetToHitNumber(Unit attacker, Unit target, Weapon weapon, BattleMap map, bool isPrimaryTarget = true)
+    public int GetToHitNumber(
+        Unit attacker,
+        Unit target,
+        Weapon weapon,
+        BattleMap map,
+        bool isPrimaryTarget = true,
+        PartLocation? aimedShotTarget = null)
     {
-        var breakdown = GetModifierBreakdown(attacker, target, weapon, map, isPrimaryTarget);
+        var breakdown = GetModifierBreakdown(attacker, target, weapon, map, isPrimaryTarget, aimedShotTarget);
         return breakdown.Total;
     }
 
-    public ToHitBreakdown GetModifierBreakdown(Unit attacker, Unit target, Weapon weapon, BattleMap map, bool isPrimaryTarget = true, PartLocation? aimedShotTarget = null)
+    public ToHitBreakdown GetModifierBreakdown(
+        Unit attacker,
+        Unit target,
+        Weapon weapon,
+        BattleMap map,
+        bool isPrimaryTarget = true,
+        PartLocation? aimedShotTarget = null)
     {
         if (attacker.Pilot is null)
         {

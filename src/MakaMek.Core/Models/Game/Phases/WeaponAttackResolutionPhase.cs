@@ -140,7 +140,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             target,
             weapon,
             Game.BattleMap,
-            weaponTargetData.IsPrimaryTarget);
+            weaponTargetData.IsPrimaryTarget,
+            weaponTargetData.AimedShotTarget);
         
         // Roll 2D6 for attack
         var attackRoll = Game.DiceRoller.Roll2D6();
