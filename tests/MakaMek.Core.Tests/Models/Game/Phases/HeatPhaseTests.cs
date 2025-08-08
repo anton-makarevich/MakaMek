@@ -302,7 +302,14 @@ public class HeatPhaseTests : GamePhaseTestsBase
         var weapon = unit.GetAllComponents<Weapon>().First(w=>w.Heat>0);
         
         // If a weapon exists, set its target
-        weapon.Target = _unit2;
+        unit.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = weapon.ToData(),
+                TargetId = _unit2Id,
+                IsPrimaryTarget = true
+            }
+        ]);
     }
     
     private static void SetupUnitWithEngineDamage(Unit unit, int hits)

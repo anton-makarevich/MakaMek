@@ -254,7 +254,7 @@ public class UnitTests
         };
         
         // Act
-        var act = () => unit.DeclareWeaponAttack(weaponTargets, [targetUnit]);
+        var act = () => unit.DeclareWeaponAttack(weaponTargets);
         
         // Assert
         var ex = Should.Throw<InvalidOperationException>(act);
@@ -293,7 +293,7 @@ public class UnitTests
         };
         
         // Act
-        attacker.DeclareWeaponAttack(weaponTargets, [target]);
+        attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
         var weaponTargetData = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
@@ -352,7 +352,7 @@ public class UnitTests
         };
         
         // Act
-        attacker.DeclareWeaponAttack(weaponTargets, [target1, target2]);
+        attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
         var weapon1Target = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
@@ -411,7 +411,7 @@ public class UnitTests
         };
         
         // Act
-        attacker.DeclareWeaponAttack(weaponTargets, [target]);
+        attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
         var weaponTarget = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
@@ -468,7 +468,7 @@ public class UnitTests
         };
         
         // Act
-        attacker.DeclareWeaponAttack(weaponTargets, [target]);
+        attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
         var weapon1Target = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
@@ -995,7 +995,14 @@ public class UnitTests
         MountWeaponOnUnit(unit, weapon, PartLocation.RightArm,[3]);
         
         // Set the weapon's target
-        weapon.Target = targetUnit;
+        unit.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = weapon.ToData(),
+                TargetId = targetUnit.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
         
         // Deploy and move the unit
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);

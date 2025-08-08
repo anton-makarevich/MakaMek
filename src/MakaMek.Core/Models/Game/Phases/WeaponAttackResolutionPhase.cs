@@ -105,12 +105,17 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         var currentWeaponTarget = weaponTargets[_currentWeaponIndex];
         
+        // Find the weapon and target unit
+        var currentWeapon = currentUnit.GetMountedComponentAtLocation<Weapon>(
+            currentWeaponTarget.Weapon.Location,
+            currentWeaponTarget.Weapon.Slots);
+        
         var allUnits = Game.AlivePlayers.SelectMany(p => p.AliveUnits);
         var targetUnit = allUnits.FirstOrDefault(u => u.Id == currentWeaponTarget.TargetId);
 
-        if ( targetUnit != null)
+        if (currentWeapon != null && targetUnit != null)
         {
-            var resolution = ResolveAttack(currentUnit, targetUnit, currentWeaponTarget);
+            var resolution = ResolveAttack(currentUnit, targetUnit, currentWeapon, currentWeaponTarget);
             PublishAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
         }
 
@@ -121,18 +126,13 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         ResolveNextAttack();
     }
 
-    private AttackResolutionData ResolveAttack(Unit attacker, Unit target, WeaponTargetData weaponTargetData)
+    private AttackResolutionData ResolveAttack(Unit attacker, Unit target, Weapon weapon, WeaponTargetData weaponTargetData)
     {
 
         if (Game.BattleMap == null)
         {
             throw new Exception("Battle map is null");
         }
-        // Find the weapon and target unit
-        var weapon = attacker.GetMountedComponentAtLocation<Weapon>(
-            weaponTargetData.Weapon.Location,
-            weaponTargetData.Weapon.Slots);
-
         
         // Calculate to-hit number
         var toHitNumber = Game.ToHitCalculator.GetToHitNumber(

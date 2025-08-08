@@ -38,4 +38,14 @@ public abstract class Weapon : Component
     public WeaponRange GetRangeBracket(int distance) => _definition.GetRangeBracket(distance);
     
     public override MakaMekComponent ComponentType => _definition.WeaponComponentType;
+    
+    public WeaponData ToData()
+    {
+        return new WeaponData
+        {
+            Name = Name,
+            Location = MountedOn?.Location,
+            Slots = MountedAtSlots
+        };
+    }
 }

@@ -354,8 +354,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             }
         };
         attackingUnit.DeclareWeaponAttack(
-            attackingUnit.GetAllWeaponTargetsData().Concat(additionalWeaponTargets).ToList(),
-            [targetUnit]);
+            attackingUnit.GetAllWeaponTargetsData().Concat(additionalWeaponTargets).ToList());
 
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for first attack (hit)
@@ -429,7 +428,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 IsPrimaryTarget = true
             }
         };
-        _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets, [_player2Unit1]);
+        _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets);
 
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
@@ -491,7 +490,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 IsPrimaryTarget = true
             }
         };
-        _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets, [_player2Unit1]);
+        _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets);
 
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
@@ -543,7 +542,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 IsPrimaryTarget = true
             }
         };
-        _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets, [_player2Unit1]);
+        _player1Unit1.DeclareWeaponAttack(clusterWeaponTargets);
 
         // Setup ToHitCalculator to return a value
         Game.ToHitCalculator.GetToHitNumber(
@@ -902,10 +901,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
         
-        // Get initial armor value to verify damage is applied
-        var targetPart = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var initialArmor = targetPart.CurrentArmor;
-        
         var consciousnessCommand = new PilotConsciousnessRollCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -976,7 +971,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 IsPrimaryTarget = true
             }
         };
-        _player1Unit1.DeclareWeaponAttack(weaponTargets1, [_player2Unit1]);
+        _player1Unit1.DeclareWeaponAttack(weaponTargets1);
 
         var weapon2 = new TestWeapon();
         var part2 = _player2Unit1.Parts[0];
@@ -996,7 +991,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 IsPrimaryTarget = true
             }
         };
-        _player2Unit1.DeclareWeaponAttack(weaponTargets2, [_player1Unit1]);
+        _player2Unit1.DeclareWeaponAttack(weaponTargets2);
 
         // Add a third weapon without a target to test that it's properly skipped
         var weaponWithoutTarget = new TestWeapon();

@@ -234,7 +234,7 @@ public class WeaponsAttackStateTests
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First();
         unit.Deploy(position);
-        unit.DeclareWeaponAttack([],[]);
+        unit.DeclareWeaponAttack([]);
         var hex = new Hex(position.Coordinates);
 
         // Act

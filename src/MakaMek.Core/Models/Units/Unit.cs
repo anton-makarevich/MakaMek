@@ -293,11 +293,11 @@ public abstract class Unit
 
     // Damage tracking
     public int TotalPhaseDamage { get; private set; }
-    
+
     /// <summary>
     /// Indicates whether this unit has declared weapon attacks for the current turn
     /// </summary>
-    public bool HasDeclaredWeaponAttack => _weaponTargets.Count > 0;
+    public bool HasDeclaredWeaponAttack { get; private set; }
 
     /// <summary>
     /// Indicates whether this unit has applied heat for the current turn
@@ -338,6 +338,7 @@ public abstract class Unit
     private void ResetWeaponsTargets()
     {
         _weaponTargets.Clear();
+        HasDeclaredWeaponAttack = false;
     }
 
     /// <summary>
@@ -355,6 +356,8 @@ public abstract class Unit
         // Validate and store weapon targets
         _weaponTargets.Clear();
         _weaponTargets.AddRange(weaponTargets);
+        
+        HasDeclaredWeaponAttack = true;
     }
 
     /// <summary>
@@ -579,11 +582,11 @@ public abstract class Unit
     /// <param name="location">The location to check</param>
     /// <param name="slots">The slots where the component is mounted</param>
     /// <returns>Components of the specified type at the specified location and slots</returns>
-    public T? GetMountedComponentAtLocation<T>(PartLocation location, int[] slots) where T : Component
+    public T? GetMountedComponentAtLocation<T>(PartLocation? location, int[] slots) where T : Component
     {
-        if (slots.Length == 0)
+        if (location == null || slots.Length == 0)
             return null;
-        var components = GetComponentsAtLocation<T>(location);
+        var components = GetComponentsAtLocation<T>(location.Value);
   
         return components.FirstOrDefault(c => 
            c.MountedAtSlots.SequenceEqual(slots));
