@@ -575,27 +575,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.ResolutionData.HitLocationsData == null));
     }
 
-    // Helper to invoke private method
-    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg,
-        Unit? target, WeaponTargetData? weaponTargetData = null)
-    {
-        weaponTargetData ??= new WeaponTargetData
-        {
-            Weapon = new WeaponData
-            {
-                Name = "Test Weapon",
-                Location = PartLocation.RightArm,
-                Slots = [1, 2]
-            },
-            TargetId = Guid.NewGuid(),
-            IsPrimaryTarget = false
-        };
-        var weapon = new TestWeapon();
-        var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target, weapon, weaponTargetData])!;
-    }
-
     [Fact]
     public void Enter_WhenBattleMapIsNull_ShouldThrowException()
     {
@@ -1043,6 +1022,29 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
     }
 
+    // Helper to invoke private method
+    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg,
+        Unit? target, WeaponTargetData? weaponTargetData = null)
+    {
+        weaponTargetData ??= new WeaponTargetData
+        {
+            Weapon = new WeaponData
+            {
+                Name = "Test Weapon",
+                Location = PartLocation.RightArm,
+                Slots = [1, 2]
+            },
+            TargetId = target?.Id ?? Guid.NewGuid(),
+            IsPrimaryTarget = false
+        };
+        var weapon = new TestWeapon();
+        var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target, weapon, weaponTargetData])!;
+    }
+
+
+    
     private void SetupPlayer1WeaponTargets()
     {
         // Add a weapon to each unit
