@@ -836,6 +836,29 @@ public class WeaponSelectionViewModelTests
         capturedViewModel.HeadPart.ShouldNotBeNull();
         capturedViewModel.CenterTorsoPart.ShouldNotBeNull();
     }
+    
+    [Fact]
+    public void AimedShotLocationSelectorViewModel_ShouldUpdateBreakDownWhenCompleted()
+    {
+        // Arrange
+        CreateSut(target: _target, isInRange: true);
+        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
+        var headBreakdown = CreateTestBreakdown(8);
+        var otherBreakdown = CreateTestBreakdown(5);
+        _sut.AimedHeadModifiersBreakdown = headBreakdown;
+        _sut.AimedOtherModifiersBreakdown = otherBreakdown;
+
+        AimedShotLocationSelectorViewModel? capturedViewModel = null;
+        _onShowAimedShotLocationSelector.When(x => x.Invoke(Arg.Any<AimedShotLocationSelectorViewModel>()))
+            .Do(x => capturedViewModel = x.Arg<AimedShotLocationSelectorViewModel>());
+        _sut.ShowAimedShotSelector();
+
+        // Act
+        capturedViewModel!.SelectPart(PartLocation.Head);
+        
+        // Assert
+        _sut.ModifiersBreakdown.ShouldBe(headBreakdown);    
+    }
 
     private void CreateSut(
         bool isInRange = true,
