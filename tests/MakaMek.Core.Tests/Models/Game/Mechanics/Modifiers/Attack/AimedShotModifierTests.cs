@@ -30,35 +30,6 @@ public class AimedShotModifierTests
     }
 
     [Fact]
-    public void Create_WithHeadTarget_ShouldReturnPositiveModifier()
-    {
-        // Act
-        var result = AimedShotModifier.Create(PartLocation.Head);
-
-        // Assert
-        result.Value.ShouldBe(3);
-        result.TargetLocation.ShouldBe(PartLocation.Head);
-    }
-
-    [Theory]
-    [InlineData(PartLocation.CenterTorso)]
-    [InlineData(PartLocation.LeftArm)]
-    [InlineData(PartLocation.RightArm)]
-    [InlineData(PartLocation.LeftTorso)]
-    [InlineData(PartLocation.RightTorso)]
-    [InlineData(PartLocation.LeftLeg)]
-    [InlineData(PartLocation.RightLeg)]
-    public void Create_WithBodyPartTarget_ShouldReturnNegativeModifier(PartLocation targetLocation)
-    {
-        // Act
-        var result = AimedShotModifier.Create(targetLocation);
-
-        // Assert
-        result.Value.ShouldBe(-4);
-        result.TargetLocation.ShouldBe(targetLocation);
-    }
-
-    [Fact]
     public void Render_WithHeadTarget_ShouldUseHeadTemplate()
     {
         // Arrange

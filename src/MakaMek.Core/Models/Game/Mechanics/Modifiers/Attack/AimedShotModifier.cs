@@ -20,7 +20,7 @@ public record AimedShotModifier : RollModifier
     /// <returns>Aimed shot modifier with calculated value</returns>
     public static AimedShotModifier Create(PartLocation targetLocation)
     {
-        // Head shots get +3 modifier, all other body parts get -4 modifier
+        // Headshots get +3 modifier, all other body parts get -4 modifier
         var modifierValue = targetLocation == PartLocation.Head ? 3 : -4;
         
         return new AimedShotModifier
