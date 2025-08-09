@@ -2,7 +2,6 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -12,6 +11,7 @@ using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
+using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
@@ -22,6 +22,8 @@ public class WeaponSelectionViewModelTests
     private readonly Weapon _weapon;
     private readonly Mech _target;
     private Action<Weapon, bool>? _selectionChangedAction;
+    private readonly Action<AimedShotLocationSelectorViewModel> _onShowAimedShotLocationSelector = Substitute.For<Action<AimedShotLocationSelectorViewModel>>();
+    private readonly Action _onHideAimedShotLocationSelector = Substitute.For<Action>();
     private WeaponSelectionViewModel _sut = null!;
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
@@ -134,6 +136,8 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
             _localizationService,
             remainingShots);
 
@@ -163,6 +167,8 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
             _localizationService);
 
         // Act & Assert
@@ -195,6 +201,8 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
             _localizationService,
             remainingShots);
 
@@ -216,6 +224,8 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
             _localizationService,
             0)
         {
@@ -242,6 +252,8 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
             _localizationService,
             5)
         {
@@ -267,6 +279,8 @@ public class WeaponSelectionViewModelTests
             true,
             null,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
             _localizationService,
             0);
 
@@ -340,6 +354,8 @@ public class WeaponSelectionViewModelTests
             isEnabled,
             _target,
             _selectionChangedAction,
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
             _localizationService
             )
         {
@@ -369,6 +385,8 @@ public class WeaponSelectionViewModelTests
             isEnabled,
             _target,
             _selectionChangedAction,
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
             _localizationService)
         {
             ModifiersBreakdown = initialBreakdown
@@ -573,6 +591,8 @@ public class WeaponSelectionViewModelTests
             isEnabled,
             target,
             (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
             _localizationService);
     }
 
