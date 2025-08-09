@@ -445,7 +445,7 @@ public class WeaponsAttackState : IUiState
                 if (_game.BattleMap != null)
                 {
                     vm.ModifiersBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
-                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget);
+                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget, vm.AimedShotTarget);
                     if (!vm.IsAimedShotAvailable) continue;
                     vm.AimedHeadModifiersBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
                         Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget, PartLocation.Head);

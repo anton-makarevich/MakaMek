@@ -188,7 +188,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// </summary>
     public PartLocation? AimedShotTarget
     {
-        get => _aimedShotTarget;
+        get => IsSelected? _aimedShotTarget:null;
         set
         {
             SetProperty(ref _aimedShotTarget, value);
@@ -210,7 +210,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// <summary>
     /// Gets the display text for aimed shot status
     /// </summary>
-    public string AimedShotText => IsAimedShot 
+    public string AimedShotText => IsAimedShot && IsAimedShotAvailable 
         ? _localizationService.GetString($"MechPart_{AimedShotTarget}_Short") 
         : string.Empty;
     
