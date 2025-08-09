@@ -577,6 +577,88 @@ public class WeaponSelectionViewModelTests
         result.ShouldBe("Location is destroyed");
         _localizationService.Received().GetString("Attack_LocationDestroyed");
     }
+    
+    [Fact]
+    public void AimedShotTarget_WhenSet_ShouldUpdateIsAimedShot()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        _sut.AimedShotTarget = PartLocation.Head;
+
+        // Assert
+        _sut.IsAimedShot.ShouldBeTrue();
+        _sut.AimedShotTarget.ShouldBe(PartLocation.Head);
+    }
+
+    [Fact]
+    public void AimedShotTarget_WhenNull_ShouldNotBeAimedShot()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        _sut.AimedShotTarget = null;
+
+        // Assert
+        _sut.IsAimedShot.ShouldBeFalse();
+        _sut.AimedShotTarget.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AimedShotText_WithAimedShot_ShouldShowTargetLocation()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        _sut.AimedShotTarget = PartLocation.CenterTorso;
+
+        // Assert
+        _sut.AimedShotText.ShouldBe("Aimed: CenterTorso");
+    }
+
+    [Fact]
+    public void AimedShotText_WithoutAimedShot_ShouldBeEmpty()
+    {
+        // Arrange
+        CreateSut();
+
+        // Act & Assert
+        _sut.AimedShotText.ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public void ClearAimedShot_ShouldResetAimedShotTarget()
+    {
+        // Arrange
+        CreateSut();
+        _sut.AimedShotTarget = PartLocation.Head;
+
+        // Act
+        _sut.ClearAimedShot();
+
+        // Assert
+        _sut.AimedShotTarget.ShouldBeNull();
+        _sut.IsAimedShot.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(PartLocation.Head, "Aimed: Head")]
+    [InlineData(PartLocation.LeftArm, "Aimed: LeftArm")]
+    [InlineData(PartLocation.RightLeg, "Aimed: RightLeg")]
+    public void AimedShotText_WithDifferentLocations_ShouldFormatCorrectly(PartLocation location, string expected)
+    {
+        // Arrange
+        CreateSut();
+
+        // Act
+        _sut.AimedShotTarget = location;
+
+        // Assert
+        _sut.AimedShotText.ShouldBe(expected);
+    }
 
     private void CreateSut(
         bool isInRange = true,
