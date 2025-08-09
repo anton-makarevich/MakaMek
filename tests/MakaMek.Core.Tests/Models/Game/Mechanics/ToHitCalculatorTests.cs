@@ -378,6 +378,8 @@ public class ToHitCalculatorTests
         var aimedShotModifier = result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
         aimedShotModifier.Value.ShouldBe(3);
         aimedShotModifier.TargetLocation.ShouldBe(PartLocation.Head);
+        // Base gunnery (4) + aimed shot head (+3) = 7
+        result.Total.ShouldBe(7);
     }
 
     [Theory]
@@ -403,6 +405,7 @@ public class ToHitCalculatorTests
         var aimedShotModifier = result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
         aimedShotModifier.Value.ShouldBe(-4);
         aimedShotModifier.TargetLocation.ShouldBe(targetLocation);
+        result.Total.ShouldBe(0);
     }
 
     [Fact]
@@ -415,10 +418,11 @@ public class ToHitCalculatorTests
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Act
-        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map, true, null);
+        var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
 
         // Assert
         result.OtherModifiers.OfType<AimedShotModifier>().ShouldBeEmpty();
+        result.Total.ShouldBe(4);
     }
 
     [Fact]
@@ -441,5 +445,6 @@ public class ToHitCalculatorTests
         result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
         result.OtherModifiers.OfType<SensorHitModifier>().ShouldHaveSingleItem();
         result.OtherModifiers.Count.ShouldBe(2);
+        result.Total.ShouldBe(2);
     }
 }
