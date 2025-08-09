@@ -171,6 +171,15 @@ public class FakeLocalizationServiceTests
     [InlineData("MechPart_Head", "Head")]
     [InlineData("MechPart_LeftLeg", "Left Leg")]
     [InlineData("MechPart_RightLeg", "Right Leg")]
+    // Short Mech part names
+    [InlineData("MechPart_LeftArm_Short", "LA")]
+    [InlineData("MechPart_RightArm_Short", "RA")]
+    [InlineData("MechPart_LeftTorso_Short", "LT")]
+    [InlineData("MechPart_RightTorso_Short", "RT")]
+    [InlineData("MechPart_CenterTorso_Short", "CT")]
+    [InlineData("MechPart_Head_Short", "H")]
+    [InlineData("MechPart_LeftLeg_Short", "LL")]    
+    [InlineData("MechPart_RightLeg_Short", "RL")]
     // UI Events
     [InlineData("Events_Unit_ArmorDamage", "Damage at {0}|-{1}")]
     [InlineData("Events_Unit_StructureDamage", "Damage at {0}|-{1}")]
