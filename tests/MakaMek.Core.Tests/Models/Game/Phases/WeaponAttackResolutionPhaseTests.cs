@@ -673,8 +673,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         data.Location.ShouldBe(PartLocation.CenterTorso);
     }
     
-    [Fact]
-    public void DetermineHitLocation_WithSuccessfulAimedShot_ShouldHitIntendedLocation()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void DetermineHitLocation_WithSuccessfulAimedShot_ShouldHitIntendedLocation(int secondD6)
     {
         // Arrange
         var mechData = MechFactoryTests.CreateDummyMechData();
@@ -683,7 +686,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
-            [new DiceResult(5), new DiceResult(3)] // 8 is in 6-8 range
+            [new DiceResult(5), new DiceResult(secondD6)] // in 6-8 range
         );
         
         var weaponTargetData = new WeaponTargetData
@@ -709,8 +712,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         data.Location.ShouldBe(PartLocation.LeftArm);
     }
     
-    [Fact]
-    public void DetermineHitLocation_WithUnsuccessfulAimedShot_ShouldHitLocationByTable()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(6)]
+    public void DetermineHitLocation_WithUnsuccessfulAimedShot_ShouldHitLocationByTable(int secondD6)
     {
         // Arrange
         var mockRulesProvider = Substitute.For<IRulesProvider>();
@@ -724,7 +729,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
-            [new DiceResult(5), new DiceResult(5)] // 10 is outside the 6-8 range
+            [new DiceResult(4), new DiceResult(secondD6)] // outside the 6-8 range
         );
         
         var weaponTargetData = new WeaponTargetData
