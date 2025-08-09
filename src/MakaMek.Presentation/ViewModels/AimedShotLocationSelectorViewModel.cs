@@ -1,5 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
@@ -10,6 +11,7 @@ public class AimedShotLocationSelectorViewModel : BaseViewModel
 {
     private readonly Unit _target;
     private readonly Action<PartLocation> _onPartSelected;
+    private readonly ILocalizationService _localizationService;
     private readonly ToHitBreakdown _aimedHeadModifiersBreakdown;
     private readonly ToHitBreakdown _aimedOtherModifiersBreakdown;
 
@@ -17,13 +19,15 @@ public class AimedShotLocationSelectorViewModel : BaseViewModel
         Unit target,
         ToHitBreakdown aimedHeadModifiersBreakdown,
         ToHitBreakdown aimedOtherModifiersBreakdown,
-        Action<PartLocation> onPartSelected)
+        Action<PartLocation> onPartSelected,
+        ILocalizationService localizationService)
     {
         _target = target;
         
         _aimedHeadModifiersBreakdown = aimedHeadModifiersBreakdown;
         _aimedOtherModifiersBreakdown = aimedOtherModifiersBreakdown;
         _onPartSelected = onPartSelected;
+        _localizationService = localizationService;
         InitializeBodyParts();
     }
     
@@ -61,7 +65,7 @@ public class AimedShotLocationSelectorViewModel : BaseViewModel
             var breakdown = location == PartLocation.Head
                 ? _aimedHeadModifiersBreakdown
                 : _aimedOtherModifiersBreakdown;
-            
+
             if (breakdown is { HasLineOfSight: true, Total: <= 12 })
             {
                 hitProbability = DiceUtils.Calculate2d6Probability(breakdown.Total);
@@ -74,7 +78,12 @@ public class AimedShotLocationSelectorViewModel : BaseViewModel
             IsDestroyed = isDestroyed,
             IsSelectable = isSelectable,
             HitProbability = hitProbability,
-            HitProbabilityText = isSelectable ? $"{hitProbability:F0}%" : "N/A"
+            HitProbabilityText = isSelectable ? $"{hitProbability:F0}%" : "N/A",
+            CurrentArmor = part?.CurrentArmor ?? 0,
+            MaxArmor = part?.MaxArmor ?? 0,
+            CurrentStructure = part?.CurrentStructure ?? 0,
+            MaxStructure = part?.MaxStructure ?? 0,
+            Name = _localizationService.GetString($"MechPart_{location}_Short")
         };
     }
 

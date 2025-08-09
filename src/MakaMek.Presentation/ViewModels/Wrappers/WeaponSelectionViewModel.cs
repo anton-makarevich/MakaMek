@@ -251,7 +251,8 @@ public class WeaponSelectionViewModel : BindableBase
             Target,
             AimedHeadModifiersBreakdown,
             AimedOtherModifiersBreakdown,
-            OnAimedShotTargetSelected
+            OnAimedShotTargetSelected,
+            _localizationService
         );
         // Create and show the body part selector
 

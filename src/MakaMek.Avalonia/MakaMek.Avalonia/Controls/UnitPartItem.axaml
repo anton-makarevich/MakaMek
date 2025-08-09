@@ -1,0 +1,86 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
+             mc:Ignorable="d" d:DesignWidth="80" d:DesignHeight="120"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitPartItem"
+             x:DataType="wrappers:UnitPartViewModel"
+             x:Name="PartUserControl">
+    
+    <UserControl.Styles>
+        <Style Selector="Button.bodyPartButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        </Style>
+        
+        <Style Selector="Button.bodyPartButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+            <Setter Property="Opacity" Value="0.8"/>
+        </Style>
+        
+        <Style Selector="Button.bodyPartButton:disabled">
+            <Setter Property="BorderBrush" Value="{DynamicResource TextLightBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
+            <Setter Property="Opacity" Value="0.5"/>
+        </Style>
+        
+        <Style Selector="ProgressBar.unitPartArmor">
+            <Setter Property="Foreground" Value="{DynamicResource MechArmorBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource OverlayTransparentBrush}"/>
+            <Setter Property="Height" Value="4"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="Margin" Value="5,1"/>
+            <Setter Property="MinWidth" Value="0"/>
+        </Style>
+        
+        <Style Selector="ProgressBar.unitPartStructure">
+            <Setter Property="Foreground" Value="{DynamicResource MechStructureBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource OverlayTransparentBrush}"/>
+            <Setter Property="Height" Value="4"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="Margin" Value="5,1"/>
+            <Setter Property="MinWidth" Value="0"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <Button
+        Click="OnButtonClick"
+        Classes="bodyPartButton"
+            IsEnabled="{Binding IsSelectable}">
+        <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <!-- Part Label -->
+            <TextBlock Text="{Binding Name}"
+                       Classes="label"/>
+            
+            <!-- Armor Progress Bar -->
+            <ProgressBar Classes="unitPartArmor"
+                         Minimum="0"
+                         Maximum="1"
+                         Value="{Binding ArmorPercentage}"
+                         IsVisible="{Binding MaxArmor, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"/>
+            
+            <!-- Structure Progress Bar -->
+            <ProgressBar Classes="unitPartStructure"
+                         Minimum="0"
+                         Maximum="1"
+                         Value="{Binding StructurePercentage}"
+                         IsVisible="{Binding MaxStructure, Converter={StaticResource GreaterThanValueConverter}, ConverterParameter=0}"/>
+            
+            <!-- Hit Probability -->
+            <TextBlock Text="{Binding HitProbabilityText}" 
+                       Foreground="{Binding HitProbability, Converter={StaticResource HitProbabilityColorConverter}}"
+                       FontSize="16"
+                       Classes="probabilityText"/>
+        </StackPanel>
+    </Button>
+</UserControl>
