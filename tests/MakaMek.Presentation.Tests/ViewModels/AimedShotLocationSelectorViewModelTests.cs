@@ -2,6 +2,8 @@
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
@@ -70,19 +72,55 @@ public class AimedShotLocationSelectorViewModelTests
     public void BodyPartViewModel_WithValidPart_ShouldCalculateHitProbability()
     {
         // Arrange
-        var sut = CreateViewModel();
+        var headModifiersBreakdown = CreateTestBreakdown(11);
+        var otherModifiersBreakdown = CreateTestBreakdown(4);
+        var sut = CreateViewModel(headModifiersBreakdown, otherModifiersBreakdown);
 
         // Act & Assert
-        // TODO a placeholder
-        true.ShouldBeTrue();
+        sut.HeadPart.HitProbability.ShouldBe(8.33d);
+        sut.HeadPart.HitProbabilityText.ShouldBe("8%");
+        sut.CenterTorsoPart.HitProbability.ShouldBe(91.67d);
+        sut.CenterTorsoPart.HitProbabilityText.ShouldBe("92%");
     }
 
-    private AimedShotLocationSelectorViewModel CreateViewModel()
+    private AimedShotLocationSelectorViewModel CreateViewModel(
+        ToHitBreakdown? aimedHeadModifiersBreakdown = null,
+        ToHitBreakdown? aimedOtherModifiersBreakdown = null)
     {
+        aimedHeadModifiersBreakdown ??= CreateTestBreakdown(5);
+        aimedOtherModifiersBreakdown ??= CreateTestBreakdown(5);
         return new AimedShotLocationSelectorViewModel(
             _target,
-            Substitute.For<ToHitBreakdown>(),
-            Substitute.For<ToHitBreakdown>(),
+            aimedHeadModifiersBreakdown,
+            aimedOtherModifiersBreakdown,
             part => _selectedPart = part);
+    }
+    
+    private ToHitBreakdown CreateTestBreakdown(int total)
+    {
+        return new ToHitBreakdown
+        {
+            HasLineOfSight = true,
+            GunneryBase = new GunneryRollModifier { Value = total },
+            AttackerMovement = new AttackerMovementModifier
+            {
+                MovementType = MovementType.StandingStill,
+                Value = 0
+            },
+            TargetMovement = new TargetMovementModifier
+            {
+                HexesMoved = 0,
+                Value = 0
+            },
+            OtherModifiers = [],
+            RangeModifier = new RangeRollModifier
+            {
+                Value = 0,
+                Range = WeaponRange.Long,
+                Distance = 5,
+                WeaponName = "Test"
+            },
+            TerrainModifiers = []
+        };
     }
 }
