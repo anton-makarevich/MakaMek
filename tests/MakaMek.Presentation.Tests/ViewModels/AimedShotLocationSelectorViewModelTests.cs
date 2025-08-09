@@ -16,6 +16,7 @@ public class AimedShotLocationSelectorViewModelTests
 {
     private readonly Unit _target;
     private PartLocation? _selectedPart;
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     public AimedShotLocationSelectorViewModelTests()
     {
@@ -93,7 +94,9 @@ public class AimedShotLocationSelectorViewModelTests
             _target,
             aimedHeadModifiersBreakdown,
             aimedOtherModifiersBreakdown,
-            part => _selectedPart = part);
+            part => _selectedPart = part,
+            _localizationService
+        );
     }
     
     private ToHitBreakdown CreateTestBreakdown(int total)

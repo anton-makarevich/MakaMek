@@ -587,6 +587,9 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         CreateSut();
+        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
+        _sut.IsEnabled = true;
+        _sut.IsSelected = true;
 
         // Act
         _sut.AimedShotTarget = PartLocation.Head;
@@ -643,6 +646,10 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         CreateSut();
+        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
+        _sut.IsEnabled = true;
+        _sut.IsSelected = true;
+        _sut.Target = _target;
 
         // Act
         _sut.AimedShotTarget = location;
