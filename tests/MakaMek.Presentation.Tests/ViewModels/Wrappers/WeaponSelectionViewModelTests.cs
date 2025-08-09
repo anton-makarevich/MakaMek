@@ -29,9 +29,7 @@ public class WeaponSelectionViewModelTests
 
     public WeaponSelectionViewModelTests()
     {
-        _weapon = new MediumLaser();
-        var part = new Arm("Left Arm", PartLocation.LeftArm, 1, 1);
-        part.TryAddComponent(_weapon);
+        
         
         // Create a test mech using MechFactory
         var structureValueProvider = Substitute.For<IRulesProvider>();
@@ -49,6 +47,11 @@ public class WeaponSelectionViewModelTests
         var mechFactory = new MechFactory(structureValueProvider, Substitute.For<ILocalizationService>());
         var mechData = MechFactoryTests.CreateDummyMechData();
         _target = mechFactory.Create(mechData);
+        var attacker = mechFactory.Create(mechData);
+        
+        _weapon = new MediumLaser();
+        var part = attacker.Parts.First(p => p.Location == PartLocation.LeftArm);
+        part.TryAddComponent(_weapon);
         
         _localizationService.GetString("MechPart_Head_Short").Returns("H");
         _localizationService.GetString("MechPart_LeftArm_Short").Returns("LA");
@@ -656,6 +659,182 @@ public class WeaponSelectionViewModelTests
 
         // Assert
         _sut.AimedShotText.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IsAimedShotAvailable_WhenInRangeAndCanUseAimedShot_ShouldReturnTrue()
+    {
+        // Arrange
+        CreateSut(isInRange: true, target: _target);
+        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
+
+        // Act & Assert
+        _sut.IsAimedShotAvailable.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsAimedShotAvailable_WhenNotInRange_ShouldReturnFalse()
+    {
+        // Arrange
+        CreateSut(isInRange: false, target: _target);
+
+        // Act & Assert
+        _sut.IsAimedShotAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAimedShotAvailable_WhenNoTarget_ShouldReturnFalse()
+    {
+        // Arrange
+        CreateSut(isInRange: true, target: null);
+
+        // Act & Assert
+        _sut.IsAimedShotAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ShowAimedShotSelector_WithValidConditions_ShouldCallShowCallback()
+    {
+        // Arrange
+        CreateSut(target: _target, isInRange: true);
+        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
+        _sut.AimedHeadModifiersBreakdown = CreateTestBreakdown(8);
+        _sut.AimedOtherModifiersBreakdown = CreateTestBreakdown(5);
+
+        // Act
+        _sut.ShowAimedShotSelector();
+
+        // Assert
+        _onShowAimedShotLocationSelector.Received(1).Invoke(Arg.Any<AimedShotLocationSelectorViewModel>());
+    }
+
+    [Fact]
+    public void ShowAimedShotSelector_WithNoTarget_ShouldNotCallShowCallback()
+    {
+        // Arrange
+        CreateSut(target: null);
+
+        // Act
+        _sut.ShowAimedShotSelector();
+
+        // Assert
+        _onShowAimedShotLocationSelector.DidNotReceive().Invoke(Arg.Any<AimedShotLocationSelectorViewModel>());
+    }
+
+    [Fact]
+    public void ShowAimedShotSelector_WithNoAimedShotBreakdowns_ShouldNotCallShowCallback()
+    {
+        // Arrange
+        CreateSut(target: _target);
+        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
+        // Don't set AimedHeadModifiersBreakdown and AimedOtherModifiersBreakdown
+
+        // Act
+        _sut.ShowAimedShotSelector();
+
+        // Assert
+        _onShowAimedShotLocationSelector.DidNotReceive().Invoke(Arg.Any<AimedShotLocationSelectorViewModel>());
+    }
+
+    [Fact]
+    public void AimedShotTarget_WithHeadLocation_WhenSelected_ShouldReturnCorrectValue()
+    {
+        // Arrange
+        CreateSut(target: _target);
+        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
+        _sut.IsEnabled = true;
+        _sut.IsSelected = true;
+
+        // Act
+        _sut.AimedShotTarget = PartLocation.Head;
+
+        // Assert
+        _sut.AimedShotTarget.ShouldBe(PartLocation.Head);
+        _sut.IsAimedShot.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AimedShotTarget_WithNonHeadLocation_WhenSelected_ShouldReturnCorrectValue()
+    {
+        // Arrange
+        CreateSut(target: _target);
+        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
+        _sut.IsEnabled = true;
+        _sut.IsSelected = true;
+
+        // Act
+        _sut.AimedShotTarget = PartLocation.CenterTorso;
+
+        // Assert
+        _sut.AimedShotTarget.ShouldBe(PartLocation.CenterTorso);
+        _sut.IsAimedShot.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AimedShotTarget_WhenNotSelected_ShouldReturnNull()
+    {
+        // Arrange
+        CreateSut();
+        _sut.IsSelected = false;
+
+        // Act
+        _sut.AimedShotTarget = PartLocation.Head;
+
+        // Assert
+        _sut.AimedShotTarget.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AimedShotTarget_PropertyChanged_ShouldNotifyRelatedProperties()
+    {
+        // Arrange
+        CreateSut();
+        _sut.IsSelected = true;
+        var propertyChangedEvents = new List<string>();
+        _sut.PropertyChanged += (_, e) => propertyChangedEvents.Add(e.PropertyName ?? string.Empty);
+
+        // Act
+        _sut.AimedShotTarget = PartLocation.Head;
+
+        // Assert
+        propertyChangedEvents.ShouldContain(nameof(WeaponSelectionViewModel.IsAimedShot));
+        propertyChangedEvents.ShouldContain(nameof(WeaponSelectionViewModel.AimedShotText));
+    }
+
+    [Fact]
+    public void AimedShotText_WhenNotAimedShotAvailable_ShouldReturnEmpty()
+    {
+        // Arrange
+        CreateSut(isInRange: false, target: _target);
+        _sut.IsSelected = true;
+        _sut.AimedShotTarget = PartLocation.Head;
+
+        // Act & Assert
+        _sut.AimedShotText.ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public void ShowAimedShotSelector_CreatesCorrectViewModel()
+    {
+        // Arrange
+        CreateSut(target: _target, isInRange: true);
+        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
+        var headBreakdown = CreateTestBreakdown(8);
+        var otherBreakdown = CreateTestBreakdown(5);
+        _sut.AimedHeadModifiersBreakdown = headBreakdown;
+        _sut.AimedOtherModifiersBreakdown = otherBreakdown;
+
+        AimedShotLocationSelectorViewModel? capturedViewModel = null;
+        _onShowAimedShotLocationSelector.When(x => x.Invoke(Arg.Any<AimedShotLocationSelectorViewModel>()))
+            .Do(x => capturedViewModel = x.Arg<AimedShotLocationSelectorViewModel>());
+
+        // Act
+        _sut.ShowAimedShotSelector();
+
+        // Assert
+        capturedViewModel.ShouldNotBeNull();
+        capturedViewModel.HeadPart.ShouldNotBeNull();
+        capturedViewModel.CenterTorsoPart.ShouldNotBeNull();
     }
 
     private void CreateSut(

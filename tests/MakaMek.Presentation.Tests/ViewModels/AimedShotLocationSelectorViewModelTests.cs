@@ -57,7 +57,7 @@ public class AimedShotLocationSelectorViewModelTests
     }
 
     [Fact]
-    public void BodyPartViewModel_WithDestroyedPart_ShouldNotBeSelectable()
+    public void UnitPartViewModel_WithDestroyedPart_ShouldNotBeSelectable()
     {
         // Arrange
         _target.Parts.First(p => p.Location == PartLocation.Head).ApplyDamage(1000);
@@ -70,7 +70,7 @@ public class AimedShotLocationSelectorViewModelTests
     }
 
     [Fact]
-    public void BodyPartViewModel_WithValidPart_ShouldCalculateHitProbability()
+    public void UnitPartViewModel_WithValidPart_ShouldCalculateHitProbability()
     {
         // Arrange
         var headModifiersBreakdown = CreateTestBreakdown(11);
@@ -82,6 +82,84 @@ public class AimedShotLocationSelectorViewModelTests
         sut.HeadPart.HitProbabilityText.ShouldBe("8%");
         sut.CenterTorsoPart.HitProbability.ShouldBe(91.67d);
         sut.CenterTorsoPart.HitProbabilityText.ShouldBe("92%");
+    }
+
+    [Fact]
+    public void UnitPartViewModel_WithNoLineOfSight_ShouldHaveZeroHitProbability()
+    {
+        // Arrange
+        var headModifiersBreakdown = CreateTestBreakdown(8, hasLineOfSight: false);
+        var otherModifiersBreakdown = CreateTestBreakdown(5, hasLineOfSight: false);
+        var sut = CreateViewModel(headModifiersBreakdown, otherModifiersBreakdown);
+
+        // Act & Assert
+        sut.HeadPart.HitProbability.ShouldBe(0);
+        sut.HeadPart.HitProbabilityText.ShouldBe("0%");
+        sut.CenterTorsoPart.HitProbability.ShouldBe(0);
+        sut.CenterTorsoPart.HitProbabilityText.ShouldBe("0%");
+    }
+
+    [Fact]
+    public void UnitPartViewModel_WithImpossibleTargetNumber_ShouldHaveZeroHitProbability()
+    {
+        // Arrange
+        var headModifiersBreakdown = CreateTestBreakdown(13); // Impossible to hit
+        var otherModifiersBreakdown = CreateTestBreakdown(15); // Impossible to hit
+        var sut = CreateViewModel(headModifiersBreakdown, otherModifiersBreakdown);
+
+        // Act & Assert
+        sut.HeadPart.HitProbability.ShouldBe(0);
+        sut.HeadPart.HitProbabilityText.ShouldBe("0%");
+        sut.CenterTorsoPart.HitProbability.ShouldBe(0);
+        sut.CenterTorsoPart.HitProbabilityText.ShouldBe("0%");
+    }
+
+    [Theory]
+    [InlineData(PartLocation.Head)]
+    [InlineData(PartLocation.CenterTorso)]
+    [InlineData(PartLocation.LeftTorso)]
+    [InlineData(PartLocation.RightTorso)]
+    [InlineData(PartLocation.LeftArm)]
+    [InlineData(PartLocation.RightArm)]
+    [InlineData(PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightLeg)]
+    public void SelectPart_WithValidLocation_ShouldCallCallback(PartLocation location)
+    {
+        // Arrange
+        var sut = CreateViewModel();
+        _selectedPart.ShouldBeNull();
+        
+        // Act
+        sut.SelectPart(location);
+
+        // Assert
+        _selectedPart.ShouldBe(location);
+    }
+
+    [Fact]
+    public void UnitPartViewModel_ShouldHaveCorrectArmorAndStructureValues()
+    {
+        // Arrange
+        var sut = CreateViewModel();
+
+        // Act & Assert
+        sut.HeadPart.MaxArmor.ShouldBeGreaterThan(0);
+        sut.HeadPart.CurrentArmor.ShouldBe(sut.HeadPart.MaxArmor);
+        sut.HeadPart.MaxStructure.ShouldBeGreaterThan(0);
+        sut.HeadPart.CurrentStructure.ShouldBe(sut.HeadPart.MaxStructure);
+    }
+
+    [Fact]
+    public void UnitPartViewModel_WithDamagedPart_ShouldReflectCurrentValues()
+    {
+        // Arrange
+        var headPart = _target.Parts.First(p => p.Location == PartLocation.Head);
+        headPart.ApplyDamage(5); // Apply some damage
+        var sut = CreateViewModel();
+
+        // Act & Assert
+        sut.HeadPart.CurrentArmor.ShouldBeLessThan(sut.HeadPart.MaxArmor);
+        sut.HeadPart.IsSelectable.ShouldBeTrue(); // Still selectable if not destroyed
     }
 
     private AimedShotLocationSelectorViewModel CreateViewModel(
@@ -99,11 +177,11 @@ public class AimedShotLocationSelectorViewModelTests
         );
     }
     
-    private ToHitBreakdown CreateTestBreakdown(int total)
+    private ToHitBreakdown CreateTestBreakdown(int total, bool hasLineOfSight = true)
     {
         return new ToHitBreakdown
         {
-            HasLineOfSight = true,
+            HasLineOfSight = hasLineOfSight,
             GunneryBase = new GunneryRollModifier { Value = total },
             AttackerMovement = new AttackerMovementModifier
             {

@@ -1215,7 +1215,7 @@ public class WeaponsAttackStateTests
         _sut.ConfirmWeaponSelections();
         
         // Assert
-        _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd => 
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
             cmd.PlayerId == attackingPlayer.Id &&
             cmd.AttackerId == attacker.Id &&
             cmd.WeaponTargets.Count == 1 &&
@@ -1224,8 +1224,136 @@ public class WeaponsAttackStateTests
             cmd.WeaponTargets[0].Weapon.Name == weapon.Name
         ));
     }
-    
-    
+
+    [Fact]
+    public void UpdateWeaponViewModels_SetsAimedShotBreakdowns_WhenAimedShotAvailable()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+
+        // Position units next to each other
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        target.Deploy(targetPosition);
+
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Act
+        var weaponItems = _sut.WeaponSelectionItems.ToList();
+
+        // Assert
+        weaponItems.ShouldNotBeEmpty();
+        foreach (var item in weaponItems.Where(i => i.IsAimedShotAvailable))
+        {
+            item.AimedHeadModifiersBreakdown.ShouldNotBeNull();
+            item.AimedOtherModifiersBreakdown.ShouldNotBeNull();
+        }
+    }
+
+    [Fact]
+    public void ConfirmWeaponSelections_IncludesAimedShotTarget_WhenAimedShotSelected()
+    {
+        // Arrange
+        var attackingPlayer = _game.Players[0];
+        var targetPlayer = _game.Players[1];
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == attackingPlayer.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id == targetPlayer.Id);
+
+        // Deploy units
+        var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
+        target.Deploy(targetPosition);
+
+        // Set active player
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attackingPlayer.Id,
+            UnitsToPlay = 1
+        });
+
+        // Select attacker and target
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Select a weapon and set aimed shot
+        var weapon = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
+        weaponSelection.IsSelected = true;
+        weaponSelection.AimedShotTarget = PartLocation.Head;
+
+        // Act
+        _sut.ConfirmWeaponSelections();
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+            cmd.WeaponTargets.Count == 1 &&
+            cmd.WeaponTargets[0].AimedShotTarget == PartLocation.Head
+        ));
+    }
+
+    [Fact]
+    public void ConfirmWeaponSelections_DoesNotIncludeAimedShotTarget_WhenNormalShotSelected()
+    {
+        // Arrange
+        var attackingPlayer = _game.Players[0];
+        var targetPlayer = _game.Players[1];
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == attackingPlayer.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id == targetPlayer.Id);
+
+        // Deploy units
+        var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
+        target.Deploy(targetPosition);
+
+        // Set active player
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attackingPlayer.Id,
+            UnitsToPlay = 1
+        });
+
+        // Select attacker and target
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Select a weapon without aimed shot
+        var weapon = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
+        weaponSelection.IsSelected = true;
+        // Don't set AimedShotTarget
+
+        // Act
+        _sut.ConfirmWeaponSelections();
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+            cmd.WeaponTargets.Count == 1 &&
+            cmd.WeaponTargets[0].AimedShotTarget == null
+        ));
+    }
+
     [Fact]
     public void GetAvailableActions_IncludesConfirmWeaponSelectionsAction_WhenWeaponsAreSelected()
     {
