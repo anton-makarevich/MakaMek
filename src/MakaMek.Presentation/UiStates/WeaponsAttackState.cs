@@ -17,7 +17,7 @@ public class WeaponsAttackState : IUiState
     private readonly List<HexDirection> _availableDirections = new();
     private readonly Dictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges = new();
     private readonly Dictionary<Weapon, Unit> _weaponTargets = new();
-    private readonly List<WeaponSelectionViewModel> _weaponViewModels = new();
+    private readonly List<WeaponSelectionViewModel> _weaponViewModels = [];
     private readonly ClientGame _game;
     private readonly Lock _stateLock = new();
 

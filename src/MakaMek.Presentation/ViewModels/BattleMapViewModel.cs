@@ -38,8 +38,9 @@ public class BattleMapViewModel : BaseViewModel
     private bool _isWeaponSelectionVisible;
     private readonly IDispatcherService _dispatcherService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
-    private AimedShotLocationSelectorViewModel? _bodyPartSelector;
-    private bool _isBodyPartSelectorVisible;
+    private AimedShotLocationSelectorViewModel? _unitPartSelector;
+    private bool _isUnitPartSelectorVisible;
+
 
     public HexCoordinates? DirectionSelectorPosition
     {
@@ -71,16 +72,16 @@ public class BattleMapViewModel : BaseViewModel
         private set => SetProperty(ref _weaponAttacks, value);
     }
 
-    public AimedShotLocationSelectorViewModel? BodyPartSelector
+    public AimedShotLocationSelectorViewModel? UnitPartSelector
     {
-        get => _bodyPartSelector;
-        private set => SetProperty(ref _bodyPartSelector, value);
+        get => _unitPartSelector;
+        private set => SetProperty(ref _unitPartSelector, value);
     }
 
-    public bool IsBodyPartSelectorVisible
+    public bool IsUnitPartSelectorVisible
     {
-        get => _isBodyPartSelectorVisible;
-        private set => SetProperty(ref _isBodyPartSelectorVisible, value);
+        get => _isUnitPartSelectorVisible;
+        private set => SetProperty(ref _isUnitPartSelectorVisible, value);
     }
 
     public void DirectionSelectedCommand(HexDirection direction)
@@ -94,6 +95,11 @@ public class BattleMapViewModel : BaseViewModel
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
         CurrentState = new IdleState();
+        HideBodyPartSelectorCommand = new AsyncCommand(() =>
+        {
+            HideAimedShotLocationSelector();
+            return Task.CompletedTask;
+        });
     }
 
     public ClientGame? Game
@@ -493,8 +499,8 @@ public class BattleMapViewModel : BaseViewModel
     /// </summary>
     public void ShowAimedShotLocationSelector(AimedShotLocationSelectorViewModel aimedShotLocationSelector)
     {
-        BodyPartSelector = aimedShotLocationSelector;
-        IsBodyPartSelectorVisible = true;
+        UnitPartSelector = aimedShotLocationSelector;
+        IsUnitPartSelectorVisible = true;
     }
 
     /// <summary>
@@ -502,16 +508,12 @@ public class BattleMapViewModel : BaseViewModel
     /// </summary>
     public void HideAimedShotLocationSelector()
     {
-        BodyPartSelector = null;
-        IsBodyPartSelectorVisible = false;
+        UnitPartSelector = null;
+        IsUnitPartSelectorVisible = false;
     }
 
     /// <summary>
     /// Command to hide the body part selector
     /// </summary>
-    public ICommand HideBodyPartSelectorCommand => new AsyncCommand(() =>
-    {
-        HideAimedShotLocationSelector();
-        return Task.CompletedTask;
-    });
+    public ICommand HideBodyPartSelectorCommand { get; }
 }

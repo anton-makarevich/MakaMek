@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
-public class UnitPartViewModel
+public record UnitPartViewModel
 {
     public PartLocation Location { get; init; }
     public bool IsDestroyed { get; init; }

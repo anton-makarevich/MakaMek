@@ -127,12 +127,12 @@
 
         <!-- Body Part Selector for Aimed Shots -->
         <templatedControls:GamePanel
-            IsVisible="{Binding IsBodyPartSelectorVisible}"
+            IsVisible="{Binding IsUnitPartSelectorVisible}"
             Title="Select Target Location"
             CloseCommand="{Binding HideBodyPartSelectorCommand}"
             HorizontalAlignment="Center"
             VerticalAlignment="Center">
-            <controls:UnitPartSelector DataContext="{Binding BodyPartSelector}" />
+            <controls:UnitPartSelector DataContext="{Binding UnitPartSelector}" />
         </templatedControls:GamePanel>
         
         <StackPanel HorizontalAlignment="Right"

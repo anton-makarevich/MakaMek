@@ -49,6 +49,10 @@ public class WeaponSelectionViewModelTests
         var mechFactory = new MechFactory(structureValueProvider, Substitute.For<ILocalizationService>());
         var mechData = MechFactoryTests.CreateDummyMechData();
         _target = mechFactory.Create(mechData);
+        
+        _localizationService.GetString("MechPart_Head_Short").Returns("H");
+        _localizationService.GetString("MechPart_LeftArm_Short").Returns("LA");
+        _localizationService.GetString("MechPart_RightLeg_Short").Returns("RL");
     }
 
     [Fact]
@@ -607,19 +611,6 @@ public class WeaponSelectionViewModelTests
     }
 
     [Fact]
-    public void AimedShotText_WithAimedShot_ShouldShowTargetLocation()
-    {
-        // Arrange
-        CreateSut();
-
-        // Act
-        _sut.AimedShotTarget = PartLocation.CenterTorso;
-
-        // Assert
-        _sut.AimedShotText.ShouldBe("Aimed: CenterTorso");
-    }
-
-    [Fact]
     public void AimedShotText_WithoutAimedShot_ShouldBeEmpty()
     {
         // Arrange
@@ -645,9 +636,9 @@ public class WeaponSelectionViewModelTests
     }
 
     [Theory]
-    [InlineData(PartLocation.Head, "Aimed: Head")]
-    [InlineData(PartLocation.LeftArm, "Aimed: LeftArm")]
-    [InlineData(PartLocation.RightLeg, "Aimed: RightLeg")]
+    [InlineData(PartLocation.Head, "H")]
+    [InlineData(PartLocation.LeftArm, "LA")]
+    [InlineData(PartLocation.RightLeg, "RL")]
     public void AimedShotText_WithDifferentLocations_ShouldFormatCorrectly(PartLocation location, string expected)
     {
         // Arrange

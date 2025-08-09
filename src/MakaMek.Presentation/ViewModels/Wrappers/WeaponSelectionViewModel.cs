@@ -76,7 +76,11 @@ public class WeaponSelectionViewModel : BindableBase
     public Unit? Target
     {
         get => _target;
-        set => SetProperty(ref _target, value);
+        set
+        {
+            SetProperty(ref _target, value);
+            NotifyPropertyChanged(nameof(IsAimedShotAvailable));
+        }
     }
 
     /// <summary>
@@ -206,7 +210,9 @@ public class WeaponSelectionViewModel : BindableBase
     /// <summary>
     /// Gets the display text for aimed shot status
     /// </summary>
-    public string AimedShotText => IsAimedShot ? $"Aimed: {AimedShotTarget}" : string.Empty;
+    public string AimedShotText => IsAimedShot 
+        ? _localizationService.GetString($"MechPart_{AimedShotTarget}_Short") 
+        : string.Empty;
     
     /// <summary>
     /// Clears the aimed shot target, reverting to normal shot
