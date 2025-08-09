@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Reactive.Linq;
+using System.Windows.Input;
+using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -36,6 +38,8 @@ public class BattleMapViewModel : BaseViewModel
     private bool _isWeaponSelectionVisible;
     private readonly IDispatcherService _dispatcherService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
+    private AimedShotLocationSelectorViewModel? _bodyPartSelector;
+    private bool _isBodyPartSelectorVisible;
 
     public HexCoordinates? DirectionSelectorPosition
     {
@@ -67,7 +71,19 @@ public class BattleMapViewModel : BaseViewModel
         private set => SetProperty(ref _weaponAttacks, value);
     }
 
-    public void DirectionSelectedCommand(HexDirection direction) 
+    public AimedShotLocationSelectorViewModel? BodyPartSelector
+    {
+        get => _bodyPartSelector;
+        private set => SetProperty(ref _bodyPartSelector, value);
+    }
+
+    public bool IsBodyPartSelectorVisible
+    {
+        get => _isBodyPartSelectorVisible;
+        private set => SetProperty(ref _isBodyPartSelectorVisible, value);
+    }
+
+    public void DirectionSelectedCommand(HexDirection direction)
     {
         CurrentState.HandleFacingSelection(direction);
     }
@@ -471,4 +487,31 @@ public class BattleMapViewModel : BaseViewModel
         
         NotifyPropertyChanged(nameof(SelectedUnitEvents));
     }
+
+    /// <summary>
+    /// Shows the body part selector for aimed shots
+    /// </summary>
+    public void ShowAimedShotLocationSelector(AimedShotLocationSelectorViewModel aimedShotLocationSelector)
+    {
+        BodyPartSelector = aimedShotLocationSelector;
+        IsBodyPartSelectorVisible = true;
+    }
+
+    /// <summary>
+    /// Hides the body part selector
+    /// </summary>
+    public void HideAimedShotLocationSelector()
+    {
+        BodyPartSelector = null;
+        IsBodyPartSelectorVisible = false;
+    }
+
+    /// <summary>
+    /// Command to hide the body part selector
+    /// </summary>
+    public ICommand HideBodyPartSelectorCommand => new AsyncCommand(() =>
+    {
+        HideAimedShotLocationSelector();
+        return Task.CompletedTask;
+    });
 }

@@ -400,6 +400,8 @@ public class WeaponsAttackState : IUiState
                 isEnabled: false,
                 target: null,
                 onSelectionChanged: HandleWeaponSelection,
+                _viewModel.ShowAimedShotLocationSelector,
+                _viewModel.HideAimedShotLocationSelector,
                 localizationService: _viewModel.LocalizationService,
                 remainingAmmoShots: Attacker.GetRemainingAmmoShots(w)
             )));
@@ -429,6 +431,10 @@ public class WeaponsAttackState : IUiState
             vm.IsEnabled = (!_weaponTargets.ContainsKey(vm.Weapon) || _weaponTargets[vm.Weapon] == SelectedTarget) && isInRange;
             vm.Target = target;
             
+            vm.ModifiersBreakdown = null;
+            vm.AimedHeadModifiersBreakdown = null;
+            vm.AimedOtherModifiersBreakdown = null;
+            
             // Set modifiers breakdown when in range
             if (isInRange)
             {
@@ -436,15 +442,17 @@ public class WeaponsAttackState : IUiState
                 var isPrimaryTarget = SelectedTarget == PrimaryTarget || PrimaryTarget==null;
                 
                 // Get modifiers breakdown, passing the primary target information
-                vm.ModifiersBreakdown = (_game.BattleMap!=null)
-                    ? _game.ToHitCalculator.GetModifierBreakdown(
-                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget)
-                    : null;
-            }
-            else
-            {
-                // Weapon is not in range
-                vm.ModifiersBreakdown = null;
+                if (_game.BattleMap != null)
+                {
+                    vm.ModifiersBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
+                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget);
+                    if (!vm.IsAimedShotAvailable) continue;
+                    vm.AimedHeadModifiersBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
+                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget, PartLocation.Head);
+                    vm.AimedOtherModifiersBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
+                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget,
+                        PartLocation.CenterTorso);
+                }
             }
         }
         
@@ -546,7 +554,11 @@ public class WeaponsAttackState : IUiState
                 var weapon = weaponTarget.Key;
                 var target = weaponTarget.Value;
                 var isPrimaryTarget = target == PrimaryTarget;
-                
+
+                // Get aimed shot target from weapon view model
+                var weaponVm = _weaponViewModels.FirstOrDefault(vm => vm.Weapon == weapon);
+                var aimedShotTarget = weaponVm?.AimedShotTarget;
+
                 weaponTargetsData.Add(new WeaponTargetData
                 {
                     Weapon = new WeaponData
@@ -556,7 +568,8 @@ public class WeaponsAttackState : IUiState
                         Slots = weapon.MountedAtSlots
                     },
                     TargetId = target.Id,
-                    IsPrimaryTarget = isPrimaryTarget
+                    IsPrimaryTarget = isPrimaryTarget,
+                    AimedShotTarget = aimedShotTarget
                 });
             }
         }

@@ -51,7 +51,7 @@
                     ItemsSource="{Binding WeaponSelectionItems}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="wrappers:WeaponSelectionViewModel">
-                            <Grid ColumnDefinitions="Auto,*,Auto,Auto"
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto"
                                   Background="{Binding Weapon, Converter={StaticResource ComponentStatusBackgroundConverter}}"
                                   RowDefinitions="*,*,*">
                                 <CheckBox 
@@ -112,11 +112,38 @@
                                         </Flyout>
                                     </Button.Flyout>
                                 </Button>
+
+                                <!-- Aimed Shot Button -->
+                                <Button Grid.Column="4"
+                                        Grid.Row="0" 
+                                        Grid.RowSpan="3"
+                                        VerticalAlignment="Center"
+                                        Margin="2,0,0,0"
+                                        IsVisible="{Binding IsAimedShotAvailable}"
+                                        Command="{Binding ShowAimedShotSelector}"
+                                        CommandParameter="{Binding Weapon}"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        ToolTip.Tip="Aimed Shot">
+                                    <Button.Content>
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xF05B;" />
+                                    </Button.Content>
+                                </Button>
+
                                 <TextBlock Grid.Row="2"
                                            Grid.Column="1"
                                            Text="{Binding Target.Name}"
                                           Foreground="Gray"
                                           FontStyle="Italic"/>
+
+                                <!-- Aimed Shot Status -->
+                                <TextBlock Grid.Row="2"
+                                          Grid.Column="2"
+                                          Text="{Binding AimedShotText}"
+                                          FontSize="10"
+                                          FontStyle="Italic"
+                                          Foreground="Orange"
+                                          IsVisible="{Binding IsAimedShot}"/>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

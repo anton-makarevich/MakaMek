@@ -124,6 +124,16 @@
             x:Name="WeaponSelectionPanel"
             HorizontalAlignment="Right"
             VerticalAlignment="Center"/>
+
+        <!-- Body Part Selector for Aimed Shots -->
+        <templatedControls:GamePanel
+            IsVisible="{Binding IsBodyPartSelectorVisible}"
+            Title="Select Target Location"
+            CloseCommand="{Binding HideBodyPartSelectorCommand}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+            <controls:UnitPartSelector DataContext="{Binding BodyPartSelector}" />
+        </templatedControls:GamePanel>
         
         <StackPanel HorizontalAlignment="Right"
                     VerticalAlignment="Bottom"
