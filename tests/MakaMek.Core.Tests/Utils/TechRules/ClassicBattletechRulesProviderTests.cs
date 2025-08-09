@@ -549,5 +549,33 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             // Assert
             result.ShouldBe(20);
         }
+        
+        [Theory]
+        [InlineData(PartLocation.Head, 3)]
+        [InlineData(PartLocation.CenterTorso, -4)]
+        [InlineData(PartLocation.LeftTorso, -4)]
+        [InlineData(PartLocation.RightTorso, -4)]
+        [InlineData(PartLocation.LeftArm, -4)]
+        [InlineData(PartLocation.RightArm, -4)]
+        [InlineData(PartLocation.LeftLeg, -4)]
+        [InlineData(PartLocation.RightLeg, -4)]
+        public void GetAimedShotModifier_ReturnsExpectedValues(PartLocation targetLocation, int expectedModifier)
+        {
+            // Act
+            var result = _sut.GetAimedShotModifier(targetLocation);
+
+            // Assert
+            result.ShouldBe(expectedModifier);
+        }
+
+        [Fact]
+        public void GetAimedShotSuccessValues_ReturnsExpectedValues()
+        {
+            // Act
+            var result = _sut.GetAimedShotSuccessValues();
+
+            // Assert
+            result.ShouldBe([6, 7, 8]);
+        }
     }
 }

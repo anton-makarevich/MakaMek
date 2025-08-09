@@ -265,7 +265,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         {
             aimedShotRolResult = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
             var aimedShotRoll = aimedShotRolResult.Sum();
-            if (aimedShotRoll is >= 6 and <= 8)
+            var successValues = Game.RulesProvider.GetAimedShotSuccessValues();
+            if (successValues.Contains(aimedShotRoll))
             {
                 aimedShotLocation = weaponTargetData.AimedShotTarget;
             }

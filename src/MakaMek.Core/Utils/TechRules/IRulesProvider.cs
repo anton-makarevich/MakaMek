@@ -31,6 +31,19 @@ public interface IRulesProvider
     int GetTerrainToHitModifier(MakaMekTerrains terrainType);
 
     /// <summary>
+    /// Gets the aimed shot modifier for targeting a specific body part
+    /// </summary>
+    /// <param name="targetLocation">The body part being targeted</param>
+    /// <returns>The modifier value for aimed shots at the specified location</returns>
+    int GetAimedShotModifier(PartLocation targetLocation);
+
+    /// <summary>
+    /// Gets the 2D6 roll values that result in a successful aimed shot
+    /// </summary>
+    /// <returns>Array of dice roll values that indicate aimed shot success</returns>
+    int[] GetAimedShotSuccessValues();
+
+    /// <summary>
     /// Gets the modifier for firing at a secondary target
     /// </summary>
     /// <param name="isFrontArc">Whether the target is in the front arc</param>

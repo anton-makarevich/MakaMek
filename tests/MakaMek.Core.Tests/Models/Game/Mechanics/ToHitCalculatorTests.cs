@@ -47,6 +47,10 @@ public class ToHitCalculatorTests
             { PartLocation.RightLeg, 8 }
         });
 
+        // Setup aimed shot modifier rules
+        _rules.GetAimedShotModifier(PartLocation.Head).Returns(3);
+        _rules.GetAimedShotModifier(Arg.Is<PartLocation>(loc => loc != PartLocation.Head)).Returns(-4);
+
         _mechFactory = new MechFactory(_rules, Substitute.For<ILocalizationService>());
 
         // Setup weapon
