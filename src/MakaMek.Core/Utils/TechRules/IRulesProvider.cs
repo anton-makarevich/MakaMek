@@ -38,7 +38,7 @@ public interface IRulesProvider
     int GetAimedShotModifier(PartLocation targetLocation);
 
     /// <summary>
-    /// Gets the dice roll values that result in a successful aimed shot
+    /// Gets the 2D6 roll values that result in a successful aimed shot
     /// </summary>
     /// <returns>Array of dice roll values that indicate aimed shot success</returns>
     int[] GetAimedShotSuccessValues();

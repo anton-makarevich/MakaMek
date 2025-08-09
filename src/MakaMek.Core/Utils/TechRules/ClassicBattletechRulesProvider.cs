@@ -209,13 +209,13 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     {
         return hexesMoved switch
         {
-            <= 2 => 0,    // 0-2 hexes: no modifier
-            <= 4 => 1,    // 3-4 hexes: +1
-            <= 6 => 2,    // 5-6 hexes: +2
-            <= 9 => 3,    // 7-9 hexes: +3
-            <= 17 => 4,   // 10-17 hexes: +4
-            <= 24 => 5,   // 18-24 hexes: +5
-            _ => 6        // 25+ hexes: +6
+            <= 2 => 0, // 0-2 hexes: no modifier
+            <= 4 => 1, // 3-4 hexes: +1
+            <= 6 => 2, // 5-6 hexes: +2
+            <= 9 => 3, // 7-9 hexes: +3
+            <= 17 => 4, // 10-17 hexes: +4
+            <= 24 => 5, // 18-24 hexes: +5
+            _ => 6 // 25+ hexes: +6
         };
     }
 
@@ -223,7 +223,7 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     {
         return rangeType switch
         {
-            WeaponRange.Minimum => rangeValue-distance+1,
+            WeaponRange.Minimum => rangeValue - distance + 1,
             WeaponRange.Short => 0,
             WeaponRange.Medium => 2,
             WeaponRange.Long => 4,
@@ -301,16 +301,16 @@ public class ClassicBattletechRulesProvider : IRulesProvider
             _ => throw new ArgumentOutOfRangeException(nameof(attackDirection), "Invalid attack direction")
         };
     }
-    
+
     public int GetClusterHits(int diceResult, int weaponSize)
     {
         // Implementation of the Cluster Hits Table
         // Returns the number of missiles that hit based on 2D6 roll and weapon size
-        
+
         // Special case for non-cluster weapons
         if (weaponSize <= 1)
             return weaponSize;
-            
+
         // First, determine which column to use based on weapon size
         int columnIndex;
         switch (weaponSize)
@@ -327,35 +327,35 @@ public class ClassicBattletechRulesProvider : IRulesProvider
                 // This ensures we don't throw an exception for valid but non-standard weapon sizes
                 return weaponSize;
         }
-        
+
         // Define the cluster hits table
         // Format: [diceResult][columnIndex]
         var clusterHitsTable = new[,]
         {
-           // 2,  4,  5,  6,  10, 15, 20 (weapon sizes)
-            { 1,  1,  1,  2,  3,  5,  6  },  // Roll of 2
-            { 1,  2,  2,  2,  3,  5,  6  },  // Roll of 3
-            { 1,  2,  2,  3,  4,  6,  9  },  // Roll of 4
-            { 1,  2,  3,  3,  6,  9,  12 },  // Roll of 5
-            { 1,  2,  3,  4,  6,  9,  12 },  // Roll of 6
-            { 1,  3,  3,  4,  6,  9,  12 },  // Roll of 7
-            { 2,  3,  3,  4,  6,  9,  12 },  // Roll of 8
-            { 2,  3,  4,  5,  8,  12, 16 },  // Roll of 9
-            { 2,  3,  4,  5,  8,  12, 16 },  // Roll of 10
-            { 2,  4,  5,  6,  10, 15, 20 },  // Roll of 11
-            { 2,  4,  5,  6,  10, 15, 20 }   // Roll of 12
+            // 2,  4,  5,  6,  10, 15, 20 (weapon sizes)
+            { 1, 1, 1, 2, 3, 5, 6 }, // Roll of 2
+            { 1, 2, 2, 2, 3, 5, 6 }, // Roll of 3
+            { 1, 2, 2, 3, 4, 6, 9 }, // Roll of 4
+            { 1, 2, 3, 3, 6, 9, 12 }, // Roll of 5
+            { 1, 2, 3, 4, 6, 9, 12 }, // Roll of 6
+            { 1, 3, 3, 4, 6, 9, 12 }, // Roll of 7
+            { 2, 3, 3, 4, 6, 9, 12 }, // Roll of 8
+            { 2, 3, 4, 5, 8, 12, 16 }, // Roll of 9
+            { 2, 3, 4, 5, 8, 12, 16 }, // Roll of 10
+            { 2, 4, 5, 6, 10, 15, 20 }, // Roll of 11
+            { 2, 4, 5, 6, 10, 15, 20 } // Roll of 12
         };
-        
+
         // Adjust dice result to 0-based index (2 becomes 0, 3 becomes 1, etc.)
         var rowIndex = diceResult - 2;
-        
+
         // Ensure the indices are within bounds
         if (rowIndex < 0 || rowIndex >= 11)
             throw new ArgumentOutOfRangeException(nameof(diceResult), "Dice result must be between 2 and 12");
-        
+
         // Get the number of hits from the table
         var hits = clusterHitsTable[rowIndex, columnIndex];
-        
+
         // Ensure we don't return more hits than the weapon size
         return Math.Min(hits, weaponSize);
     }
@@ -364,10 +364,11 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     {
         if (roll < 1 || roll > 6)
         {
-            throw new ArgumentOutOfRangeException(nameof(roll), "Roll must be between 1 and 6"); 
+            throw new ArgumentOutOfRangeException(nameof(roll), "Roll must be between 1 and 6");
         }
+
         // Determine the new facing relative to current facing
-        return currentFacing.Rotate(roll-1);
+        return currentFacing.Rotate(roll - 1);
     }
 
     public FiringArc GetAttackDirectionAfterFall(int roll)
@@ -423,15 +424,23 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         return 20;
     }
 
+    private const int AimedShotHeadModifier = 3;
+    private const int AimedShotDefaultModifier = -4;
+
     public int GetAimedShotModifier(PartLocation targetLocation)
     {
-        // Headshots get +3 modifier, all other body parts get -4 modifier
-        return targetLocation == PartLocation.Head ? 3 : -4;
+        return targetLocation switch
+        {
+            PartLocation.Head => AimedShotHeadModifier,
+            _ => AimedShotDefaultModifier
+        };
     }
+
+    // Classic BattleTech aimed shot success on 2D6 rolls of 6, 7, or 8
+    private static readonly int[] AimedShotSuccess = [6, 7, 8];
 
     public int[] GetAimedShotSuccessValues()
     {
-        // Classic BattleTech aimed shot success on 2D6 rolls of 6, 7, or 8
-        return [6, 7, 8];
+        return AimedShotSuccess;
     }
 }
