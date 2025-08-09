@@ -965,8 +965,8 @@ public class ClientGameTests
         // Create hit locations data
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, []),
-            new(PartLocation.LeftArm, 3, [])
+            new(PartLocation.CenterTorso, 5, [],[]),
+            new(PartLocation.LeftArm, 3, [],[])
         };
         
         // Create the attack resolution command
@@ -1594,8 +1594,8 @@ public class ClientGameTests
         var unit2 = player2.Units.First();
 
         // Apply different amounts of damage to each unit
-        unit1.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, 9, [])]);
-        unit2.ApplyDamage([new HitLocationData(PartLocation.LeftLeg, 5, [])]);
+        unit1.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, 9, [],[])]);
+        unit2.ApplyDamage([new HitLocationData(PartLocation.LeftLeg, 5, [],[])]);
 
         // Verify damage was accumulated
         unit1.TotalPhaseDamage.ShouldBe(9);
@@ -1658,7 +1658,8 @@ public class ClientGameTests
             new(
                 PartLocation.CenterTorso, 
                 5,
-                [new DiceResult(4)])
+                [],
+                [4])
         };
         
         var hitLocationsData = new HitLocationsData(hitLocations, 5);
@@ -1743,7 +1744,8 @@ public class ClientGameTests
             new(
                 PartLocation.CenterTorso, 
                 5,
-                [new DiceResult(4)])
+                [],
+                [4])
         };
         
         var hitLocationsData = new HitLocationsData(hitLocations, 5);
@@ -1798,7 +1800,8 @@ public class ClientGameTests
             new(
                 PartLocation.CenterTorso, 
                 5,
-                [new DiceResult(4)])
+                [],
+                [4])
         };
         
         var hitLocationsData = new HitLocationsData(hitLocations, 5);

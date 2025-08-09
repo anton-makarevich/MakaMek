@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Data.Game;
 
@@ -10,4 +11,10 @@ public record WeaponTargetData
     public required WeaponData Weapon { get; init; }
     public required Guid TargetId { get; init; }
     public required bool IsPrimaryTarget { get; init; }
+
+    /// <summary>
+    /// The specific body part being targeted for aimed shots.
+    /// Null indicates a normal (non-aimed) shot.
+    /// </summary>
+    public PartLocation? AimedShotTarget { get; init; }
 }

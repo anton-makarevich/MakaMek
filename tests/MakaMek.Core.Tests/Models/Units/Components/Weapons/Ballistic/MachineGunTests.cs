@@ -28,6 +28,7 @@ public class MachineGunTests
         sut.IsDestroyed.ShouldBeFalse();
         sut.IsActive.ShouldBeTrue();
         sut.ComponentType.ShouldBe(MakaMekComponent.MachineGun);
+        sut.IsAimShotCapable.ShouldBeTrue();
         sut.IsRemovable.ShouldBeTrue();
     }
 

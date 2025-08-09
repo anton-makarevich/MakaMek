@@ -20,6 +20,7 @@ public class MediumLaserTests
         sut.BattleValue.ShouldBe(46);
         sut.AmmoType.ShouldBe(null);
         sut.ComponentType.ShouldBe(MakaMekComponent.MediumLaser);
+        sut.IsAimShotCapable.ShouldBeTrue();
         sut.IsRemovable.ShouldBeTrue();
     }
 

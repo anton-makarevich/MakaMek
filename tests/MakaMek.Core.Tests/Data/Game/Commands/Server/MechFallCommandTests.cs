@@ -90,7 +90,7 @@ public class MechFallCommandTests
     {
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, totalDamage, [new DiceResult(6)])
+            new(PartLocation.CenterTorso, totalDamage, [],[6])
         };
         var hitLocationsData = new HitLocationsData(hitLocations, totalDamage);
         return new FallingDamageData(HexDirection.Top, hitLocationsData, new DiceResult(1));
@@ -125,7 +125,7 @@ public class MechFallCommandTests
     {
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, [new DiceResult(6)])
+            new(PartLocation.CenterTorso, 5, [],[6])
         };
         
         var hitLocationsData = new HitLocationsData(
@@ -155,8 +155,8 @@ public class MechFallCommandTests
     {
         var hitLocations = new List<HitLocationData>
         {
-            new(PartLocation.CenterTorso, 5, [new DiceResult(6)]),
-            new(PartLocation.LeftLeg, 3, [new DiceResult(4)])
+            new(PartLocation.CenterTorso, 5, [],[6]),
+            new(PartLocation.LeftLeg, 3, [],[4])
         };
         
         var hitLocationsData = new HitLocationsData(

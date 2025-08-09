@@ -13,10 +13,20 @@ public interface IToHitCalculator
     /// <summary>
     /// Gets the total to-hit modifier for a weapon attack
     /// </summary>
-    int GetToHitNumber(Unit attacker, Unit target, Weapon weapon, BattleMap map, bool isPrimaryTarget = true);
-    
+    int GetToHitNumber(Unit attacker,
+        Unit target,
+        Weapon weapon,
+        BattleMap map,
+        bool isPrimaryTarget = true,
+        PartLocation? aimedShotTarget = null);
+
     /// <summary>
-    /// Gets detailed breakdown of all modifiers affecting the attack
+    /// Gets detailed breakdown of all modifiers affecting the attack, including aimed shot modifiers
     /// </summary>
-    ToHitBreakdown GetModifierBreakdown(Unit attacker, Unit target, Weapon weapon, BattleMap map, bool isPrimaryTarget = true);
+    ToHitBreakdown GetModifierBreakdown(Unit attacker,
+        Unit target,
+        Weapon weapon,
+        BattleMap map,
+        bool isPrimaryTarget = true,
+        PartLocation? aimedShotTarget = null);
 }

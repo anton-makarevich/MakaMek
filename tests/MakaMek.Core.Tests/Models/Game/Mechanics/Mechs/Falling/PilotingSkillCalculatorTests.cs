@@ -222,7 +222,9 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
             // apply damage
             const int specificDamage = 33;
-            mech.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, specificDamage, []),]);
+            mech.ApplyDamage(
+                [new HitLocationData(PartLocation.CenterTorso, specificDamage, [],[])
+                    ,]);
 
             // Act
             var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage);
@@ -243,7 +245,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
             const int lowDamage = 15;
-            mech.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, lowDamage, []),]);
+            mech.ApplyDamage(
+                [new HitLocationData(PartLocation.CenterTorso, lowDamage, [],[]),]);
 
             // Act
             var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage);

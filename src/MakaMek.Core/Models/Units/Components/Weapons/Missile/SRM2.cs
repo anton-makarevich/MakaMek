@@ -5,6 +5,9 @@ namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
 public class Srm2 : Weapon
 {
+    /// <inheritdoc />
+    public override bool IsAimShotCapable => false;
+
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
         Name: "SRM-2",

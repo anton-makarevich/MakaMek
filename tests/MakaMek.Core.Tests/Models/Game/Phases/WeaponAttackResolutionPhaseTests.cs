@@ -14,6 +14,9 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 using Shouldly.ShouldlyExtensionMethods;
@@ -572,15 +575,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.ResolutionData.HitLocationsData == null));
     }
 
-    // Helper to invoke private method
-    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg,
-        Unit? target)
-    {
-        var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target])!;
-    }
-
     [Fact]
     public void Enter_WhenBattleMapIsNull_ShouldThrowException()
     {
@@ -678,7 +672,89 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
         data.Location.ShouldBe(PartLocation.CenterTorso);
     }
+    
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void DetermineHitLocation_WithSuccessfulAimedShot_ShouldHitIntendedLocation(int secondD6)
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var mech = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
+        mech.Shutdown();
+        
+        // Configure dice rolls for hit location
+        DiceRoller.Roll2D6().Returns(
+            [new DiceResult(5), new DiceResult(secondD6)] // in 6-8 range
+        );
+        
+        var weaponTargetData = new WeaponTargetData
+        {
+            Weapon = new WeaponData
+            {
+                Name = "Test Weapon",
+                Location = PartLocation.RightArm,
+                Slots = [1, 2]
+            },
+            TargetId = Guid.NewGuid(),
+            IsPrimaryTarget = false,
+            AimedShotTarget = PartLocation.LeftArm
+        };
 
+        var sut = new WeaponAttackResolutionPhase(Game);
+
+        // Act
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech, weaponTargetData);
+
+        // Assert
+        // Should have transferred from LeftArm to LeftTorso to CenterTorso
+        data.Location.ShouldBe(PartLocation.LeftArm);
+    }
+    
+    [Theory]
+    [InlineData(1)]
+    [InlineData(6)]
+    public void DetermineHitLocation_WithUnsuccessfulAimedShot_ShouldHitLocationByTable(int secondD6)
+    {
+        // Arrange
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        SetGameWithRulesProvider(mockRulesProvider);
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var mech = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
+        mech.Shutdown();
+
+        // Configure the rules provider to return LeftArm as the initial hit location
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.CenterTorso);
+
+        // Configure dice rolls for hit location
+        DiceRoller.Roll2D6().Returns(
+            [new DiceResult(4), new DiceResult(secondD6)] // outside the 6-8 range
+        );
+        
+        var weaponTargetData = new WeaponTargetData
+        {
+            Weapon = new WeaponData
+            {
+                Name = "Test Weapon",
+                Location = PartLocation.RightArm,
+                Slots = [1, 2]
+            },
+            TargetId = Guid.NewGuid(),
+            IsPrimaryTarget = false,
+            AimedShotTarget = PartLocation.LeftArm
+        };
+
+        var sut = new WeaponAttackResolutionPhase(Game);
+
+        // Act
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech, weaponTargetData);
+
+        // Assert
+        // Should have transferred from LeftArm to LeftTorso to CenterTorso
+        data.Location.ShouldBe(PartLocation.CenterTorso);
+    }
+    
     [Fact]
     public void Enter_ShouldTrackDestroyedParts_WhenApplyingDamage()
     {
@@ -833,6 +909,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 new HitLocationData(
                 PartLocation.CenterTorso,
                 5,
+                [],
                 [])], TotalDamage: 5), new DiceResult(3));
         
         var mechFallingCommand = new MechFallCommand
@@ -883,6 +960,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     new HitLocationData(
                         PartLocation.CenterTorso,
                         5,
+                        [],
                         [])], TotalDamage: 5), new DiceResult(3));
         
         var mechFallingCommand = new MechFallCommand
@@ -949,6 +1027,29 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MechFallCommand>());
     }
 
+    // Helper to invoke private method
+    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg,
+        Unit? target, WeaponTargetData? weaponTargetData = null)
+    {
+        weaponTargetData ??= new WeaponTargetData
+        {
+            Weapon = new WeaponData
+            {
+                Name = "Test Weapon",
+                Location = PartLocation.RightArm,
+                Slots = [1, 2]
+            },
+            TargetId = target?.Id ?? Guid.NewGuid(),
+            IsPrimaryTarget = false
+        };
+        var weapon = new TestWeapon();
+        var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target, weapon, weaponTargetData])!;
+    }
+
+
+    
     private void SetupPlayer1WeaponTargets()
     {
         // Add a weapon to each unit

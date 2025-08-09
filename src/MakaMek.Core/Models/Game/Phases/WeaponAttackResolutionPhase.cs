@@ -134,14 +134,15 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             throw new Exception("Battle map is null");
         }
         
-        // Calculate to-hit number
+        // Calculate to-hit number, including aimed shot modifiers if applicable
         var toHitNumber = Game.ToHitCalculator.GetToHitNumber(
             attacker,
             target,
             weapon,
             Game.BattleMap,
-            weaponTargetData.IsPrimaryTarget);
-
+            weaponTargetData.IsPrimaryTarget,
+            weaponTargetData.AimedShotTarget);
+        
         // Roll 2D6 for attack
         var attackRoll = Game.DiceRoller.Roll2D6();
         var totalRoll = attackRoll.Sum(d => d.Result);
@@ -162,14 +163,14 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (weapon.WeaponSize > 1)
         {
             // It's a cluster weapon, handle multiple hits
-            hitLocationsData = ResolveClusterWeaponHit(weapon, target, attackDirection.Value);
+            hitLocationsData = ResolveClusterWeaponHit(weapon, target, attackDirection.Value, weaponTargetData);
 
             // Create hit locations data with multiple hits
             return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
         }
 
         // Standard weapon, single hit location
-        var hitLocationData = DetermineHitLocation(attackDirection.Value, weapon.Damage, target);
+        var hitLocationData = DetermineHitLocation(attackDirection.Value, weapon.Damage, target, weapon, weaponTargetData);
 
         // Create hit locations data with a single hit
         hitLocationsData = new AttackHitLocationsData(
@@ -182,7 +183,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
     }
 
-    private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon, Unit target, FiringArc attackDirection)
+    private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon, Unit target, FiringArc attackDirection, WeaponTargetData weaponTargetData)
     {
         // Roll for cluster hits
         var clusterRoll = Game.DiceRoller.Roll2D6();
@@ -208,7 +209,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var clusterDamage = weapon.ClusterSize * damagePerMissile;
             
             // Determine the hit location for this cluster
-            var hitLocationData = DetermineHitLocation(attackDirection, clusterDamage, target);
+            var hitLocationData = DetermineHitLocation(attackDirection,
+                clusterDamage, 
+                target, 
+                weapon, 
+                weaponTargetData);
             
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
@@ -222,7 +227,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var partialClusterDamage = remainingMissiles * damagePerMissile;
             
             // Determine the hit location for the partial cluster
-            var hitLocationData = DetermineHitLocation(attackDirection, partialClusterDamage, target);
+            var hitLocationData = DetermineHitLocation(
+                attackDirection,
+                partialClusterDamage,
+                target, 
+                weapon,
+                weaponTargetData);
             
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
@@ -238,15 +248,48 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// <param name="attackDirection">The direction of the attack</param>
     /// <param name="damage">The damage to be applied to this location</param>
     /// <param name="target">The target unit</param>
+    /// <param name="weapon">The firing weapon</param>
+    /// <param name="weaponTargetData">Weapon's target data</param>
     /// <returns>Hit location data with location, damage and dice roll</returns>
-    private HitLocationData DetermineHitLocation(FiringArc attackDirection, int damage, Unit target)
+    private HitLocationData DetermineHitLocation(
+        FiringArc attackDirection,
+        int damage,
+        Unit target,
+        Weapon weapon,
+        WeaponTargetData weaponTargetData)
     {
-        // Roll for hit location
-        var locationRoll = Game.DiceRoller.Roll2D6();
-        var locationRollTotal = locationRoll.Sum(d => d.Result);
-        
+        // If the weapon target data specifies a specific location, use that
+        PartLocation? aimedShotLocation = null;
+        int[] aimedShotRolResult = [];
+        if (IsAimedShotPossible(target, weapon, weaponTargetData))
+        {
+            aimedShotRolResult = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
+            var aimedShotRoll = aimedShotRolResult.Sum();
+            if (aimedShotRoll is >= 6 and <= 8)
+            {
+                aimedShotLocation = weaponTargetData.AimedShotTarget;
+            }
+        }
+
+        bool IsAimedShotPossible(Unit unit, Weapon weapon1, WeaponTargetData weaponTargetData1)
+        {
+            return unit.IsImmobile // Immobile target
+                   && weapon1.IsAimShotCapable // Aimed shot capable weapon
+                   && weaponTargetData1.AimedShotTarget.HasValue; // Aimed shot target specified
+        }
+
         // Get hit location based on the roll and attack direction
-        var hitLocation = Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
+        PartLocation GetHitLocation(out int[] locationRoll)
+        {
+            // Roll for hit location
+            locationRoll = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
+            var locationRollTotal = locationRoll.Sum();
+            return Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
+        }
+
+        int[] locationRoll = [];
+        // If aimed shot location is null, determine hit location normally
+        var hitLocation = aimedShotLocation ?? GetHitLocation(out locationRoll);
         
         // Store the initial location in case we need to transfer
         var initialLocation = hitLocation;
@@ -272,6 +315,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return new HitLocationData(
             hitLocation, 
             damage, 
+            aimedShotRolResult,
             locationRoll, 
             criticalHits,
             locationTransferred ? initialLocation : null);

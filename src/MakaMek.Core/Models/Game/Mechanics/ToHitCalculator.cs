@@ -21,13 +21,25 @@ public class ToHitCalculator : IToHitCalculator
         _rules = rules;
     }
 
-    public int GetToHitNumber(Unit attacker, Unit target, Weapon weapon, BattleMap map, bool isPrimaryTarget = true)
+    public int GetToHitNumber(
+        Unit attacker,
+        Unit target,
+        Weapon weapon,
+        BattleMap map,
+        bool isPrimaryTarget = true,
+        PartLocation? aimedShotTarget = null)
     {
-        var breakdown = GetModifierBreakdown(attacker, target, weapon, map, isPrimaryTarget);
+        var breakdown = GetModifierBreakdown(attacker, target, weapon, map, isPrimaryTarget, aimedShotTarget);
         return breakdown.Total;
     }
 
-    public ToHitBreakdown GetModifierBreakdown(Unit attacker, Unit target, Weapon weapon, BattleMap map, bool isPrimaryTarget = true)
+    public ToHitBreakdown GetModifierBreakdown(
+        Unit attacker,
+        Unit target,
+        Weapon weapon,
+        BattleMap map,
+        bool isPrimaryTarget = true,
+        PartLocation? aimedShotTarget = null)
     {
         if (attacker.Pilot is null)
         {
@@ -46,9 +58,9 @@ public class ToHitCalculator : IToHitCalculator
             _ => throw new ArgumentException($"Unknown weapon range: {range}")
         };
         var weaponLocation = weapon.MountedOn?.Location ?? throw new Exception($"Weapon {weapon.Name} is not mounted");
-        var otherModifiers = GetDetailedOtherModifiers(attacker, target,weaponLocation, isPrimaryTarget);
+        var otherModifiers = GetDetailedOtherModifiers(attacker, target,weaponLocation, isPrimaryTarget, aimedShotTarget);
         var terrainModifiers = GetTerrainModifiers(attacker, target, map);
-        
+
         return new ToHitBreakdown
         {
             GunneryBase = new GunneryRollModifier
@@ -57,7 +69,7 @@ public class ToHitCalculator : IToHitCalculator
             },
             AttackerMovement = new AttackerMovementModifier
             {
-                Value = _rules.GetAttackerMovementModifier(attacker.MovementTypeUsed ?? 
+                Value = _rules.GetAttackerMovementModifier(attacker.MovementTypeUsed ??
                     throw new Exception("Attacker's Movement Type is undefined")),
                 MovementType = attacker.MovementTypeUsed.Value
             },
@@ -79,26 +91,32 @@ public class ToHitCalculator : IToHitCalculator
         };
     }
 
-    private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(Unit attacker, Unit target, PartLocation weaponLocation, bool isPrimaryTarget = true)
+    private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(Unit attacker, Unit target, PartLocation weaponLocation, bool isPrimaryTarget = true, PartLocation? aimedShotTarget = null)
     {
         List<RollModifier> modifiers = [];
         // Unit specific modifiers
         // Depend on the unit type
         modifiers.AddRange(attacker.GetAttackModifiers(weaponLocation));
 
+        // Add aimed shot modifier if applicable
+        if (aimedShotTarget.HasValue)
+        {
+            modifiers.Add(AimedShotModifier.Create(aimedShotTarget.Value));
+        }
+
         // Add secondary target modifier if not primary
         if (!isPrimaryTarget && attacker is { Position: not null } && target is { Position: not null })
         {
             var attackerPosition = attacker.Position;
             var facing = attacker is Mech mech ? mech.TorsoDirection : attackerPosition.Facing;
-            
+
             if (facing != null)
             {
                 var isInFrontArc = attackerPosition.Coordinates.IsInFiringArc(
                     target.Position.Coordinates,
                     facing.Value,
                     FiringArc.Forward);
-                
+
                 modifiers.Add(new SecondaryTargetModifier
                 {
                     IsInFrontArc = isInFrontArc,

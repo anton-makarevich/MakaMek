@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using System.Text;
@@ -11,7 +10,8 @@ namespace Sanet.MakaMek.Core.Data.Game;
 public record HitLocationData(
     PartLocation Location,
     int Damage,
-    List<DiceResult> LocationRoll,
+    int[] AimedShotRoll,
+    int[] LocationRoll,
     List<LocationCriticalHitsData>? CriticalHits = null, // Optional: detailed critical hits info for all affected locations, null if none
     PartLocation? InitialLocation = null
 )
@@ -25,9 +25,15 @@ public record HitLocationData(
     public string Render(ILocalizationService localizationService, Unit unit)
     {
         var stringBuilder = new StringBuilder();
-        var locationRollTotal = LocationRoll.Sum(d => d.Result);
-        
+
+        // Check if this was an aimed shot
+        var isAimedShot = AimedShotRoll.Length > 0;
+        var aimedShotTotal = isAimedShot ? AimedShotRoll.Sum() : 0;
+        var aimedShotSuccessful = isAimedShot && aimedShotTotal is >= 6 and <= 8;
+        var locationRollTotal = LocationRoll.Length > 0 ? LocationRoll.Sum() : 0;
+
         // If there was a location transfer, show both the initial and final locations
+        // Note: Aimed shots should never have location transfers since they only target non-destroyed locations
         if (InitialLocation.HasValue && InitialLocation.Value != Location)
         {
             stringBuilder.AppendLine(string.Format(
@@ -39,11 +45,34 @@ public record HitLocationData(
         }
         else
         {
-            stringBuilder.AppendLine(string.Format(
-                localizationService.GetString("Command_WeaponAttackResolution_HitLocation"),
-                Location,
-                Damage,
-                locationRollTotal));
+            if (isAimedShot)
+            {
+                if (aimedShotSuccessful)
+                {
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_AimedShotSuccessful"),
+                        Location,
+                        Damage,
+                        aimedShotTotal));
+                }
+                else
+                {
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_WeaponAttackResolution_AimedShotFailed"),
+                        Location,
+                        Damage,
+                        aimedShotTotal,
+                        locationRollTotal));
+                }
+            }
+            else
+            {
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_WeaponAttackResolution_HitLocation"),
+                    Location,
+                    Damage,
+                    locationRollTotal));
+            }
         }
         
         // Process all critical hits for this hit location
