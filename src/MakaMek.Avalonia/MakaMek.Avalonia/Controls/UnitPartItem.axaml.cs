@@ -29,12 +29,4 @@ public sealed partial class UnitPartItem : UserControl
         get => GetValue(CommandParameterProperty);
         set => SetValue(CommandParameterProperty, value);
     }
-
-    private void OnButtonClick(object? sender, RoutedEventArgs e)
-    {
-        if (Command?.CanExecute(CommandParameter) == true)
-        {
-            Command.Execute(CommandParameter);
-        }
-    }
 }
