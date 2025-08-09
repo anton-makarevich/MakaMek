@@ -727,6 +727,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Configure the rules provider to return LeftArm as the initial hit location
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.CenterTorso);
 
+        // Configure aimed shot success values
+        mockRulesProvider.GetAimedShotSuccessValues().Returns([6, 7, 8]);
+
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
             [new DiceResult(4), new DiceResult(secondD6)] // outside the 6-8 range

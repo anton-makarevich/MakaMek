@@ -101,7 +101,11 @@ public class ToHitCalculator : IToHitCalculator
         // Add aimed shot modifier if applicable
         if (aimedShotTarget.HasValue)
         {
-            modifiers.Add(AimedShotModifier.Create(aimedShotTarget.Value));
+            modifiers.Add(new AimedShotModifier
+            {
+                TargetLocation = aimedShotTarget.Value,
+                Value = _rules.GetAimedShotModifier(aimedShotTarget.Value)
+            });
         }
 
         // Add secondary target modifier if not primary

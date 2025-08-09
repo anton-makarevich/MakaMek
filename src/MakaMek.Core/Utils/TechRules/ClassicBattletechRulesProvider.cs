@@ -420,6 +420,18 @@ public class ClassicBattletechRulesProvider : IRulesProvider
 
     public int GetHeavyDamageThreshold()
     {
-        return 20;    
+        return 20;
+    }
+
+    public int GetAimedShotModifier(PartLocation targetLocation)
+    {
+        // Headshots get +3 modifier, all other body parts get -4 modifier
+        return targetLocation == PartLocation.Head ? 3 : -4;
+    }
+
+    public int[] GetAimedShotSuccessValues()
+    {
+        // Classic BattleTech aimed shot success on 2D6 rolls of 6, 7, or 8
+        return [6, 7, 8];
     }
 }
