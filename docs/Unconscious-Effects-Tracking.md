@@ -18,5 +18,5 @@ Version: **0.41.x**
 * [x] Automatically apply **pilot damage from fall** (no roll to resist).
 
 #### 4. Targeting Modifiers
-* [ ] Allow **aimed shots** (e.g. called shots to location) against the unit.
-* [ ] Adjust hit location modifiers accordingly (e.g. ignore movement modifiers, apply +4 for immobile).
+* [x] Allow **aimed shots** (e.g. called shots to location) against the unit.
+* [x] Adjust hit location modifiers accordingly (e.g. apply +4 for immobile).
