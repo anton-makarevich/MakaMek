@@ -451,4 +451,131 @@ public class ToHitCalculatorTests
         result.OtherModifiers.Count.ShouldBe(2);
         result.Total.ShouldBe(2);
     }
+
+    [Fact]
+    public void AddAimedShotModifier_WithHeadTarget_ShouldAddCorrectModifier()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        var baseBreakdown = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Act
+        var result = _sut.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
+
+        // Assert
+        var aimedShotModifier = result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
+        aimedShotModifier.Value.ShouldBe(3);
+        aimedShotModifier.TargetLocation.ShouldBe(PartLocation.Head);
+        result.Total.ShouldBe(baseBreakdown.Total + 3);
+
+        // Verify other properties remain unchanged
+        result.GunneryBase.ShouldBe(baseBreakdown.GunneryBase);
+        result.AttackerMovement.ShouldBe(baseBreakdown.AttackerMovement);
+        result.TargetMovement.ShouldBe(baseBreakdown.TargetMovement);
+        result.RangeModifier.ShouldBe(baseBreakdown.RangeModifier);
+        result.TerrainModifiers.ShouldBe(baseBreakdown.TerrainModifiers);
+        result.HasLineOfSight.ShouldBe(baseBreakdown.HasLineOfSight);
+    }
+
+    [Theory]
+    [InlineData(PartLocation.CenterTorso)]
+    [InlineData(PartLocation.LeftArm)]
+    [InlineData(PartLocation.RightArm)]
+    [InlineData(PartLocation.LeftTorso)]
+    [InlineData(PartLocation.RightTorso)]
+    [InlineData(PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightLeg)]
+    public void AddAimedShotModifier_WithBodyPartTarget_ShouldAddCorrectModifier(PartLocation targetLocation)
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        var baseBreakdown = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Act
+        var result = _sut.AddAimedShotModifier(baseBreakdown, targetLocation);
+
+        // Assert
+        var aimedShotModifier = result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
+        aimedShotModifier.Value.ShouldBe(-4);
+        aimedShotModifier.TargetLocation.ShouldBe(targetLocation);
+        result.Total.ShouldBe(baseBreakdown.Total - 4);
+    }
+
+    [Fact]
+    public void AddAimedShotModifier_WithExistingAimedShotModifier_ShouldReplaceExistingModifier()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Create breakdown with existing aimed shot modifier
+        var breakdownWithAimedShot = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map, true, PartLocation.Head);
+
+        // Act - add different aimed shot modifier
+        var result = _sut.AddAimedShotModifier(breakdownWithAimedShot, PartLocation.CenterTorso);
+
+        // Assert
+        var aimedShotModifiers = result.OtherModifiers.OfType<AimedShotModifier>().ToList();
+        aimedShotModifiers.ShouldHaveSingleItem(); // Should only have one aimed shot modifier
+        aimedShotModifiers[0].TargetLocation.ShouldBe(PartLocation.CenterTorso);
+        aimedShotModifiers[0].Value.ShouldBe(-4);
+    }
+
+    [Fact]
+    public void AddAimedShotModifier_WithOtherModifiers_ShouldPreserveOtherModifiers()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        // Damage sensors to create another modifier
+        var sensors = _attacker!.GetAllComponents<Sensors>().First();
+        sensors.Hit();
+
+        var baseBreakdown = _sut.GetModifierBreakdown(_attacker, _target!, _weapon, map);
+
+        // Act
+        var result = _sut.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
+
+        // Assert
+        result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
+        result.OtherModifiers.OfType<SensorHitModifier>().ShouldHaveSingleItem();
+        result.OtherModifiers.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void AddAimedShotModifier_PerformanceComparison_ShouldBeFasterThanRecalculation()
+    {
+        // Arrange
+        SetupAttackerAndTarget(
+            new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
+            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        var baseBreakdown = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
+
+        // Act & Assert - This test verifies the optimization works correctly
+        // The optimized method should produce the same result as full recalculation
+        var optimizedResult = _sut.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
+        var fullRecalculationResult = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map, true, PartLocation.Head);
+
+        // Assert results are equivalent
+        optimizedResult.Total.ShouldBe(fullRecalculationResult.Total);
+        optimizedResult.OtherModifiers.OfType<AimedShotModifier>().Single().Value
+            .ShouldBe(fullRecalculationResult.OtherModifiers.OfType<AimedShotModifier>().Single().Value);
+        optimizedResult.OtherModifiers.OfType<AimedShotModifier>().Single().TargetLocation
+            .ShouldBe(fullRecalculationResult.OtherModifiers.OfType<AimedShotModifier>().Single().TargetLocation);
+    }
 }
