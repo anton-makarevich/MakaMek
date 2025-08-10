@@ -91,6 +91,7 @@ MakaMek is a cross-platform implementation of the classic BattleTech tabletop ga
 - **Damage resolution:** Armor first, then internal structure
 - **Damage transfer:** From destroyed locations to adjacent areas
 - **Critical hits:** When internal structure damaged, roll for component damage
+- **Aimed shots:** Ability to aim a specific target location of immobile units
 
 #### 4.4 Critical Hit Effects
 - **Cockpit:** Destroys 'Mech, kills MechWarrior
@@ -165,7 +166,7 @@ MakaMek is a cross-platform implementation of the classic BattleTech tabletop ga
 - [x] **Heat tracking:** Accurate accumulation from movement/weapons
 - [ ] **Performance effects:** Movement/accuracy penalties at thresholds
 - [ ] **Shutdown mechanics:** Automatic attempts at heat levels
-- [ ] **Critical effects:** Ammunition/life support interactions
+- [x] **Critical effects:** Ammunition/life support interactions
 
 ## Priority Matrix
 
