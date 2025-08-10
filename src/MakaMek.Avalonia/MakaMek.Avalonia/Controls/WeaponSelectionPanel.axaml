@@ -11,7 +11,6 @@
              x:DataType="viewModels1:BattleMapViewModel"
              x:CompileBindings="True">
     <UserControl.Resources>
-        <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
         <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter"/>
         <converters:ComponentStatusBackgroundConverter x:Key="ComponentStatusBackgroundConverter"/>
     </UserControl.Resources>
@@ -51,7 +50,7 @@
                     ItemsSource="{Binding WeaponSelectionItems}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="wrappers:WeaponSelectionViewModel">
-                            <Grid ColumnDefinitions="Auto,*,Auto,Auto"
+                            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto"
                                   Background="{Binding Weapon, Converter={StaticResource ComponentStatusBackgroundConverter}}"
                                   RowDefinitions="*,*,*">
                                 <CheckBox 
@@ -62,10 +61,10 @@
                                     IsEnabled="{Binding IsEnabled}"
                                     Margin="0,0,10,0"/>
                                 
-                                <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                <TextBlock Grid.Column="2" Text="{Binding Name}"
                                           FontWeight="Bold"/>
                                 <StackPanel
-                                    Grid.Column="1"
+                                    Grid.Column="2"
                                     Grid.Row="1"
                                     Orientation="Horizontal"
                                     Spacing="5">
@@ -84,16 +83,15 @@
                                     </StackPanel>
                                 </StackPanel>
                                 <TextBlock
-                                    Grid.Column="2"
+                                    Grid.Column="3"
                                     Grid.Row="0"
                                     Grid.RowSpan="3"
-                                    VerticalAlignment="Center"
+                                    Classes="probabilityText"
                                     Text="{Binding HitProbabilityText}" 
-                                    FontSize="20"
                                     Foreground="{Binding HitProbability, Converter={StaticResource HitProbabilityColorConverter}}"
-                                    FontWeight="Bold"/>
+                                    />
                                 <Button
-                                    Grid.Column="3"
+                                    Grid.Column="4"
                                     Grid.Row="0"
                                     Grid.RowSpan="3"
                                     VerticalAlignment="Center"
@@ -112,11 +110,37 @@
                                         </Flyout>
                                     </Button.Flyout>
                                 </Button>
+
+                                <!-- Aimed Shot Button -->
+                                <Button Grid.Column="1"
+                                        Grid.Row="0" 
+                                        Grid.RowSpan="3"
+                                        VerticalAlignment="Center"
+                                        Margin="2,0,0,0"
+                                        IsVisible="{Binding IsAimedShotAvailable}"
+                                        Command="{Binding ShowAimedShotSelector}"
+                                        CommandParameter="{Binding Weapon}"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        ToolTip.Tip="Aimed Shot">
+                                    <Button.Content>
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xF05B;" />
+                                    </Button.Content>
+                                </Button>
+
                                 <TextBlock Grid.Row="2"
-                                           Grid.Column="1"
+                                           Grid.Column="2"
                                            Text="{Binding Target.Name}"
                                           Foreground="Gray"
                                           FontStyle="Italic"/>
+
+                                <!-- Aimed Shot Status -->
+                                <TextBlock Grid.Row="2"
+                                           HorizontalAlignment="Center"
+                                          Grid.Column="1"
+                                          Text="{Binding AimedShotText}"
+                                          Foreground="Gray"
+                                          IsVisible="{Binding IsAimedShot}"/>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

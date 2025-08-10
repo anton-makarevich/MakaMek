@@ -9,11 +9,13 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -1691,6 +1693,98 @@ public class BattleMapViewModelTests
         // Assert
         var highlightedHexes = game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         highlightedHexes.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public void ShowAimedShotLocationSelector_SetsUnitPartSelectorAndVisibility()
+    {
+        // Arrange
+        var target = new Mech("Test Mech", "TM-1", 20, 6, []);
+        var headBreakdown = CreateTestBreakdown(8);
+        var otherBreakdown = CreateTestBreakdown(5);
+        var aimedShotSelector = new AimedShotLocationSelectorViewModel(
+            target, headBreakdown, otherBreakdown, _ => { }, _localizationService);
+
+        // Act
+        _sut.ShowAimedShotLocationSelector(aimedShotSelector);
+
+        // Assert
+        _sut.UnitPartSelector.ShouldBe(aimedShotSelector);
+        _sut.IsUnitPartSelectorVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HideAimedShotLocationSelector_ClearsUnitPartSelectorAndVisibility()
+    {
+        // Arrange
+        var target = new Mech("Test Mech", "TM-1", 20, 6, []);
+        var headBreakdown = CreateTestBreakdown(8);
+        var otherBreakdown = CreateTestBreakdown(5);
+        var aimedShotSelector = new AimedShotLocationSelectorViewModel(
+            target, headBreakdown, otherBreakdown, _ => { }, _localizationService);
+        _sut.ShowAimedShotLocationSelector(aimedShotSelector);
+
+        // Act
+        _sut.HideAimedShotLocationSelector();
+
+        // Assert
+        _sut.UnitPartSelector.ShouldBeNull();
+        _sut.IsUnitPartSelectorVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HideBodyPartSelectorCommand_ShouldHideAimedShotLocationSelector()
+    {
+        // Arrange
+        var target = new Mech("Test Mech", "TM-1", 20, 6, []);
+        var headBreakdown = CreateTestBreakdown(8);
+        var otherBreakdown = CreateTestBreakdown(5);
+        var aimedShotSelector = new AimedShotLocationSelectorViewModel(
+            target, headBreakdown, otherBreakdown, _ => { }, _localizationService);
+        _sut.ShowAimedShotLocationSelector(aimedShotSelector);
+
+        // Act
+        _sut.HideBodyPartSelectorCommand.Execute(null);
+
+        // Assert
+        _sut.UnitPartSelector.ShouldBeNull();
+        _sut.IsUnitPartSelectorVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsUnitPartSelectorVisible_DefaultsToFalse()
+    {
+        // Act & Assert
+        _sut.IsUnitPartSelectorVisible.ShouldBeFalse();
+        _sut.UnitPartSelector.ShouldBeNull();
+    }
+
+    private ToHitBreakdown CreateTestBreakdown(int total)
+    {
+        return new ToHitBreakdown
+        {
+            HasLineOfSight = true,
+            GunneryBase = new GunneryRollModifier { Value = total },
+            AttackerMovement = new AttackerMovementModifier
+            {
+                MovementType = MovementType.StandingStill,
+                Value = 0
+            },
+            TargetMovement = new TargetMovementModifier
+            {
+                HexesMoved = 0,
+                Value = 0
+            },
+            OtherModifiers = [],
+            RangeModifier = new RangeRollModifier
+            {
+                Value = 0,
+                Range = WeaponRange.Long,
+                Distance = 5,
+                WeaponName = "Test"
+            },
+            TerrainModifiers = []
+        };
     }
 
     private ClientGame CreateClientGame()

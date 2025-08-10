@@ -185,6 +185,16 @@ public class FakeLocalizationService: ILocalizationService
             "MechPart_LeftLeg" => "Left Leg",
             "MechPart_RightLeg" => "Right Leg",
             
+            // Short Mech part names
+            "MechPart_LeftArm_Short" => "LA",
+            "MechPart_RightArm_Short" => "RA",
+            "MechPart_LeftTorso_Short" => "LT",
+            "MechPart_RightTorso_Short" => "RT",
+            "MechPart_CenterTorso_Short" => "CT",
+            "MechPart_Head_Short" => "H",
+            "MechPart_LeftLeg_Short" => "LL",
+            "MechPart_RightLeg_Short" => "RL",
+            
             // UI Events
             "Events_Unit_ArmorDamage" => "Damage at {0}|-{1}",
             "Events_Unit_StructureDamage" => "Damage at {0}|-{1}",

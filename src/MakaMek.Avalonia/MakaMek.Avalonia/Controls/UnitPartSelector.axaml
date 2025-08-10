@@ -1,0 +1,70 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitPartSelector"
+             x:DataType="viewModels:AimedShotLocationSelectorViewModel">
+
+    <Grid ColumnDefinitions="*,*,*,*,*"
+          RowDefinitions="*,*,*,*,*,*,*"
+          Margin="5">
+        <!-- Head -->
+        <controls:UnitPartItem
+                Grid.Row="0" Grid.Column="2" Grid.RowSpan="2"
+                DataContext="{Binding HeadPart}"
+                Command="{Binding $parent[UserControl].DataContext.SelectPart}"
+                CommandParameter="{Binding Location}"/>
+
+        <!-- Left Torso -->
+        <controls:UnitPartItem
+                Grid.Row="1" Grid.Column="3" Grid.RowSpan="3"
+                DataContext="{Binding LeftTorsoPart}"
+                Command="{Binding $parent[UserControl].DataContext.SelectPart}"
+                CommandParameter="{Binding Location}"/>
+
+        <!-- Center Torso -->
+        <controls:UnitPartItem
+                Grid.Row="2" Grid.Column="2" Grid.RowSpan="3"
+                DataContext="{Binding CenterTorsoPart}"
+                Command="{Binding $parent[UserControl].DataContext.SelectPart}"
+                CommandParameter="{Binding Location}"/>
+
+        <!-- Right Torso -->
+        <controls:UnitPartItem
+                Grid.Row="1" Grid.Column="1" Grid.RowSpan="3"
+                DataContext="{Binding RightTorsoPart}"
+                Command="{Binding $parent[UserControl].DataContext.SelectPart}"
+                CommandParameter="{Binding Location}"/>
+
+        <!-- Left Arm -->
+        <controls:UnitPartItem
+                Grid.Row="2" Grid.Column="4" Grid.RowSpan="3"
+                DataContext="{Binding LeftArmPart}"
+                Command="{Binding $parent[UserControl].DataContext.SelectPart}"
+                CommandParameter="{Binding Location}"/>
+
+        <!-- Right Arm -->
+        <controls:UnitPartItem
+                Grid.Row="2" Grid.Column="0" Grid.RowSpan="3"
+                DataContext="{Binding RightArmPart}"
+                Command="{Binding $parent[UserControl].DataContext.SelectPart}"
+                CommandParameter="{Binding Location}"/>
+
+        <!-- Left Leg -->
+        <controls:UnitPartItem
+                Grid.Row="4" Grid.Column="3" Grid.RowSpan="3"
+                DataContext="{Binding LeftLegPart}"
+                Command="{Binding $parent[UserControl].DataContext.SelectPart}"
+                CommandParameter="{Binding Location}"/>
+
+        <!-- Right Leg -->
+        <controls:UnitPartItem
+                Grid.Row="4" Grid.Column="1" Grid.RowSpan="3"
+                DataContext="{Binding RightLegPart}"
+                Command="{Binding $parent[UserControl].DataContext.SelectPart}"
+                CommandParameter="{Binding Location}"/>
+    </Grid>
+</UserControl>
