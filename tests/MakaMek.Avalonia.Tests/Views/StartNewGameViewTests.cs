@@ -40,6 +40,7 @@ namespace MakaMek.Avalonia.Tests.Views
                 Substitute.For<IToHitCalculator>(),
                 Substitute.For<IPilotingSkillCalculator>(), 
                 Substitute.For<IConsciousnessCalculator>(),
+                Substitute.For<IHeatEffectsCalculator>(),
                 Substitute.For<IDispatcherService>(),
                 Substitute.For<IGameFactory>(),
                 Substitute.For<IBattleMapFactory>());

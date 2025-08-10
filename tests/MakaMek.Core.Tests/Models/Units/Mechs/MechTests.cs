@@ -214,9 +214,10 @@ public class MechTests
     {
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
 
         // Act
-        mech.Shutdown();
+        mech.Shutdown(shutdownData);
 
         // Assert
         mech.Status.ShouldHaveFlag(UnitStatus.Shutdown);
@@ -230,7 +231,8 @@ public class MechTests
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         sut.AssignPilot(pilot);
-        sut.Shutdown();
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
+        sut.Shutdown(shutdownData);
 
         // Act
         sut.Startup();
@@ -1523,7 +1525,8 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A"  , 50, 4, parts);
         sut.AssignPilot(new MechWarrior("John", "Doe"));
         sut.SetProne();
-        sut.Shutdown();
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
+        sut.Shutdown(shutdownData);
 
         // Act
         var canStandup = sut.CanStandup();
@@ -1648,7 +1651,8 @@ public class MechTests
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
         sut.SetProne();
-        sut.Shutdown();
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
+        sut.Shutdown(shutdownData);
 
         // Act & Assert
         sut.CanChangeFacingWhileProne().ShouldBeFalse("Shutdown mechs should not be able to change facing");
@@ -1953,7 +1957,8 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
-        sut.Shutdown();
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
+        sut.Shutdown(shutdownData);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeTrue("A shutdown mech should be immobile");

@@ -52,6 +52,7 @@ public class StartNewGameViewModelTests
         var toHitCalculator = Substitute.For<IToHitCalculator>(); 
         var pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>(); 
         var consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
+        var heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
         var dispatcherService = Substitute.For<IDispatcherService>(); 
         var gameFactory = Substitute.For<IGameFactory>(); 
         var mapFactory = Substitute.For<IBattleMapFactory>();
@@ -62,6 +63,7 @@ public class StartNewGameViewModelTests
             toHitCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
+            heatEffectsCalculator,
             mapFactory); 
         gameFactory.CreateClientGame(rulesProvider,
                 _mechFactory,
@@ -69,6 +71,7 @@ public class StartNewGameViewModelTests
                 toHitCalculator,
                 pilotingSkillCalculator,
                 consciousnessCalculator,
+                heatEffectsCalculator,
                 mapFactory)
                     .Returns(_clientGame);
         
@@ -91,6 +94,7 @@ public class StartNewGameViewModelTests
             toHitCalculator, 
             pilotingSkillCalculator,
             consciousnessCalculator,
+            heatEffectsCalculator,
             dispatcherService, 
             gameFactory,
             mapFactory); 

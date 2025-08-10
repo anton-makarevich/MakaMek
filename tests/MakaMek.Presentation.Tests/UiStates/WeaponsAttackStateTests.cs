@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -84,6 +85,7 @@ public class WeaponsAttackStateTests
             _toHitCalculator,
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(battleMap);
@@ -428,7 +430,8 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         _sut.HandleUnitSelection(_unit1);
-        _unit1.Shutdown();
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
+        _unit1.Shutdown(shutdownData);
 
         // Act
         var actions = _sut.GetAvailableActions().ToList();

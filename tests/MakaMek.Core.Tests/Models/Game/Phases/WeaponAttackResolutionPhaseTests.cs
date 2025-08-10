@@ -682,7 +682,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         var mechData = MechFactoryTests.CreateDummyMechData();
         var mech = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
-        mech.Shutdown();
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
+        mech.Shutdown(shutdownData);
         
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
@@ -722,7 +723,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetGameWithRulesProvider(mockRulesProvider);
         var mechData = MechFactoryTests.CreateDummyMechData();
         var mech = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
-        mech.Shutdown();
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
+        mech.Shutdown(shutdownData);
 
         // Configure the rules provider to return LeftArm as the initial hit location
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.CenterTorso);
