@@ -109,7 +109,7 @@ MakaMek is a cross-platform implementation of the classic BattleTech tabletop ga
 
 #### 5.2 Heat Effects
 - **Movement penalties:** Reduced Walking MP at heat levels 5, 10, 15, 20, 25
-- **Weapon penalties:** To-hit modifiers at heat 4, 8, 13, 17, 21, 25, 29+
+- **Weapon penalties:** To-hit modifiers at heat levels 8, 13, 17 and 24
 - **Shutdown risks:** Automatic shutdown attempts at heat 14, 18, 22, 26, 30
 - **Ammunition explosions:** Risk at heat 19, 23, 28
 - **MechWarrior damage:** If life support hit, damage at heat 15+
