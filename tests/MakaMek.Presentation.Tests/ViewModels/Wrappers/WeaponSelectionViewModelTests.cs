@@ -877,6 +877,40 @@ public class WeaponSelectionViewModelTests
         _sut.ModifiersBreakdown.ShouldBe(updatedBreakdown);    
         _sut.AimedShotTarget.ShouldBe(targetLocation);
         _onHideAimedShotLocationSelector.Received(1).Invoke();
+        _toHitCalculator.Received(1).AddAimedShotModifier(initialBreakdown, targetLocation);
+    }
+    
+    [Fact]
+    public void ClearAimedShot_ShouldRestoreOriginalBreakdown()
+    {
+        // Arrange
+        CreateSut(target: _target, isInRange: true);
+        var baseline = CreateTestBreakdown(6);
+        var aimed = CreateTestBreakdown(8);
+        _sut.ModifiersBreakdown = baseline;
+        _sut.AimedHeadModifiersBreakdown = aimed;
+        _sut.AimedOtherModifiersBreakdown = aimed;
+        _sut.IsEnabled = true;
+        _sut.IsSelected = true;
+
+        _toHitCalculator.AddAimedShotModifier(baseline, PartLocation.Head).Returns(aimed);
+
+        AimedShotLocationSelectorViewModel? vm = null;
+        _onShowAimedShotLocationSelector.When(x => x.Invoke(Arg.Any<AimedShotLocationSelectorViewModel>()))
+            .Do(x => vm = x.Arg<AimedShotLocationSelectorViewModel>());
+        _sut.ShowAimedShotSelector();
+
+        // Aim at head
+        vm!.SelectPart(PartLocation.Head);
+        _sut.ModifiersBreakdown.ShouldBe(aimed);
+
+        // Act
+        _sut.ClearAimedShot();
+
+        // Assert
+        _sut.AimedShotTarget.ShouldBeNull();
+        _sut.IsAimedShot.ShouldBeFalse();
+        _sut.ModifiersBreakdown.ShouldBe(baseline);
     }
 
     private void CreateSut(
