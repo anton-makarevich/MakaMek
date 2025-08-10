@@ -556,7 +556,7 @@ public class ToHitCalculatorTests
     }
 
     [Fact]
-    public void AddAimedShotModifier_PerformanceComparison_ShouldBeFasterThanRecalculation()
+    public void AddAimedShotModifier_ShouldProduceSameResultAsFullRecalculation()
     {
         // Arrange
         SetupAttackerAndTarget(

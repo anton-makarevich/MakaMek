@@ -92,7 +92,7 @@ public class ToHitCalculator : IToHitCalculator
     }
 
     /// <summary>
-    /// Creates a new ToHitBreakdown with an aimed shot modifier added to the existing breakdown.
+    /// Creates a new ToHitBreakdown by adding or replacing the aimed shot modifier in the existing breakdown.
     /// This is more efficient than recalculating the entire breakdown when only the aimed shot target changes.
     /// </summary>
     /// <param name="existingBreakdown">The existing breakdown to modify</param>
