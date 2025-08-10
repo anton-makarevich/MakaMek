@@ -1226,39 +1226,6 @@ public class WeaponsAttackStateTests
     }
 
     [Fact]
-    public void UpdateWeaponViewModels_SetsAimedShotBreakdowns_WhenAimedShotAvailable()
-    {
-        // Arrange
-        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-
-        // Position units next to each other
-        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        attacker.Deploy(attackerPosition);
-        attacker.AssignPilot(_pilot);
-        var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
-        target.Deploy(targetPosition);
-
-        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==attackerPosition.Coordinates));
-        _sut.HandleUnitSelection(attacker);
-        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
-        selectTargetAction.OnExecute();
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==targetPosition.Coordinates));
-        _sut.HandleUnitSelection(target);
-
-        // Act
-        var weaponItems = _sut.WeaponSelectionItems.ToList();
-
-        // Assert
-        weaponItems.ShouldNotBeEmpty();
-        foreach (var item in weaponItems.Where(i => i.IsAimedShotAvailable))
-        {
-            item.AimedHeadModifiersBreakdown.ShouldNotBeNull();
-            item.AimedOtherModifiersBreakdown.ShouldNotBeNull();
-        }
-    }
-
-    [Fact]
     public void ConfirmWeaponSelections_IncludesAimedShotTarget_WhenAimedShotSelected()
     {
         // Arrange

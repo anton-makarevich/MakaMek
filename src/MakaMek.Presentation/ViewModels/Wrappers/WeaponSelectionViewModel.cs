@@ -19,6 +19,7 @@ public class WeaponSelectionViewModel : BindableBase
     private ToHitBreakdown? _modifiersBreakdown;
     private readonly ILocalizationService _localizationService;
     private PartLocation? _aimedShotTarget;
+    private ToHitBreakdown? _originalModifiersBreakdown;
 
     public WeaponSelectionViewModel(
         Weapon weapon,
@@ -220,6 +221,7 @@ public class WeaponSelectionViewModel : BindableBase
     public void ClearAimedShot()
     {
         AimedShotTarget = null;
+        ModifiersBreakdown = _originalModifiersBreakdown;
     }
 
 
@@ -270,6 +272,7 @@ public class WeaponSelectionViewModel : BindableBase
         // Recalculate hit probability with aimed shot modifier
         if (Target != null && attacker != null)
         {
+            _originalModifiersBreakdown = ModifiersBreakdown;
             ModifiersBreakdown = targetLocation == PartLocation.Head
                 ? AimedHeadModifiersBreakdown 
                 : AimedOtherModifiersBreakdown;

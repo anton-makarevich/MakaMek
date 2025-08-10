@@ -639,6 +639,7 @@ public class WeaponSelectionViewModelTests
         // Assert
         _sut.AimedShotTarget.ShouldBeNull();
         _sut.IsAimedShot.ShouldBeFalse();
+        _sut.ModifiersBreakdown.ShouldBeNull();
     }
 
     [Theory]
@@ -847,6 +848,8 @@ public class WeaponSelectionViewModelTests
         var otherBreakdown = CreateTestBreakdown(5);
         _sut.AimedHeadModifiersBreakdown = headBreakdown;
         _sut.AimedOtherModifiersBreakdown = otherBreakdown;
+        _sut.IsEnabled = true;
+        _sut.IsSelected = true;
 
         AimedShotLocationSelectorViewModel? capturedViewModel = null;
         _onShowAimedShotLocationSelector.When(x => x.Invoke(Arg.Any<AimedShotLocationSelectorViewModel>()))
@@ -858,6 +861,9 @@ public class WeaponSelectionViewModelTests
         
         // Assert
         _sut.ModifiersBreakdown.ShouldBe(headBreakdown);    
+        _sut.AimedShotTarget.ShouldBe(PartLocation.Head);
+        _sut.AimedShotText.ShouldBe("H");
+        _onHideAimedShotLocationSelector.Received(1).Invoke();
     }
 
     private void CreateSut(
