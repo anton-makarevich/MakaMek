@@ -29,4 +29,13 @@ public interface IToHitCalculator
         BattleMap map,
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null);
+
+    /// <summary>
+    /// Creates a new ToHitBreakdown by adding or replacing the aimed shot modifier in the existing breakdown.
+    /// This is more efficient than recalculating the entire breakdown when only the aimed shot target changes.
+    /// </summary>
+    /// <param name="existingBreakdown">The existing breakdown to modify</param>
+    /// <param name="aimedShotTarget">The body part being targeted for the aimed shot</param>
+    /// <returns>A new ToHitBreakdown with the aimed shot modifier added</returns>
+    ToHitBreakdown AddAimedShotModifier(ToHitBreakdown existingBreakdown, PartLocation aimedShotTarget);
 }

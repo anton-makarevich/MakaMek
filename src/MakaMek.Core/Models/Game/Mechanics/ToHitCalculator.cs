@@ -91,6 +91,35 @@ public class ToHitCalculator : IToHitCalculator
         };
     }
 
+    /// <summary>
+    /// Creates a new ToHitBreakdown by adding or replacing the aimed shot modifier in the existing breakdown.
+    /// This is more efficient than recalculating the entire breakdown when only the aimed shot target changes.
+    /// </summary>
+    /// <param name="existingBreakdown">The existing breakdown to modify</param>
+    /// <param name="aimedShotTarget">The body part being targeted for the aimed shot</param>
+    /// <returns>A new ToHitBreakdown with the aimed shot modifier added</returns>
+    public ToHitBreakdown AddAimedShotModifier(ToHitBreakdown existingBreakdown, PartLocation aimedShotTarget)
+    {
+        // Create the aimed shot modifier for the target location
+        var aimedShotModifier = new AimedShotModifier
+        {
+            TargetLocation = aimedShotTarget,
+            Value = _rules.GetAimedShotModifier(aimedShotTarget)
+        };
+
+        // Create a new list with the existing modifiers plus the aimed shot modifier
+        var newOtherModifiers = existingBreakdown.OtherModifiers
+            .Where(m => m is not AimedShotModifier) // Remove any existing aimed shot modifier
+            .Append(aimedShotModifier)
+            .ToList();
+
+        // Return a new breakdown with only the OtherModifiers changed
+        return existingBreakdown with
+        {
+            OtherModifiers = newOtherModifiers
+        };
+    }
+
     private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(Unit attacker, Unit target, PartLocation weaponLocation, bool isPrimaryTarget = true, PartLocation? aimedShotTarget = null)
     {
         List<RollModifier> modifiers = [];

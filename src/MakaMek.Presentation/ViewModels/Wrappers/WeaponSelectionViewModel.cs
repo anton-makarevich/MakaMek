@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -18,6 +19,7 @@ public class WeaponSelectionViewModel : BindableBase
     private bool _isInRange;
     private ToHitBreakdown? _modifiersBreakdown;
     private readonly ILocalizationService _localizationService;
+    private readonly IToHitCalculator _toHitCalculator;
     private PartLocation? _aimedShotTarget;
     private ToHitBreakdown? _originalModifiersBreakdown;
 
@@ -30,7 +32,9 @@ public class WeaponSelectionViewModel : BindableBase
         Action<Weapon, bool> onSelectionChanged,
         Action<AimedShotLocationSelectorViewModel> onShowAimedShotLocationSelector, 
         Action onHideAimedShotLocationSelector,
-        ILocalizationService localizationService, int remainingAmmoShots = -1)
+        ILocalizationService localizationService,
+        IToHitCalculator toHitCalculator,
+        int remainingAmmoShots = -1)
     {
         Weapon = weapon;
         IsInRange = isInRange;
@@ -39,6 +43,7 @@ public class WeaponSelectionViewModel : BindableBase
         Target = target;
         _onSelectionChanged = onSelectionChanged;
         _localizationService = localizationService;
+        _toHitCalculator = toHitCalculator;
         _onShowAimedShotLocationSelector = onShowAimedShotLocationSelector;
         _onHideAimedShotLocationSelector = onHideAimedShotLocationSelector;
         RemainingAmmoShots = remainingAmmoShots;
@@ -269,14 +274,9 @@ public class WeaponSelectionViewModel : BindableBase
     {
         AimedShotTarget = targetLocation;
 
-        // Recalculate hit probability with aimed shot modifier
-        if (Target != null)
-        {
-            _originalModifiersBreakdown = ModifiersBreakdown;
-            ModifiersBreakdown = targetLocation == PartLocation.Head
-                ? AimedHeadModifiersBreakdown 
-                : AimedOtherModifiersBreakdown;
-        }
+        _originalModifiersBreakdown = ModifiersBreakdown;
+        if (_originalModifiersBreakdown != null)
+            ModifiersBreakdown = _toHitCalculator.AddAimedShotModifier(_originalModifiersBreakdown, targetLocation);
 
         _onHideAimedShotLocationSelector();
     }

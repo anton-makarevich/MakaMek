@@ -14,10 +14,10 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 public class WeaponsAttackState : IUiState
 {
     private readonly BattleMapViewModel _viewModel;
-    private readonly List<HexDirection> _availableDirections = new();
+    private readonly List<HexDirection> _availableDirections = [];
     private readonly Dictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges = new();
     private readonly Dictionary<Weapon, Unit> _weaponTargets = new();
-    private readonly List<WeaponSelectionViewModel> _weaponViewModels = [];
+    private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly ClientGame _game;
     private readonly Lock _stateLock = new();
 
@@ -391,10 +391,10 @@ public class WeaponsAttackState : IUiState
         _weaponViewModels.Clear();
         if (Attacker == null) return;
 
-        _weaponViewModels.AddRange(Attacker.Parts
-            .SelectMany(p => p.GetComponents<Weapon>())
-            .Select(w => new WeaponSelectionViewModel(
-                weapon: w,
+        foreach (var weapon in Attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()))
+        {
+            var viewModel = new WeaponSelectionViewModel(
+                weapon: weapon,
                 isInRange: false,
                 isSelected: false,
                 isEnabled: false,
@@ -403,9 +403,12 @@ public class WeaponsAttackState : IUiState
                 _viewModel.ShowAimedShotLocationSelector,
                 _viewModel.HideAimedShotLocationSelector,
                 localizationService: _viewModel.LocalizationService,
-                remainingAmmoShots: Attacker.GetRemainingAmmoShots(w)
-            )));
-            
+                toHitCalculator: _game.ToHitCalculator,
+                remainingAmmoShots: Attacker.GetRemainingAmmoShots(weapon)
+            );
+            _weaponViewModels[weapon] = viewModel;
+        }
+
         // Update the view model's collection
         UpdateViewModelWeaponItems();
     }
@@ -415,47 +418,53 @@ public class WeaponsAttackState : IUiState
         if (Attacker == null || SelectedTarget?.Position == null) return;
 
         var targetCoords = SelectedTarget.Position.Coordinates;
-        foreach (var vm in _weaponViewModels)
+        foreach (var kvp in _weaponViewModels)
         {
+            var weapon = kvp.Key;
+            var vm = kvp.Value;
+
             // Only process available weapons
-            if (!vm.Weapon.IsAvailable)
+            if (!weapon.IsAvailable)
             {
                 vm.ModifiersBreakdown = null;
                 continue;
             }
-            var isInRange = IsWeaponInRange(vm.Weapon, targetCoords);
-            var target = _weaponTargets.GetValueOrDefault(vm.Weapon);
-            var isSelected = _weaponTargets.ContainsKey(vm.Weapon) && _weaponTargets[vm.Weapon] == target;
+            var isInRange = IsWeaponInRange(weapon, targetCoords);
+            var target = _weaponTargets.GetValueOrDefault(weapon);
+            var isSelected = _weaponTargets.ContainsKey(weapon) && _weaponTargets[weapon] == target;
             vm.IsInRange = isInRange;
             vm.IsSelected = isSelected;
-            vm.IsEnabled = (!_weaponTargets.ContainsKey(vm.Weapon) || _weaponTargets[vm.Weapon] == SelectedTarget) && isInRange;
+            vm.IsEnabled = (!_weaponTargets.ContainsKey(weapon) || _weaponTargets[weapon] == SelectedTarget) && isInRange;
             vm.Target = target;
-            
+
             vm.ModifiersBreakdown = null;
             vm.AimedHeadModifiersBreakdown = null;
             vm.AimedOtherModifiersBreakdown = null;
-            
+
             // Set modifiers breakdown when in range
             if (isInRange)
             {
                 // Check if this target is the primary target
                 var isPrimaryTarget = SelectedTarget == PrimaryTarget || PrimaryTarget==null;
-                
+
                 // Get modifiers breakdown, passing the primary target information
                 if (_game.BattleMap != null)
                 {
-                    vm.ModifiersBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
-                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget, vm.AimedShotTarget);
+                    // Calculate base breakdown without aimed shot
+                    var baseBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
+                        Attacker, SelectedTarget, weapon, _game.BattleMap, isPrimaryTarget, vm.AimedShotTarget);
+
+                    // Set the appropriate breakdown based on current aimed shot target
+                    vm.ModifiersBreakdown = baseBreakdown;
+
                     if (!vm.IsAimedShotAvailable) continue;
-                    vm.AimedHeadModifiersBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
-                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget, PartLocation.Head);
-                    vm.AimedOtherModifiersBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
-                        Attacker, SelectedTarget, vm.Weapon, _game.BattleMap, isPrimaryTarget,
-                        PartLocation.CenterTorso);
+                    // Use optimized method to add aimed shot modifiers to existing breakdown
+                    vm.AimedHeadModifiersBreakdown = _game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
+                    vm.AimedOtherModifiersBreakdown = _game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.CenterTorso);
                 }
             }
         }
-        
+
         // Update the view model's collection
         UpdateViewModelWeaponItems();
     }
@@ -465,13 +474,13 @@ public class WeaponsAttackState : IUiState
     {
         // Clear the view model's collection and add all items from our local collection
         _viewModel.WeaponSelectionItems.Clear();
-        foreach (var item in _weaponViewModels)
+        foreach (var kvp in _weaponViewModels)
         {
-            _viewModel.WeaponSelectionItems.Add(item);
+            _viewModel.WeaponSelectionItems.Add(kvp.Value);
         }
     }
 
-    public IEnumerable<WeaponSelectionViewModel> WeaponSelectionItems => _weaponViewModels;
+    public IEnumerable<WeaponSelectionViewModel> WeaponSelectionItems => _weaponViewModels.Values;
 
     private bool IsWeaponInRange(Weapon weapon, HexCoordinates targetCoords)
     {
@@ -555,9 +564,10 @@ public class WeaponsAttackState : IUiState
                 var target = weaponTarget.Value;
                 var isPrimaryTarget = target == PrimaryTarget;
 
-                // Get aimed shot target from weapon view model
-                var weaponVm = _weaponViewModels.FirstOrDefault(vm => vm.Weapon == weapon);
-                var aimedShotTarget = weaponVm?.AimedShotTarget;
+                // Get aimed shot target from weapon view model using O(1) dictionary lookup
+                var aimedShotTarget = _weaponViewModels.TryGetValue(weapon, out var weaponVm)
+                    ? weaponVm.AimedShotTarget
+                    : null;
 
                 weaponTargetsData.Add(new WeaponTargetData
                 {
