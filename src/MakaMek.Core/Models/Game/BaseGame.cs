@@ -286,7 +286,7 @@ public abstract class BaseGame : IGame
         mech?.AttemptStandup();
     }
 
-    internal void OnMechShutdown(MechShutdownCommand shutdownCommand)
+    internal void OnMechShutdown(UnitShutdownCommand shutdownCommand)
     {
         // Find the unit with the given ID across all players
         var unit = _players
@@ -302,7 +302,7 @@ public abstract class BaseGame : IGame
         }
     }
 
-    internal void OnMechRestart(MechRestartCommand restartCommand)
+    internal void OnMechRestart(UnitStartupCommand restartCommand)
     {
         // Find the unit with the given ID across all players
         var unit = _players
@@ -397,8 +397,8 @@ public abstract class BaseGame : IGame
             MechFallCommand => true,
             TryStandupCommand => true,
             MechStandUpCommand => true,
-            MechShutdownCommand => true,
-            MechRestartCommand => true,
+            UnitShutdownCommand => true,
+            UnitStartupCommand => true,
             PilotConsciousnessRollCommand => true,
             _ => false
         };

@@ -136,7 +136,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
             AvoidNumber = 0,
             IsSuccessful = true
         };
-        var restartCommand = new MechRestartCommand
+        var restartCommand = new UnitStartupCommand
         {
             UnitId = mech.Id,
             IsAutomaticRestart = true,

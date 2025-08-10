@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 /// <summary>
 /// Command sent when a mech attempts to restart from shutdown
 /// </summary>
-public record struct MechRestartCommand : IGameCommand
+public record struct UnitStartupCommand : IGameCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }

@@ -20,7 +20,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         _diceRoller = diceRoller;
     }
 
-    public MechShutdownCommand? CheckForHeatShutdown(Mech mech, int currentTurn)
+    public UnitShutdownCommand? CheckForHeatShutdown(Mech mech, int currentTurn)
     {
         // Don't check if already shutdown
         if (mech.IsShutdown)
@@ -55,7 +55,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
                 IsSuccessful = false
             };
             
-            return new MechShutdownCommand
+            return new UnitShutdownCommand
             {
                 UnitId = mech.Id,
                 ShutdownData = automaticShutdownData,
@@ -105,7 +105,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             IsSuccessful = !shutdownOccurs
         };
 
-        return new MechShutdownCommand
+        return new UnitShutdownCommand
         {
             UnitId = mech.Id,
             ShutdownData = shutdownData,
@@ -115,7 +115,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         };
     }
 
-    public MechRestartCommand? AttemptRestart(Mech mech, int currentTurn)
+    public UnitStartupCommand? AttemptRestart(Mech mech, int currentTurn)
     {
         // Must be shutdown to restart
         if (!mech.IsShutdown || !mech.CurrentShutdownData.HasValue)
@@ -137,7 +137,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
                 AvoidNumber = 0,
                 IsSuccessful = true
             };
-            return new MechRestartCommand
+            return new UnitStartupCommand
             {
                 UnitId = mech.Id,
                 IsAutomaticRestart = true,
@@ -178,7 +178,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             IsSuccessful = restartSuccessful
         };
 
-        return new MechRestartCommand
+        return new UnitStartupCommand
         {
             UnitId = mech.Id,
             IsAutomaticRestart = false,

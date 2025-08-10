@@ -16,7 +16,7 @@ public interface IHeatEffectsCalculator
     /// <param name="mech">The mech to check for shutdown</param>
     /// <param name="currentTurn">The current game turn</param>
     /// <returns>Shutdown command if threshold is crossed, null otherwise</returns>
-    MechShutdownCommand? CheckForHeatShutdown(Mech mech, int currentTurn);
+    UnitShutdownCommand? CheckForHeatShutdown(Mech mech, int currentTurn);
 
     /// <summary>
     /// Attempts to restart a shutdown mech
@@ -24,7 +24,7 @@ public interface IHeatEffectsCalculator
     /// <param name="mech">The shutdown mech to attempt restart</param>
     /// <param name="currentTurn">The current game turn</param>
     /// <returns>Restart command with success/failure information</returns>
-    MechRestartCommand? AttemptRestart(Mech mech, int currentTurn);
+    UnitStartupCommand? AttemptRestart(Mech mech, int currentTurn);
     
     /// <summary>
     /// Checks if a mech should automatically restart due to low heat

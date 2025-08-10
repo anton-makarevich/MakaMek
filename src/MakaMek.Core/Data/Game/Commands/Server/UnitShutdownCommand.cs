@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 /// <summary>
 /// Command sent when a mech shuts down due to heat or other reasons
 /// </summary>
-public record struct MechShutdownCommand : IGameCommand
+public record struct UnitShutdownCommand : IGameCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
