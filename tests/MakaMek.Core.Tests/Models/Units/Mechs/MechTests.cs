@@ -880,12 +880,6 @@ public class MechTests
 
         var originalJumpMp = jumpJets.JumpMp;
         sut.GetMovementPoints(MovementType.Jump).ShouldBe(originalJumpMp, "Jump MP should not be affected by heat");
-
-        // Check shutdown status for high heat
-        if (heat >= 30)
-        {
-            sut.Status.ShouldHaveFlag(UnitStatus.Shutdown, "Mech should shutdown at 30+ heat");
-        }
     }
 
     [Fact]

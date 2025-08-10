@@ -412,8 +412,8 @@ public abstract class Unit
     {
         if (!IsActive) return;
         CurrentShutdownData = shutdownData;
-        Status &= ~UnitStatus.Active;
-        Status |= UnitStatus.Shutdown;
+        _status &= ~UnitStatus.Active;
+        _status |= UnitStatus.Shutdown;
     }
 
     public void ApplyDamage(List<HitLocationData> hitLocations)
