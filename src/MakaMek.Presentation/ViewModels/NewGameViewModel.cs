@@ -27,6 +27,7 @@ public abstract class NewGameViewModel : BaseViewModel
     protected readonly IToHitCalculator _toHitCalculator;
     protected readonly IPilotingSkillCalculator _pilotingSkillCalculator;
     protected readonly IConsciousnessCalculator _consciousnessCalculator;
+    protected readonly IHeatEffectsCalculator _heatEffectsCalculator;
     private readonly IDispatcherService _dispatcherService;
     protected readonly IGameFactory _gameFactory;
     
@@ -40,6 +41,7 @@ public abstract class NewGameViewModel : BaseViewModel
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory)
     {
@@ -49,6 +51,7 @@ public abstract class NewGameViewModel : BaseViewModel
         _toHitCalculator = toHitCalculator;
         _pilotingSkillCalculator = pilotingSkillCalculator;
         _consciousnessCalculator = consciousnessCalculator;
+        _heatEffectsCalculator = heatEffectsCalculator;
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
     }

@@ -30,20 +30,22 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     private readonly IBattleMapFactory _mapFactory;
 
     public StartNewGameViewModel(
-        IGameManager gameManager, 
+        IGameManager gameManager,
         IUnitsLoader unitsLoader,
-        IRulesProvider rulesProvider, 
+        IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         IBattleMapFactory mapFactory)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
-           pilotingSkillCalculator, 
+           pilotingSkillCalculator,
            consciousnessCalculator,
+           heatEffectsCalculator,
             dispatcherService, gameFactory)
     {
         _gameManager = gameManager;
@@ -60,10 +62,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _localGame = _gameFactory.CreateClientGame(
             _rulesProvider,
             _mechFactory,
-            _commandPublisher, 
+            _commandPublisher,
             _toHitCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
+            _heatEffectsCalculator,
             _mapFactory);
         // Update server IP initially if needed
         NotifyPropertyChanged(nameof(ServerIpAddress));

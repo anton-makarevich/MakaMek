@@ -23,22 +23,18 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 public abstract class GamePhaseTestsBase
 {
     protected ServerGame Game;
-    protected readonly ICommandPublisher CommandPublisher;
-    protected readonly IDiceRoller DiceRoller;
-    protected readonly IPhaseManager MockPhaseManager;
-    protected readonly IFallProcessor MockFallProcessor;
-    protected readonly IConsciousnessCalculator MockConsciousnessCalculator;
-    protected readonly IPilotingSkillCalculator MockPilotingSkillCalculator;
+    protected readonly ICommandPublisher CommandPublisher = Substitute.For<ICommandPublisher>();
+    protected readonly IDiceRoller DiceRoller= Substitute.For<IDiceRoller>();
+    protected readonly IPhaseManager MockPhaseManager= Substitute.For<IPhaseManager>();
+    protected readonly IFallProcessor MockFallProcessor= Substitute.For<IFallProcessor>();
+    protected readonly IConsciousnessCalculator MockConsciousnessCalculator= Substitute.For<IConsciousnessCalculator>();
+    protected readonly IHeatEffectsCalculator MockHeatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
+    protected readonly IPilotingSkillCalculator MockPilotingSkillCalculator= Substitute.For<IPilotingSkillCalculator>();
+    
     private readonly IMechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),Substitute.For<ILocalizationService>());
 
     protected GamePhaseTestsBase()
     {
-        CommandPublisher = Substitute.For<ICommandPublisher>();
-        DiceRoller = Substitute.For<IDiceRoller>();
-        MockPhaseManager = Substitute.For<IPhaseManager>();
-        MockFallProcessor = Substitute.For<IFallProcessor>();
-        MockConsciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
-        MockPilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
@@ -46,6 +42,7 @@ public abstract class GamePhaseTestsBase
             Substitute.For<ICriticalHitsCalculator>(),
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
+            Substitute.For<IHeatEffectsCalculator>(),
             MockFallProcessor,
             MockPhaseManager);
     }
@@ -57,6 +54,7 @@ public abstract class GamePhaseTestsBase
             Substitute.For<ICriticalHitsCalculator>(),
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
+            MockHeatEffectsCalculator,
             MockFallProcessor,
             MockPhaseManager);
     }

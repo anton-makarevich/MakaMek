@@ -85,9 +85,14 @@ public abstract class Unit
     public bool IsActive => (_status & UnitStatus.Active) == UnitStatus.Active;
 
     /// <summary>
-    /// Gets whether the unit is shutdown. Returns true if the Shutdown flag is set, regardless of other flags.
+    /// Data about the current shutdown state, if any
     /// </summary>
-    public bool IsShutdown => (_status & UnitStatus.Shutdown) == UnitStatus.Shutdown;
+    public ShutdownData? CurrentShutdownData { get; private set; }
+
+    /// <summary>
+    /// Gets whether the unit is shutdown. Returns true if shutdown data is present.
+    /// </summary>
+    public bool IsShutdown => CurrentShutdownData.HasValue;
 
     /// <summary>
     /// Gets whether the unit is immobile.
@@ -389,6 +394,7 @@ public abstract class Unit
     public virtual void Startup()
     {
         if (!IsShutdown) return;
+        CurrentShutdownData = null;
         _status &= ~UnitStatus.Shutdown;
         _status |= UnitStatus.Active;
     }
@@ -401,6 +407,18 @@ public abstract class Unit
     public virtual void Shutdown()
     {
         if (!IsActive) return;
+        Status &= ~UnitStatus.Active;
+        Status |= UnitStatus.Shutdown;
+    }
+
+    /// <summary>
+    /// Shuts down the unit with specific shutdown data
+    /// </summary>
+    /// <param name="shutdownData">Information about the shutdown event</param>
+    public virtual void Shutdown(ShutdownData shutdownData)
+    {
+        if (!IsActive) return;
+        CurrentShutdownData = shutdownData;
         Status &= ~UnitStatus.Active;
         Status |= UnitStatus.Shutdown;
     }

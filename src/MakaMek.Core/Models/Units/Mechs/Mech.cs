@@ -131,18 +131,9 @@ public class Mech : Unit
 
     protected override void ApplyHeatEffects()
     {
-        // Apply effects based on the current heat level
-        if (CurrentHeat >= 30)
-        {
-            // Automatic shutdown
-            Status = UnitStatus.Shutdown;
-        }
-        else if (CurrentHeat >= 25)
-        {
-            // Chance to shut down, ammo explosion, etc.
-            // To be implemented
-        }
-        
+        // Heat shutdown is now handled by HeatEffectsCalculator in HeatPhase
+        // Only apply pilot damage from life support failure here
+
         var lifeSupport = GetAllComponents<LifeSupport>().FirstOrDefault(ls=>ls.IsDestroyed);
         if (lifeSupport!=null && CurrentHeat >= 15 && Pilot is MechWarrior mw)
         {

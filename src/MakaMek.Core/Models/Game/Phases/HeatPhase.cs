@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -105,7 +106,22 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
 
         Game.CommandPublisher.PublishCommand(command);
 
+        // Check for heat shutdown after applying heat
+        CheckForHeatShutdown(unit, previousHeat);
+
         // Process consciousness rolls for any heat damage to pilot
         ProcessConsciousnessRollsForUnit(unit);
+    }
+
+    private void CheckForHeatShutdown(Unit unit, int previousHeat)
+    {
+        if (unit is not Mech mech) return;
+        var shutdownCommand = Game.HeatEffectsCalculator.CheckForHeatShutdown(mech, previousHeat, Game.Turn);
+        if (shutdownCommand == null) return;
+
+        var broadcastCommand = shutdownCommand.Value;
+        broadcastCommand.GameOriginId = Game.Id;
+        Game.OnMechShutdown(broadcastCommand);
+        Game.CommandPublisher.PublishCommand(broadcastCommand);
     }
 }

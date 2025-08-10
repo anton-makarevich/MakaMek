@@ -44,6 +44,7 @@ public abstract class BaseGame : IGame
     public IPilotingSkillCalculator PilotingSkillCalculator { get; }
     public IRulesProvider RulesProvider { get; }
     public IConsciousnessCalculator ConsciousnessCalculator { get; }
+    public IHeatEffectsCalculator HeatEffectsCalculator { get; }
     
     public int Turn
     {
@@ -113,7 +114,8 @@ public abstract class BaseGame : IGame
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        IConsciousnessCalculator consciousnessCalculator)
+        IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator)
     {
         Id = Guid.NewGuid();
         RulesProvider = rulesProvider;
@@ -122,6 +124,7 @@ public abstract class BaseGame : IGame
         ToHitCalculator = toHitCalculator;
         PilotingSkillCalculator = pilotingSkillCalculator;
         ConsciousnessCalculator = consciousnessCalculator;
+        HeatEffectsCalculator = heatEffectsCalculator;
         CommandPublisher.Subscribe(HandleCommand);
     }
 
@@ -283,17 +286,30 @@ public abstract class BaseGame : IGame
         mech?.AttemptStandup();
     }
 
+    internal void OnMechShutdown(MechShutdownCommand shutdownCommand)
+    {
+        // Find the unit with the given ID across all players
+        var unit = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == shutdownCommand.UnitId);
+
+        if (unit == null) return;
+
+        // Apply shutdown to the unit using the shutdown data from the command
+        unit.Shutdown(shutdownCommand.ShutdownData);
+    }
+
     internal void OnHeatUpdate(HeatUpdatedCommand heatUpdatedCommand)
     {
         // Find the unit with the given ID across all players
         var unit = _players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == heatUpdatedCommand.UnitId);
-            
+
         if (unit == null) return;
-        
+
         if (unit.HasAppliedHeat) return;
-        
+
         // Apply heat to the unit using the heat data from the command
         unit.ApplyHeat(heatUpdatedCommand.HeatData);
     }
@@ -362,6 +378,7 @@ public abstract class BaseGame : IGame
             MechFallCommand => true,
             TryStandupCommand => true,
             MechStandUpCommand => true,
+            MechShutdownCommand => true,
             PilotConsciousnessRollCommand => true,
             _ => false
         };

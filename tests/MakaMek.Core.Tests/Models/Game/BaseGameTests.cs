@@ -34,7 +34,8 @@ public class BaseGameTests : BaseGame
         Substitute.For<ICommandPublisher>(),
         Substitute.For<IToHitCalculator>(),
         Substitute.For<IPilotingSkillCalculator>(),
-        Substitute.For<IConsciousnessCalculator>())
+        Substitute.For<IConsciousnessCalculator>(),
+        Substitute.For<IHeatEffectsCalculator>())
     {
         base.SetBattleMap(
             BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain())));

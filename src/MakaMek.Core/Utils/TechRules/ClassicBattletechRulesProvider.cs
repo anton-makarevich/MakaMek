@@ -443,4 +443,30 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     {
         return AimedShotSuccess;
     }
+
+    // Heat shutdown thresholds based on Classic BattleTech rules
+    private static readonly int[] HeatShutdownThresholds = [14, 18, 22, 26, 30];
+
+    public int[] GetHeatShutdownThresholds()
+    {
+        return HeatShutdownThresholds;
+    }
+
+    public int? GetHeatShutdownAvoidNumber(int heatLevel)
+    {
+        return heatLevel switch
+        {
+            14 => 4,  // Avoid on 4+
+            18 => 6,  // Avoid on 6+
+            22 => 8,  // Avoid on 8+
+            26 => 10, // Avoid on 10+
+            >= 30 => null, // Automatic shutdown, no roll allowed
+            _ => null // No shutdown roll required
+        };
+    }
+
+    public int GetAutoRestartHeatThreshold()
+    {
+        return 14; // Automatic restart when heat drops below 14
+    }
 }
