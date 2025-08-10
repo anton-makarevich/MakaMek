@@ -189,6 +189,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// </summary>
     public PartLocation? AimedShotTarget
     {
+        // Expose aimed target only when the weapon is actually selected to fire
         get => IsSelected? _aimedShotTarget:null;
         set
         {
@@ -222,6 +223,7 @@ public class WeaponSelectionViewModel : BindableBase
     {
         AimedShotTarget = null;
         ModifiersBreakdown = _originalModifiersBreakdown;
+        _originalModifiersBreakdown = null;
     }
 
 
@@ -242,8 +244,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// </summary>
     public void ShowAimedShotSelector()
     {
-        var attacker = Weapon.MountedOn?.Unit;
-        if (Target == null || attacker == null )
+        if (Target == null || Weapon.MountedOn?.Unit == null )
             return;
 
         if (!IsAimedShotAvailable || AimedHeadModifiersBreakdown == null || AimedOtherModifiersBreakdown == null)
@@ -267,10 +268,9 @@ public class WeaponSelectionViewModel : BindableBase
     private void OnAimedShotTargetSelected(PartLocation targetLocation)
     {
         AimedShotTarget = targetLocation;
-        var attacker = Weapon.MountedOn?.Unit;
 
         // Recalculate hit probability with aimed shot modifier
-        if (Target != null && attacker != null)
+        if (Target != null)
         {
             _originalModifiersBreakdown = ModifiersBreakdown;
             ModifiersBreakdown = targetLocation == PartLocation.Head
