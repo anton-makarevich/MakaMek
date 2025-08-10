@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -26,6 +27,7 @@ public class WeaponSelectionViewModelTests
     private readonly Action _onHideAimedShotLocationSelector = Substitute.For<Action>();
     private WeaponSelectionViewModel _sut = null!;
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
 
     public WeaponSelectionViewModelTests()
     {
@@ -146,6 +148,7 @@ public class WeaponSelectionViewModelTests
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
             _localizationService,
+            _toHitCalculator,
             remainingShots);
 
         // Act & Assert
@@ -176,7 +179,8 @@ public class WeaponSelectionViewModelTests
             (w, s) => _selectionChangedAction?.Invoke(w, s),
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
-            _localizationService);
+            _localizationService,
+            _toHitCalculator);
 
         // Act & Assert
         _sut.RequiresAmmo.ShouldBeTrue();
@@ -211,6 +215,7 @@ public class WeaponSelectionViewModelTests
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
             _localizationService,
+            _toHitCalculator,
             remainingShots);
 
         // Act & Assert
@@ -234,6 +239,7 @@ public class WeaponSelectionViewModelTests
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
             _localizationService,
+            _toHitCalculator,
             0)
         {
             // Set a valid hit probability
@@ -262,6 +268,7 @@ public class WeaponSelectionViewModelTests
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
             _localizationService,
+            _toHitCalculator,
             5)
         {
             // Set a valid hit probability
@@ -289,6 +296,7 @@ public class WeaponSelectionViewModelTests
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
             _localizationService,
+            _toHitCalculator,
             0);
 
         // Act
@@ -363,8 +371,8 @@ public class WeaponSelectionViewModelTests
             _selectionChangedAction,
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
-            _localizationService
-            )
+            _localizationService,
+            _toHitCalculator)
         {
             // Act
             ModifiersBreakdown = testBreakdown
@@ -394,7 +402,8 @@ public class WeaponSelectionViewModelTests
             _selectionChangedAction,
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
-            _localizationService)
+            _localizationService,
+            _toHitCalculator)
         {
             ModifiersBreakdown = initialBreakdown
         };
@@ -838,18 +847,23 @@ public class WeaponSelectionViewModelTests
         capturedViewModel.CenterTorsoPart.ShouldNotBeNull();
     }
     
-    [Fact]
-    public void AimedShotLocationSelectorViewModel_ShouldUpdateBreakDownWhenCompleted()
+    [Theory]
+    [InlineData(PartLocation.Head)]
+    [InlineData(PartLocation.CenterTorso)]
+    [InlineData(PartLocation.RightLeg)]
+    public void AimedShotLocationSelectorViewModel_ShouldUpdateBreakDownWhenCompleted(PartLocation targetLocation)
     {
         // Arrange
         CreateSut(target: _target, isInRange: true);
-        _sut.ModifiersBreakdown = CreateTestBreakdown(6);
-        var headBreakdown = CreateTestBreakdown(8);
-        var otherBreakdown = CreateTestBreakdown(5);
-        _sut.AimedHeadModifiersBreakdown = headBreakdown;
-        _sut.AimedOtherModifiersBreakdown = otherBreakdown;
+        var initialBreakdown = CreateTestBreakdown(5);
+        _sut.ModifiersBreakdown = initialBreakdown;
+        var updatedBreakdown = CreateTestBreakdown(8);
+        _sut.AimedHeadModifiersBreakdown=updatedBreakdown;
+        _sut.AimedOtherModifiersBreakdown=updatedBreakdown;
         _sut.IsEnabled = true;
         _sut.IsSelected = true;
+        
+        _toHitCalculator.AddAimedShotModifier(initialBreakdown, targetLocation).Returns(updatedBreakdown);
 
         AimedShotLocationSelectorViewModel? capturedViewModel = null;
         _onShowAimedShotLocationSelector.When(x => x.Invoke(Arg.Any<AimedShotLocationSelectorViewModel>()))
@@ -857,12 +871,11 @@ public class WeaponSelectionViewModelTests
         _sut.ShowAimedShotSelector();
 
         // Act
-        capturedViewModel!.SelectPart(PartLocation.Head);
+        capturedViewModel!.SelectPart(targetLocation);
         
         // Assert
-        _sut.ModifiersBreakdown.ShouldBe(headBreakdown);    
-        _sut.AimedShotTarget.ShouldBe(PartLocation.Head);
-        _sut.AimedShotText.ShouldBe("H");
+        _sut.ModifiersBreakdown.ShouldBe(updatedBreakdown);    
+        _sut.AimedShotTarget.ShouldBe(targetLocation);
         _onHideAimedShotLocationSelector.Received(1).Invoke();
     }
 
@@ -881,7 +894,8 @@ public class WeaponSelectionViewModelTests
             (w, s) => _selectionChangedAction?.Invoke(w, s),
             _onShowAimedShotLocationSelector,
             _onHideAimedShotLocationSelector,
-            _localizationService);
+            _localizationService,
+            _toHitCalculator);
     }
 
     private ToHitBreakdown CreateTestBreakdown(int total, bool hasLineOfSight = true)

@@ -403,6 +403,7 @@ public class WeaponsAttackState : IUiState
                 _viewModel.ShowAimedShotLocationSelector,
                 _viewModel.HideAimedShotLocationSelector,
                 localizationService: _viewModel.LocalizationService,
+                toHitCalculator: _game.ToHitCalculator,
                 remainingAmmoShots: Attacker.GetRemainingAmmoShots(weapon)
             );
             _weaponViewModels[weapon] = viewModel;
