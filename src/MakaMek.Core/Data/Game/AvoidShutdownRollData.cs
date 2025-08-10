@@ -16,4 +16,9 @@ public record AvoidShutdownRollData
     /// The target number that needed to be met to avoid shutdown (if applicable)
     /// </summary>
     public int AvoidNumber { get; init; }
+    
+    /// <summary>
+    /// Whether the roll was successful
+    /// </summary>
+    public required bool IsSuccessful { get; init; }
 }

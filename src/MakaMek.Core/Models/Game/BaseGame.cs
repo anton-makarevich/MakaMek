@@ -295,8 +295,27 @@ public abstract class BaseGame : IGame
 
         if (unit == null) return;
 
-        // Apply shutdown to the unit using the shutdown data from the command
-        unit.Shutdown(shutdownCommand.ShutdownData);
+        // Apply shutdown to the unit only if shutdown was not avoided
+        if (shutdownCommand.AvoidShutdownRoll?.IsSuccessful == false)
+        {
+            unit.Shutdown(shutdownCommand.ShutdownData);
+        }
+    }
+
+    internal void OnMechRestart(MechRestartCommand restartCommand)
+    {
+        // Find the unit with the given ID across all players
+        var unit = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == restartCommand.UnitId);
+
+        if (unit == null) return;
+
+        // Apply restart to the unit if restart was successful
+        if (restartCommand.AvoidShutdownRoll?.IsSuccessful == true)
+        {
+            unit.Startup();
+        }
     }
 
     internal void OnHeatUpdate(HeatUpdatedCommand heatUpdatedCommand)
@@ -379,6 +398,7 @@ public abstract class BaseGame : IGame
             TryStandupCommand => true,
             MechStandUpCommand => true,
             MechShutdownCommand => true,
+            MechRestartCommand => true,
             PilotConsciousnessRollCommand => true,
             _ => false
         };

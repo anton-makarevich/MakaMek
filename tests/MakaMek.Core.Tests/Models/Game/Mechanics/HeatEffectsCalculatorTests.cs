@@ -30,7 +30,7 @@ public class HeatEffectsCalculatorTests
         rulesProvider.GetHeatShutdownAvoidNumber(22).Returns(8);
         rulesProvider.GetHeatShutdownAvoidNumber(26).Returns(10);
         rulesProvider.GetHeatShutdownAvoidNumber(Arg.Is<int>(x => x >= 30)).Returns((int?)null);
-        rulesProvider.GetAutoRestartHeatThreshold().Returns(14);
+
     }
 
     [Fact]
@@ -39,10 +39,9 @@ public class HeatEffectsCalculatorTests
         // Arrange
         var mech = CreateTestMech();
         SetMechHeat(mech, 10);
-        var previousHeat = 8;
 
         // Act
-        var result = _sut.CheckForHeatShutdown(mech, previousHeat, 1);
+        var result = _sut.CheckForHeatShutdown(mech, 1);
 
         // Assert
         result.ShouldBeNull();
@@ -54,16 +53,16 @@ public class HeatEffectsCalculatorTests
         // Arrange
         var mech = CreateTestMech();
         SetMechHeat(mech, 30);
-        var previousHeat = 25;
 
         // Act
-        var result = _sut.CheckForHeatShutdown(mech, previousHeat, 1);
+        var result = _sut.CheckForHeatShutdown(mech, 1);
 
         // Assert
         result.ShouldNotBeNull();
         result.Value.IsAutomaticShutdown.ShouldBeTrue();
+        result.Value.AvoidShutdownRoll!.IsSuccessful.ShouldBeFalse();
         result.Value.ShutdownData.Reason.ShouldBe(ShutdownReason.Heat);
-        result.Value.AvoidShutdownRoll!.HeatLevel.ShouldBe(30);
+        result.Value.AvoidShutdownRoll.HeatLevel.ShouldBe(30);
     }
 
     [Fact]
@@ -75,25 +74,25 @@ public class HeatEffectsCalculatorTests
         pilot.IsConscious.Returns(true);
         mech.AssignPilot(pilot);
         SetMechHeat(mech, 18);
-        var previousHeat = 12;
 
         // Setup dice roll that fails (rolls 5, needs 6+)
         var diceResults = new List<DiceResult> { new DiceResult(2), new DiceResult(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
 
         // Act
-        var result = _sut.CheckForHeatShutdown(mech, previousHeat, 1);
+        var result = _sut.CheckForHeatShutdown(mech, 1);
 
         // Assert
         result.ShouldNotBeNull();
         result.Value.IsAutomaticShutdown.ShouldBeFalse();
-        result.Value.AvoidShutdownRoll!.DiceResults.ShouldBe([2, 3]);
+        result.Value.AvoidShutdownRoll!.IsSuccessful.ShouldBeFalse();
+        result.Value.AvoidShutdownRoll.DiceResults.ShouldBe([2, 3]);
         result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(6);
         result.Value.ShutdownData.Reason.ShouldBe(ShutdownReason.Heat);
     }
 
     [Fact]
-    public void CheckForHeatShutdown_ShouldReturnNull_WhenRollSucceeds()
+    public void CheckForHeatShutdown_ShouldReturnSuccessfulCommand_WhenRollSucceeds()
     {
         // Arrange
         var mech = CreateTestMech();
@@ -101,17 +100,18 @@ public class HeatEffectsCalculatorTests
         pilot.IsConscious.Returns(true);
         mech.AssignPilot(pilot);
         SetMechHeat(mech, 18);
-        var previousHeat = 12;
 
         // Setup dice roll that succeeds (rolls 6, needs 6+)
         var diceResults = new List<DiceResult> { new(3), new(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
 
         // Act
-        var result = _sut.CheckForHeatShutdown(mech, previousHeat, 1);
+        var result = _sut.CheckForHeatShutdown(mech, 1);
 
         // Assert
-        result.ShouldBeNull();
+        result.ShouldNotBeNull();
+        result.Value.AvoidShutdownRoll!.IsSuccessful.ShouldBeTrue();
+        result.Value.IsAutomaticShutdown.ShouldBeFalse();
     }
 
     [Fact]

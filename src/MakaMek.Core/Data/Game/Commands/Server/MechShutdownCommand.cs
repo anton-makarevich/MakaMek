@@ -42,23 +42,35 @@ public record struct MechShutdownCommand : IGameCommand
 
         return command.ShutdownData.Reason switch
         {
-            ShutdownReason.Heat when command.IsAutomaticShutdown => 
-                string.Format(localizationService.GetString("Command_MechShutdown_AutomaticHeat"), 
-                    unit.Name, command.AvoidShutdownRoll?.HeatLevel),
-            
-            ShutdownReason.Heat when command.AvoidShutdownRoll!=null =>
-                string.Format(localizationService.GetString("Command_MechShutdown_FailedRoll"), 
-                    unit.Name, 
+            ShutdownReason.Heat when command.AvoidShutdownRoll?.IsSuccessful == true =>
+                string.Format(localizationService.GetString("Command_MechShutdown_Avoided"),
+                    unit.Name,
                     command.AvoidShutdownRoll?.HeatLevel,
-                    string.Join(", ", command.AvoidShutdownRoll?.DiceResults??[]),
+                    string.Join(", ", command.AvoidShutdownRoll?.DiceResults ?? []),
                     command.AvoidShutdownRoll?.DiceResults.Sum(),
                     command.AvoidShutdownRoll?.AvoidNumber),
-            
+
+            ShutdownReason.Heat when command.IsAutomaticShutdown =>
+                string.Format(localizationService.GetString("Command_MechShutdown_AutomaticHeat"),
+                    unit.Name, command.AvoidShutdownRoll?.HeatLevel),
+
+            ShutdownReason.Heat when command.AvoidShutdownRoll?.DiceResults.Length == 0 =>
+                string.Format(localizationService.GetString("Command_MechShutdown_UnconsciousPilot"),
+                    unit.Name, command.AvoidShutdownRoll?.HeatLevel),
+
+            ShutdownReason.Heat when command.AvoidShutdownRoll != null =>
+                string.Format(localizationService.GetString("Command_MechShutdown_FailedRoll"),
+                    unit.Name,
+                    command.AvoidShutdownRoll?.HeatLevel,
+                    string.Join(", ", command.AvoidShutdownRoll?.DiceResults ?? []),
+                    command.AvoidShutdownRoll?.DiceResults.Sum(),
+                    command.AvoidShutdownRoll?.AvoidNumber),
+
             ShutdownReason.Voluntary =>
-                string.Format(localizationService.GetString("Command_MechShutdown_Voluntary"), 
+                string.Format(localizationService.GetString("Command_MechShutdown_Voluntary"),
                     unit.Name),
-            
-            _ => string.Format(localizationService.GetString("Command_MechShutdown_Generic"), 
+
+            _ => string.Format(localizationService.GetString("Command_MechShutdown_Generic"),
                 unit.Name)
         };
     }

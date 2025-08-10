@@ -129,6 +129,12 @@ public sealed class ClientGame : BaseGame
             case PilotConsciousnessRollCommand consciousnessRollCommand:
                 OnPilotConsciousnessRoll(consciousnessRollCommand);
                 break;
+            case MechShutdownCommand shutdownCommand:
+                OnMechShutdown(shutdownCommand);
+                break;
+            case MechRestartCommand restartCommand:
+                OnMechRestart(restartCommand);
+                break;
         }
         
         // Log the command

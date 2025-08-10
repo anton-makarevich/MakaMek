@@ -106,17 +106,53 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
 
         Game.CommandPublisher.PublishCommand(command);
 
+        // Check for automatic restart if unit was shutdown due to heat
+        CheckForAutomaticRestart(unit);
+
         // Check for heat shutdown after applying heat
-        CheckForHeatShutdown(unit, previousHeat);
+        CheckForHeatShutdown(unit);
 
         // Process consciousness rolls for any heat damage to pilot
         ProcessConsciousnessRollsForUnit(unit);
     }
 
-    private void CheckForHeatShutdown(Unit unit, int previousHeat)
+    private void CheckForAutomaticRestart(Unit unit)
     {
         if (unit is not Mech mech) return;
-        var shutdownCommand = Game.HeatEffectsCalculator.CheckForHeatShutdown(mech, previousHeat, Game.Turn);
+        if (!mech.IsShutdown) return;
+        if (!mech.CurrentShutdownData.HasValue) return;
+
+        var shutdownData = mech.CurrentShutdownData.Value;
+
+        // Only check for automatic restart for heat shutdowns from previous turns
+        if (shutdownData.Reason != ShutdownReason.Heat || shutdownData.Turn >= Game.Turn) return;
+
+        if (!Game.HeatEffectsCalculator.ShouldAutoRestart(mech)) return;
+
+        var avoidShutdownRollData = new AvoidShutdownRollData
+        {
+            HeatLevel = mech.CurrentHeat,
+            DiceResults = [],
+            AvoidNumber = 0,
+            IsSuccessful = true
+        };
+        var restartCommand = new MechRestartCommand
+        {
+            UnitId = mech.Id,
+            IsAutomaticRestart = true,
+            GameOriginId = Game.Id,
+            AvoidShutdownRoll = avoidShutdownRollData
+        };
+
+        Game.OnMechRestart(restartCommand);
+        Game.CommandPublisher.PublishCommand(restartCommand);
+    }
+
+    private void CheckForHeatShutdown(Unit unit)
+    {
+        if (unit is not Mech mech) return;
+
+        var shutdownCommand = Game.HeatEffectsCalculator.CheckForHeatShutdown(mech, Game.Turn);
         if (shutdownCommand == null) return;
 
         var broadcastCommand = shutdownCommand.Value;

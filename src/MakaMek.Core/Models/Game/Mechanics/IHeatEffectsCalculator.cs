@@ -14,23 +14,22 @@ public interface IHeatEffectsCalculator
     /// and performs the roll if necessary
     /// </summary>
     /// <param name="mech">The mech to check for shutdown</param>
-    /// <param name="previousHeat">The unit's heat level before this turn</param>
     /// <param name="currentTurn">The current game turn</param>
-    /// <returns>Shutdown command if shutdown occurs, null otherwise</returns>
-    MechShutdownCommand? CheckForHeatShutdown(Mech mech, int previousHeat, int currentTurn);
-    
+    /// <returns>Shutdown command if threshold is crossed, null otherwise</returns>
+    MechShutdownCommand? CheckForHeatShutdown(Mech mech, int currentTurn);
+
     /// <summary>
     /// Attempts to restart a shutdown mech
     /// </summary>
     /// <param name="mech">The shutdown mech to attempt restart</param>
     /// <param name="currentTurn">The current game turn</param>
-    /// <returns>True if restart was successful, false otherwise</returns>
-    bool AttemptRestart(Mech mech, int currentTurn);
+    /// <returns>Restart command with success/failure information</returns>
+    MechRestartCommand? AttemptRestart(Mech mech, int currentTurn);
     
     /// <summary>
-    /// Checks if a unit should automatically restart due to low heat
+    /// Checks if a mech should automatically restart due to low heat
     /// </summary>
-    /// <param name="unit">The unit to check</param>
-    /// <returns>True if the unit should automatically restart</returns>
-    bool ShouldAutoRestart(Unit unit);
+    /// <param name="mech">The mech to check</param>
+    /// <returns>True if the mech should automatically restart</returns>
+    bool ShouldAutoRestart(Mech mech);
 }

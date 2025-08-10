@@ -106,9 +106,5 @@ public interface IRulesProvider
     /// <returns>The 2D6 target number to avoid shutdown, or null if no roll is required</returns>
     int? GetHeatShutdownAvoidNumber(int heatLevel);
 
-    /// <summary>
-    /// Gets the heat level below which automatic restart occurs
-    /// </summary>
-    /// <returns>The heat level threshold for automatic restart</returns>
-    int GetAutoRestartHeatThreshold();
+
 }

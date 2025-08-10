@@ -465,8 +465,5 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         };
     }
 
-    public int GetAutoRestartHeatThreshold()
-    {
-        return 14; // Automatic restart when heat drops below 14
-    }
+
 }
