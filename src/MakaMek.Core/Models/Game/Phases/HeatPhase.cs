@@ -143,7 +143,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
 
         var broadcastCommand = shutdownCommand.Value;
         broadcastCommand.GameOriginId = Game.Id;
-        Game.OnMechShutdown(broadcastCommand);
+        Game.OnUnitShutdown(broadcastCommand);
         Game.CommandPublisher.PublishCommand(broadcastCommand);
     }
 }

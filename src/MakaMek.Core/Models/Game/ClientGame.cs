@@ -130,7 +130,7 @@ public sealed class ClientGame : BaseGame
                 OnPilotConsciousnessRoll(consciousnessRollCommand);
                 break;
             case UnitShutdownCommand shutdownCommand:
-                OnMechShutdown(shutdownCommand);
+                OnUnitShutdown(shutdownCommand);
                 break;
             case UnitStartupCommand restartCommand:
                 OnMechRestart(restartCommand);

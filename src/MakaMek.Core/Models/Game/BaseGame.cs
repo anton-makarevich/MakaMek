@@ -286,7 +286,7 @@ public abstract class BaseGame : IGame
         mech?.AttemptStandup();
     }
 
-    internal void OnMechShutdown(UnitShutdownCommand shutdownCommand)
+    internal void OnUnitShutdown(UnitShutdownCommand shutdownCommand)
     {
         // Find the unit with the given ID across all players
         var unit = _players
