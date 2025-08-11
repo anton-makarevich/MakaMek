@@ -32,58 +32,39 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         // Get the avoid number based on current heat level
         var avoidNumber = _rulesProvider.GetHeatShutdownAvoidNumber(currentHeat);
         
+        // If avoidNumber is 0, no shutdown check is needed
+        if (avoidNumber < DiceUtils.Guaranteed2D6Roll)
+            return null;
+        
+        // Check if pilot is conscious (unconscious pilots automatically fail)
+        var isConsciousPilot = mech.Pilot?.IsConscious == true;
+        
         // Check for automatic shutdown (avoidNumber 13 means automatic shutdown)
-        if (avoidNumber == DiceUtils.Impossible2D6Roll)
+        if (avoidNumber == DiceUtils.Impossible2D6Roll || !isConsciousPilot)
         {
             var automaticShutdownData = new ShutdownData
             {
                 Reason = ShutdownReason.Heat,
                 Turn = currentTurn
             };
-
-            var autoShutdownData = new AvoidShutdownRollData
-            {
-                HeatLevel = currentHeat,
-                DiceResults = [],
-                AvoidNumber = 13, // Impossible to roll
-                IsSuccessful = false
-            };
             
             return new UnitShutdownCommand
             {
                 UnitId = mech.Id,
                 ShutdownData = automaticShutdownData,
-                AvoidShutdownRoll = autoShutdownData,
+                AvoidShutdownRoll = null,
                 IsAutomaticShutdown = true,
                 GameOriginId = Guid.Empty // Will be set by the calling phase
             };
         }
+
+        // Roll 2D6 to avoid shutdown
+        var diceRoll = _diceRoller.Roll2D6();
+        var diceResults = diceRoll.Select(d => d.Result).ToArray();
+        var rollTotal = diceResults.Sum();
         
-        // If avoidNumber is 0, no shutdown check is needed
-        if (avoidNumber < DiceUtils.Guaranteed2D6Roll)
-            return null;
-
-        // Check if pilot is conscious (unconscious pilots automatically fail)
-        var isConsciousPilot = mech.Pilot?.IsConscious == true;
+        var shutdownOccurs = rollTotal < avoidNumber;
         
-        bool shutdownOccurs;
-        int[] diceResults = [];
-
-        if (isConsciousPilot)
-        {
-            // Roll 2D6 to avoid shutdown
-            var diceRoll = _diceRoller.Roll2D6();
-            diceResults = diceRoll.Select(d => d.Result).ToArray();
-            var rollTotal = diceResults.Sum();
-            
-            shutdownOccurs = rollTotal < avoidNumber;
-        }
-        else
-        {
-            // Unconscious pilots automatically fail
-            shutdownOccurs = true;
-        }
-
         var shutdownData = new ShutdownData
         {
             Reason = ShutdownReason.Heat,

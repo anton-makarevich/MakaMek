@@ -55,9 +55,29 @@ public class HeatEffectsCalculatorTests
         // Assert
         result.ShouldNotBeNull();
         result.Value.IsAutomaticShutdown.ShouldBeTrue();
-        result.Value.AvoidShutdownRoll!.IsSuccessful.ShouldBeFalse();
+        result.Value.AvoidShutdownRoll.ShouldBeNull();
         result.Value.ShutdownData.Reason.ShouldBe(ShutdownReason.Heat);
-        result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(13);
+    }
+    
+    [Fact]
+    public void CheckForHeatShutdown_ShouldReturnAutomaticShutdown_WhenPilotIsUnconscious()
+    {
+        // Arrange
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(6);
+        var mech = CreateTestMech();
+        SetMechHeat(mech, 20);
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(false);
+        mech.AssignPilot(pilot);
+
+        // Act
+        var result = _sut.CheckForHeatShutdown(mech, 1);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Value.IsAutomaticShutdown.ShouldBeTrue();
+        result.Value.AvoidShutdownRoll.ShouldBeNull();
+        result.Value.ShutdownData.Reason.ShouldBe(ShutdownReason.Heat);
     }
 
     [Fact]
