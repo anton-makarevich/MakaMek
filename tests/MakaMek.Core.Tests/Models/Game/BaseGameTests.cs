@@ -978,14 +978,315 @@ public class BaseGameTests : BaseGame
             IsRecoveryAttempt = true,
             ConsciousnessNumber = 4,
             DiceResults = [1, 2],
-            IsSuccessful = false 
+            IsSuccessful = false
         };
-        
+
         // Act
         var result = ValidateCommand(command);
-        
-        // Assert 
+
+        // Assert
         result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateUnitShutdownCommand()
+    {
+        // Arrange
+        var command = new UnitShutdownCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
+            IsAutomaticShutdown = true,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateUnitStartupCommand()
+    {
+        // Arrange
+        var command = new UnitStartupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            IsAutomaticRestart = false,
+            IsRestartPossible = true,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnUnitShutdown_DoesNothing_WhenUnitNotFound()
+    {
+        // Arrange
+        var command = new UnitShutdownCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
+            IsAutomaticShutdown = true,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act & Assert - Should not throw
+        Should.NotThrow(() => OnUnitShutdown(command));
+    }
+
+    [Fact]
+    public void OnUnitShutdown_ShutsDownUnit_WhenAutomaticShutdown()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        OnPlayerJoined(joinCommand);
+        var unit = Players.SelectMany(p => p.Units).First(u => u.Id == unitId);
+        unit.IsActive.ShouldBeTrue();
+
+        var command = new UnitShutdownCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitId,
+            ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
+            IsAutomaticShutdown = true,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        OnUnitShutdown(command);
+
+        // Assert
+        unit.IsActive.ShouldBeFalse();
+        unit.IsShutdown.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnUnitShutdown_ShutsDownUnit_WhenAvoidShutdownRollFails()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        OnPlayerJoined(joinCommand);
+        var unit = Players.SelectMany(p => p.Units).First(u => u.Id == unitId);
+
+        var command = new UnitShutdownCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitId,
+            ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
+            AvoidShutdownRoll = new AvoidShutdownRollData
+            {
+                HeatLevel = 20,
+                DiceResults = [2, 3],
+                AvoidNumber = 10,
+                IsSuccessful = false
+            },
+            IsAutomaticShutdown = false,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        OnUnitShutdown(command);
+
+        // Assert
+        unit.IsActive.ShouldBeFalse();
+        unit.IsShutdown.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void OnUnitShutdown_DoesNotShutDownUnit_WhenAvoidShutdownRollSucceeds()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        OnPlayerJoined(joinCommand);
+        var unit = Players.SelectMany(p => p.Units).First(u => u.Id == unitId);
+
+        var command = new UnitShutdownCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitId,
+            ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
+            AvoidShutdownRoll = new AvoidShutdownRollData
+            {
+                HeatLevel = 15,
+                DiceResults = [5, 6],
+                AvoidNumber = 8,
+                IsSuccessful = true
+            },
+            IsAutomaticShutdown = false,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        OnUnitShutdown(command);
+
+        // Assert
+        unit.IsActive.ShouldBeTrue();
+        unit.IsShutdown.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OnMechRestart_DoesNothing_WhenUnitNotFound()
+    {
+        // Arrange
+        var command = new UnitStartupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            IsAutomaticRestart = false,
+            IsRestartPossible = true,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act & Assert - Should not throw
+        Should.NotThrow(() => OnMechRestart(command));
+    }
+
+    [Fact]
+    public void OnMechRestart_StartsUpUnit_WhenRestartRollSucceeds()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        OnPlayerJoined(joinCommand);
+        var unit = Players.SelectMany(p => p.Units).First(u => u.Id == unitId);
+
+        // First shut down the unit
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        unit.IsShutdown.ShouldBeTrue();
+
+        var command = new UnitStartupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitId,
+            IsAutomaticRestart = false,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = new AvoidShutdownRollData
+            {
+                HeatLevel = 10,
+                DiceResults = [4, 5],
+                AvoidNumber = 8,
+                IsSuccessful = true
+            },
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        OnMechRestart(command);
+
+        // Assert
+        unit.IsActive.ShouldBeTrue();
+        unit.IsShutdown.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OnMechRestart_DoesNotStartUpUnit_WhenRestartRollFails()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        OnPlayerJoined(joinCommand);
+        var unit = Players.SelectMany(p => p.Units).First(u => u.Id == unitId);
+
+        // First shut down the unit
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        unit.IsShutdown.ShouldBeTrue();
+
+        var command = new UnitStartupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitId,
+            IsAutomaticRestart = false,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = new AvoidShutdownRollData
+            {
+                HeatLevel = 15,
+                DiceResults = [2, 3],
+                AvoidNumber = 10,
+                IsSuccessful = false
+            },
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        OnMechRestart(command);
+
+        // Assert
+        unit.IsActive.ShouldBeFalse();
+        unit.IsShutdown.ShouldBeTrue();
     }
 
     public override void HandleCommand(IGameCommand command)
