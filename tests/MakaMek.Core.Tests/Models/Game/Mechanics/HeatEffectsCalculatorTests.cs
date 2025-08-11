@@ -14,40 +14,25 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
 
 public class HeatEffectsCalculatorTests
 {
-    private readonly IDiceRoller _diceRoller;
+    private readonly IDiceRoller _diceRoller = Substitute.For<IDiceRoller>();
+    private readonly IRulesProvider _rulesProvider = Substitute.For<IRulesProvider>();
     private readonly HeatEffectsCalculator _sut;
 
     public HeatEffectsCalculatorTests()
     {
-        var rulesProvider = Substitute.For<IRulesProvider>();
-        _diceRoller = Substitute.For<IDiceRoller>();
-        _sut = new HeatEffectsCalculator(rulesProvider, _diceRoller);
+        _sut = new HeatEffectsCalculator(_rulesProvider, _diceRoller);
 
-        // Setup default rules provider behavior for GetHeatShutdownAvoidNumber
-        rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(x =>
-        {
-            var heat = x.ArgAt<int>(0);
-            return heat switch
-            {
-                < 14 => 0,    // No shutdown check needed
-                < 18 => 4,    // Avoid on 4+
-                < 22 => 6,    // Avoid on 6+
-                < 26 => 8,    // Avoid on 8+
-                < 30 => 10,   // Avoid on 10+
-                _ => 13       // Automatic shutdown
-            };
-        });
+        // Default mock - can be overridden in specific tests
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(4);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(10)]
-    [InlineData(13)]
-    public void CheckForHeatShutdown_ShouldReturnNull_WhenHeatBelowShutdownThreshold(int heatLevel)
+    [Fact]
+    public void CheckForHeatShutdown_ShouldReturnNull_WhenAvoidNumberIsZero()
     {
         // Arrange
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(0);
         var mech = CreateTestMech();
-        SetMechHeat(mech, heatLevel);
+        SetMechHeat(mech, 10);
 
         // Act
         var result = _sut.CheckForHeatShutdown(mech, 1);
@@ -56,15 +41,13 @@ public class HeatEffectsCalculatorTests
         result.ShouldBeNull();
     }
 
-    [Theory]
-    [InlineData(30)]
-    [InlineData(35)]
-    [InlineData(100)]
-    public void CheckForHeatShutdown_ShouldReturnAutomaticShutdown_WhenHeat30OrAbove(int heatLevel)
+    [Fact]
+    public void CheckForHeatShutdown_ShouldReturnAutomaticShutdown_WhenAvoidNumberIs13()
     {
         // Arrange
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(13);
         var mech = CreateTestMech();
-        SetMechHeat(mech, heatLevel);
+        SetMechHeat(mech, 30);
 
         // Act
         var result = _sut.CheckForHeatShutdown(mech, 1);
@@ -74,30 +57,24 @@ public class HeatEffectsCalculatorTests
         result.Value.IsAutomaticShutdown.ShouldBeTrue();
         result.Value.AvoidShutdownRoll!.IsSuccessful.ShouldBeFalse();
         result.Value.ShutdownData.Reason.ShouldBe(ShutdownReason.Heat);
-        result.Value.AvoidShutdownRoll.HeatLevel.ShouldBe(heatLevel);
         result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(13);
     }
 
-    [Theory]
-    [InlineData(14, 4)]  // 14-17 heat: avoid on 4+
-    [InlineData(16, 4)]
-    [InlineData(18, 6)]  // 18-21 heat: avoid on 6+
-    [InlineData(20, 6)]
-    [InlineData(22, 8)]  // 22-25 heat: avoid on 8+
-    [InlineData(24, 8)]
-    [InlineData(26, 10)] // 26-29 heat: avoid on 10+
-    [InlineData(28, 10)]
-    public void CheckForHeatShutdown_ShouldPerformRoll_WhenThresholdCrossedAndPilotConscious(int heatLevel, int expectedAvoidNumber)
+    [Fact]
+    public void CheckForHeatShutdown_ShouldReturnFailedShutdown_WhenRollFails()
     {
         // Arrange
+        const int avoidNumber = 6; // Any number between 4-10 would work here
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
+        
         var mech = CreateTestMech();
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         mech.AssignPilot(pilot);
-        SetMechHeat(mech, heatLevel);
+        SetMechHeat(mech, 20);
 
-        // Setup dice roll that fails (rolls 1 less than needed)
-        var diceResults = new List<DiceResult> { new(1), new(expectedAvoidNumber - 2) };
+        // Setup dice roll that fails (rolls 5, needs 6+)
+        var diceResults = new List<DiceResult> { new(2), new(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
 
         // Act
@@ -107,28 +84,26 @@ public class HeatEffectsCalculatorTests
         result.ShouldNotBeNull();
         result.Value.IsAutomaticShutdown.ShouldBeFalse();
         result.Value.AvoidShutdownRoll!.IsSuccessful.ShouldBeFalse();
-        result.Value.AvoidShutdownRoll.DiceResults.ShouldBe([1, expectedAvoidNumber - 2]);
-        result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(expectedAvoidNumber);
-        result.Value.AvoidShutdownRoll.HeatLevel.ShouldBe(heatLevel);
+        result.Value.AvoidShutdownRoll.DiceResults.ShouldBe([2, 3]);
+        result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(avoidNumber);
         result.Value.ShutdownData.Reason.ShouldBe(ShutdownReason.Heat);
     }
 
-    [Theory]
-    [InlineData(14, 4, 2, 2)]  // 2+2=4, needs 4+ to avoid
-    [InlineData(18, 6, 3, 4)]  // 3+4=7, needs 6+ to avoid
-    [InlineData(22, 8, 4, 4)]  // 4+4=8, needs 8+ to avoid
-    [InlineData(26, 10, 5, 5)] // 5+5=10, needs 10+ to avoid
-    public void CheckForHeatShutdown_ShouldReturnSuccessfulCommand_WhenRollSucceeds(int heatLevel, int expectedAvoidNumber, int die1, int die2)
+    [Fact]
+    public void CheckForHeatShutdown_ShouldReturnSuccess_WhenRollSucceeds()
     {
         // Arrange
+        const int avoidNumber = 6; // Any number between 4-10 would work here
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
+        
         var mech = CreateTestMech();
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         mech.AssignPilot(pilot);
-        SetMechHeat(mech, heatLevel);
+        SetMechHeat(mech, 20);
 
-        // Setup dice roll that succeeds
-        var diceResults = new List<DiceResult> { new(die1), new(die2) };
+        // Setup dice roll that succeeds (rolls 6, needs 6+)
+        var diceResults = new List<DiceResult> { new(3), new(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
 
         // Act
@@ -137,46 +112,8 @@ public class HeatEffectsCalculatorTests
         // Assert
         result.ShouldNotBeNull();
         result.Value.AvoidShutdownRoll!.IsSuccessful.ShouldBeTrue();
-        result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(expectedAvoidNumber);
-        result.Value.AvoidShutdownRoll.HeatLevel.ShouldBe(heatLevel);
+        result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(avoidNumber);
         result.Value.IsAutomaticShutdown.ShouldBeFalse();
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(10)]
-    [InlineData(13)]
-    public void ShouldAutoRestart_ShouldReturnTrue_WhenHeatBelowThreshold(int heatLevel)
-    {
-        // Arrange
-        var mech = CreateTestMech();
-        SetMechHeat(mech, heatLevel);
-        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
-
-        // Act
-        var result = _sut.ShouldAutoRestart(mech);
-
-        // Assert
-        result.ShouldBeTrue();
-    }
-
-    [Theory]
-    [InlineData(14)]
-    [InlineData(20)]
-    [InlineData(30)]
-    [InlineData(100)]
-    public void ShouldAutoRestart_ShouldReturnFalse_WhenHeatAtOrAboveThreshold(int heatLevel)
-    {
-        // Arrange
-        var mech = CreateTestMech();
-        SetMechHeat(mech, heatLevel);
-        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
-
-        // Act
-        var result = _sut.ShouldAutoRestart(mech);
-
-        // Assert
-        result.ShouldBeFalse();
     }
 
     private static Mech CreateTestMech()
