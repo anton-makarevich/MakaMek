@@ -106,17 +106,17 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
 
         Game.CommandPublisher.PublishCommand(command);
 
-        // Check for automatic restart if unit was shutdown due to heat
-        CheckForAutomaticRestart(unit);
-
         // Check for heat shutdown after applying heat
-        CheckForHeatShutdown(unit);
+        CheckForUnitHeatShutdown(unit);
+        
+        // Check for automatic restart if unit was shutdown due to heat
+        CheckForUnitAutomaticRestart(unit);
 
         // Process consciousness rolls for any heat damage to pilot
         ProcessConsciousnessRollsForUnit(unit);
     }
 
-    private void CheckForAutomaticRestart(Unit unit)
+    private void CheckForUnitAutomaticRestart(Unit unit)
     {
         if (unit is not Mech mech) return;
         if (!mech.IsShutdown) return;
@@ -134,7 +134,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(restartCommand);
     }
 
-    private void CheckForHeatShutdown(Unit unit)
+    private void CheckForUnitHeatShutdown(Unit unit)
     {
         if (unit is not Mech mech) return;
 
