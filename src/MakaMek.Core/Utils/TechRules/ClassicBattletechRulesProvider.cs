@@ -443,4 +443,17 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     {
         return AimedShotSuccess;
     }
+
+    public int GetHeatShutdownAvoidNumber(int heatLevel)
+    {
+        return heatLevel switch
+        {
+            < 14 => 0,  //<14 => always avoid
+            <= 17 => 4, //14+ => avoid on 4+
+            <= 21 => 6, //18+ => avoid on 6+
+            <= 25 => 8, //22+ => avoid on 8+
+            <= 29 => 10,//26+ => avoid on 10+
+            _ => 13     //30+ => impossible to avoid
+        };
+    }
 }

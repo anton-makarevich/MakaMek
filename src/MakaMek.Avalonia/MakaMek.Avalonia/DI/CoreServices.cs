@@ -39,6 +39,7 @@ public static class CoreServices
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
         services.AddSingleton<IConsciousnessCalculator, ConsciousnessCalculator>();
+        services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
         services.AddSingleton<IToHitCalculator, ToHitCalculator>();
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();

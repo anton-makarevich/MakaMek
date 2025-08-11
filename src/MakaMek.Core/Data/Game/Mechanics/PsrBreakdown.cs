@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
+using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
@@ -18,11 +19,6 @@ public record PsrBreakdown
     public required IReadOnlyList<RollModifier> Modifiers { get; init; }
     
     /// <summary>
-    /// The impossible roll value
-    /// </summary>
-    public const int ImpossibleRoll = 13;
-    
-    /// <summary>
     /// Gets the total target number for the piloting skill roll
     /// </summary>
     public int ModifiedPilotingSkill => BasePilotingSkill + Modifiers.Sum(m => m.Value);
@@ -30,5 +26,5 @@ public record PsrBreakdown
     /// <summary>
     /// Determines if the roll is impossible (greater than 12 on 2d6)
     /// </summary>
-    public bool IsImpossible => ModifiedPilotingSkill >= ImpossibleRoll;
+    public bool IsImpossible => ModifiedPilotingSkill >= DiceUtils.Impossible2D6Roll;
 }

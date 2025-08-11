@@ -92,4 +92,19 @@ public interface IRulesProvider
     int GetPilotingSkillRollModifier(PilotingSkillRollType psrType);
 
     int GetHeavyDamageThreshold();
+
+    /// <summary>
+    /// Gets the target number needed to avoid shutdown at a specific heat level
+    /// </summary>
+    /// <param name="heatLevel">The current heat level</param>
+    /// <returns>
+    /// The 2D6 target number to avoid shutdown:
+    /// - 0: Always successful (heat < 14)
+    /// - 4: Avoid on 4+ (heat 14-17)
+    /// - 6: Avoid on 6+ (heat 18-21)
+    /// - 8: Avoid on 8+ (heat 22-25)
+    /// - 10: Avoid on 10+ (heat 26-29)
+    /// - 13: Impossible roll, automatic shutdown (heat >= 30)
+    /// </returns>
+    int GetHeatShutdownAvoidNumber(int heatLevel);
 }

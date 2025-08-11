@@ -32,6 +32,7 @@ public class JoinGameViewModel : NewGameViewModel
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         ITransportFactory transportFactory,
@@ -39,6 +40,7 @@ public class JoinGameViewModel : NewGameViewModel
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
+            heatEffectsCalculator,
             dispatcherService, gameFactory)
     {
         _mechFactory = mechFactory;
@@ -153,6 +155,7 @@ public class JoinGameViewModel : NewGameViewModel
                 _toHitCalculator,
                 _pilotingSkillCalculator,
                 _consciousnessCalculator,
+                _heatEffectsCalculator,
                 _mapFactory);
             IsConnected = true;
             _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand

@@ -59,6 +59,7 @@ public class EndStateTests
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));

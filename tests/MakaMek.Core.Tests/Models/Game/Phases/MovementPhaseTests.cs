@@ -395,7 +395,12 @@ public class MovementPhaseTests : GamePhaseTestsBase
         unit!.SetProne();
         
         // Make the unit unable to stand up by setting its status to shut down
-        unit.Shutdown();
+        var shutdownData = new ShutdownData
+        {
+            Reason = ShutdownReason.Voluntary,
+            Turn = 1
+        };
+        unit.Shutdown(shutdownData);
         unit.CanStandup().ShouldBeFalse();
         
         CommandPublisher.ClearReceivedCalls();

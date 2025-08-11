@@ -22,6 +22,7 @@ public class GameFactory : IGameFactory
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IFallProcessor fallProcessor
         )
     {
@@ -34,6 +35,7 @@ public class GameFactory : IGameFactory
             criticalHitsCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
+            heatEffectsCalculator,
             fallProcessor
             );
     }
@@ -45,6 +47,7 @@ public class GameFactory : IGameFactory
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IBattleMapFactory mapFactory)
     {
         return new ClientGame(
@@ -54,6 +57,7 @@ public class GameFactory : IGameFactory
             toHitCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
+            heatEffectsCalculator,
             mapFactory);
     }
 }

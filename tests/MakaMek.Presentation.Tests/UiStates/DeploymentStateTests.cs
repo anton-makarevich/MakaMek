@@ -54,6 +54,7 @@ public class DeploymentStateTests
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(player,[],[]);
         _game.SetBattleMap(battleMap);

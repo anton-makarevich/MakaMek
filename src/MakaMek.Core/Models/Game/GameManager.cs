@@ -20,6 +20,7 @@ public class GameManager : IGameManager
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
     private readonly IFallProcessor _fallProcessor;
     private readonly IConsciousnessCalculator _consciousnessCalculator;
+    private readonly IHeatEffectsCalculator _heatEffectsCalculator;
     private readonly IGameFactory _gameFactory;
     private ServerGame? _serverGame;
     private readonly INetworkHostService? _networkHostService;
@@ -32,6 +33,7 @@ public class GameManager : IGameManager
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IFallProcessor fallProcessor,
         IGameFactory gameFactory,
         INetworkHostService? networkHostService = null)
@@ -46,6 +48,7 @@ public class GameManager : IGameManager
         _pilotingSkillCalculator = pilotingSkillCalculator;
         _fallProcessor = fallProcessor;
         _consciousnessCalculator = consciousnessCalculator;
+        _heatEffectsCalculator = heatEffectsCalculator;
         _gameFactory = gameFactory;
         _networkHostService = networkHostService;
     }
@@ -77,6 +80,7 @@ public class GameManager : IGameManager
                 _criticalHitsCalculator,
                 _pilotingSkillCalculator,
                 _consciousnessCalculator,
+                _heatEffectsCalculator,
                 _fallProcessor
             );
             // Start server listening loop in background

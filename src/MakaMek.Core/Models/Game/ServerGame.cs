@@ -33,9 +33,10 @@ public class ServerGame : BaseGame, IDisposable
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IFallProcessor fallProcessor,
         IPhaseManager? phaseManager = null)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
     {
         DiceRoller = diceRoller;
         CriticalHitsCalculator = criticalHitsCalculator;

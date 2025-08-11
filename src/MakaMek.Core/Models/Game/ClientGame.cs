@@ -32,8 +32,9 @@ public sealed class ClientGame : BaseGame
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IBattleMapFactory mapFactory)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
     {
         _mapFactory = mapFactory;
     }
@@ -127,6 +128,12 @@ public sealed class ClientGame : BaseGame
                 break;
             case PilotConsciousnessRollCommand consciousnessRollCommand:
                 OnPilotConsciousnessRoll(consciousnessRollCommand);
+                break;
+            case UnitShutdownCommand shutdownCommand:
+                OnUnitShutdown(shutdownCommand);
+                break;
+            case UnitStartupCommand restartCommand:
+                OnMechRestart(restartCommand);
                 break;
         }
         

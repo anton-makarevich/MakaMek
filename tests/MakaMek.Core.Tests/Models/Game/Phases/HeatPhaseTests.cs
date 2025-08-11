@@ -8,6 +8,8 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -55,6 +57,309 @@ public class HeatPhaseTests : GamePhaseTestsBase
 
         // Clear any commands published during setup
         CommandPublisher.ClearReceivedCalls();
+    }
+
+    [Fact]
+    public void Enter_ShouldPublishAutomaticRestart_ForPreviouslyHeatShutdownMech()
+    {
+        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+
+        // Set up players and a single unit
+        var playerId = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(playerId, "P1"));
+        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
+
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech.ShouldNotBeNull();
+
+        // Make the mech shutdown due to heat in the previous turn
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn-1 });
+
+        // Mock automatic restart attempt
+        var expectedRestart = new UnitStartupCommand
+        {
+            UnitId = mech.Id,
+            IsAutomaticRestart = true,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = null,
+            GameOriginId = Guid.Empty
+        };
+        MockHeatEffectsCalculator
+            .AttemptRestart(mech, Game.Turn)
+            .Returns(expectedRestart);
+
+        // Initiative and deploy so heat processing runs
+        Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
+        Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
+
+        // New phase instance bound to rebuilt Game
+        var sut = new HeatPhase(Game);
+
+        // Clear noise
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        sut.Enter();
+
+        // Assert: restart command published for the mech
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<UnitStartupCommand>(cmd => 
+                cmd.UnitId == mech.Id
+                && cmd.GameOriginId == Game.Id));
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishAutomaticRestart_WhenMechIsNotShutdown()
+    {
+        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+
+        // Set up players and a single unit
+        var playerId = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(playerId, "P1"));
+        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
+
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech.ShouldNotBeNull();
+
+        // Mock automatic restart attempt
+        var expectedRestart = new UnitStartupCommand
+        {
+            UnitId = mech.Id,
+            IsAutomaticRestart = true,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = null,
+            GameOriginId = Guid.Empty
+        };
+        MockHeatEffectsCalculator
+            .AttemptRestart(mech, Game.Turn)
+            .Returns(expectedRestart);
+
+        // Initiative and deploy so heat processing runs
+        Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
+        Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
+
+        // New phase instance bound to rebuilt Game
+        var sut = new HeatPhase(Game);
+
+        // Clear noise
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        sut.Enter();
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishAutomaticRestart_WhenMechIsShutdownInSameTurn()
+    {
+        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+
+        // Set up players and a single unit
+        var playerId = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(playerId, "P1"));
+        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
+
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech.ShouldNotBeNull();
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn });
+
+        // Mock automatic restart attempt
+        var expectedRestart = new UnitStartupCommand
+        {
+            UnitId = mech.Id,
+            IsAutomaticRestart = true,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = null,
+            GameOriginId = Guid.Empty
+        };
+        MockHeatEffectsCalculator
+            .AttemptRestart(mech, Game.Turn)
+            .Returns(expectedRestart);
+
+        // Initiative and deploy so heat processing runs
+        Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
+        Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
+
+        // New phase instance bound to rebuilt Game
+        var sut = new HeatPhase(Game);
+
+        // Clear noise
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        sut.Enter();
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishAutomaticRestart_WhenMechIsShutdownVoluntarily()
+    {
+        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+
+        // Set up players and a single unit
+        var playerId = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(playerId, "P1"));
+        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
+
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech.ShouldNotBeNull();
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = Game.Turn-1 });
+
+        // Mock automatic restart attempt
+        var expectedRestart = new UnitStartupCommand
+        {
+            UnitId = mech.Id,
+            IsAutomaticRestart = true,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = null,
+            GameOriginId = Guid.Empty
+        };
+        MockHeatEffectsCalculator
+            .AttemptRestart(mech, Game.Turn)
+            .Returns(expectedRestart);
+
+        // Initiative and deploy so heat processing runs
+        Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
+        Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
+
+        // New phase instance bound to rebuilt Game
+        var sut = new HeatPhase(Game);
+
+        // Clear noise
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        sut.Enter();
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishAutomaticRestart_WhenNotReturnedByCalculator()
+    {
+        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+
+        // Set up players and a single unit
+        var playerId = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(playerId, "P1"));
+        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
+
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech.ShouldNotBeNull();
+
+        // Make the mech shutdown due to heat in the previous turn
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn-1 });
+
+        // Mock automatic restart attempt
+        UnitStartupCommand? expectedRestart = null;
+        MockHeatEffectsCalculator
+            .AttemptRestart(mech, Game.Turn)
+            .Returns(expectedRestart);
+
+        // Initiative and deploy so heat processing runs
+        Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
+        Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
+
+        // New phase instance bound to rebuilt Game
+        var sut = new HeatPhase(Game);
+
+        // Clear noise
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        sut.Enter();
+
+        // Assert: restart command is not published
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldPublishShutdownMech_WhenHeatShutdownCommandReturned()
+    {
+        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+
+        var playerId = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(playerId, "P1"));
+        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
+
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech.ShouldNotBeNull();
+
+        // Mock heat shutdown command to be returned by calculator
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn };
+        var expectedShutdown = new UnitShutdownCommand
+        {
+            UnitId = mech.Id,
+            ShutdownData = shutdownData,
+            IsAutomaticShutdown = true,
+            AvoidShutdownRoll = null,
+            GameOriginId = Guid.Empty // will be set by phase
+        };
+        MockHeatEffectsCalculator
+            .CheckForHeatShutdown(mech, Game.Turn)
+            .Returns(expectedShutdown);
+
+        Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
+        Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
+
+        var sut = new HeatPhase(Game);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        sut.Enter();
+
+        // Assert: command published with GameOriginId set and unit is shutdown
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<UnitShutdownCommand>(cmd => cmd.UnitId == mech.Id && cmd.GameOriginId == Game.Id));
+
+        mech.IsShutdown.ShouldBeTrue();
+        mech.CurrentShutdownData.ShouldNotBeNull();
+        mech.CurrentShutdownData!.Value.Reason.ShouldBe(ShutdownReason.Heat);
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishShutdownMech_WhenHeatShutdownCommandIsNotReturned()
+    {
+        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
+
+        var playerId = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(playerId, "P1"));
+        Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
+
+        var mech = Game.Players[0].Units[0] as Mech;
+        mech.ShouldNotBeNull();
+
+        // Mock heat shutdown command to be returned by calculator
+        UnitShutdownCommand? expectedShutdown = null;
+        MockHeatEffectsCalculator
+            .CheckForHeatShutdown(mech, Game.Turn)
+            .Returns(expectedShutdown);
+
+        Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0] });
+        Game.HandleCommand(CreateDeployCommand(playerId, mech.Id, 1, 1, 0));
+
+        var sut = new HeatPhase(Game);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        sut.Enter();
+
+        // Assert: command published with GameOriginId set and unit is shutdown
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitShutdownCommand>());
     }
 
     [Fact]

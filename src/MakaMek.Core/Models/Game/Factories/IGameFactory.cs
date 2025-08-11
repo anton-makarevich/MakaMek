@@ -25,6 +25,7 @@ public interface IGameFactory
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IFallProcessor fallProcessor
         );
 
@@ -38,5 +39,6 @@ public interface IGameFactory
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
+        IHeatEffectsCalculator heatEffectsCalculator,
         IBattleMapFactory mapFactory);
 }

@@ -49,6 +49,7 @@ public class ClientGameTests
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory);
     }
 
@@ -1304,6 +1305,7 @@ public class ClientGameTests
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory);
         var unitData = MechFactoryTests.CreateDummyMechData();
         clientGame.JoinGameWithUnits(localPlayer1,[unitData],[]);
@@ -1384,6 +1386,7 @@ public class ClientGameTests
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory);
         clientGame.JoinGameWithUnits(localPlayer1,[],[]);
         clientGame.JoinGameWithUnits(localPlayer2,[],[]);
@@ -1553,6 +1556,218 @@ public class ClientGameTests
         _sut.BattleMap.ShouldBe(newBattleMap);
         _mapFactory.Received(1).CreateFromData(Arg.Is<List<HexData>>(data =>
             data.Count == mapData.Count));
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldShutDownUnit_WhenUnitShutdownCommandIsReceived()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        _sut.HandleCommand(joinCommand);
+
+        var unit = _sut.Players.First(p => p.Id == playerId).Units.First();
+        unit.IsActive.ShouldBeTrue();
+
+        var shutdownCommand = new UnitShutdownCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitData.Id.Value,
+            ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
+            IsAutomaticShutdown = true,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(shutdownCommand);
+
+        // Assert
+        unit.IsActive.ShouldBeFalse();
+        unit.IsShutdown.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldNotShutDownUnit_WhenUnitShutdownCommandIsReceived_WithSuccessfulAvoidRoll()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        _sut.HandleCommand(joinCommand);
+
+        var unit = _sut.Players.First(p => p.Id == playerId).Units.First();
+
+        var shutdownCommand = new UnitShutdownCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitData.Id.Value,
+            ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
+            AvoidShutdownRoll = new AvoidShutdownRollData
+            {
+                HeatLevel = 15,
+                DiceResults = [5, 6],
+                AvoidNumber = 8,
+                IsSuccessful = true
+            },
+            IsAutomaticShutdown = false,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(shutdownCommand);
+
+        // Assert
+        unit.IsActive.ShouldBeTrue();
+        unit.IsShutdown.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldStartUpUnit_WhenUnitStartupCommandIsReceived()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        _sut.HandleCommand(joinCommand);
+
+        var unit = _sut.Players.First(p => p.Id == playerId).Units.First();
+
+        // First shut down the unit
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        unit.IsShutdown.ShouldBeTrue();
+
+        var startupCommand = new UnitStartupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitData.Id.Value,
+            IsAutomaticRestart = false,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = new AvoidShutdownRollData
+            {
+                HeatLevel = 10,
+                DiceResults = [4, 5],
+                AvoidNumber = 8,
+                IsSuccessful = true
+            },
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(startupCommand);
+
+        // Assert
+        unit.IsActive.ShouldBeTrue();
+        unit.IsShutdown.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldNotStartUpUnit_WhenUnitStartupCommandIsReceived_WithFailedRestartRoll()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        _sut.HandleCommand(joinCommand);
+
+        var unit = _sut.Players.First(p => p.Id == playerId).Units.First();
+
+        // First shut down the unit
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        unit.IsShutdown.ShouldBeTrue();
+
+        var startupCommand = new UnitStartupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitData.Id.Value,
+            IsAutomaticRestart = false,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = new AvoidShutdownRollData
+            {
+                HeatLevel = 15,
+                DiceResults = [2, 3],
+                AvoidNumber = 10,
+                IsSuccessful = false
+            },
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(startupCommand);
+
+        // Assert
+        unit.IsActive.ShouldBeFalse();
+        unit.IsShutdown.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldNotProcessUnitShutdownCommand_WhenUnitNotFound()
+    {
+        // Arrange
+        var shutdownCommand = new UnitShutdownCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(), // Non-existent unit
+            ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
+            IsAutomaticShutdown = true,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act & Assert - Should not throw
+        Should.NotThrow(() => _sut.HandleCommand(shutdownCommand));
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldNotProcessUnitStartupCommand_WhenUnitNotFound()
+    {
+        // Arrange
+        var startupCommand = new UnitStartupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(), // Non-existent unit
+            IsAutomaticRestart = false,
+            IsRestartPossible = true,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act & Assert - Should not throw
+        Should.NotThrow(() => _sut.HandleCommand(startupCommand));
     }
 
     [Fact]

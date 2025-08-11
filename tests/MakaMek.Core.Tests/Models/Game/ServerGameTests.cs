@@ -51,6 +51,7 @@ public class ServerGameTests
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IFallProcessor>());
         _sut.SetBattleMap(battleMap);
     }
@@ -301,6 +302,7 @@ public class ServerGameTests
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IFallProcessor>(),
             phaseManager);
         

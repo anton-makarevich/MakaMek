@@ -28,6 +28,7 @@ public class JoinGameViewModelTests
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
     private readonly IPilotingSkillCalculator  _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
     private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
+    private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
     private readonly IGameFactory _gameFactory = Substitute.For<IGameFactory>();
     private readonly ITransportFactory _transportFactory = Substitute.For<ITransportFactory>();
@@ -48,6 +49,7 @@ public class JoinGameViewModelTests
             _toHitCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
+            _heatEffectsCalculator,
             _mapFactory);
         // Configure the adapter to be accessible from the command publisher
         _commandPublisher.Adapter.Returns(_adapter);
@@ -63,6 +65,7 @@ public class JoinGameViewModelTests
                 _toHitCalculator,
                 _pilotingSkillCalculator,
                 _consciousnessCalculator,
+                _heatEffectsCalculator,
                 _mapFactory)
             .Returns(clientGame);
         
@@ -78,6 +81,7 @@ public class JoinGameViewModelTests
             _toHitCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
+            _heatEffectsCalculator,
             _dispatcherService,
             _gameFactory,
             _transportFactory,
@@ -172,6 +176,7 @@ public class JoinGameViewModelTests
             _toHitCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
+            _heatEffectsCalculator,
             _mapFactory);
     }
     
@@ -194,6 +199,7 @@ public class JoinGameViewModelTests
             Arg.Any<IToHitCalculator>(),
             Arg.Any<IPilotingSkillCalculator>(),
             Arg.Any<IConsciousnessCalculator>(),
+            Arg.Any<IHeatEffectsCalculator>(),
             Arg.Any<IBattleMapFactory>());
     }
     

@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -105,7 +106,47 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
 
         Game.CommandPublisher.PublishCommand(command);
 
+        // Check for heat shutdown after applying heat
+        CheckForUnitHeatShutdown(unit);
+        
+        // Check for automatic restart if unit was shutdown due to heat
+        CheckForUnitAutomaticRestart(unit);
+
         // Process consciousness rolls for any heat damage to pilot
         ProcessConsciousnessRollsForUnit(unit);
+    }
+
+    private void CheckForUnitAutomaticRestart(Unit unit)
+    {
+        if (unit is not Mech mech) return;
+        if (!mech.IsShutdown) return;
+        if (!mech.CurrentShutdownData.HasValue) return;
+
+        var shutdownData = mech.CurrentShutdownData.Value;
+
+        // Only check for automatic restart for heat shutdowns from previous turns
+        if (shutdownData.Reason != ShutdownReason.Heat || shutdownData.Turn >= Game.Turn) return;
+
+        var restartCommand = Game.HeatEffectsCalculator.AttemptRestart(mech, Game.Turn);
+        if (restartCommand == null) return;
+        
+        var broadcastCommand = restartCommand.Value;
+        broadcastCommand.GameOriginId = Game.Id;
+
+        Game.OnMechRestart(broadcastCommand);
+        Game.CommandPublisher.PublishCommand(broadcastCommand);
+    }
+
+    private void CheckForUnitHeatShutdown(Unit unit)
+    {
+        if (unit is not Mech mech) return;
+
+        var shutdownCommand = Game.HeatEffectsCalculator.CheckForHeatShutdown(mech, Game.Turn);
+        if (shutdownCommand == null) return;
+
+        var broadcastCommand = shutdownCommand.Value;
+        broadcastCommand.GameOriginId = Game.Id;
+        Game.OnUnitShutdown(broadcastCommand);
+        Game.CommandPublisher.PublishCommand(broadcastCommand);
     }
 }

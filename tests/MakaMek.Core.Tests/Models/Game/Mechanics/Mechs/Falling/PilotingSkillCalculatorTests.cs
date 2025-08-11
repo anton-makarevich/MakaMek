@@ -121,7 +121,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             result.BasePilotingSkill.ShouldBe(mech.Pilot!.Piloting);
             result.Modifiers.Count.ShouldBe(1); // Only gyro modifier
             result.ModifiedPilotingSkill.ShouldBe(mech.Pilot.Piloting + 10);
-            result.IsImpossible.ShouldBe(result.ModifiedPilotingSkill >= PsrBreakdown.ImpossibleRoll);
+            result.IsImpossible.ShouldBe(result.ModifiedPilotingSkill >= 13);
         }
 
         [Fact]

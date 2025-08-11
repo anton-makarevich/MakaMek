@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -34,6 +35,7 @@ public class MovementStateTests
 {
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
     private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
+    private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     private readonly MovementState _sut;
     private readonly ClientGame _game;
     private readonly UnitData _unitData;
@@ -93,6 +95,7 @@ public class MovementStateTests
             Substitute.For<IToHitCalculator>(),
             _pilotingSkillCalculator,
             _consciousnessCalculator,
+            _heatEffectsCalculator,
             Substitute.For<IBattleMapFactory>());
         
         _game.JoinGameWithUnits(_player,[],[]);
@@ -776,7 +779,8 @@ public class MovementStateTests
     {
         // Arrange
         _sut.HandleUnitSelection(_unit1);
-        _unit1.Shutdown();
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
+        _unit1.Shutdown(shutdownData);
 
         // Act
         var actions = _sut.GetAvailableActions().ToList();
@@ -848,9 +852,10 @@ public class MovementStateTests
     {
         // Arrange
         _sut.HandleUnitSelection(_unit1);
+        var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
         var proneMech = _unit1 as Mech;
         proneMech!.SetProne();
-        proneMech.Shutdown();
+        proneMech.Shutdown(shutdownData);
 
         // Act
         var actions = _sut.GetAvailableActions().ToList();
@@ -898,7 +903,7 @@ public class MovementStateTests
         // Set up a prone Mech that cannot stand up
         var proneMech = _unit1 as Mech;
         proneMech!.SetProne();
-        proneMech.Shutdown(); // shutdown cannot stand up
+        proneMech.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 }); // shutdown cannot stand up
         _sut.HandleUnitSelection(proneMech);
 
         // Act
