@@ -39,6 +39,8 @@ public record struct UnitShutdownCommand : IGameCommand
         {
             return string.Empty;
         }
+        
+        var isPilotUnconscious = unit.Pilot?.IsConscious == false;
 
         return command.ShutdownData.Reason switch
         {
@@ -50,13 +52,13 @@ public record struct UnitShutdownCommand : IGameCommand
                     command.AvoidShutdownRoll?.DiceResults.Sum(),
                     command.AvoidShutdownRoll?.AvoidNumber),
 
+            ShutdownReason.Heat when isPilotUnconscious =>
+                            string.Format(localizationService.GetString("Command_MechShutdown_UnconsciousPilot"),
+                                unit.Name, unit.CurrentHeat),
+            
             ShutdownReason.Heat when command.IsAutomaticShutdown =>
                 string.Format(localizationService.GetString("Command_MechShutdown_AutomaticHeat"),
-                    unit.Name, command.AvoidShutdownRoll?.HeatLevel),
-
-            ShutdownReason.Heat when command.AvoidShutdownRoll?.DiceResults.Length == 0 =>
-                string.Format(localizationService.GetString("Command_MechShutdown_UnconsciousPilot"),
-                    unit.Name, command.AvoidShutdownRoll?.HeatLevel),
+                    unit.Name, unit.CurrentHeat),
 
             ShutdownReason.Heat when command.AvoidShutdownRoll != null =>
                 string.Format(localizationService.GetString("Command_MechShutdown_FailedRoll"),

@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils.TechRules;
@@ -73,28 +74,6 @@ public class UnitShutdownCommandTests
         };
     }
 
-    private AvoidShutdownRollData CreateAutomaticShutdownRollData()
-    {
-        return new AvoidShutdownRollData
-        {
-            HeatLevel = 30,
-            DiceResults = [],
-            AvoidNumber = 13,
-            IsSuccessful = false
-        };
-    }
-
-    private AvoidShutdownRollData CreateUnconsciousPilotRollData()
-    {
-        return new AvoidShutdownRollData
-        {
-            HeatLevel = 18,
-            DiceResults = [],
-            AvoidNumber = 9,
-            IsSuccessful = false
-        };
-    }
-
     [Fact]
     public void Render_AvoidedShutdown_ShouldFormatCorrectly()
     {
@@ -120,12 +99,14 @@ public class UnitShutdownCommandTests
     public void Render_AutomaticHeatShutdown_ShouldFormatCorrectly()
     {
         // Arrange
+        // Set unit heat for testing
+        _unit.GetType().GetProperty("CurrentHeat")?.SetValue(_unit, 30);
         var command = new UnitShutdownCommand
         {
             GameOriginId = _gameId,
             UnitId = _unit.Id,
             ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
-            AvoidShutdownRoll = CreateAutomaticShutdownRollData(),
+            AvoidShutdownRoll = null,
             IsAutomaticShutdown = true,
             Timestamp = DateTime.UtcNow
         };
@@ -141,13 +122,17 @@ public class UnitShutdownCommandTests
     public void Render_UnconsciousPilotShutdown_ShouldFormatCorrectly()
     {
         // Arrange
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(false);
+        _unit.AssignPilot(pilot);
+        
         var command = new UnitShutdownCommand
         {
             GameOriginId = _gameId,
             UnitId = _unit.Id,
             ShutdownData = new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 },
-            AvoidShutdownRoll = CreateUnconsciousPilotRollData(),
-            IsAutomaticShutdown = false,
+            AvoidShutdownRoll = null,
+            IsAutomaticShutdown = true,
             Timestamp = DateTime.UtcNow
         };
 
@@ -155,7 +140,7 @@ public class UnitShutdownCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V shut down due to unconscious pilot (heat level 18)");
+        result.ShouldBe("Locust LCT-1V shut down due to unconscious pilot (heat level 0)");
     }
 
     [Fact]
