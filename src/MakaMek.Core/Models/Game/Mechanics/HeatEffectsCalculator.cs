@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -27,19 +27,12 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             return null;
 
         var currentHeat = mech.CurrentHeat;
-        var shutdownThresholds = _rulesProvider.GetHeatShutdownThresholds();
-
-        // Find the closest shutdown threshold that is less than or equal to current heat
-        var applicableThreshold = shutdownThresholds
-            .Where(threshold => currentHeat >= threshold)
-            .DefaultIfEmpty(0)
-            .Max();
         
-        if (applicableThreshold == 0)
-            return null;
+        // Get the avoid number based on current heat level
+        var avoidNumber = _rulesProvider.GetHeatShutdownAvoidNumber(currentHeat);
         
-        // Check for automatic shutdown at 30+ heat
-        if (currentHeat >= 30)
+        // Check for automatic shutdown (avoidNumber 13 means automatic shutdown)
+        if (avoidNumber == 13)
         {
             var automaticShutdownData = new ShutdownData
             {
@@ -64,10 +57,9 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
                 GameOriginId = Guid.Empty // Will be set by the calling phase
             };
         }
-
-        // Get the avoid number for the applicable threshold
-        var avoidNumber = _rulesProvider.GetHeatShutdownAvoidNumber(applicableThreshold);
-        if (!avoidNumber.HasValue)
+        
+        // If avoidNumber is 0, no shutdown check is needed
+        if (avoidNumber == 0)
             return null;
 
         // Check if pilot is conscious (unconscious pilots automatically fail)
@@ -83,7 +75,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             diceResults = diceRoll.Select(d => d.Result).ToArray();
             var rollTotal = diceResults.Sum();
             
-            shutdownOccurs = rollTotal < avoidNumber.Value;
+            shutdownOccurs = rollTotal < avoidNumber;
         }
         else
         {
@@ -99,9 +91,9 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
 
         var avoidShutdownRollData = new AvoidShutdownRollData
         {
-            HeatLevel = applicableThreshold,
+            HeatLevel = currentHeat,
             DiceResults = diceResults,
-            AvoidNumber = avoidNumber.Value,
+            AvoidNumber = avoidNumber,
             IsSuccessful = !shutdownOccurs
         };
 
@@ -127,54 +119,49 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         if (shutdownData.Turn >= currentTurn)
             return null;
 
+        var currentHeat = mech.CurrentHeat;
+                var avoidNumber = _rulesProvider.GetHeatShutdownAvoidNumber(currentHeat);
+        
         // Check for automatic restart due to low heat
-        if (ShouldAutoRestart(mech))
+        if (avoidNumber == 0)
         {
-            var autoAvoidData = new AvoidShutdownRollData
-            {
-                HeatLevel = mech.CurrentHeat,
-                DiceResults = [],
-                AvoidNumber = 0,
-                IsSuccessful = true
-            };
             return new UnitStartupCommand
             {
                 UnitId = mech.Id,
                 IsAutomaticRestart = true,
+                IsRestartPossible = true,
                 GameOriginId = Guid.Empty, // Will be set by the calling phase
-                AvoidShutdownRoll = autoAvoidData
+                AvoidShutdownRoll = null
             };
         }
-
-        // Only heat shutdowns require restart rolls
-        if (shutdownData.Reason != ShutdownReason.Heat)
-            return null;
-
-        var currentHeat = mech.CurrentHeat;
-        var avoidNumber = _rulesProvider.GetHeatShutdownAvoidNumber(currentHeat);
-
-        // If no avoid number, can't restart (shouldn't happen)
-        if (!avoidNumber.HasValue)
-            return null;
-
+        
         // Check if pilot is conscious (unconscious pilots automatically fail)
         var isConsciousPilot = mech.Pilot?.IsConscious == true;
 
-        if (!isConsciousPilot)
-            return null;
+        if (avoidNumber == 13 || !isConsciousPilot)
+        {
+            return new UnitStartupCommand
+            {
+                UnitId = mech.Id,
+                IsAutomaticRestart = false,
+                IsRestartPossible = false,
+                GameOriginId = Guid.Empty, // Will be set by the calling phase
+                AvoidShutdownRoll = null
+            };
+        }
 
         // Roll 2D6 to restart
         var diceRoll = _diceRoller.Roll2D6();
         var diceResults = diceRoll.Select(d => d.Result).ToArray();
         var rollTotal = diceResults.Sum();
 
-        var restartSuccessful = rollTotal >= avoidNumber.Value;
+        var restartSuccessful = rollTotal >= avoidNumber;
         
         var avoidShutdownRollData = new AvoidShutdownRollData
         {
             HeatLevel = currentHeat,
             DiceResults = diceResults,
-            AvoidNumber = avoidNumber.Value,
+            AvoidNumber = avoidNumber,
             IsSuccessful = restartSuccessful
         };
 
@@ -182,20 +169,9 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         {
             UnitId = mech.Id,
             IsAutomaticRestart = false,
+            IsRestartPossible = true,
             GameOriginId = Guid.Empty, // Will be set by the calling phase
             AvoidShutdownRoll = avoidShutdownRollData
         };
-    }
-
-    public bool ShouldAutoRestart(Mech mech)
-    {
-        // Must be shutdown to restart
-        if (!mech.IsShutdown)
-            return false;
-
-        // Auto-restart when heat drops below the lowest shutdown threshold (14)
-        var shutdownThresholds = _rulesProvider.GetHeatShutdownThresholds();
-        var lowestThreshold = shutdownThresholds.Min();
-        return mech.CurrentHeat < lowestThreshold;
     }
 }

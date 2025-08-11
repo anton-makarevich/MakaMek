@@ -16,7 +16,7 @@ public record struct UnitShutdownCommand : IGameCommand
     /// </summary>
     public required Guid UnitId { get; init; }
     
-    public required AvoidShutdownRollData? AvoidShutdownRoll { get; init; }
+    public AvoidShutdownRollData? AvoidShutdownRoll { get; init; }
     
     /// <summary>
     /// Information about the shutdown event

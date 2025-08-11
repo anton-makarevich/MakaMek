@@ -8,10 +8,10 @@ public enum ShutdownReason
     /// <summary>
     /// Shutdown due to excessive heat levels
     /// </summary>
-    Heat,
+    Heat = 1,
     
     /// <summary>
     /// Voluntary shutdown by pilot
     /// </summary>
-    Voluntary
+    Voluntary = 2
 }

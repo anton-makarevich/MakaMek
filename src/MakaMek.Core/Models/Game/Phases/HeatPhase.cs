@@ -127,24 +127,10 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         // Only check for automatic restart for heat shutdowns from previous turns
         if (shutdownData.Reason != ShutdownReason.Heat || shutdownData.Turn >= Game.Turn) return;
 
-        if (!Game.HeatEffectsCalculator.ShouldAutoRestart(mech)) return;
+        var restartCommand = Game.HeatEffectsCalculator.AttemptRestart(mech, Game.Turn);
+        if (restartCommand == null) return;
 
-        var avoidShutdownRollData = new AvoidShutdownRollData
-        {
-            HeatLevel = mech.CurrentHeat,
-            DiceResults = [],
-            AvoidNumber = 0,
-            IsSuccessful = true
-        };
-        var restartCommand = new UnitStartupCommand
-        {
-            UnitId = mech.Id,
-            IsAutomaticRestart = true,
-            GameOriginId = Game.Id,
-            AvoidShutdownRoll = avoidShutdownRollData
-        };
-
-        Game.OnMechRestart(restartCommand);
+        Game.OnMechRestart(restartCommand.Value);
         Game.CommandPublisher.PublishCommand(restartCommand);
     }
 

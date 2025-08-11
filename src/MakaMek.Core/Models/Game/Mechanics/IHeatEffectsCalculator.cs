@@ -25,11 +25,4 @@ public interface IHeatEffectsCalculator
     /// <param name="currentTurn">The current game turn</param>
     /// <returns>Restart command with success/failure information</returns>
     UnitStartupCommand? AttemptRestart(Mech mech, int currentTurn);
-    
-    /// <summary>
-    /// Checks if a mech should automatically restart due to low heat
-    /// </summary>
-    /// <param name="mech">The mech to check</param>
-    /// <returns>True if the mech should automatically restart</returns>
-    bool ShouldAutoRestart(Mech mech);
 }

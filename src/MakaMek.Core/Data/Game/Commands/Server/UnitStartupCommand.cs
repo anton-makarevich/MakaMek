@@ -19,9 +19,11 @@ public record struct UnitStartupCommand : IGameCommand
     /// <summary>
     /// Whether the restart was automatic (heat below threshold)
     /// </summary>
-    public bool IsAutomaticRestart { get; init; }
-    
-    public required AvoidShutdownRollData? AvoidShutdownRoll { get; init; }
+    public required bool IsAutomaticRestart { get; init; }
+
+    public required bool IsRestartPossible { get; init; }
+
+    public AvoidShutdownRollData? AvoidShutdownRoll { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
@@ -49,7 +51,8 @@ public record struct UnitStartupCommand : IGameCommand
                     command.AvoidShutdownRoll?.DiceResults.Sum(),
                     command.AvoidShutdownRoll?.AvoidNumber),
 
-            { AvoidShutdownRoll.IsSuccessful: false } =>
+            _ when command.IsRestartPossible == false 
+                   || command.AvoidShutdownRoll?.IsSuccessful == false =>
                 string.Format(localizationService.GetString("Command_MechRestart_Failed"), 
                     unit.Name, 
                     command.AvoidShutdownRoll?.HeatLevel,
