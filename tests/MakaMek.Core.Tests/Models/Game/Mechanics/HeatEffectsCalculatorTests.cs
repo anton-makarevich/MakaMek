@@ -25,6 +25,20 @@ public class HeatEffectsCalculatorTests
         // Default mock - can be overridden in specific tests
         _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(4);
     }
+    
+    [Fact]
+    public void CheckForHeatShutdown_ShouldReturnNull_WhenMechIsAlreadyShutdown()
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+
+        // Act
+        var result = _sut.CheckForHeatShutdown(mech, 1);
+
+        // Assert
+        result.ShouldBeNull();
+    }
 
     [Fact]
     public void CheckForHeatShutdown_ShouldReturnNull_WhenAvoidNumberIsZero()
