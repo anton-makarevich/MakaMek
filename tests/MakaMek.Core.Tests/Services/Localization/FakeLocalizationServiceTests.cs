@@ -17,11 +17,41 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_ChangePhase", "Game changed phase to {0}.")]
     [InlineData("Command_ChangeActivePlayer", "{0}'s turn.")]
     [InlineData("Command_ChangeActivePlayerUnits", "{0}'s turn to play {1} units.")]
+    [InlineData("Command_TurnEnded", "{0} has ended their turn.")]
+    [InlineData("Command_TurnIncremented", "Turn {0} has started.")]
+    [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game.")]
+    [InlineData("Command_SetBattleMap", "Battle map has been set.")]
+    public void GetString_BasicCommands_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
     [InlineData("Command_WeaponConfiguration_TorsoRotation", "{0}'s {1} rotates torso to face {2}")]
     [InlineData("Command_WeaponConfiguration_ArmsFlip", "{0}'s {1} flips arms {2}")]
     [InlineData("Command_WeaponAttackDeclaration_NoAttacks", "{0}'s {1} declares no attacks")]
     [InlineData("Command_WeaponAttackDeclaration_Header", "{0}'s {1} declares attacks:")]
     [InlineData("Command_WeaponAttackDeclaration_WeaponLine", "- {0} targeting {1}'s {2}")]
+    public void GetString_WeaponCommands_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
     [InlineData("Command_WeaponAttackResolution", "{0}'s {1} attacks with {2} targeting {3}'s {4}. To hit number: {5}")]
     [InlineData("Command_WeaponAttackResolution_Hit", "{0}'s {1} hits {3}'s {4} with {2} (Target: {5}, Roll: {6})")]
     [InlineData("Command_WeaponAttackResolution_Miss", "{0}'s {1} misses {3}'s {4} with {2} (Target: {5}, Roll: {6})")]
@@ -43,10 +73,19 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_DestroyedParts", "Destroyed parts:")]
     [InlineData("Command_WeaponAttackResolution_DestroyedPart", "- {0} destroyed")]
     [InlineData("Command_WeaponAttackResolution_UnitDestroyed", "{0} has been destroyed!")]
-    [InlineData("Command_TurnEnded", "{0} has ended their turn.")]
-    [InlineData("Command_TurnIncremented", "Turn {0} has started.")]
-    [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game.")]
-    [InlineData("Command_SetBattleMap", "Battle map has been set.")]
+    public void GetString_WeaponAttackResolution_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
     [InlineData("Direction_Forward", "forward")]
     [InlineData("Direction_Backward", "backward")]
     // MechFallingCommand strings
@@ -205,7 +244,31 @@ public class FakeLocalizationServiceTests
     [InlineData("Pilot_Status_Unconscious", "UNCONSCIOUS")]
     // Default
     [InlineData("Key_Not_Found", "Key_Not_Found")]
-    public void GetString_ReturnsExpectedString(string key, string expected)
+    public void GetString_MiscellaneousKeys_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("Command_MechRestart_Automatic", "{0} automatically restarted (heat level {1})")]
+    [InlineData("Command_MechRestart_Successful", "{0} successfully restarted (heat level {1}, roll: [{2}] = {3} vs {4})")]
+    [InlineData("Command_MechRestart_Failed", "{0} failed to restart (heat level {1}, roll: [{2}] = {3} vs {4})")]
+    [InlineData("Command_MechRestart_Impossible", "{0} cannot restart (heat level {1})")]
+    [InlineData("Command_MechRestart_Generic", "{0} restart attempt")]
+    [InlineData("Command_MechShutdown_Avoided", "{0} avoided shutdown (heat level {1}, roll: [{2}] = {3} vs {4})")]
+    [InlineData("Command_MechShutdown_AutomaticHeat", "{0} automatically shut down due to excessive heat (level {1})")]
+    [InlineData("Command_MechShutdown_UnconsciousPilot", "{0} shut down due to unconscious pilot (heat level {1})")]
+    [InlineData("Command_MechShutdown_FailedRoll", "{0} shut down due to heat (level {1}, roll: [{2}] = {3} vs {4})")]
+    [InlineData("Command_MechShutdown_Voluntary", "{0} voluntarily shut down")]
+    [InlineData("Command_MechShutdown_Generic", "{0} shut down")]
+    public void GetString_HeatShutdownRestartCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
         var localizationService = new FakeLocalizationService();

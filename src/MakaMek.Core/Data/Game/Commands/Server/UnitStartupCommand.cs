@@ -40,27 +40,30 @@ public record struct UnitStartupCommand : IGameCommand
         return command switch
         {
             { IsAutomaticRestart: true } =>
-                string.Format(localizationService.GetString("Command_MechRestart_Automatic"), 
-                    unit.Name, command.AvoidShutdownRoll?.HeatLevel),
+                string.Format(localizationService.GetString("Command_MechRestart_Automatic"),
+                    unit.Name, unit.CurrentHeat),
+
+            { IsRestartPossible: false } =>
+                string.Format(localizationService.GetString("Command_MechRestart_Impossible"),
+                    unit.Name, unit.CurrentHeat),
 
             { AvoidShutdownRoll.IsSuccessful: true } =>
-                string.Format(localizationService.GetString("Command_MechRestart_Successful"), 
-                    unit.Name, 
+                string.Format(localizationService.GetString("Command_MechRestart_Successful"),
+                    unit.Name,
                     command.AvoidShutdownRoll?.HeatLevel,
                     string.Join(", ", command.AvoidShutdownRoll?.DiceResults??[]),
                     command.AvoidShutdownRoll?.DiceResults.Sum(),
                     command.AvoidShutdownRoll?.AvoidNumber),
 
-            _ when command.IsRestartPossible == false 
-                   || command.AvoidShutdownRoll?.IsSuccessful == false =>
-                string.Format(localizationService.GetString("Command_MechRestart_Failed"), 
-                    unit.Name, 
+            { AvoidShutdownRoll.IsSuccessful: false } =>
+                string.Format(localizationService.GetString("Command_MechRestart_Failed"),
+                    unit.Name,
                     command.AvoidShutdownRoll?.HeatLevel,
                     string.Join(", ", command.AvoidShutdownRoll?.DiceResults??[]),
                     command.AvoidShutdownRoll?.DiceResults.Sum(),
                     command.AvoidShutdownRoll?.AvoidNumber),
-            
-            _ => string.Format(localizationService.GetString("Command_MechRestart_Generic"), 
+
+            _ => string.Format(localizationService.GetString("Command_MechRestart_Generic"),
                 unit.Name)
         };
     }
