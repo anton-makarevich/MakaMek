@@ -6,6 +6,13 @@ namespace Sanet.MakaMek.Core.Utils;
 public static class DiceUtils
 {
     /// <summary>
+    /// The impossible roll value
+    /// </summary>
+    public const int Impossible2D6Roll = 13;
+    
+    public const int Guaranteed2D6Roll = 2;
+    
+    /// <summary>
     /// Calculates the probability of rolling at least the target number on 2d6
     /// </summary>
     /// <param name="targetNumber">Target number to roll (2-12)</param>

@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.TechRules;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -32,7 +33,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         var avoidNumber = _rulesProvider.GetHeatShutdownAvoidNumber(currentHeat);
         
         // Check for automatic shutdown (avoidNumber 13 means automatic shutdown)
-        if (avoidNumber == 13)
+        if (avoidNumber == DiceUtils.Impossible2D6Roll)
         {
             var automaticShutdownData = new ShutdownData
             {
@@ -59,7 +60,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         }
         
         // If avoidNumber is 0, no shutdown check is needed
-        if (avoidNumber == 0)
+        if (avoidNumber < DiceUtils.Guaranteed2D6Roll)
             return null;
 
         // Check if pilot is conscious (unconscious pilots automatically fail)
@@ -123,7 +124,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
                 var avoidNumber = _rulesProvider.GetHeatShutdownAvoidNumber(currentHeat);
         
         // Check for automatic restart due to low heat
-        if (avoidNumber == 0)
+        if (avoidNumber < DiceUtils.Guaranteed2D6Roll)
         {
             return new UnitStartupCommand
             {
@@ -138,7 +139,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         // Check if pilot is conscious (unconscious pilots automatically fail)
         var isConsciousPilot = mech.Pilot?.IsConscious == true;
 
-        if (avoidNumber == 13 || !isConsciousPilot)
+        if (avoidNumber == DiceUtils.Impossible2D6Roll || !isConsciousPilot)
         {
             return new UnitStartupCommand
             {

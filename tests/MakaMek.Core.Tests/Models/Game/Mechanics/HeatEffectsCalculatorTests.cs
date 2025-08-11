@@ -138,4 +138,156 @@ public class HeatEffectsCalculatorTests
         };
         mech.ApplyHeat(heatData);
     }
+
+    [Fact]
+    public void AttemptRestart_ShouldReturnNull_WhenMechIsNotShutdown()
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        SetMechHeat(mech, 10);
+        // mech is not shut down
+
+        // Act
+        var result = _sut.AttemptRestart(mech, 1);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AttemptRestart_ShouldReturnNull_WhenShutdownInSameTurn()
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        SetMechHeat(mech, 10);
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+
+        // Act - Try to restart in the same turn
+        var result = _sut.AttemptRestart(mech, 1);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AttemptRestart_ShouldReturnAutoRestart_WhenAvoidNumberIsZero()
+    {
+        // Arrange
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(0);
+        var mech = CreateTestMech();
+        SetMechHeat(mech, 10);
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+
+        // Act - Try to restart in a later turn
+        var result = _sut.AttemptRestart(mech, 2);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Value.IsAutomaticRestart.ShouldBeTrue();
+        result.Value.IsRestartPossible.ShouldBeTrue();
+        result.Value.AvoidShutdownRoll.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AttemptRestart_ShouldReturnRestartImpossible_WhenAvoidNumberIs13()
+    {
+        // Arrange
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(13);
+        var mech = CreateTestMech();
+        SetMechHeat(mech, 30);
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+
+        // Act
+        var result = _sut.AttemptRestart(mech, 2);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Value.IsAutomaticRestart.ShouldBeFalse();
+        result.Value.IsRestartPossible.ShouldBeFalse();
+        result.Value.AvoidShutdownRoll.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AttemptRestart_ShouldReturnRestartImpossible_WhenPilotIsUnconscious()
+    {
+        // Arrange
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(6);
+        var mech = CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(false);
+        mech.AssignPilot(pilot);
+        SetMechHeat(mech, 20);
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+
+        // Act
+        var result = _sut.AttemptRestart(mech, 2);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Value.IsAutomaticRestart.ShouldBeFalse();
+        result.Value.IsRestartPossible.ShouldBeFalse();
+        result.Value.AvoidShutdownRoll.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AttemptRestart_ShouldReturnSuccessfulRestart_WhenRollSucceeds()
+    {
+        // Arrange
+        const int avoidNumber = 6;
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
+        
+        var mech = CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        mech.AssignPilot(pilot);
+        SetMechHeat(mech, 20);
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+
+        // Setup dice roll that succeeds (rolls 6, needs 6+)
+        var diceResults = new List<DiceResult> { new(3), new(3) };
+        _diceRoller.Roll2D6().Returns(diceResults);
+
+        // Act
+        var result = _sut.AttemptRestart(mech, 2);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Value.IsAutomaticRestart.ShouldBeFalse();
+        result.Value.IsRestartPossible.ShouldBeTrue();
+        result.Value.AvoidShutdownRoll.ShouldNotBeNull();
+        result.Value.AvoidShutdownRoll.IsSuccessful.ShouldBeTrue();
+        result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(avoidNumber);
+        result.Value.AvoidShutdownRoll.DiceResults.ShouldBe([3, 3]);
+    }
+
+    [Fact]
+    public void AttemptRestart_ShouldReturnFailedRestart_WhenRollFails()
+    {
+        // Arrange
+        const int avoidNumber = 6;
+        _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
+        
+        var mech = CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        mech.AssignPilot(pilot);
+        SetMechHeat(mech, 20);
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+
+        // Setup dice roll that fails (rolls 5, needs 6+)
+        var diceResults = new List<DiceResult> { new(2), new(3) };
+        _diceRoller.Roll2D6().Returns(diceResults);
+
+        // Act
+        var result = _sut.AttemptRestart(mech, 2);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Value.IsAutomaticRestart.ShouldBeFalse();
+        result.Value.IsRestartPossible.ShouldBeTrue();
+        result.Value.AvoidShutdownRoll.ShouldNotBeNull();
+        result.Value.AvoidShutdownRoll.IsSuccessful.ShouldBeFalse();
+        result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(avoidNumber);
+        result.Value.AvoidShutdownRoll.DiceResults.ShouldBe([2, 3]);
+    }
 }
