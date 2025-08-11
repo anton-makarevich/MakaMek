@@ -104,7 +104,9 @@ public class HeatPhaseTests : GamePhaseTestsBase
 
         // Assert: restart command published for the mech
         CommandPublisher.Received().PublishCommand(
-            Arg.Is<UnitStartupCommand>(cmd => cmd.UnitId == mech.Id));
+            Arg.Is<UnitStartupCommand>(cmd => 
+                cmd.UnitId == mech.Id
+                && cmd.GameOriginId == Game.Id));
     }
     
     [Fact]

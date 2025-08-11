@@ -71,6 +71,7 @@ public class HeatEffectsCalculatorTests
         result.Value.IsAutomaticShutdown.ShouldBeTrue();
         result.Value.AvoidShutdownRoll.ShouldBeNull();
         result.Value.ShutdownData.Reason.ShouldBe(ShutdownReason.Heat);
+        _diceRoller.DidNotReceive().Roll2D6();
     }
     
     [Fact]
@@ -121,6 +122,9 @@ public class HeatEffectsCalculatorTests
         result.Value.AvoidShutdownRoll.DiceResults.ShouldBe([2, 3]);
         result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(avoidNumber);
         result.Value.ShutdownData.Reason.ShouldBe(ShutdownReason.Heat);
+        result.Value.ShutdownData.Turn.ShouldBe(1);
+        _rulesProvider.Received(1).GetHeatShutdownAvoidNumber(mech.CurrentHeat);
+        _diceRoller.Received(1).Roll2D6();
     }
 
     [Fact]
@@ -148,6 +152,9 @@ public class HeatEffectsCalculatorTests
         result.Value.AvoidShutdownRoll!.IsSuccessful.ShouldBeTrue();
         result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(avoidNumber);
         result.Value.IsAutomaticShutdown.ShouldBeFalse();
+        result.Value.ShutdownData.Turn.ShouldBe(1);
+        _rulesProvider.Received(1).GetHeatShutdownAvoidNumber(mech.CurrentHeat);
+        _diceRoller.Received(1).Roll2D6();
     }
 
     private static Mech CreateTestMech()
@@ -220,6 +227,7 @@ public class HeatEffectsCalculatorTests
         result.Value.IsAutomaticRestart.ShouldBeTrue();
         result.Value.IsRestartPossible.ShouldBeTrue();
         result.Value.AvoidShutdownRoll.ShouldBeNull();
+        _diceRoller.DidNotReceive().Roll2D6();
     }
 
     [Fact]
@@ -239,6 +247,7 @@ public class HeatEffectsCalculatorTests
         result.Value.IsAutomaticRestart.ShouldBeFalse();
         result.Value.IsRestartPossible.ShouldBeFalse();
         result.Value.AvoidShutdownRoll.ShouldBeNull();
+        _diceRoller.DidNotReceive().Roll2D6();
     }
 
     [Fact]
@@ -261,6 +270,7 @@ public class HeatEffectsCalculatorTests
         result.Value.IsAutomaticRestart.ShouldBeFalse();
         result.Value.IsRestartPossible.ShouldBeFalse();
         result.Value.AvoidShutdownRoll.ShouldBeNull();
+        _diceRoller.DidNotReceive().Roll2D6();
     }
 
     [Fact]

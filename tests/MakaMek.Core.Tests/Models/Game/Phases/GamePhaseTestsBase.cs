@@ -42,7 +42,7 @@ public abstract class GamePhaseTestsBase
             Substitute.For<ICriticalHitsCalculator>(),
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
-            Substitute.For<IHeatEffectsCalculator>(),
+            MockHeatEffectsCalculator,
             MockFallProcessor,
             MockPhaseManager);
     }

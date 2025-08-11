@@ -1239,6 +1239,86 @@ public class BaseGameTests : BaseGame
         unit.IsActive.ShouldBeTrue();
         unit.IsShutdown.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void OnMechRestart_StartsUpUnit_WhenAutomaticRestart()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        OnPlayerJoined(joinCommand);
+        var unit = Players.SelectMany(p => p.Units).First(u => u.Id == unitId);
+
+        // First shut down the unit
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        unit.IsShutdown.ShouldBeTrue();
+
+        var command = new UnitStartupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitId,
+            IsAutomaticRestart = true,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = null,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        OnMechRestart(command);
+
+        // Assert
+        unit.IsActive.ShouldBeTrue();
+        unit.IsShutdown.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void OnMechRestart_DoesNotStartUpUnit_WhenRestartIsImpossible()
+    {
+        // Arrange (same setup as above)
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        OnPlayerJoined(new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        var unit = Players.SelectMany(p => p.Units).First(u => u.Id == unitId);
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+
+        var command = new UnitStartupCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unitId,
+            IsAutomaticRestart = true,
+            IsRestartPossible = false,
+            AvoidShutdownRoll = null,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        OnMechRestart(command);
+
+        // Assert
+        unit.IsActive.ShouldBeFalse();
+        unit.IsShutdown.ShouldBeTrue();
+    }
 
     [Fact]
     public void OnMechRestart_DoesNotStartUpUnit_WhenRestartRollFails()

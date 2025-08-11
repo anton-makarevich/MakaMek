@@ -21,8 +21,14 @@ public record struct UnitStartupCommand : IGameCommand
     /// </summary>
     public required bool IsAutomaticRestart { get; init; }
 
+    /// <summary>
+    /// Whether restart is possible (e.g., heat is low enough)
+    /// </summary>
     public required bool IsRestartPossible { get; init; }
 
+    /// <summary>
+    /// Optional roll data if a restart roll was made
+    /// </summary>
     public AvoidShutdownRollData? AvoidShutdownRoll { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)

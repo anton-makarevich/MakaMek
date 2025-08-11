@@ -310,10 +310,12 @@ public abstract class BaseGame : IGame
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == restartCommand.UnitId);
 
-        if (unit == null) return;
+        if (unit == null
+            || restartCommand.IsRestartPossible == false) return;
 
         // Apply restart to the unit if restart was successful
-        if (restartCommand.AvoidShutdownRoll?.IsSuccessful == true)
+        if (restartCommand.AvoidShutdownRoll?.IsSuccessful == true
+            || restartCommand.IsAutomaticRestart)
         {
             unit.Startup();
         }

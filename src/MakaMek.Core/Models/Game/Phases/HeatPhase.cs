@@ -129,9 +129,12 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
 
         var restartCommand = Game.HeatEffectsCalculator.AttemptRestart(mech, Game.Turn);
         if (restartCommand == null) return;
+        
+        var broadcastCommand = restartCommand.Value;
+        broadcastCommand.GameOriginId = Game.Id;
 
-        Game.OnMechRestart(restartCommand.Value);
-        Game.CommandPublisher.PublishCommand(restartCommand);
+        Game.OnMechRestart(broadcastCommand);
+        Game.CommandPublisher.PublishCommand(broadcastCommand);
     }
 
     private void CheckForUnitHeatShutdown(Unit unit)
