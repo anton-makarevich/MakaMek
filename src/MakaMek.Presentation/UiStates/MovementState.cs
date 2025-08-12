@@ -299,7 +299,7 @@ public class MovementState : IUiState
                     )).ToList();
                 }
 
-                if (path?.Count == 0) // new position is exactly the same as current position
+                if (path is { Count: 0 }) // target equals current position with unchanged facing
                 {
                     path.Add(new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0));
                 }
