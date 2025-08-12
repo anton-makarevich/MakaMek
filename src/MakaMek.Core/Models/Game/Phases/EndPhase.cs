@@ -79,7 +79,7 @@ public class EndPhase(ServerGame game) : GamePhase(game)
                 Turn = Game.Turn
             },
             AvoidShutdownRoll = null, // No roll needed for voluntary shutdown
-            IsAutomaticShutdown = true, // Voluntary shutdown always succeeds
+            IsAutomaticShutdown = false, 
             Timestamp = DateTime.UtcNow
         };
 
