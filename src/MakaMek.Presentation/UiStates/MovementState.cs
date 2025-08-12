@@ -299,6 +299,11 @@ public class MovementState : IUiState
                     )).ToList();
                 }
 
+                if (path is { Count: 0 }) // target equals current position with unchanged facing
+                {
+                    path.Add(new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0));
+                }
+                
                 if (path != null)
                 {
                     _possibleDirections[direction] = path;

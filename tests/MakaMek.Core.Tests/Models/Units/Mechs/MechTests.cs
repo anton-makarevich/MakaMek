@@ -108,6 +108,25 @@ public class MechTests
     }
     
     [Fact]
+    public void Move_ShouldNotUpdateDistanceCovered_WhenMovingToSamePosition()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        mech.Deploy(position);
+
+        // Act
+        mech.Move(MovementType.Walk, [new PathSegment(position, position, 0).ToData()]);
+
+        // Assert
+        mech.Position.ShouldBe(position);
+        mech.HasMoved.ShouldBeTrue();
+        mech.MovementTypeUsed.ShouldBe(MovementType.Walk);
+        mech.DistanceCovered.ShouldBe(0);
+        mech.MovementPointsSpent.ShouldBe(0);
+    }
+    
+    [Fact]
     public void Move_ShouldKeepPosition_WhenNoPathSegments()
     {
         // Arrange

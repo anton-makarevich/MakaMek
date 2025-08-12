@@ -434,6 +434,25 @@ public class MovementStateTests
         _battleMapViewModel.MovementPath.Last().To.Coordinates.ShouldBe(targetHex.Coordinates);
         _battleMapViewModel.MovementPath.Last().To.Facing.ShouldBe(HexDirection.Top);
     }
+    
+    [Fact]
+    public void HandleFacingSelection_ShouldNotCrash_WhenMovingToSamePosition()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _battleMapViewModel.Units.First();
+        unit.Deploy(position);
+        _sut.HandleUnitSelection(unit);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        
+        var targetHex = _game.BattleMap!.GetHex(position.Coordinates)!;
+        _sut.HandleHexSelection(targetHex);
+        
+        // Act
+        _sut.HandleFacingSelection(HexDirection.Bottom);
+    }
 
     [Fact]
     public void HandleFacingSelection_DoesNothing_WhenNotInDirectionSelectionStep()
