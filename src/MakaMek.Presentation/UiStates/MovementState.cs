@@ -299,6 +299,11 @@ public class MovementState : IUiState
                     )).ToList();
                 }
 
+                if (path?.Count == 0) // new position is exactly the same as current position
+                {
+                    path.Add(new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0));
+                }
+                
                 if (path != null)
                 {
                     _possibleDirections[direction] = path;
