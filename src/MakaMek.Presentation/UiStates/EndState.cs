@@ -53,6 +53,46 @@ public class EndState : IUiState
         // Not used in EndState
     }
 
+    public IEnumerable<StateAction> GetAvailableActions()
+    {
+        var actions = new List<StateAction>();
+
+        if (!IsActivePlayer || _viewModel.Game == null || _viewModel.SelectedUnit == null)
+            return actions;
+
+        // Only show shutdown action for units belonging to the active player
+        var selectedUnit = _viewModel.SelectedUnit;
+        var activePlayer = _viewModel.Game.ActivePlayer;
+
+        if (selectedUnit.Owner?.Id == activePlayer?.Id && !selectedUnit.IsDestroyed && !selectedUnit.IsShutdown)
+        {
+            actions.Add(new StateAction(
+                _localizationService.GetString("Action_Shutdown"),
+                true,
+                () => ExecuteShutdownAction(selectedUnit)));
+        }
+
+        return actions;
+    }
+
+    private void ExecuteShutdownAction(Unit unit)
+    {
+        if (!IsActivePlayer || _viewModel.Game == null) return;
+
+        var command = new ShutdownUnitCommand
+        {
+            GameOriginId = _viewModel.Game.Id,
+            PlayerId = _viewModel.Game.ActivePlayer!.Id,
+            UnitId = unit.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        if (_viewModel.Game is { } clientGame)
+        {
+            clientGame.ShutdownUnit(command);
+        }
+    }
+
     /// <summary>
     /// Sends the TurnEndedCommand to end the current player's turn
     /// </summary>

@@ -18,6 +18,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_ChangeActivePlayer", "{0}'s turn.")]
     [InlineData("Command_ChangeActivePlayerUnits", "{0}'s turn to play {1} units.")]
     [InlineData("Command_TurnEnded", "{0} has ended their turn.")]
+    [InlineData("Command_ShutdownUnit", "{0} requests to shut down {1}.")]
     [InlineData("Command_TurnIncremented", "Turn {0} has started.")]
     [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game.")]
     [InlineData("Command_SetBattleMap", "Battle map has been set.")]
@@ -201,6 +202,7 @@ public class FakeLocalizationServiceTests
     // End phase
     [InlineData("EndPhase_ActionLabel", "End your turn")]
     [InlineData("EndPhase_PlayerActionLabel", "End Turn")]
+    [InlineData("Action_Shutdown", "Shutdown")]
     // Mech part names
     [InlineData("MechPart_LeftArm", "Left Arm")]
     [InlineData("MechPart_RightArm", "Right Arm")]

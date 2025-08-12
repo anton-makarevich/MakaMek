@@ -253,7 +253,111 @@ public class EndStateTests
         // Act & Assert
         _sut.CanExecutePlayerAction.ShouldBeFalse();
     }
-    
+
+    [Fact]
+    public void GetAvailableActions_ShouldReturnShutdownAction_WhenUnitSelectedAndBelongsToActivePlayer()
+    {
+        // Arrange
+        SetActivePlayer();
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldNotBeEmpty();
+        actions.ShouldContain(a => a.Label == "Shutdown");
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenNoUnitSelected()
+    {
+        // Arrange
+        SetActivePlayer();
+        _battleMapViewModel.SelectedUnit = null;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitBelongsToOtherPlayer()
+    {
+        // Arrange
+        SetActivePlayer();
+
+        // Create another player and unit
+        var otherPlayer = new Player(Guid.NewGuid(), "Other Player");
+        _game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = otherPlayer.Id,
+            PlayerName = otherPlayer.Name,
+            GameOriginId = _game.Id,
+            Tint = "Blue",
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            PilotAssignments = []
+        });
+
+        var otherUnit = _game.Players.First(p => p.Id == otherPlayer.Id).Units.First();
+        _battleMapViewModel.SelectedUnit = otherUnit;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitDestroyed()
+    {
+        // Arrange
+        SetActivePlayer();
+        _unit1.ApplyDamage([new HitLocationData(
+            PartLocation.CenterTorso,
+            100,
+            [],
+            [])]);
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitAlreadyShutdown()
+    {
+        // Arrange
+        SetActivePlayer();
+        _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenNotActivePlayer()
+    {
+        // Arrange - Don't set active player
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
+
     private void SetActivePlayer()
     {
         _game.HandleCommand(new ChangeActivePlayerCommand

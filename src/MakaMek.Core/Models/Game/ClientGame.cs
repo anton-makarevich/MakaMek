@@ -199,6 +199,8 @@ public sealed class ClientGame : BaseGame
     
     public void TryStandupUnit(TryStandupCommand command) => SendPlayerAction(command);
 
+    public void ShutdownUnit(ShutdownUnitCommand command) => SendPlayerAction(command);
+
     public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
     {
         CommandPublisher.PublishCommand(statusCommand);
