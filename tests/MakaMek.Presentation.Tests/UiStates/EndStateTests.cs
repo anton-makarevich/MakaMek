@@ -259,7 +259,6 @@ public class EndStateTests
     public void GetAvailableActions_ShouldReturnShutdownAction_WhenUnitSelectedAndBelongsToActivePlayer()
     {
         // Arrange
-        SetActivePlayer();
         _battleMapViewModel.SelectedUnit = _unit1;
 
         // Act
@@ -274,7 +273,6 @@ public class EndStateTests
     public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenNoUnitSelected()
     {
         // Arrange
-        SetActivePlayer();
         _battleMapViewModel.SelectedUnit = null;
 
         // Act
@@ -288,8 +286,6 @@ public class EndStateTests
     public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitBelongsToOtherPlayer()
     {
         // Arrange
-        SetActivePlayer();
-
         // Create another player and unit
         var otherPlayer = new Player(Guid.NewGuid(), "Other Player");
         _game.HandleCommand(new JoinGameCommand
@@ -316,7 +312,6 @@ public class EndStateTests
     public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitDestroyed()
     {
         // Arrange
-        SetActivePlayer();
         _unit1.ApplyDamage([new HitLocationData(
             PartLocation.CenterTorso,
             100,
@@ -335,7 +330,6 @@ public class EndStateTests
     public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitAlreadyShutdown()
     {
         // Arrange
-        SetActivePlayer();
         _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
         _battleMapViewModel.SelectedUnit = _unit1;
 
@@ -363,6 +357,43 @@ public class EndStateTests
 
         // Assert
         actions.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void ExecuteShutdownAction_ShouldPublishShutdownCommand()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        var shutdownAction = _sut.GetAvailableActions().First(a => a.Label == "Shutdown");
+
+        // Act
+        shutdownAction.OnExecute();
+        
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<ShutdownUnitCommand>(cmd =>
+            cmd.PlayerId == _player.Id &&
+            cmd.UnitId == _unit1.Id &&
+            cmd.GameOriginId == _game.Id));
+    }
+    
+    [Fact]
+    public void ExecuteShutdownAction_ShouldNotPublishShutdownCommand_WhenNotActivePlayer()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        var shutdownAction = _sut.GetAvailableActions().First(a => a.Label == "Shutdown");
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.Empty, // No active player
+            UnitsToPlay = 0
+        });
+
+        // Act
+        shutdownAction.OnExecute();
+        
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ShutdownUnitCommand>());
     }
 
     private void SetActivePlayer()
