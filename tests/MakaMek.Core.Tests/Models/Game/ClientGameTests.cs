@@ -1301,7 +1301,7 @@ public class ClientGameTests
         {
             PlayerId = player.Id,
             PlayerName = player.Name,
-            GameOriginId = _sut.Id,
+            GameOriginId = Guid.NewGuid(),
             Tint = player.Tint,
             Units = [unitData],
             PilotAssignments = []

@@ -267,7 +267,7 @@ public class EndPhaseTests : GamePhaseTestsBase
                 cmd.ShutdownData.Reason == ShutdownReason.Voluntary &&
                 cmd.ShutdownData.Turn == Game.Turn &&
                 cmd.AvoidShutdownRoll == null &&
-                cmd.IsAutomaticShutdown == true));
+                cmd.IsAutomaticShutdown == false));
 
         unit.IsShutdown.ShouldBeTrue();
         unit.CurrentShutdownData.ShouldNotBeNull();

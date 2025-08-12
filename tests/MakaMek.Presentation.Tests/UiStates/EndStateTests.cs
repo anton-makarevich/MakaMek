@@ -42,6 +42,7 @@ public class EndStateTests
         // Mock localization service responses
         localizationService.GetString("EndPhase_ActionLabel").Returns("End your turn");
         localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End your turn");
+        localizationService.GetString("Action_Shutdown").Returns("Shutdown");
         
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
@@ -295,7 +296,7 @@ public class EndStateTests
         {
             PlayerId = otherPlayer.Id,
             PlayerName = otherPlayer.Name,
-            GameOriginId = _game.Id,
+            GameOriginId = Guid.NewGuid(),
             Tint = "Blue",
             Units = [MechFactoryTests.CreateDummyMechData()],
             PilotAssignments = []
@@ -348,7 +349,13 @@ public class EndStateTests
     [Fact]
     public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenNotActivePlayer()
     {
-        // Arrange - Don't set active player
+        // Arrange - Clear active player (phase change automatically sets it)
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.Empty, // No active player
+            UnitsToPlay = 0
+        });
         _battleMapViewModel.SelectedUnit = _unit1;
 
         // Act
@@ -360,6 +367,7 @@ public class EndStateTests
 
     private void SetActivePlayer()
     {
+        _game.LocalPlayers.Add(_player.Id);
         _game.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
