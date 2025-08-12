@@ -296,7 +296,7 @@ public abstract class BaseGame : IGame
 
         if (unit == null) return;
 
-        // Apply shutdown to the unit only if shutdown was not avoided
+        // Apply shutdown when automatic, voluntary, or avoid-roll failed (i.e., not avoided)
         if (shutdownCommand.IsAutomaticShutdown 
             || shutdownCommand.ShutdownData.Reason == ShutdownReason.Voluntary
             || shutdownCommand.AvoidShutdownRoll?.IsSuccessful == false)

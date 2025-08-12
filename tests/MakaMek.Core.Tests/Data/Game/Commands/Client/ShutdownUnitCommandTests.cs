@@ -18,6 +18,8 @@ public class ShutdownUnitCommandTests
     private readonly Guid _gameId;
     private readonly Guid _playerId;
     private readonly Guid _unitId;
+    
+    private readonly DateTime _timestamp = new DateTime(2021, 1, 1);
 
     public ShutdownUnitCommandTests()
     {
@@ -61,7 +63,7 @@ public class ShutdownUnitCommandTests
         GameOriginId = _gameId,
         PlayerId = _playerId,
         UnitId = _unitId,
-        Timestamp = DateTime.UtcNow
+        Timestamp = _timestamp
     };
 
     [Fact]
@@ -114,6 +116,6 @@ public class ShutdownUnitCommandTests
         command.GameOriginId.ShouldBe(_gameId);
         command.PlayerId.ShouldBe(_playerId);
         command.UnitId.ShouldBe(_unitId);
-        command.Timestamp.ShouldBeInRange(DateTime.UtcNow.AddSeconds(-1), DateTime.UtcNow.AddSeconds(1));
+        command.Timestamp.ShouldBe(_timestamp);
     }
 }

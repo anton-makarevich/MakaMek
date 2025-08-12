@@ -279,13 +279,39 @@ public class EndPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         CommandPublisher.ClearReceivedCalls();
 
         var shutdownCommand = new ShutdownUnitCommand
         {
             GameOriginId = Game.Id,
             PlayerId = Guid.NewGuid(), // Non-existent player
-            UnitId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(shutdownCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitShutdownCommand>());
+    }
+    
+    [Fact]
+    public void HandleCommand_ShouldIgnoreShutdownCommand_WhenPlayerIsNotActive()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player2Id).Units.First();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        CommandPublisher.ClearReceivedCalls();
+
+        var shutdownCommand = new ShutdownUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player2Id,
+            UnitId = unit.Id,
             Timestamp = DateTime.UtcNow
         };
 
@@ -301,6 +327,8 @@ public class EndPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         CommandPublisher.ClearReceivedCalls();
 
         var shutdownCommand = new ShutdownUnitCommand
