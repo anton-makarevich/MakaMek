@@ -1449,6 +1449,130 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void UpdateGamePhase_ShouldPersistWeaponAttacksBetweenWeaponsAttackAndResolutionPhases_AndClearOnEndPhase()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var player = new Player(playerId, "Player1");
+        var targetPlayerId = Guid.NewGuid();
+        var targetPlayer = new Player(targetPlayerId, "Player2");
+
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        mechData.Id = Guid.NewGuid();
+
+        // Create a game with the players
+        var game = CreateClientGame();
+        game.JoinGameWithUnits(player, [],[]);
+        game.JoinGameWithUnits(targetPlayer, [],[]);
+        game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain())));
+        _sut.Game = game;
+
+        // Add units to the game via commands
+        game.HandleCommand(new JoinGameCommand
+        {
+            PlayerName = "Player1",
+            Units = [mechData],
+            Tint = "#ffffff",
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId,
+            PilotAssignments = []
+        });
+
+        var targetMechData = MechFactoryTests.CreateDummyMechData();
+        targetMechData.Id = Guid.NewGuid();
+        game.HandleCommand(new JoinGameCommand
+        {
+            PlayerName = "Player2",
+            Units = [targetMechData],
+            Tint = "#FF0000",
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = targetPlayerId,
+            PilotAssignments = []
+        });
+
+        game.HandleCommand(new UpdatePlayerStatusCommand
+        {
+            PlayerStatus = PlayerStatus.Ready,
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = playerId
+        });
+        game.HandleCommand(new UpdatePlayerStatusCommand
+        {
+            PlayerStatus = PlayerStatus.Ready,
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = targetPlayerId
+        });
+
+        // Deploy units to positions
+        var attackerPosition = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 0), HexDirection.Top);
+
+        var attacker = _sut.Units.First(u => u.Owner!.Id == playerId);
+        var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
+
+        attacker.Deploy(attackerPosition);
+        target.Deploy(targetPosition);
+
+        // Get a weapon from the attacker
+        var weapon = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+
+        // Create weapon target data
+        var weaponTargetData = new WeaponTargetData
+        {
+            TargetId = target.Id,
+            Weapon = new WeaponData
+            {
+                Location = weapon.MountedOn!.Location,
+                Slots = weapon.MountedAtSlots,
+                Name = weapon.Name
+            },
+            IsPrimaryTarget = true
+        };
+
+        // Start in WeaponsAttack phase and declare an attack
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.WeaponsAttack
+        });
+
+        var weaponAttackCommand = new WeaponAttackDeclarationCommand
+        {
+            PlayerId = playerId,
+            AttackerId = attacker.Id,
+            WeaponTargets = [weaponTargetData],
+            GameOriginId = Guid.NewGuid()
+        };
+
+        game.HandleCommand(weaponAttackCommand);
+
+        // Verify weapon attack is present
+        _sut.WeaponAttacks.ShouldNotBeNull();
+        _sut.WeaponAttacks.Count.ShouldBe(1);
+
+        // Act - Transition to WeaponAttackResolution phase
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.WeaponAttackResolution
+        });
+
+        // Assert - Weapon attacks should persist during resolution phase
+        _sut.WeaponAttacks.ShouldNotBeNull();
+        _sut.WeaponAttacks.Count.ShouldBe(1, "Weapon attacks should persist between WeaponsAttack and WeaponAttackResolution phases");
+
+        // Act - Transition to End phase
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.End
+        });
+
+        // Assert - Weapon attacks should be cleared when transitioning to End phase
+        _sut.WeaponAttacks.ShouldBeEmpty("Weapon attacks should be cleared when transitioning to End phase");
+    }
+
+    [Fact]
     public void IsPlayerActionButtonVisible_ShouldReturnTrue_WhenInEndPhaseWithActivePlayer()
     {
         // Arrange

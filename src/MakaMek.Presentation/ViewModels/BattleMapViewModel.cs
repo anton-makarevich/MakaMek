@@ -148,7 +148,7 @@ public class BattleMapViewModel : BaseViewModel
                 (turn, phase, player, units) => (turn, phase, player, units))
             .Subscribe(_ =>
             {
-                CleanSelection();
+                ClearSelection();
                 UpdateGamePhase();
                 NotifyStateChanged();
             });
@@ -288,6 +288,7 @@ public class BattleMapViewModel : BaseViewModel
                 break;
         
             case PhaseNames.End:
+                ClearWeaponAttacks();
                 TransitionToState(new EndState(this));
                 break;
         
@@ -295,6 +296,14 @@ public class BattleMapViewModel : BaseViewModel
                 TransitionToState(new IdleState());
                 break;
         }
+    }
+
+    private void ClearWeaponAttacks()
+    {
+        // Clear weapon attacks during phase transitions
+        if (WeaponAttacks?.Any() != true) return;
+        WeaponAttacks.Clear();
+        NotifyPropertyChanged(nameof(WeaponAttacks));
     }
 
     private void ShowUnitsToDeploy()
@@ -387,7 +396,7 @@ public class BattleMapViewModel : BaseViewModel
         CurrentState.HandleHexSelection(selectedHex);
     }
 
-    private void CleanSelection()
+    private void ClearSelection()
     {
         SelectedUnit = null;
     }
