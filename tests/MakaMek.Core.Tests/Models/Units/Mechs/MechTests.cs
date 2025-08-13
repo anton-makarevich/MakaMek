@@ -1702,6 +1702,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
         sut.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 });
 
         // Act
