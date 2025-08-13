@@ -1683,12 +1683,40 @@ public class MechTests
             .ShouldBeFalse("Mechs without movement points should not be able to change facing");
     }
 
+    [Fact]
+    public void CanFireWeapons_ShouldReturnFalse_WhenUnitIsDestroyed()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        sut.ApplyArmorAndStructureDamage(100, sut.Parts.First(p => p.Location == PartLocation.Head));
 
+        // Act
+        var result = sut.CanFireWeapons;
+
+        // Assert
+        result.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void CanFireWeapons_ShouldReturnFalse_WhenUnitIsImmobile()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        sut.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 });
+
+        // Act
+        var result = sut.CanFireWeapons;
+
+        // Assert
+        result.ShouldBeFalse();
+    }
+    
     [Fact]
     public void CanFireWeapons_ShouldReturnTrue_WhenSensorsAreIntact()
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
 
         // Act
         var result = sut.CanFireWeapons;
@@ -1702,6 +1730,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
         var sensors = sut.GetAllComponents<Sensors>().First();
         sensors.Hit();
 
@@ -1719,6 +1748,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        sut.AssignPilot(new MechWarrior("John", "Doe"));
         var sensors = sut.GetAllComponents<Sensors>().First();
         sensors.Hit(); // First hit
         sensors.Hit(); // Second hit - destroys sensors

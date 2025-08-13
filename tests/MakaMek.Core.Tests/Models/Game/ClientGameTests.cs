@@ -930,13 +930,13 @@ public class ClientGameTests
                 }
             ]
         };
-
+        var attackerUnit = _sut.Players.First(p => p.Id == attackerPlayer.Id).Units.First();
+        attackerUnit.AssignPilot(new MechWarrior("John", "Doe"));
+        
         // Act
         _sut.HandleCommand(weaponAttackCommand);
 
         // Assert
-        var attackerUnit = _sut.Players.First(p => p.Id == attackerPlayer.Id).Units.First();
-        
         // Verify that the unit has declared a weapon attack
         attackerUnit.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
