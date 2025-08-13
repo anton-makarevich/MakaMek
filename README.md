@@ -11,6 +11,7 @@ MakaMek is an open-source tactical combat game featuring giant walking war machi
 ## Features
 - [MVP Product Requirements Document (PRD)](docs/MakaMek-MVP-PRD.md) - Detailed requirements and specifications for the Minimum Viable Product
 - [MVP Gap Analysis](docs/MakaMek-MVP-Gap-Analysis(0.41.15).md) - Current implementation status against MVP requirements (as of v0.41.15)
+- [Feature in progress](docs/Heat-Effects-Tracking.md) - Heat effects (v0.42.*)
 
 ### Implemented
 - [Client-Server app architecture](https://github.com/anton-makarevich/MakaMek/wiki/Game-(Protocol)-High-Level-Architecture) with RX communication for local play
