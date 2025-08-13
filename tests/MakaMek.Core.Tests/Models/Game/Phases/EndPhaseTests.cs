@@ -237,4 +237,148 @@ public class EndPhaseTests : GamePhaseTestsBase
         pilot.IsConscious.ShouldBeFalse();
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PilotConsciousnessRollCommand>());
     }
+
+    [Fact]
+    public void HandleCommand_ShouldShutdownUnit_WhenShutdownUnitCommandReceived()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        CommandPublisher.ClearReceivedCalls();
+
+        var shutdownCommand = new ShutdownUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = unit.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(shutdownCommand);
+
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<UnitShutdownCommand>(cmd =>
+                cmd.UnitId == unit.Id &&
+                cmd.GameOriginId == Game.Id &&
+                cmd.ShutdownData.Reason == ShutdownReason.Voluntary &&
+                cmd.ShutdownData.Turn == Game.Turn &&
+                cmd.AvoidShutdownRoll == null &&
+                cmd.IsAutomaticShutdown == false));
+
+        unit.IsShutdown.ShouldBeTrue();
+        unit.CurrentShutdownData.ShouldNotBeNull();
+        unit.CurrentShutdownData!.Value.Reason.ShouldBe(ShutdownReason.Voluntary);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreShutdownCommand_WhenPlayerNotFound()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        CommandPublisher.ClearReceivedCalls();
+
+        var shutdownCommand = new ShutdownUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = Guid.NewGuid(), // Non-existent player
+            UnitId = unit.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(shutdownCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitShutdownCommand>());
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreShutdownCommand_WhenUnitNotFound()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        CommandPublisher.ClearReceivedCalls();
+
+        var shutdownCommand = new ShutdownUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = Guid.NewGuid(), // Non-existent unit
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(shutdownCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitShutdownCommand>());
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreShutdownCommand_WhenUnitAlreadyShutdown()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        // Shutdown the unit first
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn });
+
+        CommandPublisher.ClearReceivedCalls();
+
+        var shutdownCommand = new ShutdownUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = unit.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(shutdownCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitShutdownCommand>());
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreShutdownCommand_WhenUnitDestroyed()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        // Destroy the unit
+        unit.ApplyDamage([new HitLocationData(
+            PartLocation.CenterTorso,
+            100,
+            [],
+            [])]);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        var shutdownCommand = new ShutdownUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = unit.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(shutdownCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitShutdownCommand>());
+    }
 }

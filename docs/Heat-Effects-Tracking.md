@@ -6,7 +6,7 @@ Version: **0.42.x**
 * [x] Mech attempts to shutdown at 14, 18, 22, 26 and 30 heat points (**Heat Effects**).
 * [x] A conscious MechWarrior can override the power plant’s safety shutdown procedure, as indicated by the Avoid number listed with the effect, though shutdown cannot be avoided at 30 or more heat points
 * [x] When the heat drops below 14 on the Heat Scale, the power plant restarts automatically at **Heat Phase**, even if the pilot is out of action.
-* [ ] A player may elect to voluntarily shut down a mech during any **End Phase** 
+* [x] A player may elect to voluntarily shut down a mech during any **End Phase** 
 * [ ] A player can attempt to restart the mech at next turn's **End Phase**.
 
 #### 2. Heat-triggered Ammunition Explosions

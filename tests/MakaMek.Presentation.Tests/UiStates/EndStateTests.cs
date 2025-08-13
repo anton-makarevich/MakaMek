@@ -42,6 +42,7 @@ public class EndStateTests
         // Mock localization service responses
         localizationService.GetString("EndPhase_ActionLabel").Returns("End your turn");
         localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End your turn");
+        localizationService.GetString("Action_Shutdown").Returns("Shutdown");
         
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
@@ -253,9 +254,151 @@ public class EndStateTests
         // Act & Assert
         _sut.CanExecutePlayerAction.ShouldBeFalse();
     }
+
+    [Fact]
+    public void GetAvailableActions_ShouldReturnShutdownAction_WhenUnitSelectedAndBelongsToActivePlayer()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldNotBeEmpty();
+        actions.ShouldContain(a => a.Label == "Shutdown");
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenNoUnitSelected()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = null;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitBelongsToOtherPlayer()
+    {
+        // Arrange
+        // Create another player and unit
+        var otherPlayer = new Player(Guid.NewGuid(), "Other Player");
+        _game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = otherPlayer.Id,
+            PlayerName = otherPlayer.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = "Blue",
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            PilotAssignments = []
+        });
+
+        var otherUnit = _game.Players.First(p => p.Id == otherPlayer.Id).Units.First();
+        _battleMapViewModel.SelectedUnit = otherUnit;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitDestroyed()
+    {
+        // Arrange
+        _unit1.ApplyDamage([new HitLocationData(
+            PartLocation.CenterTorso,
+            100,
+            [],
+            [])]);
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitAlreadyShutdown()
+    {
+        // Arrange
+        _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = 1 });
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenNotActivePlayer()
+    {
+        // Arrange - Clear active player (phase change automatically sets it)
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.Empty, // No active player
+            UnitsToPlay = 0
+        });
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldBeEmpty();
+    }
     
+    [Fact]
+    public void ExecuteShutdownAction_ShouldPublishShutdownCommand()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        var shutdownAction = _sut.GetAvailableActions().First(a => a.Label == "Shutdown");
+
+        // Act
+        shutdownAction.OnExecute();
+        
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<ShutdownUnitCommand>(cmd =>
+            cmd.PlayerId == _player.Id &&
+            cmd.UnitId == _unit1.Id &&
+            cmd.GameOriginId == _game.Id));
+    }
+    
+    [Fact]
+    public void ExecuteShutdownAction_ShouldNotPublishShutdownCommand_WhenNotActivePlayer()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        var shutdownAction = _sut.GetAvailableActions().First(a => a.Label == "Shutdown");
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.Empty, // No active player
+            UnitsToPlay = 0
+        });
+
+        // Act
+        shutdownAction.OnExecute();
+        
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ShutdownUnitCommand>());
+    }
+
     private void SetActivePlayer()
     {
+        _game.LocalPlayers.Add(_player.Id);
         _game.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),

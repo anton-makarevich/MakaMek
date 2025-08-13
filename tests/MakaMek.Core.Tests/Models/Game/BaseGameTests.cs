@@ -1027,6 +1027,25 @@ public class BaseGameTests : BaseGame
         // Assert
         result.ShouldBeTrue();
     }
+    
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateShutdownUnitCommand()
+    {
+        // Arrange
+        var command = new ShutdownUnitCommand()
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
 
     [Fact]
     public void OnUnitShutdown_DoesNothing_WhenUnitNotFound()
