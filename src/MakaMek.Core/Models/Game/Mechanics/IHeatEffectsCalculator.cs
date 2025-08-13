@@ -10,6 +10,13 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 public interface IHeatEffectsCalculator
 {
     /// <summary>
+    /// Gets the shutdown avoid number for a given heat level
+    /// </summary>
+    /// <param name="heatLevel">The current heat level</param>
+    /// <returns>The 2D6 target number needed to avoid shutdown</returns>
+    int GetShutdownAvoidNumber(int heatLevel);
+
+    /// <summary>
     /// Checks if a mech should attempt a shutdown roll based on heat thresholds
     /// and performs the roll if necessary
     /// </summary>
