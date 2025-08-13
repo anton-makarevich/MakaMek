@@ -87,8 +87,11 @@ public class WeaponsAttackState : IUiState
                 CreateWeaponViewModels();
                 CurrentStep = WeaponsAttackStep.ActionSelection;
 
-                // Highlight weapon ranges for the newly selected unit
-                HighlightWeaponRanges();
+                if (unit.CanFireWeapons)
+                {
+                    // Highlight weapon ranges for the newly selected unit
+                    HighlightWeaponRanges();
+                }
             }
 
             if (CurrentStep == WeaponsAttackStep.TargetSelection)

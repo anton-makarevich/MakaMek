@@ -124,6 +124,7 @@ public class Mech : Unit
     {
         get
         {
+            if (base.CanFireWeapons == false) return false;
             var sensors = GetAllComponents<Sensors>().FirstOrDefault();
             return sensors?.IsAvailable == true;
         }

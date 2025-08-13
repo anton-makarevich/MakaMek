@@ -525,6 +525,22 @@ public class WeaponsAttackStateTests
         var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         highlightedHexes.ShouldNotBeEmpty();
     }
+    
+    [Fact]
+    public void HandleUnitSelection_ShouldNotHighlightHexes_WhenUnitIsImmobile()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        _unit1.Deploy(position);
+        _unit1.Shutdown(new ShutdownData{Reason = ShutdownReason.Voluntary, Turn = 0}); // Make the unit immobile
+        
+        // Act
+        _sut.HandleUnitSelection(_unit1);
+
+        // Assert
+        var highlightedHexes = _game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
+        highlightedHexes.ShouldBeEmpty("No hexes should be highlighted for an immobile unit");
+    }
 
     [Fact]
     public void HandleUnitSelection_ClearsPreviousHighlights_WhenSelectingNewUnit()
@@ -535,6 +551,7 @@ public class WeaponsAttackStateTests
         var unit1= _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var unit2 = _battleMapViewModel.Units.Last(u => u.Owner!.Id == _player.Id);
         unit1.Deploy(position1);
+        unit2.AssignPilot(_pilot);
         unit2.Deploy(position2);
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==position1.Coordinates));
         _sut.HandleUnitSelection(unit1);
@@ -559,6 +576,8 @@ public class WeaponsAttackStateTests
         var position2 = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         _unit1.Deploy(position1);
         _unit2.Deploy(position2);
+        _unit1.AssignPilot(_pilot);
+        _unit2.AssignPilot(new MechWarrior("Test", "Pilot"));
         
         // Act
         _sut.HandleUnitSelection(_unit1);
@@ -694,6 +713,7 @@ public class WeaponsAttackStateTests
         unitData.LocationEquipment[PartLocation.RightLeg].Add(MakaMekComponent.MediumLaser);
 
         var unit = _mechFactory.Create(unitData);
+        unit.AssignPilot(_pilot);
         unit.Deploy(position);
 
         // Act
