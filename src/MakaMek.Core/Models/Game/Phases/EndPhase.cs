@@ -63,8 +63,6 @@ public class EndPhase(ServerGame game) : GamePhase(game)
         // Verify the player is in the game
         var player = Game.Players.FirstOrDefault(p => p.Id == shutdownUnitCommand.PlayerId);
         if (player == null) return;
-        
-        if (Game.ActivePlayer?.Id != player.Id) return;
 
         // Find the unit to shut down
         var unit = player.Units.FirstOrDefault(u => u.Id == shutdownUnitCommand.UnitId);
