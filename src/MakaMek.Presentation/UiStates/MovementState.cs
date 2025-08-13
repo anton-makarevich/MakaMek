@@ -352,6 +352,7 @@ public class MovementState : IUiState
         MovementStep.SelectingTargetHex => _viewModel.LocalizationService.GetString("Action_SelectTargetHex"),
         MovementStep.SelectingDirection => _viewModel.LocalizationService.GetString("Action_SelectFacingDirection"),
         MovementStep.ConfirmMovement => _viewModel.LocalizationService.GetString("Action_MoveUnit"),
+        MovementStep.SelectingStandingUpDirection => _viewModel.LocalizationService.GetString("Action_SelectFacingDirection"),
         _ => string.Empty
     };
 
