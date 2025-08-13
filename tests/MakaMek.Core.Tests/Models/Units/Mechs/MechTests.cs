@@ -2225,6 +2225,36 @@ public class MechTests
     }
     
     [Fact]
+    public void GetAttackModifiers_WithProneMech_ShouldIncludeProneModifier()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        
+        // Make the attacker prone
+        sut.SetProne();
+
+        // Act
+        var result = sut.GetAttackModifiers(PartLocation.CenterTorso);
+
+        // Assert
+        var proneModifier = result.OfType<ProneAttackerModifier>().ShouldHaveSingleItem();
+        proneModifier.Value.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_WithNonProneMech_ShouldNotIncludeProneModifier()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        // Act
+        var result = sut.GetAttackModifiers(PartLocation.CenterTorso);
+
+        // Assert
+        result.OfType<ProneAttackerModifier>().ShouldBeEmpty();
+    }
+
+    
+    [Fact]
     public void IsMinimumMovement_ShouldReturnFalse_ByDefault()
     {
         // Arrange

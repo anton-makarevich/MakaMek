@@ -109,6 +109,8 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_ShoulderActuatorHit" => "{0} Shoulder Destroyed: +{1}",
             "Modifier_UpperArmActuatorHit" => "{0} Upper Arm Actuator Destroyed: +{1}",
             "Modifier_LowerArmActuatorHit" => "{0} Lower Arm Actuator Destroyed: +{1}",
+            // Prone Firing Modifier
+            "Modifier_ProneFiring" => "Prone Firing: +{0}",
             "Hits" => "Hits",
             "Levels" => "Levels",
             // Attack information
