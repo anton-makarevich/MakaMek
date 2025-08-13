@@ -184,6 +184,7 @@ public class CommandTransportAdapter
             { nameof(RollDiceCommand), typeof(RollDiceCommand) },
             { nameof(RequestGameLobbyStatusCommand), typeof(RequestGameLobbyStatusCommand) },
             { nameof(TryStandupCommand), typeof(TryStandupCommand) },
+            { nameof(ShutdownUnitCommand), typeof(ShutdownUnitCommand) },
             
             // Server commands 
             { nameof(WeaponAttackResolutionCommand), typeof(WeaponAttackResolutionCommand) },

@@ -405,6 +405,7 @@ public abstract class BaseGame : IGame
             UnitShutdownCommand => true,
             UnitStartupCommand => true,
             PilotConsciousnessRollCommand => true,
+            ShutdownUnitCommand => true,
             _ => false
         };
     }
