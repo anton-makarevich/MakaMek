@@ -1067,6 +1067,31 @@ public class MovementStateTests
     }
     
     [Fact]
+    public void ActionLabel_ShouldBeSelectDirection_WhenInSelectingStandingUpDirectionStep()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _battleMapViewModel.Units.First() as Mech;
+        unit!.Deploy(position);
+        unit.AssignPilot(_pilot);
+        unit.SetProne();
+        _pilotingSkillCalculator.GetPsrBreakdown(unit, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        _sut.HandleUnitSelection(unit);
+        _sut.GetAvailableActions().First(a => a.Label.Contains("Walk")).OnExecute();
+        
+        // Act
+        var result = _sut.ActionLabel;
+        
+        // Assert
+        result.ShouldBe("Select facing direction");
+    }
+    
+    [Fact]
     public void HandleStandupAttempt_ShowsDirectionSelector()
     {
         // Arrange
