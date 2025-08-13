@@ -265,7 +265,7 @@ public class BaseGameTests : BaseGame
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
         attackerMech!.AssignPilot(new MechWarrior("John", "Doe"));
-        attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Add a target player and unit
         var targetPlayerId = Guid.NewGuid();
@@ -340,7 +340,7 @@ public class BaseGameTests : BaseGame
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
         attackerMech!.AssignPilot(new MechWarrior("John", "Doe"));
-        attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Add first target player and unit
         var targetPlayerId1 = Guid.NewGuid();
@@ -694,13 +694,13 @@ public class BaseGameTests : BaseGame
         var player = Players.First();
         var mech = player.Units.First() as Mech;
         mech!.AssignPilot(new MechWarrior("John", "Doe"));
-        mech?.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft));
+        mech.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft));
 
         var command = new WeaponAttackDeclarationCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id,
-            AttackerId = mech!.Id,
+            AttackerId = mech.Id,
             WeaponTargets = []
         };
 
@@ -1037,6 +1037,25 @@ public class BaseGameTests : BaseGame
     {
         // Arrange
         var command = new ShutdownUnitCommand()
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateStartupUnitCommand()
+    {
+        // Arrange
+        var command = new StartupUnitCommand()
         {
             GameOriginId = Guid.NewGuid(),
             UnitId = Guid.NewGuid(),
