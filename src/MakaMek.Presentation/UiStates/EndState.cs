@@ -121,7 +121,7 @@ public class EndState : IUiState
         if (_viewModel.Game == null) return (false, 0);
 
         // Must be shutdown to startup
-        if (!mech.IsShutdown || !mech.CurrentShutdownData.HasValue)
+        if (!mech.CurrentShutdownData.HasValue)
             return (false, 0);
 
         var shutdownData = mech.CurrentShutdownData.Value;
