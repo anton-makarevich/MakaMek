@@ -334,4 +334,18 @@ public class HeatEffectsCalculatorTests
         result.Value.AvoidShutdownRoll.AvoidNumber.ShouldBe(avoidNumber);
         result.Value.AvoidShutdownRoll.DiceResults.ShouldBe([2, 3]);
     }
+
+    [Fact]
+    public void GetShutdownAvoidNumber_ShouldReturnCorrectValue()
+    {
+        // Arrange
+        _rulesProvider.GetHeatShutdownAvoidNumber(20).Returns(8);
+
+        // Act
+        var result = _sut.GetShutdownAvoidNumber(20);
+
+        // Assert
+        result.ShouldBe(8);
+        _rulesProvider.Received(1).GetHeatShutdownAvoidNumber(20);
+    }
 }

@@ -45,6 +45,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_UnitDestroyed" => "{0} has been destroyed!",
             "Command_TurnEnded" => "{0} has ended their turn.",
             "Command_ShutdownUnit" => "{0} requests to shut down {1}.",
+            "Command_StartupUnit" => "{0} requests to start up {1}.",
             "Command_TurnIncremented" => "Turn {0} has started.",
             "Command_RequestGameLobbyStatus" => "Client {0} requested game lobby status for game.",
             "Command_SetBattleMap" => "Battle map has been set.",
@@ -176,6 +177,7 @@ public class FakeLocalizationService: ILocalizationService
             "EndPhase_ActionLabel" => "End your turn",
             "EndPhase_PlayerActionLabel" => "End Turn",
             "Action_Shutdown" => "Shutdown",
+            "Action_Startup" => "Startup",
             
             // Mech part names
             "MechPart_LeftArm" => "Left Arm",

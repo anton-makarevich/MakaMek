@@ -1366,6 +1366,86 @@ public class ClientGameTests
         // Assert
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ShutdownUnitCommand>());
     }
+    
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void StartupUnit_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = []
+        };
+
+        _sut.HandleCommand(joinCommand);
+
+        if (isLocalPlayer)
+        {
+            _sut.LocalPlayers.Add(player.Id);
+        }
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 0
+        });
+
+        var unit = _sut.Players.First(p => p.Id == player.Id).Units.First();
+        var startupUnitCommand = new StartupUnitCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unit.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.StartupUnit(startupUnitCommand);
+
+        // Assert
+        if (isLocalPlayer)
+        {
+            _commandPublisher.Received(1).PublishCommand(Arg.Is<StartupUnitCommand>(cmd =>
+                cmd.PlayerId == player.Id &&
+                cmd.UnitId == unit.Id));
+        }
+        else
+        {
+            _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<StartupUnitCommand>());
+        }
+    }
+    
+    [Fact]
+    public void StartupUnit_ShouldNotPublishCommand_WhenNoActivePlayer()
+    {
+        // Arrange
+        var startupUnitCommand = new StartupUnitCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.StartupUnit(startupUnitCommand);
+
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<StartupUnitCommand>());
+    }
 
     [Fact]
     public void HandleCommand_ShouldClearPlayersEndedTurnAndSetFirstLocalPlayerAsActive_WhenEnteringEndPhase()

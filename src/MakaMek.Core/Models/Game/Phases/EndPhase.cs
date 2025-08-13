@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -27,6 +28,9 @@ public class EndPhase(ServerGame game) : GamePhase(game)
                 break;
             case ShutdownUnitCommand shutdownUnitCommand:
                 HandleShutdownUnitCommand(shutdownUnitCommand);
+                break;
+            case StartupUnitCommand startupUnitCommand:
+                HandleStartupUnitCommand(startupUnitCommand);
                 break;
         }
     }
@@ -87,7 +91,32 @@ public class EndPhase(ServerGame game) : GamePhase(game)
         Game.OnUnitShutdown(serverShutdownCommand);
         Game.CommandPublisher.PublishCommand(serverShutdownCommand);
     }
-    
+
+    private void HandleStartupUnitCommand(StartupUnitCommand startupUnitCommand)
+    {
+        // Verify the player is in the game
+        var player = Game.Players.FirstOrDefault(p => p.Id == startupUnitCommand.PlayerId);
+        if (player == null) return;
+
+        // Find the unit to start up
+        var unit = player.Units.FirstOrDefault(u => u.Id == startupUnitCommand.UnitId);
+        if (unit == null || unit.IsDestroyed || !unit.IsShutdown) return;
+
+        // Only mechs can be started up
+        if (unit is not Mech mech) return;
+
+        // Use the heat effects calculator to attempt restart
+        var restartCommand = Game.HeatEffectsCalculator.AttemptRestart(mech, Game.Turn);
+        if (restartCommand == null) return;
+
+        var serverStartupCommand = restartCommand.Value;
+        serverStartupCommand.GameOriginId = Game.Id;
+
+        // Apply the startup and broadcast to all clients
+        Game.OnMechRestart(serverStartupCommand);
+        Game.CommandPublisher.PublishCommand(serverStartupCommand);
+    }
+
     private bool HaveAllPlayersEndedTurn()
     {
         // Check if all players in the game have ended their turn

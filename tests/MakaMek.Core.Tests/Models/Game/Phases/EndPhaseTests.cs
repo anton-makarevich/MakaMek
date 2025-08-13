@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -152,7 +153,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         
         // Add a unit to the player
-        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom));
         unit.Move(MovementType.Walk, [new PathSegmentData
             {
@@ -160,13 +161,13 @@ public class EndPhaseTests : GamePhaseTestsBase
                 {
                     Coordinates = new HexCoordinateData(1,
                         1),
-                    Facing = 3,
+                    Facing = 3
                 },
                 To =  new HexPositionData
                 {
                     Coordinates = new HexCoordinateData(1,
                         2),
-                    Facing = 3,
+                    Facing = 3
                 },
                 Cost = 1
             }
@@ -243,7 +244,7 @@ public class EndPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         CommandPublisher.ClearReceivedCalls();
@@ -279,7 +280,7 @@ public class EndPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         CommandPublisher.ClearReceivedCalls();
 
@@ -303,7 +304,7 @@ public class EndPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         CommandPublisher.ClearReceivedCalls();
 
@@ -327,7 +328,7 @@ public class EndPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Shutdown the unit first
@@ -355,7 +356,7 @@ public class EndPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.Players.First(p => p.Id == _player1Id).Units.First();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Destroy the unit
@@ -380,5 +381,200 @@ public class EndPhaseTests : GamePhaseTestsBase
 
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitShutdownCommand>());
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldProcessStartupCommand_WhenValidRequest()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        // Shutdown the unit first
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
+
+        // Mock the heat effects calculator to return a startup command
+        var mockStartupCommand = new UnitStartupCommand
+        {
+            UnitId = unit.Id,
+            IsAutomaticRestart = false,
+            IsRestartPossible = true,
+            AvoidShutdownRoll = new AvoidShutdownRollData
+            {
+                HeatLevel = 15,
+                DiceResults = [4, 5],
+                AvoidNumber = 8,
+                IsSuccessful = true
+            },
+            GameOriginId = Guid.Empty
+        };
+
+        MockHeatEffectsCalculator.AttemptRestart(Arg.Any<Mech>(), Arg.Any<int>())
+            .Returns(mockStartupCommand);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        var startupCommand = new StartupUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = unit.Id
+        };
+
+        // Act
+        _sut.HandleCommand(startupCommand);
+
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<UnitStartupCommand>(cmd =>
+                cmd.UnitId == unit.Id &&
+                cmd.GameOriginId == Game.Id));
+        // Verify the calculator was invoked with the correct mech and turn
+        MockHeatEffectsCalculator.Received(1).AttemptRestart(
+            Arg.Is<Mech>(m => m.Id == unit.Id),
+            Game.Turn);
+
+        // Verify the unit has actually started up (successful restart)
+        unit.IsShutdown.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreStartupCommand_WhenPlayerNotFound()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
+        CommandPublisher.ClearReceivedCalls();
+
+        var startupCommand = new StartupUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = Guid.NewGuid(), // Non-existent player
+            UnitId = unit.Id
+        };
+
+        // Act
+        _sut.HandleCommand(startupCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
+        MockHeatEffectsCalculator.DidNotReceive().AttemptRestart(Arg.Any<Mech>(), Arg.Any<int>());
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreStartupCommand_WhenUnitNotFound()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
+        CommandPublisher.ClearReceivedCalls();
+
+        var startupCommand = new StartupUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = Guid.NewGuid() // Non-existent unit
+        };
+
+        // Act
+        _sut.HandleCommand(startupCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
+        MockHeatEffectsCalculator.DidNotReceive().AttemptRestart(Arg.Any<Mech>(), Arg.Any<int>());
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreStartupCommand_WhenUnitNotShutdown()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        // Unit is not shutdown
+        CommandPublisher.ClearReceivedCalls();
+
+        var startupCommand = new StartupUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = unit.Id
+        };
+
+        // Act
+        _sut.HandleCommand(startupCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
+        MockHeatEffectsCalculator.DidNotReceive().AttemptRestart(Arg.Any<Mech>(), Arg.Any<int>());
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreStartupCommand_WhenUnitDestroyed()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        // Destroy the unit
+        unit.ApplyDamage([new HitLocationData(
+            PartLocation.CenterTorso,
+            100,
+            [],
+            [])]);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        var startupCommand = new StartupUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = unit.Id
+        };
+
+        // Act
+        _sut.HandleCommand(startupCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
+        MockHeatEffectsCalculator.DidNotReceive().AttemptRestart(Arg.Any<Mech>(), Arg.Any<int>());
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldIgnoreStartupCommand_WhenHeatEffectsCalculatorReturnsNull()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
+
+        // Mock the heat effects calculator to return null (startup not possible)
+        MockHeatEffectsCalculator.AttemptRestart(Arg.Any<Mech>(), Arg.Any<int>())
+            .Returns((UnitStartupCommand?)null);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        var startupCommand = new StartupUnitCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = unit.Id
+        };
+
+        // Act
+        _sut.HandleCommand(startupCommand);
+
+        // Assert
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitStartupCommand>());
+        MockHeatEffectsCalculator.Received(1).AttemptRestart(
+            Arg.Is<Mech>(m => m.Id == unit.Id),
+            Game.Turn);
     }
 }

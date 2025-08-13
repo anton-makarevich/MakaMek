@@ -21,6 +21,16 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         _diceRoller = diceRoller;
     }
 
+    /// <summary>
+    /// Gets the shutdown avoid number for a given heat level
+    /// </summary>
+    /// <param name="heatLevel">The current heat level</param>
+    /// <returns>The 2D6 target number needed to avoid shutdown</returns>
+    public int GetShutdownAvoidNumber(int heatLevel)
+    {
+        return _rulesProvider.GetHeatShutdownAvoidNumber(heatLevel);
+    }
+
     public UnitShutdownCommand? CheckForHeatShutdown(Mech mech, int currentTurn)
     {
         // Don't check if already shutdown
@@ -28,9 +38,9 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             return null;
 
         var currentHeat = mech.CurrentHeat;
-        
+
         // Get the avoid number based on current heat level
-        var avoidNumber = _rulesProvider.GetHeatShutdownAvoidNumber(currentHeat);
+        var avoidNumber = GetShutdownAvoidNumber(currentHeat);
         
         // If avoidNumber is 0, no shutdown check is needed
         if (avoidNumber < DiceUtils.Guaranteed2D6Roll)
@@ -102,7 +112,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             return null;
 
         var currentHeat = mech.CurrentHeat;
-                var avoidNumber = _rulesProvider.GetHeatShutdownAvoidNumber(currentHeat);
+        var avoidNumber = GetShutdownAvoidNumber(currentHeat);
         
         // Check for automatic restart due to low heat
         if (avoidNumber < DiceUtils.Guaranteed2D6Roll)

@@ -33,6 +33,7 @@ public class EndStateTests
     private readonly Player _player;
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly ICommandPublisher _commandPublisher;
+    private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
 
     public EndStateTests()
     {
@@ -43,6 +44,7 @@ public class EndStateTests
         localizationService.GetString("EndPhase_ActionLabel").Returns("End your turn");
         localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End your turn");
         localizationService.GetString("Action_Shutdown").Returns("Shutdown");
+        localizationService.GetString("Action_Startup").Returns("Startup");
         
         _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
@@ -60,7 +62,7 @@ public class EndStateTests
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
-            Substitute.For<IHeatEffectsCalculator>(),
+            _heatEffectsCalculator,
             Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -142,9 +144,6 @@ public class EndStateTests
     [Fact]
     public void ExecutePlayerAction_SendsTurnEndedCommand_WhenActivePlayer()
     {
-        // Arrange
-        SetActivePlayer();
-        
         // Act
         _sut.ExecutePlayerAction();
 
@@ -200,8 +199,6 @@ public class EndStateTests
     public void IsActionRequired_ShouldBeTrue_WhenActivePlayerAndCanAct()
     {
         // Arrange
-        SetActivePlayer();
-        
         // Act & Assert
         _sut.IsActionRequired.ShouldBeTrue();
     }
@@ -225,8 +222,6 @@ public class EndStateTests
     public void IsActionRequired_ShouldBeFalse_WhenActivePlayerCannotAct()
     {
         // Arrange
-        SetActivePlayer();
-        
         // Make the player unable to act by destroying their unit
         _unit1.ApplyDamage([new HitLocationData(
             PartLocation.CenterTorso,
@@ -242,8 +237,6 @@ public class EndStateTests
     public void CanExecutePlayerAction_ShouldBeFalse_WhenActivePlayerCannotAct()
     {
         // Arrange
-        SetActivePlayer();
-        
         // Make the player unable to act by destroying their unit
         _unit1.ApplyDamage([new HitLocationData(
             PartLocation.CenterTorso,
@@ -375,7 +368,7 @@ public class EndStateTests
             cmd.UnitId == _unit1.Id &&
             cmd.GameOriginId == _game.Id));
     }
-    
+
     [Fact]
     public void ExecuteShutdownAction_ShouldNotPublishShutdownCommand_WhenNotActivePlayer()
     {
@@ -395,18 +388,142 @@ public class EndStateTests
         // Assert
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ShutdownUnitCommand>());
     }
-
-    private void SetActivePlayer()
+    
+    [Fact]
+    public void ExecuteStartupAction_ShouldPublishStartupCommand()
     {
-        _game.LocalPlayers.Add(_player.Id);
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = _game.Turn - 1 });
+
+        // Mock heat effects calculator to allow startup
+        _heatEffectsCalculator.GetShutdownAvoidNumber(Arg.Any<int>()).Returns(0); 
+        var startupAction = _sut.GetAvailableActions().First(a => a.Label == "Startup");
+
+        // Act
+        startupAction.OnExecute();
+        
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<StartupUnitCommand>(cmd =>
+            cmd.PlayerId == _player.Id &&
+            cmd.UnitId == _unit1.Id &&
+            cmd.GameOriginId == _game.Id));
+    }
+    
+    [Fact]
+    public void ExecuteStartupAction_ShouldNotPublishStartupCommand_WhenNotActivePlayer()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = _game.Turn - 1 });
+
+        // Mock heat effects calculator to allow startup
+        _heatEffectsCalculator.GetShutdownAvoidNumber(Arg.Any<int>()).Returns(0); 
+        var startupAction = _sut.GetAvailableActions().First(a => a.Label == "Startup");
+        
         _game.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
-            PlayerId = _player.Id,
+            PlayerId = Guid.Empty, // No active player
             UnitsToPlay = 0
         });
+
+        // Act
+        startupAction.OnExecute();
+        
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<StartupUnitCommand>());
     }
     
+    [Fact]
+    public void GetAvailableActions_ShouldReturnStartupAction_WhenUnitIsShutdownAndCanStartup()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Shutdown the unit in a previous turn
+        _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = _game.Turn - 1 });
+
+        // Mock heat effects calculator to allow startup
+        _heatEffectsCalculator.GetShutdownAvoidNumber(Arg.Any<int>()).Returns(8); // Possible startup
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldContain(action => action.Label.Contains("Startup"));
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldReturnStartupActionWithProbability_WhenStartupNotGuaranteed()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Shutdown the unit in a previous turn
+        _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = _game.Turn - 1 });
+
+        // Mock heat effects calculator to return startup with probability
+        _heatEffectsCalculator.GetShutdownAvoidNumber(Arg.Any<int>()).Returns(8); // 42% chance
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        var startupAction = actions.FirstOrDefault(action => action.Label.Contains("Startup"));
+        startupAction.ShouldNotBeNull();
+        startupAction.Label.ShouldContain("42%");
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnStartupAction_WhenUnitNotShutdown()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+        // Unit is not shutdown
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldNotContain(action => action.Label.Contains("Startup"));
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnStartupAction_WhenShutdownInSameTurn()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Shutdown the unit in the current turn
+        _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = _game.Turn });
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldNotContain(action => action.Label.Contains("Startup"));
+    }
+
+    [Fact]
+    public void GetAvailableActions_ShouldNotReturnStartupAction_WhenHeatTooHigh()
+    {
+        // Arrange
+        _battleMapViewModel.SelectedUnit = _unit1;
+
+        // Shutdown the unit in a previous turn
+        _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = _game.Turn - 1 });
+
+        // Mock heat effects calculator to return impossible startup
+        _heatEffectsCalculator.GetShutdownAvoidNumber(Arg.Any<int>()).Returns(13); // Impossible
+
+        // Act
+        var actions = _sut.GetAvailableActions().ToList();
+
+        // Assert
+        actions.ShouldNotContain(action => action.Label.Contains("Startup"));
+    }
+
     private void SetPhase(PhaseNames phase)
     {
         _game.HandleCommand(new ChangePhaseCommand

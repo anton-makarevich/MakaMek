@@ -1,7 +1,9 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
@@ -60,16 +62,37 @@ public class EndState : IUiState
         if (!IsActivePlayer || _viewModel.Game == null || _viewModel.SelectedUnit == null)
             return actions;
 
-        // Only show shutdown action for units belonging to the active player
+        // Only show actions for units belonging to the active player
         var selectedUnit = _viewModel.SelectedUnit;
         var activePlayer = _viewModel.Game.ActivePlayer;
 
-        if (selectedUnit.Owner?.Id == activePlayer?.Id && !selectedUnit.IsDestroyed && !selectedUnit.IsShutdown)
+        if (selectedUnit.Owner?.Id == activePlayer?.Id && !selectedUnit.IsDestroyed)
         {
-            actions.Add(new StateAction(
-                _localizationService.GetString("Action_Shutdown"),
-                true,
-                () => ExecuteShutdownAction(selectedUnit)));
+            // Show shutdown action for non-shutdown units
+            if (!selectedUnit.IsShutdown)
+            {
+                actions.Add(new StateAction(
+                    _localizationService.GetString("Action_Shutdown"),
+                    true,
+                    () => ExecuteShutdownAction(selectedUnit)));
+            }
+
+            // Show startup action for shutdown mechs
+            if (selectedUnit.IsShutdown && selectedUnit is Mech mech)
+            {
+                var canStartup = CanStartupUnit(mech);
+                if (canStartup.canStartup)
+                {
+                    var actionText = canStartup.probability < 100
+                        ? $"{_localizationService.GetString("Action_Startup")} ({canStartup.probability:F0}%)"
+                        : _localizationService.GetString("Action_Startup");
+
+                    actions.Add(new StateAction(
+                        actionText,
+                        true,
+                        () => ExecuteStartupAction(selectedUnit)));
+                }
+            }
         }
 
         return actions;
@@ -90,6 +113,50 @@ public class EndState : IUiState
         if (_viewModel.Game is { } clientGame)
         {
             clientGame.ShutdownUnit(command);
+        }
+    }
+
+    private (bool canStartup, double probability) CanStartupUnit(Mech mech)
+    {
+        if (_viewModel.Game == null) return (false, 0);
+
+        // Must be shutdown to startup
+        if (!mech.CurrentShutdownData.HasValue)
+            return (false, 0);
+
+        var shutdownData = mech.CurrentShutdownData.Value;
+
+        // Can't startup in the same turn as shutdown
+        if (shutdownData.Turn >= _viewModel.Game.Turn)
+            return (false, 0);
+
+        // Get the avoid number for current heat level
+        var avoidNumber = _viewModel.Game.HeatEffectsCalculator.GetShutdownAvoidNumber(mech.CurrentHeat);
+
+        // Check if startup is impossible (heat too high)
+        if (avoidNumber >= DiceUtils.Impossible2D6Roll)
+            return (false, 0);
+
+        // Calculate probability
+        var probability = DiceUtils.Calculate2d6Probability(avoidNumber);
+        return (true, probability);
+    }
+
+    private void ExecuteStartupAction(Unit unit)
+    {
+        if (!IsActivePlayer || _viewModel.Game == null) return;
+
+        var command = new StartupUnitCommand
+        {
+            GameOriginId = _viewModel.Game.Id,
+            PlayerId = _viewModel.Game.ActivePlayer!.Id,
+            UnitId = unit.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        if (_viewModel.Game is { } clientGame)
+        {
+            clientGame.StartupUnit(command);
         }
     }
 
