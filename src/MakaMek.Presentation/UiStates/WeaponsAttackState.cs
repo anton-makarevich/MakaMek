@@ -16,7 +16,7 @@ public class WeaponsAttackState : IUiState
     private readonly BattleMapViewModel _viewModel;
     private readonly List<HexDirection> _availableDirections = [];
     private readonly Dictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges = new();
-    private readonly Dictionary<Weapon, Unit> _weaponTargets = new();
+    // Removed _weaponTargets - now using Unit.WeaponAttackState
     private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly ClientGame _game;
     private readonly Lock _stateLock = new();
@@ -44,7 +44,7 @@ public class WeaponsAttackState : IUiState
             return CurrentStep switch
             {
                 WeaponsAttackStep.ActionSelection => _viewModel.LocalizationService.GetString("Action_SkipAttack"),
-                WeaponsAttackStep.TargetSelection => _weaponTargets.Count > 0
+                WeaponsAttackStep.TargetSelection => Attacker?.WeaponAttackState.SelectedWeapons.Any() == true
                     ? _viewModel.LocalizationService.GetString("Action_DeclareAttack")
                     : _viewModel.LocalizationService.GetString("Action_SkipAttack"),
                 _ => string.Empty
@@ -194,7 +194,7 @@ public class WeaponsAttackState : IUiState
             Attacker = null;
             SelectedTarget = null;
             PrimaryTarget = null;
-            _weaponTargets.Clear();
+            Attacker?.WeaponAttackState.ClearAllWeaponTargets();
             _weaponRanges.Clear();
             _weaponViewModels.Clear();
             _viewModel.SelectedUnit = null;
@@ -254,7 +254,7 @@ public class WeaponsAttackState : IUiState
         {
             // Add confirm weapon selections action
             actions.Add(new StateAction(
-                _weaponTargets.Count > 0 ? _viewModel.LocalizationService.GetString("Action_DeclareAttack") : _viewModel.LocalizationService.GetString("Action_SkipAttack"),
+                Attacker?.WeaponAttackState.SelectedWeapons.Any() == true ? _viewModel.LocalizationService.GetString("Action_DeclareAttack") : _viewModel.LocalizationService.GetString("Action_SkipAttack"),
                 true,
                 ConfirmWeaponSelections));
         }
@@ -433,11 +433,12 @@ public class WeaponsAttackState : IUiState
                 continue;
             }
             var isInRange = IsWeaponInRange(weapon, targetCoords);
-            var target = _weaponTargets.GetValueOrDefault(weapon);
-            var isSelected = _weaponTargets.ContainsKey(weapon) && _weaponTargets[weapon] == target;
+            var target = Attacker?.WeaponAttackState.WeaponTargets.GetValueOrDefault(weapon);
+            var isSelected = Attacker?.WeaponAttackState.IsWeaponAssigned(weapon, target) == true;
             vm.IsInRange = isInRange;
             vm.IsSelected = isSelected;
-            vm.IsEnabled = (!_weaponTargets.ContainsKey(weapon) || _weaponTargets[weapon] == SelectedTarget) && isInRange;
+            var isWeaponAvailable = Attacker != null && _game.WeaponSelectionCalculator.IsWeaponAvailable(weapon, Attacker);
+            vm.IsEnabled = (Attacker?.WeaponAttackState.IsWeaponAssigned(weapon) != true || target == SelectedTarget) && isInRange && isWeaponAvailable;
             vm.Target = target;
 
             vm.ModifiersBreakdown = null;
@@ -445,27 +446,23 @@ public class WeaponsAttackState : IUiState
             vm.AimedOtherModifiersBreakdown = null;
 
             // Set modifiers breakdown when in range
-            if (isInRange)
-            {
-                // Check if this target is the primary target
-                var isPrimaryTarget = SelectedTarget == PrimaryTarget || PrimaryTarget==null;
+            if (!isInRange) continue;
+            // Check if this target is the primary target
+            var isPrimaryTarget = SelectedTarget == PrimaryTarget || PrimaryTarget==null;
 
-                // Get modifiers breakdown, passing the primary target information
-                if (_game.BattleMap != null)
-                {
-                    // Calculate base breakdown without aimed shot
-                    var baseBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
-                        Attacker, SelectedTarget, weapon, _game.BattleMap, isPrimaryTarget, vm.AimedShotTarget);
+            // Get modifiers breakdown, passing the primary target information
+            if (_game.BattleMap == null || Attacker == null) continue;
+            // Calculate base breakdown without aimed shot
+            var baseBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
+                Attacker, SelectedTarget, weapon, _game.BattleMap, isPrimaryTarget, vm.AimedShotTarget);
 
-                    // Set the appropriate breakdown based on current aimed shot target
-                    vm.ModifiersBreakdown = baseBreakdown;
+            // Set the appropriate breakdown based on current aimed shot target
+            vm.ModifiersBreakdown = baseBreakdown;
 
-                    if (!vm.IsAimedShotAvailable) continue;
-                    // Use optimized method to add aimed shot modifiers to existing breakdown
-                    vm.AimedHeadModifiersBreakdown = _game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
-                    vm.AimedOtherModifiersBreakdown = _game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.CenterTorso);
-                }
-            }
+            if (!vm.IsAimedShotAvailable) continue;
+            // Use optimized method to add aimed shot modifiers to existing breakdown
+            vm.AimedHeadModifiersBreakdown = _game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
+            vm.AimedOtherModifiersBreakdown = _game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.CenterTorso);
         }
 
         // Update the view model's collection
@@ -493,62 +490,26 @@ public class WeaponsAttackState : IUiState
 
     private void HandleWeaponSelection(Weapon weapon, bool selected)
     {
-        if (SelectedTarget == null)
+        if (SelectedTarget == null || Attacker == null)
             return;
-        if (!selected) 
+
+        if (!selected)
         {
-            _weaponTargets.Remove(weapon);
+            Attacker.WeaponAttackState.RemoveWeaponTarget(weapon, Attacker);
         }
         else
         {
-            _weaponTargets[weapon] = SelectedTarget;
+            Attacker.WeaponAttackState.SetWeaponTarget(weapon, SelectedTarget, Attacker);
         }
-        
-        // Determine the primary target whenever weapon selections change
-        PrimaryTarget = DeterminePrimaryTarget();
-        
+
+        // Update PrimaryTarget from the unit's state
+        PrimaryTarget = Attacker.WeaponAttackState.PrimaryTarget;
+
         UpdateWeaponViewModels();
         _viewModel.NotifyStateChanged();
     }
 
-    private Unit? DeterminePrimaryTarget()
-    {
-        if (_weaponTargets.Count == 0)
-        {
-            return null;
-        }
-        
-        // Get all unique targets
-        var targets = _weaponTargets.Values.Distinct().ToList();
-        
-        // If only one target, it's the primary
-        if (targets.Count == 1)
-        {
-            return targets[0];
-        }
-        
-        // Check for targets in the forward arc
-        if (Attacker?.Position == null) return targets[0];
-        
-        var attackerPosition = Attacker.Position;
-        var facing = Attacker is Mech mech ? mech.TorsoDirection : attackerPosition.Facing;
-        
-        if (facing == null) return targets[0];
-        
-        // Find targets in the forward arc
-        var targetsInForwardArc = targets
-            .Where(t => t.Position != null && 
-                       attackerPosition.Coordinates.IsInFiringArc(
-                           t.Position.Coordinates, 
-                           facing.Value, 
-                           FiringArc.Forward))
-            .ToList();
-
-        // If there are targets in forward arc, pick the first one
-        return targetsInForwardArc.Count != 0 ? targetsInForwardArc[0] :
-            // Otherwise, pick the first target
-            targets[0];
-    }
+    // DeterminePrimaryTarget method removed - now handled in UnitWeaponAttackState
 
     public void ConfirmWeaponSelections()
     {
@@ -559,9 +520,9 @@ public class WeaponsAttackState : IUiState
         var weaponTargetsData = new List<WeaponTargetData>();
         
         // Only process weapon targets if there are any (otherwise this is a Skip Attack)
-        if (_weaponTargets.Count > 0)
+        if (Attacker.WeaponAttackState.SelectedWeapons.Any())
         {
-            foreach (var weaponTarget in _weaponTargets)
+            foreach (var weaponTarget in Attacker.WeaponAttackState.WeaponTargets)
             {
                 var weapon = weaponTarget.Key;
                 var target = weaponTarget.Value;
@@ -600,7 +561,7 @@ public class WeaponsAttackState : IUiState
         
         // Reset state after sending command
         ClearWeaponRangeHighlights();
-        _weaponTargets.Clear();
+        Attacker?.WeaponAttackState.ClearAllWeaponTargets();
         PrimaryTarget = null;
         SelectedTarget = null;
         Attacker = null;

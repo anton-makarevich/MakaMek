@@ -36,6 +36,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
+        IWeaponSelectionCalculator weaponSelectionCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
@@ -43,6 +44,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IGameFactory gameFactory,
         IBattleMapFactory mapFactory)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
+           weaponSelectionCalculator,
            pilotingSkillCalculator,
            consciousnessCalculator,
            heatEffectsCalculator,
@@ -64,6 +66,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _mechFactory,
             _commandPublisher,
             _toHitCalculator,
+            _weaponSelectionCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,

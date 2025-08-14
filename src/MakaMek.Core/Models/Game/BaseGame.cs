@@ -42,6 +42,7 @@ public abstract class BaseGame : IGame
     public IObservable<int> UnitsToPlayChanges => _unitsToPlaySubject.AsObservable();
     public BattleMap? BattleMap { get; protected set; }
     public IToHitCalculator ToHitCalculator { get; }
+    public IWeaponSelectionCalculator WeaponSelectionCalculator { get; }
     public IPilotingSkillCalculator PilotingSkillCalculator { get; }
     public IRulesProvider RulesProvider { get; }
     public IConsciousnessCalculator ConsciousnessCalculator { get; }
@@ -114,6 +115,7 @@ public abstract class BaseGame : IGame
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
+        IWeaponSelectionCalculator weaponSelectionCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator)
@@ -123,6 +125,7 @@ public abstract class BaseGame : IGame
         CommandPublisher = commandPublisher;
         _mechFactory = mechFactory;
         ToHitCalculator = toHitCalculator;
+        WeaponSelectionCalculator = weaponSelectionCalculator;
         PilotingSkillCalculator = pilotingSkillCalculator;
         ConsciousnessCalculator = consciousnessCalculator;
         HeatEffectsCalculator = heatEffectsCalculator;

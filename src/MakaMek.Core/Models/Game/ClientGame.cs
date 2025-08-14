@@ -30,11 +30,12 @@ public sealed class ClientGame : BaseGame
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
+        IWeaponSelectionCalculator weaponSelectionCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
         IBattleMapFactory mapFactory)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, weaponSelectionCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
     {
         _mapFactory = mapFactory;
     }

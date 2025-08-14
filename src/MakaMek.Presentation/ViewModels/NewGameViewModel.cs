@@ -25,6 +25,7 @@ public abstract class NewGameViewModel : BaseViewModel
     private readonly IUnitsLoader _unitsLoader;
     protected readonly ICommandPublisher _commandPublisher;
     protected readonly IToHitCalculator _toHitCalculator;
+    protected readonly IWeaponSelectionCalculator _weaponSelectionCalculator;
     protected readonly IPilotingSkillCalculator _pilotingSkillCalculator;
     protected readonly IConsciousnessCalculator _consciousnessCalculator;
     protected readonly IHeatEffectsCalculator _heatEffectsCalculator;
@@ -39,6 +40,7 @@ public abstract class NewGameViewModel : BaseViewModel
         IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
+        IWeaponSelectionCalculator weaponSelectionCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
@@ -49,6 +51,7 @@ public abstract class NewGameViewModel : BaseViewModel
         _unitsLoader = unitsLoader;
         _commandPublisher = commandPublisher;
         _toHitCalculator = toHitCalculator;
+        _weaponSelectionCalculator = weaponSelectionCalculator;
         _pilotingSkillCalculator = pilotingSkillCalculator;
         _consciousnessCalculator = consciousnessCalculator;
         _heatEffectsCalculator = heatEffectsCalculator;
