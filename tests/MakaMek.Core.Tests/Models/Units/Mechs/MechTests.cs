@@ -2242,7 +2242,7 @@ public class MechTests
     }
 
     [Fact]
-    public void GetModifierBreakdown_WithNonProneMech_ShouldNotIncludeProneModifier()
+    public void GetAttackModifiers_WithNonProneMech_ShouldNotIncludeProneModifier()
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());

@@ -310,7 +310,7 @@ public class Mech : Unit
         {
             penalties.Add(new ProneAttackerModifier
             {
-                Value = 2 // +2 modifier for firing while prone
+                Value = ProneAttackerModifier.DefaultValue // +2 modifier for firing while prone
             });
         }
 
