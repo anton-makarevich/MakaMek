@@ -50,6 +50,7 @@ public class StartNewGameViewModelTests
         _gameManager = Substitute.For<IGameManager>();
         _commandPublisher = Substitute.For<ICommandPublisher>(); 
         var toHitCalculator = Substitute.For<IToHitCalculator>(); 
+        var weaponSelectionCalculator = Substitute.For<IWeaponSelectionCalculator>();
         var pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>(); 
         var consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
         var heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
@@ -61,6 +62,7 @@ public class StartNewGameViewModelTests
             _mechFactory,
             _commandPublisher,
             toHitCalculator,
+            weaponSelectionCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
@@ -69,6 +71,7 @@ public class StartNewGameViewModelTests
                 _mechFactory,
                 _commandPublisher,
                 toHitCalculator,
+                weaponSelectionCalculator,
                 pilotingSkillCalculator,
                 consciousnessCalculator,
                 heatEffectsCalculator,
@@ -92,6 +95,7 @@ public class StartNewGameViewModelTests
             _mechFactory,
             _commandPublisher, 
             toHitCalculator, 
+            weaponSelectionCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,

@@ -193,7 +193,6 @@ public class WeaponsAttackState : IUiState
         {
             Attacker = null;
             SelectedTarget = null;
-            PrimaryTarget = null;
             Attacker?.WeaponAttackState.ClearAllWeaponTargets();
             _weaponRanges.Clear();
             _weaponViewModels.Clear();
@@ -387,7 +386,7 @@ public class WeaponsAttackState : IUiState
 
     public Unit? SelectedTarget { get; private set; }
 
-    public Unit? PrimaryTarget { get; private set; }
+    public Unit? PrimaryTarget => Attacker?.WeaponAttackState.PrimaryTarget;
 
     private void CreateWeaponViewModels()
     {
@@ -502,9 +501,6 @@ public class WeaponsAttackState : IUiState
             Attacker.WeaponAttackState.SetWeaponTarget(weapon, SelectedTarget, Attacker);
         }
 
-        // Update PrimaryTarget from the unit's state
-        PrimaryTarget = Attacker.WeaponAttackState.PrimaryTarget;
-
         UpdateWeaponViewModels();
         _viewModel.NotifyStateChanged();
     }
@@ -562,7 +558,6 @@ public class WeaponsAttackState : IUiState
         // Reset state after sending command
         ClearWeaponRangeHighlights();
         Attacker?.WeaponAttackState.ClearAllWeaponTargets();
-        PrimaryTarget = null;
         SelectedTarget = null;
         Attacker = null;
         _viewModel.IsWeaponSelectionVisible = false;

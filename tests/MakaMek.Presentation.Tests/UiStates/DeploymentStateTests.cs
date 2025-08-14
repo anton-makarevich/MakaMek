@@ -52,6 +52,7 @@ public class DeploymentStateTests
             new MechFactory(rules,localizationService),
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
+            Substitute.For<IWeaponSelectionCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
