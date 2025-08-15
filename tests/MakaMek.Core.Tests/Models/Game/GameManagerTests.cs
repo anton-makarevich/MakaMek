@@ -20,7 +20,6 @@ public class GameManagerTests : IDisposable
     private readonly ICommandPublisher _commandPublisher;
     private readonly IDiceRoller _diceRoller;
     private readonly IToHitCalculator _toHitCalculator;
-    private readonly IWeaponSelectionCalculator _weaponSelectionCalculator = Substitute.For<IWeaponSelectionCalculator>();
     private readonly CommandTransportAdapter _transportAdapter;
     private readonly IGameFactory _gameFactory;
     private readonly ServerGame _serverGame;
@@ -50,7 +49,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -63,7 +61,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -77,7 +74,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -109,7 +105,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -147,7 +142,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher, 
             _diceRoller, 
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -173,7 +167,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -200,7 +193,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -258,7 +250,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -292,7 +283,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -328,7 +318,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
@@ -356,7 +345,6 @@ public class GameManagerTests : IDisposable
             _commandPublisher,
             _diceRoller,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,

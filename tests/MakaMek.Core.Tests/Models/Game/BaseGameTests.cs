@@ -34,7 +34,6 @@ public class BaseGameTests : BaseGame
         new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
         Substitute.For<ICommandPublisher>(),
         Substitute.For<IToHitCalculator>(),
-        Substitute.For<IWeaponSelectionCalculator>(),
         Substitute.For<IPilotingSkillCalculator>(),
         Substitute.For<IConsciousnessCalculator>(),
         Substitute.For<IHeatEffectsCalculator>())

@@ -60,7 +60,6 @@ public class EndStateTests
             new MechFactory(rules,localizationService),
             _commandPublisher, 
             Substitute.For<IToHitCalculator>(),
-            Substitute.For<IWeaponSelectionCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             _heatEffectsCalculator,

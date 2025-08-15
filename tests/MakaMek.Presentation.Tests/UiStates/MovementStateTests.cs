@@ -34,7 +34,6 @@ namespace Sanet.MakaMek.Presentation.Tests.UiStates;
 public class MovementStateTests
 {
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
-    private readonly IWeaponSelectionCalculator _weaponSelectionCalculator = Substitute.For<IWeaponSelectionCalculator>();
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
     private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
     private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
@@ -95,7 +94,6 @@ public class MovementStateTests
             mechFactory,
             _commandPublisher,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,

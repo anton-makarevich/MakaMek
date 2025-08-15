@@ -39,7 +39,6 @@ public abstract class GamePhaseTestsBase
         
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(),
-            Substitute.For<IWeaponSelectionCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
@@ -52,7 +51,6 @@ public abstract class GamePhaseTestsBase
     {
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(),
-            Substitute.For<IWeaponSelectionCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,

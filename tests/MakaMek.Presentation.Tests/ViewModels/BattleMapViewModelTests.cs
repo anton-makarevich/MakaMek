@@ -1918,7 +1918,6 @@ public class BattleMapViewModelTests
             _mechFactory,
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
-            Substitute.For<IWeaponSelectionCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),

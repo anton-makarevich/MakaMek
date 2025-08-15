@@ -43,7 +43,6 @@ public class WeaponsAttackStateTests
     private readonly Player _player;
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
-    private readonly IWeaponSelectionCalculator _weaponSelectionCalculator = Substitute.For<IWeaponSelectionCalculator>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>(); 
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly MechFactory _mechFactory;
@@ -84,7 +83,6 @@ public class WeaponsAttackStateTests
             _mechFactory,
             _commandPublisher,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
@@ -841,8 +839,6 @@ public class WeaponsAttackStateTests
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
-        
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
@@ -873,8 +869,6 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
         
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
@@ -948,8 +942,6 @@ public class WeaponsAttackStateTests
         var target1 = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         var target2 = _battleMapViewModel.Units.Last(u => u.Owner!.Id != _player.Id);
         
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
-        
         // Place units in a triangle
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         attacker.Deploy(attackerPosition);
@@ -990,8 +982,6 @@ public class WeaponsAttackStateTests
         // Set up attacker and target units
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
         
         // Position units on the map
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
@@ -1065,8 +1055,6 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
-        
         // Set up two enemy targets at different positions
         var targetInForwardArc = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         var targetInOtherArc = _battleMapViewModel.Units.Last(u => u.Owner!.Id != _player.Id);
@@ -1117,8 +1105,6 @@ public class WeaponsAttackStateTests
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var primaryTarget = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         var secondaryTarget = _battleMapViewModel.Units.Last(u => u.Owner!.Id != _player.Id);
-        
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
         
         // Position units on the map
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
@@ -1218,8 +1204,6 @@ public class WeaponsAttackStateTests
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == attackingPlayer.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id == targetPlayer.Id);
         
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
-        
         // Deploy units
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
@@ -1272,8 +1256,6 @@ public class WeaponsAttackStateTests
         var targetPlayer = _game.Players[1];
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == attackingPlayer.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id == targetPlayer.Id);
-
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
         
         // Deploy units
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
@@ -1322,8 +1304,6 @@ public class WeaponsAttackStateTests
         var targetPlayer = _game.Players[1];
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == attackingPlayer.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id == targetPlayer.Id);
-
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
         
         // Deploy units
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
@@ -1372,8 +1352,6 @@ public class WeaponsAttackStateTests
         var targetPlayer = _game.Players[1];
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == attackingPlayer.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id == targetPlayer.Id);
-        
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
         
         // Position units on the map
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
@@ -1515,8 +1493,6 @@ public class WeaponsAttackStateTests
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        
-        _weaponSelectionCalculator.IsWeaponAvailable(Arg.Any<Weapon>(), attacker).Returns(true);
         
         // Place units next to each other
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);

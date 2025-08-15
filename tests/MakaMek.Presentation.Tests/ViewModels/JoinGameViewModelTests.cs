@@ -26,7 +26,6 @@ public class JoinGameViewModelTests
     private readonly JoinGameViewModel _sut;
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
-    private readonly IWeaponSelectionCalculator _weaponSelectionCalculator = Substitute.For<IWeaponSelectionCalculator>();
     private readonly IPilotingSkillCalculator  _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
     private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
     private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
@@ -48,7 +47,6 @@ public class JoinGameViewModelTests
             _mechFactory,
             _commandPublisher, 
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
@@ -65,7 +63,6 @@ public class JoinGameViewModelTests
                 _mechFactory,
                 _commandPublisher,
                 _toHitCalculator,
-                _weaponSelectionCalculator,
                 _pilotingSkillCalculator,
                 _consciousnessCalculator,
                 _heatEffectsCalculator,
@@ -82,7 +79,6 @@ public class JoinGameViewModelTests
             _unitsLoader,
             _commandPublisher,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
@@ -178,7 +174,6 @@ public class JoinGameViewModelTests
             _mechFactory,
             _commandPublisher,
             _toHitCalculator,
-            _weaponSelectionCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
@@ -202,7 +197,6 @@ public class JoinGameViewModelTests
             Arg.Any<IMechFactory>(),
             Arg.Any<ICommandPublisher>(), 
             Arg.Any<IToHitCalculator>(),
-            Arg.Any<IWeaponSelectionCalculator>(),
             Arg.Any<IPilotingSkillCalculator>(),
             Arg.Any<IConsciousnessCalculator>(),
             Arg.Any<IHeatEffectsCalculator>(),
