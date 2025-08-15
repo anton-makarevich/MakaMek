@@ -617,7 +617,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
 
         // Configure the rules provider to return LeftArm as the initial hit location
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.LeftArm);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Front).Returns(PartLocation.LeftArm);
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
@@ -627,7 +627,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
 
         // Act
-        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Front, 5, mech);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso (based on Mech's GetTransferLocation implementation)
@@ -656,7 +656,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
 
         // Configure the rules provider to return LeftArm as the initial hit location
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.LeftArm);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Front).Returns(PartLocation.LeftArm);
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
@@ -666,7 +666,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
 
         // Act
-        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech);
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Front, 5, mech);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
@@ -706,7 +706,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
 
         // Act
-        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech, weaponTargetData);
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Front, 5, mech, weaponTargetData);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
@@ -727,7 +727,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         mech.Shutdown(shutdownData);
 
         // Configure the rules provider to return LeftArm as the initial hit location
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Forward).Returns(PartLocation.CenterTorso);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Front).Returns(PartLocation.CenterTorso);
 
         // Configure aimed shot success values
         mockRulesProvider.GetAimedShotSuccessValues().Returns([6, 7, 8]);
@@ -753,7 +753,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
 
         // Act
-        var data = InvokeDetermineHitLocation(sut, FiringArc.Forward, 5, mech, weaponTargetData);
+        var data = InvokeDetermineHitLocation(sut, FiringArc.Front, 5, mech, weaponTargetData);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso

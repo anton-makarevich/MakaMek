@@ -150,7 +150,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var isHit = totalRoll >= toHitNumber;
 
         // Determine an attack direction (will be null if not a hit)
-        FiringArc? attackDirection = null;
+        HitDirection? attackDirection = null;
 
         // If hit, determine location and damage
         AttackHitLocationsData? hitLocationsData = null;
@@ -183,7 +183,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
     }
 
-    private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon, Unit target, FiringArc attackDirection, WeaponTargetData weaponTargetData)
+    private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon, Unit target, HitDirection attackDirection, WeaponTargetData weaponTargetData)
     {
         // Roll for cluster hits
         var clusterRoll = Game.DiceRoller.Roll2D6();
@@ -252,7 +252,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// <param name="weaponTargetData">Weapon's target data</param>
     /// <returns>Hit location data with location, damage and dice roll</returns>
     private HitLocationData DetermineHitLocation(
-        FiringArc attackDirection,
+        HitDirection attackDirection,
         int damage,
         Unit target,
         Weapon weapon,
@@ -327,24 +327,31 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// </summary>
     /// <param name="attacker">The attacking unit</param>
     /// <param name="target">The target unit</param>
-    /// <returns>The firing arc that contains the attacker</returns>
-    private FiringArc DetermineAttackDirection(Unit? attacker, Unit target)
+    /// <returns>The direction from which the attack is coming</returns>
+    private HitDirection DetermineAttackDirection(Unit? attacker, Unit target)
     {
         // Default to forward if no attacker is provided or positions are missing
-        if (attacker == null || attacker.Position == null || target.Position == null)
-            return FiringArc.Forward;
+        if (attacker?.Position == null || target.Position == null)
+            return HitDirection.Front;
             
         // Check each firing arc to determine which one contains the attacker
+        // TODO this is a temporary simplified approach, actually attack direction and firing arc are different things
         foreach (var arc in Enum.GetValues<FiringArc>())
         {
             if (target.Position.Coordinates.IsInFiringArc(attacker.Position.Coordinates, target.Position.Facing, arc))
             {
-                return arc;
+                return arc switch
+                {
+                    FiringArc.Left => HitDirection.Left,
+                    FiringArc.Right => HitDirection.Right,
+                    FiringArc.Rear => HitDirection.Rear,
+                    _ => HitDirection.Front
+                };
             }
         }
         
         // Default to forward if no arc is determined
-        return FiringArc.Forward;
+        return HitDirection.Front;
     }
 
     private void PublishAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target, AttackResolutionData resolution)

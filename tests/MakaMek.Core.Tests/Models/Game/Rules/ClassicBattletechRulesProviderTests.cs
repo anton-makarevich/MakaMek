@@ -10,7 +10,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
 {
     public class ClassicBattletechRulesProviderTests
     {
-        private readonly IRulesProvider _sut = new ClassicBattletechRulesProvider();
+        private readonly ClassicBattletechRulesProvider _sut = new();
 
         [Theory]
         [InlineData(20, 3, 6, 5, 5, 3, 3, 4, 4)]
@@ -146,7 +146,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         public void GetHitLocation_FrontAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
-            var result = _sut.GetHitLocation(diceResult, FiringArc.Forward);
+            var result = _sut.GetHitLocation(diceResult, FiringArc.Front);
 
             // Assert
             result.ShouldBe(expectedLocation);
@@ -223,7 +223,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         public void GetHitLocation_InvalidDiceResult_ThrowsArgumentOutOfRangeException(int invalidDiceResult)
         {
             // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Forward));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Front));
             Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Left));
             Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Right));
             Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Rear));
@@ -524,7 +524,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         }
 
         [Theory]
-        [InlineData(1, FiringArc.Forward)] // Front
+        [InlineData(1, FiringArc.Front)] // Front
         [InlineData(2, FiringArc.Right)] // Right Side
         [InlineData(3, FiringArc.Right)] // Right Side
         [InlineData(4, FiringArc.Rear)] // Rear

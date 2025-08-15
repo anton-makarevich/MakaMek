@@ -148,7 +148,7 @@ public class ToHitCalculator : IToHitCalculator
                 var isInFrontArc = attackerPosition.Coordinates.IsInFiringArc(
                     target.Position.Coordinates,
                     facing.Value,
-                    FiringArc.Forward);
+                    FiringArc.Front);
 
                 modifiers.Add(new SecondaryTargetModifier
                 {

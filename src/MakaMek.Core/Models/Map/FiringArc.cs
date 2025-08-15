@@ -2,7 +2,7 @@ namespace Sanet.MakaMek.Core.Models.Map;
 
 public enum FiringArc
 {
-    Forward,
+    Front,
     Left,
     Right,
     Rear

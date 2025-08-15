@@ -135,7 +135,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new(4), new(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
         
         return new WeaponAttackResolutionCommand
@@ -189,7 +189,7 @@ public class WeaponAttackResolutionCommandTests
             7,
             [new DiceResult(4), new DiceResult(4)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
         
         return new WeaponAttackResolutionCommand
@@ -395,7 +395,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -446,7 +446,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -493,7 +493,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -539,7 +539,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -595,7 +595,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -654,7 +654,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -715,7 +715,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -769,7 +769,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -816,7 +816,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -865,7 +865,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -921,7 +921,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -973,7 +973,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -1029,7 +1029,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -1083,7 +1083,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new DiceResult(4), new DiceResult(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -1126,7 +1126,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new(4), new(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData,
             destroyedParts);
         
@@ -1170,7 +1170,7 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new(4), new(5)],
             true,
-            FiringArc.Forward,
+            FiringArc.Front,
             hitLocationsData,
             null,
             true);

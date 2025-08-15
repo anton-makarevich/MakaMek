@@ -8,7 +8,7 @@ public record AttackResolutionData(
     int ToHitNumber,
     List<DiceResult> AttackRoll,
     bool IsHit,
-    FiringArc? AttackDirection = null,
+    HitDirection? AttackDirection = null,
     AttackHitLocationsData? HitLocationsData = null,
     List<PartLocation>? DestroyedParts = null,
     bool UnitDestroyed = false);

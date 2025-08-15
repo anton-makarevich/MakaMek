@@ -310,7 +310,7 @@ public class WeaponsAttackState : IUiState
                 // For arms, we need to check both forward and side arcs
                 if (part.Location is PartLocation.LeftArm or PartLocation.RightArm)
                 {
-                    var forwardHexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, FiringArc.Forward, maxRange);
+                    var forwardHexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, FiringArc.Front, maxRange);
                     var sideArc = part.Location == PartLocation.LeftArm ? FiringArc.Left : FiringArc.Right;
                     var sideHexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, sideArc, maxRange);
                     
@@ -320,7 +320,7 @@ public class WeaponsAttackState : IUiState
                 else
                 {
                     // For torso, legs, and head weapons - only forward arc
-                    var hexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, FiringArc.Forward, maxRange);
+                    var hexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, FiringArc.Front, maxRange);
                     weaponHexes.UnionWith(hexes);
                 }
 
