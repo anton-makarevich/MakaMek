@@ -371,17 +371,17 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         return currentFacing.Rotate(roll - 1);
     }
 
-    public FiringArc GetAttackDirectionAfterFall(int roll)
+    public HitDirection GetAttackDirectionAfterFall(int roll)
     {
         // Determine the attack direction for hit location
         return roll switch
         {
-            1 => FiringArc.Front, // Front
-            2 => FiringArc.Right, // Right side
-            3 => FiringArc.Right, // Right side
-            4 => FiringArc.Rear, // Rear
-            5 => FiringArc.Left, // Left side
-            6 => FiringArc.Left, // Left side
+            1 => HitDirection.Front, // Front
+            2 => HitDirection.Right, // Right side
+            3 => HitDirection.Right, // Right side
+            4 => HitDirection.Rear, // Rear
+            5 => HitDirection.Left, // Left side
+            6 => HitDirection.Left, // Left side
             _ => throw new ArgumentOutOfRangeException(nameof(roll), "Roll must be between 1 and 6")
         };
     }

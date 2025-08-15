@@ -617,7 +617,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
 
         // Configure the rules provider to return LeftArm as the initial hit location
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Front).Returns(PartLocation.LeftArm);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftArm);
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
@@ -656,7 +656,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
 
         // Configure the rules provider to return LeftArm as the initial hit location
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Front).Returns(PartLocation.LeftArm);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftArm);
 
         // Configure dice rolls for hit location
         DiceRoller.Roll2D6().Returns(
@@ -727,7 +727,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         mech.Shutdown(shutdownData);
 
         // Configure the rules provider to return LeftArm as the initial hit location
-        mockRulesProvider.GetHitLocation(Arg.Any<int>(), FiringArc.Front).Returns(PartLocation.CenterTorso);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.CenterTorso);
 
         // Configure aimed shot success values
         mockRulesProvider.GetAimedShotSuccessValues().Returns([6, 7, 8]);

@@ -146,7 +146,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         public void GetHitLocation_FrontAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
-            var result = _sut.GetHitLocation(diceResult, FiringArc.Front);
+            var result = _sut.GetHitLocation(diceResult, HitDirection.Front);
 
             // Assert
             result.ShouldBe(expectedLocation);
@@ -167,7 +167,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         public void GetHitLocation_RearAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
-            var result = _sut.GetHitLocation(diceResult, FiringArc.Rear);
+            var result = _sut.GetHitLocation(diceResult, HitDirection.Rear);
 
             // Assert
             result.ShouldBe(expectedLocation);
@@ -188,7 +188,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         public void GetHitLocation_LeftAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
-            var result = _sut.GetHitLocation(diceResult, FiringArc.Left);
+            var result = _sut.GetHitLocation(diceResult, HitDirection.Left);
 
             // Assert
             result.ShouldBe(expectedLocation);
@@ -209,7 +209,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         public void GetHitLocation_RightAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
-            var result = _sut.GetHitLocation(diceResult, FiringArc.Right);
+            var result = _sut.GetHitLocation(diceResult, HitDirection.Right);
 
             // Assert
             result.ShouldBe(expectedLocation);
@@ -223,17 +223,17 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         public void GetHitLocation_InvalidDiceResult_ThrowsArgumentOutOfRangeException(int invalidDiceResult)
         {
             // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Front));
-            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Left));
-            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Right));
-            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, FiringArc.Rear));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, HitDirection.Front));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, HitDirection.Left));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, HitDirection.Right));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, HitDirection.Rear));
         }
 
         [Fact]
         public void GetHitLocation_InvalidAttackDirection_ThrowsArgumentOutOfRangeException()
         {
             // Act & Assert
-            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(7, (FiringArc)999));
+            Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(7, (HitDirection)999));
         }
 
         #endregion
@@ -524,13 +524,13 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         }
 
         [Theory]
-        [InlineData(1, FiringArc.Front)] // Front
-        [InlineData(2, FiringArc.Right)] // Right Side
-        [InlineData(3, FiringArc.Right)] // Right Side
-        [InlineData(4, FiringArc.Rear)] // Rear
-        [InlineData(5, FiringArc.Left)] // Left Side
-        [InlineData(6, FiringArc.Left)] // Left Side
-        public void GetAttackDirectionAfterFall_ReturnsCorrectHitLocation(int roll, FiringArc expectedDirection)
+        [InlineData(1, HitDirection.Front)] // Front
+        [InlineData(2, HitDirection.Right)] // Right Side
+        [InlineData(3, HitDirection.Right)] // Right Side
+        [InlineData(4, HitDirection.Rear)] // Rear
+        [InlineData(5, HitDirection.Left)] // Left Side
+        [InlineData(6, HitDirection.Left)] // Left Side
+        public void GetAttackDirectionAfterFall_ReturnsCorrectHitLocation(int roll, HitDirection expectedDirection)
         {
             // Act
             var result = _sut.GetAttackDirectionAfterFall(roll);
