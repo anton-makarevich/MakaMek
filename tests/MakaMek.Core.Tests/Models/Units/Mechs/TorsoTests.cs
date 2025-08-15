@@ -12,15 +12,21 @@ public class TorsoTests
         : Torso(name, location, maxArmor, maxRearArmor, maxStructure);
 
     [Theory]
-    [InlineData(5, 10, 3, 5, 0)] // Front damage less than armor
-    [InlineData(3, 10, 3, 5, 0)] // Rear damage less than rear armor
-    [InlineData(14, 10, 3, 5, 0)] // Front damage depletes armor and some structure
-    [InlineData(9, 10, 3, 5, 1)] // Rear damage exceeds rear armor and depletes structure
-    public void ApplyDamage_HandlesVariousDamageScenarios(int damage, int maxArmor, int maxRearArmor, int maxStructure, int expectedExcess)
+    [InlineData(5, 10, 3, 5, 0, HitDirection.Front)] // Front damage less than armor
+    [InlineData(5, 10, 3, 5, 0, HitDirection.Left)] // Side considered front
+    [InlineData(5, 10, 3, 5, 0, HitDirection.Right)] // Side considered front
+    [InlineData(3, 10, 3, 5, 0, HitDirection.Rear)] // Rear damage less than rear armor
+    [InlineData(14, 10, 3, 5, 0, HitDirection.Front)] // Front damage depletes armor and some structure
+    [InlineData(9, 10, 3, 5, 1, HitDirection.Rear)] // Rear damage exceeds rear armor and depletes structure
+    public void ApplyDamage_HandlesVariousDamageScenarios(int damage,
+        int maxArmor,
+        int maxRearArmor,
+        int maxStructure,
+        int expectedExcess,
+        HitDirection direction)
     {
         // Arrange
         var torso = new TestTorso("Test Torso", PartLocation.LeftTorso, maxArmor, maxRearArmor, maxStructure);
-        var direction = damage == 3 || damage == 9 ? HitDirection.Rear : HitDirection.Front;
 
         // Act
         var excessDamage = torso.ApplyDamage(damage, direction);
@@ -28,18 +34,18 @@ public class TorsoTests
         // Assert
         excessDamage.ShouldBe(expectedExcess);
 
-        if (direction == HitDirection.Front)
+        if (direction == HitDirection.Rear)
         {
-            if (damage <= maxArmor)
+            if (damage <= maxRearArmor)
             {
-                torso.CurrentArmor.ShouldBe(maxArmor - damage);
-                torso.CurrentRearArmor.ShouldBe(maxRearArmor);
+                torso.CurrentRearArmor.ShouldBe(maxRearArmor - damage);
+                torso.CurrentArmor.ShouldBe(maxArmor);
                 torso.CurrentStructure.ShouldBe(maxStructure);
             }
             else
             {
-                torso.CurrentArmor.ShouldBe(0);
-                var remainingDamage = damage - maxArmor;
+                torso.CurrentRearArmor.ShouldBe(0);
+                var remainingDamage = damage - maxRearArmor;
                 if (remainingDamage < maxStructure)
                 {
                     torso.CurrentStructure.ShouldBe(maxStructure - remainingDamage);
@@ -52,16 +58,16 @@ public class TorsoTests
         }
         else // Rear
         {
-            if (damage <= maxRearArmor)
+            if (damage <= maxArmor)
             {
-                torso.CurrentRearArmor.ShouldBe(maxRearArmor - damage);
-                torso.CurrentArmor.ShouldBe(maxArmor);
+                torso.CurrentArmor.ShouldBe(maxArmor - damage);
+                torso.CurrentRearArmor.ShouldBe(maxRearArmor);
                 torso.CurrentStructure.ShouldBe(maxStructure);
             }
             else
             {
-                torso.CurrentRearArmor.ShouldBe(0);
-                var remainingDamage = damage - maxRearArmor;
+                torso.CurrentArmor.ShouldBe(0);
+                var remainingDamage = damage - maxArmor;
                 if (remainingDamage < maxStructure)
                 {
                     torso.CurrentStructure.ShouldBe(maxStructure - remainingDamage);
