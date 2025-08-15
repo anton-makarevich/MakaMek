@@ -22,14 +22,14 @@ public class WeaponSelectionExtensionsTests
         _mech = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService).Create(mechData);
     }
 
-    private static Weapon CreateMockWeapon(PartLocation location, bool isAvailable)
+    private Weapon CreateWeapon(PartLocation location, bool isAvailable)
     {
-        var weapon = Substitute.For<Weapon>();
-        weapon.IsAvailable.Returns(isAvailable);
+        var part = _mech.Parts.First(p => p.Location == location);
+        var weapon = new MediumLaser();
+        part.TryAddComponent(weapon);
         
-        var part = Substitute.For<UnitPart>();
-        part.Location.Returns(location);
-        weapon.MountedOn.Returns(part);
+        if (!isAvailable)
+            weapon.Hit();
         
         return weapon;
     }
@@ -38,7 +38,7 @@ public class WeaponSelectionExtensionsTests
     public void IsAvailableForAttack_ShouldReturnFalse_WithUnavailableWeapon()
     {
         // Arrange
-        var sut = CreateMockWeapon(PartLocation.LeftArm, false);
+        var sut = CreateWeapon(PartLocation.LeftArm, false);
         
         // Act
         var result = sut.IsAvailableForAttack();
@@ -51,7 +51,7 @@ public class WeaponSelectionExtensionsTests
     public void IsAvailableForAttack_ShouldReturnTrue_WithStandingMech()
     {
         // Arrange
-        var sut = _mech.GetAvailableComponents<MediumLaser>().First();
+        var sut = CreateWeapon(PartLocation.LeftArm, true);
         
         // Act & Assert
         sut.IsAvailableForAttack().ShouldBeTrue();
@@ -62,9 +62,7 @@ public class WeaponSelectionExtensionsTests
     [InlineData(PartLocation.RightLeg)]
     public void IsAvailableForAttack_ShouldReturnFalse_WithProneMechAndLegWeapon(PartLocation partLocation)
     {
-        var leg = _mech.Parts.First(p => p.Location == partLocation);
-        var sut = new MediumLaser();
-        leg.TryAddComponent(sut);
+        var sut = CreateWeapon(partLocation, true);
         _mech.SetProne();
         
         // Act
@@ -81,9 +79,7 @@ public class WeaponSelectionExtensionsTests
     public void IsAvailableForAttack_ShouldReturnTrue_WithProneMechAndTorsoWeapon(PartLocation partLocation)
     {
         // Arrange
-        var torso = _mech.Parts.First(p => p.Location == partLocation);
-        var sut = new MediumLaser();
-        torso.TryAddComponent(sut);
+        var sut = CreateWeapon(partLocation, true);
         _mech.SetProne();
         
         // Act
@@ -99,8 +95,7 @@ public class WeaponSelectionExtensionsTests
     public void IsAvailableForAttack_ShouldReturnTrueForAnyArm_WithProneMechAndNoCommittedArm(PartLocation arm)
     {
         // Arrange
-        var sut = _mech.Parts.First(p => p.Location == arm)
-            .GetComponents<MediumLaser>().First();
+        var sut = CreateWeapon(arm, true);
         _mech.SetProne();
         
         // Act & Assert
@@ -111,9 +106,8 @@ public class WeaponSelectionExtensionsTests
     public void IsAvailableForAttack_ShouldAllowLeftArmWeapons_WithProneMechAndCommittedLeftArm()
     {
         // Arrange
-        var sut = _mech.Parts.First(p => p.Location == PartLocation.LeftArm)
-            .GetComponents<MediumLaser>().First();
-        _mech.WeaponAttackState.SetWeaponTarget(sut,Substitute.For<Unit>(), _mech);
+        var sut = CreateWeapon(PartLocation.LeftArm, true);
+        _mech.WeaponAttackState.SetWeaponTarget(sut, _mech, _mech);
 
         // Act & Assert
         sut.IsAvailableForAttack().ShouldBeTrue();
@@ -123,11 +117,10 @@ public class WeaponSelectionExtensionsTests
     public void IsAvailableForAttack_ShouldNotAllowRightArmWeapons_WithProneMechAndCommittedLeftArm()
     {
         // Arrange
-        var leftArmWeapon = _mech.Parts.First(p => p.Location == PartLocation.LeftArm)
-            .GetComponents<MediumLaser>().First();
-        var sut = _mech.Parts.First(p => p.Location == PartLocation.RightArm)
-            .GetComponents<MediumLaser>().First();
-        _mech.WeaponAttackState.SetWeaponTarget(leftArmWeapon,Substitute.For<Unit>(), _mech);
+        var leftArmWeapon = CreateWeapon(PartLocation.LeftArm, true);
+        var sut = CreateWeapon(PartLocation.RightArm, true);
+        _mech.SetProne();
+        _mech.WeaponAttackState.SetWeaponTarget(leftArmWeapon, _mech, _mech);
 
         // Act & Assert
         sut.IsAvailableForAttack().ShouldBeFalse();
@@ -137,7 +130,7 @@ public class WeaponSelectionExtensionsTests
     public void GetWeaponRestrictionReason_WithUnavailableWeapon_ShouldReturnNotAvailable()
     {
         // Arrange
-        var sut = CreateMockWeapon(PartLocation.LeftArm, false);
+        var sut = CreateWeapon(PartLocation.LeftArm, false);
         _localizationService.GetString("WeaponRestriction_NotAvailable").Returns("NotAvailable");
         
         // Act
@@ -151,9 +144,7 @@ public class WeaponSelectionExtensionsTests
     public void GetWeaponRestrictionReason_WithProneMechAndLegWeapon_ShouldReturnProneLegs()
     {
         // Arrange
-        var leg = _mech.Parts.First(p => p.Location == PartLocation.LeftLeg);
-        var sut = new MediumLaser();
-        leg.TryAddComponent(sut);
+        var sut = CreateWeapon(PartLocation.LeftLeg, true);
         _mech.SetProne();
         _localizationService.GetString("WeaponRestriction_ProneLegs").Returns("ProneLegs");
         
@@ -168,11 +159,10 @@ public class WeaponSelectionExtensionsTests
     public void GetWeaponRestrictionReason_WithProneMechAndCommittedArmConflict_ShouldReturnProneOtherArm()
     {
         // Arrange
-        var leftArmWeapon = _mech.Parts.First(p => p.Location == PartLocation.LeftArm)
-            .GetComponents<MediumLaser>().First();
-        var sut = _mech.Parts.First(p => p.Location == PartLocation.RightArm)
-            .GetComponents<MediumLaser>().First();
-        _mech.WeaponAttackState.SetWeaponTarget(leftArmWeapon, Substitute.For<Unit>(), _mech);
+        var leftArmWeapon = CreateWeapon(PartLocation.LeftArm, true);
+        var sut = CreateWeapon(PartLocation.RightArm, true);
+        _mech.SetProne();
+        _mech.WeaponAttackState.SetWeaponTarget(leftArmWeapon, _mech, _mech);
         _localizationService.GetString("WeaponRestriction_ProneOtherArm").Returns("ProneOtherArm");
         
         // Act
@@ -186,11 +176,11 @@ public class WeaponSelectionExtensionsTests
     public void GetWeaponRestrictionReason_WithAvailableWeapon_ShouldReturnEmpty()
     {
         // Arrange
-        var sut = _mech.GetAvailableComponents<MediumLaser>().First();
+        var sut = CreateWeapon(PartLocation.LeftArm, true);
         // Act
         var result = sut.GetWeaponRestrictionReason(_localizationService);
 
         // Assert
-        result.ShouldBeNull();
+        result.ShouldBe(string.Empty);
     }
 }
