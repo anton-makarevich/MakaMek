@@ -22,4 +22,22 @@ public class PartLocationTests
         // Assert
         result.ShouldBe(expected);
     }
+    
+    [Theory]
+    [InlineData(PartLocation.LeftArm, true)]
+    [InlineData(PartLocation.RightArm, true)]
+    [InlineData(PartLocation.Head, false)]
+    [InlineData(PartLocation.CenterTorso, false)]
+    [InlineData(PartLocation.LeftTorso, false)]
+    [InlineData(PartLocation.RightTorso, false)]
+    [InlineData(PartLocation.LeftLeg, false)]
+    [InlineData(PartLocation.RightLeg, false)]
+    public void IsArm_ChecksIfLocationIsArm_ReturnsCorrectResult(PartLocation location, bool expected)
+    {
+        // Act
+        var result = location.IsArm();
+
+        // Assert
+        result.ShouldBe(expected);
+    }
 }

@@ -456,4 +456,11 @@ public class ClassicBattletechRulesProvider : IRulesProvider
             _ => 13     //30+ => impossible to avoid
         };
     }
+    
+    private const int ProneFiringModifier = 2;
+
+    public int GetProneFiringModifier()
+    {
+        return ProneFiringModifier; // +2 modifier for firing while prone
+    }
 }

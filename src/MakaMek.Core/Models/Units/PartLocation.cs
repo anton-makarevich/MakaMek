@@ -26,4 +26,9 @@ public static class PartLocationExtensions
     {
         return location is PartLocation.LeftLeg or PartLocation.RightLeg;
     }
+    
+    public static bool IsArm(this PartLocation location)
+    {
+        return location is PartLocation.LeftArm or PartLocation.RightArm;
+    }
 }

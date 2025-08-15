@@ -304,7 +304,16 @@ public class Mech : Unit
         {
             penalties.Add(AttackHeatPenalty);
         }
-        
+
+        // Prone firing penalty
+        if (IsProne)
+        {
+            penalties.Add(new ProneAttackerModifier
+            {
+                Value = ProneAttackerModifier.DefaultValue // +2 modifier for firing while prone
+            });
+        }
+
         // Add sensor hit modifier for Mechs
         var sensors = GetAllComponents<Sensors>().FirstOrDefault(s=>s.Hits>0);
         if (sensors!=null)
@@ -312,7 +321,7 @@ public class Mech : Unit
             var sensorsHitModifier = SensorHitModifier.Create(sensors.Hits);
             if (sensorsHitModifier!=null) penalties.Add(sensorsHitModifier);
         }
-        
+
         // Arm critical hit modifiers
         var armCriticalModifiers = GetArmCriticalHitModifiers(location);
         penalties.AddRange(armCriticalModifiers);

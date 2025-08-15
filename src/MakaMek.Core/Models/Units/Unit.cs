@@ -42,6 +42,8 @@ public abstract class Unit
         {
             Id = id.Value;
         }
+
+        WeaponAttackState = new UnitWeaponAttackState();
     }
 
     public string Chassis { get; }
@@ -50,6 +52,11 @@ public abstract class Unit
     public int Tonnage { get; }
 
     public IPlayer? Owner { get; internal set; }
+
+    /// <summary>
+    /// Gets the weapon attack state for this unit, tracking weapon selections and targeting
+    /// </summary>
+    public UnitWeaponAttackState WeaponAttackState { get; }
 
     private UnitStatus _status;
 
@@ -350,7 +357,6 @@ public abstract class Unit
     /// Declares weapon attacks against target units
     /// </summary>
     /// <param name="weaponTargets">The weapon target data containing weapon locations, slots and target IDs</param>
-    /// <param name="targetUnits">The list of target units</param>
     public void DeclareWeaponAttack(List<WeaponTargetData> weaponTargets)
     {
         if (!IsDeployed)

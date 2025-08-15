@@ -107,4 +107,10 @@ public interface IRulesProvider
     /// - 13: Impossible roll, automatic shutdown (heat >= 30)
     /// </returns>
     int GetHeatShutdownAvoidNumber(int heatLevel);
+
+    /// <summary>
+    /// Gets the to-hit modifier for firing weapons while prone
+    /// </summary>
+    /// <returns>The modifier value to apply when a mech is prone and firing</returns>
+    int GetProneFiringModifier();
 }

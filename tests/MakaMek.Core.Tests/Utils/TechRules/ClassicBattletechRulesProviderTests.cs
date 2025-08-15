@@ -585,6 +585,16 @@ namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
             // Assert
             result.ShouldBe([6, 7, 8]);
         }
+
+        [Fact]
+        public void GetProneFiringModifier_ReturnsExpectedValue()
+        {
+            // Act
+            var result = _sut.GetProneFiringModifier();
+
+            // Assert
+            result.ShouldBe(2);
+        }
         
         [Theory]
         [InlineData(0, 0)]

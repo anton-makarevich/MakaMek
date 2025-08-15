@@ -109,6 +109,12 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_ShoulderActuatorHit" => "{0} Shoulder Destroyed: +{1}",
             "Modifier_UpperArmActuatorHit" => "{0} Upper Arm Actuator Destroyed: +{1}",
             "Modifier_LowerArmActuatorHit" => "{0} Lower Arm Actuator Destroyed: +{1}",
+            // Prone Firing Modifier
+            "Modifier_ProneFiring" => "Prone Firing: +{0}",
+            // Weapon Restriction Reasons
+            "WeaponRestriction_NotAvailable" => "Weapon not available",
+            "WeaponRestriction_ProneLegs" => "Cannot fire leg weapons while prone",
+            "WeaponRestriction_ProneOtherArm" => "Only one arm can fire while prone",
             "Hits" => "Hits",
             "Levels" => "Levels",
             // Attack information

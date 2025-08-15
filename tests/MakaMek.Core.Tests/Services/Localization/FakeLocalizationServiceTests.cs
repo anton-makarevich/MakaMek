@@ -140,6 +140,10 @@ public class FakeLocalizationServiceTests
     [InlineData("Modifier_ShoulderActuatorHit", "{0} Shoulder Destroyed: +{1}")]
     [InlineData("Modifier_UpperArmActuatorHit", "{0} Upper Arm Actuator Destroyed: +{1}")]
     [InlineData("Modifier_LowerArmActuatorHit", "{0} Lower Arm Actuator Destroyed: +{1}")]
+    [InlineData("Modifier_ProneFiring", "Prone Firing: +{0}")]
+    [InlineData("WeaponRestriction_NotAvailable", "Weapon not available")]
+    [InlineData("WeaponRestriction_ProneLegs", "Cannot fire leg weapons while prone")]
+    [InlineData("WeaponRestriction_ProneOtherArm", "Only one arm can fire while prone")]
     [InlineData("Hits", "Hits")]
     [InlineData("Levels", "Levels")]
     // Attack information

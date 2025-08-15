@@ -1256,7 +1256,7 @@ public class WeaponsAttackStateTests
         var targetPlayer = _game.Players[1];
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == attackingPlayer.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id == targetPlayer.Id);
-
+        
         // Deploy units
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
@@ -1304,7 +1304,7 @@ public class WeaponsAttackStateTests
         var targetPlayer = _game.Players[1];
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == attackingPlayer.Id);
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id == targetPlayer.Id);
-
+        
         // Deploy units
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
