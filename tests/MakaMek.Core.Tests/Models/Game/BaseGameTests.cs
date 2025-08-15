@@ -431,7 +431,7 @@ public class BaseGameTests : BaseGame
                 10,
                 [],
                 true,
-                null,
+                HitDirection.Front,
                 new AttackHitLocationsData([], 0, [], 0))
         };
 
@@ -487,7 +487,7 @@ public class BaseGameTests : BaseGame
                 10,
                 [],
                 false, // Attack missed
-                null,
+                HitDirection.Front,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 
@@ -545,7 +545,7 @@ public class BaseGameTests : BaseGame
                 10,
                 [],
                 true,
-                null,
+                HitDirection.Front,
                 new AttackHitLocationsData([], 0, [], 0))
         };
 
@@ -629,7 +629,7 @@ public class BaseGameTests : BaseGame
                 10,
                 [],
                 true,
-                null,
+                HitDirection.Front,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 
@@ -650,7 +650,7 @@ public class BaseGameTests : BaseGame
         var aliveMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
         var destroyedMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
         var headPart = destroyedMech.Parts.FirstOrDefault(p => p.Location == PartLocation.Head);
-        destroyedMech.ApplyArmorAndStructureDamage(100, headPart!);
+        destroyedMech.ApplyArmorAndStructureDamage(100, headPart!, HitDirection.Front);
 
         // Player 1: Ready, has alive unit
         var player1 = new Player(Guid.NewGuid(), "Player1")

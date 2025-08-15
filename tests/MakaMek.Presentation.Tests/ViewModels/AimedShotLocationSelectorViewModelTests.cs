@@ -60,7 +60,7 @@ public class AimedShotLocationSelectorViewModelTests
     public void UnitPartViewModel_WithDestroyedPart_ShouldNotBeSelectable()
     {
         // Arrange
-        _target.Parts.First(p => p.Location == PartLocation.Head).ApplyDamage(1000);
+        _target.Parts.First(p => p.Location == PartLocation.Head).ApplyDamage(1000, HitDirection.Front);
         var sut = CreateViewModel();
 
         // Act & Assert
@@ -154,7 +154,7 @@ public class AimedShotLocationSelectorViewModelTests
     {
         // Arrange
         var headPart = _target.Parts.First(p => p.Location == PartLocation.Head);
-        headPart.ApplyDamage(5); // Apply some damage
+        headPart.ApplyDamage(5, HitDirection.Front); // Apply some damage
         var sut = CreateViewModel();
 
         // Act & Assert

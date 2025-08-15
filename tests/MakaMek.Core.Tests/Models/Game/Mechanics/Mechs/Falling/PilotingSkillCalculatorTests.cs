@@ -224,7 +224,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             const int specificDamage = 33;
             mech.ApplyDamage(
                 [new HitLocationData(PartLocation.CenterTorso, specificDamage, [],[])
-                    ,]);
+                    ,], HitDirection.Front);
 
             // Act
             var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage);
@@ -246,7 +246,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
             const int lowDamage = 15;
             mech.ApplyDamage(
-                [new HitLocationData(PartLocation.CenterTorso, lowDamage, [],[]),]);
+                [new HitLocationData(PartLocation.CenterTorso, lowDamage, [],[]),], HitDirection.Front);
 
             // Act
             var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage);
@@ -402,8 +402,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
             var leftLeg = new Leg("Left Leg", PartLocation.LeftLeg, 10, 5);
             var rightLeg = new Leg("Right Leg", PartLocation.RightLeg, 10, 5);
-            leftLeg.ApplyDamage(100); // Destroy the left leg
-            rightLeg.ApplyDamage(100); // Destroy the right leg
+            leftLeg.ApplyDamage(100, HitDirection.Front); // Destroy the left leg
+            rightLeg.ApplyDamage(100, HitDirection.Front); // Destroy the right leg
 
             var mech = new Mech("Test", "TST-1A", 50, 4, [torso, leftLeg, rightLeg]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));

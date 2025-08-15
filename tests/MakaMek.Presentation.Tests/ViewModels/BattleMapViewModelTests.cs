@@ -1390,6 +1390,7 @@ public class BattleMapViewModelTests
             WeaponData = weaponTargetData1.Weapon,
             ResolutionData = new AttackResolutionData(
                 ToHitNumber: 7,
+                AttackDirection: HitDirection.Front,
                 AttackRoll: [new DiceResult(6)],
                 IsHit: true),
             GameOriginId = Guid.NewGuid()

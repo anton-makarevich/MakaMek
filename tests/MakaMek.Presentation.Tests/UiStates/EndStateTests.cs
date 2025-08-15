@@ -227,7 +227,7 @@ public class EndStateTests
             PartLocation.CenterTorso,
             100,
             [],
-            [])]);
+            [])], HitDirection.Front);
         
         // Act & Assert
         _sut.IsActionRequired.ShouldBeFalse();
@@ -242,7 +242,7 @@ public class EndStateTests
             PartLocation.CenterTorso,
             100,
             [],
-            [])]);
+            [])], HitDirection.Front);
         
         // Act & Assert
         _sut.CanExecutePlayerAction.ShouldBeFalse();
@@ -309,7 +309,7 @@ public class EndStateTests
             PartLocation.CenterTorso,
             100,
             [],
-            [])]);
+            [])], HitDirection.Front);
         _battleMapViewModel.SelectedUnit = _unit1;
 
         // Act

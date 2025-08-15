@@ -364,7 +364,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             PartLocation.CenterTorso,
             100,
             [],
-            [])]);
+            [])], HitDirection.Front);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -527,7 +527,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             PartLocation.CenterTorso,
             100,
             [],
-            [])]);
+            [])], HitDirection.Front);
 
         CommandPublisher.ClearReceivedCalls();
 

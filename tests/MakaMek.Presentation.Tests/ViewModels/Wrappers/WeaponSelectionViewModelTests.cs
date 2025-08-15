@@ -598,7 +598,7 @@ public class WeaponSelectionViewModelTests
         CreateSut();
         var part = _weapon.MountedOn;
         if (part == null) throw new Exception("Weapon must be mounted on a part for this test.");
-        part.ApplyDamage(1000);
+        part.ApplyDamage(1000, HitDirection.Front);
         _localizationService.GetString("Attack_LocationDestroyed").Returns("Location is destroyed");
 
         // Act

@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Mechanics;
@@ -19,7 +20,8 @@ public class FallContextDataTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             new HitLocationsData([], 10),
-            new DiceResult(6)
+            new DiceResult(6),
+            HitDirection.Front
         );
         
         var pilotingSkillRoll = new PilotingSkillRollData

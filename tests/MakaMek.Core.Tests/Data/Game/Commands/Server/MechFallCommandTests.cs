@@ -93,7 +93,7 @@ public class MechFallCommandTests
             new(PartLocation.CenterTorso, totalDamage, [],[6])
         };
         var hitLocationsData = new HitLocationsData(hitLocations, totalDamage);
-        return new FallingDamageData(HexDirection.Top, hitLocationsData, new DiceResult(1));
+        return new FallingDamageData(HexDirection.Top, hitLocationsData, new DiceResult(1), HitDirection.Front);
     }
 
     private MechFallCommand CreateBasicFallingCommand()
@@ -135,7 +135,7 @@ public class MechFallCommandTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(1));
+            new DiceResult(1), HitDirection.Front);
 
         return new MechFallCommand
         {
@@ -166,7 +166,7 @@ public class MechFallCommandTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(1));
+            new DiceResult(1), HitDirection.Front);
 
         return new MechFallCommand
         {

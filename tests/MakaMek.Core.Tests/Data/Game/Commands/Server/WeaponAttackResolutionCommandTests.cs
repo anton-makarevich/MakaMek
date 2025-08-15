@@ -154,7 +154,8 @@ public class WeaponAttackResolutionCommandTests
         var resolutionData = new AttackResolutionData(
             8,
             [new(2), new(3)],
-            false);
+            false,
+            HitDirection.Front);
         
         return new WeaponAttackResolutionCommand
         {
