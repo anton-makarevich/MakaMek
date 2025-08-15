@@ -3,11 +3,11 @@ using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.TechRules;
 using Sanet.MakaMek.Presentation.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;

@@ -4,7 +4,7 @@ using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
-namespace Sanet.MakaMek.Core.Utils.TechRules;
+namespace Sanet.MakaMek.Core.Models.Game.Rules;
 
 public interface IRulesProvider
 {
