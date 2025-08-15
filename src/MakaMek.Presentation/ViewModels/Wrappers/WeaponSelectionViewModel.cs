@@ -157,9 +157,11 @@ public class WeaponSelectionViewModel : BindableBase
             // Check if weapon is in range
             if (!IsInRange)
                 return _localizationService.GetString("Attack_OutOfRange");
-            // Check if weapon is targetting different target
+            // Check if weapon is targeting different target
             if (!IsEnabled && Target != null)
                 return string.Format(_localizationService.GetString("Attack_Targeting"), Target.Name);
+            if (!IsEnabled)
+                return Weapon.GetWeaponRestrictionReason(_localizationService);
             // Check if we have modifiers breakdown
             if (ModifiersBreakdown == null)
                 return _localizationService.GetString("Attack_NoModifiersCalculated");

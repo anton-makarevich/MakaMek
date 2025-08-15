@@ -548,6 +548,19 @@ public class WeaponSelectionViewModelTests
     }
     
     [Fact]
+    public void AttackPossibilityDescription_HandlesWeaponUnavailability()
+    {
+        // Arrange
+        CreateSut(isEnabled: false, target: null);
+        _weapon.UnMount();
+        _localizationService.GetString("WeaponRestriction_NotAvailable").Returns("NotAvailable");
+        
+        // Act & Assert
+        _sut.AttackPossibilityDescription.ShouldBe("NotAvailable");
+        _localizationService.Received().GetString("WeaponRestriction_NotAvailable");
+    }
+    
+    [Fact]
     public void HitProbability_ReturnsZeroWhenDisabled()
     {
         // Arrange
