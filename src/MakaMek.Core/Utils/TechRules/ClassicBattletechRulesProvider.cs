@@ -249,7 +249,6 @@ public class ClassicBattletechRulesProvider : IRulesProvider
 
     public PartLocation GetHitLocation(int diceResult, FiringArc attackDirection)
     {
-        return PartLocation.LeftLeg;
         // Classic BattleTech hit location tables based on the attack direction
         // Note: Front and Rear directions use the same hit location table
         return attackDirection switch

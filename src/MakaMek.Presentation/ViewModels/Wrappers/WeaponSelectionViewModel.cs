@@ -160,14 +160,15 @@ public class WeaponSelectionViewModel : BindableBase
             // Check if weapon is targeting different target
             if (!IsEnabled && Target != null)
                 return string.Format(_localizationService.GetString("Attack_Targeting"), Target.Name);
-            if (!IsEnabled)
-                return Weapon.GetWeaponRestrictionReason(_localizationService);
             // Check if we have modifiers breakdown
             if (ModifiersBreakdown == null)
                 return _localizationService.GetString("Attack_NoModifiersCalculated");
             // Check line of sight
             if (!ModifiersBreakdown.HasLineOfSight)
                 return _localizationService.GetString("Attack_NoLineOfSight");
+            // Unavailable for some other reason
+            if (!IsEnabled)
+                return Weapon.GetWeaponRestrictionReason(_localizationService);
             // If we get here, show the modifiers breakdown
             var lines = new List<string>
             {

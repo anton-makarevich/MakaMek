@@ -552,6 +552,8 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         CreateSut(isEnabled: false, target: null);
+        var breakdown = CreateTestBreakdown(8, hasLineOfSight: true);
+        _sut.ModifiersBreakdown = breakdown;
         _weapon.UnMount();
         _localizationService.GetString("WeaponRestriction_NotAvailable").Returns("NotAvailable");
         
