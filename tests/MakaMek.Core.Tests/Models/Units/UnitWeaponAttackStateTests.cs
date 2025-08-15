@@ -2,7 +2,12 @@
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Core.Utils.TechRules;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units;
@@ -10,47 +15,43 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units;
 public class UnitWeaponAttackStateTests
 {
     private readonly UnitWeaponAttackState _sut;
-    private readonly Unit _attacker;
-    private readonly Unit _target1;
-    private readonly Unit _target2;
+    private readonly Mech _attacker;
+    private readonly Mech _target1;
+    private readonly Mech _target2;
     private readonly Weapon _leftArmWeapon;
-    private readonly Weapon _rightArmWeapon;
     private readonly Weapon _torsoWeapon;
-    private readonly Weapon _legWeapon;
 
     public UnitWeaponAttackStateTests()
     {
         _sut = new UnitWeaponAttackState();
         
+        var localizationService = Substitute.For<ILocalizationService>();
+        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), localizationService);
+        
         // Create mock units
-        _attacker = Substitute.For<Mech>();
-        _target1 = Substitute.For<Unit>();
-        _target2 = Substitute.For<Unit>();
+        var data = MechFactoryTests.CreateDummyMechData();
+        _attacker = mechFactory.Create(data);
+        _target1 = mechFactory.Create(data);
+        _target2 = mechFactory.Create(data);
         
         // Create mock weapons with different locations
-        _leftArmWeapon = Substitute.For<Weapon>();
-        _leftArmWeapon.MountedOn.Returns(CreateMockPart(PartLocation.LeftArm));
+        _leftArmWeapon = CreateWeapon(PartLocation.LeftArm, _attacker);
         
-        _rightArmWeapon = Substitute.For<Weapon>();
-        _rightArmWeapon.MountedOn.Returns(CreateMockPart(PartLocation.RightArm));
-        
-        _torsoWeapon = Substitute.For<Weapon>();
-        _torsoWeapon.MountedOn.Returns(CreateMockPart(PartLocation.CenterTorso));
-        
-        _legWeapon = Substitute.For<Weapon>();
-        _legWeapon.MountedOn.Returns(CreateMockPart(PartLocation.LeftLeg));
+        _torsoWeapon = CreateWeapon(PartLocation.CenterTorso, _attacker);
         
         // Setup attacker position for primary target calculation
-        _attacker.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        _target1.Position.Returns(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom));
-        _target2.Position.Returns(new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom));
+        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        _target1.Deploy(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom));
+        _target2.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom));
     }
 
-    private static UnitPart CreateMockPart(PartLocation location)
+    private Weapon CreateWeapon(PartLocation location, Mech mech)
     {
-        var part = Substitute.For<UnitPart>();
-        part.Location.Returns(location);
-        return part;
+        var part = mech.Parts.First(p => p.Location == location);
+        var weapon = new MediumLaser();
+        part.TryAddComponent(weapon);
+        
+        return weapon;
     }
 
     [Fact]
@@ -69,7 +70,7 @@ public class UnitWeaponAttackStateTests
     public void SetWeaponTarget_WithProneMech_ShouldSetCommittedArm()
     {
         // Arrange
-        ((Mech)_attacker).IsProne.Returns(true);
+        _attacker.SetProne();
 
         // Act
         _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
@@ -81,9 +82,6 @@ public class UnitWeaponAttackStateTests
     [Fact]
     public void SetWeaponTarget_WithNonProneMech_ShouldNotSetCommittedArm()
     {
-        // Arrange
-        ((Mech)_attacker).IsProne.Returns(false);
-
         // Act
         _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
 
@@ -119,7 +117,7 @@ public class UnitWeaponAttackStateTests
     public void RemoveWeaponTarget_WithProneMech_ShouldClearCommittedArmWhenNoArmWeaponsLeft()
     {
         // Arrange
-        ((Mech)_attacker).IsProne.Returns(true);
+        _attacker.SetProne();
         _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
 
         // Act
