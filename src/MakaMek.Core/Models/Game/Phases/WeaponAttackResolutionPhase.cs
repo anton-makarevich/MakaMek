@@ -150,7 +150,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var isHit = totalRoll >= toHitNumber;
 
         // Determine an attack direction (will be null if not a hit)
-        HitDirection? attackDirection = null;
+        var attackDirection = HitDirection.Front;
 
         // If hit, determine location and damage
         AttackHitLocationsData? hitLocationsData = null;
@@ -163,14 +163,14 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (weapon.WeaponSize > 1)
         {
             // It's a cluster weapon, handle multiple hits
-            hitLocationsData = ResolveClusterWeaponHit(weapon, target, attackDirection.Value, weaponTargetData);
+            hitLocationsData = ResolveClusterWeaponHit(weapon, target, attackDirection, weaponTargetData);
 
             // Create hit locations data with multiple hits
             return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
         }
 
         // Standard weapon, single hit location
-        var hitLocationData = DetermineHitLocation(attackDirection.Value, weapon.Damage, target, weapon, weaponTargetData);
+        var hitLocationData = DetermineHitLocation(attackDirection, weapon.Damage, target, weapon, weaponTargetData);
 
         // Create hit locations data with a single hit
         hitLocationsData = new AttackHitLocationsData(
@@ -363,7 +363,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Apply damage to the target
         if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null })
         {
-            target.ApplyDamage(resolution.HitLocationsData.HitLocations);
+            target.ApplyDamage(resolution.HitLocationsData.HitLocations, resolution.AttackDirection);
             ProcessConsciousnessRollsForUnit(target);
         }
         

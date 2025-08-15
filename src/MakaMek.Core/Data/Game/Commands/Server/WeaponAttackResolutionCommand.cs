@@ -22,12 +22,12 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
         var command = this;
         var player = game.Players.FirstOrDefault(p => p.Id == command.PlayerId);
         var attacker = player?.Units.FirstOrDefault(u => u.Id == command.AttackerId);
-        var weapon = attacker?.GetMountedComponentAtLocation<Weapon>(WeaponData.Location,WeaponData.Slots);
+        var weapon = attacker?.GetMountedComponentAtLocation<Weapon>(WeaponData.Location, WeaponData.Slots);
         var target = game.Players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == command.TargetId);
         var targetPlayer = target?.Owner;
-        
+
         if (player == null || attacker == null || weapon == null || target == null || targetPlayer == null)
         {
             return string.Empty;
@@ -48,16 +48,14 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                 ResolutionData.ToHitNumber,
                 rollTotal));
 
-            // Add an attack direction if available
-            if (ResolutionData.AttackDirection.HasValue)
-            {
-                var directionKey = $"AttackDirection_{ResolutionData.AttackDirection.Value}";
-                var directionString = localizationService.GetString(directionKey);
-                
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_WeaponAttackResolution_Direction"),
-                    directionString));
-            }
+            // Add an attack direction  
+            var directionKey = $"AttackDirection_{ResolutionData.AttackDirection}";
+            var directionString = localizationService.GetString(directionKey);
+
+            stringBuilder.AppendLine(string.Format(
+                localizationService.GetString("Command_WeaponAttackResolution_Direction"),
+                directionString));
+
 
             // Add damage information if hit
             if (ResolutionData.HitLocationsData == null) return stringBuilder.ToString().TrimEnd();
@@ -85,7 +83,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                         ResolutionData.HitLocationsData.MissilesHit));
                 }
             }
-            
+
             // Add hit locations with damage
             if (ResolutionData.HitLocationsData.HitLocations.Count > 0)
             {
@@ -102,13 +100,14 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             // Add destroyed parts information
             if (ResolutionData.DestroyedParts != null && ResolutionData.DestroyedParts.Any())
             {
-                stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts"));
+                stringBuilder.AppendLine(
+                    localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts"));
                 foreach (var location in ResolutionData.DestroyedParts)
                 {
                     // Get the localized part name
                     var partNameKey = $"MechPart_{location}";
                     var partName = localizationService.GetString(partNameKey);
-                    
+
                     stringBuilder.AppendLine(string.Format(
                         localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
                         partName));
@@ -127,16 +126,16 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
         {
             // Miss case
             var missTemplate = localizationService.GetString("Command_WeaponAttackResolution_Miss");
-            stringBuilder.AppendLine(string.Format(missTemplate, 
+            stringBuilder.AppendLine(string.Format(missTemplate,
                 player.Name,
-                attacker.Name, 
+                attacker.Name,
                 weapon.Name,
                 targetPlayer.Name,
                 target.Name,
                 ResolutionData.ToHitNumber,
                 rollTotal));
         }
-        
+
         return stringBuilder.ToString().TrimEnd();
     }
 }

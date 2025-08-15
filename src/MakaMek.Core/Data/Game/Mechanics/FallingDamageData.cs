@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
@@ -9,4 +10,5 @@ namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 public record FallingDamageData(
     HexDirection FacingAfterFall,
     HitLocationsData HitLocations,
-    DiceResult FacingDiceRoll);
+    DiceResult FacingDiceRoll,
+    HitDirection FallDirection);

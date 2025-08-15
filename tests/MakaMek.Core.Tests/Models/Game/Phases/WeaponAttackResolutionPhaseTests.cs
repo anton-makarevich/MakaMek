@@ -303,7 +303,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var head = _player1Unit2.Parts.First(p => p.Location == PartLocation.Head);
         var lethalDamage = head.MaxArmor + head.MaxStructure + 1;
 
-        _player1Unit2.ApplyArmorAndStructureDamage(lethalDamage, head); // Apply lethal damage();
+        _player1Unit2.ApplyArmorAndStructureDamage(lethalDamage, head, HitDirection.Front); // Apply lethal damage();
 
         // Act
         _sut.Enter();
@@ -611,7 +611,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
 
         // Destroy the left arm
-        leftArm.ApplyDamage(10); // Apply enough damage to destroy it
+        leftArm.ApplyDamage(10, HitDirection.Front); // Apply enough damage to destroy it
         leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
 
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
@@ -647,8 +647,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var centerTorso = new CenterTorso("CenterTorso", 15, 10, 15);
 
         // Destroy the left arm and left torso
-        leftArm.ApplyDamage(10); // Apply enough damage to destroy it
-        leftTorso.ApplyDamage(20); // Apply enough damage to destroy it
+        leftArm.ApplyDamage(10, HitDirection.Front); // Apply enough damage to destroy it
+        leftTorso.ApplyDamage(20, HitDirection.Front); // Apply enough damage to destroy it
 
         leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
         leftTorso.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
@@ -778,7 +778,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var initialStructure = targetPart.CurrentStructure;
 
         // Apply damage to leave only 1 structure point
-        targetPart.ApplyDamage(initialArmor + initialStructure - 1);
+        targetPart.ApplyDamage(initialArmor + initialStructure - 1, HitDirection.Front);
 
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for attack (hit)
@@ -815,7 +815,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var initialStructure = targetPart.CurrentStructure;
 
         // Apply damage to leave only 1 structure point
-        targetPart.ApplyDamage(initialArmor + initialStructure - 1);
+        targetPart.ApplyDamage(initialArmor + initialStructure - 1, HitDirection.Front);
 
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for attack (hit)
@@ -915,7 +915,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 PartLocation.CenterTorso,
                 5,
                 [],
-                [])], TotalDamage: 5), new DiceResult(3));
+                [])], TotalDamage: 5), new DiceResult(3), HitDirection.Front);
         
         var mechFallingCommand = new MechFallCommand
         {
@@ -966,7 +966,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                         PartLocation.CenterTorso,
                         5,
                         [],
-                        [])], TotalDamage: 5), new DiceResult(3));
+                        [])], TotalDamage: 5), new DiceResult(3), HitDirection.Front);
         
         var mechFallingCommand = new MechFallCommand
         {

@@ -422,7 +422,7 @@ public abstract class Unit
         _status |= UnitStatus.Shutdown;
     }
 
-    public void ApplyDamage(List<HitLocationData> hitLocations)
+    public void ApplyDamage(List<HitLocationData> hitLocations, HitDirection hitDirection)
     {
         foreach (var hitLocation in hitLocations)
         {
@@ -479,7 +479,7 @@ public abstract class Unit
             TotalPhaseDamage += totalDamage;
 
             // Apply the total damage (including any explosion damage)
-            ApplyArmorAndStructureDamage(totalDamage, targetPart);
+            ApplyArmorAndStructureDamage(totalDamage, targetPart, hitDirection);
 
             // Now apply the critical hits after calculating total damage
             if (hitLocation.CriticalHits == null || !hitLocation.CriticalHits.Any()) continue;
@@ -509,9 +509,9 @@ public abstract class Unit
         }
     }
 
-    internal virtual void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart)
+    internal virtual void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart, HitDirection hitDirection)
     {
-        var remainingDamage = targetPart.ApplyDamage(damage);
+        var remainingDamage = targetPart.ApplyDamage(damage, hitDirection);
         
         // If there's remaining damage, transfer to the connected part
         if (remainingDamage <= 0) return;
@@ -520,7 +520,7 @@ public abstract class Unit
         var transferPart = _parts.Find(p => p.Location == transferLocation.Value);
         if (transferPart != null)
         {
-            ApplyArmorAndStructureDamage(remainingDamage, transferPart);
+            ApplyArmorAndStructureDamage(remainingDamage, transferPart, hitDirection);
         }
     }
 

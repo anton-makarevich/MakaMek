@@ -114,7 +114,7 @@ public abstract class UnitPart
         return _components.FirstOrDefault(c => c.IsMounted && c.MountedAtSlots.Contains(slot));
     }
 
-    public virtual int ApplyDamage(int damage, HitDirection direction = HitDirection.Front)
+    public virtual int ApplyDamage(int damage, HitDirection direction)
     {
         // First reduce armor
         var remainingDamage =  ReduceArmor(damage,direction);

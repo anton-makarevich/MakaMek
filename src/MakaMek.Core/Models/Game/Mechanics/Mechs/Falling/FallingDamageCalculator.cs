@@ -104,7 +104,8 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         return new FallingDamageData(
             newFacing,
             hitLocationsData,
-            facingRoll
+            facingRoll,
+            attackDirection
         );
     }
 }
