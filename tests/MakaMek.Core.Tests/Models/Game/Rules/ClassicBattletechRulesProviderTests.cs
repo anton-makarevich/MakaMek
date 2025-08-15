@@ -1,12 +1,12 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Shouldly;
-using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Utils.TechRules;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
+using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Utils.TechRules
+namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
 {
     public class ClassicBattletechRulesProviderTests
     {
