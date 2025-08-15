@@ -113,7 +113,6 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_ProneFiring" => "Prone Firing: +{0}",
             // Weapon Restriction Reasons
             "WeaponRestriction_NotAvailable" => "Weapon not available",
-            "WeaponRestriction_NotMounted" => "Weapon not mounted",
             "WeaponRestriction_ProneLegs" => "Cannot fire leg weapons while prone",
             "WeaponRestriction_ProneOtherArm" => "Only one arm can fire while prone",
             "Hits" => "Hits",

@@ -84,7 +84,7 @@ public class UnitWeaponAttackState
             
         return target == null || assignedTarget == target;
     }
-    
+
     /// <summary>
     /// Updates the committed arm location based on current weapon selections when the unit is prone
     /// </summary>
@@ -96,22 +96,22 @@ public class UnitWeaponAttackState
             CommittedArmLocation = null;
             return;
         }
-        
+
         // Find all selected arm weapons
         var selectedArmWeapons = _weaponTargets.Keys
-            .Where(w => w.MountedOn?.Location.IsArm() == true)
+            .Where(w => w.MountedOn?.Location is { } loc && loc.IsArm())
             .ToList();
-            
+
         if (selectedArmWeapons.Count == 0)
         {
             CommittedArmLocation = null;
             return;
         }
-        
+
         // Get the arm location from the first selected arm weapon
         CommittedArmLocation = selectedArmWeapons.First().MountedOn?.Location;
     }
-    
+
     /// <summary>
     /// Updates the primary target based on current weapon selections
     /// </summary>

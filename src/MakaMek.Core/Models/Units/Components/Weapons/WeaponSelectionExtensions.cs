@@ -30,15 +30,13 @@ public static class WeaponSelectionExtensions
 
         if (attacker is not Mech { IsProne: true }) return string.Empty; // No restriction
         var location = weapon.MountedOn?.Location;
-        if (location == null)
-            return localizationService.GetString("WeaponRestriction_NotMounted");
                 
         // Check leg weapon restriction
-        if (location.Value.IsLeg())
+        if (location?.IsLeg() == true)
             return localizationService.GetString("WeaponRestriction_ProneLegs");
                 
         // Check arm weapon restriction
-        if (!location.Value.IsArm()) return string.Empty; // No restriction
+        if (location?.IsArm() == false) return string.Empty; // No restriction
         var committedArm = attacker.WeaponAttackState.CommittedArmLocation;
         if (committedArm != null && committedArm != location)
             return localizationService.GetString("WeaponRestriction_ProneOtherArm");

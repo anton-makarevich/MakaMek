@@ -33,6 +33,16 @@ public class WeaponSelectionExtensionsTests
         
         return weapon;
     }
+    
+    [Fact]
+    public void IsAvailableForAttack_ShouldReturnFalse_WithNoMountedOn()
+    {
+        // Arrange
+        var sut = new MediumLaser();
+        
+        // Act & Assert
+        sut.IsAvailableForAttack().ShouldBeFalse();
+    }
 
     [Fact]
     public void IsAvailableForAttack_ShouldReturnFalse_WithUnavailableWeapon()
