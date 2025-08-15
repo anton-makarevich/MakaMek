@@ -30,7 +30,6 @@ public class JoinGameViewModel : NewGameViewModel
         IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
-        IWeaponSelectionCalculator weaponSelectionCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
@@ -39,7 +38,6 @@ public class JoinGameViewModel : NewGameViewModel
         ITransportFactory transportFactory,
         IBattleMapFactory mapFactory)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
-            weaponSelectionCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
@@ -155,7 +153,6 @@ public class JoinGameViewModel : NewGameViewModel
                 _mechFactory,
                 _commandPublisher,
                 _toHitCalculator,
-                _weaponSelectionCalculator,
                 _pilotingSkillCalculator,
                 _consciousnessCalculator,
                 _heatEffectsCalculator,

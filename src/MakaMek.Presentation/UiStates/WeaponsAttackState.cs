@@ -436,8 +436,9 @@ public class WeaponsAttackState : IUiState
             var isSelected = Attacker?.WeaponAttackState.IsWeaponAssigned(weapon, target) == true;
             vm.IsInRange = isInRange;
             vm.IsSelected = isSelected;
-            var isWeaponAvailable = Attacker != null && _game.WeaponSelectionCalculator.IsWeaponAvailable(weapon, Attacker);
-            vm.IsEnabled = (Attacker?.WeaponAttackState.IsWeaponAssigned(weapon) != true || target == SelectedTarget) && isInRange && isWeaponAvailable;
+            var isWeaponAvailable = Attacker != null && weapon.IsAvailableForAttack();
+            vm.IsEnabled = (Attacker?.WeaponAttackState.IsWeaponAssigned(weapon) != true || target == SelectedTarget) 
+                           && isInRange && isWeaponAvailable;
             vm.Target = target;
 
             vm.ModifiersBreakdown = null;

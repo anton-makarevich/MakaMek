@@ -16,7 +16,6 @@ public class GameManager : IGameManager
     private readonly ICommandPublisher _commandPublisher;
     private readonly IDiceRoller _diceRoller;
     private readonly IToHitCalculator _toHitCalculator;
-    private readonly IWeaponSelectionCalculator _weaponSelectionCalculator;
     private readonly ICriticalHitsCalculator _criticalHitsCalculator;
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
     private readonly IFallProcessor _fallProcessor;
@@ -31,7 +30,6 @@ public class GameManager : IGameManager
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher, IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
-        IWeaponSelectionCalculator weaponSelectionCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
@@ -46,7 +44,6 @@ public class GameManager : IGameManager
         _commandPublisher = commandPublisher;
         _diceRoller = diceRoller;
         _toHitCalculator = toHitCalculator;
-        _weaponSelectionCalculator = weaponSelectionCalculator;
         _criticalHitsCalculator = criticalHitsCalculator;
         _pilotingSkillCalculator = pilotingSkillCalculator;
         _fallProcessor = fallProcessor;
@@ -80,7 +77,6 @@ public class GameManager : IGameManager
                 _commandPublisher,
                 _diceRoller,
                 _toHitCalculator,
-                _weaponSelectionCalculator,
                 _criticalHitsCalculator,
                 _pilotingSkillCalculator,
                 _consciousnessCalculator,
