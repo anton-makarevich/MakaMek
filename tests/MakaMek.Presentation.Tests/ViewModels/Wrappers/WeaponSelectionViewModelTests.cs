@@ -548,6 +548,21 @@ public class WeaponSelectionViewModelTests
     }
     
     [Fact]
+    public void AttackPossibilityDescription_HandlesWeaponUnavailability()
+    {
+        // Arrange
+        CreateSut(isEnabled: false, target: null);
+        var breakdown = CreateTestBreakdown(8, hasLineOfSight: true);
+        _sut.ModifiersBreakdown = breakdown;
+        _weapon.UnMount();
+        _localizationService.GetString("WeaponRestriction_NotAvailable").Returns("NotAvailable");
+        
+        // Act & Assert
+        _sut.AttackPossibilityDescription.ShouldBe("NotAvailable");
+        _localizationService.Received().GetString("WeaponRestriction_NotAvailable");
+    }
+    
+    [Fact]
     public void HitProbability_ReturnsZeroWhenDisabled()
     {
         // Arrange
