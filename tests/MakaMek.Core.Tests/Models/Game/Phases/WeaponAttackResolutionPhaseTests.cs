@@ -472,10 +472,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_ShouldCalculateCorrectDamage_ForClusterWeapon()
     {
         // Arrange
-        // Add a cluster weapon to unit1 (SRM-6 with 1 damage per missile)
         SetMap();
         // Setup PSR for heavy damage 36 > 20 to avoid NRE
-        var clusterWeapon = new TestClusterWeapon(6, 6, 1); // 6 missiles, 1 damage per missile
+        var clusterWeapon = new TestClusterWeapon(6, 6, 1); 
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(clusterWeapon, [1]);
         // Set target for the cluster weapon using new system
@@ -709,7 +708,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         // Assert
-        // Should have transferred from LeftArm to LeftTorso to CenterTorso
+        // Should hit the intended location (LeftArm) due to a successful aimed shot
         data.Location.ShouldBe(PartLocation.LeftArm);
     }
     
@@ -756,7 +755,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         // Assert
-        // Should have transferred from LeftArm to LeftTorso to CenterTorso
+        // Should hit location from the table (CenterTorso) due to unsuccessful aimed shot
         data.Location.ShouldBe(PartLocation.CenterTorso);
     }
     
