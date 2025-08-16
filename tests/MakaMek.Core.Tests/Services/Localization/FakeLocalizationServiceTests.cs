@@ -118,7 +118,7 @@ public class FakeLocalizationServiceTests
     // Attack modifiers
     [InlineData("AttackDirection_Left", "Left")]
     [InlineData("AttackDirection_Right", "Right")]
-    [InlineData("AttackDirection_Forward", "Front")]
+    [InlineData("AttackDirection_Front", "Front")]
     [InlineData("AttackDirection_Rear", "Rear")]
     [InlineData("Modifier_GunnerySkill", "Gunnery Skill: +{0}")]
     [InlineData("Modifier_AttackerMovement", "Attacker Movement ({0}): +{1}")]

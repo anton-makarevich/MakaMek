@@ -73,9 +73,9 @@ public class UnitTests
         {
         }
         
-        internal override void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart)
+        internal override void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart, HitDirection hitDirection)
         {
-            base.ApplyArmorAndStructureDamage(damage, targetPart);
+            base.ApplyArmorAndStructureDamage(damage, targetPart, hitDirection);
             var destroyedParts = Parts.Where(p => p.IsDestroyed).ToList();
             if (destroyedParts.Count == Parts.Count)
             {
@@ -548,7 +548,7 @@ public class UnitTests
         var initialLeftArmArmor = leftArmPart.CurrentArmor;
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         centerTorsoPart.CurrentArmor.ShouldBe(initialCenterTorsoArmor - 5);
@@ -571,7 +571,7 @@ public class UnitTests
         var initialCenterTorsoArmor = centerTorsoPart.CurrentArmor;
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         centerTorsoPart.CurrentArmor.ShouldBe(initialCenterTorsoArmor - 5);
@@ -589,7 +589,7 @@ public class UnitTests
         var initialArmorValues = unit.Parts.ToDictionary(p => p.Location, p => p.CurrentArmor);
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         foreach (var part in unit.Parts)
@@ -632,8 +632,8 @@ public class UnitTests
         var unit = new TestUnit("Test", "Unit", 20, 4, parts);
         
         // Apply damage to reduce armor
-        unit.ApplyArmorAndStructureDamage(5, parts[0]); // Center Torso: 10 -> 5
-        unit.ApplyArmorAndStructureDamage(10, parts[1]); // Left Arm: 15 -> 5
+        unit.ApplyArmorAndStructureDamage(5, parts[0], HitDirection.Front); // Center Torso: 10 -> 5
+        unit.ApplyArmorAndStructureDamage(10, parts[1], HitDirection.Front); // Left Arm: 15 -> 5
         
         // Act
         var totalCurrentArmor = unit.TotalCurrentArmor;
@@ -676,8 +676,8 @@ public class UnitTests
         var unit = new TestUnit("Test", "Unit", 20, 4, parts);
         
         // Apply damage to reduce armor and structure
-        unit.ApplyArmorAndStructureDamage(15, parts[0]); // Center Torso: 10 armor -> 0, 5 structure -> 0
-        unit.ApplyArmorAndStructureDamage(20, parts[1]); // Left Arm: 15 armor -> 0, 8 structure -> 3
+        unit.ApplyArmorAndStructureDamage(15, parts[0], HitDirection.Front); // Center Torso: 10 armor -> 0, 5 structure -> 0
+        unit.ApplyArmorAndStructureDamage(20, parts[1], HitDirection.Front); // Left Arm: 15 armor -> 0, 8 structure -> 3
         
         // Act
         var totalCurrentStructure = unit.TotalCurrentStructure;
@@ -706,14 +706,14 @@ public class UnitTests
         unit.TotalCurrentStructure.ShouldBe(25);
         
         // Act - Apply damage to one part
-        unit.ApplyArmorAndStructureDamage(5, parts[0]); // Reduce Center Torso armor by 5
+        unit.ApplyArmorAndStructureDamage(5, parts[0], HitDirection.Front); // Reduce Center Torso armor by 5
         
         // Assert - Check updated values
         unit.TotalCurrentArmor.ShouldBe(40); // 5 + 15 + 20
         unit.TotalCurrentStructure.ShouldBe(25); // Structure unchanged
         
         // Act - Apply more damage to penetrate armor and damage structure
-        unit.ApplyArmorAndStructureDamage(8, parts[0]); // Reduce remaining CT armor (5) and damage structure (3)
+        unit.ApplyArmorAndStructureDamage(8, parts[0], HitDirection.Front); // Reduce remaining CT armor (5) and damage structure (3)
         
         // Assert - Check updated values
         unit.TotalCurrentArmor.ShouldBe(35); // 0 + 15 + 20
@@ -1104,7 +1104,7 @@ public class UnitTests
         // Pre-assert: component is not destroyed
         critComponent.IsDestroyed.ShouldBeFalse();
         // Act
-        unit.ApplyDamage([hitLocation]);
+        unit.ApplyDamage([hitLocation], HitDirection.Front);
         // Assert
         critComponent.IsDestroyed.ShouldBeTrue();
     }
@@ -1125,7 +1125,7 @@ public class UnitTests
         // Pre-assert: component is not destroyed
         cockpit.IsDestroyed.ShouldBeFalse();
         // Act
-        unit.ApplyDamage([hitLocation]);
+        unit.ApplyDamage([hitLocation], HitDirection.Front);
         // Assert
         cockpit.IsDestroyed.ShouldBeTrue();
         pilot.IsDead.ShouldBeTrue();
@@ -1141,7 +1141,7 @@ public class UnitTests
             [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, null,true)]);
         
         // Act
-        unit.ApplyDamage([hitLocation]);
+        unit.ApplyDamage([hitLocation], HitDirection.Front);
         // Assert
         leftArm.IsDestroyed.ShouldBeTrue();
     }
@@ -1163,7 +1163,7 @@ public class UnitTests
         };
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         targetPart.HitSlots.Count.ShouldBe(2);
@@ -1186,7 +1186,7 @@ public class UnitTests
         };
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         targetPart.IsBlownOff.ShouldBeTrue();
@@ -1207,7 +1207,7 @@ public class UnitTests
         };
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         targetPart.HitSlots.Count.ShouldBe(0);
@@ -1239,7 +1239,7 @@ public class UnitTests
         targetPart.CurrentArmor.ShouldBe(10);
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         explodableComponent.HasExploded.ShouldBeTrue();
@@ -1274,7 +1274,7 @@ public class UnitTests
         targetPart.CurrentArmor.ShouldBe(10);
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         explodableComponent1.HasExploded.ShouldBeTrue();
@@ -1307,7 +1307,7 @@ public class UnitTests
         targetPart.CurrentArmor.ShouldBe(10);
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         // Verify that only the initial damage was applied, without explosion damage
@@ -1335,7 +1335,7 @@ public class UnitTests
         targetPart.CurrentArmor.ShouldBe(10);
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         // Verify that only the initial damage was applied, without explosion damage
@@ -1364,7 +1364,7 @@ public class UnitTests
         targetPart.CurrentArmor.ShouldBe(10);
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         explodableComponent.HasExploded.ShouldBeTrue();
@@ -1405,7 +1405,7 @@ public class UnitTests
         };
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         // Dequeue all events and check for explosion event
@@ -1440,7 +1440,7 @@ public class UnitTests
         };
         
         // Act
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
         unit.Status.ShouldBe(UnitStatus.Destroyed);
@@ -1632,7 +1632,7 @@ public class UnitTests
         };
 
         // Act
-        sut.ApplyDamage(hitLocations);
+        sut.ApplyDamage(hitLocations, HitDirection.Front);
 
         // Assert
         sut.TotalPhaseDamage.ShouldBe(8); // 5 + 3
@@ -1653,8 +1653,8 @@ public class UnitTests
         };
 
         // Act
-        sut.ApplyDamage(firstHitLocations);
-        sut.ApplyDamage(secondHitLocations);
+        sut.ApplyDamage(firstHitLocations, HitDirection.Front);
+        sut.ApplyDamage(secondHitLocations, HitDirection.Front);
 
         // Assert
         sut.TotalPhaseDamage.ShouldBe(10); // 4 + 6
@@ -1679,7 +1679,7 @@ public class UnitTests
         };
 
         // Act
-        sut.ApplyDamage(hitLocations);
+        sut.ApplyDamage(hitLocations, HitDirection.Front);
 
         // Assert
         sut.TotalPhaseDamage.ShouldBe(8); // 3 initial damage + 5 explosion damage
@@ -1697,7 +1697,7 @@ public class UnitTests
         };
 
         // Apply damage to accumulate TotalPhaseDamage
-        sut.ApplyDamage(hitLocations);
+        sut.ApplyDamage(hitLocations, HitDirection.Front);
         sut.TotalPhaseDamage.ShouldBe(11); // Verify damage was accumulated
 
         // Act

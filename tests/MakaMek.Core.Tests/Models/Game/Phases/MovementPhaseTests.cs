@@ -430,7 +430,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
         // destroy the left leg to remove MP
         var leg = unit.Parts.First(p => p.Location == PartLocation.LeftLeg);
-        leg.ApplyDamage(100);
+        leg.ApplyDamage(100, HitDirection.Front);
         unit.SetProne();
 
         // Configure the FallProcessor to return successful standup data
@@ -563,7 +563,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             FallingDamageData = new FallingDamageData(
                 HexDirection.Top,
                 new HitLocationsData([], 5),
-                new DiceResult(3)
+                new DiceResult(3), HitDirection.Front
             )
         };
 
@@ -620,7 +620,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             FallingDamageData = new FallingDamageData(
                 HexDirection.Top,
                 new HitLocationsData([], 5),
-                new DiceResult(3)
+                new DiceResult(3), HitDirection.Front
             )
         };
 

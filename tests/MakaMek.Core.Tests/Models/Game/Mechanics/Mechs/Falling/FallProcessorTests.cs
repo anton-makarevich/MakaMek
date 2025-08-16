@@ -221,7 +221,15 @@ public class FallProcessorTests
         var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
         _testMech.ApplyDamage(
-            [new HitLocationData(PartLocation.CenterTorso, totalDamageDealt, [],[]),]);
+            [
+                new HitLocationData(PartLocation.CenterTorso,
+                    totalDamageDealt,
+                    [
+                    ],
+                    [
+                    ]),
+            ],
+            HitDirection.Front);
         
         // Gyro Hit PSR: Base 4 + Mod 3 (Gyro Hit) = TN 7. Roll 6 -> Fails.
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Gyro Hit");
@@ -279,7 +287,15 @@ public class FallProcessorTests
         var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
         _testMech.ApplyDamage(
-            [new HitLocationData(PartLocation.CenterTorso, totalDamageDealt, [],[]),]);
+            [
+                new HitLocationData(PartLocation.CenterTorso,
+                    totalDamageDealt,
+                    [
+                    ],
+                    [
+                    ]),
+            ],
+            HitDirection.Front);
         
         // Gyro Hit PSR: Base 4 + Mod 3 (Gyro Hit) = TN 7. Roll 8 -> Succeeds.
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Gyro Hit");
@@ -372,7 +388,15 @@ public class FallProcessorTests
         var componentHits = new List<ComponentHitData>(); // No critical hits
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
         _testMech.ApplyDamage(
-            [new HitLocationData(PartLocation.CenterTorso, totalDamageDealt, [],[]),]);
+            [
+                new HitLocationData(PartLocation.CenterTorso,
+                    totalDamageDealt,
+                    [
+                    ],
+                    [
+                    ]),
+            ],
+            HitDirection.Front);
         
         // Heavy Damage PSR: Base 4 + Mod (e.g., 2 for 20 damage) = TN 6. Roll 5 -> Fails.
         SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
@@ -426,7 +450,15 @@ public class FallProcessorTests
         var componentHits = new List<ComponentHitData>(); // No critical hits
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
         _testMech.ApplyDamage(
-            [new HitLocationData(PartLocation.CenterTorso, totalDamageDealt, [],[]),]);
+            [
+                new HitLocationData(PartLocation.CenterTorso,
+                    totalDamageDealt,
+                    [
+                    ],
+                    [
+                    ]),
+            ],
+            HitDirection.Front);
         
         // Heavy Damage PSR: Base 4 + Mod (e.g., 2 for 20 damage) = TN 6. Roll 7 -> Succeeds.
         SetupPsrFor(PilotingSkillRollType.HeavyDamage, 2, "Heavy Damage (20pts)");
@@ -1088,7 +1120,8 @@ public class FallProcessorTests
         return new FallingDamageData(
             HexDirection.TopRight,
             hitLocationsData,
-            facingRoll
+            facingRoll,
+            HitDirection.Front
         );
     }
 

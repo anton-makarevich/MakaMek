@@ -384,7 +384,7 @@ public record HexCoordinates
         return arc switch
         {
             // Forward arc: -60° to +60° inclusive
-            FiringArc.Forward => degrees <= 60 + epsilon,
+            FiringArc.Front => degrees <= 60 + epsilon,
             // Left arc: -60° to -120° exclusive of forward boundary but inclusive of rear boundary
             FiringArc.Left => degrees is > 60 + epsilon and <= 120 + epsilon && cross > 0,
             // Right arc: +60° to +120° exclusive of forward boundary but inclusive of rear boundary

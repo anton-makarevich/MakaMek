@@ -272,7 +272,7 @@ public class HexCoordinatesTests
         };
 
         // Act
-        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.Top, FiringArc.Forward, 2).ToList();
+        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.Top, FiringArc.Front, 2).ToList();
 
         // Assert
         hexesInArc.Count.ShouldBe(8);
@@ -324,7 +324,7 @@ public class HexCoordinatesTests
         };
 
         // Act
-        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.BottomRight, FiringArc.Forward, 2).ToList();
+        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.BottomRight, FiringArc.Front, 2).ToList();
 
         // Assert
         hexesInArc.Count.ShouldBe(8);
@@ -376,7 +376,7 @@ public class HexCoordinatesTests
         };
 
         // Act
-        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.Top, FiringArc.Forward, 2).ToList();
+        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.Top, FiringArc.Front, 2).ToList();
 
         // Assert
         hexesInArc.Count.ShouldBe(8);
@@ -461,7 +461,7 @@ public class HexCoordinatesTests
         };
 
         // Act
-        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.Top, FiringArc.Forward, 5).ToList();
+        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.Top, FiringArc.Front, 5).ToList();
 
         // Assert
         hexesInArc.Count.ShouldBe(35); // 3 + 5 + 7 + 9 + 11 hexes
@@ -573,7 +573,7 @@ public class HexCoordinatesTests
         };
 
         // Act
-        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.TopRight, FiringArc.Forward, 5).ToList();
+        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.TopRight, FiringArc.Front, 5).ToList();
 
         // Assert
         hexesInArc.Count.ShouldBe(35); // 3 + 5 + 7 + 9 + 11 hexes
@@ -685,7 +685,7 @@ public class HexCoordinatesTests
         };
 
         // Act
-        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.BottomRight, FiringArc.Forward, 5).ToList();
+        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.BottomRight, FiringArc.Front, 5).ToList();
 
         // Assert
         hexesInArc.Count.ShouldBe(35); // 3 + 5 + 7 + 9 + 11 hexes
@@ -797,7 +797,7 @@ public class HexCoordinatesTests
         };
 
         // Act
-        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.Bottom, FiringArc.Forward, 5).ToList();
+        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.Bottom, FiringArc.Front, 5).ToList();
 
         // Assert
         hexesInArc.Count.ShouldBe(35); // 3 + 5 + 7 + 9 + 11 hexes
@@ -909,7 +909,7 @@ public class HexCoordinatesTests
         };
 
         // Act
-        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.BottomLeft, FiringArc.Forward, 5).ToList();
+        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.BottomLeft, FiringArc.Front, 5).ToList();
 
         // Assert
         hexesInArc.Count.ShouldBe(35); // 3 + 5 + 7 + 9 + 11 hexes
@@ -1021,7 +1021,7 @@ public class HexCoordinatesTests
         };
 
         // Act
-        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.TopLeft, FiringArc.Forward, 5).ToList();
+        var hexesInArc = unitPosition.GetHexesInFiringArc(HexDirection.TopLeft, FiringArc.Front, 5).ToList();
 
         // Assert
         hexesInArc.Count.ShouldBe(35); // 3 + 5 + 7 + 9 + 11 hexes
@@ -1353,10 +1353,10 @@ public class HexCoordinatesTests
     }
     
     [Theory]
-    [InlineData(5, 5, 5, 4, HexDirection.Top, FiringArc.Forward, true)]       // Target directly in front
-    [InlineData(5, 5, 6, 4, HexDirection.Top, FiringArc.Forward, true)]       // Target in front-right
-    [InlineData(5, 5, 4, 4, HexDirection.Top, FiringArc.Forward, true)]       // Target in front-left
-    [InlineData(5, 5, 5, 6, HexDirection.Top, FiringArc.Forward, false)]      // Target directly behind
+    [InlineData(5, 5, 5, 4, HexDirection.Top, FiringArc.Front, true)]       // Target directly in front
+    [InlineData(5, 5, 6, 4, HexDirection.Top, FiringArc.Front, true)]       // Target in front-right
+    [InlineData(5, 5, 4, 4, HexDirection.Top, FiringArc.Front, true)]       // Target in front-left
+    [InlineData(5, 5, 5, 6, HexDirection.Top, FiringArc.Front, false)]      // Target directly behind
     [InlineData(5, 5, 5, 6, HexDirection.Top, FiringArc.Rear, true)]          // Target directly behind
     [InlineData(5, 5, 6, 5, HexDirection.Top, FiringArc.Right, true)]         // Target to the right
     [InlineData(5, 5, 4, 5, HexDirection.Top, FiringArc.Left, true)]          // Target to the left
@@ -1365,7 +1365,7 @@ public class HexCoordinatesTests
     [InlineData(5, 5, 4, 6, HexDirection.Top, FiringArc.Rear, true)]          // Target in back-left
     [InlineData(5, 5, 6, 4, HexDirection.Bottom, FiringArc.Left, true)]       // Target in rear arc when facing bottom
     [InlineData(5, 5, 5, 4, HexDirection.Bottom, FiringArc.Rear, true)]       // Target directly behind when facing bottom
-    [InlineData(5, 5, 5, 6, HexDirection.Bottom, FiringArc.Forward, true)]     // Target directly in front when facing bottom
+    [InlineData(5, 5, 5, 6, HexDirection.Bottom, FiringArc.Front, true)]     // Target directly in front when facing bottom
     public void IsInFiringArc_ReturnsExpectedResult(int centerQ, int centerR, int targetQ, int targetR, 
         HexDirection facing, FiringArc arc, bool expected)
     {

@@ -376,7 +376,7 @@ public class ServerGameTests
         {
             new(PartLocation.CenterTorso, 5, [],[]),
         };
-        unit.ApplyDamage(hitLocations);
+        unit.ApplyDamage(hitLocations, HitDirection.Front);
 
         // Verify damage was accumulated
         unit.TotalPhaseDamage.ShouldBe(5);

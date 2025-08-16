@@ -47,7 +47,7 @@ public class UnitPartTests
         var part = new TestUnitPart(PartLocation.LeftArm, maxArmor, maxStructure, 12);
 
         // Act
-        var excessDamage = part.ApplyDamage(damage);
+        var excessDamage = part.ApplyDamage(damage, HitDirection.Front);
 
         // Assert
         excessDamage.ShouldBe(expectedExcess);
@@ -76,7 +76,7 @@ public class UnitPartTests
         part.TryAddComponent(masc);
 
         // Act
-        part.ApplyDamage(10); // Ensure the structure is destroyed
+        part.ApplyDamage(10, HitDirection.Front); // Ensure the structure is destroyed
 
         // Assert
         part.IsDestroyed.ShouldBeTrue();
@@ -301,7 +301,7 @@ public class UnitPartTests
         part.Unit = unit;
         
         // Act
-        part.ApplyDamage(5);
+        part.ApplyDamage(5, HitDirection.Front);
         
         // Assert
         var uiEvent = unit.DequeueNotification();
@@ -321,7 +321,7 @@ public class UnitPartTests
         part.Unit = unit;
         
         // Act
-        part.ApplyDamage(8); // 5 armor + 3 structure damage
+        part.ApplyDamage(8, HitDirection.Front); // 5 armor + 3 structure damage
         
         // Assert
         // First event should be armor damage
@@ -347,7 +347,7 @@ public class UnitPartTests
         part.Unit = unit;
         
         // Act
-        part.ApplyDamage(15); // 5 armor + 5 structure + 5 excess
+        part.ApplyDamage(15, HitDirection.Front); // 5 armor + 5 structure + 5 excess
         
         // Assert
         // First event should be armor damage

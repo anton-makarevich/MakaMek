@@ -83,7 +83,7 @@ public class FakeLocalizationService: ILocalizationService
             // Attack direction strings
             "AttackDirection_Left" => "Left",
             "AttackDirection_Right" => "Right",
-            "AttackDirection_Forward" => "Front",
+            "AttackDirection_Front" => "Front",
             "AttackDirection_Rear" => "Rear",
             
             // Roll modifiers

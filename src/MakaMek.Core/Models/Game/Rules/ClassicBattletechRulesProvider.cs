@@ -247,13 +247,13 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         return isFrontArc ? 1 : 2; // +1 for front arc, +2 for other arcs
     }
 
-    public PartLocation GetHitLocation(int diceResult, FiringArc attackDirection)
+    public PartLocation GetHitLocation(int diceResult, HitDirection attackDirection)
     {
         // Classic BattleTech hit location tables based on the attack direction
         // Note: Front and Rear directions use the same hit location table
         return attackDirection switch
         {
-            FiringArc.Forward or FiringArc.Rear => diceResult switch
+            HitDirection.Front or HitDirection.Rear => diceResult switch
             {
                 2 => PartLocation.CenterTorso, // Critical hit
                 3 => PartLocation.RightArm,
@@ -268,7 +268,7 @@ public class ClassicBattletechRulesProvider : IRulesProvider
                 12 => PartLocation.Head,
                 _ => throw new ArgumentOutOfRangeException(nameof(diceResult), "Invalid dice result")
             },
-            FiringArc.Left => diceResult switch
+            HitDirection.Left => diceResult switch
             {
                 2 => PartLocation.LeftTorso, // Critical hit
                 3 => PartLocation.LeftLeg,
@@ -283,7 +283,7 @@ public class ClassicBattletechRulesProvider : IRulesProvider
                 12 => PartLocation.Head,
                 _ => throw new ArgumentOutOfRangeException(nameof(diceResult), "Invalid dice result")
             },
-            FiringArc.Right => diceResult switch
+            HitDirection.Right => diceResult switch
             {
                 2 => PartLocation.RightTorso, // Critical hit
                 3 => PartLocation.RightLeg,
@@ -371,17 +371,17 @@ public class ClassicBattletechRulesProvider : IRulesProvider
         return currentFacing.Rotate(roll - 1);
     }
 
-    public FiringArc GetAttackDirectionAfterFall(int roll)
+    public HitDirection GetAttackDirectionAfterFall(int roll)
     {
         // Determine the attack direction for hit location
         return roll switch
         {
-            1 => FiringArc.Forward, // Front
-            2 => FiringArc.Right, // Right side
-            3 => FiringArc.Right, // Right side
-            4 => FiringArc.Rear, // Rear
-            5 => FiringArc.Left, // Left side
-            6 => FiringArc.Left, // Left side
+            1 => HitDirection.Front, // Front
+            2 => HitDirection.Right, // Right side
+            3 => HitDirection.Right, // Right side
+            4 => HitDirection.Rear, // Rear
+            5 => HitDirection.Left, // Left side
+            6 => HitDirection.Left, // Left side
             _ => throw new ArgumentOutOfRangeException(nameof(roll), "Roll must be between 1 and 6")
         };
     }

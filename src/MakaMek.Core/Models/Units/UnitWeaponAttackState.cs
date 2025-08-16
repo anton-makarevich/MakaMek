@@ -155,7 +155,7 @@ public class UnitWeaponAttackState
                        attackerPosition.Coordinates.IsInFiringArc(
                            t.Position.Coordinates, 
                            facing.Value, 
-                           FiringArc.Forward))
+                           FiringArc.Front))
             .ToList();
             
         PrimaryTarget = targetsInForwardArc.Count > 0 ? targetsInForwardArc[0] : targets[0];

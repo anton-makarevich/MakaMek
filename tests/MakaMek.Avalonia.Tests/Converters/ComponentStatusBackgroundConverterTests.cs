@@ -45,7 +45,7 @@ public class ComponentStatusBackgroundConverterTests:IDisposable
         // Arrange
         var weapon = new TestWeapon();
         var unitPart = new Arm("Left Arm",PartLocation.LeftArm,1,1);
-        unitPart.ApplyDamage(5);
+        unitPart.ApplyDamage(5, HitDirection.Front);
         weapon.Mount([1], unitPart);
         
         // Act

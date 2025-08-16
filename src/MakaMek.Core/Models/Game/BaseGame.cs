@@ -243,7 +243,8 @@ public abstract class BaseGame : IGame
         // Apply damage to the target unit using the hit locations data
         if (attackResolutionCommand.ResolutionData is { IsHit: true, HitLocationsData: not null })
         {
-            targetUnit.ApplyDamage(attackResolutionCommand.ResolutionData.HitLocationsData.HitLocations);
+            targetUnit.ApplyDamage(attackResolutionCommand.ResolutionData.HitLocationsData.HitLocations,
+                attackResolutionCommand.ResolutionData.AttackDirection);
         }
     }
     
@@ -261,7 +262,7 @@ public abstract class BaseGame : IGame
 
         // Apply falling to the unit using the falling data from the command if present
         if (fallCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
-        mech?.ApplyDamage(hits);
+        mech?.ApplyDamage(hits, fallCommand.DamageData.FallDirection);
         mech?.SetProne();
         if (fallCommand.IsPilotTakingDamage)
         {

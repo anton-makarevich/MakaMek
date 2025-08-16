@@ -987,7 +987,7 @@ public class ClientGameTests
                 10,
                 [],
                 true,
-                null,
+                HitDirection.Front,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 
@@ -1969,8 +1969,8 @@ public class ClientGameTests
         var unit2 = player2.Units.First();
 
         // Apply different amounts of damage to each unit
-        unit1.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, 9, [],[])]);
-        unit2.ApplyDamage([new HitLocationData(PartLocation.LeftLeg, 5, [],[])]);
+        unit1.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, 9, [],[])], HitDirection.Front);
+        unit2.ApplyDamage([new HitLocationData(PartLocation.LeftLeg, 5, [],[])], HitDirection.Front);
 
         // Verify damage was accumulated
         unit1.TotalPhaseDamage.ShouldBe(9);
@@ -2043,7 +2043,7 @@ public class ClientGameTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(4));
+            new DiceResult(4), HitDirection.Front);
         
         // Create the mech falling command
         var mechFallingCommand = new MechFallCommand
@@ -2129,7 +2129,7 @@ public class ClientGameTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(4));
+            new DiceResult(4), HitDirection.Front);
         
         // Create the mech falling command
         var mechFallingCommand = new MechFallCommand
@@ -2185,7 +2185,7 @@ public class ClientGameTests
         var fallingDamageData = new FallingDamageData(
             HexDirection.Top,
             hitLocationsData,
-            new DiceResult(4));
+            new DiceResult(4), HitDirection.Front);
         
         // Create the mech falling command
         var mechFallingCommand = new MechFallCommand

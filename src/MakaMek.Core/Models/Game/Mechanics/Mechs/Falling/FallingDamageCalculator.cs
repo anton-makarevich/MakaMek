@@ -2,7 +2,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -55,10 +54,10 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         var facingRoll = _diceRoller.RollD6();
         
         // Determine new facing based on current facing and roll
-        HexDirection newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, mech.Position.Facing);
+        var newFacing = _rulesProvider.GetFacingAfterFall(facingRoll.Result, mech.Position.Facing);
         
         // Determine attack direction for hit location purposes
-        FiringArc attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingRoll.Result);
+        var attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingRoll.Result);
         
         // Divide damage into groups of 5 points each
         var hitLocations = new List<HitLocationData>();
@@ -105,7 +104,8 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         return new FallingDamageData(
             newFacing,
             hitLocationsData,
-            facingRoll
+            facingRoll,
+            attackDirection
         );
     }
 }
