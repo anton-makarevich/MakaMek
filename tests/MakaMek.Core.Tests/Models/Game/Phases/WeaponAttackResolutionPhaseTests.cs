@@ -627,7 +627,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
 
         // Act
-        var data = InvokeDetermineHitLocation(sut, FiringArc.Front, 5, mech);
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso (based on Mech's GetTransferLocation implementation)
@@ -666,7 +666,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
 
         // Act
-        var data = InvokeDetermineHitLocation(sut, FiringArc.Front, 5, mech);
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
@@ -706,7 +706,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
 
         // Act
-        var data = InvokeDetermineHitLocation(sut, FiringArc.Front, 5, mech, weaponTargetData);
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
@@ -753,7 +753,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var sut = new WeaponAttackResolutionPhase(Game);
 
         // Act
-        var data = InvokeDetermineHitLocation(sut, FiringArc.Front, 5, mech, weaponTargetData);
+        var data = InvokeDetermineHitLocation(sut, HitDirection.Front, 5, mech, weaponTargetData);
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
@@ -1033,7 +1033,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     // Helper to invoke private method
-    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, FiringArc arc, int dmg,
+    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, HitDirection hitDirection, int dmg,
         Unit? target, WeaponTargetData? weaponTargetData = null)
     {
         weaponTargetData ??= new WeaponTargetData
@@ -1050,7 +1050,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var weapon = new TestWeapon();
         var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (HitLocationData)method!.Invoke(phase, [arc, dmg, target, weapon, weaponTargetData])!;
+        return (HitLocationData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData])!;
     }
 
 

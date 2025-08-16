@@ -2,8 +2,8 @@
 
 public enum HitDirection
 {
-    Front,
-    Rear,
-    Left,
-    Right
+    Front = 0,
+    Rear = 1,
+    Left = 2,
+    Right = 3
 }

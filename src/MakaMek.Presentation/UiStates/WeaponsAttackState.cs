@@ -191,9 +191,9 @@ public class WeaponsAttackState : IUiState
     {
         lock (_stateLock)
         {
-            Attacker = null;
             SelectedTarget = null;
             Attacker?.WeaponAttackState.ClearAllWeaponTargets();
+            Attacker = null;
             _weaponRanges.Clear();
             _weaponViewModels.Clear();
             _viewModel.SelectedUnit = null;

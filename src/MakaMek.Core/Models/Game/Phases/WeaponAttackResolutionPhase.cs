@@ -260,11 +260,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     {
         // If the weapon target data specifies a specific location, use that
         PartLocation? aimedShotLocation = null;
-        int[] aimedShotRolResult = [];
+        int[] aimedShotRollResult = [];
         if (IsAimedShotPossible(target, weapon, weaponTargetData))
         {
-            aimedShotRolResult = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
-            var aimedShotRoll = aimedShotRolResult.Sum();
+            aimedShotRollResult = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
+            var aimedShotRoll = aimedShotRollResult.Sum();
             var successValues = Game.RulesProvider.GetAimedShotSuccessValues();
             if (successValues.Contains(aimedShotRoll))
             {
@@ -316,7 +316,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return new HitLocationData(
             hitLocation, 
             damage, 
-            aimedShotRolResult,
+            aimedShotRollResult,
             locationRoll, 
             criticalHits,
             locationTransferred ? initialLocation : null);
