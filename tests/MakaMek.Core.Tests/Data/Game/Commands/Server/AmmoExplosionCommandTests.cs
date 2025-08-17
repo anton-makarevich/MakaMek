@@ -38,8 +38,6 @@ public class AmmoExplosionCommandTests
             .Returns("{0} avoided ammo explosion due to heat");
         _localizationService.GetString("Command_AmmoExplosion_Failed")
             .Returns("{0} suffered ammo explosion due to heat");
-        _localizationService.GetString("Command_AmmoExplosion_Automatic")
-            .Returns("{0} suffered automatic ammo explosion");
         _localizationService.GetString("Command_AmmoExplosion_RollDetails")
             .Returns("Heat level: {0}, Roll: {1} vs {2}");
         _localizationService.GetString("Command_AmmoExplosion_CriticalHits")
@@ -106,7 +104,7 @@ public class AmmoExplosionCommandTests
         result.ShouldContain("Test Mech TST-1 suffered ammo explosion due to heat");
         result.ShouldContain("Heat level: 25, Roll: 5 vs 6");
     }
-    
+
     [Fact]
     public void Render_ShouldIncludeCriticalHits_WhenExplosionOccursWithCriticalHits()
     {
@@ -124,10 +122,14 @@ public class AmmoExplosionCommandTests
                 AvoidNumber = 6,
                 IsSuccessful = false
             },
-            ExplosionCriticalHits =
+            ExplosionDamage =
             [
-                new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
-                    [new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }])
+                new HitLocationData(PartLocation.CenterTorso, 120, [], [],
+                    [
+                        new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
+                            [new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }])
+                    ]
+                )
             ]
         };
 
@@ -153,10 +155,12 @@ public class AmmoExplosionCommandTests
                 AvoidNumber = 6,
                 IsSuccessful = true
             },
-            ExplosionCriticalHits =
+            ExplosionDamage =
             [
-                new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
-                    [new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }])
+                new HitLocationData(PartLocation.CenterTorso, 120, [], [], [
+                    new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
+                        [new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }])
+                ])
             ]
         };
 
@@ -176,7 +180,7 @@ public class AmmoExplosionCommandTests
             GameOriginId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow,
             AvoidExplosionRoll = null,
-            ExplosionCriticalHits = null
+            ExplosionDamage = []
         };
     }
 

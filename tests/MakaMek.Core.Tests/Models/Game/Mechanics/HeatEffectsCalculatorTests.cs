@@ -183,7 +183,7 @@ public class HeatEffectsCalculatorTests
         result.Value.AvoidExplosionRoll.IsSuccessful.ShouldBeTrue();
         result.Value.AvoidExplosionRoll.AvoidNumber.ShouldBe(avoidNumber);
         result.Value.AvoidExplosionRoll.DiceResults.ShouldBe([3, 4]);
-        result.Value.ExplosionCriticalHits.ShouldBeNull();
+        result.Value.ExplosionDamage.ShouldBeEmpty();
     }
 
     [Fact]
@@ -218,8 +218,8 @@ public class HeatEffectsCalculatorTests
         result.Value.AvoidExplosionRoll.IsSuccessful.ShouldBeFalse();
         result.Value.AvoidExplosionRoll.AvoidNumber.ShouldBe(avoidNumber);
         result.Value.AvoidExplosionRoll.DiceResults.ShouldBe([2, 3]);
-        result.Value.ExplosionCriticalHits.ShouldNotBeNull();
-        result.Value.ExplosionCriticalHits.Count.ShouldBe(1);
+        result.Value.ExplosionDamage.ShouldNotBeNull();
+        result.Value.ExplosionDamage.Count.ShouldBe(1);
     }
 
     [Fact]

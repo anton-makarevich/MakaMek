@@ -23,9 +23,9 @@ public record struct AmmoExplosionCommand : IGameCommand
     public AvoidAmmoExplosionRollData? AvoidExplosionRoll { get; init; }
 
     /// <summary>
-    /// Critical hits data resulting from the explosion, if any
+    /// Hit location data resulting from the explosion, ready for damage application
     /// </summary>
-    public List<LocationCriticalHitsData>? ExplosionCriticalHits { get; init; }
+    public List<HitLocationData> ExplosionDamage { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
@@ -77,11 +77,12 @@ public record struct AmmoExplosionCommand : IGameCommand
         }
         
         // If explosion occurred, show the critical hits details
-        if (explosionOccurred && ExplosionCriticalHits != null && ExplosionCriticalHits.Any())
+        if (explosionOccurred && ExplosionDamage.Count > 0)
         {
             stringBuilder.AppendLine(localizationService.GetString("Command_AmmoExplosion_CriticalHits"));
-            
-            foreach (var criticalHit in ExplosionCriticalHits)
+
+            var criticalHits = ExplosionDamage.SelectMany(ht => ht.CriticalHits??[]).ToList();
+            foreach (var criticalHit in criticalHits)
             {
                 if (criticalHit.HitComponents != null)
                 {

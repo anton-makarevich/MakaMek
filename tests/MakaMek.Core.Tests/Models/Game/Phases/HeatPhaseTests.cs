@@ -402,7 +402,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
                 AvoidNumber = 6,
                 IsSuccessful = true
             },
-            ExplosionCriticalHits = null,
+            ExplosionDamage = [],
             GameOriginId = Guid.Empty
         };
 

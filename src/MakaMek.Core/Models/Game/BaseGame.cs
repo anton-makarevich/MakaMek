@@ -363,47 +363,10 @@ public abstract class BaseGame : IGame
 
         if (unit == null) return;
 
-        // Apply explosion damage if critical hits occurred
-        if (explosionCommand.ExplosionCriticalHits != null && explosionCommand.ExplosionCriticalHits.Any())
+        // Apply explosion damage if it was calculated
+        if (explosionCommand.ExplosionDamage.Count > 0)
         {
-            // Convert critical hits data to hit location data for damage application
-            var hitLocations = new List<HitLocationData>();
-
-            foreach (var criticalHit in explosionCommand.ExplosionCriticalHits)
-            {
-                // Calculate total explosion damage for this location
-                var explosionDamage = 0;
-                if (criticalHit.HitComponents != null)
-                {
-                    foreach (var componentHit in criticalHit.HitComponents)
-                    {
-                        var part = unit.Parts.FirstOrDefault(p => p.Location == criticalHit.Location);
-                        var component = part?.GetComponentAtSlot(componentHit.Slot);
-                        if (component != null && component.CanExplode)
-                        {
-                            explosionDamage += component.GetExplosionDamage();
-                        }
-                    }
-                }
-
-                if (explosionDamage > 0)
-                {
-                    var hitLocationData = new HitLocationData(
-                        criticalHit.Location,
-                        explosionDamage,
-                        [], // No aimed shot
-                        [], // No location roll for explosions
-                        [criticalHit] // Include the critical hits data
-                    );
-                    hitLocations.Add(hitLocationData);
-                }
-            }
-
-            // Apply the explosion damage
-            if (hitLocations.Any())
-            {
-                unit.ApplyDamage(hitLocations, HitDirection.Front);
-            }
+            unit.ApplyDamage(explosionCommand.ExplosionDamage, HitDirection.Front);
         }
     }
 
