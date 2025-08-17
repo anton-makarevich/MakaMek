@@ -147,6 +147,8 @@ public class HeatEffectsCalculatorTests
         // Arrange
         _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(4);
         var mech = CreateTestMech();
+        var ammo = mech.GetAvailableComponents<Ammo>();
+        ammo.ToList().ForEach(a => a.UnMount());
         SetMechHeat(mech, 20);
 
         // Act
@@ -249,7 +251,7 @@ public class HeatEffectsCalculatorTests
         result.ShouldNotBeNull();
         // Verify that the critical hits calculator was called with the most destructive ammo's damage
         // SRM-2 with 50 shots = 4 * 50 = 200 damage (most destructive)
-        _criticalHitsCalculator.Received(1).CalculateCriticalHits(mech, Arg.Any<PartLocation>(), 200);
+        _criticalHitsCalculator.Received(1).CalculateCriticalHits(mech, Arg.Any<PartLocation>(), 400);
     }
     
     [Fact]

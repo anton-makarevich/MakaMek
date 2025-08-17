@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -227,15 +228,14 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         };
     }
 
-    private List<Component> GetExplodableAmmoComponents(Mech mech)
+    private List<Ammo> GetExplodableAmmoComponents(Mech mech)
     {
-        return mech.Parts
-            .SelectMany(part => part.Components)
-            .Where(component => component is { CanExplode: true, HasExploded: false })
+        return mech.GetAvailableComponents<Ammo>()
+            .Where(ammo => ammo is { CanExplode: true, HasExploded: false })
             .ToList();
     }
 
-    private Component SelectMostDestructiveAmmoComponent(List<Component> explodableAmmo)
+    private Component SelectMostDestructiveAmmoComponent(List<Ammo> explodableAmmo)
     {
         // Find the maximum explosion damage
         var maxDamage = explodableAmmo.Max(ammo => ammo.GetExplosionDamage());
