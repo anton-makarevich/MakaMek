@@ -239,9 +239,11 @@ public class HeatEffectsCalculatorTests
         // Setup critical hits calculator
         var criticalHits = new List<LocationCriticalHitsData>
         {
-            new(PartLocation.CenterTorso, 8, 1, [new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }])
+            new(PartLocation.CenterTorso, 8, 1, [
+                new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
+            ])
         };
-        _criticalHitsCalculator.CalculateCriticalHits(Arg.Any<Unit>(), Arg.Any<PartLocation>(), Arg.Any<int>())
+        _criticalHitsCalculator.GetCriticalHitsForDestroyedComponent(Arg.Any<Unit>(), Arg.Any<Ammo>())
             .Returns(criticalHits);
 
         // Act
@@ -249,9 +251,7 @@ public class HeatEffectsCalculatorTests
 
         // Assert
         result.ShouldNotBeNull();
-        // Verify that the critical hits calculator was called with the most destructive ammo's damage
-        // SRM-2 with 50 shots = 4 * 50 = 200 damage (most destructive)
-        _criticalHitsCalculator.Received(1).CalculateCriticalHits(mech, Arg.Any<PartLocation>(), 400);
+        _criticalHitsCalculator.Received(1).GetCriticalHitsForDestroyedComponent(mech, Arg.Any<Ammo>());
     }
     
     [Fact]

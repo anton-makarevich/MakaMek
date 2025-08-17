@@ -259,18 +259,14 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         var location = ammoComponent.GetLocation();
         if (!location.HasValue) return [];
 
-        var explosionDamage = ammoComponent.GetExplosionDamage();
-
-        // Mark the component as exploded
-        ammoComponent.Hit();
-
         // Use existing critical hits calculator to process the explosion
-        var criticalHits = _criticalHitsCalculator.CalculateCriticalHits(mech, location.Value, explosionDamage);
+        var criticalHits = _criticalHitsCalculator
+            .GetCriticalHitsForDestroyedComponent(mech,ammoComponent);
 
         // Convert critical hits data to hit location data for damage application
         var hitLocationData = new HitLocationData(
             location.Value,
-            explosionDamage,
+            0, // Damage for explosion is calculated automatically
             [], // No aimed shot for explosions
             [], // No location roll for explosions
             criticalHits // Include the critical hits data
