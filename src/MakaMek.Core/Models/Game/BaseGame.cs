@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -353,6 +354,59 @@ public abstract class BaseGame : IGame
         Console.WriteLine("physical attack");
     }
 
+    internal void OnAmmoExplosion(AmmoExplosionCommand explosionCommand)
+    {
+        // Find the unit with the given ID across all players
+        var unit = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == explosionCommand.UnitId);
+
+        if (unit == null) return;
+
+        // Apply explosion damage if critical hits occurred
+        if (explosionCommand.ExplosionCriticalHits != null && explosionCommand.ExplosionCriticalHits.Any())
+        {
+            // Convert critical hits data to hit location data for damage application
+            var hitLocations = new List<HitLocationData>();
+
+            foreach (var criticalHit in explosionCommand.ExplosionCriticalHits)
+            {
+                // Calculate total explosion damage for this location
+                var explosionDamage = 0;
+                if (criticalHit.HitComponents != null)
+                {
+                    foreach (var componentHit in criticalHit.HitComponents)
+                    {
+                        var part = unit.Parts.FirstOrDefault(p => p.Location == criticalHit.Location);
+                        var component = part?.GetComponentAtSlot(componentHit.Slot);
+                        if (component != null && component.CanExplode)
+                        {
+                            explosionDamage += component.GetExplosionDamage();
+                        }
+                    }
+                }
+
+                if (explosionDamage > 0)
+                {
+                    var hitLocationData = new HitLocationData(
+                        criticalHit.Location,
+                        explosionDamage,
+                        [], // No aimed shot
+                        [], // No location roll for explosions
+                        [criticalHit] // Include the critical hits data
+                    );
+                    hitLocations.Add(hitLocationData);
+                }
+            }
+
+            // Apply the explosion damage
+            if (hitLocations.Any())
+            {
+                unit.ApplyDamage(hitLocations, HitDirection.Front);
+            }
+        }
+    }
+
     /// <summary>
     /// Handles a pilot consciousness roll command by updating the pilot's consciousness state
     /// </summary>
@@ -401,6 +455,7 @@ public abstract class BaseGame : IGame
             PilotConsciousnessRollCommand => true,
             ShutdownUnitCommand => true,
             StartupUnitCommand => true,
+            AmmoExplosionCommand => true,
             _ => false
         };
     }

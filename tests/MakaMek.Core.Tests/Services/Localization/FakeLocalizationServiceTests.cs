@@ -287,4 +287,22 @@ public class FakeLocalizationServiceTests
         // Assert
         result.ShouldBe(expected);
     }
+
+    [Theory]
+    [InlineData("Command_AmmoExplosion_Avoided", "{0} avoided ammo explosion due to heat")]
+    [InlineData("Command_AmmoExplosion_Failed", "{0} suffered ammo explosion due to heat")]
+    [InlineData("Command_AmmoExplosion_RollDetails", "Heat level: {0}, Roll: {1} vs {2}")]
+    [InlineData("Command_AmmoExplosion_CriticalHits", "Explosion caused critical hits:")]
+    [InlineData("Command_AmmoExplosion_ComponentDestroyed", "- {0} in {1} destroyed by explosion")]
+    public void GetString_AmmoExplosion_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
 }

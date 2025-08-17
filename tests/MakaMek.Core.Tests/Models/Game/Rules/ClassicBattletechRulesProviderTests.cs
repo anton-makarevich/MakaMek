@@ -627,5 +627,32 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
             // Assert
             result.ShouldBe(expectedAvoidNumber);
         }
+
+        [Theory]
+        [InlineData(0, 0)]
+        [InlineData(5, 0)]
+        [InlineData(18, 0)] // Below 19 - no ammo explosion check needed
+        [InlineData(19, 4)] // 19-22 heat: avoid on 4+
+        [InlineData(20, 4)]
+        [InlineData(21, 4)]
+        [InlineData(22, 4)]
+        [InlineData(23, 6)] // 23-27 heat: avoid on 6+
+        [InlineData(24, 6)]
+        [InlineData(25, 6)]
+        [InlineData(26, 6)]
+        [InlineData(27, 6)]
+        [InlineData(28, 8)] // 28+ heat: avoid on 8+
+        [InlineData(29, 8)]
+        [InlineData(30, 8)]
+        [InlineData(50, 8)]
+        [InlineData(100, 8)]
+        public void GetHeatAmmoExplosionAvoidNumber_ReturnsExpectedValue(int heatLevel, int expectedAvoidNumber)
+        {
+            // Act
+            var result = _sut.GetHeatAmmoExplosionAvoidNumber(heatLevel);
+
+            // Assert
+            result.ShouldBe(expectedAvoidNumber);
+        }
     }
 }

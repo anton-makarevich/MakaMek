@@ -108,7 +108,10 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
 
         // Check for heat shutdown after applying heat
         CheckForUnitHeatShutdown(unit);
-        
+
+        // Check for heat-triggered ammo explosions
+        CheckForUnitHeatAmmoExplosion(unit);
+
         // Check for automatic restart if unit was shutdown due to heat
         CheckForUnitAutomaticRestart(unit);
 
@@ -147,6 +150,19 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         var broadcastCommand = shutdownCommand.Value;
         broadcastCommand.GameOriginId = Game.Id;
         Game.OnUnitShutdown(broadcastCommand);
+        Game.CommandPublisher.PublishCommand(broadcastCommand);
+    }
+
+    private void CheckForUnitHeatAmmoExplosion(Unit unit)
+    {
+        if (unit is not Mech mech) return;
+
+        var explosionCommand = Game.HeatEffectsCalculator.CheckForHeatAmmoExplosion(mech);
+        if (explosionCommand == null) return;
+
+        var broadcastCommand = explosionCommand.Value;
+        broadcastCommand.GameOriginId = Game.Id;
+        Game.OnAmmoExplosion(broadcastCommand);
         Game.CommandPublisher.PublishCommand(broadcastCommand);
     }
 }

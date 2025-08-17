@@ -135,6 +135,9 @@ public sealed class ClientGame : BaseGame
             case UnitStartupCommand restartCommand:
                 OnMechRestart(restartCommand);
                 break;
+            case AmmoExplosionCommand explosionCommand:
+                OnAmmoExplosion(explosionCommand);
+                break;
         }
         
         // Log the command

@@ -386,6 +386,57 @@ public class HeatPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_WithHeatAmmoExplosionThreshold_ShouldCheckForAmmoExplosion()
+    {
+        // Arrange
+        var mech = _unit1 as Mech;
+        SetupUnitWithHighHeat(mech!, 25); // Heat level that triggers ammo explosion check
+
+        var explosionCommand = new AmmoExplosionCommand
+        {
+            UnitId = _unit1Id,
+            AvoidExplosionRoll = new AvoidAmmoExplosionRollData
+            {
+                HeatLevel = 25,
+                DiceResults = [3, 4],
+                AvoidNumber = 6,
+                IsSuccessful = true
+            },
+            ExplosionCriticalHits = null,
+            GameOriginId = Guid.Empty
+        };
+
+        MockHeatEffectsCalculator.CheckForHeatAmmoExplosion(mech!)
+            .Returns(explosionCommand);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        MockHeatEffectsCalculator.Received(1).CheckForHeatAmmoExplosion(mech!);
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<AmmoExplosionCommand>(cmd => cmd.UnitId == _unit1Id));
+    }
+
+    [Fact]
+    public void Enter_WithNoAmmoExplosionThreshold_ShouldNotCheckForAmmoExplosion()
+    {
+        // Arrange
+        var mech = _unit1 as Mech;
+        SetupUnitWithLowHeat(mech!, 10); // Heat level below ammo explosion threshold
+
+        MockHeatEffectsCalculator.CheckForHeatAmmoExplosion(mech!)
+            .Returns((AmmoExplosionCommand?)null);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        MockHeatEffectsCalculator.Received(1).CheckForHeatAmmoExplosion(mech!);
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<AmmoExplosionCommand>());
+    }
+
+    [Fact]
     public void Enter_WithMovementHeat_ShouldCalculateAndApplyCorrectHeat()
     {
         // Arrange
@@ -623,7 +674,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     {
         // Find the engine component on the unit
         var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
-        
+
         // If engine exists, apply hits
         if (engine != null)
         {
@@ -632,5 +683,19 @@ public class HeatPhaseTests : GamePhaseTestsBase
                 engine.Hit();
             }
         }
+    }
+
+    private static void SetupUnitWithHighHeat(Mech mech, int heatLevel)
+    {
+        // Use reflection to set the current heat since there's no public setter
+        var heatProperty = typeof(Mech).GetProperty("CurrentHeat");
+        heatProperty?.SetValue(mech, heatLevel);
+    }
+
+    private static void SetupUnitWithLowHeat(Mech mech, int heatLevel)
+    {
+        // Use reflection to set the current heat since there's no public setter
+        var heatProperty = typeof(Mech).GetProperty("CurrentHeat");
+        heatProperty?.SetValue(mech, heatLevel);
     }
 }
