@@ -53,7 +53,7 @@ public class HeatEffectsCalculatorTests
         // Add multiple ammo components with different damage values
         var ammo1 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
         var ammo2 = new Ammo(Lrm10, 5); // 10 * 5 = 50 damage (less destructive)
-        var ammo3 = new Ammo(Srm2, 50); // 2 * 50 = 100 damage
+        var ammo3 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
 
         centerTorso.TryAddComponent(ammo1, [0]);
         centerTorso.TryAddComponent(ammo2, [1]);
@@ -95,22 +95,6 @@ public class HeatEffectsCalculatorTests
         WeaponComponentType: MakaMekComponent.LRM10,
         AmmoComponentType: MakaMekComponent.ISAmmoLRM10);
 
-    private static readonly WeaponDefinition Srm2 = new(
-        Name: "SRM-2",
-        ElementaryDamage: 2,
-        Heat: 2,
-        MinimumRange: 0,
-        ShortRange: 3,
-        MediumRange: 6,
-        LongRange: 9,
-        Type: WeaponType.Missile,
-        BattleValue: 21,
-        Clusters: 1,
-        ClusterSize: 2,
-        FullAmmoRounds: 50,
-        WeaponComponentType: MakaMekComponent.SRM2,
-        AmmoComponentType: MakaMekComponent.ISAmmoSRM2);
-    
     [Fact]
     public void GetAmmoExplosionAvoidNumber_ShouldReturnCorrectValue()
     {
@@ -220,7 +204,7 @@ public class HeatEffectsCalculatorTests
         // Arrange
         const int avoidNumber = 6;
         _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
-        
+
         var mech = CreateTestMechWithMultipleAmmo();
         SetMechHeat(mech, 25);
 
@@ -243,7 +227,54 @@ public class HeatEffectsCalculatorTests
 
         // Assert
         result.ShouldNotBeNull();
-        _criticalHitsCalculator.Received(1).GetCriticalHitsForDestroyedComponent(mech, Arg.Any<Ammo>());
+        var expectedAmmoFail =
+            mech.GetAvailableComponents<Ammo>()
+                .OrderByDescending(a => a.GetExplosionDamage())
+                .First();
+        _criticalHitsCalculator.Received(1)
+            .GetCriticalHitsForDestroyedComponent(mech, expectedAmmoFail);
+    }
+
+    [Fact]
+    public void CheckForHeatAmmoExplosion_ShouldSelectMostDestructiveAmmo_WhenMoreThanOneAvailable()
+    {
+        // Arrange
+        const int avoidNumber = 6;
+        _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
+        
+        var mech = CreateTestMechWithMultipleAmmo();
+        var mgAmmo = mech.GetAvailableComponents<Ammo>()
+            .First(a => a.Definition.WeaponComponentType == MakaMekComponent.MachineGun);
+        mgAmmo.UnMount();
+        SetMechHeat(mech, 25);
+
+        // Setup dice roll that fails to trigger explosion
+        var diceResults = new List<DiceResult> { new(2), new(3) };
+        _diceRoller.Roll2D6().Returns(diceResults);
+        _diceRoller.RollD6().Returns(diceResults[0]);
+
+        // Setup critical hits calculator
+        var criticalHits = new List<LocationCriticalHitsData>
+        {
+            new(PartLocation.CenterTorso, 8, 1, [
+                new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
+            ])
+        };
+        _criticalHitsCalculator.GetCriticalHitsForDestroyedComponent(Arg.Any<Unit>(), Arg.Any<Ammo>())
+            .Returns(criticalHits);
+
+        // Act
+        var result = _sut.CheckForHeatAmmoExplosion(mech);
+
+        // Assert
+        result.ShouldNotBeNull();
+        var expectedAmmoFail =
+            mech.GetAvailableComponents<Ammo>()
+                .OrderByDescending(a => a.GetExplosionDamage())
+                .First();
+        _criticalHitsCalculator.Received(1)
+            .GetCriticalHitsForDestroyedComponent(mech, Arg.Any<Ammo>());
+        _diceRoller.Received(1).RollD6();
     }
     
     [Fact]

@@ -2330,7 +2330,7 @@ public class ClientGameTests
             ]
         };
         
-        _sut.OnPlayerJoined(joinCommand);
+        _sut.HandleCommand(joinCommand);
         var mech = _sut.Players.SelectMany(p => p.Units).First() as Mech;
         
         var explosionCommand = new AmmoExplosionCommand
@@ -2359,7 +2359,7 @@ public class ClientGameTests
                                 Slot = 1,
                                 Type = MakaMekComponent.ISAmmoLRM5
                             }
-                        ], false)
+                        ])
                     ]
                 )
             ]
