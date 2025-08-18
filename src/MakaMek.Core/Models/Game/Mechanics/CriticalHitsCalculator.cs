@@ -43,6 +43,14 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         var slots = component.MountedAtSlots;
         if (slots.Length == 0)
             return [];
+        
+        // Get explosion damage if the component can explode
+        var explosionDamage = 0;
+        if (component is { CanExplode: true, HasExploded: false })
+        {
+            explosionDamage = component.GetExplosionDamage();
+        }
+        
         var criticalHit = new LocationCriticalHitsData(
             location.Value,
             0, // this is for a "forced" critical hit that doesn't require a roll, like heat triggered explosion
@@ -57,7 +65,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         );
 
         List<LocationCriticalHitsData> criticalHits = [criticalHit];
-        CalculateCriticalHitsRecursively(unit, location.Value, 0, criticalHits);
+        CalculateCriticalHitsRecursively(unit, location.Value, explosionDamage, criticalHits);
         return criticalHits;
     }
 
