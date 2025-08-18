@@ -113,4 +113,17 @@ public interface IRulesProvider
     /// </summary>
     /// <returns>The modifier value to apply when a mech is prone and firing</returns>
     int GetProneFiringModifier();
+
+    /// <summary>
+    /// Gets the target number needed to avoid ammo explosion at a specific heat level
+    /// </summary>
+    /// <param name="heatLevel">The current heat level</param>
+    /// <returns>
+    /// The 2D6 target number to avoid ammo explosion:
+    /// - 0: No explosion check needed (heat less than 19)
+    /// - 4: Avoid on 4+ (heat 19-22)
+    /// - 6: Avoid on 6+ (heat 23-27)
+    /// - 8: Avoid on 8+ (heat 28+)
+    /// </returns>
+    int GetHeatAmmoExplosionAvoidNumber(int heatLevel);
 }

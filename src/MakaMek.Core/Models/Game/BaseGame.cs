@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -353,6 +354,22 @@ public abstract class BaseGame : IGame
         Console.WriteLine("physical attack");
     }
 
+    internal void OnAmmoExplosion(AmmoExplosionCommand explosionCommand)
+    {
+        // Find the unit with the given ID across all players
+        var unit = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == explosionCommand.UnitId);
+
+        if (unit == null) return;
+
+        // Apply explosion damage if it was calculated
+        if (explosionCommand.ExplosionDamage is { Count: > 0 })
+        {
+            unit.ApplyDamage(explosionCommand.ExplosionDamage, HitDirection.Front);
+        }
+    }
+
     /// <summary>
     /// Handles a pilot consciousness roll command by updating the pilot's consciousness state
     /// </summary>
@@ -401,6 +418,7 @@ public abstract class BaseGame : IGame
             PilotConsciousnessRollCommand => true,
             ShutdownUnitCommand => true,
             StartupUnitCommand => true,
+            AmmoExplosionCommand => true,
             _ => false
         };
     }

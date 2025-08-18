@@ -1,5 +1,6 @@
 using Shouldly;
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -2302,5 +2303,73 @@ public class ClientGameTests
 
         // Assert
         pilot.IsConscious.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void HandleCommand_ShouldProcessAmmoExplosionCommand_WhenReceived()
+    {
+        // Arrange
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        var unitId = Guid.NewGuid();
+        mechData.Id = unitId;
+        var pilotId = Guid.NewGuid();
+        
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [mechData],
+            Tint = "#FF0000",
+            PilotAssignments = [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = new PilotData { Id = pilotId, IsConscious = true, Health = 6}
+                }
+            ]
+        };
+        
+        _sut.HandleCommand(joinCommand);
+        var mech = _sut.Players.SelectMany(p => p.Units).First() as Mech;
+        
+        var explosionCommand = new AmmoExplosionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = mech!.Id,
+            AvoidExplosionRoll = new AvoidAmmoExplosionRollData
+            {
+                HeatLevel = 25,
+                DiceResults = [2, 3],
+                AvoidNumber = 6,
+                IsSuccessful = false
+            },
+            ExplosionDamage =
+            [
+                new HitLocationData(
+                    PartLocation.CenterTorso,
+                    10,
+                    [],
+                    [1],
+                    [
+                        new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
+                        [
+                            new ComponentHitData
+                            {
+                                Slot = 1,
+                                Type = MakaMekComponent.ISAmmoLRM5
+                            }
+                        ])
+                    ]
+                )
+            ]
+        };
+
+        // Act
+        _sut.HandleCommand(explosionCommand);
+
+        // Assert - Verify the unit took damage from the explosion
+        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.CurrentArmor.ShouldBe(centerTorso.MaxArmor - 10);
     }
 }

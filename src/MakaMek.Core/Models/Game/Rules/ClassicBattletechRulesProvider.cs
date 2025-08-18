@@ -463,4 +463,15 @@ public class ClassicBattletechRulesProvider : IRulesProvider
     {
         return ProneFiringModifier; // +2 modifier for firing while prone
     }
+
+    public int GetHeatAmmoExplosionAvoidNumber(int heatLevel)
+    {
+        return heatLevel switch
+        {
+            < 19 => 0,   // <19 => no explosion check
+            <= 22 => 4,  // 19+ => avoid on 4+
+            <= 27 => 6,  // 23+ => avoid on 6+
+            _ => 8       // 28+ => avoid on 8+
+        };
+    }
 }

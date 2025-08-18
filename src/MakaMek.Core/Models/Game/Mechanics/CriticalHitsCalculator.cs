@@ -5,21 +5,6 @@ using Sanet.MakaMek.Core.Models.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
-public interface ICriticalHitsCalculator
-{
-    /// <summary>
-    /// Calculates critical hits for all locations in a damage chain without applying damage
-    /// </summary>
-    /// <param name="unit">The unit receiving damage</param>
-    /// <param name="initialLocation">The initial hit location</param>
-    /// <param name="damage">The total damage to apply</param>
-    /// <returns>A list of LocationCriticalHitsData for all affected locations</returns>
-    List<LocationCriticalHitsData> CalculateCriticalHits(
-        Unit unit, 
-        PartLocation initialLocation, 
-        int damage);
-}
-
 /// <summary>
 /// Calculator for determining critical hits for all locations in a damage chain
 /// </summary>
@@ -46,6 +31,41 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     {
         var criticalHits = new List<LocationCriticalHitsData>();
         CalculateCriticalHitsRecursively(unit, initialLocation, damage, criticalHits);
+        return criticalHits;
+    }
+
+    public List<LocationCriticalHitsData> GetCriticalHitsForDestroyedComponent(Unit unit, Component component)
+    {
+        var location = component.GetLocation();
+        if (!location.HasValue) return [];
+
+        // Ensure the component has a resolvable slot
+        var slots = component.MountedAtSlots;
+        if (slots.Length == 0)
+            return [];
+        
+        // Get explosion damage if the component can explode
+        var explosionDamage = 0;
+        if (component is { CanExplode: true, HasExploded: false })
+        {
+            explosionDamage = component.GetExplosionDamage();
+        }
+        
+        var criticalHit = new LocationCriticalHitsData(
+            location.Value,
+            0, // this is for a "forced" critical hit that doesn't require a roll, like heat triggered explosion
+            1,
+            [
+                new ComponentHitData
+                {
+                    Type = component.ComponentType,
+                    Slot = slots[0]
+                }
+            ]
+        );
+
+        List<LocationCriticalHitsData> criticalHits = [criticalHit];
+        CalculateCriticalHitsRecursively(unit, location.Value, explosionDamage, criticalHits);
         return criticalHits;
     }
 

@@ -246,6 +246,13 @@ public class FakeLocalizationService: ILocalizationService
             "Pilot_Status_Unknown" => "UNKNOWN",
             "Pilot_Status_Conscious" => "CONSCIOUS",
             "Pilot_Status_Unconscious" => "UNCONSCIOUS",
+
+            // Ammo explosion commands
+            "Command_AmmoExplosion_Avoided" => "{0} avoided ammo explosion due to heat",
+            "Command_AmmoExplosion_Failed" => "{0} suffered ammo explosion due to heat",
+            "Command_AmmoExplosion_RollDetails" => "Heat level: {0}, Roll: {1} vs {2}",
+            "Command_AmmoExplosion_CriticalHits" => "Explosion caused critical hits:",
+            "Command_AmmoExplosion_ComponentDestroyed" => "- {0} in {1} destroyed by explosion",
             _ => key
         };
     }

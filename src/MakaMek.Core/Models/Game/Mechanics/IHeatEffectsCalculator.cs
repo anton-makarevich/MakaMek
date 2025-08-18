@@ -32,4 +32,19 @@ public interface IHeatEffectsCalculator
     /// <param name="currentTurn">The current game turn</param>
     /// <returns>Restart command with success/failure information</returns>
     UnitStartupCommand? AttemptRestart(Mech mech, int currentTurn);
+
+    /// <summary>
+    /// Gets the ammo explosion avoid number for a given heat level
+    /// </summary>
+    /// <param name="heatLevel">The current heat level</param>
+    /// <returns>The 2D6 target number needed to avoid ammo explosion</returns>
+    int GetAmmoExplosionAvoidNumber(int heatLevel);
+
+    /// <summary>
+    /// Checks if a mech should attempt an ammo explosion roll based on heat thresholds
+    /// and performs the roll if necessary
+    /// </summary>
+    /// <param name="mech">The mech to check for ammo explosion</param>
+    /// <returns>Ammo explosion command if threshold is crossed, null otherwise</returns>
+    AmmoExplosionCommand? CheckForHeatAmmoExplosion(Mech mech);
 }

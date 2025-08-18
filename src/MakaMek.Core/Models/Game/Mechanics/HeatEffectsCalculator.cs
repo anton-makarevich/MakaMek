@@ -3,6 +3,8 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -14,11 +16,13 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
 {
     private readonly IRulesProvider _rulesProvider;
     private readonly IDiceRoller _diceRoller;
+    private readonly ICriticalHitsCalculator _criticalHitsCalculator;
 
-    public HeatEffectsCalculator(IRulesProvider rulesProvider, IDiceRoller diceRoller)
+    public HeatEffectsCalculator(IRulesProvider rulesProvider, IDiceRoller diceRoller, ICriticalHitsCalculator criticalHitsCalculator)
     {
         _rulesProvider = rulesProvider;
         _diceRoller = diceRoller;
+        _criticalHitsCalculator = criticalHitsCalculator;
     }
 
     /// <summary>
@@ -165,5 +169,109 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             GameOriginId = Guid.Empty, // Will be set by the calling phase
             AvoidShutdownRoll = avoidShutdownRollData
         };
+    }
+
+    /// <summary>
+    /// Gets the ammo explosion avoid number for a given heat level
+    /// </summary>
+    /// <param name="heatLevel">The current heat level</param>
+    /// <returns>The 2D6 target number needed to avoid ammo explosion</returns>
+    public int GetAmmoExplosionAvoidNumber(int heatLevel)
+    {
+        return _rulesProvider.GetHeatAmmoExplosionAvoidNumber(heatLevel);
+    }
+
+    public AmmoExplosionCommand? CheckForHeatAmmoExplosion(Mech mech)
+    {
+        var currentHeat = mech.CurrentHeat;
+        var avoidNumber = GetAmmoExplosionAvoidNumber(currentHeat);
+
+        // No explosion check needed
+        if (avoidNumber < DiceUtils.Guaranteed2D6Roll)
+            return null;
+
+        // Find explodable ammo components
+        var explodableAmmo = GetExplodableAmmoComponents(mech);
+        if (explodableAmmo.Count == 0)
+            return null;
+
+        // Roll 2D6 to avoid explosion
+        var diceRoll = _diceRoller.Roll2D6();
+        var diceResults = diceRoll.Select(d => d.Result).ToArray();
+        var rollTotal = diceResults.Sum();
+
+        var explosionOccurs = rollTotal < avoidNumber;
+
+        var avoidExplosionRollData = new AvoidAmmoExplosionRollData
+        {
+            HeatLevel = currentHeat,
+            DiceResults = diceResults,
+            AvoidNumber = avoidNumber,
+            IsSuccessful = !explosionOccurs
+        };
+
+        List<HitLocationData> explosionDamage = [];
+
+        if (explosionOccurs)
+        {
+            // Select the most destructive ammo component to explode
+            var selectedAmmo = SelectMostDestructiveAmmoComponent(explodableAmmo);
+            explosionDamage = ProcessAmmoExplosion(mech, selectedAmmo);
+        }
+
+        return new AmmoExplosionCommand
+        {
+            UnitId = mech.Id,
+            AvoidExplosionRoll = avoidExplosionRollData,
+            ExplosionDamage = explosionDamage,
+            GameOriginId = Guid.Empty
+        };
+    }
+
+    private List<Ammo> GetExplodableAmmoComponents(Mech mech)
+    {
+        return mech.GetAvailableComponents<Ammo>()
+            .Where(ammo => ammo is { CanExplode: true, HasExploded: false })
+            .ToList();
+    }
+
+    private Ammo SelectMostDestructiveAmmoComponent(List<Ammo> explodableAmmo)
+    {
+        // Find the maximum explosion damage
+        var maxDamage = explodableAmmo.Max(ammo => ammo.GetExplosionDamage());
+
+        // Get all ammo components with the maximum damage
+        var mostDestructiveAmmo = explodableAmmo
+            .Where(ammo => ammo.GetExplosionDamage() == maxDamage)
+            .ToList();
+
+        // If there's only one, return it
+        if (mostDestructiveAmmo.Count == 1)
+            return mostDestructiveAmmo[0];
+
+        // If there are multiple with the same damage, randomly select one
+        var randomIndex = _diceRoller.RollD6().Result - 1; // Convert to 0-based
+        return mostDestructiveAmmo[randomIndex % mostDestructiveAmmo.Count];
+    }
+
+    private List<HitLocationData> ProcessAmmoExplosion(Mech mech, Component ammoComponent)
+    {
+        var location = ammoComponent.GetLocation();
+        if (!location.HasValue) return [];
+
+        // Use existing critical hits calculator to process the explosion
+        var criticalHits = _criticalHitsCalculator
+            .GetCriticalHitsForDestroyedComponent(mech,ammoComponent);
+
+        // Convert critical hits data to hit location data for damage application
+        var hitLocationData = new HitLocationData(
+            location.Value,
+            0, // Damage for explosion is calculated automatically
+            [], // No aimed shot for explosions
+            [], // No location roll for explosions
+            criticalHits // Include the critical hits data
+        );
+
+        return [hitLocationData];
     }
 }
