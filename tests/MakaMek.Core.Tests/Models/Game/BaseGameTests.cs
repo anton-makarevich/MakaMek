@@ -1071,6 +1071,24 @@ public class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void ValidateCommand_ShouldAutoValidateAmmoExplosionCommand()
+    {
+        // Arrange
+        var command = new AmmoExplosionCommand()
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+    
+    [Fact]
     public void OnUnitShutdown_DoesNothing_WhenUnitNotFound()
     {
         // Arrange
