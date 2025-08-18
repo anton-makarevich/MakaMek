@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
@@ -403,5 +404,89 @@ public class CriticalHitsCalculatorTests
         // The last critical hit set should be in the transfer location
         var lastResult = result[^1];
         lastResult.Location.ShouldBe(PartLocation.CenterTorso);
+    }
+
+    [Fact]
+    public void GetCriticalHitsForDestroyedComponent_WithNonExplosiveComponent_ReturnsSingleCriticalHit()
+    {
+        // Arrange
+        var testUnit = CreateCustomMech(5, 5);
+        const PartLocation location = PartLocation.RightTorso;
+        var part = testUnit.Parts.First(p => p.Location == location);
+        
+        // Add a non-explosive component (e.g., a heat sink)
+        var heatSink = new HeatSink();
+        part.TryAddComponent(heatSink, [0]);
+        
+        // Act
+        var result = _sut.GetCriticalHitsForDestroyedComponent(testUnit, heatSink);
+        
+        // Assert
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(1);
+        result[0].Location.ShouldBe(location);
+        result[0].Roll.ShouldBe(0); // No roll for forced critical hit
+        result[0].HitComponents.ShouldNotBeNull();
+        result[0].HitComponents!.Length.ShouldBe(1);
+        result[0].HitComponents![0].Slot.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void GetCriticalHitsForDestroyedComponent_WithExplosiveComponent_ReturnsCriticalHitsWithExplosionDamage()
+    {
+        // Arrange
+        var testUnit = CreateCustomMech(5, 5);
+        const PartLocation location = PartLocation.LeftTorso;
+        var part = testUnit.Parts.First(p => p.Location == location);
+        
+        // Add an explosive component (ammo)
+        var ammo = new Ammo(Ac5.Definition, 10); // AC/5 ammo with 10 shots
+        part.TryAddComponent(ammo);
+        
+        // Setup dice roller for explosion critical hits
+        _mockDiceRoller.Roll2D6().Returns(
+            // First roll for explosion damage (10 = 2 crits)
+            [new DiceResult(6), new DiceResult(4)]
+        );
+        
+        // Setup rolls for critical hit slots
+        _mockDiceRoller.RollD6().Returns(
+            new DiceResult(3), // First slot
+            new DiceResult(5)  // Second slot
+        );
+        
+        // Act
+        var result = _sut.GetCriticalHitsForDestroyedComponent(testUnit, ammo);
+        
+        // Assert
+        result.ShouldNotBeNull();
+        result.Count.ShouldBeGreaterThan(1); // Initial critical hit + explosion critical hit
+        
+        // Initial critical hit
+        result[0].Location.ShouldBe(location);
+        result[0].Roll.ShouldBe(0); // Forced critical hit
+        result[0].HitComponents.ShouldNotBeNull();
+        result[0].HitComponents!.Length.ShouldBe(1);
+        result[0].HitComponents![0].Slot.ShouldBe(ammo.MountedAtSlots[0]); // Should hit slot 2 where ammo is
+        
+        // Explosion critical hit
+        result[1].Location.ShouldBe(location);
+        result[1].Roll.ShouldBe(10); // 6 + 4
+        result[1].NumCriticalHits.ShouldBe(2); // Roll of 10 gives 2 critical hits
+    }
+    
+    [Fact]
+    public void GetCriticalHitsForDestroyedComponent_WithNoLocation_ReturnsEmptyList()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        var component = new HeatSink();
+        
+        // Act
+        var result = _sut.GetCriticalHitsForDestroyedComponent(testUnit, component);
+        
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
     }
 }
