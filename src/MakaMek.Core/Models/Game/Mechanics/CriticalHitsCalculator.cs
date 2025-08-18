@@ -38,6 +38,11 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     {
         var location = component.GetLocation();
         if (!location.HasValue) return [];
+
+        // Ensure the component has a resolvable slot
+        var slots = component.MountedAtSlots;
+        if (slots.Length == 0)
+            return [];
         var criticalHit = new LocationCriticalHitsData(
             location.Value,
             0, // this is for a "forced" critical hit that doesn't require a roll, like heat triggered explosion
@@ -46,7 +51,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
                 new ComponentHitData
                 {
                     Type = component.ComponentType,
-                    Slot = component.MountedAtSlots[0]
+                    Slot = slots[0]
                 }
             ]
         );

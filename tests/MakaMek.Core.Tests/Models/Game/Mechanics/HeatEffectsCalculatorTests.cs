@@ -200,14 +200,6 @@ public class HeatEffectsCalculatorTests
         var diceResults = new List<DiceResult> { new(2), new(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
 
-        // Setup critical hits calculator to return some critical hits
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.CenterTorso, 8, 1, [new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }])
-        };
-        _criticalHitsCalculator.CalculateCriticalHits(Arg.Any<Unit>(), Arg.Any<PartLocation>(), Arg.Any<int>())
-            .Returns(criticalHits);
-
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
 

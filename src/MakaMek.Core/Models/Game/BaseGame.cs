@@ -364,7 +364,7 @@ public abstract class BaseGame : IGame
         if (unit == null) return;
 
         // Apply explosion damage if it was calculated
-        if (explosionCommand.ExplosionDamage.Count > 0)
+        if (explosionCommand.ExplosionDamage is { Count: > 0 })
         {
             unit.ApplyDamage(explosionCommand.ExplosionDamage, HitDirection.Front);
         }

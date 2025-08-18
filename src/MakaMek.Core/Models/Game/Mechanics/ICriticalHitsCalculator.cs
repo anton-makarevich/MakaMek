@@ -18,6 +18,13 @@ public interface ICriticalHitsCalculator
         PartLocation initialLocation, 
         int damage);
     
+    /// <summary>
+    /// Builds a forced critical-hit chain starting from a destroyed component (e.g., ammo explosion)
+    /// without applying any damage or mutating unit state.
+    /// </summary>
+    /// <param name="unit">The owning unit receiving the explosion effects.</param>
+    /// <param name="component">The component considered destroyed; its location anchors the crit chain.</param>
+    /// <returns>Critical-hit data beginning at the component's location.</returns>
     List<LocationCriticalHitsData> GetCriticalHitsForDestroyedComponent(
         Unit unit, 
         Component component);
