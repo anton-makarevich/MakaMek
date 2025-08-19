@@ -372,7 +372,7 @@ public class ServerGameTests
         var unit = player.Units.First();
 
         // Apply damage to the unit
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [],[]),
         };

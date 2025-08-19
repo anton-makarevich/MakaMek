@@ -199,7 +199,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var completeClusterHits = missilesHit / weapon.ClusterSize;
         var remainingMissiles = missilesHit % weapon.ClusterSize;
         
-        var hitLocations = new List<HitLocationData>();
+        var hitLocations = new List<LocationHitData>();
         var totalDamage = 0;
         
         // For each complete cluster that hit
@@ -251,7 +251,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// <param name="weapon">The firing weapon</param>
     /// <param name="weaponTargetData">Weapon's target data</param>
     /// <returns>Hit location data with location, damage and dice roll</returns>
-    private HitLocationData DetermineHitLocation(
+    private LocationHitData DetermineHitLocation(
         HitDirection attackDirection,
         int damage,
         Unit target,
@@ -312,12 +312,15 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Calculate critical hits for all locations in the damage chain
         var criticalHits = Game.CriticalHitsCalculator.CalculateCriticalHits(
             target, hitLocation, damage);
-        
-        return new HitLocationData(
-            hitLocation, 
-            damage, 
+
+        // TODO: Replace with StructureDamageCalculator when available
+        // For now, treat all damage as combined armor/structure damage
+        return new LocationHitData(
+            hitLocation,
+            damage, // ArmorDamage - temporary, should be calculated properly
+            0,      // StructureDamage - temporary, should be calculated properly
             aimedShotRollResult,
-            locationRoll, 
+            locationRoll,
             criticalHits,
             locationTransferred ? initialLocation : null);
     }

@@ -12,12 +12,12 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game;
 
-public class HitLocationDataTests
+public class LocationHitDataTests
 {
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly Unit _unit;
 
-    public HitLocationDataTests()
+    public LocationHitDataTests()
     {
         // Initialize localization service with test values
         _localizationService.GetString("Command_WeaponAttackResolution_HitLocation")
@@ -55,7 +55,7 @@ public class HitLocationDataTests
     public void Render_BasicHitLocation_ReturnsCorrectOutput()
     {
         // Arrange
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.CenterTorso,
             5,
             [], // No aimed shot roll
@@ -74,7 +74,7 @@ public class HitLocationDataTests
     public void Render_HitLocationWithTransfer_ReturnsCorrectOutput()
     {
         // Arrange
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.CenterTorso,
             5,
             [], // No aimed shot roll
@@ -112,7 +112,7 @@ public class HitLocationDataTests
             )
         };
 
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.CenterTorso,
             5,
             [], // No aimed shot roll
@@ -146,7 +146,7 @@ public class HitLocationDataTests
             )
         };
 
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.LeftArm,
             5,
             [], // No aimed shot roll
@@ -186,7 +186,7 @@ public class HitLocationDataTests
             )
         };
 
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.CenterTorso, // Hit was in center torso
             5,
             [], // No aimed shot roll
@@ -227,7 +227,7 @@ public class HitLocationDataTests
             )
         };
 
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.CenterTorso,
             5,
             [], // No aimed shot roll
@@ -250,7 +250,7 @@ public class HitLocationDataTests
     public void Render_SuccessfulAimedShot_ReturnsCorrectOutput()
     {
         // Arrange
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.Head,
             5,
             [3, 4], // Aimed shot roll: 7 (successful)
@@ -269,7 +269,7 @@ public class HitLocationDataTests
     public void Render_FailedAimedShot_ReturnsCorrectOutput()
     {
         // Arrange
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.CenterTorso,
             5,
             [2, 3], // Aimed shot roll: 5 (failed)
@@ -307,7 +307,7 @@ public class HitLocationDataTests
 
         int[] locationRoll = shouldSucceed ? [] : [3, 4]; // Only present if aimed shot failed
 
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.RightArm,
             8,
             aimedShotRoll,
@@ -345,7 +345,7 @@ public class HitLocationDataTests
             )
         };
 
-        var sut = new HitLocationData(
+        var sut = new LocationHitData(
             PartLocation.RightArm,
             5,
             [4, 4], // Aimed shot roll: 8 (successful)

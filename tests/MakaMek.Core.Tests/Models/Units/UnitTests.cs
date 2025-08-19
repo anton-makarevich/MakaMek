@@ -535,7 +535,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [], []), // No aimed shot, no location roll
             new(PartLocation.LeftArm, 3, [], []) // No aimed shot, no location roll
@@ -560,7 +560,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [], []), // No aimed shot, no location roll
             new(PartLocation.Head, 3, [], []) // Unit doesn't have a Head part, no aimed shot, no location roll
@@ -583,7 +583,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var hitLocations = new List<HitLocationData>();
+        var hitLocations = new List<LocationHitData>();
         
         // Get initial armor values for all parts
         var initialArmorValues = unit.Parts.ToDictionary(p => p.Location, p => p.CurrentArmor);
@@ -1097,7 +1097,7 @@ public class UnitTests
         var critComponent = new TestComponent("CritComp");
         leftArm.TryAddComponent(critComponent, [2]);
         var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
-        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], [], // No aimed shot, no location roll
+        var hitLocation = new LocationHitData(PartLocation.LeftArm, 0, [], [], // No aimed shot, no location roll
             [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1,
                 [CreateComponentHitData(2)])]);
     
@@ -1117,7 +1117,7 @@ public class UnitTests
         var pilot = new MechWarrior("John", "Doe");
         var unit = new TestUnit("Test", "Unit", 20, 4, [head]);
         unit.AssignPilot(pilot);
-        var hitLocation = new HitLocationData(PartLocation.Head, 0, [], [], // No aimed shot, no location roll
+        var hitLocation = new LocationHitData(PartLocation.Head, 0, [], [], // No aimed shot, no location roll
         [new LocationCriticalHitsData(PartLocation.Head, 10, 1,
             [CreateComponentHitData(2)])]);
         var cockpit = unit.GetAllComponents<Cockpit>().First();
@@ -1137,7 +1137,7 @@ public class UnitTests
         // Arrange
         var leftArm = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 5);
         var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
-        var hitLocation = new HitLocationData(PartLocation.LeftArm, 0, [], [], // No aimed shot, no location roll
+        var hitLocation = new LocationHitData(PartLocation.LeftArm, 0, [], [], // No aimed shot, no location roll
             [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, null,true)]);
         
         // Act
@@ -1155,7 +1155,7 @@ public class UnitTests
         var component = new TestComponent("Test Component", 3);
         targetPart.TryAddComponent(component);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 10, [], [3, 5], // No aimed shot, location roll 3,5
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2,
@@ -1179,7 +1179,7 @@ public class UnitTests
         var unit = CreateTestUnit();
         var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 10, [], [3, 5], // No aimed shot, location roll 3,5
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 12, 0, null, true)])
@@ -1201,7 +1201,7 @@ public class UnitTests
         var component = new TestComponent("Test Component", 3);
         targetPart.TryAddComponent(component);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 10, [], [3, 5]) // No aimed shot, location roll 3,5
         };
@@ -1227,7 +1227,7 @@ public class UnitTests
         var explodableComponent = new TestExplodableComponent("Explodable Component", 5);
         targetPart.TryAddComponent(explodableComponent, [1]);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 5, [], [3], // No aimed shot, location roll 3
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
@@ -1261,7 +1261,7 @@ public class UnitTests
         targetPart.TryAddComponent(explodableComponent1, [1]);
         targetPart.TryAddComponent(explodableComponent2, [2]);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 2, [], [3], // No aimed shot, location roll 3
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
@@ -1295,7 +1295,7 @@ public class UnitTests
         explodableComponent.Hit(); // This will set HasExploded to true
         targetPart.TryAddComponent(explodableComponent, [1]);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 3, [], [3], // No aimed shot, location roll 3
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
@@ -1325,7 +1325,7 @@ public class UnitTests
         var nonExplodableComponent = new TestComponent("Non-Explodable Component", 3);
         targetPart.TryAddComponent(nonExplodableComponent, [1]);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 4, [], [3], // No aimed shot, location roll 3
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
@@ -1353,7 +1353,7 @@ public class UnitTests
         var explodableComponent = new TestExplodableComponent("Zero Explosion Component", 0);
         targetPart.TryAddComponent(explodableComponent, [1]);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 6, [], [3], // No aimed shot, location roll 3
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [CreateComponentHitData(1)])])
@@ -1393,7 +1393,7 @@ public class UnitTests
             [CreateComponentHitData(0)] // Hit the first slot where our component is
         );
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.CenterTorso, // Location
@@ -1429,9 +1429,9 @@ public class UnitTests
         var unit = CreateTestUnit();
         
         // Create hit locations that will destroy the unit
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
-            new HitLocationData(
+            new LocationHitData(
                 PartLocation.CenterTorso, // Location
                 100, // Damage enough to destroy the center torso completely
                 [], // No aimed shot
@@ -1625,7 +1625,7 @@ public class UnitTests
     {
         // Arrange
         var sut = CreateTestUnit();
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [], []), // No aimed shot, no location roll
             new(PartLocation.LeftArm, 3, [], []) // No aimed shot, no location roll
@@ -1643,11 +1643,11 @@ public class UnitTests
     {
         // Arrange
         var sut = CreateTestUnit();
-        var firstHitLocations = new List<HitLocationData>
+        var firstHitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 4, [], []) // No aimed shot, no location roll
         };
-        var secondHitLocations = new List<HitLocationData>
+        var secondHitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 6, [], []) // No aimed shot, no location roll
         };
@@ -1671,7 +1671,7 @@ public class UnitTests
         var explodableComponent = new TestExplodableComponent("Explodable Component", 5);
         targetPart.TryAddComponent(explodableComponent, [1]);
 
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 3, [], [3], // No aimed shot, location roll 3
                 [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
@@ -1690,7 +1690,7 @@ public class UnitTests
     {
         // Arrange
         var sut = CreateTestUnit();
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 7, [], []), // No aimed shot, no location roll
             new(PartLocation.LeftArm, 4, [], []) // No aimed shot, no location roll

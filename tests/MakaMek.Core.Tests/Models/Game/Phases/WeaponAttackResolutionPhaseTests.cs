@@ -910,7 +910,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var damageData = new FallingDamageData(HexDirection.Bottom,
             new HitLocationsData(
                 HitLocations: [
-                new HitLocationData(
+                new LocationHitData(
                 PartLocation.CenterTorso,
                 5,
                 [],
@@ -961,7 +961,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var damageData = new FallingDamageData(HexDirection.Bottom,
             new HitLocationsData(
                 HitLocations: [
-                    new HitLocationData(
+                    new LocationHitData(
                         PartLocation.CenterTorso,
                         5,
                         [],
@@ -1032,7 +1032,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     // Helper to invoke private method
-    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, HitDirection hitDirection, int dmg,
+    private static LocationHitData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, HitDirection hitDirection, int dmg,
         Unit? target, WeaponTargetData? weaponTargetData = null)
     {
         weaponTargetData ??= new WeaponTargetData
@@ -1049,7 +1049,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var weapon = new TestWeapon();
         var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (HitLocationData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData])!;
+        return (LocationHitData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData])!;
     }
 
 

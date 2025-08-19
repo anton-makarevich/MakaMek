@@ -119,7 +119,7 @@ public class WeaponAttackResolutionCommandTests
     private WeaponAttackResolutionCommand CreateHitCommand()
     {
         // Create a hit with a single location
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
@@ -172,7 +172,7 @@ public class WeaponAttackResolutionCommandTests
     private WeaponAttackResolutionCommand CreateClusterHitCommand()
     {
         // Create a hit with multiple locations and cluster weapon
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.LeftArm, 2, [], [2, 3]), // No aimed shot, location roll 2,3
             new(PartLocation.RightArm, 2, [], [2, 1]), // No aimed shot, location roll 2,1
@@ -332,7 +332,7 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldDisplayCorrectAttackDirection(HitDirection direction, string expectedDirectionText)
     {
         // Arrange
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
@@ -376,7 +376,7 @@ public class WeaponAttackResolutionCommandTests
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         var critComponent = new MachineGun();
         leftArm.TryAddComponent(critComponent, [2]);
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.LeftArm,
@@ -425,7 +425,7 @@ public class WeaponAttackResolutionCommandTests
         var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
         var critComponent = new MachineGun();
         leftArm.TryAddComponent(critComponent, [2]);
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.LeftArm,
@@ -471,7 +471,7 @@ public class WeaponAttackResolutionCommandTests
     public void Render_Includes_HitLocationTransfer_Info_When_Transfers_Present()
     {
         // Arrange: create a hit with a transfer from LeftArm to LeftTorso
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.LeftTorso,  // Final location
@@ -518,7 +518,7 @@ public class WeaponAttackResolutionCommandTests
     public void Render_Includes_BlownOff_Message_When_Location_Is_Blown_Off()
     {
         // Arrange: create a hit with a blown-off location (head)
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.Head,
@@ -570,7 +570,7 @@ public class WeaponAttackResolutionCommandTests
         var critComponent = new MachineGun();
         leftArm.TryAddComponent(critComponent, [2]);
 
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.CenterTorso,
@@ -628,7 +628,7 @@ public class WeaponAttackResolutionCommandTests
         leftArm.TryAddComponent(critComponent1, [2]);
         leftArm.TryAddComponent(critComponent2, [3]);
 
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.LeftArm,
@@ -689,7 +689,7 @@ public class WeaponAttackResolutionCommandTests
         leftArm.TryAddComponent(critComponent1, [2]);
         rightArm.TryAddComponent(critComponent2, [3]);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.CenterTorso,
@@ -745,7 +745,7 @@ public class WeaponAttackResolutionCommandTests
     public void Render_Handles_Multiple_Blown_Off_Locations()
     {
         // Arrange: create a hit with multiple blown-off locations
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.CenterTorso,
@@ -795,7 +795,7 @@ public class WeaponAttackResolutionCommandTests
     public void Render_Handles_Null_CriticalHits_Array()
     {
         // Arrange: create a hit with null critical hits array
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.CenterTorso,
@@ -843,7 +843,7 @@ public class WeaponAttackResolutionCommandTests
     public void Render_Handles_Component_Lookup_Failure()
     {
         // Arrange: create a hit with a critical hit in a slot that doesn't have a component
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.LeftArm,
@@ -899,7 +899,7 @@ public class WeaponAttackResolutionCommandTests
         var ammoComponent = new Ammo(Ac5.Definition, 10);
         leftArm.TryAddComponent(ammoComponent, [2]);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.LeftArm,
@@ -951,7 +951,7 @@ public class WeaponAttackResolutionCommandTests
         var critComponent = new MachineGun();
         leftArm.TryAddComponent(critComponent, [2]);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.LeftArm,
@@ -1007,7 +1007,7 @@ public class WeaponAttackResolutionCommandTests
         leftArm.TryAddComponent(ammoComponent, [2]);
         ammoComponent.Hit(); // This will set HasExploded to true
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.LeftArm,
@@ -1061,7 +1061,7 @@ public class WeaponAttackResolutionCommandTests
         var ammoComponent = new Ammo(Ac5.Definition, 0);
         leftArm.TryAddComponent(ammoComponent, [2]);
         
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.LeftArm,
@@ -1109,7 +1109,7 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldIncludeDestroyedParts_WhenPartsAreDestroyed()
     {
         // Arrange
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
@@ -1155,7 +1155,7 @@ public class WeaponAttackResolutionCommandTests
     public void Render_ShouldIncludeUnitDestroyed_WhenUnitIsDestroyed()
     {
         // Arrange
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };

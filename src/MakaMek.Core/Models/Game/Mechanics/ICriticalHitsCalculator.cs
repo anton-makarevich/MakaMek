@@ -7,25 +7,22 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 public interface ICriticalHitsCalculator
 {
     /// <summary>
-    /// Calculates critical hits for all locations in a damage chain without applying damage
+    /// Calculates critical hits for all locations that received structure damage
     /// </summary>
     /// <param name="unit">The unit receiving damage</param>
-    /// <param name="initialLocation">The initial hit location</param>
-    /// <param name="damage">The total damage to apply</param>
-    /// <returns>A list of LocationCriticalHitsData for all affected locations</returns>
-    List<LocationCriticalHitsData> CalculateCriticalHits(
-        Unit unit, 
-        PartLocation initialLocation, 
-        int damage);
-    
+    /// <param name="structureDamageByLocation">Dictionary mapping locations to their structure damage</param>
+    /// <returns>A list of LocationCriticalHitsResolutionData for all affected locations</returns>
+    List<LocationCriticalHitsResolutionData> CalculateCriticalHitsForStructureDamage(
+        Unit unit,
+        Dictionary<PartLocation, int> structureDamageByLocation);
+
     /// <summary>
-    /// Builds a forced critical-hit chain starting from a destroyed component (e.g., ammo explosion)
-    /// without applying any damage or mutating unit state.
+    /// Calculates critical hits for heat-induced component explosion
     /// </summary>
-    /// <param name="unit">The owning unit receiving the explosion effects.</param>
-    /// <param name="component">The component considered destroyed; its location anchors the crit chain.</param>
-    /// <returns>Critical-hit data beginning at the component's location.</returns>
-    List<LocationCriticalHitsData> GetCriticalHitsForDestroyedComponent(
-        Unit unit, 
-        Component component);
+    /// <param name="unit">The owning unit receiving the explosion effects</param>
+    /// <param name="explodingComponent">The component that exploded due to heat</param>
+    /// <returns>Critical-hit data beginning at the component's location</returns>
+    List<LocationCriticalHitsResolutionData> CalculateCriticalHitsForHeatExplosion(
+        Unit unit,
+        Component explodingComponent);
 }

@@ -210,7 +210,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             IsSuccessful = !explosionOccurs
         };
 
-        List<HitLocationData> explosionDamage = [];
+        List<LocationHitData> explosionDamage = [];
 
         if (explosionOccurs)
         {
@@ -254,7 +254,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         return mostDestructiveAmmo[randomIndex % mostDestructiveAmmo.Count];
     }
 
-    private List<HitLocationData> ProcessAmmoExplosion(Mech mech, Component ammoComponent)
+    private List<LocationHitData> ProcessAmmoExplosion(Mech mech, Component ammoComponent)
     {
         var location = ammoComponent.GetLocation();
         if (!location.HasValue) return [];
@@ -264,7 +264,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             .GetCriticalHitsForDestroyedComponent(mech,ammoComponent);
 
         // Convert critical hits data to hit location data for damage application
-        var hitLocationData = new HitLocationData(
+        var hitLocationData = new LocationHitData(
             location.Value,
             0, // Damage for explosion is calculated automatically
             [], // No aimed shot for explosions

@@ -965,7 +965,7 @@ public class ClientGameTests
         targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
         
         // Create hit locations data
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [],[]),
             new(PartLocation.LeftArm, 3, [],[])
@@ -1970,8 +1970,8 @@ public class ClientGameTests
         var unit2 = player2.Units.First();
 
         // Apply different amounts of damage to each unit
-        unit1.ApplyDamage([new HitLocationData(PartLocation.CenterTorso, 9, [],[])], HitDirection.Front);
-        unit2.ApplyDamage([new HitLocationData(PartLocation.LeftLeg, 5, [],[])], HitDirection.Front);
+        unit1.ApplyDamage([new LocationHitData(PartLocation.CenterTorso, 9, [],[])], HitDirection.Front);
+        unit2.ApplyDamage([new LocationHitData(PartLocation.LeftLeg, 5, [],[])], HitDirection.Front);
 
         // Verify damage was accumulated
         unit1.TotalPhaseDamage.ShouldBe(9);
@@ -2029,7 +2029,7 @@ public class ClientGameTests
         });
         
         // Create hit locations data for the falling damage
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.CenterTorso, 
@@ -2115,7 +2115,7 @@ public class ClientGameTests
         });
         
         // Create hit locations data for the falling damage
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.CenterTorso, 
@@ -2171,7 +2171,7 @@ public class ClientGameTests
         var nonExistentUnitId = Guid.NewGuid();
         
         // Create hit locations data for the falling damage
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(
                 PartLocation.CenterTorso, 
@@ -2346,7 +2346,7 @@ public class ClientGameTests
             },
             ExplosionDamage =
             [
-                new HitLocationData(
+                new LocationHitData(
                     PartLocation.CenterTorso,
                     10,
                     [],

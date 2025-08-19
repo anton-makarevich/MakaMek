@@ -4,5 +4,5 @@
 /// Represents all locations receiving damage
 /// </summary>
 public record HitLocationsData(
-    List<HitLocationData> HitLocations,
+    List<LocationHitData> HitLocations,
     int TotalDamage);

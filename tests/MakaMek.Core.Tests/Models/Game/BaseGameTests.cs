@@ -464,7 +464,7 @@ public class BaseGameTests : BaseGame
         targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
 
         // Create hit locations data
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [],[]),
             new(PartLocation.LeftArm, 3, [],[])
@@ -600,7 +600,7 @@ public class BaseGameTests : BaseGame
         weapon.ShouldNotBeNull();
 
         // Create hit locations data
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [],[]),
             new(PartLocation.LeftArm, 3, [],[])

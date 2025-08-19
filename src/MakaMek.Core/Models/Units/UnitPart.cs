@@ -154,6 +154,38 @@ public abstract class UnitPart
         return damage;
     }
 
+    /// <summary>
+    /// Applies pre-calculated armor damage to this part
+    /// </summary>
+    /// <param name="armorDamage">The amount of armor damage to apply</param>
+    /// <param name="direction">The direction of the hit</param>
+    public virtual void ApplyArmorDamage(int armorDamage, HitDirection direction)
+    {
+        if (armorDamage <= 0) return;
+
+        var damageToApply = Math.Min(armorDamage, CurrentArmor);
+        CurrentArmor -= damageToApply;
+        Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage, Name, damageToApply.ToString()));
+    }
+
+    /// <summary>
+    /// Applies pre-calculated structure damage to this part
+    /// </summary>
+    /// <param name="structureDamage">The amount of structure damage to apply</param>
+    public virtual void ApplyStructureDamage(int structureDamage)
+    {
+        if (structureDamage <= 0) return;
+
+        var damageToApply = Math.Min(structureDamage, CurrentStructure);
+        CurrentStructure -= damageToApply;
+        Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage, Name, damageToApply.ToString()));
+
+        if (CurrentStructure <= 0)
+        {
+            Unit?.AddEvent(new UiEvent(UiEventType.LocationDestroyed, Name));
+        }
+    }
+
     public T? GetComponent<T>() where T : Component
     {
         return _components.OfType<T>().FirstOrDefault();

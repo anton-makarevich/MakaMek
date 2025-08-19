@@ -360,7 +360,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Destroy the unit
-        unit.ApplyDamage([new HitLocationData(
+        unit.ApplyDamage([new LocationHitData(
             PartLocation.CenterTorso,
             100,
             [],
@@ -523,7 +523,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Destroy the unit
-        unit.ApplyDamage([new HitLocationData(
+        unit.ApplyDamage([new LocationHitData(
             PartLocation.CenterTorso,
             100,
             [],

@@ -223,7 +223,7 @@ public class EndStateTests
     {
         // Arrange
         // Make the player unable to act by destroying their unit
-        _unit1.ApplyDamage([new HitLocationData(
+        _unit1.ApplyDamage([new LocationHitData(
             PartLocation.CenterTorso,
             100,
             [],
@@ -238,7 +238,7 @@ public class EndStateTests
     {
         // Arrange
         // Make the player unable to act by destroying their unit
-        _unit1.ApplyDamage([new HitLocationData(
+        _unit1.ApplyDamage([new LocationHitData(
             PartLocation.CenterTorso,
             100,
             [],
@@ -305,7 +305,7 @@ public class EndStateTests
     public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitDestroyed()
     {
         // Arrange
-        _unit1.ApplyDamage([new HitLocationData(
+        _unit1.ApplyDamage([new LocationHitData(
             PartLocation.CenterTorso,
             100,
             [],

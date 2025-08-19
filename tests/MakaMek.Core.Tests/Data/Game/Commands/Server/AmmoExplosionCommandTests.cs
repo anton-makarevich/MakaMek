@@ -124,7 +124,7 @@ public class AmmoExplosionCommandTests
             },
             ExplosionDamage =
             [
-                new HitLocationData(PartLocation.CenterTorso, 120, [], [],
+                new LocationHitData(PartLocation.CenterTorso, 120, [], [],
                     [
                         new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
                             [new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }])
@@ -157,7 +157,7 @@ public class AmmoExplosionCommandTests
             },
             ExplosionDamage =
             [
-                new HitLocationData(PartLocation.CenterTorso, 120, [], [], [
+                new LocationHitData(PartLocation.CenterTorso, 120, [], [], [
                     new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
                         [new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }])
                 ])

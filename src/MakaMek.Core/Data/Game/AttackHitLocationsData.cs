@@ -6,7 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 /// Represents all hit locations from a weapon attack
 /// </summary>
 public record AttackHitLocationsData(
-    List<HitLocationData> HitLocations,
+    List<LocationHitData> HitLocations,
     int TotalDamage,
     List<DiceResult> ClusterRoll,
     int MissilesHit):HitLocationsData(HitLocations,TotalDamage);

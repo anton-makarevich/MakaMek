@@ -88,7 +88,7 @@ public class MechFallCommandTests
 
     private FallingDamageData CreateTestFallingDamageData(int totalDamage = 5)
     {
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, totalDamage, [],[6])
         };
@@ -123,7 +123,7 @@ public class MechFallCommandTests
 
     private MechFallCommand CreatePilotInjuryCommand()
     {
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [],[6])
         };
@@ -153,7 +153,7 @@ public class MechFallCommandTests
 
     private MechFallCommand CreateComplexFallCommand()
     {
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
             new(PartLocation.CenterTorso, 5, [],[6]),
             new(PartLocation.LeftLeg, 3, [],[4])
