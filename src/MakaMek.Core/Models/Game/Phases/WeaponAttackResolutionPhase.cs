@@ -272,29 +272,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             }
         }
 
-        bool IsAimedShotPossible(Unit unit, Weapon weapon1, WeaponTargetData weaponTargetData1)
-        {
-            return unit.IsImmobile // Immobile target
-                   && weapon1.IsAimShotCapable // Aimed shot capable weapon
-                   && weaponTargetData1.AimedShotTarget.HasValue; // Aimed shot target specified
-        }
-
-        // Get hit location based on the roll and attack direction
-        PartLocation GetHitLocation(out int[] locationRoll)
-        {
-            // Roll for hit location
-            locationRoll = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
-            var locationRollTotal = locationRoll.Sum();
-            return Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
-        }
-
         int[] locationRoll = [];
         // If aimed shot location is null, determine hit location normally
         var hitLocation = aimedShotLocation ?? GetHitLocation(out locationRoll);
         
         // Store the initial location in case we need to transfer
         var initialLocation = hitLocation;
-        var locationTransferred = false;
         
         // Check if the location is already destroyed and transfer if needed
         var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
@@ -305,24 +288,34 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 break;
                 
             hitLocation = nextLocation.Value;
-            locationTransferred = true;
             part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
         }
         
-        // Calculate critical hits for all locations in the damage chain
-        var criticalHits = Game.CriticalHitsCalculator.CalculateCriticalHits(
-            target, hitLocation, damage);
+        // Use StructureDamageCalculator to calculate damage distribution
+        var damageData = Game.StructureDamageCalculator.CalculateStructureDamage(
+            target, hitLocation, damage, attackDirection);
 
-        // TODO: Replace with StructureDamageCalculator when available
-        // For now, treat all damage as combined armor/structure damage
         return new LocationHitData(
-            hitLocation,
-            damage, // ArmorDamage - temporary, should be calculated properly
-            0,      // StructureDamage - temporary, should be calculated properly
+            damageData,
             aimedShotRollResult,
             locationRoll,
-            criticalHits,
-            locationTransferred ? initialLocation : null);
+            initialLocation);
+
+        bool IsAimedShotPossible(Unit unit, Weapon weapon1, WeaponTargetData weaponTargetData1)
+        {
+            return unit.IsImmobile // Immobile target
+                   && weapon1.IsAimShotCapable // Aimed shot capable weapon
+                   && weaponTargetData1.AimedShotTarget.HasValue; // Aimed shot target specified
+        }
+
+        // Get hit location based on the roll and attack direction
+        PartLocation GetHitLocation(out int[] innerLocationRoll)
+        {
+            // Roll for hit location
+            innerLocationRoll = Game.DiceRoller.Roll2D6().Select(d => d.Result).ToArray();
+            var locationRollTotal = innerLocationRoll.Sum();
+            return Game.RulesProvider.GetHitLocation(locationRollTotal, attackDirection);
+        }
     }
 
     /// <summary>
@@ -403,11 +396,17 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         attacker.FireWeapon(command.WeaponData);
 
         Game.CommandPublisher.PublishCommand(command);
+
+        // Calculate and send critical hits if any location received structure damage
+        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;      
+        
+        var criticalHits = CalculateAndSendCriticalHits(target, resolution.HitLocationsData);
+        
         // Check for conditions that might cause the mech to fall
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
         
         // Check for component hits that can cause a fall
-        var allComponentHits = GetAllComponentHits(resolution.HitLocationsData);
+        var allComponentHits = criticalHits.SelectMany(ch => ch.HitComponents ?? []);
         
         // Add component hits to accumulated damage data
         if (!_accumulatedDamageData.TryGetValue(target.Id, out var accumulatedDamage))
@@ -419,21 +418,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         accumulatedDamage.AllDestroyedParts.AddRange(resolution.DestroyedParts ?? []);
     }
     
-    /// <summary>
-    /// Extracts all component hits from hit locations data
-    /// </summary>
-    /// <param name="hitLocationsData">The hit locations data to extract component hits from</param>
-    /// <returns>A list of all component hits across all hit locations</returns>
-    private List<ComponentHitData> GetAllComponentHits(AttackHitLocationsData hitLocationsData)
-    {
-        return hitLocationsData.HitLocations
-            .Where(hl => hl.CriticalHits != null && hl.CriticalHits.Count != 0)
-            .SelectMany(hl => hl.CriticalHits!)
-            .Where(ch => ch.HitComponents is { Length: > 0 })
-            .SelectMany(ch => ch.HitComponents!)
-            .ToList();
-    }
-
     private void MoveToNextUnit()
     {
         _currentUnitIndex++;
@@ -490,7 +474,49 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Clear the accumulated damage data after processing
         _accumulatedDamageData.Clear();
     }
-    
+
+    /// <summary>
+    /// Calculates critical hits for locations that received structure damage and sends the command
+    /// </summary>
+    /// <param name="target">The target unit</param>
+    /// <param name="hitLocationsData">The hit locations data containing damage information</param>
+    private List<LocationCriticalHitsResolutionData> CalculateAndSendCriticalHits(Unit target, AttackHitLocationsData hitLocationsData)
+    {
+        var allCriticalHitsData = new List<LocationCriticalHitsResolutionData>();
+
+        // Process each location that received damage
+        foreach (var locationHit in hitLocationsData.HitLocations)
+        {
+            foreach (var damageData in locationHit.DamageData)
+            {
+                if (damageData.StructureDamage > 0)
+                {
+                    // Calculate critical hits for this specific location damage
+                    var criticalHitsData = Game.CriticalHitsCalculator
+                        .CalculateCriticalHitsForStructureDamage(target, damageData);
+
+                    allCriticalHitsData.AddRange(criticalHitsData);
+                }
+            }
+        }
+
+        // If no critical hits occurred, no need to send command
+        if (allCriticalHitsData.Count == 0)
+            return allCriticalHitsData;
+
+        // Send critical hits resolution command
+        var criticalHitsCommand = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Game.Id,
+            TargetId = target.Id,
+            CriticalHitsData = allCriticalHitsData
+        };
+
+        Game.OnCriticalHitsResolution(criticalHitsCommand);
+        Game.CommandPublisher.PublishCommand(criticalHitsCommand);
+        return allCriticalHitsData;
+    }
+
     /// <summary>
     /// Tracks accumulated damage data for a unit during the weapon attack resolution phase
     /// Used to calculate PSRs at the end of the phase instead of after each attack
