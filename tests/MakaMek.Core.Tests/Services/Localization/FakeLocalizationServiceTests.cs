@@ -64,6 +64,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_HitLocations", "Hit Locations:")]
     [InlineData("Command_WeaponAttackResolution_HitLocation", "{0}: {1} damage (Roll: {2})")]
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer", "{0} → {1}: {2} damage (Roll: {3})")]
+    [InlineData("Command_WeaponAttackResolution_AimedShotSuccessful", "Aimed Shot targeting {0}, successful, Roll: {1})")]
     [InlineData("Command_WeaponAttackResolution_AimedShotSuccessful", "{0}: {1} damage (Aimed Shot: {2}, successful)")]
     [InlineData("Command_WeaponAttackResolution_AimedShotFailed", "{0}: {1} damage (Aimed Shot: {2}, failed, Roll: {3})")]
     [InlineData("Command_WeaponAttackResolution_CriticalHit", "Critical hit in {0} slot {1}: {2}")]
