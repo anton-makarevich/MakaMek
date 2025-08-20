@@ -14,7 +14,7 @@ public interface ICriticalHitsCalculator
     /// <returns>A list of LocationCriticalHitsResolutionData for all affected locations</returns>
     List<LocationCriticalHitsResolutionData> CalculateCriticalHitsForStructureDamage(
         Unit unit,
-        Dictionary<PartLocation, int> structureDamageByLocation);
+        LocationDamageData damageData);
 
     /// <summary>
     /// Calculates critical hits for heat-induced component explosion

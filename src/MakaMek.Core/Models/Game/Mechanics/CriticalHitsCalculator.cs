@@ -19,19 +19,17 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
 
     public List<LocationCriticalHitsResolutionData> CalculateCriticalHitsForStructureDamage(
         Unit unit,
-        Dictionary<PartLocation, int> structureDamageByLocation)
+        LocationDamageData damageData)
     {
         var criticalHitsData = new List<LocationCriticalHitsResolutionData>();
 
-        foreach (var (location, structureDamage) in structureDamageByLocation)
-        {
-            if (structureDamage <= 0) continue;
+        if (damageData.StructureDamage <= 0) return criticalHitsData;
 
-            var locationCriticalHits = CalculateCriticalHitsForLocation(unit, location, structureDamage);
-            if (locationCriticalHits != null)
-            {
-                criticalHitsData.Add(locationCriticalHits);
-            }
+        var locationCriticalHits = CalculateCriticalHitsForLocation(
+            unit, damageData.Location, damageData.StructureDamage);
+        if (locationCriticalHits != null)
+        {
+            criticalHitsData.Add(locationCriticalHits);
         }
 
         return criticalHitsData;
