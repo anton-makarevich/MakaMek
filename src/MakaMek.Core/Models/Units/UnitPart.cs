@@ -114,30 +114,6 @@ public abstract class UnitPart
         return _components.FirstOrDefault(c => c.IsMounted && c.MountedAtSlots.Contains(slot));
     }
 
-    public virtual int ApplyDamage(int damage, HitDirection direction)
-    {
-        // First reduce armor
-        var remainingDamage =  ReduceArmor(damage,direction);
-
-        // Then apply to structure if armor is depleted
-        if (remainingDamage > 0)
-        {
-            if (CurrentStructure >= remainingDamage)
-            {
-                CurrentStructure -= remainingDamage;
-                Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage,Name,remainingDamage.ToString()));
-                return 0;
-            }
-            remainingDamage -= CurrentStructure;
-            Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage,Name,CurrentStructure.ToString()));
-            CurrentStructure = 0;
-            Unit?.AddEvent(new UiEvent(UiEventType.LocationDestroyed,Name));
-            return remainingDamage; // Return excess damage for transfer
-        }
-
-        return 0;
-    }
-
     protected virtual int ReduceArmor(int damage, HitDirection direction)
     {
         if (CurrentArmor <= 0) return damage;
@@ -159,20 +135,16 @@ public abstract class UnitPart
     /// </summary>
     /// <param name="armorDamage">The amount of armor damage to apply</param>
     /// <param name="direction">The direction of the hit</param>
-    public virtual void ApplyArmorDamage(int armorDamage, HitDirection direction)
+    public void ApplyArmorDamage(int armorDamage, HitDirection direction)
     {
-        if (armorDamage <= 0) return;
-
-        var damageToApply = Math.Min(armorDamage, CurrentArmor);
-        CurrentArmor -= damageToApply;
-        Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage, Name, damageToApply.ToString()));
+        ReduceArmor(armorDamage, direction);
     }
 
     /// <summary>
     /// Applies pre-calculated structure damage to this part
     /// </summary>
     /// <param name="structureDamage">The amount of structure damage to apply</param>
-    public virtual void ApplyStructureDamage(int structureDamage)
+    public void ApplyStructureDamage(int structureDamage)
     {
         if (structureDamage <= 0) return;
 

@@ -94,9 +94,9 @@ public class Mech : Unit
         _ => null
     };
 
-    internal override void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart, HitDirection hitDirection)
+    public override void ApplyDamage(List<LocationHitData> hitLocations, HitDirection hitDirection)
     {
-        base.ApplyArmorAndStructureDamage(damage, targetPart, hitDirection);
+        base.ApplyDamage(hitLocations, hitDirection);
         var head = _parts.Find(p => p.Location == PartLocation.Head);
         if (head is { IsDestroyed: true })
         {

@@ -427,21 +427,25 @@ public abstract class Unit
     /// </summary>
     /// <param name="hitLocations">Hit locations with pre-calculated armor and structure damage</param>
     /// <param name="hitDirection">Direction of the hit for armor calculations</param>
-    public void ApplyDamage(List<LocationHitData> hitLocations, HitDirection hitDirection)
+    public virtual void ApplyDamage(List<LocationHitData> hitLocations, HitDirection hitDirection)
     {
         foreach (var hitLocation in hitLocations)
         {
-            var targetPart = _parts.Find(p => p.Location == hitLocation.Location);
-            if (targetPart == null) continue;
-
-            // Apply pre-calculated armor and structure damage
-            var totalDamage = hitLocation.ArmorDamage + hitLocation.StructureDamage;
-
-            // Track total damage for this phase
-            TotalPhaseDamage += totalDamage;
-
-            // Apply the damage using the new method that takes pre-calculated values
-            ApplyPreCalculatedDamage(hitLocation.ArmorDamage, hitLocation.StructureDamage, targetPart, hitDirection);
+            foreach (var locationDamage in hitLocation.DamageData)
+            {
+                var targetPart = _parts.Find(p => p.Location == locationDamage.Location);
+                if (targetPart == null) continue;
+    
+                // Apply pre-calculated armor and structure damage
+                var totalDamage = locationDamage.ArmorDamage + locationDamage.StructureDamage;
+    
+                // Track total damage for this phase
+                TotalPhaseDamage += totalDamage;
+    
+                // Apply the damage using the new method that takes pre-calculated values
+                ApplyPreCalculatedDamage(locationDamage.ArmorDamage, locationDamage.StructureDamage, targetPart, hitDirection);
+            }
+            
         }
 
         if (IsDestroyed)
@@ -522,25 +526,7 @@ public abstract class Unit
             targetPart.ApplyStructureDamage(structureDamage);
         }
     }
-
-    /// <summary>
-    /// Legacy method for backward compatibility - applies damage and handles transfers
-    /// </summary>
-    internal virtual void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart, HitDirection hitDirection)
-    {
-        var remainingDamage = targetPart.ApplyDamage(damage, hitDirection);
-
-        // If there's remaining damage, transfer to the connected part
-        if (remainingDamage <= 0) return;
-        var transferLocation = GetTransferLocation(targetPart.Location);
-        if (!transferLocation.HasValue) return;
-        var transferPart = _parts.Find(p => p.Location == transferLocation.Value);
-        if (transferPart != null)
-        {
-            ApplyArmorAndStructureDamage(remainingDamage, transferPart, hitDirection);
-        }
-    }
-
+    
     // Different unit types will have different damage transfer patterns
     public abstract PartLocation? GetTransferLocation(PartLocation location);
 
