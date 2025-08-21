@@ -580,15 +580,17 @@ public class Mech : Unit
         if (part is not { CurrentStructure: > 0 })
             return null;
             
-        var critRoll = diceRoller.Roll2D6().Sum(d => d.Result);
-        var numCrits = GetNumCriticalHits(critRoll);
+        var critRoll = diceRoller.Roll2D6()
+            .Select(d => d.Result)
+            .ToArray();
+        var numCrits = GetNumCriticalHits(critRoll.Sum());
         ComponentHitData[]? hitComponents = null;
         
         // Check if the location can be blown off (head or limbs on a roll of 12)
         var isBlownOff = part.CanBeBlownOff && numCrits == 3;
         if (isBlownOff)
         {
-            return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff);
+            return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff,[]);
         }
         
         if (numCrits > 0)
@@ -596,7 +598,7 @@ public class Mech : Unit
             hitComponents = DetermineCriticalHitSlots(part, numCrits, diceRoller);
         }
         
-        return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff);
+        return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff,[]);
     }
 
     /// <summary>

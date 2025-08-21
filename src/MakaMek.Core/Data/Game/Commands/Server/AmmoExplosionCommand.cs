@@ -25,7 +25,7 @@ public record struct AmmoExplosionCommand : IGameCommand
     /// <summary>
     /// Critical hits resolution data for the explosion
     /// </summary>
-    public List<LocationCriticalHitsResolutionData> CriticalHitsData { get; init; }
+    public List<LocationCriticalHitsData> CriticalHitsData { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
@@ -96,19 +96,18 @@ public record struct AmmoExplosionCommand : IGameCommand
                 }
 
                 // Show explosions from the new data structure
-                if (criticalHitData.Explosions != null)
+                if (criticalHitData.Explosions.Count <= 0) continue;
+
+                foreach (var explosion in criticalHitData.Explosions)
                 {
-                    foreach (var explosion in criticalHitData.Explosions)
+                    var part = unit.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
+                    var component = part?.GetComponentAtSlot(explosion.Slot);
+                    if (component != null)
                     {
-                        var part = unit.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
-                        var component = part?.GetComponentAtSlot(explosion.Slot);
-                        if (component != null)
-                        {
-                            stringBuilder.AppendLine(string.Format(
-                                localizationService.GetString("Command_AmmoExplosion_Explosion"),
-                                component.Name,
-                                explosion.ExplosionDamage));
-                        }
+                        stringBuilder.AppendLine(string.Format(
+                            localizationService.GetString("Command_AmmoExplosion_Explosion"),
+                            component.Name,
+                            explosion.ExplosionDamage));
                     }
                 }
             }

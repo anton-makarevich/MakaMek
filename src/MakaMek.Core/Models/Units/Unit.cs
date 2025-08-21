@@ -458,7 +458,7 @@ public abstract class Unit
     /// Applies pre-calculated critical hits data to the unit
     /// </summary>
     /// <param name="criticalHitsData">Pre-calculated critical hits data from the server</param>
-    public void ApplyCriticalHits(List<LocationCriticalHitsResolutionData> criticalHitsData)
+    public void ApplyCriticalHits(List<LocationCriticalHitsData> criticalHitsData)
     {
         foreach (var locationData in criticalHitsData)
         {
@@ -482,7 +482,7 @@ public abstract class Unit
             }
 
             // Handle explosions (but not explosion damage - that's pre-calculated)
-            if (locationData.Explosions != null)
+            if (locationData.Explosions.Count > 0)
             {
                 foreach (var explosion in locationData.Explosions)
                 {
@@ -512,7 +512,7 @@ public abstract class Unit
     /// <param name="structureDamage">Pre-calculated structure damage</param>
     /// <param name="targetPart">The part to apply damage to</param>
     /// <param name="hitDirection">Direction of the hit for armor calculations</param>
-    internal virtual void ApplyPreCalculatedDamage(int armorDamage, int structureDamage, UnitPart targetPart, HitDirection hitDirection)
+    internal void ApplyPreCalculatedDamage(int armorDamage, int structureDamage, UnitPart targetPart, HitDirection hitDirection)
     {
         // Apply armor damage
         if (armorDamage > 0)

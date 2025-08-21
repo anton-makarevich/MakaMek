@@ -379,9 +379,9 @@ public abstract class BaseGame : IGame
         if (unit == null) return;
 
         // Apply the pre-calculated critical hits data
-        if (criticalHitsCommand.CriticalHitsData is { Count: > 0 })
+        if (criticalHitsCommand.CriticalHits is { Count: > 0 })
         {
-            unit.ApplyCriticalHits(criticalHitsCommand.CriticalHitsData);
+            unit.ApplyCriticalHits(criticalHitsCommand.CriticalHits);
         }
     }
 

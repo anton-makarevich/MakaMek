@@ -480,9 +480,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// </summary>
     /// <param name="target">The target unit</param>
     /// <param name="hitLocationsData">The hit locations data containing damage information</param>
-    private List<LocationCriticalHitsResolutionData> CalculateAndSendCriticalHits(Unit target, AttackHitLocationsData hitLocationsData)
+    private List<LocationCriticalHitsData> CalculateAndSendCriticalHits(Unit target, AttackHitLocationsData hitLocationsData)
     {
-        var allCriticalHitsData = new List<LocationCriticalHitsResolutionData>();
+        var allCriticalHitsData = new List<LocationCriticalHitsData>();
 
         // Process each location that received damage
         foreach (var locationHit in hitLocationsData.HitLocations)
@@ -509,7 +509,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         {
             GameOriginId = Game.Id,
             TargetId = target.Id,
-            CriticalHitsData = allCriticalHitsData
+            CriticalHits = allCriticalHitsData
         };
 
         Game.OnCriticalHitsResolution(criticalHitsCommand);

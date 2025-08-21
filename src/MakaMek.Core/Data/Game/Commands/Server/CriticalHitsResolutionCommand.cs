@@ -11,7 +11,7 @@ public record CriticalHitsResolutionCommand : IGameCommand
 {
     public required Guid GameOriginId { get; set; }
     public required Guid TargetId { get; init; }
-    public required List<LocationCriticalHitsResolutionData> CriticalHitsData { get; init; }
+    public required List<LocationCriticalHitsData> CriticalHits { get; init; }
     public DateTime Timestamp { get; set; }
 
     public string Render(ILocalizationService localizationService, IGame game)
@@ -27,28 +27,20 @@ public record CriticalHitsResolutionCommand : IGameCommand
 
         var stringBuilder = new StringBuilder();
 
-        foreach (var criticalHitData in CriticalHitsData)
+        foreach (var criticalHitData in CriticalHits)
         {
             // Show location if there are multiple locations
-            if (CriticalHitsData.Count > 1)
+            if (CriticalHits.Count > 1)
             {
                 stringBuilder.AppendLine(string.Format(
                     localizationService.GetString("Command_CriticalHitsResolution_Location"),
                     criticalHitData.Location));
             }
 
-            // Show structure damage that triggered the critical hits
-            if (criticalHitData.StructureDamageReceived > 0)
-            {
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_CriticalHitsResolution_StructureDamage"),
-                    criticalHitData.StructureDamageReceived));
-            }
-
             // Show critical hit roll and results
             stringBuilder.AppendLine(string.Format(
                 localizationService.GetString("Command_CriticalHitsResolution_CritRoll"),
-                criticalHitData.CriticalHitRoll));
+                criticalHitData.Roll.Sum()));
 
             // Check if the location is blown off
             if (criticalHitData.IsBlownOff)
@@ -86,19 +78,18 @@ public record CriticalHitsResolutionCommand : IGameCommand
             }
 
             // Show explosions
-            if (criticalHitData.Explosions != null && criticalHitData.Explosions.Any())
+            if (criticalHitData.Explosions.Count <= 0) continue;
+
+            foreach (var explosion in criticalHitData.Explosions)
             {
-                foreach (var explosion in criticalHitData.Explosions)
+                var part = target.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
+                var comp = part?.GetComponentAtSlot(explosion.Slot);
+                if (comp != null)
                 {
-                    var part = target.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
-                    var comp = part?.GetComponentAtSlot(explosion.Slot);
-                    if (comp != null)
-                    {
-                        stringBuilder.AppendLine(string.Format(
-                            localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
-                            comp.Name,
-                            explosion.ExplosionDamage));
-                    }
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
+                        comp.Name,
+                        explosion.ExplosionDamage));
                 }
             }
         }
