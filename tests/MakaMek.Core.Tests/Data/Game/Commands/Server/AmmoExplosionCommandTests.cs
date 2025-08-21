@@ -122,14 +122,13 @@ public class AmmoExplosionCommandTests
                 AvoidNumber = 6,
                 IsSuccessful = false
             },
-            ExplosionDamage =
+            CriticalHitsData = 
             [
-                new LocationHitData(PartLocation.CenterTorso, 120, [], [],
-                    [
+                   new LocationCriticalHitsData()
                         new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
                             [new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }])
-                    ]
-                )
+                   
+               
             ]
         };
 

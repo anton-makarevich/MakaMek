@@ -2,11 +2,8 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
-using Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
 
@@ -50,12 +47,26 @@ public class LocationHitDataTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         _unit = mechFactory.Create(unitData);
     }
+    
+    private LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
 
     [Fact]
     public void Render_BasicHitLocation_ReturnsCorrectOutput()
     {
         // Arrange
-        var sut = new LocationHitData(
+        var sut = CreateHitDataForLocation(
             PartLocation.CenterTorso,
             5,
             [], // No aimed shot roll
@@ -74,14 +85,12 @@ public class LocationHitDataTests
     public void Render_HitLocationWithTransfer_ReturnsCorrectOutput()
     {
         // Arrange
-        var sut = new LocationHitData(
+        
+        var sut = CreateHitDataForLocation(
             PartLocation.CenterTorso,
             5,
             [], // No aimed shot roll
-            [6], // Location roll
-            null,
-            PartLocation.RightTorso // Initial location before transfer
-        );
+            [6]) with { InitialLocation = PartLocation.RightTorso };
 
         // Act
         var result = sut.Render(_localizationService, _unit);
@@ -92,165 +101,10 @@ public class LocationHitDataTests
     }
 
     [Fact]
-    public void Render_HitLocationWithCriticals_ReturnsCorrectOutput()
-    {
-        // Arrange
-        // Add component to center torso for critical hit
-        var centerTorso = _unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var weapon = new MachineGun();
-        centerTorso.TryAddComponent(weapon, [2]);
-
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(
-                PartLocation.CenterTorso,
-                8, // Critical roll result
-                1, // Number of critical hits
-                [
-                    WeaponAttackResolutionCommandTests.CreateComponentHitData(2) // Hit in slot 2
-                ]
-            )
-        };
-
-        var sut = new LocationHitData(
-            PartLocation.CenterTorso,
-            5,
-            [], // No aimed shot roll
-            [6], // Location roll
-            criticalHits
-        );
-
-        // Act
-        var result = sut.Render(_localizationService, _unit);
-
-        // Assert
-        result.ShouldNotBeEmpty();
-        result.ShouldContain("CenterTorso: 5 damage (Roll: 6)");
-        result.ShouldContain("Critical roll: 8");
-        result.ShouldContain("Criticals: 1");
-        result.ShouldContain("Critical hit in CenterTorso slot 3: "); // Slot is 0-indexed in code but 1-indexed in display
-    }
-
-    [Fact]
-    public void Render_HitLocationWithBlownOffLocation_ReturnsCorrectOutput()
-    {
-        // Arrange
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(
-                PartLocation.LeftArm,
-                12, // Critical roll result
-                0, // No criticals when blown off
-                null, // No components
-                true // Location blown off
-            )
-        };
-
-        var sut = new LocationHitData(
-            PartLocation.LeftArm,
-            5,
-            [], // No aimed shot roll
-            [6], // Location roll
-            criticalHits
-        );
-
-        // Act
-        var result = sut.Render(_localizationService, _unit);
-
-        // Assert
-        result.ShouldNotBeEmpty();
-        result.ShouldContain("LeftArm: 5 damage (Roll: 6)");
-        result.ShouldContain("Critical roll: 12");
-        result.ShouldContain("LOCATION BLOWN OFF: LeftArm");
-        result.ShouldNotContain("Criticals: "); // No criticals when blown off
-    }
-
-    [Fact]
-    public void Render_HitLocationWithDifferentLocationCriticals_ReturnsCorrectOutput()
-    {
-        // Arrange
-        // Add component to left arm for critical hit
-        var leftArm = _unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var weapon = new MachineGun();
-        leftArm.TryAddComponent(weapon, [1]);
-
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(
-                PartLocation.LeftArm, // Different from hit location
-                8, // Critical roll
-                1, // Number of crits
-                [
-                    WeaponAttackResolutionCommandTests.CreateComponentHitData(1) // Hit in slot 1
-                ]
-            )
-        };
-
-        var sut = new LocationHitData(
-            PartLocation.CenterTorso, // Hit was in center torso
-            5,
-            [], // No aimed shot roll
-            [6], // Location roll
-            criticalHits
-        );
-
-        // Act
-        var result = sut.Render(_localizationService, _unit);
-
-        // Assert
-        result.ShouldNotBeEmpty();
-        result.ShouldContain("CenterTorso: 5 damage (Roll: 6)");
-        result.ShouldContain("Critical hits in LeftArm:"); // Shows different location
-        result.ShouldContain("Critical roll: 8");
-        result.ShouldContain("Criticals: 1");
-        result.ShouldContain("Critical hit in LeftArm slot 2: Machine Gun"); // Slot is 0-indexed in code but 1-indexed in display
-    }
-
-    [Fact]
-    public void Render_HitLocationWithExplosiveComponent_ReturnsCorrectOutput()
-    {
-        // Arrange
-        // Add an explosive component to the center torso
-        var part = _unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var explodingComponent = new Ammo(Ac5.Definition, 10); // 50 damage
-        part.TryAddComponent(explodingComponent, [3]);
-
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(
-                PartLocation.LeftArm,
-                8,
-                1,
-                [
-                    WeaponAttackResolutionCommandTests.CreateComponentHitData(3) // Hit in slot 3
-                ]
-            )
-        };
-
-        var sut = new LocationHitData(
-            PartLocation.CenterTorso,
-            5,
-            [], // No aimed shot roll
-            [6], // Location roll
-            criticalHits
-        );
-
-        // Act
-        var result = sut.Render(_localizationService, _unit);
-
-        // Assert
-        result.ShouldNotBeEmpty();
-        result.ShouldContain("CenterTorso: 5 damage (Roll: 6)");
-        result.ShouldContain("Critical roll: 8");
-        result.ShouldContain("Critical hit in LeftArm slot 4: AC5 Ammo"); // Slot is 0-indexed in code but 1-indexed in display
-        result.ShouldContain("Ammo EXPLODES! Damage: 50");
-    }
-
-    [Fact]
     public void Render_SuccessfulAimedShot_ReturnsCorrectOutput()
     {
         // Arrange
-        var sut = new LocationHitData(
+        var sut = CreateHitDataForLocation(
             PartLocation.Head,
             5,
             [3, 4], // Aimed shot roll: 7 (successful)
@@ -269,7 +123,7 @@ public class LocationHitDataTests
     public void Render_FailedAimedShot_ReturnsCorrectOutput()
     {
         // Arrange
-        var sut = new LocationHitData(
+        var sut = CreateHitDataForLocation(
             PartLocation.CenterTorso,
             5,
             [2, 3], // Aimed shot roll: 5 (failed)
@@ -307,7 +161,7 @@ public class LocationHitDataTests
 
         int[] locationRoll = shouldSucceed ? [] : [3, 4]; // Only present if aimed shot failed
 
-        var sut = new LocationHitData(
+        var sut = CreateHitDataForLocation(
             PartLocation.RightArm,
             8,
             aimedShotRoll,
@@ -322,44 +176,5 @@ public class LocationHitDataTests
         result.Trim().ShouldBe(shouldSucceed
             ? $"RightArm: 8 damage (Aimed Shot: {rollTotal}, successful)"
             : $"RightArm: 8 damage (Aimed Shot: {rollTotal}, failed, Roll: 7)");
-    }
-
-    [Fact]
-    public void Render_AimedShotWithCriticals_ReturnsCorrectOutput()
-    {
-        // Arrange
-        // Add component to right arm for critical hit
-        var rightArm = _unit.Parts.First(p => p.Location == PartLocation.RightArm);
-        var weapon = new MachineGun();
-        rightArm.TryAddComponent(weapon, [1]);
-
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(
-                PartLocation.RightArm,
-                8, // Critical roll result
-                1, // Number of critical hits
-                [
-                    WeaponAttackResolutionCommandTests.CreateComponentHitData(2) // Hit in slot 2
-                ]
-            )
-        };
-
-        var sut = new LocationHitData(
-            PartLocation.RightArm,
-            5,
-            [4, 4], // Aimed shot roll: 8 (successful)
-            [], // No location roll since aimed shot was successful
-            criticalHits
-        );
-
-        // Act
-        var result = sut.Render(_localizationService, _unit);
-
-        // Assert
-        result.ShouldContain("RightArm: 5 damage (Aimed Shot: 8, successful)");
-        result.ShouldContain("Critical roll: 8");
-        result.ShouldContain("Criticals: 1");
-        result.ShouldContain("Critical hit in RightArm slot 3: Medium Laser"); // Slot is 0-indexed in code but 1-indexed in display
     }
 }

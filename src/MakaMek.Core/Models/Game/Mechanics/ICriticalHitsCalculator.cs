@@ -12,7 +12,7 @@ public interface ICriticalHitsCalculator
     /// <param name="unit">The unit receiving damage</param>
     /// <param name="structureDamageByLocation">Dictionary mapping locations to their structure damage</param>
     /// <returns>A list of LocationCriticalHitsResolutionData for all affected locations</returns>
-    List<LocationCriticalHitsResolutionData> CalculateCriticalHitsForStructureDamage(
+    List<LocationCriticalHitsData> CalculateCriticalHitsForStructureDamage(
         Unit unit,
         LocationDamageData damageData);
 
@@ -22,7 +22,7 @@ public interface ICriticalHitsCalculator
     /// <param name="unit">The owning unit receiving the explosion effects</param>
     /// <param name="explodingComponent">The component that exploded due to heat</param>
     /// <returns>Critical-hit data beginning at the component's location</returns>
-    List<LocationCriticalHitsResolutionData> CalculateCriticalHitsForHeatExplosion(
+    List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
         Unit unit,
         Component explodingComponent);
 }

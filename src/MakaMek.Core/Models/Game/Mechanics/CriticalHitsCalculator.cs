@@ -17,11 +17,11 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         _diceRoller = diceRoller;
     }
 
-    public List<LocationCriticalHitsResolutionData> CalculateCriticalHitsForStructureDamage(
+    public List<LocationCriticalHitsData> CalculateCriticalHitsForStructureDamage(
         Unit unit,
         LocationDamageData damageData)
     {
-        var criticalHitsData = new List<LocationCriticalHitsResolutionData>();
+        var criticalHitsData = new List<LocationCriticalHitsData>();
 
         if (damageData.StructureDamage <= 0) return criticalHitsData;
 
@@ -35,7 +35,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         return criticalHitsData;
     }
 
-    public List<LocationCriticalHitsResolutionData> CalculateCriticalHitsForHeatExplosion(
+    public List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
         Unit unit,
         Component explodingComponent)
     {
@@ -68,17 +68,16 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             }
         }
 
-        var criticalHit = new LocationCriticalHitsResolutionData(
+        var criticalHit = new LocationCriticalHitsData(
             location.Value,
-            0, // No structure damage received - this is a heat-induced explosion
-            0, // No roll for forced critical hit
+            [], // No roll for forced critical hit
             1, // One forced critical hit
             [componentHitData],
             false, // Not blown off
-            explosions.Count != 0 ? explosions : null
+            explosions
         );
 
-        var criticalHitsData = new List<LocationCriticalHitsResolutionData> { criticalHit };
+        var criticalHitsData = new List<LocationCriticalHitsData> { criticalHit };
 
         // If there was an explosion, calculate cascading critical hits from the explosion damage
         if (explosions.Any())
@@ -97,7 +96,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     /// <summary>
     /// Calculates critical hits for a specific location that received structure damage
     /// </summary>
-    private LocationCriticalHitsResolutionData? CalculateCriticalHitsForLocation(
+    private LocationCriticalHitsData? CalculateCriticalHitsForLocation(
         Unit unit,
         PartLocation location,
         int structureDamage)
@@ -113,33 +112,25 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
 
         // Check for explosions from hit components
         var explosions = new List<ExplosionData>();
-        if (criticalHitsData.HitComponents != null)
-        {
-            foreach (var componentData in criticalHitsData.HitComponents)
+        if (criticalHitsData.HitComponents == null)
+            return criticalHitsData with
             {
-                var component = part.GetComponentAtSlot(componentData.Slot);
-                if (component is { CanExplode: true, HasExploded: false })
-                {
-                    var explosionDamage = component.GetExplosionDamage();
-                    if (explosionDamage > 0)
-                    {
-                        explosions.Add(new ExplosionData(
-                            component.ComponentType,
-                            componentData.Slot,
-                            explosionDamage));
-                    }
-                }
+                Location = location, Explosions = explosions
+            };
+        foreach (var componentData in criticalHitsData.HitComponents)
+        {
+            var component = part.GetComponentAtSlot(componentData.Slot);
+            if (component is not { CanExplode: true, HasExploded: false }) continue;
+            var explosionDamage = component.GetExplosionDamage();
+            if (explosionDamage > 0)
+            {
+                explosions.Add(new ExplosionData(
+                    component.ComponentType,
+                    componentData.Slot,
+                    explosionDamage));
             }
         }
 
-        return new LocationCriticalHitsResolutionData(
-            location,
-            structureDamage,
-            criticalHitsData.Roll,
-            criticalHitsData.NumCriticalHits,
-            criticalHitsData.HitComponents,
-            criticalHitsData.IsBlownOff,
-            explosions.Count != 0 ? explosions : null
-        );
+        return criticalHitsData with { Location = location, Explosions = explosions };
     }
 }

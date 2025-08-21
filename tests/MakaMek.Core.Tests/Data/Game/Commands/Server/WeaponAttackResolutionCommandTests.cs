@@ -9,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
@@ -115,13 +114,27 @@ public class WeaponAttackResolutionCommandTests
         _localizationService.GetString("MechPart_LeftLeg").Returns("Left Leg");
         _localizationService.GetString("MechPart_RightLeg").Returns("Right Leg");
     }
+    
+    private LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
 
     private WeaponAttackResolutionCommand CreateHitCommand()
     {
         // Create a hit with a single location
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -174,9 +187,9 @@ public class WeaponAttackResolutionCommandTests
         // Create a hit with multiple locations and cluster weapon
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 2, [], [2, 3]), // No aimed shot, location roll 2,3
-            new(PartLocation.RightArm, 2, [], [2, 1]), // No aimed shot, location roll 2,1
-            new(PartLocation.CenterTorso, 6, [], [5, 3]) // No aimed shot, location roll 5,3
+            CreateHitDataForLocation(PartLocation.LeftArm, 2, [], [2, 3]), // No aimed shot, location roll 2,3
+            CreateHitDataForLocation(PartLocation.RightArm, 2, [], [2, 1]), // No aimed shot, location roll 2,1
+            CreateHitDataForLocation(PartLocation.CenterTorso, 6, [], [5, 3]) // No aimed shot, location roll 5,3
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -334,7 +347,7 @@ public class WeaponAttackResolutionCommandTests
         // Arrange
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -368,104 +381,6 @@ public class WeaponAttackResolutionCommandTests
         result.ShouldNotBeEmpty();
         result.ShouldContain(expectedDirectionText);
     }
-    
-    [Fact]
-    public void Render_Includes_CriticalHitsData_When_It_Present_ButNotHitSlots()
-    {
-        // Arrange: create a hit with a critical hit in slot 2, with a component
-        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent = new MachineGun();
-        leftArm.TryAddComponent(critComponent, [2]);
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.LeftArm,
-                5,
-                [], // No aimed shot
-                [], // No location roll for this test
-                [new LocationCriticalHitsData(PartLocation.LeftArm,7, 0, null)]
-            )
-        };
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            new List<DiceResult>(),
-            1);
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("Critical roll: 7");
-        output.ShouldContain("Criticals: 0");
-        output.ShouldNotContain("Critical hit in");
-    }
-
-    [Fact]
-    public void Render_Includes_CriticalHit_Info_When_CriticalHits_Present()
-    {
-        // Arrange: create a hit with a critical hit in slot 2, with a component
-        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent = new MachineGun();
-        leftArm.TryAddComponent(critComponent, [2]);
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.LeftArm,
-                5,
-                [], // No aimed shot
-                [], // No location roll for this test
-                [new LocationCriticalHitsData(PartLocation.LeftArm,10, 1, [
-                    CreateComponentHitData(2)
-                ])]
-            )
-        };
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            [],
-            1);
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
-    }
 
     [Fact]
     public void Render_Includes_HitLocationTransfer_Info_When_Transfers_Present()
@@ -473,14 +388,11 @@ public class WeaponAttackResolutionCommandTests
         // Arrange: create a hit with a transfer from LeftArm to LeftTorso
         var hitLocations = new List<LocationHitData>
         {
-            new(
+            CreateHitDataForLocation(
                 PartLocation.LeftTorso,  // Final location
                 5,
                 [], // No aimed shot
-                [6, 4], // Location roll total 10
-                null,                    // No crits
-                PartLocation.LeftArm     // Initial location
-            )
+                [6, 4]) with { InitialLocation = PartLocation.LeftArm }
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -515,603 +427,12 @@ public class WeaponAttackResolutionCommandTests
     }
 
     [Fact]
-    public void Render_Includes_BlownOff_Message_When_Location_Is_Blown_Off()
-    {
-        // Arrange: create a hit with a blown-off location (head)
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.Head,
-                5,
-                [], // No aimed shot
-                [6, 6], // Location roll of 12
-                [new LocationCriticalHitsData(PartLocation.Head, 5, 0, null, true)]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            [],
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("LOCATION BLOWN OFF: Head");
-        output.ShouldContain("Critical roll:");
-        output.ShouldNotContain("Criticals:");
-    }
-
-    [Fact]
-    public void Render_Includes_CriticalHits_In_Different_Location()
-    {
-        // Arrange: create a hit with critical hits in a different location than the primary hit
-        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent = new MachineGun();
-        leftArm.TryAddComponent(critComponent, [2]);
-
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.CenterTorso,
-                5,
-                [], // No aimed shot
-                [6], // Location roll 6
-                [
-                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
-                        CreateComponentHitData(2)
-                    ])
-                ]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            new List<DiceResult>(),
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("CenterTorso: 5 damage");
-        output.ShouldContain("Critical hits in LeftArm:");
-        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
-    }
-    
-    [Fact]
-    public void Render_Handles_Multiple_Critical_Hits_In_Different_Slots()
-    {
-        // Arrange: create a hit with multiple critical hits in different slots
-        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent1 = new MachineGun();
-        var critComponent2 = new MachineGun();
-        leftArm.TryAddComponent(critComponent1, [2]);
-        leftArm.TryAddComponent(critComponent2, [3]);
-
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.LeftArm,
-                5,
-                [], // No aimed shot
-                [6], // Location roll 6
-                [
-                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2, [
-                        CreateComponentHitData(2),
-                        CreateComponentHitData(3)
-                    ])
-                ]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            new List<DiceResult>(),
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("Critical roll: 10");
-        output.ShouldContain("Criticals: 2");
-        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
-        output.ShouldContain("Critical hit in LeftArm slot 4: Machine Gun");
-    }
-    
-    [Fact]
-    public void Render_Handles_Multiple_Critical_Hits_In_Different_Locations()
-    {
-        // Arrange: create a hit with critical hits in multiple locations
-        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var rightArm = _target.Parts.First(p => p.Location == PartLocation.RightArm);
-        var critComponent1 = new MachineGun();
-        var critComponent2 = new MachineGun();
-        leftArm.TryAddComponent(critComponent1, [2]);
-        rightArm.TryAddComponent(critComponent2, [3]);
-        
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.CenterTorso,
-                5,
-                [], // No aimed shot
-                [6], // Location roll 6
-                [
-                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
-                        CreateComponentHitData(2)]),
-                    new LocationCriticalHitsData(PartLocation.RightArm, 11, 1, [
-                        CreateComponentHitData(3)])
-                ]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            new List<DiceResult>(),
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("Critical hits in LeftArm:");
-        output.ShouldContain("Critical roll: 10");
-        output.ShouldContain("Critical hit in LeftArm slot 3: Machine Gun");
-        output.ShouldContain("Critical hits in RightArm:");
-        output.ShouldContain("Critical roll: 11");
-        output.ShouldContain("Critical hit in RightArm slot 4: Machine Gun");
-    }
-    
-    [Fact]
-    public void Render_Handles_Multiple_Blown_Off_Locations()
-    {
-        // Arrange: create a hit with multiple blown-off locations
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.CenterTorso,
-                10,
-                [], // No aimed shot
-                [6], // Location roll 6
-                [
-                    new LocationCriticalHitsData(PartLocation.LeftArm, 10, 0, null, true),
-                    new LocationCriticalHitsData(PartLocation.RightArm, 11, 0, null, true)
-                ]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            10,
-            new List<DiceResult>(),
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("LOCATION BLOWN OFF: LeftArm");
-        output.ShouldContain("LOCATION BLOWN OFF: RightArm");
-    }
-    
-    [Fact]
-    public void Render_Handles_Null_CriticalHits_Array()
-    {
-        // Arrange: create a hit with null critical hits array
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.CenterTorso,
-                5,
-                [], // No aimed shot
-                [6], // Location roll 6
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, null)]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            new List<DiceResult>(),
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("Critical roll: 10");
-        output.ShouldContain("Criticals: 1");
-        output.ShouldNotContain("Critical hit in");
-    }
-    
-    [Fact]
-    public void Render_Handles_Component_Lookup_Failure()
-    {
-        // Arrange: create a hit with a critical hit in a slot that doesn't have a component
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.LeftArm,
-                5,
-                [], // No aimed shot
-                [6], // Location roll 6
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
-                    CreateComponentHitData(5)])]  // Slot that doesn't exist or has no component
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            [],
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("Critical roll: 10");
-        output.ShouldContain("Criticals: 1");
-        // Should not throw an exception when component lookup fails
-        output.ShouldNotContain("Critical hit in LeftArm slot 11:");
-    }
-    
-    [Fact]
-    public void Render_Includes_Explosion_Message_When_Component_Can_Explode()
-    {
-        // Arrange: create a hit with a critical hit on an explodable component
-        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        
-        // Create an ammo component that can explode
-        var ammoComponent = new Ammo(Ac5.Definition, 10);
-        leftArm.TryAddComponent(ammoComponent, [2]);
-        
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.LeftArm,
-                5,
-                [], // No aimed shot
-                [], // No location roll for this test
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
-                    CreateComponentHitData(2)])]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            new List<DiceResult>(),
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
-        output.ShouldContain("AC5 Ammo EXPLODES! Damage: 50");
-    }
-    
-    [Fact]
-    public void Render_DoesNotInclude_Explosion_Message_When_Component_Cannot_Explode()
-    {
-        // Arrange: create a hit with a critical hit on a non-explodable component
-        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var critComponent = new MachineGun();
-        leftArm.TryAddComponent(critComponent, [2]);
-        
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.LeftArm,
-                5,
-                [], // No aimed shot
-                [], // No location roll for this test
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
-                    CreateComponentHitData(2)])]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            new List<DiceResult>(),
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-        var hitLocationText = hitLocationsData.HitLocations.First().Render(_localizationService, _target).Trim();
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain(hitLocationText);
-        output.ShouldNotContain("EXPLODES!");
-    }
-    
-    [Fact]
-    public void Render_DoesNotInclude_Explosion_Message_When_Component_Has_Already_Exploded()
-    {
-        // Arrange: create a hit with a critical hit on an ammo component that has already exploded
-        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        
-        // Create an ammo component that can explode but has already exploded
-        var ammoComponent = new Ammo(Ac5.Definition, 10);
-        leftArm.TryAddComponent(ammoComponent, [2]);
-        ammoComponent.Hit(); // This will set HasExploded to true
-        
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.LeftArm,
-                5,
-                [], // No aimed shot
-                [], // No location roll for this test
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, [
-                    CreateComponentHitData(2)])]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            new List<DiceResult>(),
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
-        output.ShouldNotContain("EXPLODES!");
-    }
-    
-    [Fact]
-    public void Render_DoesNotInclude_Explosion_Message_When_Component_Has_Zero_Explosion_Damage()
-    {
-        // Arrange: create a hit with a critical hit on an ammo component with no remaining shots
-        var leftArm = _target.Parts.First(p => p.Location == PartLocation.LeftArm);
-        
-        // Create an ammo component that can explode but has no ammo left
-        var ammoComponent = new Ammo(Ac5.Definition, 0);
-        leftArm.TryAddComponent(ammoComponent, [2]);
-        
-        var hitLocations = new List<LocationHitData>
-        {
-            new(
-                PartLocation.LeftArm,
-                5,
-                [], // No aimed shot
-                [], // No location roll for this test
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1,
-                    [CreateComponentHitData(2)])]
-            )
-        };
-        
-        var hitLocationsData = new AttackHitLocationsData(
-            hitLocations,
-            5,
-            new List<DiceResult>(),
-            1);
-            
-        var resolutionData = new AttackResolutionData(
-            8,
-            [new DiceResult(4), new DiceResult(5)],
-            true,
-            HitDirection.Front,
-            hitLocationsData);
-
-        var sut = new WeaponAttackResolutionCommand
-        {
-            GameOriginId = _gameId,
-            PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
-            TargetId = _target.Id,
-            WeaponData = _weaponData,
-            ResolutionData = resolutionData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var output = sut.Render(_localizationService, _game);
-
-        // Assert
-        output.ShouldContain("Critical hit in LeftArm slot 3: AC5 Ammo");
-        output.ShouldNotContain("EXPLODES!");
-    }
-    
-    [Fact]
     public void Render_ShouldIncludeDestroyedParts_WhenPartsAreDestroyed()
     {
         // Arrange
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -1157,7 +478,7 @@ public class WeaponAttackResolutionCommandTests
         // Arrange
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
