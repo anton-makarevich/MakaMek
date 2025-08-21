@@ -363,9 +363,9 @@ public abstract class BaseGame : IGame
         if (unit == null) return;
 
         // Apply critical hits data
-        if (explosionCommand.CriticalHitsData is { Count: > 0 })
+        if (explosionCommand.CriticalHits is { Count: > 0 })
         {
-            unit.ApplyCriticalHits(explosionCommand.CriticalHitsData);
+            unit.ApplyCriticalHits(explosionCommand.CriticalHits);
         }
     }
 

@@ -25,7 +25,7 @@ public record struct AmmoExplosionCommand : IGameCommand
     /// <summary>
     /// Critical hits resolution data for the explosion
     /// </summary>
-    public List<LocationCriticalHitsData> CriticalHitsData { get; init; }
+    public List<LocationCriticalHitsData> CriticalHits { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
@@ -77,7 +77,7 @@ public record struct AmmoExplosionCommand : IGameCommand
         {
             stringBuilder.AppendLine(localizationService.GetString("Command_AmmoExplosion_CriticalHits"));
 
-            foreach (var criticalHitData in CriticalHitsData)
+            foreach (var criticalHitData in CriticalHits)
             {
                 if (criticalHitData.HitComponents != null)
                 {

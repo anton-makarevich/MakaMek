@@ -122,13 +122,13 @@ public class AmmoExplosionCommandTests
                 AvoidNumber = 6,
                 IsSuccessful = false
             },
-            CriticalHitsData = 
+            CriticalHits =
             [
-                   new LocationCriticalHitsData()
-                        new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
-                            [new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }])
-                   
-               
+                new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4],
+                    1,
+                    [new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }],
+                    false,
+                    [])
             ]
         };
 
@@ -154,12 +154,12 @@ public class AmmoExplosionCommandTests
                 AvoidNumber = 6,
                 IsSuccessful = true
             },
-            ExplosionDamage =
+            CriticalHits =
             [
-                new LocationHitData(PartLocation.CenterTorso, 120, [], [], [
-                    new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
-                        [new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }])
-                ])
+                new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
+                    [new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }],
+                    false,
+                    [])
             ]
         };
 
@@ -179,7 +179,7 @@ public class AmmoExplosionCommandTests
             GameOriginId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow,
             AvoidExplosionRoll = null,
-            ExplosionDamage = []
+            CriticalHits = []
         };
     }
 

@@ -223,7 +223,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         {
             UnitId = mech.Id,
             AvoidExplosionRoll = avoidExplosionRollData,
-            CriticalHitsData = explosionDamage,
+            CriticalHits = explosionDamage,
             GameOriginId = Guid.Empty
         };
     }
