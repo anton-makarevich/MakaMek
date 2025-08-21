@@ -73,9 +73,9 @@ public class UnitTests
         {
         }
         
-        internal override void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart, HitDirection hitDirection)
+        public override void ApplyDamage(List<LocationHitData> hitLocations, HitDirection hitDirection)
         {
-            base.ApplyArmorAndStructureDamage(damage, targetPart, hitDirection);
+            base.ApplyDamage(hitLocations, hitDirection);
             var destroyedParts = Parts.Where(p => p.IsDestroyed).ToList();
             if (destroyedParts.Count == Parts.Count)
             {
@@ -537,8 +537,8 @@ public class UnitTests
         var unit = CreateTestUnit();
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [], []), // No aimed shot, no location roll
-            new(PartLocation.LeftArm, 3, [], []) // No aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.CenterTorso,5), // No aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.LeftArm, 3) // No aimed shot, no location roll
         };
         
         // Get initial armor values
@@ -562,8 +562,8 @@ public class UnitTests
         var unit = CreateTestUnit();
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [], []), // No aimed shot, no location roll
-            new(PartLocation.Head, 3, [], []) // Unit doesn't have a Head part, no aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5), // No aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.Head, 3) // Unit doesn't have a Head part, no aimed shot, no location roll
         };
         
         // Get initial armor values
@@ -632,8 +632,8 @@ public class UnitTests
         var unit = new TestUnit("Test", "Unit", 20, 4, parts);
         
         // Apply damage to reduce armor
-        unit.ApplyArmorAndStructureDamage(5, parts[0], HitDirection.Front); // Center Torso: 10 -> 5
-        unit.ApplyArmorAndStructureDamage(10, parts[1], HitDirection.Front); // Left Arm: 15 -> 5
+        unit.ApplyDamage([CreateHitDataForLocation(parts[0].Location,5)], HitDirection.Front); // Center Torso: 10 -> 5
+        unit.ApplyDamage([CreateHitDataForLocation(parts[1].Location,10)], HitDirection.Front); // Left Arm: 15 -> 5
         
         // Act
         var totalCurrentArmor = unit.TotalCurrentArmor;
@@ -676,8 +676,8 @@ public class UnitTests
         var unit = new TestUnit("Test", "Unit", 20, 4, parts);
         
         // Apply damage to reduce armor and structure
-        unit.ApplyArmorAndStructureDamage(15, parts[0], HitDirection.Front); // Center Torso: 10 armor -> 0, 5 structure -> 0
-        unit.ApplyArmorAndStructureDamage(20, parts[1], HitDirection.Front); // Left Arm: 15 armor -> 0, 8 structure -> 3
+        unit.ApplyDamage([CreateHitDataForLocation(parts[0].Location, 15)], HitDirection.Front); // Center Torso: 10 armor -> 0, 5 structure -> 015, parts[0], HitDirection.Front); // Center Torso: 10 armor -> 0, 5 structure -> 0
+        unit.ApplyDamage([CreateHitDataForLocation(parts[1].Location, 20)], HitDirection.Front); // Left Arm: 15 armor -> 0, 8 structure -> 3
         
         // Act
         var totalCurrentStructure = unit.TotalCurrentStructure;
@@ -706,14 +706,14 @@ public class UnitTests
         unit.TotalCurrentStructure.ShouldBe(25);
         
         // Act - Apply damage to one part
-        unit.ApplyArmorAndStructureDamage(5, parts[0], HitDirection.Front); // Reduce Center Torso armor by 5
+        unit.ApplyDamage([CreateHitDataForLocation(parts[0].Location, 5)], HitDirection.Front); // Reduce Center Torso armor by 5
         
         // Assert - Check updated values
         unit.TotalCurrentArmor.ShouldBe(40); // 5 + 15 + 20
         unit.TotalCurrentStructure.ShouldBe(25); // Structure unchanged
         
         // Act - Apply more damage to penetrate armor and damage structure
-        unit.ApplyArmorAndStructureDamage(8, parts[0], HitDirection.Front); // Reduce remaining CT armor (5) and damage structure (3)
+        unit.ApplyDamage([CreateHitDataForLocation(parts[0].Location, 8)], HitDirection.Front); // Reduce remaining CT armor (5) and damage structure (3)
         
         // Assert - Check updated values
         unit.TotalCurrentArmor.ShouldBe(35); // 0 + 15 + 20
@@ -1097,9 +1097,7 @@ public class UnitTests
         var critComponent = new TestComponent("CritComp");
         leftArm.TryAddComponent(critComponent, [2]);
         var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
-        var hitLocation = new LocationHitData(PartLocation.LeftArm, 0, [], [], // No aimed shot, no location roll
-            [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1,
-                [CreateComponentHitData(2)])]);
+        var hitLocation = CreateHitDataForLocation(PartLocation.LeftArm, 0);
     
         // Pre-assert: component is not destroyed
         critComponent.IsDestroyed.ShouldBeFalse();
@@ -1117,9 +1115,7 @@ public class UnitTests
         var pilot = new MechWarrior("John", "Doe");
         var unit = new TestUnit("Test", "Unit", 20, 4, [head]);
         unit.AssignPilot(pilot);
-        var hitLocation = new LocationHitData(PartLocation.Head, 0, [], [], // No aimed shot, no location roll
-        [new LocationCriticalHitsData(PartLocation.Head, 10, 1,
-            [CreateComponentHitData(2)])]);
+        var hitLocation = CreateHitDataForLocation(PartLocation.Head, 0);
         var cockpit = unit.GetAllComponents<Cockpit>().First();
     
         // Pre-assert: component is not destroyed
@@ -1137,8 +1133,7 @@ public class UnitTests
         // Arrange
         var leftArm = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 5);
         var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
-        var hitLocation = new LocationHitData(PartLocation.LeftArm, 0, [], [], // No aimed shot, no location roll
-            [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 1, null,true)]);
+        var hitLocation = CreateHitDataForLocation(PartLocation.LeftArm, 0);
         
         // Act
         unit.ApplyDamage([hitLocation], HitDirection.Front);
@@ -1155,12 +1150,10 @@ public class UnitTests
         var component = new TestComponent("Test Component", 3);
         targetPart.TryAddComponent(component);
         
-        var hitLocations = new List<LocationHitData>
-        {
-            new(PartLocation.LeftArm, 10, [], [3, 5], // No aimed shot, location roll 3,5
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 10, 2,
-                    [CreateComponentHitData(0), CreateComponentHitData(2)])])
-        };
+        List<LocationHitData> hitLocations =
+        [
+            CreateHitDataForLocation(PartLocation.LeftArm, 10)
+        ];
         
         // Act
         unit.ApplyDamage(hitLocations, HitDirection.Front);
@@ -1181,8 +1174,7 @@ public class UnitTests
         
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 10, [], [3, 5], // No aimed shot, location roll 3,5
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 12, 0, null, true)])
+            CreateHitDataForLocation(PartLocation.LeftArm, 10)
         };
         
         // Act
@@ -1203,7 +1195,7 @@ public class UnitTests
         
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 10, [], [3, 5]) // No aimed shot, location roll 3,5
+            CreateHitDataForLocation(PartLocation.LeftArm, 10, [], [3, 5]) // No aimed shot, location roll 3,5
         };
         
         // Act
@@ -1229,9 +1221,7 @@ public class UnitTests
         
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 5, [], [3], // No aimed shot, location roll 3
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
-                    [CreateComponentHitData(1)])])
+            CreateHitDataForLocation(PartLocation.LeftArm, 5, [], [3])
         };
         
         // Pre-assert: component has not exploded
@@ -1263,9 +1253,7 @@ public class UnitTests
         
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 2, [], [3], // No aimed shot, location roll 3
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
-                    [CreateComponentHitData(1), CreateComponentHitData(2)])])
+            CreateHitDataForLocation(PartLocation.LeftArm, 2, [], [3])
         };
         
         // Pre-assert: components have not exploded
@@ -1297,9 +1285,7 @@ public class UnitTests
         
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 3, [], [3], // No aimed shot, location roll 3
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
-                    [CreateComponentHitData(1)])])
+            CreateHitDataForLocation(PartLocation.LeftArm, 3, [], [3])
         };
         
         // Pre-assert: component has already exploded
@@ -1327,9 +1313,7 @@ public class UnitTests
         
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 4, [], [3], // No aimed shot, location roll 3
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
-                    [CreateComponentHitData(1)])])
+            CreateHitDataForLocation(PartLocation.LeftArm, 4, [], [3])
         };
         
         targetPart.CurrentArmor.ShouldBe(10);
@@ -1355,8 +1339,7 @@ public class UnitTests
         
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 6, [], [3], // No aimed shot, location roll 3
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1, [CreateComponentHitData(1)])])
+            CreateHitDataForLocation(PartLocation.LeftArm, 6, [], [3])
         };
         
         // Pre-assert: component has not exploded
@@ -1385,22 +1368,11 @@ public class UnitTests
         // Add the component to the part
         targetPart.TryAddComponent(explodableComponent,[0]);
         
-        // Create hit locations with critical hits that will trigger the explosion
-        var criticalHitsData = new LocationCriticalHitsData(
-            PartLocation.CenterTorso,
-            10, // Roll value
-            1,  // Number of critical hits
-            [CreateComponentHitData(0)] // Hit the first slot where our component is
-        );
-        
         var hitLocations = new List<LocationHitData>
         {
-            new(
-                PartLocation.CenterTorso, // Location
-                5, // Damage
-                [], // No aimed shot
-                [], // No location roll
-                [criticalHitsData] // Critical hits data
+            CreateHitDataForLocation(
+                PartLocation.CenterTorso, 
+                5 
             )
         };
         
@@ -1431,7 +1403,7 @@ public class UnitTests
         // Create hit locations that will destroy the unit
         var hitLocations = new List<LocationHitData>
         {
-            new LocationHitData(
+            CreateHitDataForLocation(
                 PartLocation.CenterTorso, // Location
                 100, // Damage enough to destroy the center torso completely
                 [], // No aimed shot
@@ -1627,8 +1599,8 @@ public class UnitTests
         var sut = CreateTestUnit();
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [], []), // No aimed shot, no location roll
-            new(PartLocation.LeftArm, 3, [], []) // No aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], []), // No aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.LeftArm, 3, [], []) // No aimed shot, no location roll
         };
 
         // Act
@@ -1645,11 +1617,11 @@ public class UnitTests
         var sut = CreateTestUnit();
         var firstHitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 4, [], []) // No aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.CenterTorso, 4, [], []) // No aimed shot, no location roll
         };
         var secondHitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 6, [], []) // No aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.LeftArm, 6, [], []) // No aimed shot, no location roll
         };
 
         // Act
@@ -1673,9 +1645,7 @@ public class UnitTests
 
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.LeftArm, 3, [], [3], // No aimed shot, location roll 3
-                [new LocationCriticalHitsData(PartLocation.LeftArm, 0, 1,
-                    [CreateComponentHitData(1)])])
+            CreateHitDataForLocation(PartLocation.LeftArm, 3, [], [3])
         };
 
         // Act
@@ -1692,8 +1662,8 @@ public class UnitTests
         var sut = CreateTestUnit();
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 7, [], []), // No aimed shot, no location roll
-            new(PartLocation.LeftArm, 4, [], []) // No aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.CenterTorso, 7, [], []), // No aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.LeftArm, 4, [], []) // No aimed shot, no location roll
         };
 
         // Apply damage to accumulate TotalPhaseDamage
@@ -1948,12 +1918,18 @@ public class UnitTests
     
     // Helper class for testing generic methods
     private class TestDerivedComponent(string name, int size = 1) : TestComponent(name, size);
-    private ComponentHitData CreateComponentHitData(int slot)
+    
+    private LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
     {
-        return new ComponentHitData
-        {
-            Slot = slot,
-            Type = MakaMekComponent.ISAmmoMG
-        };
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
 }
