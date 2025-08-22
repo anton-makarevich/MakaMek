@@ -83,6 +83,20 @@ public class EndStateTests
         SetPhase(PhaseNames.End);
         _sut = new EndState(_battleMapViewModel);
     }
+    
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
 
     [Fact]
     public void InitialState_HasEndTurnAction()
@@ -223,7 +237,7 @@ public class EndStateTests
     {
         // Arrange
         // Make the player unable to act by destroying their unit
-        _unit1.ApplyDamage([new LocationHitData(
+        _unit1.ApplyDamage([CreateHitDataForLocation(
             PartLocation.CenterTorso,
             100,
             [],
@@ -238,7 +252,7 @@ public class EndStateTests
     {
         // Arrange
         // Make the player unable to act by destroying their unit
-        _unit1.ApplyDamage([new LocationHitData(
+        _unit1.ApplyDamage([CreateHitDataForLocation(
             PartLocation.CenterTorso,
             100,
             [],
@@ -305,7 +319,7 @@ public class EndStateTests
     public void GetAvailableActions_ShouldNotReturnShutdownAction_WhenUnitDestroyed()
     {
         // Arrange
-        _unit1.ApplyDamage([new LocationHitData(
+        _unit1.ApplyDamage([CreateHitDataForLocation(
             PartLocation.CenterTorso,
             100,
             [],

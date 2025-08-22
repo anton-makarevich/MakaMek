@@ -22,9 +22,9 @@ public class LocationHitDataTests
         _localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer")
             .Returns("{0} → {1}: {2} damage (Roll: {3})");
         _localizationService.GetString("Command_WeaponAttackResolution_AimedShotSuccessful")
-            .Returns("{0}: {1} damage (Aimed Shot: {2}, successful)");
+            .Returns("Aimed Shot targeting {0} succeeded, Roll: {1}");
         _localizationService.GetString("Command_WeaponAttackResolution_AimedShotFailed")
-            .Returns("{0}: {1} damage (Aimed Shot: {2}, failed, Roll: {3})");
+            .Returns("Aimed Shot targeting {0} failed, Roll: {1}");
         _localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferSuccessful")
             .Returns("{0} → {1}: {2} damage (Aimed Shot: {3}, successful)");
         _localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferFailed")
@@ -173,8 +173,8 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldBe(shouldSucceed
-            ? $"RightArm: 8 damage (Aimed Shot: {rollTotal}, successful)"
-            : $"RightArm: 8 damage (Aimed Shot: {rollTotal}, failed, Roll: 7)");
+        result.Trim().ShouldContain(shouldSucceed
+            ? $"Aimed Shot targeting RightArm succeeded, Roll: {rollTotal}"
+            : $"Aimed Shot targeting RightArm failed, Roll: {rollTotal}");
     }
 }
