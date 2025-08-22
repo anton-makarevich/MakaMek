@@ -52,6 +52,19 @@ public class FallProcessorTests
             .Create(MechFactoryTests.CreateDummyMechData());
     }
 
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
 
     [Fact]
     public void ProcessPotentialFall_ShouldReturnMechFallingCommand_WhenGyroHitPsrFails()
@@ -222,12 +235,10 @@ public class FallProcessorTests
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
         _testMech.ApplyDamage(
             [
-                new LocationHitData(PartLocation.CenterTorso,
+                CreateHitDataForLocation(PartLocation.CenterTorso,
                     totalDamageDealt,
-                    [
-                    ],
-                    [
-                    ]),
+                    [],
+                    []),
             ],
             HitDirection.Front);
         
@@ -288,12 +299,10 @@ public class FallProcessorTests
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
         _testMech.ApplyDamage(
             [
-                new LocationHitData(PartLocation.CenterTorso,
+                CreateHitDataForLocation(PartLocation.CenterTorso,
                     totalDamageDealt,
-                    [
-                    ],
-                    [
-                    ]),
+                    [],
+                    []),
             ],
             HitDirection.Front);
         
@@ -389,12 +398,10 @@ public class FallProcessorTests
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
         _testMech.ApplyDamage(
             [
-                new LocationHitData(PartLocation.CenterTorso,
+                CreateHitDataForLocation(PartLocation.CenterTorso,
                     totalDamageDealt,
-                    [
-                    ],
-                    [
-                    ]),
+                    [],
+                    []),
             ],
             HitDirection.Front);
         
@@ -451,12 +458,10 @@ public class FallProcessorTests
         const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
         _testMech.ApplyDamage(
             [
-                new LocationHitData(PartLocation.CenterTorso,
+                CreateHitDataForLocation(PartLocation.CenterTorso,
                     totalDamageDealt,
-                    [
-                    ],
-                    [
-                    ]),
+                    [],
+                    []),
             ],
             HitDirection.Front);
         
@@ -1106,7 +1111,7 @@ public class FallProcessorTests
     {
         var facingRoll = new DiceResult(3);
         int[] hitLocationRolls = [3,3];
-        var hitLocationData = new LocationHitData(
+        var hitLocationData = CreateHitDataForLocation(
             PartLocation.CenterTorso,
             5,
             [],

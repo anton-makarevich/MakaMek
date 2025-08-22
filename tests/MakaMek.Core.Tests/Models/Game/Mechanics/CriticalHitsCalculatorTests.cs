@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -48,14 +49,15 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var structureDamageByLocation = new Dictionary<PartLocation, int>
-        {
-            { PartLocation.CenterTorso, 0 },
-            { PartLocation.LeftArm, 0 }
-        };
+        var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
+            0,
+            0,
+            false);
 
         // Act
-        var result = _sut.CalculateCriticalHitsForStructureDamage(testUnit, structureDamageByLocation);
+        var result = _sut.CalculateCriticalHitsForStructureDamage(
+            testUnit,
+            structureDamageByLocation);
 
         // Assert
         result.ShouldBeEmpty();
@@ -66,11 +68,10 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var structureDamageByLocation = new Dictionary<PartLocation, int>
-        {
-            { PartLocation.CenterTorso, 5 },
-            { PartLocation.LeftArm, 3 }
-        };
+        var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
+            5,
+            0,
+            false);
 
         // Setup dice roller for critical hit checks
         _mockDiceRoller.Roll2D6().Returns(
@@ -93,13 +94,11 @@ public class CriticalHitsCalculatorTests
         result.Count.ShouldBe(2);
 
         var centerTorsoResult = result.First(r => r.Location == PartLocation.CenterTorso);
-        centerTorsoResult.StructureDamageReceived.ShouldBe(5);
-        centerTorsoResult.CriticalHitRoll.ShouldBe(8);
+        centerTorsoResult.Roll.ShouldBe([4, 4]);
         centerTorsoResult.NumCriticalHits.ShouldBe(1);
 
         var leftArmResult = result.First(r => r.Location == PartLocation.LeftArm);
-        leftArmResult.StructureDamageReceived.ShouldBe(3);
-        leftArmResult.CriticalHitRoll.ShouldBe(10);
+        leftArmResult.Roll.ShouldBe([5, 5]);
         leftArmResult.NumCriticalHits.ShouldBe(2);
     }
 
@@ -127,14 +126,13 @@ public class CriticalHitsCalculatorTests
 
         var explosionResult = result.First();
         explosionResult.Location.ShouldBe(PartLocation.CenterTorso);
-        explosionResult.StructureDamageReceived.ShouldBe(0); // Heat explosion doesn't receive structure damage
-        explosionResult.CriticalHitRoll.ShouldBe(0); // No roll for forced critical hit
+        explosionResult.Roll.ShouldBe([]); // No roll for forced critical hit
         explosionResult.NumCriticalHits.ShouldBe(1); // One forced critical hit
         explosionResult.HitComponents.ShouldNotBeNull();
         explosionResult.HitComponents!.Length.ShouldBe(1);
         explosionResult.HitComponents[0].Slot.ShouldBe(5);
         explosionResult.Explosions.ShouldNotBeNull();
-        explosionResult.Explosions!.Count.ShouldBe(1);
+        explosionResult.Explosions.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -175,10 +173,10 @@ public class CriticalHitsCalculatorTests
         var ammo = new Ammo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo, [8]);
 
-        var structureDamageByLocation = new Dictionary<PartLocation, int>
-        {
-            { PartLocation.CenterTorso, 5 }
-        };
+        var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
+            5,
+            0,
+            false);
 
         // Setup dice roller to hit the ammo component
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
@@ -191,7 +189,7 @@ public class CriticalHitsCalculatorTests
         result.ShouldNotBeEmpty();
         var centerTorsoResult = result.First(r => r.Location == PartLocation.CenterTorso);
         centerTorsoResult.Explosions.ShouldNotBeNull();
-        centerTorsoResult.Explosions!.Count.ShouldBe(1);
+        centerTorsoResult.Explosions.Count.ShouldBe(1);
         centerTorsoResult.Explosions[0].ComponentType.ShouldBe(ammo.ComponentType);
         centerTorsoResult.Explosions[0].Slot.ShouldBe(8);
         centerTorsoResult.Explosions[0].ExplosionDamage.ShouldBeGreaterThan(0);

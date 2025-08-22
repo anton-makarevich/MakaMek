@@ -167,7 +167,7 @@ public class HeatEffectsCalculatorTests
         result.Value.AvoidExplosionRoll.IsSuccessful.ShouldBeTrue();
         result.Value.AvoidExplosionRoll.AvoidNumber.ShouldBe(avoidNumber);
         result.Value.AvoidExplosionRoll.DiceResults.ShouldBe([3, 4]);
-        result.Value.ExplosionDamage.ShouldBeEmpty();
+        result.Value.CriticalHits.ShouldBeEmpty();
     }
 
     [Fact]
@@ -194,8 +194,8 @@ public class HeatEffectsCalculatorTests
         result.Value.AvoidExplosionRoll.IsSuccessful.ShouldBeFalse();
         result.Value.AvoidExplosionRoll.AvoidNumber.ShouldBe(avoidNumber);
         result.Value.AvoidExplosionRoll.DiceResults.ShouldBe([2, 3]);
-        result.Value.ExplosionDamage.ShouldNotBeNull();
-        result.Value.ExplosionDamage.Count.ShouldBe(1);
+        result.Value.CriticalHits.ShouldNotBeNull();
+        result.Value.CriticalHits.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -215,11 +215,12 @@ public class HeatEffectsCalculatorTests
         // Setup critical hits calculator
         var criticalHits = new List<LocationCriticalHitsData>
         {
-            new(PartLocation.CenterTorso, 8, 1, [
+            new(PartLocation.CenterTorso, [4, 4], 1, [
                 new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
-            ])
+            ],false,[])
         };
-        _criticalHitsCalculator.GetCriticalHitsForDestroyedComponent(Arg.Any<Unit>(), Arg.Any<Ammo>())
+        _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
+                Arg.Any<Unit>(), Arg.Any<Ammo>())
             .Returns(criticalHits);
 
         // Act
@@ -231,8 +232,7 @@ public class HeatEffectsCalculatorTests
             mech.GetAvailableComponents<Ammo>()
                 .OrderByDescending(a => a.GetExplosionDamage())
                 .First();
-        _criticalHitsCalculator.Received(1)
-            .GetCriticalHitsForDestroyedComponent(mech, expectedAmmoFail);
+        _criticalHitsCalculator.Received(1).CalculateCriticalHitsForHeatExplosion(mech, expectedAmmoFail);
     }
 
     [Fact]
@@ -256,11 +256,12 @@ public class HeatEffectsCalculatorTests
         // Setup critical hits calculator
         var criticalHits = new List<LocationCriticalHitsData>
         {
-            new(PartLocation.CenterTorso, 8, 1, [
+            new(PartLocation.CenterTorso, [4, 4], 1, [
                 new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
-            ])
+            ],false,[])
         };
-        _criticalHitsCalculator.GetCriticalHitsForDestroyedComponent(Arg.Any<Unit>(), Arg.Any<Ammo>())
+        _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(Arg.Any<Unit>(),
+                Arg.Any<Ammo>())
             .Returns(criticalHits);
 
         // Act
@@ -272,8 +273,9 @@ public class HeatEffectsCalculatorTests
             mech.GetAvailableComponents<Ammo>()
                 .OrderByDescending(a => a.GetExplosionDamage())
                 .First();
-        _criticalHitsCalculator.Received(1)
-            .GetCriticalHitsForDestroyedComponent(mech, Arg.Any<Ammo>());
+        expectedAmmoFail.ComponentType.ShouldBe(MakaMekComponent.ISAmmoMG);
+        _criticalHitsCalculator.Received(1).CalculateCriticalHitsForHeatExplosion(mech,
+            Arg.Any<Ammo>());
         _diceRoller.Received(1).RollD6();
     }
     

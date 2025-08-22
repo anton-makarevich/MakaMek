@@ -38,6 +38,20 @@ public class MechTests
             new Leg("LeftLeg", PartLocation.LeftLeg, 25, 8)
         ];
     }
+    
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
 
     [Fact]
     public void Mech_CanWalkBackwards_BitCannotRun()
@@ -1688,7 +1702,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
-        sut.ApplyDamage(100, sut.Parts.First(p => p.Location == PartLocation.Head), HitDirection.Front);
+        sut.ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
 
         // Act
         var result = sut.CanFireWeapons;
