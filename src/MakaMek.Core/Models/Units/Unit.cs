@@ -517,7 +517,7 @@ public abstract class Unit
         // Apply armor damage
         if (armorDamage > 0)
         {
-            targetPart.ApplyArmorDamage(armorDamage, hitDirection);
+            targetPart.ApplyDamage(armorDamage, hitDirection);
         }
 
         // Apply structure damage

@@ -633,7 +633,7 @@ public class MechTests
         critsData.HitComponents.ShouldNotBeNull();
         critsData.HitComponents.Length.ShouldBe(2);
         critsData.HitComponents.FirstOrDefault(c => c.Slot == 2).ShouldNotBeNull();
-        critsData.Roll.ShouldBe(10);
+        critsData.Roll.ShouldBe([5, 5]);
         critsData.NumCriticalHits.ShouldBe(2);
     }
 
@@ -714,7 +714,7 @@ public class MechTests
 
         // Assert
         critsData.ShouldNotBeNull();
-        critsData.Roll.ShouldBe(6);
+        critsData.Roll.ShouldBe([3, 3]);
         critsData.NumCriticalHits.ShouldBe(0);
         critsData.HitComponents.ShouldBeNull();
     }
@@ -1688,7 +1688,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
-        sut.ApplyArmorAndStructureDamage(100, sut.Parts.First(p => p.Location == PartLocation.Head), HitDirection.Front);
+        sut.ApplyDamage(100, sut.Parts.First(p => p.Location == PartLocation.Head), HitDirection.Front);
 
         // Act
         var result = sut.CanFireWeapons;

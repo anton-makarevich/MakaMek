@@ -42,7 +42,7 @@ public class BaseGameTests : BaseGame
             BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain())));
     }
     
-    private LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
         int damage,
         int[]? aimedShotRoll = null,
         int[]? locationRoll = null)

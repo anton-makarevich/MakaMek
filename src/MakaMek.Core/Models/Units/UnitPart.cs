@@ -135,27 +135,31 @@ public abstract class UnitPart
     /// </summary>
     /// <param name="armorDamage">The amount of armor damage to apply</param>
     /// <param name="direction">The direction of the hit</param>
-    public void ApplyArmorDamage(int armorDamage, HitDirection direction)
+    public int ApplyDamage(int armorDamage, HitDirection direction)
     {
-        ReduceArmor(armorDamage, direction);
+        var remainingDamage = ReduceArmor(armorDamage, direction);
+        if (remainingDamage > 0)
+        {
+            remainingDamage=ApplyStructureDamage(remainingDamage);
+        }
+        return remainingDamage;
     }
 
     /// <summary>
     /// Applies pre-calculated structure damage to this part
     /// </summary>
     /// <param name="structureDamage">The amount of structure damage to apply</param>
-    public void ApplyStructureDamage(int structureDamage)
+    public int ApplyStructureDamage(int structureDamage)
     {
-        if (structureDamage <= 0) return;
+        if (structureDamage <= 0) return structureDamage;
 
         var damageToApply = Math.Min(structureDamage, CurrentStructure);
         CurrentStructure -= damageToApply;
         Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage, Name, damageToApply.ToString()));
 
-        if (CurrentStructure <= 0)
-        {
-            Unit?.AddEvent(new UiEvent(UiEventType.LocationDestroyed, Name));
-        }
+        if (CurrentStructure > 0) return structureDamage - damageToApply;
+        Unit?.AddEvent(new UiEvent(UiEventType.LocationDestroyed, Name));
+        return 0;
     }
 
     public T? GetComponent<T>() where T : Component
@@ -192,8 +196,8 @@ public abstract class UnitPart
     {
         return Unit?.GetTransferLocation(Location);
     }
-    
-    protected UnitPart? DamageTransferPart => Unit?.Parts.FirstOrDefault(p => p.Location == GetNextTransferLocation()); 
+
+    private UnitPart? DamageTransferPart => Unit?.Parts.FirstOrDefault(p => p.Location == GetNextTransferLocation()); 
     
     /// <summary>
     /// Blows off this part as a result of a critical hit

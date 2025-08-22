@@ -18,7 +18,7 @@ public class TorsoTests
     [InlineData(3, 10, 3, 5, 0, HitDirection.Rear)] // Rear damage less than rear armor
     [InlineData(14, 10, 3, 5, 0, HitDirection.Front)] // Front damage depletes armor and some structure
     [InlineData(9, 10, 3, 5, 1, HitDirection.Rear)] // Rear damage exceeds rear armor and depletes structure
-    public void ApplyDamage_HandlesVariousDamageScenarios(int damage,
+    public void ApplyArmorDamage_HandlesVariousDamageScenarios(int damage,
         int maxArmor,
         int maxRearArmor,
         int maxStructure,

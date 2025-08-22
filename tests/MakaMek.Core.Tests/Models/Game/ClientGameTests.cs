@@ -53,6 +53,20 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory);
     }
+    
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
 
     [Fact]
     public void HandleCommand_ShouldAddPlayer_WhenJoinGameCommandIsReceived()
@@ -967,8 +981,8 @@ public class ClientGameTests
         // Create hit locations data
         var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [],[]),
-            new(PartLocation.LeftArm, 3, [],[])
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[]),
+            CreateHitDataForLocation(PartLocation.LeftArm, 3, [],[])
         };
         
         // Create the attack resolution command
@@ -1970,8 +1984,8 @@ public class ClientGameTests
         var unit2 = player2.Units.First();
 
         // Apply different amounts of damage to each unit
-        unit1.ApplyDamage([new LocationHitData(PartLocation.CenterTorso, 9, [],[])], HitDirection.Front);
-        unit2.ApplyDamage([new LocationHitData(PartLocation.LeftLeg, 5, [],[])], HitDirection.Front);
+        unit1.ApplyDamage([CreateHitDataForLocation(PartLocation.CenterTorso, 9, [],[])], HitDirection.Front);
+        unit2.ApplyDamage([CreateHitDataForLocation(PartLocation.LeftLeg, 5, [],[])], HitDirection.Front);
 
         // Verify damage was accumulated
         unit1.TotalPhaseDamage.ShouldBe(9);
@@ -2031,7 +2045,7 @@ public class ClientGameTests
         // Create hit locations data for the falling damage
         var hitLocations = new List<LocationHitData>
         {
-            new(
+            CreateHitDataForLocation(
                 PartLocation.CenterTorso, 
                 5,
                 [],
@@ -2117,7 +2131,7 @@ public class ClientGameTests
         // Create hit locations data for the falling damage
         var hitLocations = new List<LocationHitData>
         {
-            new(
+            CreateHitDataForLocation(
                 PartLocation.CenterTorso, 
                 5,
                 [],
@@ -2173,7 +2187,7 @@ public class ClientGameTests
         // Create hit locations data for the falling damage
         var hitLocations = new List<LocationHitData>
         {
-            new(
+            CreateHitDataForLocation(
                 PartLocation.CenterTorso, 
                 5,
                 [],
@@ -2332,7 +2346,7 @@ public class ClientGameTests
         
         _sut.HandleCommand(joinCommand);
         var mech = _sut.Players.SelectMany(p => p.Units).First() as Mech;
-        
+
         var explosionCommand = new AmmoExplosionCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -2344,24 +2358,16 @@ public class ClientGameTests
                 AvoidNumber = 6,
                 IsSuccessful = false
             },
-            ExplosionDamage =
+            CriticalHits =
             [
-                new LocationHitData(
-                    PartLocation.CenterTorso,
-                    10,
-                    [],
-                    [1],
-                    [
-                        new LocationCriticalHitsData(PartLocation.CenterTorso, 8, 1,
-                        [
-                            new ComponentHitData
-                            {
-                                Slot = 1,
-                                Type = MakaMekComponent.ISAmmoLRM5
-                            }
-                        ])
-                    ]
-                )
+                new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = 1,
+                        Type = MakaMekComponent.ISAmmoLRM5
+                    }
+                ],false,[])
             ]
         };
 

@@ -198,7 +198,7 @@ public class ComponentTests
         var component = new TestComponent("Test", []);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
         component.Mount([0], unitPart);
-        unitPart.ApplyDamage(20, HitDirection.Front);
+        unitPart.ApplyStructureDamage(20);
         component.Status.ShouldBe(ComponentStatus.Lost);
     }
 
