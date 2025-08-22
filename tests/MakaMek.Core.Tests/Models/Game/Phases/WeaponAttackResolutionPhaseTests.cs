@@ -73,6 +73,20 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         }
     }
     
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
+    
     [Fact]
     public void Enter_ShouldNotPublishCommands_WhenMechCannotFire()
     {
@@ -303,7 +317,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var head = _player1Unit2.Parts.First(p => p.Location == PartLocation.Head);
         var lethalDamage = head.MaxArmor + head.MaxStructure + 1;
 
-        _player1Unit2.ApplyArmorAndStructureDamage(lethalDamage, head, HitDirection.Front); // Apply lethal damage();
+        _player1Unit2.ApplyDamage([CreateHitDataForLocation(PartLocation.Head, lethalDamage)], HitDirection.Front); // Apply lethal damage();
 
         // Act
         _sut.Enter();
@@ -387,9 +401,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         capturedCommands.Count.ShouldBe(2);
 
         // Both commands should target the left arm
-        capturedCommands[0].ResolutionData.HitLocationsData!.HitLocations[0].Location
+        capturedCommands[0].ResolutionData.HitLocationsData!.HitLocations[0].InitialLocation
             .ShouldBe(PartLocation.LeftArm);
-        capturedCommands[1].ResolutionData.HitLocationsData!.HitLocations[0].Location
+        capturedCommands[1].ResolutionData.HitLocationsData!.HitLocations[0].InitialLocation
             .ShouldBe(PartLocation.LeftArm);
 
         // Calculate the total damage from both attacks
@@ -463,9 +477,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.ResolutionData.HitLocationsData.ClusterRoll.Sum(d => d.Result) == 9 && // Total of 9
                 cmd.ResolutionData.HitLocationsData.MissilesHit == 8 && // 8 hits for LRM-10 with roll of 9
                 cmd.ResolutionData.HitLocationsData.HitLocations.Count == 2 && //2 clusters hit
-                cmd.ResolutionData.HitLocationsData.HitLocations[0].Location == PartLocation.RightTorso &&
-                cmd.ResolutionData.HitLocationsData.HitLocations[0].Damage == 5 && //first 5 missiles
-                cmd.ResolutionData.HitLocationsData.HitLocations[1].Damage == 3)); //second 8-5=3
+                cmd.ResolutionData.HitLocationsData.HitLocations[0].InitialLocation == PartLocation.RightTorso &&
+                cmd.ResolutionData.HitLocationsData.HitLocations[0].Damage[0].ArmorDamage == 5 && //first 5 missiles
+                cmd.ResolutionData.HitLocationsData.HitLocations[1].Damage[0].ArmorDamage == 3)); //second 8-5=3
     }
 
     [Fact]
@@ -630,7 +644,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso (based on Mech's GetTransferLocation implementation)
-        data.Location.ShouldBe(PartLocation.LeftTorso);
+        data.InitialLocation.ShouldBe(PartLocation.LeftTorso);
     }
 
     [Fact]
@@ -669,7 +683,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
-        data.Location.ShouldBe(PartLocation.CenterTorso);
+        data.Damage.Last().Location.ShouldBe(PartLocation.CenterTorso);
     }
     
     [Theory]
@@ -709,7 +723,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Should hit the intended location (LeftArm) due to a successful aimed shot
-        data.Location.ShouldBe(PartLocation.LeftArm);
+        data.InitialLocation.ShouldBe(PartLocation.LeftArm);
+        data.Damage[0].Location.ShouldBe(PartLocation.LeftArm);
     }
     
     [Theory]
@@ -756,7 +771,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Should hit location from the table (CenterTorso) due to unsuccessful aimed shot
-        data.Location.ShouldBe(PartLocation.CenterTorso);
+        data.InitialLocation.ShouldBe(PartLocation.CenterTorso);
+        data.Damage[0].Location.ShouldBe(PartLocation.CenterTorso);
     }
     
     [Fact]
@@ -910,11 +926,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var damageData = new FallingDamageData(HexDirection.Bottom,
             new HitLocationsData(
                 HitLocations: [
-                new LocationHitData(
-                PartLocation.CenterTorso,
-                5,
-                [],
-                [])], TotalDamage: 5), new DiceResult(3), HitDirection.Front);
+                CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[])], 
+                TotalDamage: 5), new DiceResult(3), HitDirection.Front);
         
         var mechFallingCommand = new MechFallCommand
         {
@@ -961,11 +974,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var damageData = new FallingDamageData(HexDirection.Bottom,
             new HitLocationsData(
                 HitLocations: [
-                    new LocationHitData(
-                        PartLocation.CenterTorso,
-                        5,
-                        [],
-                        [])], TotalDamage: 5), new DiceResult(3), HitDirection.Front);
+                    CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[])],
+                TotalDamage: 5), new DiceResult(3), HitDirection.Front);
         
         var mechFallingCommand = new MechFallCommand
         {
@@ -1120,14 +1130,13 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         PartLocation location = PartLocation.LeftLeg,
         Unit? unit = null)
     {
-        Game.CriticalHitsCalculator.CalculateCriticalHits(
+        Game.CriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
                 unit ?? Arg.Any<Unit>(),
-                Arg.Is<PartLocation>(loc => loc == location),
-                Arg.Any<int>())
+                Arg.Is<LocationDamageData>(loc => loc.Location == location))
             .Returns(
             [
                 new LocationCriticalHitsData(location,
-                    7,
+                    [3,4],
                     1,
                     [
                         new ComponentHitData
@@ -1135,7 +1144,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                             Type = component,
                             Slot = slot
                         }
-                    ]
+                    ],
+                    false,
+                    []
                 )
             ]);
     }

@@ -431,7 +431,7 @@ public abstract class Unit
     {
         foreach (var hitLocation in hitLocations)
         {
-            foreach (var locationDamage in hitLocation.DamageData)
+            foreach (var locationDamage in hitLocation.Damage)
             {
                 var targetPart = _parts.Find(p => p.Location == locationDamage.Location);
                 if (targetPart == null) continue;

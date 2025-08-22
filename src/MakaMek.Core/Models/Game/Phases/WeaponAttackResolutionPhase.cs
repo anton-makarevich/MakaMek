@@ -487,7 +487,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Process each location that received damage
         foreach (var locationHit in hitLocationsData.HitLocations)
         {
-            foreach (var damageData in locationHit.DamageData)
+            foreach (var damageData in locationHit.Damage)
             {
                 if (damageData.StructureDamage > 0)
                 {

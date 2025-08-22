@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Core.Data.Game;
 /// Represents a single hit location with its damage and optional critical hits (slot indexes)
 /// </summary>
 public record LocationHitData(
-    List<LocationDamageData> DamageData,
+    List<LocationDamageData> Damage,
     int[] AimedShotRoll,
     int[] LocationRoll,
     PartLocation InitialLocation
@@ -49,32 +49,32 @@ public record LocationHitData(
         }
 
         // If there was a location transfer, show both the initial and final locations
-        if (DamageData.Count > 0 && InitialLocation != DamageData[0].Location)
+        if (Damage.Count > 0 && InitialLocation != Damage[0].Location)
         {
             stringBuilder.AppendLine(string.Format(
                 localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer"),
                 InitialLocation,
-                DamageData[0].Location,
-                DamageData[0].ArmorDamage+DamageData[0].StructureDamage,
+                Damage[0].Location,
+                Damage[0].ArmorDamage+Damage[0].StructureDamage,
                 locationRollTotal));
         }
         else
         {
             stringBuilder.AppendLine(string.Format(
                 localizationService.GetString("Command_WeaponAttackResolution_HitLocation"),
-                DamageData[0].Location,
-                DamageData[0].ArmorDamage+DamageData[0].StructureDamage,
+                Damage[0].Location,
+                Damage[0].ArmorDamage+Damage[0].StructureDamage,
                 locationRollTotal));
         }
         
-        if (DamageData.Count > 1)
+        if (Damage.Count > 1)
         {
-            for (var i = 1; i < DamageData.Count; i++)
+            for (var i = 1; i < Damage.Count; i++)
             {
                 stringBuilder.AppendLine(string.Format(
                     localizationService.GetString("Command_WeaponAttackResolution_HitLocationExcessDamage"),
-                    DamageData[i].Location,
-                    DamageData[i].ArmorDamage+DamageData[i].StructureDamage));
+                    Damage[i].Location,
+                    Damage[i].ArmorDamage+Damage[i].StructureDamage));
             }
         }
 
