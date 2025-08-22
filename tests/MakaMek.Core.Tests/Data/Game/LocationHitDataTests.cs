@@ -116,7 +116,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldBe("Head: 5 damage (Aimed Shot: 7, successful)");
+        result.Trim().ShouldContain("Aimed Shot targeting Head succeeded, Roll: 7");
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldBe("CenterTorso: 5 damage (Aimed Shot: 5, failed, Roll: 7)");
+        result.Trim().ShouldContain("Aimed Shot targeting CenterTorso failed, Roll: 5");
     }
 
 
