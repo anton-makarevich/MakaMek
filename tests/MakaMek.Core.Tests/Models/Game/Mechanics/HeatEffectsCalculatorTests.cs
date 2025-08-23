@@ -52,12 +52,10 @@ public class HeatEffectsCalculatorTests
 
         // Add multiple ammo components with different damage values
         var ammo1 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
-        var ammo2 = new Ammo(Lrm10, 5); // 10 * 5 = 50 damage (less destructive)
-        var ammo3 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
+        var ammo2 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
 
-        centerTorso.TryAddComponent(ammo1, [0]);
-        centerTorso.TryAddComponent(ammo2, [1]);
-        centerTorso.TryAddComponent(ammo3, [2]);
+        centerTorso.TryAddComponent(ammo1);
+        centerTorso.TryAddComponent(ammo2);
 
         return mech;
     }
@@ -171,7 +169,7 @@ public class HeatEffectsCalculatorTests
     }
 
     [Fact]
-    public void CheckForHeatAmmoExplosion_ShouldReturnFailedCommand_WhenRollFails()
+    public void CheckForHeatAmmoExplosion_ShouldReturnCommand_WhenRollFails()
     {
         // Arrange
         const int avoidNumber = 6;
@@ -183,6 +181,17 @@ public class HeatEffectsCalculatorTests
         // Setup dice roll that fails (rolls 5, needs 6+)
         var diceResults = new List<DiceResult> { new(2), new(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
+        
+        // Setup critical hits calculator
+        var criticalHits = new List<LocationCriticalHitsData>
+        {
+            new(PartLocation.CenterTorso, [4, 4], 1, [
+                new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
+            ],false,[])
+        };
+        _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
+                Arg.Any<Unit>(), Arg.Any<Ammo>())
+            .Returns(criticalHits);
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
@@ -273,7 +282,7 @@ public class HeatEffectsCalculatorTests
             mech.GetAvailableComponents<Ammo>()
                 .OrderByDescending(a => a.GetExplosionDamage())
                 .First();
-        expectedAmmoFail.ComponentType.ShouldBe(MakaMekComponent.ISAmmoMG);
+        expectedAmmoFail.ComponentType.ShouldBe(MakaMekComponent.ISAmmoLRM5);
         _criticalHitsCalculator.Received(1).CalculateCriticalHitsForHeatExplosion(mech,
             Arg.Any<Ammo>());
         _diceRoller.Received(1).RollD6();
