@@ -227,12 +227,25 @@ public abstract class UnitPart
         if (component is not { IsDestroyed: false }) return;
         // Raise critical hit event
         Unit?.AddEvent(new UiEvent(UiEventType.CriticalHit, component.Name));
+        
+        var explosionDamage = component.GetExplosionDamage();
+        
         component.Hit();
-            
         // Raise component destroyed event if the component was destroyed by this hit
         if (component.IsDestroyed)
         {
             Unit?.AddEvent(new UiEvent(UiEventType.ComponentDestroyed, component.Name));
+        }
+                
+        var part = this;
+        while (explosionDamage > 0 && part != null)
+        {
+            explosionDamage = part.ApplyStructureDamage(explosionDamage);
+    
+            if (explosionDamage > 0)
+            {
+                part = part.DamageTransferPart;
+            }
         }
     }
 }

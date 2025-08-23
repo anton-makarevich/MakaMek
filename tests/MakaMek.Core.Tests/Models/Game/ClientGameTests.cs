@@ -19,6 +19,8 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -2346,11 +2348,15 @@ public class ClientGameTests
         
         _sut.HandleCommand(joinCommand);
         var mech = _sut.Players.SelectMany(p => p.Units).First() as Mech;
+        var lrm5 = new Ammo(Lrm5.Definition, 1);
+        var ct = mech!.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        ct.TryAddComponent(lrm5);
+        var slot = lrm5.MountedAtSlots[0];
 
         var explosionCommand = new AmmoExplosionCommand
         {
             GameOriginId = Guid.NewGuid(),
-            UnitId = mech!.Id,
+            UnitId = mech.Id,
             AvoidExplosionRoll = new AvoidAmmoExplosionRollData
             {
                 HeatLevel = 25,
@@ -2364,10 +2370,12 @@ public class ClientGameTests
                 [
                     new ComponentHitData
                     {
-                        Slot = 1,
+                        Slot = slot,
                         Type = MakaMekComponent.ISAmmoLRM5
                     }
-                ],false,[])
+                ],false,
+                    [ new ExplosionData(MakaMekComponent.ISAmmoLRM5, slot, 5) // 1 shot of lrm5
+                ])
             ]
         };
 
@@ -2376,6 +2384,6 @@ public class ClientGameTests
 
         // Assert - Verify the unit took damage from the explosion
         var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        centerTorso.CurrentArmor.ShouldBe(centerTorso.MaxArmor - 10);
+        centerTorso.CurrentStructure.ShouldBe(centerTorso.MaxStructure - 5);
     }
 }
