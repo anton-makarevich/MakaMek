@@ -157,9 +157,9 @@ public abstract class UnitPart
         CurrentStructure -= damageToApply;
         Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage, Name, damageToApply.ToString()));
 
-        if (CurrentStructure > 0) return structureDamage - damageToApply;
+        if (CurrentStructure > 0) return 0;
         Unit?.AddEvent(new UiEvent(UiEventType.LocationDestroyed, Name));
-        return 0;
+        return structureDamage - damageToApply;
     }
 
     public T? GetComponent<T>() where T : Component
