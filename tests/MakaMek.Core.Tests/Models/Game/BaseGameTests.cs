@@ -50,8 +50,8 @@ public class BaseGameTests : BaseGame
         return new LocationHitData(
         [
             new LocationDamageData(partLocation,
-                damage-1,
-                1,
+                damage,
+                0,
                 false)
         ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
