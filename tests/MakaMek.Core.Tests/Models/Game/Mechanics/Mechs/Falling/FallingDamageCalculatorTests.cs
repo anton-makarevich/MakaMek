@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -120,6 +121,32 @@ public class FallingDamageCalculatorTests
             [new DiceResult(5), new DiceResult(5)] // Third hit location roll, 10 LA
         );
         
+        // Setup structure damage calculator to return correct data
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
+            ]);
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftTorso, 5, 0, false)
+            ]);
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftArm),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftArm, 5, 0, false)
+            ]);
+        
         // Act
         var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
         
@@ -136,6 +163,22 @@ public class FallingDamageCalculatorTests
         
         result.HitLocations.HitLocations[2].Damage[0].ArmorDamage.ShouldBe(5);
         result.HitLocations.HitLocations[2].Damage[0].Location.ShouldBe(PartLocation.LeftArm);
+        
+        _mockStructureDamageCalculator.Received(1).CalculateStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+            5,
+            Arg.Any<HitDirection>());
+        _mockStructureDamageCalculator.Received(1).CalculateStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+            5,
+            Arg.Any<HitDirection>());
+        _mockStructureDamageCalculator.Received(1).CalculateStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<PartLocation>(l => l == PartLocation.LeftArm),
+            5,
+            Arg.Any<HitDirection>());
     }
 
     [Fact]
@@ -154,6 +197,24 @@ public class FallingDamageCalculatorTests
             [new DiceResult(3), new DiceResult(4)], // First hit location roll
             [new DiceResult(4), new DiceResult(4)] // Second hit location roll
         );
+        
+        // Setup structure damage calculator to return correct data
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
+            ]);
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+                Arg.Is<int>(d => d == 3),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftTorso, 3, 0, false)
+            ]);
         
         // Act
         var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
@@ -188,6 +249,24 @@ public class FallingDamageCalculatorTests
             [new DiceResult(3), new DiceResult(4)], // First hit location roll
             [new DiceResult(4), new DiceResult(4)] // Second hit location roll
         );
+        
+        // Setup structure damage calculator to return correct data
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
+            ]);
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+                Arg.Is<int>(d => d == 3),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftTorso, 3, 0, false)
+            ]);
         
         // Act
         var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
