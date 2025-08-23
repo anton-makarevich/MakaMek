@@ -481,7 +481,7 @@ public abstract class Unit
             {
                 foreach (var componentHit in locationData.HitComponents)
                 {
-                    targetPart.CriticalHit(componentHit.Slot);
+                    TotalPhaseDamage += targetPart.CriticalHit(componentHit.Slot);
                 }
             }
         }

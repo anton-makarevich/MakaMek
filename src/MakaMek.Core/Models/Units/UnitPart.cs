@@ -233,13 +233,14 @@ public abstract class UnitPart
     /// Records a critical hit on a specific slot and damages the component in that slot if it exists
     /// </summary>
     /// <param name="slot">The slot index that was hit</param>
-    public void CriticalHit(int slot)
+    public int CriticalHit(int slot)
     {
+        var appliedDamage = 0;
         _hitSlots.Add(slot);
         
         var component = GetComponentAtSlot(slot);
         
-        if (component is not { IsDestroyed: false }) return;
+        if (component is not { IsDestroyed: false }) return 0;
         // Raise critical hit event
         Unit?.AddEvent(new UiEvent(UiEventType.CriticalHit, component.Name));
         
@@ -255,7 +256,9 @@ public abstract class UnitPart
         var part = this;
         while (explosionDamage > 0 && part != null)
         {
-            explosionDamage = part.ApplyStructureDamage(explosionDamage);
+            var remainingDamage = part.ApplyStructureDamage(explosionDamage);
+            appliedDamage += explosionDamage - remainingDamage;
+            explosionDamage = remainingDamage;
             
             // Trigger explosion event
             Unit?.AddEvent(new UiEvent(UiEventType.Explosion, component.Name));
@@ -265,5 +268,7 @@ public abstract class UnitPart
                 part = part.DamageTransferPart;
             }
         }
+        
+        return appliedDamage;
     }
 }

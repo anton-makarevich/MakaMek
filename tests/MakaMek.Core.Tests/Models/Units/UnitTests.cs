@@ -1608,26 +1608,38 @@ public class UnitTests
     }
 
     [Fact]
-    public void ApplyDamage_WithExplosionDamage_ShouldIncludeBothInTotalPhaseDamage()
+    public void ApplyCriticalHits_WithExplosionDamage_ShouldIncludeItInTotalPhaseDamage()
     {
         // Arrange
         var sut = CreateTestUnit();
+        var pilot = new MechWarrior("John", "Doe");
+        sut.AssignPilot(pilot);
         var targetPart = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
-
+        
         // Create an explodable component
-        var explodableComponent = new TestExplodableComponent("Explodable Component", 5);
+        var explodableComponent = new TestExplodableComponent("Explodable Component", 3);
         targetPart.TryAddComponent(explodableComponent, [1]);
-
-        var hitLocations = new List<LocationHitData>
+        
+        var hitLocations = new List<LocationCriticalHitsData>
         {
-            CreateHitDataForLocation(PartLocation.LeftArm, 3, [], [3])
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = explodableComponent.MountedAtSlots[0],
+                        Type = MakaMekComponent.MachineGun
+                    }
+                ],
+                false,
+                [ new ExplosionData(MakaMekComponent.MachineGun, explodableComponent.MountedAtSlots[0], 3) ])
         };
+        var initialTotalDamage = sut.TotalPhaseDamage;
 
         // Act
-        sut.ApplyDamage(hitLocations, HitDirection.Front);
+        sut.ApplyCriticalHits(hitLocations);
 
         // Assert
-        sut.TotalPhaseDamage.ShouldBe(8); // 3 initial damage + 5 explosion damage
+        sut.TotalPhaseDamage.ShouldBe(initialTotalDamage + 3); 
     }
 
     [Fact]

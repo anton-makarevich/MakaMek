@@ -2055,13 +2055,13 @@ public class MechTests
 
         // Destroy both legs
         var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.ApplyDamage(100, HitDirection.Front);
+        leftLeg.ApplyDamage(20, HitDirection.Front);
         var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
-        rightLeg.ApplyDamage(100, HitDirection.Front);
+        rightLeg.ApplyDamage(20, HitDirection.Front);
 
         // Destroy one arm
         var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
-        leftArm.ApplyDamage(100, HitDirection.Front);
+        leftArm.ApplyDamage(20, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with both legs but only one arm destroyed should not be immobile");
@@ -2078,9 +2078,9 @@ public class MechTests
 
         // Destroy both legs
         var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.ApplyDamage(100, HitDirection.Front);
+        leftLeg.ApplyDamage(20, HitDirection.Front);
         var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
-        rightLeg.ApplyDamage(100, HitDirection.Front);
+        rightLeg.ApplyDamage(20, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with only legs destroyed should not be immobile");
@@ -2097,9 +2097,9 @@ public class MechTests
 
         // Destroy both arms
         var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
-        leftArm.ApplyDamage(100, HitDirection.Front);
+        leftArm.ApplyDamage(20, HitDirection.Front);
         var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
-        rightArm.ApplyDamage(100, HitDirection.Front);
+        rightArm.ApplyDamage(20, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with only arms destroyed should not be immobile");
