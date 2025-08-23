@@ -83,20 +83,8 @@ public class Mech : Unit
         }
     }
 
-    public override PartLocation? GetTransferLocation(PartLocation location) => location switch
+    protected override void UpdateDestroyedStatus()
     {
-        PartLocation.LeftArm => PartLocation.LeftTorso,
-        PartLocation.RightArm => PartLocation.RightTorso,
-        PartLocation.LeftLeg => PartLocation.LeftTorso,
-        PartLocation.RightLeg => PartLocation.RightTorso,
-        PartLocation.LeftTorso => PartLocation.CenterTorso,
-        PartLocation.RightTorso => PartLocation.CenterTorso,
-        _ => null
-    };
-
-    public override void ApplyDamage(List<LocationHitData> hitLocations, HitDirection hitDirection)
-    {
-        base.ApplyDamage(hitLocations, hitDirection);
         var head = _parts.Find(p => p.Location == PartLocation.Head);
         if (head is { IsDestroyed: true })
         {
@@ -110,6 +98,17 @@ public class Mech : Unit
         }
     }
 
+    public override PartLocation? GetTransferLocation(PartLocation location) => location switch
+    {
+        PartLocation.LeftArm => PartLocation.LeftTorso,
+        PartLocation.RightArm => PartLocation.RightTorso,
+        PartLocation.LeftLeg => PartLocation.LeftTorso,
+        PartLocation.RightLeg => PartLocation.RightTorso,
+        PartLocation.LeftTorso => PartLocation.CenterTorso,
+        PartLocation.RightTorso => PartLocation.CenterTorso,
+        _ => null
+    };
+    
     public override int EngineHeatSinks => GetAllComponents<Engine>().FirstOrDefault()?.NumberOfHeatSinks??0;
 
     /// <summary>

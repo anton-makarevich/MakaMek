@@ -72,10 +72,9 @@ public class UnitTests
         protected override void ApplyHeatEffects()
         {
         }
-        
-        public override void ApplyDamage(List<LocationHitData> hitLocations, HitDirection hitDirection)
+
+        protected override void UpdateDestroyedStatus()
         {
-            base.ApplyDamage(hitLocations, hitDirection);
             var destroyedParts = Parts.Where(p => p.IsDestroyed).ToList();
             if (destroyedParts.Count == Parts.Count)
             {
@@ -1142,50 +1141,29 @@ public class UnitTests
     }
     
     [Fact]
-    public void ApplyDamage_ShouldApplyCriticalHits_WhenCriticalHitsArePresent()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var component = new TestComponent("Test Component", 3);
-        targetPart.TryAddComponent(component);
-        
-        List<LocationHitData> hitLocations =
-        [
-            CreateHitDataForLocation(PartLocation.LeftArm, 10)
-        ];
-        
-        // Act
-        unit.ApplyDamage(hitLocations, HitDirection.Front);
-        
-        // Assert
-        targetPart.HitSlots.Count.ShouldBe(2);
-        targetPart.HitSlots.ShouldContain(0);
-        targetPart.HitSlots.ShouldContain(2);
-        component.IsDestroyed.ShouldBeTrue();
-    }
-    
-    [Fact]
-    public void ApplyDamage_ShouldBlowOffPart_WhenCriticalHitsBlownOffIsTrue()
+    public void ApplyCriticalHits_ShouldBlowOffPart_WhenCriticalHitsBlownOffIsTrue()
     {
         // Arrange
         var unit = CreateTestUnit();
         var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
         
-        var hitLocations = new List<LocationHitData>
+        var hitLocations = new List<LocationCriticalHitsData>
         {
-            CreateHitDataForLocation(PartLocation.LeftArm, 10)
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [],
+                true,
+                [])
         };
         
         // Act
-        unit.ApplyDamage(hitLocations, HitDirection.Front);
+        unit.ApplyCriticalHits(hitLocations);
         
         // Assert
         targetPart.IsBlownOff.ShouldBeTrue();
     }
     
     [Fact]
-    public void ApplyDamage_ShouldNotApplyCriticalHits_WhenCriticalHitsAreNull()
+    public void ApplyCriticalHits_ShouldApplyCriticalHits()
     {
         // Arrange
         var unit = CreateTestUnit();
@@ -1193,13 +1171,47 @@ public class UnitTests
         var component = new TestComponent("Test Component", 3);
         targetPart.TryAddComponent(component);
         
-        var hitLocations = new List<LocationHitData>
+        var hitLocations = new List<LocationCriticalHitsData>
         {
-            CreateHitDataForLocation(PartLocation.LeftArm, 10, [], [3, 5]) // No aimed shot, location roll 3,5
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = component.MountedAtSlots[0],
+                        Type = MakaMekComponent.MachineGun
+                    }
+                ],
+                false,
+                [])
         };
         
         // Act
-        unit.ApplyDamage(hitLocations, HitDirection.Front);
+        unit.ApplyCriticalHits(hitLocations);
+        
+        // Assert
+        targetPart.HitSlots.Count.ShouldBe(1);
+        component.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ApplyCriticalHits_ShouldNotApplyCriticalHits_WhenCriticalHitsAreEmpty()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var component = new TestComponent("Test Component", 3);
+        targetPart.TryAddComponent(component);
+        
+        var hitLocations = new List<LocationCriticalHitsData>
+        {
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [],
+                false,
+                [])
+        };
+        
+        // Act
+        unit.ApplyCriticalHits(hitLocations);
         
         // Assert
         targetPart.HitSlots.Count.ShouldBe(0);
@@ -1207,7 +1219,7 @@ public class UnitTests
     }
 
     [Fact]
-    public void ApplyDamage_WithExplodableComponent_ShouldAddExplosionDamage_AndHitPilot()
+    public void ApplyCriticalHits_WithExplodableComponent_ShouldAddExplosionDamage_AndHitPilot()
     {
         // Arrange
         var unit = CreateTestUnit();
@@ -1216,30 +1228,53 @@ public class UnitTests
         var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
         
         // Create an explodable component
-        var explodableComponent = new TestExplodableComponent("Explodable Component", 5);
+        var explodableComponent = new TestExplodableComponent("Explodable Component", 3);
         targetPart.TryAddComponent(explodableComponent, [1]);
         
-        var hitLocations = new List<LocationHitData>
+        var hitLocations = new List<LocationCriticalHitsData>
         {
-            CreateHitDataForLocation(PartLocation.LeftArm, 5, [], [3])
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = explodableComponent.MountedAtSlots[0],
+                        Type = MakaMekComponent.MachineGun
+                    }
+                ],
+                false,
+                [ new ExplosionData(MakaMekComponent.MachineGun, explodableComponent.MountedAtSlots[0], 3) ])
         };
         
         // Pre-assert: component has not exploded
         explodableComponent.HasExploded.ShouldBeFalse();
-        targetPart.CurrentArmor.ShouldBe(10);
+        targetPart.CurrentStructure.ShouldBe(5);
+        var initialArmor = targetPart.CurrentArmor;
         
         // Act
-        unit.ApplyDamage(hitLocations, HitDirection.Front);
+        unit.ApplyCriticalHits(hitLocations);
         
         // Assert
         explodableComponent.HasExploded.ShouldBeTrue();
-        // Verify that the total damage applied was the initial damage (5) plus the explosion damage (5)
-        targetPart.CurrentArmor.ShouldBe(0); // 10 - (5 + 5) = 0
+        targetPart.CurrentStructure.ShouldBe(2); // 5 - 3 = 2
         pilot.Injuries.ShouldBe(2);
+        targetPart.CurrentArmor.ShouldBe(initialArmor); // explosion damage is not applied to armor
+        
+        // Dequeue all events and check for explosion event
+        var foundExplosionEvent = false;
+        while (unit.DequeueNotification() is { } uiEvent)
+        {
+            if (uiEvent.Type == UiEventType.Explosion)
+            {
+                foundExplosionEvent = true;
+                break;
+            }
+        }
+        
+        foundExplosionEvent.ShouldBeTrue("Should have found an explosion event");
     }
     
     [Fact]
-    public void ApplyDamage_WithMultipleExplodableComponents_ShouldAddAllExplosionDamage()
+    public void ApplyCriticalHits_WithMultipleExplodableComponents_ShouldAddAllExplosionDamage()
     {
         // Arrange
         var unit = CreateTestUnit();
@@ -1247,32 +1282,49 @@ public class UnitTests
         
         // Create multiple explodable components
         var explodableComponent1 = new TestExplodableComponent("Explodable Component 1", 3);
-        var explodableComponent2 = new TestExplodableComponent("Explodable Component 2", 4);
+        var explodableComponent2 = new TestExplodableComponent("Explodable Component 2", 1);
         targetPart.TryAddComponent(explodableComponent1, [1]);
         targetPart.TryAddComponent(explodableComponent2, [2]);
         
-        var hitLocations = new List<LocationHitData>
+        var hitLocations = new List<LocationCriticalHitsData>
         {
-            CreateHitDataForLocation(PartLocation.LeftArm, 2, [], [3])
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = explodableComponent1.MountedAtSlots[0],
+                        Type = MakaMekComponent.MachineGun
+                    },
+                    new ComponentHitData
+                    {
+                        Slot = explodableComponent2.MountedAtSlots[0],
+                        Type = MakaMekComponent.MachineGun
+                    }
+                ],
+                false,
+                [ 
+                    new ExplosionData(MakaMekComponent.MachineGun, explodableComponent1.MountedAtSlots[0], 3),
+                    new ExplosionData(MakaMekComponent.MachineGun, explodableComponent2.MountedAtSlots[0], 1) 
+                ])
         };
         
         // Pre-assert: components have not exploded
         explodableComponent1.HasExploded.ShouldBeFalse();
         explodableComponent2.HasExploded.ShouldBeFalse();
-        targetPart.CurrentArmor.ShouldBe(10);
+        targetPart.CurrentStructure.ShouldBe(5);
         
         // Act
-        unit.ApplyDamage(hitLocations, HitDirection.Front);
+        unit.ApplyCriticalHits(hitLocations);
         
         // Assert
         explodableComponent1.HasExploded.ShouldBeTrue();
         explodableComponent2.HasExploded.ShouldBeTrue();
-        // Verify that the total damage applied was the initial damage (2) plus the explosion damage (3 + 4 = 7)
-        targetPart.CurrentArmor.ShouldBe(1); // 10 - (2 + 3 + 4) = 1
+ 
+        targetPart.CurrentStructure.ShouldBe(1); // 5 - (3 + 1) = 1
     }
     
     [Fact]
-    public void ApplyDamage_WithAlreadyExplodedComponent_ShouldNotAddExplosionDamageAgain()
+    public void ApplyCriticalHits_WithAlreadyExplodedComponent_ShouldNotAddExplosionDamageAgain()
     {
         // Arrange
         var unit = CreateTestUnit();
@@ -1283,115 +1335,60 @@ public class UnitTests
         explodableComponent.Hit(); // This will set HasExploded to true
         targetPart.TryAddComponent(explodableComponent, [1]);
         
-        var hitLocations = new List<LocationHitData>
+        var hitLocations = new List<LocationCriticalHitsData>
         {
-            CreateHitDataForLocation(PartLocation.LeftArm, 3, [], [3])
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = explodableComponent.MountedAtSlots[0],
+                        Type = MakaMekComponent.MachineGun
+                    }
+                ],
+                false,
+                [ new ExplosionData(MakaMekComponent.MachineGun, explodableComponent.MountedAtSlots[0], 3) ])
         };
         
         // Pre-assert: component has already exploded
         explodableComponent.HasExploded.ShouldBeTrue();
-        targetPart.CurrentArmor.ShouldBe(10);
+        targetPart.CurrentStructure.ShouldBe(5);
         
         // Act
-        unit.ApplyDamage(hitLocations, HitDirection.Front);
+        unit.ApplyCriticalHits(hitLocations);
         
         // Assert
-        // Verify that only the initial damage was applied, without explosion damage
-        targetPart.CurrentArmor.ShouldBe(7); // 10 - 3 = 7
+        targetPart.CurrentStructure.ShouldBe(5);
     }
     
     [Fact]
-    public void ApplyDamage_WithNonExplodableComponent_ShouldNotAddExplosionDamage()
+    public void ApplyCriticalHits_WithNonExplodableComponent_ShouldNotAddExplosionDamage()
     {
         // Arrange
         var unit = CreateTestUnit();
         var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var component = new TestComponent("Test Component", 3);
+        targetPart.TryAddComponent(component);
         
-        // Create a non-explodable component
-        var nonExplodableComponent = new TestComponent("Non-Explodable Component", 3);
-        targetPart.TryAddComponent(nonExplodableComponent, [1]);
-        
-        var hitLocations = new List<LocationHitData>
+        var hitLocations = new List<LocationCriticalHitsData>
         {
-            CreateHitDataForLocation(PartLocation.LeftArm, 4, [], [3])
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = component.MountedAtSlots[0],
+                        Type = MakaMekComponent.MachineGun
+                    }
+                ],
+                false,
+                [])
         };
-        
-        targetPart.CurrentArmor.ShouldBe(10);
+        var initialStructure = targetPart.CurrentStructure;
         
         // Act
-        unit.ApplyDamage(hitLocations, HitDirection.Front);
+        unit.ApplyCriticalHits(hitLocations);
         
         // Assert
-        // Verify that only the initial damage was applied, without explosion damage
-        targetPart.CurrentArmor.ShouldBe(6); // 10 - 4 = 6
-    }
-    
-    [Fact]
-    public void ApplyDamage_WithZeroExplosionDamage_ShouldNotAddExplosionDamage()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        
-        // Create an explodable component with zero explosion damage
-        var explodableComponent = new TestExplodableComponent("Zero Explosion Component", 0);
-        targetPart.TryAddComponent(explodableComponent, [1]);
-        
-        var hitLocations = new List<LocationHitData>
-        {
-            CreateHitDataForLocation(PartLocation.LeftArm, 6, [], [3])
-        };
-        
-        // Pre-assert: component has not exploded
-        explodableComponent.HasExploded.ShouldBeFalse();
-        targetPart.CurrentArmor.ShouldBe(10);
-        
-        // Act
-        unit.ApplyDamage(hitLocations, HitDirection.Front);
-        
-        // Assert
-        explodableComponent.HasExploded.ShouldBeTrue();
-        // Verify that only the initial damage was applied, without explosion damage
-        targetPart.CurrentArmor.ShouldBe(4); // 10 - 6 = 4
-    }
-    
-    [Fact]
-    public void ApplyDamage_WithExplosion_ShouldAddExplosionEvent()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        
-        // Create an explodable component
-        var explodableComponent = Lrm5.CreateAmmo();
-        
-        // Add the component to the part
-        targetPart.TryAddComponent(explodableComponent,[0]);
-        
-        var hitLocations = new List<LocationHitData>
-        {
-            CreateHitDataForLocation(
-                PartLocation.CenterTorso, 
-                5 
-            )
-        };
-        
-        // Act
-        unit.ApplyDamage(hitLocations, HitDirection.Front);
-        
-        // Assert
-        // Dequeue all events and check for explosion event
-        var foundExplosionEvent = false;
-        while (unit.DequeueNotification() is { } uiEvent)
-        {
-            if (uiEvent.Type == UiEventType.Explosion && uiEvent.Parameters[0]?.ToString() == "LRM-5 Ammo")
-            {
-                foundExplosionEvent = true;
-                break;
-            }
-        }
-        
-        foundExplosionEvent.ShouldBeTrue("Should have found an explosion event");
+        targetPart.CurrentStructure.ShouldBe(initialStructure); 
     }
     
     [Fact]

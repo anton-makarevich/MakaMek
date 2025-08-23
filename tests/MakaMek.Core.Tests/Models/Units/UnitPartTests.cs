@@ -424,7 +424,12 @@ public class UnitPartTests
         public override int CalculateBattleValue() => 0;
         
         public override bool CanMoveBackward(MovementType type) => true;
-        
+
+        protected override void UpdateDestroyedStatus()
+        {
+            throw new NotImplementedException();
+        }
+
         public override PartLocation? GetTransferLocation(PartLocation location) => null;
         
         public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)

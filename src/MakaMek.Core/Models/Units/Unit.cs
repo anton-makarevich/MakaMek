@@ -427,7 +427,7 @@ public abstract class Unit
     /// </summary>
     /// <param name="hitLocations">Hit locations with pre-calculated armor and structure damage</param>
     /// <param name="hitDirection">Direction of the hit for armor calculations</param>
-    public virtual void ApplyDamage(List<LocationHitData> hitLocations, HitDirection hitDirection)
+    public void ApplyDamage(List<LocationHitData> hitLocations, HitDirection hitDirection)
     {
         foreach (var hitLocation in hitLocations)
         {
@@ -442,17 +442,21 @@ public abstract class Unit
                 // Track total damage for this phase
                 TotalPhaseDamage += totalDamage;
     
-                // Apply the damage using the new method that takes pre-calculated values
-                ApplyPreCalculatedDamage(locationDamage.ArmorDamage, locationDamage.StructureDamage, targetPart, hitDirection);
+                // Apply the damage 
+                targetPart.ApplyDamage(totalDamage, hitDirection);
             }
             
         }
+        
+        UpdateDestroyedStatus();
 
         if (IsDestroyed)
         {
             AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
         }
     }
+
+    protected abstract void UpdateDestroyedStatus();
 
     /// <summary>
     /// Applies pre-calculated critical hits data to the unit
@@ -480,50 +484,13 @@ public abstract class Unit
                     targetPart.CriticalHit(componentHit.Slot);
                 }
             }
-
-            // Handle explosions (but not explosion damage - that's pre-calculated)
-            if (locationData.Explosions.Count > 0)
-            {
-                foreach (var explosion in locationData.Explosions)
-                {
-                    var component = targetPart.GetComponentAtSlot(explosion.Slot);
-                    if (component is { CanExplode: true, HasExploded: false })
-                    {
-                        // Trigger explosion event
-                        AddEvent(new UiEvent(UiEventType.Explosion, component.Name));
-
-                        // Mark component as exploded by hitting it (this sets HasExploded = true)
-                        component.Hit();
-                    }
-                }
-            }
         }
+        
+        UpdateDestroyedStatus();
 
         if (IsDestroyed)
         {
             AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
-        }
-    }
-
-    /// <summary>
-    /// Applies pre-calculated armor and structure damage to a specific part
-    /// </summary>
-    /// <param name="armorDamage">Pre-calculated armor damage</param>
-    /// <param name="structureDamage">Pre-calculated structure damage</param>
-    /// <param name="targetPart">The part to apply damage to</param>
-    /// <param name="hitDirection">Direction of the hit for armor calculations</param>
-    internal void ApplyPreCalculatedDamage(int armorDamage, int structureDamage, UnitPart targetPart, HitDirection hitDirection)
-    {
-        // Apply armor damage
-        if (armorDamage > 0)
-        {
-            targetPart.ApplyDamage(armorDamage, hitDirection);
-        }
-
-        // Apply structure damage
-        if (structureDamage > 0)
-        {
-            targetPart.ApplyStructureDamage(structureDamage);
         }
     }
     

@@ -133,11 +133,28 @@ public abstract class UnitPart
     /// <summary>
     /// Applies pre-calculated armor damage to this part
     /// </summary>
-    /// <param name="armorDamage">The amount of armor damage to apply</param>
+    /// <param name="damage">The amount of total damage to apply</param>
     /// <param name="direction">The direction of the hit</param>
-    public int ApplyDamage(int armorDamage, HitDirection direction)
+    public int ApplyDamage(int damage, HitDirection direction)
     {
-        var remainingDamage = ReduceArmor(armorDamage, direction);
+        var remainingDamage = damage;
+        var part = this;
+
+        while (remainingDamage > 0 && part != null)
+        {
+            remainingDamage = part.ReduceArmorAndStructureDamage(remainingDamage, direction);
+            if (remainingDamage > 0)
+            {
+                part = part.DamageTransferPart;
+            }
+        }
+        
+        return remainingDamage;
+    }
+    
+    private int ReduceArmorAndStructureDamage(int damage, HitDirection direction)
+    {
+        var remainingDamage = ReduceArmor(damage, direction);
         if (remainingDamage > 0)
         {
             remainingDamage=ApplyStructureDamage(remainingDamage);
@@ -220,10 +237,8 @@ public abstract class UnitPart
     {
         _hitSlots.Add(slot);
         
-        
         var component = GetComponentAtSlot(slot);
-
-
+        
         if (component is not { IsDestroyed: false }) return;
         // Raise critical hit event
         Unit?.AddEvent(new UiEvent(UiEventType.CriticalHit, component.Name));
@@ -241,6 +256,9 @@ public abstract class UnitPart
         while (explosionDamage > 0 && part != null)
         {
             explosionDamage = part.ApplyStructureDamage(explosionDamage);
+            
+            // Trigger explosion event
+            Unit?.AddEvent(new UiEvent(UiEventType.Explosion, component.Name));
     
             if (explosionDamage > 0)
             {
