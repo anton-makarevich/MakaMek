@@ -1,6 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
@@ -24,5 +24,5 @@ public interface ICriticalHitsCalculator
     /// <returns>Critical-hit data beginning at the component's location</returns>
     List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
         Unit unit,
-        Component explodingComponent);
+        Ammo explodingComponent);
 }

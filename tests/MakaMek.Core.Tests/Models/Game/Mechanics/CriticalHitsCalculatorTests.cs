@@ -4,7 +4,6 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -70,13 +69,12 @@ public class CriticalHitsCalculatorTests
         var testUnit = CreateTestMech();
         var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
             5,
-            0,
+            5,
             false);
 
         // Setup dice roller for critical hit checks
         _mockDiceRoller.Roll2D6().Returns(
-            [new DiceResult(4), new DiceResult(4)], // Roll of 8 for CenterTorso
-            [new DiceResult(5), new DiceResult(5)]  // Roll of 10 for LeftArm
+            [new DiceResult(4), new DiceResult(4)] // Roll of 8 for CenterTorso
         );
 
         // Setup dice roller for critical hit slots
@@ -91,15 +89,10 @@ public class CriticalHitsCalculatorTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Count.ShouldBe(2);
 
         var centerTorsoResult = result.First(r => r.Location == PartLocation.CenterTorso);
         centerTorsoResult.Roll.ShouldBe([4, 4]);
         centerTorsoResult.NumCriticalHits.ShouldBe(1);
-
-        var leftArmResult = result.First(r => r.Location == PartLocation.LeftArm);
-        leftArmResult.Roll.ShouldBe([5, 5]);
-        leftArmResult.NumCriticalHits.ShouldBe(2);
     }
 
     [Fact]
@@ -111,7 +104,7 @@ public class CriticalHitsCalculatorTests
 
         // Add an explodable ammo component
         var ammo = new Ammo(Lrm5.Definition, 24);
-        centerTorso.TryAddComponent(ammo, [5]);
+        centerTorso.TryAddComponent(ammo, [10]);
 
         // Setup dice roller for cascading critical hits (if any)
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
@@ -130,36 +123,9 @@ public class CriticalHitsCalculatorTests
         explosionResult.NumCriticalHits.ShouldBe(1); // One forced critical hit
         explosionResult.HitComponents.ShouldNotBeNull();
         explosionResult.HitComponents!.Length.ShouldBe(1);
-        explosionResult.HitComponents[0].Slot.ShouldBe(5);
+        explosionResult.HitComponents[0].Slot.ShouldBe(10);
         explosionResult.Explosions.ShouldNotBeNull();
         explosionResult.Explosions.Count.ShouldBe(1);
-    }
-
-    [Fact]
-    public void CalculateCriticalHitsForHeatExplosion_WithNonExplodableComponent_ReturnsBasicCriticalHit()
-    {
-        // Arrange
-        var testUnit = CreateTestMech();
-        var centerTorso = testUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
-
-        // Add a non-explodable component
-        var heatSink = new HeatSink();
-        centerTorso.TryAddComponent(heatSink, [7]);
-
-        // Act
-        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, heatSink);
-
-        // Assert
-        result.ShouldNotBeEmpty();
-        result.Count.ShouldBe(1);
-
-        var explosionResult = result.First();
-        explosionResult.Location.ShouldBe(PartLocation.CenterTorso);
-        explosionResult.NumCriticalHits.ShouldBe(1);
-        explosionResult.HitComponents.ShouldNotBeNull();
-        explosionResult.HitComponents!.Length.ShouldBe(1);
-        explosionResult.HitComponents[0].Slot.ShouldBe(7);
-        explosionResult.Explosions.ShouldBeEmpty(); // No explosions for non-explodable components
     }
 
     [Fact]

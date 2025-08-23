@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
@@ -37,8 +37,11 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
 
     public List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
         Unit unit,
-        Component explodingComponent)
+        Ammo explodingComponent) // only ammo can explode from heat
     {
+        var explosionDamage = explodingComponent.GetExplosionDamage();
+        if (explosionDamage <= 0) return []; //no possible damage no explosion
+        
         var location = explodingComponent.GetLocation();
         if (!location.HasValue) return [];
 
@@ -58,14 +61,10 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         var explosions = new List<ExplosionData>();
         if (explodingComponent is { CanExplode: true, HasExploded: false })
         {
-            var explosionDamage = explodingComponent.GetExplosionDamage();
-            if (explosionDamage > 0)
-            {
                 explosions.Add(new ExplosionData(
                     explodingComponent.ComponentType,
                     slots[0],
                     explosionDamage));
-            }
         }
 
         var criticalHit = new LocationCriticalHitsData(
@@ -82,8 +81,8 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         // If there was an explosion, calculate cascading critical hits from the explosion damage
         if (explosions.Any())
         {
-            var explosionDamage = explosions.Sum(e => e.ExplosionDamage);
-            var cascadingCriticalHits = CalculateCriticalHitsForLocation(unit, location.Value, explosionDamage);
+            var totalExplosionDamage = explosions.Sum(e => e.ExplosionDamage);
+            var cascadingCriticalHits = CalculateCriticalHitsForLocation(unit, location.Value, totalExplosionDamage);
             if (cascadingCriticalHits != null)
             {
                 criticalHitsData.Add(cascadingCriticalHits);
