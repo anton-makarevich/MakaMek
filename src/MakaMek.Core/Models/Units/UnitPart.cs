@@ -63,13 +63,13 @@ public abstract class UnitPart
             .FirstOrDefault(i => Enumerable.Range(i, size).All(slot => !occupiedSlots.Contains(slot)), -1);
     }
 
-    private bool CanAddComponent(Component component)
+    private bool CanAddComponent(Component component, int[] slots)
     {
         if (component.Size > AvailableSlots)
             return false;
 
         // Check if any required slots would be out of bounds
-        if (component.MountedAtSlots.Any(s => s >= TotalSlots))
+        if (slots.Any(s => s >= TotalSlots))
             return false;
 
         // Check if any of the required slots are already occupied
@@ -77,14 +77,14 @@ public abstract class UnitPart
             .SelectMany(c => c.MountedAtSlots)
             .ToHashSet();
         
-        return !component.MountedAtSlots.Intersect(occupiedSlots).Any();
+        return !slots.Intersect(occupiedSlots).Any();
     }
 
     public bool TryAddComponent(Component component, int[]? slots=null)
     {
         if (component.IsFixed)
         {
-            if (!CanAddComponent(component))
+            if (!CanAddComponent(component, component.MountedAtSlots))
             {
                 return false;
             }
@@ -94,11 +94,19 @@ public abstract class UnitPart
             component.Mount(component.MountedAtSlots, this);
             return true;
         }
+        
+        
 
         var slotToMount = slots!=null
             ? slots[0]
             : FindMountLocation(component.Size);
         if (slotToMount == -1)
+        {
+            return false;
+        }
+        
+        // Check if the component can be mounted at the found slot
+        if (!CanAddComponent(component, slots??[slotToMount]))
         {
             return false;
         }

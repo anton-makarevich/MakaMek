@@ -159,7 +159,7 @@ public class CriticalHitsCalculatorTests
         explosionResult.HitComponents.ShouldNotBeNull();
         explosionResult.HitComponents!.Length.ShouldBe(1);
         explosionResult.HitComponents[0].Slot.ShouldBe(7);
-        explosionResult.Explosions.ShouldBeNull(); // No explosions for non-explodable components
+        explosionResult.Explosions.ShouldBeEmpty(); // No explosions for non-explodable components
     }
 
     [Fact]
@@ -171,16 +171,19 @@ public class CriticalHitsCalculatorTests
 
         // Add an explodable ammo component
         var ammo = new Ammo(Lrm5.Definition, 24);
-        centerTorso.TryAddComponent(ammo, [8]);
+        centerTorso.TryAddComponent(ammo, [10]);
 
         var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
             5,
-            0,
+            5,
             false);
 
         // Setup dice roller to hit the ammo component
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
-        _mockDiceRoller.RollD6().Returns(new DiceResult(8)); // Hit slot 8 (ammo)
+        _mockDiceRoller.RollD6().Returns(
+            new DiceResult(5), 
+            new DiceResult(5)  
+        );
 
         // Act
         var result = _sut.CalculateCriticalHitsForStructureDamage(testUnit, structureDamageByLocation);
@@ -191,7 +194,7 @@ public class CriticalHitsCalculatorTests
         centerTorsoResult.Explosions.ShouldNotBeNull();
         centerTorsoResult.Explosions.Count.ShouldBe(1);
         centerTorsoResult.Explosions[0].ComponentType.ShouldBe(ammo.ComponentType);
-        centerTorsoResult.Explosions[0].Slot.ShouldBe(8);
+        centerTorsoResult.Explosions[0].Slot.ShouldBe(10);
         centerTorsoResult.Explosions[0].ExplosionDamage.ShouldBeGreaterThan(0);
     }
 }
