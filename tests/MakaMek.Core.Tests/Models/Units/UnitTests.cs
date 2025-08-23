@@ -1089,55 +1089,32 @@ public class UnitTests
     }
     
     [Fact]
-    public void ApplyDamage_WithCriticalHits_DestroysComponentAtSlot()
-    {
-        // Arrange
-        var leftArm = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 5);
-        var critComponent = new TestComponent("CritComp");
-        leftArm.TryAddComponent(critComponent, [2]);
-        var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
-        var hitLocation = CreateHitDataForLocation(PartLocation.LeftArm, 0);
-    
-        // Pre-assert: component is not destroyed
-        critComponent.IsDestroyed.ShouldBeFalse();
-        // Act
-        unit.ApplyDamage([hitLocation], HitDirection.Front);
-        // Assert
-        critComponent.IsDestroyed.ShouldBeTrue();
-    }
-    
-    [Fact]
-    public void ApplyDamage_WithCockpitCriticalHit_KillsPilot()
+    public void ApplyCriticalHits_WithCockpitCriticalHit_KillsPilot()
     {
         // Arrange
         var head = new Head("Head", 10, 5);
         var pilot = new MechWarrior("John", "Doe");
         var unit = new TestUnit("Test", "Unit", 20, 4, [head]);
         unit.AssignPilot(pilot);
-        var hitLocation = CreateHitDataForLocation(PartLocation.Head, 0);
         var cockpit = unit.GetAllComponents<Cockpit>().First();
-    
+        var hitLocation = new LocationCriticalHitsData(PartLocation.Head, [4, 4], 1,
+                    [
+                        new ComponentHitData
+                        {
+                            Slot = cockpit.MountedAtSlots[0],
+                            Type = MakaMekComponent.Cockpit
+                        }
+                    ],
+                    false,
+                    []);
+
         // Pre-assert: component is not destroyed
         cockpit.IsDestroyed.ShouldBeFalse();
         // Act
-        unit.ApplyDamage([hitLocation], HitDirection.Front);
+        unit.ApplyCriticalHits([hitLocation]);
         // Assert
         cockpit.IsDestroyed.ShouldBeTrue();
         pilot.IsDead.ShouldBeTrue();
-    }
-    
-    [Fact]
-    public void ApplyDamage_WithBlownOff_DestroysTheWholePart()
-    {
-        // Arrange
-        var leftArm = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 5);
-        var unit = new TestUnit("Test", "Unit", 20, 4, [leftArm]);
-        var hitLocation = CreateHitDataForLocation(PartLocation.LeftArm, 0);
-        
-        // Act
-        unit.ApplyDamage([hitLocation], HitDirection.Front);
-        // Assert
-        leftArm.IsDestroyed.ShouldBeTrue();
     }
     
     [Fact]
@@ -1160,6 +1137,7 @@ public class UnitTests
         
         // Assert
         targetPart.IsBlownOff.ShouldBeTrue();
+        targetPart.IsDestroyed.ShouldBeTrue();
     }
     
     [Fact]

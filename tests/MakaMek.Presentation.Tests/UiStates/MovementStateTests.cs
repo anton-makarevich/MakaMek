@@ -782,7 +782,7 @@ public class MovementStateTests
         // Arrange
         _sut.HandleUnitSelection(_unit1);
         var leg = _unit1.Parts.First(p => p.Location == PartLocation.LeftLeg);
-        leg.ApplyDamage(100, HitDirection.Front); // Destroy the leg
+        leg.ApplyDamage(20, HitDirection.Front); // Destroy the leg
 
         // Act
         var actions = _sut.GetAvailableActions().ToList();
@@ -898,7 +898,7 @@ public class MovementStateTests
             });
         proneMech!.SetProne();
         var leg = proneMech.Parts.First(p => p.Location == PartLocation.LeftLeg);
-        leg.ApplyDamage(100, HitDirection.Front); // Destroy the leg
+        leg.ApplyDamage(20, HitDirection.Front); // Destroy the leg
         _sut.HandleUnitSelection(proneMech);
         
         // Act
