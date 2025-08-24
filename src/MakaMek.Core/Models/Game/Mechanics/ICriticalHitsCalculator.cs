@@ -10,8 +10,8 @@ public interface ICriticalHitsCalculator
     /// Calculates critical hits for all locations that received structure damage
     /// </summary>
     /// <param name="unit">The unit receiving damage</param>
-    /// <param name="structureDamageByLocation">Dictionary mapping locations to their structure damage</param>
-    /// <returns>A list of LocationCriticalHitsResolutionData for all affected locations</returns>
+    /// <param name="damageData">Precomputed damage for a specific location (armor/structure and destroyed flag).</param>
+    /// <returns>A list of LocationCriticalHitsData originating at the damaged location (may include chain effects such as explosions).</returns>
     List<LocationCriticalHitsData> CalculateCriticalHitsForStructureDamage(
         Unit unit,
         LocationDamageData damageData);
