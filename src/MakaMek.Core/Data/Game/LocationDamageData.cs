@@ -6,5 +6,6 @@ public record LocationDamageData(
     PartLocation Location,
     int ArmorDamage,
     int StructureDamage,
-    bool IsLocationDestroyed
+    bool IsLocationDestroyed,
+    bool IsRearArmor = false
 );

@@ -52,7 +52,7 @@ public class StructureDamageCalculator : IStructureDamageCalculator
         var remainingDamage = incomingDamage;
 
         // Calculate armor damage first
-        var availableArmor = GetAvailableArmor(part, hitDirection);
+        var (availableArmor, isRearArmor) = GetAvailableArmor(part, hitDirection);
         if (availableArmor > 0)
         {
             armorDamage = Math.Min(remainingDamage, availableArmor);
@@ -72,15 +72,17 @@ public class StructureDamageCalculator : IStructureDamageCalculator
             part.Location,
             armorDamage,
             structureDamage,
-            locationDestroyed);
+            locationDestroyed,
+            isRearArmor
+        );
     }
 
-    private int GetAvailableArmor(UnitPart part, HitDirection hitDirection)
+    private (int, bool) GetAvailableArmor(UnitPart part, HitDirection hitDirection)
     {
         return part switch
         {
-            Torso torso when hitDirection == HitDirection.Rear => torso.CurrentRearArmor,
-            _ => part.CurrentArmor
+            Torso torso when hitDirection == HitDirection.Rear => (torso.CurrentRearArmor, true),
+            _ => (part.CurrentArmor, false)
         };
     }
 }
