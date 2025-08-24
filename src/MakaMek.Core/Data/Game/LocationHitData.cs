@@ -23,6 +23,11 @@ public record LocationHitData(
     public string Render(ILocalizationService localizationService, Unit unit)
     {
         var stringBuilder = new StringBuilder();
+        
+        if (Damage.Count == 0)
+        {
+            return stringBuilder.ToString();
+        }
 
         // Check if this was an aimed shot
         var isAimedShot = AimedShotRoll.Length > 0;
@@ -47,11 +52,6 @@ public record LocationHitData(
                     InitialLocation,
                     aimedShotTotal));
             }
-        }
-
-        if (Damage.Count == 0)
-        {
-            return stringBuilder.ToString();
         }
         
         // If there was a location transfer, show both the initial and final locations

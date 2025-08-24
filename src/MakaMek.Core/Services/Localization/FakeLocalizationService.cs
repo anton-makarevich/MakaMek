@@ -256,6 +256,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_AmmoExplosion_RollDetails" => "Heat level: {0}, Roll: {1} vs {2}",
             "Command_AmmoExplosion_CriticalHits" => "Explosion caused critical hits:",
             "Command_AmmoExplosion_ComponentDestroyed" => "- {0} in {1} destroyed by explosion",
+            "Command_AmmoExplosion_Explosion" => "{0} exploded, damage: {1}",
             _ => key
         };
     }

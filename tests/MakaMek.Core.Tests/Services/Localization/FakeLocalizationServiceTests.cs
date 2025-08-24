@@ -308,6 +308,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_AmmoExplosion_RollDetails", "Heat level: {0}, Roll: {1} vs {2}")]
     [InlineData("Command_AmmoExplosion_CriticalHits", "Explosion caused critical hits:")]
     [InlineData("Command_AmmoExplosion_ComponentDestroyed", "- {0} in {1} destroyed by explosion")]
+    [InlineData("Command_AmmoExplosion_Explosion", "{0} exploded, damage: {1}")]
     public void GetString_AmmoExplosion_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

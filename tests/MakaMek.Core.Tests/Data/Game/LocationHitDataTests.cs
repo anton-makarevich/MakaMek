@@ -41,6 +41,8 @@ public class LocationHitDataTests
             .Returns("Critical hits in {0}:");
         _localizationService.GetString("Command_WeaponAttackResolution_Explosion")
             .Returns("{0} EXPLODES! Damage: {1}");
+        _localizationService.GetString("Command_WeaponAttackResolution_HitLocationExcessDamage")
+            .Returns("  Excess damage {1} transferred to {0}");
             
         // Create unit using MechFactory
         var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
@@ -176,5 +178,97 @@ public class LocationHitDataTests
         result.Trim().ShouldContain(shouldSucceed
             ? $"Aimed Shot targeting RightArm succeeded, Roll: {rollTotal}"
             : $"Aimed Shot targeting RightArm failed, Roll: {rollTotal}");
+    }
+
+    [Fact]
+    public void Render_ShouldReturnEmptyString_WhenNoDamageExists()
+    {
+        // Arrange 
+        var sut = new LocationHitData(
+            [], // Empty damage list
+            [], 
+            [], 
+            PartLocation.RightArm
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Render_ShouldShowExcessDamage_WhenMultipleDamageLocations()
+    {
+        // Arrange - This tests lines 77-85 (excess damage handling)
+        var sut = new LocationHitData(
+            [
+                new LocationDamageData(PartLocation.LeftArm, 5, 2, false), // Primary damage
+                new LocationDamageData(PartLocation.LeftTorso, 3, 0, false), // Excess damage location 1
+                new LocationDamageData(PartLocation.CenterTorso, 2, 1, false) // Excess damage location 2
+            ],
+            [], // No aimed shot
+            [4, 4], // Location roll
+            PartLocation.LeftArm
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("LeftArm: 7 damage (Roll: 8)");
+        result.ShouldContain("Excess damage 3 transferred to LeftTorso");
+        result.ShouldContain("Excess damage 3 transferred to CenterTorso");
+    }
+
+    [Fact]
+    public void Render_ShouldNotShowExcessDamage_WhenOnlyOneDamageLocation()
+    {
+        // Arrange - This verifies lines 76-85 are not executed when Damage.Count <= 1
+        var sut = new LocationHitData(
+            [
+                new LocationDamageData(PartLocation.LeftArm, 5, 2, false) // Only one damage location
+            ],
+            [], // No aimed shot
+            [4, 4], // Location roll
+            PartLocation.LeftArm
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("LeftArm: 7 damage (Roll: 8)");
+        result.ShouldNotContain("Excess damage");
+        result.ShouldNotContain("transferred");
+    }
+
+    [Fact]
+    public void Render_ShouldHandleComplexScenario_WithAimedShotAndMultipleTransfers()
+    {
+        // Arrange - This tests all code paths: aimed shot, location transfer, and excess damage
+        var sut = new LocationHitData(
+            [
+                new LocationDamageData(PartLocation.LeftTorso, 6, 2, false), // Transferred damage
+                new LocationDamageData(PartLocation.CenterTorso, 3, 1, false), // First excess
+                new LocationDamageData(PartLocation.RightTorso, 2, 0, false) // Second excess
+            ],
+            [2, 2], // Failed aimed shot
+            [6, 6], // Location roll
+            PartLocation.LeftArm // Initial target
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("Aimed Shot targeting LeftArm failed, Roll: 4");
+        result.ShouldContain("LeftArm → LeftTorso: 8 damage (Roll: 12)");
+        result.ShouldContain("Excess damage 4 transferred to CenterTorso");
+        result.ShouldContain("Excess damage 2 transferred to RightTorso");
     }
 }

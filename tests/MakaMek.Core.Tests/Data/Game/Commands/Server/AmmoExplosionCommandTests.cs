@@ -44,6 +44,8 @@ public class AmmoExplosionCommandTests
             .Returns("Explosion caused critical hits:");
         _localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed")
             .Returns("- {0} in {1} destroyed by explosion");
+        _localizationService.GetString("Command_AmmoExplosion_Explosion")
+            .Returns("{0} exploded, damage: {1}");
     }
 
     [Fact]
@@ -217,5 +219,149 @@ public class AmmoExplosionCommandTests
             new Leg("RightLeg", PartLocation.RightLeg, 25, 8),
             new Leg("LeftLeg", PartLocation.LeftLeg, 25, 8)
         ];
+    }
+
+    [Fact]
+    public void Render_ShouldShowExplosionDetails_WhenExplosionsExist()
+    {
+        // Arrange
+        var explosionData = new ExplosionData(MakaMekComponent.ISAmmoAC20, 5, 100);
+        var criticalHitData = new LocationCriticalHitsData(
+            PartLocation.CenterTorso,
+            [4, 5],
+            1,
+            [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+            false,
+            [explosionData]);
+
+        var command = new AmmoExplosionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = _unitId,
+            AvoidExplosionRoll = new AvoidAmmoExplosionRollData
+            {
+                HeatLevel = 15,
+                DiceResults = [3, 4],
+                AvoidNumber = 8,
+                IsSuccessful = false
+            },
+            CriticalHits = [criticalHitData]
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("exploded, damage: 100");
+    }
+
+    [Fact]
+    public void Render_ShouldNotShowExplosionDetails_WhenNoExplosionsExist()
+    {
+        // Arrange
+        var criticalHitData = new LocationCriticalHitsData(
+            PartLocation.CenterTorso,
+            [4, 5],
+            1,
+            [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+            false,
+            []); // No explosions
+
+        var command = new AmmoExplosionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = _unitId,
+            AvoidExplosionRoll = new AvoidAmmoExplosionRollData
+            {
+                HeatLevel = 15,
+                DiceResults = [3, 4],
+                AvoidNumber = 8,
+                IsSuccessful = false
+            },
+            CriticalHits = [criticalHitData]
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldNotContain("exploded");
+    }
+
+    [Fact]
+    public void Render_ShouldHandleInvalidExplosionSlot_WhenComponentNotFound()
+    {
+        // Arrange
+        var explosionData = new ExplosionData(MakaMekComponent.ISAmmoAC20, 99, 100); // Invalid slot
+        var criticalHitData = new LocationCriticalHitsData(
+            PartLocation.CenterTorso,
+            [4, 5],
+            1,
+            [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+            false,
+            [explosionData]);
+
+        var command = new AmmoExplosionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = _unitId,
+            AvoidExplosionRoll = new AvoidAmmoExplosionRollData
+            {
+                HeatLevel = 15,
+                DiceResults = [3, 4],
+                AvoidNumber = 8,
+                IsSuccessful = false
+            },
+            CriticalHits = [criticalHitData]
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldNotContain("exploded"); // Should not show explosion for invalid component
+    }
+
+    [Fact]
+    public void Render_ShouldShowMultipleExplosions_WhenMultipleExplosionsExist()
+    {
+        // Arrange
+        var explosion1 = new ExplosionData(MakaMekComponent.ISAmmoAC20, 5, 100);
+        var explosion2 = new ExplosionData(MakaMekComponent.ISAmmoLRM10, 6, 50);
+        var criticalHitData = new LocationCriticalHitsData(
+            PartLocation.CenterTorso,
+            [4, 5],
+            2,
+            [
+                new ComponentHitData { Type = MakaMekComponent.ISAmmoAC20, Slot = 5 },
+                new ComponentHitData { Type = MakaMekComponent.ISAmmoLRM10, Slot = 6 }
+            ],
+            false,
+            [explosion1, explosion2]);
+
+        var command = new AmmoExplosionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = _unitId,
+            AvoidExplosionRoll = new AvoidAmmoExplosionRollData
+            {
+                HeatLevel = 15,
+                DiceResults = [3, 4],
+                AvoidNumber = 8,
+                IsSuccessful = false
+            },
+            CriticalHits = [criticalHitData]
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("exploded, damage: 100");
+        result.ShouldContain("exploded, damage: 50");
     }
 }
