@@ -85,18 +85,6 @@ public class WeaponAttackResolutionCommandTests
             .Returns("{0}: {1} damage (Roll: {2})");
         _localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer")
             .Returns("{0} → {1}: {2} damage (Roll: {3})");
-        _localizationService.GetString("Command_WeaponAttackResolution_CriticalHit")
-            .Returns("Critical hit in {0} slot {1}: {2}");
-        _localizationService.GetString("Command_WeaponAttackResolution_CritRoll")
-            .Returns("Critical roll: {0}");
-        _localizationService.GetString("Command_WeaponAttackResolution_NumCrits")
-            .Returns("Criticals: {0}");
-        _localizationService.GetString("Command_WeaponAttackResolution_BlownOff")
-            .Returns("LOCATION BLOWN OFF: {0}");
-        _localizationService.GetString("Command_WeaponAttackResolution_LocationCriticals")
-            .Returns("Critical hits in {0}:");
-        _localizationService.GetString("Command_WeaponAttackResolution_Explosion")
-            .Returns("{0} EXPLODES! Damage: {1}");
         _localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts")
             .Returns("Destroyed parts:");
         _localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart")

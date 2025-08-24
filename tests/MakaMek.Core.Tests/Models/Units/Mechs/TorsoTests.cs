@@ -100,7 +100,7 @@ public class TorsoTests
             torso.CurrentRearArmor.ShouldBe(maxRearArmor - damage);
             torso.CurrentStructure.ShouldBe(maxStructure);
         }
-        else if (damage < maxArmor + maxStructure)
+        else if (damage < maxRearArmor + maxStructure)
         {
             torso.CurrentRearArmor.ShouldBe(0);
             torso.CurrentStructure.ShouldBe(maxStructure - (damage - maxRearArmor));
