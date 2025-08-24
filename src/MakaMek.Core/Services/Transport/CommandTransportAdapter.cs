@@ -199,7 +199,9 @@ public class CommandTransportAdapter
             { nameof(MechStandUpCommand), typeof(MechStandUpCommand) },
             { nameof(PilotConsciousnessRollCommand), typeof(PilotConsciousnessRollCommand)},
             { nameof(UnitShutdownCommand), typeof(UnitShutdownCommand)},
-            { nameof(UnitStartupCommand), typeof(UnitStartupCommand) }
+            { nameof(UnitStartupCommand), typeof(UnitStartupCommand) },
+            { nameof(AmmoExplosionCommand), typeof(AmmoExplosionCommand) },
+            { nameof(CriticalHitsResolutionCommand), typeof(CriticalHitsResolutionCommand) }
         };
     }
     
