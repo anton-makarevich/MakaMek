@@ -419,23 +419,159 @@ public class UnitPartTests
         public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
     
+    [Fact]
+    public void TryAddComponent_ShouldReturnFalse_WhenSlotOutOfBounds()
+    {
+        // Arrange - This tests line 73 (slot bounds checking)
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
+        var component = new TestComponent("Test Component", [3]); // Slot 3 is out of bounds
+
+        // Act
+        var result = part.TryAddComponent(component);
+
+        // Assert
+        result.ShouldBeFalse();
+        part.Components.ShouldBeEmpty();
+        part.UsedSlots.ShouldBe(0);
+    }
+
+    [Fact]
+    public void TryAddComponent_ShouldReturnFalse_WhenMultipleSlotsOutOfBounds()
+    {
+        // Arrange - This tests line 73 (slot bounds checking with multiple slots)
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
+        var component = new TestComponent("Test Component", [1, 2, 3, 4]); // Slots 3 and 4 are out of bounds
+
+        // Act
+        var result = part.TryAddComponent(component);
+
+        // Assert
+        result.ShouldBeFalse();
+        part.Components.ShouldBeEmpty();
+        part.UsedSlots.ShouldBe(0);
+    }
+
+    [Fact]
+    public void TryAddComponent_ShouldReturnTrue_WhenAllSlotsInBounds()
+    {
+        // Arrange - This verifies line 73 passes when slots are valid
+        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 5); // 5 slots (0, 1, 2, 3, 4)
+        var component = new TestComponent("Test Component", [2, 3, 4]); // All slots are in bounds
+
+        // Act
+        var result = part.TryAddComponent(component);
+
+        // Assert
+        result.ShouldBeTrue();
+        part.Components.Count.ShouldBe(1);
+        part.UsedSlots.ShouldBe(3);
+    }
+
+    [Fact]
+    public void CriticalHit_ShouldTransferExplosionDamage_WhenExplosionDamageExists()
+    {
+        // Arrange - This tests lines 274-277 (damage transfer when explosion damage > 0)
+        var testUnit = new TestUnit();
+        var transferPart = new TestUnitPart(PartLocation.CenterTorso, 20, 10, 12);
+        var sourcePart = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+
+        testUnit.AddPart(sourcePart);
+        testUnit.AddPart(transferPart);
+
+        var explodingComponent = new TestExplodingComponent("Exploding Component", [0], 15);
+        sourcePart.TryAddComponent(explodingComponent);
+
+        var initialTransferPartStructure = transferPart.CurrentStructure;
+
+        // Act
+        var appliedDamage = sourcePart.CriticalHit(0); // Hit the exploding component
+
+        // Assert
+        appliedDamage.ShouldBe(15); // Should return the explosion damage
+        transferPart.CurrentStructure.ShouldBeLessThan(initialTransferPartStructure); // Transfer part should take damage
+    }
+
+    [Fact]
+    public void CriticalHit_ShouldNotTransferDamage_WhenNoExplosionDamage()
+    {
+        // Arrange - This verifies lines 274-277 are not executed when explosion damage is 0
+        var testUnit = new TestUnit();
+        var transferPart = new TestUnitPart(PartLocation.CenterTorso, 20, 10, 12);
+        var sourcePart = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+
+        testUnit.AddPart(sourcePart);
+        testUnit.AddPart(transferPart);
+
+        var nonExplodingComponent = new TestComponent("Non-Exploding Component", [0]);
+        sourcePart.TryAddComponent(nonExplodingComponent);
+
+        var initialTransferPartStructure = transferPart.CurrentStructure;
+
+        // Act
+        var appliedDamage = sourcePart.CriticalHit(0); // Hit the non-exploding component
+
+        // Assert
+        appliedDamage.ShouldBe(0); // Should return 0 for non-exploding component
+        transferPart.CurrentStructure.ShouldBe(initialTransferPartStructure); // Transfer part should not take damage
+    }
+
+    [Fact]
+    public void CriticalHit_ShouldHandleNoTransferPart_WhenExplosionDamageExists()
+    {
+        // Arrange - This tests lines 274-277 behavior when no transfer part exists
+        var testUnit = new TestUnit();
+        var sourcePart = new TestUnitPart(PartLocation.CenterTorso, 10, 5, 12); // Center torso has no transfer
+
+        testUnit.AddPart(sourcePart);
+
+        var explodingComponent = new TestExplodingComponent("Exploding Component", [0], 15);
+        sourcePart.TryAddComponent(explodingComponent);
+
+        // Act & Assert - Should not throw exception
+        Should.NotThrow(() =>
+        {
+            var appliedDamage = sourcePart.CriticalHit(0);
+            appliedDamage.ShouldBe(5); // Should apply damage to source part structure (5 max structure)
+        });
+    }
+
+    private class TestExplodingComponent(string name, int[] slots, int explosionDamage) : Component(name, slots)
+    {
+        public override MakaMekComponent ComponentType => MakaMekComponent.ISAmmoAC20;
+        public override bool CanExplode => true;
+        public override int GetExplosionDamage() => explosionDamage;
+    }
+
     public class TestUnit() : Unit("Test", "Unit", 20, 4, [], Guid.NewGuid())
     {
         public override int CalculateBattleValue() => 0;
-        
+
         public override bool CanMoveBackward(MovementType type) => true;
 
         protected override void UpdateDestroyedStatus()
         {
-            throw new NotImplementedException();
+            // Do nothing for tests
         }
 
-        public override PartLocation? GetTransferLocation(PartLocation location) => null;
-        
+        public override PartLocation? GetTransferLocation(PartLocation location) => location switch
+        {
+            PartLocation.LeftArm => PartLocation.CenterTorso,
+            PartLocation.RightArm => PartLocation.CenterTorso,
+            PartLocation.LeftLeg => PartLocation.CenterTorso,
+            PartLocation.RightLeg => PartLocation.CenterTorso,
+            _ => null
+        };
+
         public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)
             => throw new NotImplementedException();
-        
+
         protected override void ApplyHeatEffects()
             => throw new NotImplementedException();
+
+        public void AddPart(UnitPart part)
+        {
+            _parts.Add(part);
+            part.Unit = this;
+        }
     }
 }

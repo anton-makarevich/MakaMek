@@ -2386,4 +2386,147 @@ public class ClientGameTests
         var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
         centerTorso.CurrentStructure.ShouldBe(centerTorso.MaxStructure - 5);
     }
+
+    [Fact]
+    public void HandleCommand_ShouldCallOnCriticalHitsResolution_WhenCriticalHitsResolutionCommandReceived()
+    {
+        // Arrange 
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = []
+        };
+
+        _sut.HandleCommand(joinCommand);
+
+        var criticalHitsCommand = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TargetId = unitData.Id.Value,
+            CriticalHits = [
+                new LocationCriticalHitsData(
+                    PartLocation.CenterTorso,
+                    [4, 5],
+                    1,
+                    [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+                    false,
+                    [])
+            ]
+        };
+
+        var initialCommandLogCount = _sut.CommandLog.Count;
+
+        // Act
+        _sut.HandleCommand(criticalHitsCommand);
+
+        // Assert
+        _sut.CommandLog.Count.ShouldBe(initialCommandLogCount + 1);
+        _sut.CommandLog.Last().ShouldBeEquivalentTo(criticalHitsCommand);
+
+        // Verify the unit received the critical hits
+        var unit = _sut.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == unitData.Id.Value);
+        unit.ShouldNotBeNull();
+        // The critical hits should have been applied to the unit
+        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.HitSlots.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldHandleInvalidTargetId_WhenCriticalHitsResolutionCommandReceived()
+    {
+        // Arrange - This tests lines 141-143 with invalid target ID
+        var criticalHitsCommand = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TargetId = Guid.NewGuid(), // Non-existent unit ID
+            CriticalHits = [
+                new LocationCriticalHitsData(
+                    PartLocation.CenterTorso,
+                    [4, 5],
+                    1,
+                    [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+                    false,
+                    [])
+            ]
+        };
+
+        var initialCommandLogCount = _sut.CommandLog.Count;
+
+        // Act & Assert - Should not throw exception
+        Should.NotThrow(() => _sut.HandleCommand(criticalHitsCommand));
+
+        // Command should still be logged
+        _sut.CommandLog.Count.ShouldBe(initialCommandLogCount + 1);
+        _sut.CommandLog.Last().ShouldBeEquivalentTo(criticalHitsCommand);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldProcessMultipleCriticalHitsLocations_WhenCriticalHitsResolutionCommandReceived()
+    {
+        // Arrange - This tests lines 141-143 with multiple critical hit locations
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = []
+        };
+
+        _sut.HandleCommand(joinCommand);
+
+        var criticalHitsCommand = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TargetId = unitData.Id.Value,
+            CriticalHits = [
+                new LocationCriticalHitsData(
+                    PartLocation.CenterTorso,
+                    [4, 5],
+                    1,
+                    [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+                    false,
+                    []),
+                new LocationCriticalHitsData(
+                    PartLocation.LeftArm,
+                    [3, 4],
+                    1,
+                    [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }],
+                    false,
+                    [])
+            ]
+        };
+
+        var initialCommandLogCount = _sut.CommandLog.Count;
+
+        // Act
+        _sut.HandleCommand(criticalHitsCommand);
+
+        // Assert
+        _sut.CommandLog.Count.ShouldBe(initialCommandLogCount + 1);
+        _sut.CommandLog.Last().ShouldBeEquivalentTo(criticalHitsCommand);
+
+        // Verify both locations received critical hits
+        var unit = _sut.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == unitData.Id.Value);
+        unit.ShouldNotBeNull();
+
+        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        centerTorso.HitSlots.ShouldNotBeEmpty();
+
+        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        leftArm.HitSlots.ShouldNotBeEmpty();
+    }
 }

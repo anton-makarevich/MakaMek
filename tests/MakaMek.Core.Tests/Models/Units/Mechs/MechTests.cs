@@ -2310,4 +2310,78 @@ public class MechTests
         // Assert
         result.ShouldBeTrue();
     }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartHasNoStructure()
+    {
+        // Arrange - This tests lines 579-580 (null check for part with no structure)
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var leftArm = mech.Parts.First(p => p.Location == PartLocation.LeftArm);
+
+        // Destroy the left arm by reducing structure to 0
+        leftArm.ApplyDamage(leftArm.CurrentArmor + leftArm.CurrentStructure, HitDirection.Front);
+
+        var diceRoller = Substitute.For<IDiceRoller>();
+
+        // Act
+        var result = mech.CalculateCriticalHitsData(PartLocation.LeftArm, diceRoller);
+
+        // Assert
+        result.ShouldBeNull(); // Should return null for destroyed part
+        diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for destroyed part
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartNotFound()
+    {
+        // Arrange - This tests lines 579-580 (null check when part is not found)
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var diceRoller = Substitute.For<IDiceRoller>();
+
+        // Act
+        var result = mech.CalculateCriticalHitsData((PartLocation)999, diceRoller); // Invalid location
+
+        // Assert
+        result.ShouldBeNull(); // Should return null for non-existent part
+        diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for non-existent part
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldProceed_WhenPartHasStructure()
+    {
+        // Arrange - This verifies lines 579-580 pass when part has structure
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var diceRoller = Substitute.For<IDiceRoller>();
+
+        // Setup dice roller to return valid critical hit roll
+        diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
+        diceRoller.RollD6().Returns(new DiceResult(3)); // Slot roll
+
+        // Act
+        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
+
+        // Assert
+        result.ShouldNotBeNull(); // Should return valid data for part with structure
+        diceRoller.Received(1).Roll2D6(); // Should roll dice for valid part
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartStructureIsZero()
+    {
+        // Arrange - This specifically tests the CurrentStructure > 0 condition in lines 579-580
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+
+        // Destroy the center torso by applying enough damage to reduce structure to 0
+        centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure, HitDirection.Front);
+
+        var diceRoller = Substitute.For<IDiceRoller>();
+
+        // Act
+        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
+
+        // Assert
+        result.ShouldBeNull(); // Should return null when structure is exactly 0
+        diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice when structure is 0
+    }
 }

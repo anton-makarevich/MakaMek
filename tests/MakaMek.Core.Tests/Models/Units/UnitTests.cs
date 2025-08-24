@@ -75,8 +75,15 @@ public class UnitTests
 
         protected override void UpdateDestroyedStatus()
         {
-            var destroyedParts = Parts.Where(p => p.IsDestroyed).ToList();
-            if (destroyedParts.Count == Parts.Count)
+            // Implement the same logic as Mech for testing
+            var head = Parts.FirstOrDefault(p => p.Location == PartLocation.Head);
+            if (head is { IsDestroyed: true })
+            {
+                Status = UnitStatus.Destroyed;
+                return;
+            }
+            var centerTorso = Parts.FirstOrDefault(p => p.Location == PartLocation.CenterTorso);
+            if (centerTorso is { IsDestroyed: true })
             {
                 Status = UnitStatus.Destroyed;
             }
@@ -95,11 +102,12 @@ public class UnitTests
     {
         var parts = new List<UnitPart>
         {
+            new TestUnitPart("Head", PartLocation.Head, 9, 3, 6),
             new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10),
             new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 10),
             new TestUnitPart("Right Arm", PartLocation.RightArm, 10, 5, 10)
         };
-        
+
         return new TestUnit("Test", "Unit", 20, walkMp, parts, id);
     }
     
@@ -1346,7 +1354,7 @@ public class UnitTests
         var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
         var component = new TestComponent("Test Component", 3);
         targetPart.TryAddComponent(component);
-        
+
         var hitLocations = new List<LocationCriticalHitsData>
         {
             new(PartLocation.LeftArm, [4, 4], 1,
@@ -1361,12 +1369,110 @@ public class UnitTests
                 [])
         };
         var initialStructure = targetPart.CurrentStructure;
-        
+
         // Act
         unit.ApplyCriticalHits(hitLocations);
-        
+
         // Assert
-        targetPart.CurrentStructure.ShouldBe(initialStructure); 
+        targetPart.CurrentStructure.ShouldBe(initialStructure);
+    }
+
+    [Fact]
+    public void ApplyCriticalHits_WithHeadBlownOff_ShouldDestroyUnit()
+    {
+        // Arrange - This tests lines 491-494 (unit destruction due to critical hits)
+        var unit = CreateTestUnit();
+        var initialDestroyedStatus = unit.IsDestroyed;
+        var initialEventCount = unit.Events.Count;
+
+        var hitLocations = new List<LocationCriticalHitsData>
+        {
+            new(PartLocation.Head, [6, 6], 0, null, true, []) // Head blown off
+        };
+
+        // Act
+        unit.ApplyCriticalHits(hitLocations);
+
+        // Assert
+        initialDestroyedStatus.ShouldBeFalse(); // Unit was not destroyed initially
+        unit.IsDestroyed.ShouldBeTrue(); // Unit should now be destroyed
+        unit.Events.Count.ShouldBe(initialEventCount + 1); // Should have added destruction event
+        unit.Events[^1].Type.ShouldBe(UiEventType.UnitDestroyed);
+        unit.Events[^1].Parameters[0].ShouldBe(unit.Name);
+    }
+
+    [Fact]
+    public void ApplyCriticalHits_WithCenterTorsoDestroyed_ShouldDestroyUnit()
+    {
+        // Arrange - This tests lines 491-494 (unit destruction due to critical hits)
+        var unit = CreateTestUnit();
+        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+
+        // Destroy the center torso by reducing structure to 0
+        centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure, HitDirection.Front);
+
+        var initialDestroyedStatus = unit.IsDestroyed;
+        var initialEventCount = unit.Events.Count;
+
+        var hitLocations = new List<LocationCriticalHitsData>
+        {
+            new(PartLocation.CenterTorso, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = 0,
+                        Type = MakaMekComponent.Engine
+                    }
+                ],
+                false,
+                [])
+        };
+
+        // Act
+        unit.ApplyCriticalHits(hitLocations);
+
+        // Assert
+        initialDestroyedStatus.ShouldBeFalse(); // Unit was not destroyed initially
+        unit.IsDestroyed.ShouldBeTrue(); // Unit should now be destroyed due to center torso destruction
+        unit.Events.Count.ShouldBe(initialEventCount + 1); // Should have added destruction event
+        unit.Events[^1].Type.ShouldBe(UiEventType.UnitDestroyed);
+        unit.Events[^1].Parameters[0].ShouldBe(unit.Name);
+    }
+
+    [Fact]
+    public void ApplyCriticalHits_WithNonDestructiveCriticalHits_ShouldNotDestroyUnit()
+    {
+        // Arrange - This verifies lines 491-494 are not executed when unit is not destroyed
+        var unit = CreateTestUnit();
+        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var component = new TestComponent("Test Component", 3);
+        targetPart.TryAddComponent(component);
+
+        var initialDestroyedStatus = unit.IsDestroyed;
+        var initialEventCount = unit.Events.Count;
+
+        var hitLocations = new List<LocationCriticalHitsData>
+        {
+            new(PartLocation.LeftArm, [4, 4], 1,
+                [
+                    new ComponentHitData
+                    {
+                        Slot = component.MountedAtSlots[0],
+                        Type = MakaMekComponent.MachineGun
+                    }
+                ],
+                false,
+                [])
+        };
+
+        // Act
+        unit.ApplyCriticalHits(hitLocations);
+
+        // Assert
+        initialDestroyedStatus.ShouldBeFalse(); // Unit was not destroyed initially
+        unit.IsDestroyed.ShouldBeFalse(); // Unit should still not be destroyed
+        unit.Events.Count.ShouldBeGreaterThan(initialEventCount); // Critical hits should generate events
+        unit.Events.Where(e => e.Type == UiEventType.UnitDestroyed).ShouldBeEmpty(); // But no destruction event
     }
     
     [Fact]

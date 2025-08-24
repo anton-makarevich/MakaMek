@@ -163,4 +163,132 @@ public class CriticalHitsCalculatorTests
         centerTorsoResult.Explosions[0].Slot.ShouldBe(10);
         centerTorsoResult.Explosions[0].ExplosionDamage.ShouldBeGreaterThan(0);
     }
+
+    [Fact]
+    public void CalculateCriticalHitsForStructureDamage_ShouldReturnEmptyList_WhenStructureDamageIsZero()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
+            5, // Armor damage
+            0, // No structure damage
+            false);
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForStructureDamage(
+            testUnit,
+            structureDamageByLocation);
+
+        // Assert
+        result.ShouldBeEmpty(); // Should return empty list when structure damage is 0
+        _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsForStructureDamage_ShouldReturnEmptyList_WhenStructureDamageIsNegative()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
+            5, // Armor damage
+            -3, // Negative structure damage
+            false);
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForStructureDamage(
+            testUnit,
+            structureDamageByLocation);
+
+        // Assert
+        result.ShouldBeEmpty(); // Should return empty list when structure damage is negative
+        _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsForHeatExplosion_ShouldReturnEmptyList_WhenComponentHasNoMountedSlots()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+
+        // Create an ammo component that's not mounted to any part (no slots)
+        var ammo = new Ammo(Lrm5.Definition, 24);
+        // Don't mount it to any part, so MountedAtSlots will be empty
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
+
+        // Assert
+        result.ShouldBeEmpty(); // Should return empty list when component has no mounted slots
+        _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsForStructureDamage_ShouldReturnEmptyList_WhenPartNotFound()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        var structureDamageByLocation = new LocationDamageData((PartLocation)999, // Invalid location
+            5, // Armor damage
+            3, // Structure damage
+            false);
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForStructureDamage(
+            testUnit,
+            structureDamageByLocation);
+
+        // Assert
+        result.ShouldBeEmpty(); // Should return empty list when part is not found
+        _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsForStructureDamage_ShouldReturnValidData_WhenCalculateCriticalHitsDataReturnsZeroCriticalHits()
+    {
+        // Arrange 
+        var testUnit = CreateTestMech();
+        var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
+            5, // Armor damage
+            3, // Structure damage
+            false);
+
+        // Setup dice roller to return a roll that results in 0 critical hits but valid data
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(1), new DiceResult(1)]); // Roll of 2 (0 critical hits)
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForStructureDamage(
+            testUnit,
+            structureDamageByLocation);
+
+        // Assert
+        result.ShouldNotBeEmpty(); // Should return valid data even with 0 critical hits
+        result.Count.ShouldBe(1);
+        result[0].NumCriticalHits.ShouldBe(0); // Should have 0 critical hits
+        _mockDiceRoller.Received(1).Roll2D6(); // Should have rolled dice
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsForStructureDamage_ShouldReturnEmptyList_WhenPartHasZeroStructure()
+    {
+        // Arrange - This specifically tests the CurrentStructure > 0 condition in lines 104-105
+        var testUnit = CreateTestMech();
+        var centerTorso = testUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+
+        // Destroy the center torso by applying enough damage to reduce structure to 0
+        centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure, HitDirection.Front);
+
+        var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
+            5, // Armor damage
+            3, // Structure damage
+            false);
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForStructureDamage(
+            testUnit,
+            structureDamageByLocation);
+
+        // Assert
+        result.ShouldBeEmpty(); // Should return empty list when structure is exactly 0
+        _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice when structure is 0
+    }
 }
