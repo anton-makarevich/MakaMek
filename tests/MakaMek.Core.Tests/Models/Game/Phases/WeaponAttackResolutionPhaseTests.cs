@@ -443,7 +443,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Add a cluster weapon to unit1
         var clusterWeapon = new TestClusterWeapon(1, 5);
         var part1 = _player1Unit1.Parts.First(p => p.Location == PartLocation.LeftArm);
-        part1.TryAddComponent(clusterWeapon);
+        part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
         // Set target for the cluster weapon using new system
         var clusterWeaponTargets = new List<WeaponTargetData>
         {
@@ -505,7 +505,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Setup PSR for heavy damage 36 > 20 to avoid NRE
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); 
         var part1 = _player1Unit1.Parts.First(p=>p.Location == PartLocation.LeftArm);
-        part1.TryAddComponent(clusterWeapon);
+        part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
         // Set target for the cluster weapon using new system
         var clusterWeaponTargets = new List<WeaponTargetData>
         {
@@ -556,9 +556,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         // Add a cluster weapon to unit1
         SetMap();
-        var clusterWeapon = new TestClusterWeapon(1010, 5); // LRM-10
+        var clusterWeapon = new TestClusterWeapon(10, 5); // LRM-10
         var part1 = _player1Unit1.Parts.First(p => p.Location == PartLocation.LeftArm);
-        part1.TryAddComponent(clusterWeapon);
+        part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
         // Set target for the cluster weapon using new system
         var clusterWeaponTargets = new List<WeaponTargetData>
         {
@@ -1087,7 +1087,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Add a weapon to each unit
         var weapon1 = new TestWeapon();
         var part1 = _player1Unit1.Parts[0];
-        part1.TryAddComponent(weapon1);
+        part1.TryAddComponent(weapon1).ShouldBeTrue();
 
         // Set up weapon targets using the new system
         var weaponTargets1 = new List<WeaponTargetData>
@@ -1108,7 +1108,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         var weapon2 = new TestWeapon();
         var part2 = _player2Unit1.Parts[0];
-        part2.TryAddComponent(weapon2);
+        part2.TryAddComponent(weapon2).ShouldBeTrue();
 
         var weaponTargets2 = new List<WeaponTargetData>
         {
@@ -1129,7 +1129,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Add a third weapon without a target to test that it's properly skipped
         var weaponWithoutTarget = new TestWeapon();
         var part3 = _player1Unit1.Parts[1]; // Using the second part of unit1
-        part3.TryAddComponent(weaponWithoutTarget);
+        part3.TryAddComponent(weaponWithoutTarget).ShouldBeTrue();
         // Deliberately not setting a target for this weapon
 
         // Setup ToHitCalculator to return a value
