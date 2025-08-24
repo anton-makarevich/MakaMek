@@ -1102,6 +1102,25 @@ public class BaseGameTests : BaseGame
     }
     
     [Fact]
+    public void ValidateCommand_ShouldAutoValidateCriticalHitsResolutionCommand()
+    {
+        // Arrange
+        var command = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            TargetId = Guid.NewGuid(),
+            CriticalHits = []
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+    
+    [Fact]
     public void OnUnitShutdown_DoesNothing_WhenUnitNotFound()
     {
         // Arrange
