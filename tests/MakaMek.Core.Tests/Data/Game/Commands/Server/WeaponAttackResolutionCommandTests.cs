@@ -111,8 +111,8 @@ public class WeaponAttackResolutionCommandTests
         return new LocationHitData(
         [
             new LocationDamageData(partLocation,
-                damage-1,
-                1,
+                damage,
+                0,
                 false)
         ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
@@ -122,7 +122,7 @@ public class WeaponAttackResolutionCommandTests
         // Create a hit with a single location
         var hitLocations = new List<LocationHitData>
         {
-            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [3,3]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -216,7 +216,7 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Player 1's Locust LCT-1V hits Player 2's Locust LCT-1V with machine Gun");
+        result.ShouldContain("Player 1's Locust LCT-1V hits Player 2's Locust LCT-1V with Machine Gun");
         result.ShouldContain("Target: 8, Roll: 9");
         result.ShouldContain("Total Damage: 5");
         result.ShouldContain("CenterTorso: 5 damage");
@@ -335,7 +335,7 @@ public class WeaponAttackResolutionCommandTests
         // Arrange
         var hitLocations = new List<LocationHitData>
         {
-            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [3,3]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -420,7 +420,7 @@ public class WeaponAttackResolutionCommandTests
         // Arrange
         var hitLocations = new List<LocationHitData>
         {
-            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [3,3]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -466,7 +466,7 @@ public class WeaponAttackResolutionCommandTests
         // Arrange
         var hitLocations = new List<LocationHitData>
         {
-            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [6]) // No aimed shot, location roll 6
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [], [3,3]) // No aimed shot, location roll 6
         };
         
         var hitLocationsData = new AttackHitLocationsData(
@@ -501,14 +501,5 @@ public class WeaponAttackResolutionCommandTests
         // Assert
         result.ShouldNotBeEmpty();
         result.ShouldContain("Locust LCT-1V has been destroyed!");
-    }
-
-    public static ComponentHitData CreateComponentHitData(int slot)
-    {
-        return new ComponentHitData
-        {
-            Slot = slot,
-            Type = MakaMekComponent.ISAmmoMG
-        };
     }
 }

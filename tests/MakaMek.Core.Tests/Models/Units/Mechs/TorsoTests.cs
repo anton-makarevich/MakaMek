@@ -18,7 +18,7 @@ public class TorsoTests
     [InlineData(3, 10, 3, 5, 0, HitDirection.Rear)] // Rear damage less than rear armor
     [InlineData(14, 10, 3, 5, 0, HitDirection.Front)] // Front damage depletes armor and some structure
     [InlineData(9, 10, 3, 5, 1, HitDirection.Rear)] // Rear damage exceeds rear armor and depletes structure
-    public void ApplyArmorDamage_HandlesVariousDamageScenarios(int damage,
+    public void ApplyDamage_HandlesVariousDamageScenarios(int damage,
         int maxArmor,
         int maxRearArmor,
         int maxStructure,
@@ -84,6 +84,7 @@ public class TorsoTests
     [InlineData(5, 10, 5, 5, 0)] // Damage does not exceed rear armor
     [InlineData(15, 10, 5, 5,5)] // Damage exceeds rear armor
     [InlineData(8, 10, 5, 5,0)] // Damage exceeds rear armor but structure remains
+    [InlineData(10, 10, 5, 5,0)] // Damage exactly equals rear armor + structure (boundary)
     public void ApplyDamage_HandlesRearArmor(int damage, int maxArmor, int maxRearArmor, int maxStructure, int expectedExcess)
     {
         // Arrange
@@ -105,6 +106,8 @@ public class TorsoTests
             torso.CurrentRearArmor.ShouldBe(0);
             torso.CurrentStructure.ShouldBe(maxStructure - (damage - maxRearArmor));
         }
+        // Rear hits must not affect front armor
+        torso.CurrentArmor.ShouldBe(maxArmor);
     }
 
     [Fact]
