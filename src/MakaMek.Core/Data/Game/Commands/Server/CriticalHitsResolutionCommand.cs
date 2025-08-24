@@ -51,6 +51,8 @@ public record CriticalHitsResolutionCommand : IGameCommand
                 continue;
             }
 
+            var part = target.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
+                    
             // Show number of critical hits
             if (criticalHitData.NumCriticalHits > 0)
             {
@@ -61,7 +63,6 @@ public record CriticalHitsResolutionCommand : IGameCommand
                 // Show hit components
                 if (criticalHitData.HitComponents != null)
                 {
-                    var part = target.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
                     foreach (var component in criticalHitData.HitComponents)
                     {
                         var comp = part?.GetComponentAtSlot(component.Slot);
@@ -79,10 +80,9 @@ public record CriticalHitsResolutionCommand : IGameCommand
 
             // Show explosions
             if (criticalHitData.Explosions.Count <= 0) continue;
-
+            
             foreach (var explosion in criticalHitData.Explosions)
             {
-                var part = target.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
                 var comp = part?.GetComponentAtSlot(explosion.Slot);
                 if (comp != null)
                 {
