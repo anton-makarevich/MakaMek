@@ -49,8 +49,13 @@ public record LocationHitData(
             }
         }
 
+        if (Damage.Count == 0)
+        {
+            return stringBuilder.ToString();
+        }
+        
         // If there was a location transfer, show both the initial and final locations
-        if (Damage.Count > 0 && InitialLocation != Damage[0].Location)
+        if (InitialLocation != Damage[0].Location)
         {
             stringBuilder.AppendLine(string.Format(
                 localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer"),
