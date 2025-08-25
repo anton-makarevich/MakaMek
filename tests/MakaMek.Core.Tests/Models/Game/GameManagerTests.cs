@@ -9,6 +9,8 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
@@ -31,6 +33,8 @@ public class GameManagerTests : IDisposable
     private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
     private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     private readonly IFallProcessor _fallProcessor = Substitute.For<IFallProcessor>();
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly ICommandLoggerFactory _commandLoggerFactory = Substitute.For<ICommandLoggerFactory>();
 
     public GameManagerTests()
     {
@@ -84,6 +88,8 @@ public class GameManagerTests : IDisposable
             _heatEffectsCalculator,
             _fallProcessor,
             _gameFactory,
+            _localizationService,
+            _commandLoggerFactory,
             _networkHostService);
     }
 
@@ -264,7 +270,9 @@ public class GameManagerTests : IDisposable
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _fallProcessor,
-            _gameFactory);
+            _gameFactory,
+            _localizationService,
+            _commandLoggerFactory);
 
         // Act & Assert
         sutWithNullHost.IsLanServerRunning.ShouldBeFalse();
@@ -298,7 +306,9 @@ public class GameManagerTests : IDisposable
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _fallProcessor,
-            _gameFactory);
+            _gameFactory,
+            _localizationService,
+            _commandLoggerFactory);
 
         // Act & Assert
         sutWithNullHost.CanStartLanServer.ShouldBeFalse();
@@ -362,7 +372,9 @@ public class GameManagerTests : IDisposable
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _fallProcessor,
-            _gameFactory);
+            _gameFactory,
+            _localizationService,
+            _commandLoggerFactory);
 
         // Act & Assert
         Should.NotThrow(() => sutWithNullHost.Dispose());
