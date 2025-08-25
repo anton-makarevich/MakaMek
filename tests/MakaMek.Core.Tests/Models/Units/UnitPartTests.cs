@@ -166,8 +166,8 @@ public class UnitPartTests
         var component1 = new TestComponent("Component 1", [0, 1]);
         var component2 = new TestComponent("Component 2", [3, 4, 5]);
         
-        sut.TryAddComponent(component1);
-        sut.TryAddComponent(component2);
+        sut.TryAddComponent(component1).ShouldBeTrue();
+        sut.TryAddComponent(component2).ShouldBeTrue();
 
         // Act & Assert
         sut.GetComponentAtSlot(0).ShouldBe(component1);
@@ -179,7 +179,7 @@ public class UnitPartTests
     }
 
     [Fact]
-    public void FindMountLocation_ReturnsCorrectSlotForComponentSize()
+    public void TryAddComponent_ShouldReturnFalse_WhenNoContiguousSpaceAvailable()
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 8);
@@ -189,6 +189,22 @@ public class UnitPartTests
         // Act & Assert
         sut.TryAddComponent(fixedComponent).ShouldBeTrue();
         sut.TryAddComponent(component).ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void TryAddComponent_ShouldReturnFalse_WhenSlotIsNegative()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
+        var component = new TestComponent("NegSlot", [-1]);
+        
+        // Act
+        var result = sut.TryAddComponent(component);
+        
+        // Assert
+        result.ShouldBeFalse();
+        sut.Components.ShouldBeEmpty();
+        sut.UsedSlots.ShouldBe(0);
     }
     
     [Fact]
@@ -216,7 +232,7 @@ public class UnitPartTests
     }
     
     [Fact]
-    public void IsDestroyed_ShouldBeTrue_WhenParenPartIsDestroyed()
+    public void IsDestroyed_ShouldBeTrue_WhenParentPartIsDestroyed()
     {
         var testUnit = UnitTests.CreateTestUnit();
         var parent = testUnit.Parts.First(p=>p.Location==PartLocation.CenterTorso);
@@ -488,7 +504,8 @@ public class UnitPartTests
 
         // Assert
         appliedDamage.ShouldBe(15); // Should return the explosion damage
-        transferPart.CurrentStructure.ShouldBeLessThan(initialTransferPartStructure); // Transfer part should take damage
+        sourcePart.CurrentStructure.ShouldBe(0); // 5 structure fully consumed on source
+        transferPart.CurrentStructure.ShouldBe(initialTransferPartStructure - 10); 
     }
 
     [Fact]

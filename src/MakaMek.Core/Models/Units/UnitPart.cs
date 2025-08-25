@@ -69,7 +69,7 @@ public abstract class UnitPart
             return false;
 
         // Check if any required slots would be out of bounds
-        if (slots.Any(s => s >= TotalSlots))
+        if (slots.Any(s => s >= TotalSlots || s < 0))
             return false;
 
         // Check if any of the required slots are already occupied

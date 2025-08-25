@@ -570,7 +570,7 @@ public class UnitTests
         var hitLocations = new List<LocationHitData>
         {
             CreateHitDataForLocation(PartLocation.CenterTorso, 5), // No aimed shot, no location roll
-            CreateHitDataForLocation(PartLocation.Head, 3) // Unit doesn't have a Head part, no aimed shot, no location roll
+            CreateHitDataForLocation(PartLocation.LeftLeg, 3) // Unit doesn't have a LeftLeg part, no aimed shot, no location roll
         };
         
         // Get initial armor values
@@ -683,8 +683,8 @@ public class UnitTests
         var unit = new TestUnit("Test", "Unit", 20, 4, parts);
         
         // Apply damage to reduce armor and structure
-        unit.ApplyDamage([CreateHitDataForLocation(parts[0].Location, 15)], HitDirection.Front); // Center Torso: 10 armor -> 0, 5 structure -> 015, parts[0], HitDirection.Front); // Center Torso: 10 armor -> 0, 5 structure -> 0
-        unit.ApplyDamage([CreateHitDataForLocation(parts[1].Location, 20)], HitDirection.Front); // Left Arm: 15 armor -> 0, 8 structure -> 3
+        unit.ApplyDamage([CreateHitDataForLocation(parts[0].Location, 15)], HitDirection.Front); 
+        unit.ApplyDamage([CreateHitDataForLocation(parts[1].Location, 20)], HitDirection.Front); 
         
         // Act
         var totalCurrentStructure = unit.TotalCurrentStructure;
@@ -1007,7 +1007,7 @@ public class UnitTests
     }
     
     [Fact]
-    public void GetHeatData_WithHeatSinks_ReturnsDissipationDataConsidderingActiveHeatSinksOnly()
+    public void GetHeatData_WithHeatSinks_ReturnsDissipationDataConsideringActiveHeatSinksOnly()
     {
         // Arrange
         var unit = CreateTestUnit();
@@ -1643,7 +1643,7 @@ public class UnitTests
     }
 
     [Fact]
-    private void EngineHeatSinks_ShouldBeZero_ByDefault()
+    public void EngineHeatSinks_ShouldBeZero_ByDefault()
     {
         var sut = CreateTestUnit();
         
