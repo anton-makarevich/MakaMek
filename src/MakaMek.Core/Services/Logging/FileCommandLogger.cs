@@ -30,7 +30,8 @@ public sealed class FileCommandLogger : ICommandLogger, IDisposable
     {
         try
         {
-            var line = $"{DateTimeOffset.UtcNow:o} | {command.GetType().Name} | {SafeRender(command)}";
+            if (command.GameOriginId != _game.Id) return;
+            var line = $"{DateTimeOffset.UtcNow:o} | {command.GetType().Name}:{Environment.NewLine}{SafeRender(command)}";
             _queue.Add(line, _cts.Token);
         }
         catch
