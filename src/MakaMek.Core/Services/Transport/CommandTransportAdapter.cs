@@ -14,14 +14,14 @@ public class CommandTransportAdapter
 {
     internal readonly List<ITransportPublisher> TransportPublishers = new();
     private readonly Dictionary<string, Type> _commandTypes;
-    private Action<IGameCommand>? _onCommandReceived;
+    private Action<IGameCommand, ITransportPublisher>? _onCommandReceived;
     private bool _isInitialized;
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         TypeInfoResolver = new RollModifierTypeResolver(),
         WriteIndented = true
     };
-    private readonly object _initLock = new();
+    private readonly Lock _initLock = new();
     
     /// <summary>
     /// Creates a new instance of the CommandTransportAdapter with multiple publishers
@@ -100,7 +100,7 @@ public class CommandTransportAdapter
     /// Subscribes to transport messages and converts them back to IGameCommand
     /// </summary>
     /// <param name="onCommandReceived">Callback for received commands</param>
-    public void Initialize(Action<IGameCommand> onCommandReceived)
+    public void Initialize(Action<IGameCommand, ITransportPublisher> onCommandReceived)
     {
         lock (_initLock)
         {
@@ -204,13 +204,13 @@ public class CommandTransportAdapter
     }
     
     // Helper method to encapsulate the subscription logic including error handling
-    private void SubscribePublisher(ITransportPublisher publisher, Action<IGameCommand> onCommandReceived)
+    private void SubscribePublisher(ITransportPublisher publisher, Action<IGameCommand, ITransportPublisher> onCommandReceived)
     {
         publisher.Subscribe(message => {
             try
             {
                 var command = DeserializeCommand(message);
-                onCommandReceived(command);
+                onCommandReceived(command, publisher);
             }
             catch (Exception ex)
             {

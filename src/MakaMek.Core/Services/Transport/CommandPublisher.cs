@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.Transport;
 
 namespace Sanet.MakaMek.Core.Services.Transport;
 
@@ -8,7 +9,8 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 /// </summary>
 public class CommandPublisher : ICommandPublisher
 {
-    private readonly List<Action<IGameCommand>> _subscribers = new();
+    private readonly List<Action<IGameCommand>> _subscribers = [];
+    private readonly Dictionary<Action<IGameCommand>, ITransportPublisher> _subscriberTransports = new();
     
     /// <summary>
     /// Gets the command transport adapter used by this publisher
@@ -22,7 +24,6 @@ public class CommandPublisher : ICommandPublisher
     public CommandPublisher(CommandTransportAdapter adapter)
     {
         Adapter = adapter;
-        
     }
     
     /// <summary>
@@ -33,27 +34,36 @@ public class CommandPublisher : ICommandPublisher
     {
         Adapter.PublishCommand(command);
     }
-    
+
     /// <summary>
     /// Subscribes to receive commands
     /// </summary>
     /// <param name="onCommandReceived">Action to call when a command is received</param>
-    public void Subscribe(Action<IGameCommand> onCommandReceived)
+    /// <param name="transportPublisher"></param>
+    public void Subscribe(Action<IGameCommand> onCommandReceived, ITransportPublisher? transportPublisher = null)
     {
         Adapter.Initialize(OnCommandReceived);
         _subscribers.Add(onCommandReceived);
+        if (transportPublisher != null)
+        {
+            _subscriberTransports.Add(onCommandReceived, transportPublisher);
+        }
     }
-    
+
     /// <summary>
     /// Called when a command is received from the transport
     /// </summary>
     /// <param name="command">The received command</param>
-    private void OnCommandReceived(IGameCommand command)
+    /// <param name="sourcePublisher">A transport publisher to subscribe to, if null subscribe to all</param>
+    private void OnCommandReceived(IGameCommand command, ITransportPublisher sourcePublisher)
     {
         foreach (var subscriber in _subscribers)
         {
             try
             {
+                _subscriberTransports.TryGetValue(subscriber, out var subTransport); 
+                var shouldCall = subTransport == null || subTransport == sourcePublisher;
+                if (!shouldCall) continue;
                 subscriber(command);
             }
             catch (Exception ex)

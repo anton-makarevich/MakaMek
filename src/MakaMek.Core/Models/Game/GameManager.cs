@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.Transport.Rx;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -114,9 +115,9 @@ public class GameManager : IGameManager
             // Start server listening loop in background
             _ = Task.Run(() => _serverGame?.Start());
         }
-        
+        var transportPublisher = transportAdapter.TransportPublishers.FirstOrDefault(ta => ta is RxTransportPublisher);
         var commandLogger = _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame);
-        _commandPublisher.Subscribe(SafeLog(commandLogger));
+        _commandPublisher.Subscribe(SafeLog(commandLogger), transportPublisher);
     }
 
     public void SetBattleMap(BattleMap battleMap)
