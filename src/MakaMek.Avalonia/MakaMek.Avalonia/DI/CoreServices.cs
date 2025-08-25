@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -34,6 +35,7 @@ public static class CoreServices
             new CommandTransportAdapter(sp.GetRequiredService<RxTransportPublisher>()));
             
         services.AddTransient<ICommandPublisher, CommandPublisher>();
+        services.AddSingleton<ICommandLoggerFactory, CommandLoggerFactory>();
         services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
         services.AddSingleton<IMechFactory, MechFactory>();
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
