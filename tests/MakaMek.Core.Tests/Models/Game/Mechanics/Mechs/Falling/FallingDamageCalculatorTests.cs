@@ -1,5 +1,7 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
@@ -13,19 +15,17 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 
 public class FallingDamageCalculatorTests
 {
-    private readonly IDiceRoller _mockDiceRoller;
+    private readonly IDiceRoller _mockDiceRoller = Substitute.For<IDiceRoller>();
+    private readonly IStructureDamageCalculator _mockStructureDamageCalculator = Substitute.For<IStructureDamageCalculator>();
     private readonly FallingDamageCalculator _sut;
 
     public FallingDamageCalculatorTests()
     {
-        // Setup mock dice roller
-        _mockDiceRoller = Substitute.For<IDiceRoller>();
-
         // Setup mock rules provider
         IRulesProvider rules = new ClassicBattletechRulesProvider();
 
         // Setup calculator with mock dice roller and rules provider
-        _sut = new FallingDamageCalculator(_mockDiceRoller, rules);
+        _sut = new FallingDamageCalculator(_mockDiceRoller, rules, _mockStructureDamageCalculator);
     }
 
     private static List<UnitPart> CreateBasicPartsData()
@@ -121,6 +121,32 @@ public class FallingDamageCalculatorTests
             [new DiceResult(5), new DiceResult(5)] // Third hit location roll, 10 LA
         );
         
+        // Setup structure damage calculator to return correct data
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
+            ]);
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftTorso, 5, 0, false)
+            ]);
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftArm),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftArm, 5, 0, false)
+            ]);
+        
         // Act
         var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
         
@@ -129,14 +155,30 @@ public class FallingDamageCalculatorTests
         result.HitLocations.HitLocations.Count.ShouldBe(3);
         
         // Check each hit location group
-        result.HitLocations.HitLocations[0].Damage.ShouldBe(5);
-        result.HitLocations.HitLocations[0].Location.ShouldBe(PartLocation.CenterTorso);
+        result.HitLocations.HitLocations[0].Damage[0].ArmorDamage.ShouldBe(5);
+        result.HitLocations.HitLocations[0].Damage[0].Location.ShouldBe(PartLocation.CenterTorso);
         
-        result.HitLocations.HitLocations[1].Damage.ShouldBe(5);
-        result.HitLocations.HitLocations[1].Location.ShouldBe(PartLocation.LeftTorso);
+        result.HitLocations.HitLocations[1].Damage[0].ArmorDamage.ShouldBe(5);
+        result.HitLocations.HitLocations[1].Damage[0].Location.ShouldBe(PartLocation.LeftTorso);
         
-        result.HitLocations.HitLocations[2].Damage.ShouldBe(5);
-        result.HitLocations.HitLocations[2].Location.ShouldBe(PartLocation.LeftArm);
+        result.HitLocations.HitLocations[2].Damage[0].ArmorDamage.ShouldBe(5);
+        result.HitLocations.HitLocations[2].Damage[0].Location.ShouldBe(PartLocation.LeftArm);
+        
+        _mockStructureDamageCalculator.Received(1).CalculateStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+            5,
+            Arg.Any<HitDirection>());
+        _mockStructureDamageCalculator.Received(1).CalculateStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+            5,
+            Arg.Any<HitDirection>());
+        _mockStructureDamageCalculator.Received(1).CalculateStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<PartLocation>(l => l == PartLocation.LeftArm),
+            5,
+            Arg.Any<HitDirection>());
     }
 
     [Fact]
@@ -156,6 +198,24 @@ public class FallingDamageCalculatorTests
             [new DiceResult(4), new DiceResult(4)] // Second hit location roll
         );
         
+        // Setup structure damage calculator to return correct data
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
+            ]);
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+                Arg.Is<int>(d => d == 3),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftTorso, 3, 0, false)
+            ]);
+        
         // Act
         var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
         
@@ -164,11 +224,11 @@ public class FallingDamageCalculatorTests
         result.HitLocations.HitLocations.Count.ShouldBe(2);
         
         // Check each hit location group
-        result.HitLocations.HitLocations[0].Damage.ShouldBe(5);
-        result.HitLocations.HitLocations[0].Location.ShouldBe(PartLocation.CenterTorso);
+        result.HitLocations.HitLocations[0].Damage[0].ArmorDamage.ShouldBe(5);
+        result.HitLocations.HitLocations[0].Damage[0].Location.ShouldBe(PartLocation.CenterTorso);
         
-        result.HitLocations.HitLocations[1].Damage.ShouldBe(3);
-        result.HitLocations.HitLocations[1].Location.ShouldBe(PartLocation.LeftTorso);
+        result.HitLocations.HitLocations[1].Damage[0].ArmorDamage.ShouldBe(3);
+        result.HitLocations.HitLocations[1].Damage[0].Location.ShouldBe(PartLocation.LeftTorso);
     }
 
     [Fact]
@@ -190,6 +250,24 @@ public class FallingDamageCalculatorTests
             [new DiceResult(4), new DiceResult(4)] // Second hit location roll
         );
         
+        // Setup structure damage calculator to return correct data
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d == 5),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
+            ]);
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
+                Arg.Is<int>(d => d == 3),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.LeftTorso, 3, 0, false)
+            ]);
+        
         // Act
         var result = _sut.CalculateFallingDamage(mech, levelsFallen, false);
         
@@ -198,11 +276,11 @@ public class FallingDamageCalculatorTests
         result.HitLocations.HitLocations.Count.ShouldBe(2);
         
         // Check each hit location group
-        result.HitLocations.HitLocations[0].Damage.ShouldBe(5);
-        result.HitLocations.HitLocations[0].Location.ShouldBe(PartLocation.CenterTorso);
+        result.HitLocations.HitLocations[0].Damage[0].ArmorDamage.ShouldBe(5);
+        result.HitLocations.HitLocations[0].Damage[0].Location.ShouldBe(PartLocation.CenterTorso);
         
-        result.HitLocations.HitLocations[1].Damage.ShouldBe(3);
-        result.HitLocations.HitLocations[1].Location.ShouldBe(PartLocation.LeftTorso);
+        result.HitLocations.HitLocations[1].Damage[0].ArmorDamage.ShouldBe(3);
+        result.HitLocations.HitLocations[1].Damage[0].Location.ShouldBe(PartLocation.LeftTorso);
     }
 
     [Fact]

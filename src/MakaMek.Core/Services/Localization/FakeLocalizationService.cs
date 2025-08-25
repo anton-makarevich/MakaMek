@@ -32,14 +32,17 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_HitLocations" => "Hit Locations:",
             "Command_WeaponAttackResolution_HitLocation" => "{0}: {1} damage (Roll: {2})",
             "Command_WeaponAttackResolution_HitLocationTransfer" => "{0} → {1}: {2} damage (Roll: {3})",
-            "Command_WeaponAttackResolution_AimedShotSuccessful" => "{0}: {1} damage (Aimed Shot: {2}, successful)",
-            "Command_WeaponAttackResolution_AimedShotFailed" => "{0}: {1} damage (Aimed Shot: {2}, failed, Roll: {3})",
-            "Command_WeaponAttackResolution_CriticalHit" => "Critical hit in {0} slot {1}: {2}",
-            "Command_WeaponAttackResolution_CritRoll" => "Critical Roll: {0}",
-            "Command_WeaponAttackResolution_NumCrits" => "Num Crits: {0}",
-            "Command_WeaponAttackResolution_BlownOff" => "Critical hit in {0}, location blown off",
-            "Command_WeaponAttackResolution_LocationCriticals" => "Critical hits in {0}:",
-            "Command_WeaponAttackResolution_Explosion" => "{0} exploded, damage: {1}",
+            "Command_WeaponAttackResolution_AimedShotSuccessful" => "Aimed Shot targeting {0} succeeded, Roll: {1}",
+            "Command_WeaponAttackResolution_HitLocationExcessDamage" => "  Excess damage {1} transferred to {0}",
+            "Command_WeaponAttackResolution_AimedShotFailed" => "Aimed Shot targeting {0} failed, Roll: {1}",
+
+            // Critical Hits Resolution Command
+            "Command_CriticalHitsResolution_Location" => "Critical hits in {0}:",
+            "Command_CriticalHitsResolution_CritRoll" => "Critical Roll: {0}",
+            "Command_CriticalHitsResolution_BlownOff" => "Critical hit in {0}, location blown off",
+            "Command_CriticalHitsResolution_NumCrits" => "Number of critical hits: {0}",
+            "Command_CriticalHitsResolution_CriticalHit" => "Critical hit in {0} slot {1}: {2}",
+            "Command_CriticalHitsResolution_Explosion" => "{0} exploded, damage: {1}",
             "Command_WeaponAttackResolution_DestroyedParts" => "Destroyed parts:",
             "Command_WeaponAttackResolution_DestroyedPart" => "- {0} destroyed",
             "Command_WeaponAttackResolution_UnitDestroyed" => "{0} has been destroyed!",
@@ -253,6 +256,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_AmmoExplosion_RollDetails" => "Heat level: {0}, Roll: {1} vs {2}",
             "Command_AmmoExplosion_CriticalHits" => "Explosion caused critical hits:",
             "Command_AmmoExplosion_ComponentDestroyed" => "- {0} in {1} destroyed by explosion",
+            "Command_AmmoExplosion_Explosion" => "{0} exploded, damage: {1}",
             _ => key
         };
     }

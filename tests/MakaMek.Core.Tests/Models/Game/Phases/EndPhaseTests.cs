@@ -48,6 +48,20 @@ public class EndPhaseTests : GamePhaseTestsBase
         _sut = new EndPhase(Game);
     }
     
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
+    
     [Fact]
     public void HandleCommand_ShouldIncrementTurnAndTransitionToNextPhase_WhenAllPlayersEndTurn()
     {
@@ -360,11 +374,9 @@ public class EndPhaseTests : GamePhaseTestsBase
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Destroy the unit
-        unit.ApplyDamage([new HitLocationData(
-            PartLocation.CenterTorso,
-            100,
-            [],
-            [])], HitDirection.Front);
+        unit.ApplyDamage([
+            CreateHitDataForLocation(PartLocation.CenterTorso, 100, [],[])
+        ], HitDirection.Front);
 
         CommandPublisher.ClearReceivedCalls();
 
@@ -523,7 +535,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Destroy the unit
-        unit.ApplyDamage([new HitLocationData(
+        unit.ApplyDamage([CreateHitDataForLocation(
             PartLocation.CenterTorso,
             100,
             [],

@@ -315,6 +315,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
             new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
             CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(),
+            Substitute.For<IStructureDamageCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),

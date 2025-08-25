@@ -41,6 +41,20 @@ public class BaseGameTests : BaseGame
         base.SetBattleMap(
             BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain())));
     }
+    
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage,
+                0,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
 
     [Fact]
     public void AddPlayer_ShouldAddPlayer_WhenJoinGameCommandIsReceived()
@@ -464,10 +478,10 @@ public class BaseGameTests : BaseGame
         targetMech!.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
 
         // Create hit locations data
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [],[]),
-            new(PartLocation.LeftArm, 3, [],[])
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[]),
+            CreateHitDataForLocation(PartLocation.LeftArm, 3, [],[])
         };
 
         // Create the attack resolution command with IsHit = false
@@ -600,10 +614,10 @@ public class BaseGameTests : BaseGame
         weapon.ShouldNotBeNull();
 
         // Create hit locations data
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [],[]),
-            new(PartLocation.LeftArm, 3, [],[])
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[]),
+            CreateHitDataForLocation(PartLocation.LeftArm, 3, [],[])
         };
 
         // Get initial values for verification
@@ -649,8 +663,7 @@ public class BaseGameTests : BaseGame
         // Create alive and destroyed mechs
         var aliveMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
         var destroyedMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
-        var headPart = destroyedMech.Parts.FirstOrDefault(p => p.Location == PartLocation.Head);
-        destroyedMech.ApplyArmorAndStructureDamage(100, headPart!, HitDirection.Front);
+        destroyedMech.ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
 
         // Player 1: Ready, has alive unit
         var player1 = new Player(Guid.NewGuid(), "Player1")
@@ -1079,6 +1092,25 @@ public class BaseGameTests : BaseGame
             GameOriginId = Guid.NewGuid(),
             UnitId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ValidateCommand_ShouldAutoValidateCriticalHitsResolutionCommand()
+    {
+        // Arrange
+        var command = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            TargetId = Guid.NewGuid(),
+            CriticalHits = []
         };
 
         // Act

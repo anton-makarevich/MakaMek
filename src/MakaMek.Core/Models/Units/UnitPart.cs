@@ -63,13 +63,13 @@ public abstract class UnitPart
             .FirstOrDefault(i => Enumerable.Range(i, size).All(slot => !occupiedSlots.Contains(slot)), -1);
     }
 
-    private bool CanAddComponent(Component component)
+    private bool CanAddComponent(Component component, int[] slots)
     {
         if (component.Size > AvailableSlots)
             return false;
 
         // Check if any required slots would be out of bounds
-        if (component.MountedAtSlots.Any(s => s >= TotalSlots))
+        if (slots.Any(s => s >= TotalSlots || s < 0))
             return false;
 
         // Check if any of the required slots are already occupied
@@ -77,14 +77,14 @@ public abstract class UnitPart
             .SelectMany(c => c.MountedAtSlots)
             .ToHashSet();
         
-        return !component.MountedAtSlots.Intersect(occupiedSlots).Any();
+        return !slots.Intersect(occupiedSlots).Any();
     }
 
     public bool TryAddComponent(Component component, int[]? slots=null)
     {
         if (component.IsFixed)
         {
-            if (!CanAddComponent(component))
+            if (!CanAddComponent(component, component.MountedAtSlots))
             {
                 return false;
             }
@@ -94,11 +94,19 @@ public abstract class UnitPart
             component.Mount(component.MountedAtSlots, this);
             return true;
         }
+        
+        
 
         var slotToMount = slots!=null
             ? slots[0]
             : FindMountLocation(component.Size);
         if (slotToMount == -1)
+        {
+            return false;
+        }
+        
+        // Check if the component can be mounted at the found slot
+        if (!CanAddComponent(component, slots??[slotToMount]))
         {
             return false;
         }
@@ -112,30 +120,6 @@ public abstract class UnitPart
     public Component? GetComponentAtSlot(int slot)
     {
         return _components.FirstOrDefault(c => c.IsMounted && c.MountedAtSlots.Contains(slot));
-    }
-
-    public virtual int ApplyDamage(int damage, HitDirection direction)
-    {
-        // First reduce armor
-        var remainingDamage =  ReduceArmor(damage,direction);
-
-        // Then apply to structure if armor is depleted
-        if (remainingDamage > 0)
-        {
-            if (CurrentStructure >= remainingDamage)
-            {
-                CurrentStructure -= remainingDamage;
-                Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage,Name,remainingDamage.ToString()));
-                return 0;
-            }
-            remainingDamage -= CurrentStructure;
-            Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage,Name,CurrentStructure.ToString()));
-            CurrentStructure = 0;
-            Unit?.AddEvent(new UiEvent(UiEventType.LocationDestroyed,Name));
-            return remainingDamage; // Return excess damage for transfer
-        }
-
-        return 0;
     }
 
     protected virtual int ReduceArmor(int damage, HitDirection direction)
@@ -152,6 +136,55 @@ public abstract class UnitPart
         CurrentArmor = 0;
 
         return damage;
+    }
+
+    /// <summary>
+    /// Applies pre-calculated armor damage to this part
+    /// </summary>
+    /// <param name="damage">The amount of total damage to apply</param>
+    /// <param name="direction">The direction of the hit</param>
+    public int ApplyDamage(int damage, HitDirection direction)
+    {
+        var remainingDamage = damage;
+        var part = this;
+
+        while (remainingDamage > 0 && part != null)
+        {
+            remainingDamage = part.ReduceArmorAndStructureDamage(remainingDamage, direction);
+            if (remainingDamage > 0)
+            {
+                part = part.DamageTransferPart;
+            }
+        }
+        
+        return remainingDamage;
+    }
+    
+    private int ReduceArmorAndStructureDamage(int damage, HitDirection direction)
+    {
+        var remainingDamage = ReduceArmor(damage, direction);
+        if (remainingDamage > 0)
+        {
+            remainingDamage=ApplyStructureDamage(remainingDamage);
+        }
+        return remainingDamage;
+    }
+
+    /// <summary>
+    /// Applies pre-calculated structure damage to this part
+    /// </summary>
+    /// <param name="structureDamage">The amount of structure damage to apply</param>
+    public int ApplyStructureDamage(int structureDamage)
+    {
+        if (structureDamage <= 0) return structureDamage;
+
+        var damageToApply = Math.Min(structureDamage, CurrentStructure);
+        CurrentStructure -= damageToApply;
+        Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage, Name, damageToApply.ToString()));
+
+        if (CurrentStructure > 0) return 0;
+        Unit?.AddEvent(new UiEvent(UiEventType.LocationDestroyed, Name));
+        return structureDamage - damageToApply;
     }
 
     public T? GetComponent<T>() where T : Component
@@ -188,8 +221,8 @@ public abstract class UnitPart
     {
         return Unit?.GetTransferLocation(Location);
     }
-    
-    protected UnitPart? DamageTransferPart => Unit?.Parts.FirstOrDefault(p => p.Location == GetNextTransferLocation()); 
+
+    private UnitPart? DamageTransferPart => Unit?.Parts.FirstOrDefault(p => p.Location == GetNextTransferLocation()); 
     
     /// <summary>
     /// Blows off this part as a result of a critical hit
@@ -208,23 +241,42 @@ public abstract class UnitPart
     /// Records a critical hit on a specific slot and damages the component in that slot if it exists
     /// </summary>
     /// <param name="slot">The slot index that was hit</param>
-    public void CriticalHit(int slot)
+    public int CriticalHit(int slot)
     {
+        var appliedDamage = 0;
         _hitSlots.Add(slot);
         
-        
         var component = GetComponentAtSlot(slot);
-
-
-        if (component is not { IsDestroyed: false }) return;
+        
+        if (component is not { IsDestroyed: false }) return 0;
         // Raise critical hit event
         Unit?.AddEvent(new UiEvent(UiEventType.CriticalHit, component.Name));
+        
+        var explosionDamage = component.GetExplosionDamage();
+        
         component.Hit();
-            
         // Raise component destroyed event if the component was destroyed by this hit
         if (component.IsDestroyed)
         {
             Unit?.AddEvent(new UiEvent(UiEventType.ComponentDestroyed, component.Name));
         }
+                
+        var part = this;
+        while (explosionDamage > 0 && part != null)
+        {
+            var remainingDamage = part.ApplyStructureDamage(explosionDamage);
+            appliedDamage += explosionDamage - remainingDamage;
+            explosionDamage = remainingDamage;
+            
+            // Trigger explosion event
+            Unit?.AddEvent(new UiEvent(UiEventType.Explosion, component.Name));
+    
+            if (explosionDamage > 0)
+            {
+                part = part.DamageTransferPart;
+            }
+        }
+        
+        return appliedDamage;
     }
 }

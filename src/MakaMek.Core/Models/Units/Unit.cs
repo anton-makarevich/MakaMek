@@ -422,86 +422,33 @@ public abstract class Unit
         _status |= UnitStatus.Shutdown;
     }
 
-    public void ApplyDamage(List<HitLocationData> hitLocations, HitDirection hitDirection)
+    /// <summary>
+    /// Applies pre-calculated damage to hit locations. Critical hits should be applied separately via ApplyCriticalHits.
+    /// </summary>
+    /// <param name="hitLocations">Hit locations with pre-calculated armor and structure damage</param>
+    /// <param name="hitDirection">Direction of the hit for armor calculations</param>
+    public void ApplyDamage(List<LocationHitData> hitLocations, HitDirection hitDirection)
     {
         foreach (var hitLocation in hitLocations)
         {
-            var targetPart = _parts.Find(p => p.Location == hitLocation.Location);
-            if (targetPart == null) continue;
-
-            // Calculate total damage including any potential explosion damage
-            var totalDamage = hitLocation.Damage;
-
-            // Handle critical hits if present
-            if (hitLocation.CriticalHits != null && hitLocation.CriticalHits.Count != 0)
+            foreach (var locationDamage in hitLocation.Damage)
             {
-                // Apply all critical hits for all locations in the damage chain
-                foreach (var criticalHit in hitLocation.CriticalHits)
-                {
-                    var criticalPart = _parts.Find(p => p.Location == criticalHit.Location);
-                    if (criticalPart == null) continue;
-
-                    // Handle blown off parts
-                    if (criticalHit.IsBlownOff)
-                    {
-                        criticalPart.BlowOff();
-                        continue;
-                    }
-
-                    // Check for explodable components before applying critical hits
-                    if (criticalHit.HitComponents != null)
-                    {
-                        var explosionDamage = 0;
-
-                        foreach (var componentData in criticalHit.HitComponents)
-                        {
-                            var slot = componentData.Slot;
-                            var component = criticalPart.GetComponentAtSlot(slot);
-                            if (component is { CanExplode: true, HasExploded: false })
-                            {
-                                // Add explosion damage to the total
-                                explosionDamage += component.GetExplosionDamage();
-                                // Add explosion event
-                                AddEvent(new UiEvent(UiEventType.Explosion, component.Name));
-                            }
-                        }
-
-                        // Add explosion damage to total damage
-                        if (explosionDamage > 0)
-                        {
-                            totalDamage += explosionDamage;
-                        }
-                    }
-                }
+                var targetPart = _parts.Find(p => p.Location == locationDamage.Location);
+                if (targetPart == null) continue;
+    
+                // Apply pre-calculated armor and structure damage
+                var totalDamage = locationDamage.ArmorDamage + locationDamage.StructureDamage;
+    
+                // Track total damage for this phase
+                TotalPhaseDamage += totalDamage;
+    
+                // Apply the damage 
+                targetPart.ApplyDamage(totalDamage, hitDirection);
             }
-
-            // Track total damage for this phase
-            TotalPhaseDamage += totalDamage;
-
-            // Apply the total damage (including any explosion damage)
-            ApplyArmorAndStructureDamage(totalDamage, targetPart, hitDirection);
-
-            // Now apply the critical hits after calculating total damage
-            if (hitLocation.CriticalHits == null || !hitLocation.CriticalHits.Any()) continue;
-
-            foreach (var criticalHit in hitLocation.CriticalHits)
-            {
-                var criticalPart = _parts.Find(p => p.Location == criticalHit.Location);
-                if (criticalPart == null) continue;
-
-                // Skip blown off parts as they were already handled
-                if (criticalHit.IsBlownOff) continue;
-
-                // Apply critical hits to specific slots
-                if (criticalHit.HitComponents == null) continue;
-                foreach (var component in criticalHit.HitComponents)
-                {
-                    criticalPart.CriticalHit(component.Slot);
-                }
-            }
-
-
+            
         }
+        
+        UpdateDestroyedStatus();
 
         if (IsDestroyed)
         {
@@ -509,21 +456,44 @@ public abstract class Unit
         }
     }
 
-    internal virtual void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart, HitDirection hitDirection)
+    protected abstract void UpdateDestroyedStatus();
+
+    /// <summary>
+    /// Applies pre-calculated critical hits data to the unit
+    /// </summary>
+    /// <param name="criticalHitsData">Pre-calculated critical hits data from the server</param>
+    public void ApplyCriticalHits(List<LocationCriticalHitsData> criticalHitsData)
     {
-        var remainingDamage = targetPart.ApplyDamage(damage, hitDirection);
-        
-        // If there's remaining damage, transfer to the connected part
-        if (remainingDamage <= 0) return;
-        var transferLocation = GetTransferLocation(targetPart.Location);
-        if (!transferLocation.HasValue) return;
-        var transferPart = _parts.Find(p => p.Location == transferLocation.Value);
-        if (transferPart != null)
+        foreach (var locationData in criticalHitsData)
         {
-            ApplyArmorAndStructureDamage(remainingDamage, transferPart, hitDirection);
+            var targetPart = _parts.Find(p => p.Location == locationData.Location);
+            if (targetPart == null) continue;
+
+            // Handle blown off parts
+            if (locationData.IsBlownOff)
+            {
+                targetPart.BlowOff();
+                continue;
+            }
+
+            // Apply critical hits to specific components
+            if (locationData.HitComponents != null)
+            {
+                foreach (var componentHit in locationData.HitComponents)
+                {
+                    TotalPhaseDamage += targetPart.CriticalHit(componentHit.Slot);
+                }
+            }
+        }
+        
+        UpdateDestroyedStatus();
+
+        if (IsDestroyed)
+        {
+            AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
         }
     }
-
+    
     // Different unit types will have different damage transfer patterns
     public abstract PartLocation? GetTransferLocation(PartLocation location);
 

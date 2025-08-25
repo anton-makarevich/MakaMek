@@ -71,6 +71,30 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             q++;
             r++;
         }
+        
+        MockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns(callInfo =>[new LocationDamageData(callInfo.Arg<PartLocation>(),
+                callInfo.Arg<int>(),
+                0,
+                false)]);
+    }
+    
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
     
     [Fact]
@@ -80,12 +104,12 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls to ensure hits
         SetMap();
-        
+
         // Destroy sensors
         var sensors = _player1Unit1.GetAllComponents<Sensors>().First();
         sensors.Hit();
         sensors.Hit();
-        
+
         // Act
         _sut.Enter();
 
@@ -137,7 +161,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Any<Unit>(),
             Arg.Any<Unit>(),
             Arg.Any<Weapon>(),
-            Arg.Any<BattleMap>());
+            Arg.Any<BattleMap>(),
+            Arg.Any<bool>(),
+            Arg.Any<PartLocation?>());
     }
 
     [Fact]
@@ -213,7 +239,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Any<Unit>(),
             Arg.Any<Unit>(),
             Arg.Any<Weapon>(),
-            Arg.Any<BattleMap>());
+            Arg.Any<BattleMap>(),
+            Arg.Any<bool>(),
+            Arg.Any<PartLocation?>());
 
         // Verify only two attack resolution commands were published
         // (one for each weapon with a target)
@@ -303,7 +331,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var head = _player1Unit2.Parts.First(p => p.Location == PartLocation.Head);
         var lethalDamage = head.MaxArmor + head.MaxStructure + 1;
 
-        _player1Unit2.ApplyArmorAndStructureDamage(lethalDamage, head, HitDirection.Front); // Apply lethal damage();
+        _player1Unit2.ApplyDamage([CreateHitDataForLocation(PartLocation.Head, lethalDamage)], HitDirection.Front); // Apply lethal damage();
 
         // Act
         _sut.Enter();
@@ -350,7 +378,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 {
                     Name = weaponWithoutTarget.Name,
                     Location = attackingUnit.Parts[1].Location,
-                    Slots = [2]
+                    Slots = weaponWithoutTarget.MountedAtSlots
                 },
                 TargetId = targetUnit.Id,
                 IsPrimaryTarget = true
@@ -387,9 +415,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         capturedCommands.Count.ShouldBe(2);
 
         // Both commands should target the left arm
-        capturedCommands[0].ResolutionData.HitLocationsData!.HitLocations[0].Location
+        capturedCommands[0].ResolutionData.HitLocationsData!.HitLocations[0].InitialLocation
             .ShouldBe(PartLocation.LeftArm);
-        capturedCommands[1].ResolutionData.HitLocationsData!.HitLocations[0].Location
+        capturedCommands[1].ResolutionData.HitLocationsData!.HitLocations[0].InitialLocation
             .ShouldBe(PartLocation.LeftArm);
 
         // Calculate the total damage from both attacks
@@ -414,8 +442,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetMap();
         // Add a cluster weapon to unit1
         var clusterWeapon = new TestClusterWeapon(1, 5);
-        var part1 = _player1Unit1.Parts[0];
-        part1.TryAddComponent(clusterWeapon, [1]);
+        var part1 = _player1Unit1.Parts.First(p => p.Location == PartLocation.LeftArm);
+        part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
         // Set target for the cluster weapon using new system
         var clusterWeaponTargets = new List<WeaponTargetData>
         {
@@ -425,7 +453,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 {
                     Name = clusterWeapon.Name,
                     Location = part1.Location,
-                    Slots = [1]
+                    Slots = clusterWeapon.MountedAtSlots
                 },
                 TargetId = _player2Unit1.Id,
                 IsPrimaryTarget = true
@@ -439,7 +467,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Unit>(),
                 Arg.Any<Weapon>(),
                 Arg.Any<BattleMap>(),
-                Arg.Any<bool>())
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
             .Returns(7); // Return a to-hit number of 7
 
         // Setup dice rolls: first for attack (8), second for cluster (9), third and fourth for hit locations
@@ -463,9 +492,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.ResolutionData.HitLocationsData.ClusterRoll.Sum(d => d.Result) == 9 && // Total of 9
                 cmd.ResolutionData.HitLocationsData.MissilesHit == 8 && // 8 hits for LRM-10 with roll of 9
                 cmd.ResolutionData.HitLocationsData.HitLocations.Count == 2 && //2 clusters hit
-                cmd.ResolutionData.HitLocationsData.HitLocations[0].Location == PartLocation.RightTorso &&
-                cmd.ResolutionData.HitLocationsData.HitLocations[0].Damage == 5 && //first 5 missiles
-                cmd.ResolutionData.HitLocationsData.HitLocations[1].Damage == 3)); //second 8-5=3
+                cmd.ResolutionData.HitLocationsData.HitLocations[0].InitialLocation == PartLocation.RightTorso &&
+                cmd.ResolutionData.HitLocationsData.HitLocations[0].Damage[0].ArmorDamage == 5 && //first 5 missiles
+                cmd.ResolutionData.HitLocationsData.HitLocations[1].Damage[0].ArmorDamage == 3)); //second 8-5=3
     }
 
     [Fact]
@@ -475,8 +504,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetMap();
         // Setup PSR for heavy damage 36 > 20 to avoid NRE
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); 
-        var part1 = _player1Unit1.Parts[0];
-        part1.TryAddComponent(clusterWeapon, [1]);
+        var part1 = _player1Unit1.Parts.First(p=>p.Location == PartLocation.LeftArm);
+        part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
         // Set target for the cluster weapon using new system
         var clusterWeaponTargets = new List<WeaponTargetData>
         {
@@ -486,7 +515,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 {
                     Name = clusterWeapon.Name,
                     Location = part1.Location,
-                    Slots = [1]
+                    Slots = clusterWeapon.MountedAtSlots
                 },
                 TargetId = _player2Unit1.Id,
                 IsPrimaryTarget = true
@@ -500,7 +529,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Unit>(),
                 Arg.Any<Weapon>(),
                 Arg.Any<BattleMap>(),
-                Arg.Any<bool>())
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
             .Returns(7); // Return a to-hit number of 7
 
         // Setup dice rolls: first for attack (8), second for cluster (9 = 5 hits), third for hit location
@@ -526,9 +556,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         // Add a cluster weapon to unit1
         SetMap();
-        var clusterWeapon = new TestClusterWeapon(1010, 5); // LRM-10
-        var part1 = _player1Unit1.Parts[0];
-        part1.TryAddComponent(clusterWeapon, [1]);
+        var clusterWeapon = new TestClusterWeapon(10, 5); // LRM-10
+        var part1 = _player1Unit1.Parts.First(p => p.Location == PartLocation.LeftArm);
+        part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
         // Set target for the cluster weapon using new system
         var clusterWeaponTargets = new List<WeaponTargetData>
         {
@@ -538,7 +568,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 {
                     Name = clusterWeapon.Name,
                     Location = part1.Location,
-                    Slots = [1]
+                    Slots = clusterWeapon.MountedAtSlots
                 },
                 TargetId = _player2Unit1.Id,
                 IsPrimaryTarget = true
@@ -552,7 +582,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Unit>(),
                 Arg.Any<Weapon>(),
                 Arg.Any<BattleMap>(),
-                Arg.Any<bool>())
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
             .Returns(7); // Return a to-hit number of 7
 
         // Setup dice rolls: first for attack (6), which is less than to-hit number (7)
@@ -630,7 +661,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso (based on Mech's GetTransferLocation implementation)
-        data.Location.ShouldBe(PartLocation.LeftTorso);
+        data.InitialLocation.ShouldBe(PartLocation.LeftArm);
+        data.Damage[0].Location.ShouldBe(PartLocation.LeftTorso);
     }
 
     [Fact]
@@ -669,7 +701,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Should have transferred from LeftArm to LeftTorso to CenterTorso
-        data.Location.ShouldBe(PartLocation.CenterTorso);
+        data.Damage.Last().Location.ShouldBe(PartLocation.CenterTorso);
     }
     
     [Theory]
@@ -709,7 +741,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Should hit the intended location (LeftArm) due to a successful aimed shot
-        data.Location.ShouldBe(PartLocation.LeftArm);
+        data.InitialLocation.ShouldBe(PartLocation.LeftArm);
+        data.Damage[0].Location.ShouldBe(PartLocation.LeftArm);
     }
     
     [Theory]
@@ -756,7 +789,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Should hit location from the table (CenterTorso) due to unsuccessful aimed shot
-        data.Location.ShouldBe(PartLocation.CenterTorso);
+        data.InitialLocation.ShouldBe(PartLocation.CenterTorso);
+        data.Damage[0].Location.ShouldBe(PartLocation.CenterTorso);
     }
     
     [Fact]
@@ -910,11 +944,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var damageData = new FallingDamageData(HexDirection.Bottom,
             new HitLocationsData(
                 HitLocations: [
-                new HitLocationData(
-                PartLocation.CenterTorso,
-                5,
-                [],
-                [])], TotalDamage: 5), new DiceResult(3), HitDirection.Front);
+                CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[])], 
+                TotalDamage: 5), new DiceResult(3), HitDirection.Front);
         
         var mechFallingCommand = new MechFallCommand
         {
@@ -961,11 +992,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var damageData = new FallingDamageData(HexDirection.Bottom,
             new HitLocationsData(
                 HitLocations: [
-                    new HitLocationData(
-                        PartLocation.CenterTorso,
-                        5,
-                        [],
-                        [])], TotalDamage: 5), new DiceResult(3), HitDirection.Front);
+                    CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[])],
+                TotalDamage: 5), new DiceResult(3), HitDirection.Front);
         
         var mechFallingCommand = new MechFallCommand
         {
@@ -1032,7 +1060,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     // Helper to invoke private method
-    private static HitLocationData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, HitDirection hitDirection, int dmg,
+    private static LocationHitData InvokeDetermineHitLocation(WeaponAttackResolutionPhase phase, HitDirection hitDirection, int dmg,
         Unit? target, WeaponTargetData? weaponTargetData = null)
     {
         weaponTargetData ??= new WeaponTargetData
@@ -1049,7 +1077,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var weapon = new TestWeapon();
         var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (HitLocationData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData])!;
+        return (LocationHitData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData])!;
     }
 
 
@@ -1059,7 +1087,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Add a weapon to each unit
         var weapon1 = new TestWeapon();
         var part1 = _player1Unit1.Parts[0];
-        part1.TryAddComponent(weapon1, [1]);
+        part1.TryAddComponent(weapon1).ShouldBeTrue();
 
         // Set up weapon targets using the new system
         var weaponTargets1 = new List<WeaponTargetData>
@@ -1070,7 +1098,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 {
                     Name = weapon1.Name,
                     Location = part1.Location,
-                    Slots = [1]
+                    Slots = weapon1.MountedAtSlots
                 },
                 TargetId = _player2Unit1.Id,
                 IsPrimaryTarget = true
@@ -1080,7 +1108,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         var weapon2 = new TestWeapon();
         var part2 = _player2Unit1.Parts[0];
-        part2.TryAddComponent(weapon2, [1]);
+        part2.TryAddComponent(weapon2).ShouldBeTrue();
 
         var weaponTargets2 = new List<WeaponTargetData>
         {
@@ -1090,7 +1118,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 {
                     Name = weapon2.Name,
                     Location = part2.Location,
-                    Slots = [1]
+                    Slots = weapon2.MountedAtSlots
                 },
                 TargetId = _player1Unit1.Id,
                 IsPrimaryTarget = true
@@ -1101,7 +1129,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Add a third weapon without a target to test that it's properly skipped
         var weaponWithoutTarget = new TestWeapon();
         var part3 = _player1Unit1.Parts[1]; // Using the second part of unit1
-        part3.TryAddComponent(weaponWithoutTarget, [2]);
+        part3.TryAddComponent(weaponWithoutTarget).ShouldBeTrue();
         // Deliberately not setting a target for this weapon
 
         // Setup ToHitCalculator to return a value
@@ -1110,7 +1138,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Unit>(),
                 Arg.Any<Weapon>(),
                 Arg.Any<BattleMap>(),
-                Arg.Any<bool>())
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
             .Returns(7); // Return a default to-hit number of 7
     }
     
@@ -1120,14 +1149,13 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         PartLocation location = PartLocation.LeftLeg,
         Unit? unit = null)
     {
-        Game.CriticalHitsCalculator.CalculateCriticalHits(
+        Game.CriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
                 unit ?? Arg.Any<Unit>(),
-                Arg.Is<PartLocation>(loc => loc == location),
-                Arg.Any<int>())
+                Arg.Is<LocationDamageData>(loc => loc.Location == location))
             .Returns(
             [
                 new LocationCriticalHitsData(location,
-                    7,
+                    [3,4],
                     1,
                     [
                         new ComponentHitData
@@ -1135,7 +1163,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                             Type = component,
                             Slot = slot
                         }
-                    ]
+                    ],
+                    false,
+                    []
                 )
             ]);
     }
@@ -1182,4 +1212,280 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             "Test Cluster Weapon", damage, 3,
             0, 3, 6, 9,
             type, 10, clusters, clusterSize, 1, 1, MakaMekComponent.LRM10, ammoType));
+    
+    [Fact]
+    public void Enter_ShouldNotCalculateCriticalHits_WhenOnlyArmorDamage()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+
+        // Setup structure damage calculator to return only armor damage (no structure damage)
+        MockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Critical hits calculator should not be called when there's no structure damage
+        MockCriticalHitsCalculator.DidNotReceive().CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Any<LocationDamageData>());
+
+        // No critical hits command should be published
+        CommandPublisher.DidNotReceive().PublishCommand(
+            Arg.Any<CriticalHitsResolutionCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldCalculateCriticalHits_WhenStructureDamageOccurs()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+
+        // Setup structure damage calculator to return structure damage
+        MockStructureDamageCalculator.ClearReceivedCalls();
+        MockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns([new LocationDamageData(PartLocation.CenterTorso, 3, 2, false)]);
+
+        // Setup critical hits calculator to return critical hits
+        var expectedCriticalHits = new LocationCriticalHitsData(
+            PartLocation.CenterTorso,
+            [4, 5],
+            1,
+            [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+            false,
+            []);
+
+        MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<LocationDamageData>(d => d.StructureDamage > 0))
+            .Returns([expectedCriticalHits]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Critical hits calculator should be called for structure damage
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.StructureDamage == 2 && d.Location == PartLocation.CenterTorso));
+
+        // Critical hits command should be published
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Any<CriticalHitsResolutionCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldCalculateCriticalHitsForMultipleLocations_WhenMultipleStructureDamage()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+
+        // Setup structure damage calculator to return multiple locations with structure damage
+        MockStructureDamageCalculator.ClearReceivedCalls();
+        MockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 3, 2, false),
+                new LocationDamageData(PartLocation.LeftArm, 2, 1, false)
+            ]);
+
+        // Setup critical hits calculator to return critical hits for each location
+        MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<LocationDamageData>(d => d.Location == PartLocation.CenterTorso && d.StructureDamage > 0))
+            .Returns([new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 5], 1,
+                [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }], false, [])]);
+
+        MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftArm && d.StructureDamage > 0))
+            .Returns([new LocationCriticalHitsData(PartLocation.LeftArm, [3, 4], 1,
+                [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }], false, [])]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Critical hits calculator should be called for both locations with structure damage
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.Location == PartLocation.CenterTorso && d.StructureDamage == 2));
+
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftArm && d.StructureDamage == 1));
+
+        // Critical hits command should be published
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Any<CriticalHitsResolutionCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldHandleMixedDamageScenarios_WhenSomeLocationsHaveStructureDamage()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+
+        // Setup structure damage calculator to return mixed damage (some with structure, some without)
+        MockStructureDamageCalculator.ClearReceivedCalls();
+        MockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 5, 0, false), // Only armor damage
+                new LocationDamageData(PartLocation.LeftArm, 3, 2, false),     // Structure damage
+                new LocationDamageData(PartLocation.RightArm, 4, 0, false)     // Only armor damage
+            ]);
+
+        // Setup critical hits calculator to return critical hits only for locations with structure damage
+        MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftArm && d.StructureDamage > 0))
+            .Returns([new LocationCriticalHitsData(PartLocation.LeftArm, [3, 4], 1,
+                [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }], false, [])]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Critical hits calculator should only be called for the location with structure damage
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftArm && d.StructureDamage == 2));
+
+        // Should not be called for locations with only armor damage
+        MockCriticalHitsCalculator.DidNotReceive().CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.Location == PartLocation.CenterTorso));
+
+        MockCriticalHitsCalculator.DidNotReceive().CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.Location == PartLocation.RightArm));
+
+        // Critical hits command should be published
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Any<CriticalHitsResolutionCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldNotPublishCriticalHitsCommand_WhenCalculatorReturnsNoCriticalHits()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+
+        // Setup structure damage calculator to return structure damage
+        MockStructureDamageCalculator.ClearReceivedCalls();
+        MockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns([new LocationDamageData(PartLocation.CenterTorso, 3, 2, false)]);
+
+        // Setup critical hits calculator to return no critical hits (empty list)
+        MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<LocationDamageData>(d => d.StructureDamage > 0))
+            .Returns([]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Critical hits calculator should be called
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.StructureDamage == 2));
+
+        // No critical hits command should be published when calculator returns empty list
+        CommandPublisher.DidNotReceive().PublishCommand(
+            Arg.Any<CriticalHitsResolutionCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldOnlyProcessStructureDamageLocations_WhenMultipleHitLocations()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+
+        // Setup structure damage calculator to return multiple hit locations with different damage types
+        MockStructureDamageCalculator.ClearReceivedCalls();
+        MockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 5, 0, false), // No structure damage
+                new LocationDamageData(PartLocation.LeftArm, 3, 1, false),     // Structure damage
+                new LocationDamageData(PartLocation.RightArm, 2, 0, false),    // No structure damage
+                new LocationDamageData(PartLocation.LeftLeg, 4, 3, false)      // Structure damage
+            ]);
+
+        // Setup critical hits calculator for locations with structure damage
+        MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftArm && d.StructureDamage > 0))
+            .Returns([new LocationCriticalHitsData(PartLocation.LeftArm, [3, 4], 1,
+                [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }], false, [])]);
+
+        MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftLeg && d.StructureDamage > 0))
+            .Returns([new LocationCriticalHitsData(PartLocation.LeftLeg, [5, 6], 2,
+                [new ComponentHitData { Type = MakaMekComponent.LowerLegActuator, Slot = 3 }], false, [])]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Should only call calculator for locations with structure damage
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftArm && d.StructureDamage == 1));
+
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftLeg && d.StructureDamage == 3));
+
+        // Should not call calculator for locations without structure damage
+        MockCriticalHitsCalculator.DidNotReceive().CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.Location == PartLocation.CenterTorso));
+
+        MockCriticalHitsCalculator.DidNotReceive().CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Is<LocationDamageData>(d => d.Location == PartLocation.RightArm));
+
+        // Should publish command with critical hits
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Any<CriticalHitsResolutionCommand>());
+    }
 }

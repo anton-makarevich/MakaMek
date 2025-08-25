@@ -48,6 +48,7 @@ public class ServerGameTests
             new MechFactory(rulesProvider, Substitute.For<ILocalizationService>()),
             _commandPublisher, _diceRoller,
             Substitute.For<IToHitCalculator>(),
+            Substitute.For<IStructureDamageCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
@@ -299,6 +300,7 @@ public class ServerGameTests
             commandPublisher, 
             diceRoller,
             Substitute.For<IToHitCalculator>(),
+            Substitute.For<IStructureDamageCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
@@ -372,9 +374,9 @@ public class ServerGameTests
         var unit = player.Units.First();
 
         // Apply damage to the unit
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [],[]),
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[]),
         };
         unit.ApplyDamage(hitLocations, HitDirection.Front);
 
@@ -386,5 +388,19 @@ public class ServerGameTests
 
         // Assert - TotalPhaseDamage should be reset to 0
         unit.TotalPhaseDamage.ShouldBe(0);
+    }
+
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
 }

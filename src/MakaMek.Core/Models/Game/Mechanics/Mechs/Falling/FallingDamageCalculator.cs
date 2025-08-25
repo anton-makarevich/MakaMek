@@ -14,11 +14,15 @@ public class FallingDamageCalculator : IFallingDamageCalculator
 {
     private readonly IDiceRoller _diceRoller;
     private readonly IRulesProvider _rulesProvider;
+    private readonly IStructureDamageCalculator _structureDamageCalculator;
 
-    public FallingDamageCalculator(IDiceRoller diceRoller, IRulesProvider rulesProvider)
+    public FallingDamageCalculator(IDiceRoller diceRoller,
+        IRulesProvider rulesProvider,
+        IStructureDamageCalculator structureDamageCalculator)
     {
         _diceRoller = diceRoller;
         _rulesProvider = rulesProvider;
+        _structureDamageCalculator = structureDamageCalculator;
     }
 
     /// <summary>
@@ -60,7 +64,7 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         var attackDirection = _rulesProvider.GetAttackDirectionAfterFall(facingRoll.Result);
         
         // Divide damage into groups of 5 points each
-        var hitLocations = new List<HitLocationData>();
+        var hitLocations = new List<LocationHitData>();
         var remainingDamage = totalDamage;
         
         // Calculate how many full 5-point groups we have
@@ -69,17 +73,23 @@ public class FallingDamageCalculator : IFallingDamageCalculator
         var remainingPoints = remainingDamage % 5;
         
         // Local function to determine hit location and create HitLocationData
-        HitLocationData DetermineHitLocationData(int damageAmount)
+        LocationHitData DetermineHitLocationData(int damageAmount)
         {
             var locationRolls = _diceRoller.Roll2D6().Select(d => d.Result).ToArray();
             var locationRollResult = locationRolls.Sum();
             var hitLocation = _rulesProvider.GetHitLocation(locationRollResult, attackDirection);
             
-            return new HitLocationData(
+            var locationDamage = _structureDamageCalculator.CalculateStructureDamage(
+                mech,
                 hitLocation,
                 damageAmount,
+                attackDirection);
+            
+            return new LocationHitData(
+                locationDamage,
                 [],
-                locationRolls
+                locationRolls,
+                hitLocation
             );
         }
         

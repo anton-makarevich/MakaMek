@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -19,6 +20,20 @@ public class PlayerTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         return _mechFactory.Create(unitData);
+    }
+    
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
     
     [Fact]
@@ -133,8 +148,7 @@ public class PlayerTests
         var aliveUnit = CreateMech();
         var destroyedUnit = CreateMech();
         // Destroy the head of the destroyed unit
-        var headPart = destroyedUnit.Parts.FirstOrDefault(p => p.Location == PartLocation.Head);
-        destroyedUnit.ApplyArmorAndStructureDamage(100, headPart!, HitDirection.Front);
+        destroyedUnit.ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
         player.AddUnit(aliveUnit);
         player.AddUnit(destroyedUnit);
         player.AliveUnits.ShouldBe([aliveUnit]);

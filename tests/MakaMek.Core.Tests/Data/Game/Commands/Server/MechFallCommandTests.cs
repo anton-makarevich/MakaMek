@@ -24,7 +24,7 @@ public class MechFallCommandTests
     private readonly Unit _unit;
     private const string PsrDetailsText = "Base Piloting Skill";
 
-    private PilotingSkillRollData CreateTestPsrData(
+    private static PilotingSkillRollData CreateTestPsrData(
         bool successful,
         int[] diceResults, 
         PilotingSkillRollType rollType = PilotingSkillRollType.GyroHit)
@@ -40,6 +40,20 @@ public class MechFallCommandTests
                 Modifiers = [new FallProcessorTests.TestModifier{Name = "Test Modifier", Value = 1}]
             }
         };
+    }
+    
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
 
     public MechFallCommandTests()
@@ -88,9 +102,9 @@ public class MechFallCommandTests
 
     private FallingDamageData CreateTestFallingDamageData(int totalDamage = 5)
     {
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, totalDamage, [],[6])
+            CreateHitDataForLocation(PartLocation.CenterTorso, totalDamage, [],[6])
         };
         var hitLocationsData = new HitLocationsData(hitLocations, totalDamage);
         return new FallingDamageData(HexDirection.Top, hitLocationsData, new DiceResult(1), HitDirection.Front);
@@ -123,9 +137,9 @@ public class MechFallCommandTests
 
     private MechFallCommand CreatePilotInjuryCommand()
     {
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [],[6])
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[6])
         };
         
         var hitLocationsData = new HitLocationsData(
@@ -153,10 +167,10 @@ public class MechFallCommandTests
 
     private MechFallCommand CreateComplexFallCommand()
     {
-        var hitLocations = new List<HitLocationData>
+        var hitLocations = new List<LocationHitData>
         {
-            new(PartLocation.CenterTorso, 5, [],[6]),
-            new(PartLocation.LeftLeg, 3, [],[4])
+            CreateHitDataForLocation(PartLocation.CenterTorso, 5, [],[6]),
+            CreateHitDataForLocation(PartLocation.LeftLeg, 3, [],[4])
         };
         
         var hitLocationsData = new HitLocationsData(

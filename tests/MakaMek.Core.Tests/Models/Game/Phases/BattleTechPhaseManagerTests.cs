@@ -29,6 +29,7 @@ public class BattleTechPhaseManagerTests
             Substitute.For<ICommandPublisher>(), // commandPublisher
             Substitute.For<IDiceRoller>(), // diceRoller
             Substitute.For<IToHitCalculator>(), // toHitCalculator
+            Substitute.For<IStructureDamageCalculator>(),
             Substitute.For<ICriticalHitsCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),

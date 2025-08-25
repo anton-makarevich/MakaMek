@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
-using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Utils;
 
@@ -210,7 +209,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
             IsSuccessful = !explosionOccurs
         };
 
-        List<HitLocationData> explosionDamage = [];
+        List<LocationCriticalHitsData> explosionDamage = [];
 
         if (explosionOccurs)
         {
@@ -223,7 +222,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         {
             UnitId = mech.Id,
             AvoidExplosionRoll = avoidExplosionRollData,
-            ExplosionDamage = explosionDamage,
+            CriticalHits = explosionDamage,
             GameOriginId = Guid.Empty
         };
     }
@@ -254,24 +253,13 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         return mostDestructiveAmmo[randomIndex % mostDestructiveAmmo.Count];
     }
 
-    private List<HitLocationData> ProcessAmmoExplosion(Mech mech, Component ammoComponent)
+    private  List<LocationCriticalHitsData> ProcessAmmoExplosion(Mech mech, Ammo ammoComponent)
     {
         var location = ammoComponent.GetLocation();
         if (!location.HasValue) return [];
 
         // Use existing critical hits calculator to process the explosion
-        var criticalHits = _criticalHitsCalculator
-            .GetCriticalHitsForDestroyedComponent(mech,ammoComponent);
-
-        // Convert critical hits data to hit location data for damage application
-        var hitLocationData = new HitLocationData(
-            location.Value,
-            0, // Damage for explosion is calculated automatically
-            [], // No aimed shot for explosions
-            [], // No location roll for explosions
-            criticalHits // Include the critical hits data
-        );
-
-        return [hitLocationData];
+        return _criticalHitsCalculator
+            .CalculateCriticalHitsForHeatExplosion(mech,ammoComponent);
     }
 }

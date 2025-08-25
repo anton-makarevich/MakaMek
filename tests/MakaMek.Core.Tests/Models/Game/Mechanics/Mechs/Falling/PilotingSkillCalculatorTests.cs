@@ -28,6 +28,20 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockDiceRoller = Substitute.For<IDiceRoller>();
             _sut = new PilotingSkillCalculator(_mockRulesProvider, _mockDiceRoller);
         }
+        
+        private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+            int damage,
+            int[]? aimedShotRoll = null,
+            int[]? locationRoll = null)
+        {
+            return new LocationHitData(
+            [
+                new LocationDamageData(partLocation,
+                    damage-1,
+                    1,
+                    false)
+            ], aimedShotRoll??[], locationRoll??[], partLocation);
+        }
 
         [Fact]
         public void GetPsrBreakdown_SpecificRollTypeRequested_OnlyCalculatesRequestedModifier()
@@ -223,7 +237,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             // apply damage
             const int specificDamage = 33;
             mech.ApplyDamage(
-                [new HitLocationData(PartLocation.CenterTorso, specificDamage, [],[])
+                [CreateHitDataForLocation(PartLocation.CenterTorso, specificDamage, [],[])
                     ,], HitDirection.Front);
 
             // Act
@@ -246,7 +260,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
             const int lowDamage = 15;
             mech.ApplyDamage(
-                [new HitLocationData(PartLocation.CenterTorso, lowDamage, [],[]),], HitDirection.Front);
+                [CreateHitDataForLocation(PartLocation.CenterTorso, lowDamage, [],[]),], HitDirection.Front);
 
             // Act
             var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.HeavyDamage);

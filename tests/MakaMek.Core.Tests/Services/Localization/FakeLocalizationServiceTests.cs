@@ -64,18 +64,32 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_HitLocations", "Hit Locations:")]
     [InlineData("Command_WeaponAttackResolution_HitLocation", "{0}: {1} damage (Roll: {2})")]
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer", "{0} → {1}: {2} damage (Roll: {3})")]
-    [InlineData("Command_WeaponAttackResolution_AimedShotSuccessful", "{0}: {1} damage (Aimed Shot: {2}, successful)")]
-    [InlineData("Command_WeaponAttackResolution_AimedShotFailed", "{0}: {1} damage (Aimed Shot: {2}, failed, Roll: {3})")]
-    [InlineData("Command_WeaponAttackResolution_CriticalHit", "Critical hit in {0} slot {1}: {2}")]
-    [InlineData("Command_WeaponAttackResolution_CritRoll", "Critical Roll: {0}")]
-    [InlineData("Command_WeaponAttackResolution_NumCrits", "Num Crits: {0}")]
-    [InlineData("Command_WeaponAttackResolution_BlownOff", "Critical hit in {0}, location blown off")]
-    [InlineData("Command_WeaponAttackResolution_LocationCriticals", "Critical hits in {0}:")]
-    [InlineData("Command_WeaponAttackResolution_Explosion", "{0} exploded, damage: {1}")]
+    [InlineData("Command_WeaponAttackResolution_HitLocationExcessDamage", "  Excess damage {1} transferred to {0}")]
+    [InlineData("Command_WeaponAttackResolution_AimedShotSuccessful", "Aimed Shot targeting {0} succeeded, Roll: {1}")]
+    [InlineData("Command_WeaponAttackResolution_AimedShotFailed", "Aimed Shot targeting {0} failed, Roll: {1}")]
     [InlineData("Command_WeaponAttackResolution_DestroyedParts", "Destroyed parts:")]
     [InlineData("Command_WeaponAttackResolution_DestroyedPart", "- {0} destroyed")]
     [InlineData("Command_WeaponAttackResolution_UnitDestroyed", "{0} has been destroyed!")]
     public void GetString_WeaponAttackResolution_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("Command_CriticalHitsResolution_Location", "Critical hits in {0}:")]
+    [InlineData("Command_CriticalHitsResolution_CritRoll", "Critical Roll: {0}")]
+    [InlineData("Command_CriticalHitsResolution_BlownOff", "Critical hit in {0}, location blown off")]
+    [InlineData("Command_CriticalHitsResolution_NumCrits", "Number of critical hits: {0}")]
+    [InlineData("Command_CriticalHitsResolution_CriticalHit", "Critical hit in {0} slot {1}: {2}")]
+    [InlineData("Command_CriticalHitsResolution_Explosion", "{0} exploded, damage: {1}")]
+    public void GetString_CriticalHitsResolution_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
         var localizationService = new FakeLocalizationService();
@@ -294,6 +308,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_AmmoExplosion_RollDetails", "Heat level: {0}, Roll: {1} vs {2}")]
     [InlineData("Command_AmmoExplosion_CriticalHits", "Explosion caused critical hits:")]
     [InlineData("Command_AmmoExplosion_ComponentDestroyed", "- {0} in {1} destroyed by explosion")]
+    [InlineData("Command_AmmoExplosion_Explosion", "{0} exploded, damage: {1}")]
     public void GetString_AmmoExplosion_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

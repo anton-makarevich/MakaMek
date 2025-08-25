@@ -87,6 +87,11 @@ public class WeaponTests
             throw new NotImplementedException();
         }
 
+        protected override void UpdateDestroyedStatus()
+        {
+            throw new NotImplementedException();
+        }
+
         public override PartLocation? GetTransferLocation(PartLocation location) => null;
         public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)
         {

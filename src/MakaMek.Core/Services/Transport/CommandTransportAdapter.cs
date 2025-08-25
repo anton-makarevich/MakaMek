@@ -16,6 +16,12 @@ public class CommandTransportAdapter
     private readonly Dictionary<string, Type> _commandTypes;
     private Action<IGameCommand>? _onCommandReceived;
     private bool _isInitialized;
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
+    {
+        TypeInfoResolver = new RollModifierTypeResolver(),
+        WriteIndented = true
+    };
+    private readonly object _initLock = new();
     
     /// <summary>
     /// Creates a new instance of the CommandTransportAdapter with multiple publishers
@@ -40,7 +46,7 @@ public class CommandTransportAdapter
         TransportPublishers.Add(publisher);
             
         // If Initialize has already been called, subscribe the new publisher immediately
-        if (_onCommandReceived != null)
+        if (_isInitialized && _onCommandReceived != null)
         {
             SubscribePublisher(publisher, _onCommandReceived);
         }
@@ -96,17 +102,21 @@ public class CommandTransportAdapter
     /// <param name="onCommandReceived">Callback for received commands</param>
     public void Initialize(Action<IGameCommand> onCommandReceived)
     {
-        if (_isInitialized)
-            return; // Already initialized, do nothing
-
-        _onCommandReceived = onCommandReceived;
-        
-        // Subscribe to all publishers
-        foreach (var publisher in TransportPublishers)
+        lock (_initLock)
         {
-            SubscribePublisher(publisher, onCommandReceived);
+            if (_isInitialized)
+                return; // Already initialized, do nothing
+
+            _onCommandReceived = onCommandReceived;
+
+            // Subscribe to all publishers
+            foreach (var publisher in TransportPublishers)
+            {
+                SubscribePublisher(publisher, onCommandReceived);
+            }
+
+            _isInitialized = true;
         }
-        _isInitialized = true;
     }
     
     /// <summary>
@@ -116,12 +126,7 @@ public class CommandTransportAdapter
     /// <returns>JSON representation of the command</returns>
     private string SerializeCommand(IGameCommand command)
     {
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = false,
-            TypeInfoResolver = new RollModifierTypeResolver()
-        };
-        return JsonSerializer.Serialize(command, command.GetType(), options);
+        return JsonSerializer.Serialize(command, command.GetType(), JsonSerializerOptions);
     }
     
     /// <summary>
@@ -142,14 +147,7 @@ public class CommandTransportAdapter
         
         try
         {
-            // Ensure the game origin ID and timestamp are set correctly
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = false,
-                TypeInfoResolver = new RollModifierTypeResolver()
-            };
-            
-            if (JsonSerializer.Deserialize(message.Payload, commandType, options) is not IGameCommand command)
+            if (JsonSerializer.Deserialize(message.Payload, commandType, JsonSerializerOptions) is not IGameCommand command)
                 throw new InvalidOperationException($"Failed to deserialize command of type {message.MessageType}");
             command.GameOriginId = message.SourceId;
             command.Timestamp = message.Timestamp;
@@ -199,7 +197,9 @@ public class CommandTransportAdapter
             { nameof(MechStandUpCommand), typeof(MechStandUpCommand) },
             { nameof(PilotConsciousnessRollCommand), typeof(PilotConsciousnessRollCommand)},
             { nameof(UnitShutdownCommand), typeof(UnitShutdownCommand)},
-            { nameof(UnitStartupCommand), typeof(UnitStartupCommand) }
+            { nameof(UnitStartupCommand), typeof(UnitStartupCommand) },
+            { nameof(AmmoExplosionCommand), typeof(AmmoExplosionCommand) },
+            { nameof(CriticalHitsResolutionCommand), typeof(CriticalHitsResolutionCommand) }
         };
     }
     

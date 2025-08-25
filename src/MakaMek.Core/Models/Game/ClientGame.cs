@@ -138,6 +138,9 @@ public sealed class ClientGame : BaseGame
             case AmmoExplosionCommand explosionCommand:
                 OnAmmoExplosion(explosionCommand);
                 break;
+            case CriticalHitsResolutionCommand criticalHitsCommand:
+                OnCriticalHitsResolution(criticalHitsCommand);
+                break;
         }
         
         // Log the command

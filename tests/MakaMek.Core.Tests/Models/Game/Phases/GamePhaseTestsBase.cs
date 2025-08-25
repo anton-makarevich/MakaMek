@@ -27,6 +27,9 @@ public abstract class GamePhaseTestsBase
     protected readonly IDiceRoller DiceRoller= Substitute.For<IDiceRoller>();
     protected readonly IPhaseManager MockPhaseManager= Substitute.For<IPhaseManager>();
     protected readonly IFallProcessor MockFallProcessor= Substitute.For<IFallProcessor>();
+    protected readonly IToHitCalculator MockToHitCalculator= Substitute.For<IToHitCalculator>();
+    protected readonly IStructureDamageCalculator MockStructureDamageCalculator= Substitute.For<IStructureDamageCalculator>();
+    protected readonly ICriticalHitsCalculator MockCriticalHitsCalculator= Substitute.For<ICriticalHitsCalculator>();
     protected readonly IConsciousnessCalculator MockConsciousnessCalculator= Substitute.For<IConsciousnessCalculator>();
     protected readonly IHeatEffectsCalculator MockHeatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     protected readonly IPilotingSkillCalculator MockPilotingSkillCalculator= Substitute.For<IPilotingSkillCalculator>();
@@ -38,8 +41,9 @@ public abstract class GamePhaseTestsBase
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
-            Substitute.For<IToHitCalculator>(),
-            Substitute.For<ICriticalHitsCalculator>(),
+            MockToHitCalculator,
+            MockStructureDamageCalculator,
+            MockCriticalHitsCalculator,
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
@@ -50,8 +54,9 @@ public abstract class GamePhaseTestsBase
     protected void SetGameWithRulesProvider(IRulesProvider rulesProvider)
     {
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
-            Substitute.For<IToHitCalculator>(),
-            Substitute.For<ICriticalHitsCalculator>(),
+            MockToHitCalculator,
+            MockStructureDamageCalculator,
+            MockCriticalHitsCalculator,
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,

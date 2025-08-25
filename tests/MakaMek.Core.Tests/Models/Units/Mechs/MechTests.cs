@@ -38,6 +38,20 @@ public class MechTests
             new Leg("LeftLeg", PartLocation.LeftLeg, 25, 8)
         ];
     }
+    
+    private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
+        int damage,
+        int[]? aimedShotRoll = null,
+        int[]? locationRoll = null)
+    {
+        return new LocationHitData(
+        [
+            new LocationDamageData(partLocation,
+                damage-1,
+                1,
+                false)
+        ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
 
     [Fact]
     public void Mech_CanWalkBackwards_BitCannotRun()
@@ -633,7 +647,7 @@ public class MechTests
         critsData.HitComponents.ShouldNotBeNull();
         critsData.HitComponents.Length.ShouldBe(2);
         critsData.HitComponents.FirstOrDefault(c => c.Slot == 2).ShouldNotBeNull();
-        critsData.Roll.ShouldBe(10);
+        critsData.Roll.ShouldBe([5, 5]);
         critsData.NumCriticalHits.ShouldBe(2);
     }
 
@@ -714,7 +728,7 @@ public class MechTests
 
         // Assert
         critsData.ShouldNotBeNull();
-        critsData.Roll.ShouldBe(6);
+        critsData.Roll.ShouldBe([3, 3]);
         critsData.NumCriticalHits.ShouldBe(0);
         critsData.HitComponents.ShouldBeNull();
     }
@@ -1688,7 +1702,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
-        sut.ApplyArmorAndStructureDamage(100, sut.Parts.First(p => p.Location == PartLocation.Head), HitDirection.Front);
+        sut.ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
 
         // Act
         var result = sut.CanFireWeapons;
@@ -2041,13 +2055,13 @@ public class MechTests
 
         // Destroy both legs
         var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.ApplyDamage(100, HitDirection.Front);
+        leftLeg.ApplyDamage(20, HitDirection.Front);
         var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
-        rightLeg.ApplyDamage(100, HitDirection.Front);
+        rightLeg.ApplyDamage(20, HitDirection.Front);
 
         // Destroy one arm
         var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
-        leftArm.ApplyDamage(100, HitDirection.Front);
+        leftArm.ApplyDamage(20, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with both legs but only one arm destroyed should not be immobile");
@@ -2064,9 +2078,9 @@ public class MechTests
 
         // Destroy both legs
         var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.ApplyDamage(100, HitDirection.Front);
+        leftLeg.ApplyDamage(20, HitDirection.Front);
         var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
-        rightLeg.ApplyDamage(100, HitDirection.Front);
+        rightLeg.ApplyDamage(20, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with only legs destroyed should not be immobile");
@@ -2083,9 +2097,9 @@ public class MechTests
 
         // Destroy both arms
         var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
-        leftArm.ApplyDamage(100, HitDirection.Front);
+        leftArm.ApplyDamage(20, HitDirection.Front);
         var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
-        rightArm.ApplyDamage(100, HitDirection.Front);
+        rightArm.ApplyDamage(20, HitDirection.Front);
 
         // Act & Assert
         sut.IsImmobile.ShouldBeFalse("A mech with only arms destroyed should not be immobile");
@@ -2295,5 +2309,79 @@ public class MechTests
         
         // Assert
         result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartHasNoStructure()
+    {
+        // Arrange - This tests lines 579-580 (null check for part with no structure)
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var leftArm = mech.Parts.First(p => p.Location == PartLocation.LeftArm);
+
+        // Destroy the left arm by reducing structure to 0
+        leftArm.ApplyDamage(leftArm.CurrentArmor + leftArm.CurrentStructure, HitDirection.Front);
+
+        var diceRoller = Substitute.For<IDiceRoller>();
+
+        // Act
+        var result = mech.CalculateCriticalHitsData(PartLocation.LeftArm, diceRoller);
+
+        // Assert
+        result.ShouldBeNull(); // Should return null for destroyed part
+        diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for destroyed part
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartNotFound()
+    {
+        // Arrange - This tests lines 579-580 (null check when part is not found)
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var diceRoller = Substitute.For<IDiceRoller>();
+
+        // Act
+        var result = mech.CalculateCriticalHitsData((PartLocation)999, diceRoller); // Invalid location
+
+        // Assert
+        result.ShouldBeNull(); // Should return null for non-existent part
+        diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for non-existent part
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldProceed_WhenPartHasStructure()
+    {
+        // Arrange - This verifies lines 579-580 pass when part has structure
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var diceRoller = Substitute.For<IDiceRoller>();
+
+        // Setup dice roller to return valid critical hit roll
+        diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
+        diceRoller.RollD6().Returns(new DiceResult(3)); // Slot roll
+
+        // Act
+        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
+
+        // Assert
+        result.ShouldNotBeNull(); // Should return valid data for part with structure
+        diceRoller.Received(1).Roll2D6(); // Should roll dice for valid part
+    }
+
+    [Fact]
+    public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartStructureIsZero()
+    {
+        // Arrange - This specifically tests the CurrentStructure > 0 condition in lines 579-580
+        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+
+        // Destroy the center torso by applying enough damage to reduce structure to 0
+        centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure, HitDirection.Front);
+
+        var diceRoller = Substitute.For<IDiceRoller>();
+
+        // Act
+        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
+
+        // Assert
+        result.ShouldBeNull(); // Should return null when structure is exactly 0
+        diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice when structure is 0
     }
 }

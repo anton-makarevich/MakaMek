@@ -19,6 +19,7 @@ public class GameFactoryTests
     private readonly ICommandPublisher _commandPublisher= Substitute.For<ICommandPublisher>();
     private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();
     private readonly IToHitCalculator _toHitCalculator= Substitute.For<IToHitCalculator>();
+    private readonly IStructureDamageCalculator _structureDamageCalculator= Substitute.For<IStructureDamageCalculator>();
     private readonly ICriticalHitsCalculator _criticalHitsCalculator= Substitute.For<ICriticalHitsCalculator>();
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator= Substitute.For<IPilotingSkillCalculator>();
     private readonly IConsciousnessCalculator _consciousnessCalculator= Substitute.For<IConsciousnessCalculator>();
@@ -36,6 +37,7 @@ public class GameFactoryTests
             _commandPublisher, 
             _diceRoller, 
             _toHitCalculator,
+            _structureDamageCalculator,
             _criticalHitsCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,

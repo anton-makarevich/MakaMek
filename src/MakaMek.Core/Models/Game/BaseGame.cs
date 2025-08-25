@@ -15,7 +15,6 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
-using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -363,10 +362,26 @@ public abstract class BaseGame : IGame
 
         if (unit == null) return;
 
-        // Apply explosion damage if it was calculated
-        if (explosionCommand.ExplosionDamage is { Count: > 0 })
+        // Apply critical hits data
+        if (explosionCommand.CriticalHits is { Count: > 0 })
         {
-            unit.ApplyDamage(explosionCommand.ExplosionDamage, HitDirection.Front);
+            unit.ApplyCriticalHits(explosionCommand.CriticalHits);
+        }
+    }
+
+    internal void OnCriticalHitsResolution(CriticalHitsResolutionCommand criticalHitsCommand)
+    {
+        // Find the target unit with the given ID across all players
+        var unit = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == criticalHitsCommand.TargetId);
+
+        if (unit == null) return;
+
+        // Apply the pre-calculated critical hits data
+        if (criticalHitsCommand.CriticalHits is { Count: > 0 })
+        {
+            unit.ApplyCriticalHits(criticalHitsCommand.CriticalHits);
         }
     }
 
@@ -419,6 +434,7 @@ public abstract class BaseGame : IGame
             ShutdownUnitCommand => true,
             StartupUnitCommand => true,
             AmmoExplosionCommand => true,
+            CriticalHitsResolutionCommand => true,
             _ => false
         };
     }

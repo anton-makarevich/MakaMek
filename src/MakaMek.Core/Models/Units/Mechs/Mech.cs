@@ -83,20 +83,8 @@ public class Mech : Unit
         }
     }
 
-    public override PartLocation? GetTransferLocation(PartLocation location) => location switch
+    protected override void UpdateDestroyedStatus()
     {
-        PartLocation.LeftArm => PartLocation.LeftTorso,
-        PartLocation.RightArm => PartLocation.RightTorso,
-        PartLocation.LeftLeg => PartLocation.LeftTorso,
-        PartLocation.RightLeg => PartLocation.RightTorso,
-        PartLocation.LeftTorso => PartLocation.CenterTorso,
-        PartLocation.RightTorso => PartLocation.CenterTorso,
-        _ => null
-    };
-
-    internal override void ApplyArmorAndStructureDamage(int damage, UnitPart targetPart, HitDirection hitDirection)
-    {
-        base.ApplyArmorAndStructureDamage(damage, targetPart, hitDirection);
         var head = _parts.Find(p => p.Location == PartLocation.Head);
         if (head is { IsDestroyed: true })
         {
@@ -110,6 +98,17 @@ public class Mech : Unit
         }
     }
 
+    public override PartLocation? GetTransferLocation(PartLocation location) => location switch
+    {
+        PartLocation.LeftArm => PartLocation.LeftTorso,
+        PartLocation.RightArm => PartLocation.RightTorso,
+        PartLocation.LeftLeg => PartLocation.LeftTorso,
+        PartLocation.RightLeg => PartLocation.RightTorso,
+        PartLocation.LeftTorso => PartLocation.CenterTorso,
+        PartLocation.RightTorso => PartLocation.CenterTorso,
+        _ => null
+    };
+    
     public override int EngineHeatSinks => GetAllComponents<Engine>().FirstOrDefault()?.NumberOfHeatSinks??0;
 
     /// <summary>
@@ -580,15 +579,17 @@ public class Mech : Unit
         if (part is not { CurrentStructure: > 0 })
             return null;
             
-        var critRoll = diceRoller.Roll2D6().Sum(d => d.Result);
-        var numCrits = GetNumCriticalHits(critRoll);
+        var critRoll = diceRoller.Roll2D6()
+            .Select(d => d.Result)
+            .ToArray();
+        var numCrits = GetNumCriticalHits(critRoll.Sum());
         ComponentHitData[]? hitComponents = null;
         
         // Check if the location can be blown off (head or limbs on a roll of 12)
         var isBlownOff = part.CanBeBlownOff && numCrits == 3;
         if (isBlownOff)
         {
-            return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff);
+            return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff,[]);
         }
         
         if (numCrits > 0)
@@ -596,7 +597,7 @@ public class Mech : Unit
             hitComponents = DetermineCriticalHitSlots(part, numCrits, diceRoller);
         }
         
-        return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff);
+        return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff,[]);
     }
 
     /// <summary>
