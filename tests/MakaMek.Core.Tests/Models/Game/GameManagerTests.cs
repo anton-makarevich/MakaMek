@@ -9,7 +9,11 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Services.Logging;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
@@ -31,6 +35,8 @@ public class GameManagerTests : IDisposable
     private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
     private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     private readonly IFallProcessor _fallProcessor = Substitute.For<IFallProcessor>();
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly ICommandLoggerFactory _commandLoggerFactory = Substitute.For<ICommandLoggerFactory>();
 
     public GameManagerTests()
     {
@@ -84,8 +90,26 @@ public class GameManagerTests : IDisposable
             _heatEffectsCalculator,
             _fallProcessor,
             _gameFactory,
+            _localizationService,
+            _commandLoggerFactory,
             _networkHostService);
     }
+    
+    private GameManager CreateSutWithNullHost() => new GameManager(
+        _rulesProvider,
+        _mechFactory,
+        _commandPublisher,
+        _diceRoller,
+        _toHitCalculator,
+        _structureDamageCalculator,
+        _criticalHitsCalculator,
+        _pilotingSkillCalculator,
+        _consciousnessCalculator,
+        _heatEffectsCalculator,
+        _fallProcessor,
+        _gameFactory,
+        _localizationService,
+        _commandLoggerFactory);
 
     [Fact]
     public async Task InitializeLobby_WithLanEnabled_AndNotRunning_StartsNetworkHostAndAddsPublisher()
@@ -252,19 +276,7 @@ public class GameManagerTests : IDisposable
     public void IsLanServerRunning_WhenHostIsNull_ReturnsFalse()
     {
         // Arrange
-        var sutWithNullHost = new GameManager(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _structureDamageCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor,
-            _gameFactory);
+        var sutWithNullHost = CreateSutWithNullHost();
 
         // Act & Assert
         sutWithNullHost.IsLanServerRunning.ShouldBeFalse();
@@ -286,19 +298,7 @@ public class GameManagerTests : IDisposable
     public void CanStartLanServer_WhenHostIsNull_ReturnsFalse()
     {
         // Arrange
-        var sutWithNullHost = new GameManager(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _structureDamageCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor,
-            _gameFactory);
+        var sutWithNullHost = CreateSutWithNullHost();
 
         // Act & Assert
         sutWithNullHost.CanStartLanServer.ShouldBeFalse();
@@ -350,19 +350,7 @@ public class GameManagerTests : IDisposable
     public void Dispose_WhenHostIsNull_DoesNotThrow()
     {
         // Arrange
-        var sutWithNullHost = new GameManager(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _structureDamageCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor,
-            _gameFactory);
+        var sutWithNullHost = CreateSutWithNullHost();
 
         // Act & Assert
         Should.NotThrow(() => sutWithNullHost.Dispose());
@@ -392,6 +380,86 @@ public class GameManagerTests : IDisposable
 
         // Assert
         _serverGame.BattleMap.ShouldBe(battleMap); // Verify the map was set
+    }
+
+    [Fact]
+    public async Task InitializeLobby_SubscribesLoggerAndLogsOnReceivedCommand()
+    {
+        // Arrange
+        var logger = Substitute.For<ICommandLogger>();
+        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        Action<IGameCommand>? capturedHandler = null;
+        _commandPublisher
+            .When(cp => cp.Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>()))
+            .Do(ci => capturedHandler = ci.Arg<Action<IGameCommand>>());
+
+        // Act
+        await _sut.InitializeLobby();
+
+        // Assert subscribe and factory usage
+        _commandLoggerFactory.Received(1).CreateFileLogger(_localizationService, _serverGame);
+        _commandPublisher.Received()
+            .Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>());
+        capturedHandler.ShouldNotBeNull();
+
+        // When publisher invokes handler, logger.Log should be called
+        var cmd = Substitute.For<IGameCommand>();
+        capturedHandler!(cmd);
+        logger.Received(1).Log(cmd);
+    }
+
+    [Fact]
+    public async Task InitializeLobby_SafeLog_SwallowsLoggerExceptions()
+    {
+        // Arrange
+        var logger = Substitute.For<ICommandLogger>();
+        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        Action<IGameCommand>? capturedHandler = null;
+        _commandPublisher
+            .When(cp => cp.Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>()))
+            .Do(ci => capturedHandler = ci.Arg<Action<IGameCommand>>());
+        await _sut.InitializeLobby();
+        capturedHandler.ShouldNotBeNull();
+        var cmd = Substitute.For<IGameCommand>();
+        logger
+            .When(l => l.Log(cmd))
+            .Do(_ => throw new Exception("Logger failure"));
+
+        // Act & Assert: handler should not throw despite logger throwing
+        Should.NotThrow(() => capturedHandler!(cmd));
+        logger.Received(1).Log(cmd);
+    }
+
+    [Fact]
+    public async Task InitializeLobby_CalledMultipleTimes_SubscribesLoggingOnlyOnce()
+    {
+        // Arrange
+        var logger = Substitute.For<ICommandLogger>();
+        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+
+        // Act
+        await _sut.InitializeLobby();
+        await _sut.InitializeLobby();
+
+        // Assert
+        _commandPublisher.Received()
+            .Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>());
+        _commandLoggerFactory.Received(1).CreateFileLogger(_localizationService, _serverGame);
+    }
+
+    [Fact]
+    public async Task Dispose_DisposesCommandLogger()
+    {
+        // Arrange
+        var logger = Substitute.For<ICommandLogger>();
+        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        await _sut.InitializeLobby();
+
+        // Act
+        _sut.Dispose();
+
+        // Assert
+        logger.Received(1).Dispose();
     }
 
     public void Dispose()

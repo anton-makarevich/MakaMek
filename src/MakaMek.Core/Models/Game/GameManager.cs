@@ -1,11 +1,16 @@
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Services.Logging;
+using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.Transport.Rx;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -26,10 +31,16 @@ public class GameManager : IGameManager
     private ServerGame? _serverGame;
     private readonly INetworkHostService? _networkHostService;
     private bool _isDisposed;
+    private readonly ILocalizationService _localizationService;
+    private readonly ICommandLoggerFactory _commandLoggerFactory;
+    private ICommandLogger? _commandLogger;
+    private Action<IGameCommand>? _logHandler;
+    private bool _loggingSubscribed;
 
     public GameManager(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
-        ICommandPublisher commandPublisher, IDiceRoller diceRoller,
+        ICommandPublisher commandPublisher,
+        IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
         IStructureDamageCalculator structureDamageCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
@@ -38,6 +49,8 @@ public class GameManager : IGameManager
         IHeatEffectsCalculator heatEffectsCalculator,
         IFallProcessor fallProcessor,
         IGameFactory gameFactory,
+        ILocalizationService localizationService,
+        ICommandLoggerFactory commandLoggerFactory,
         INetworkHostService? networkHostService = null)
     {
         _rulesProvider = rulesProvider;
@@ -53,8 +66,23 @@ public class GameManager : IGameManager
         _consciousnessCalculator = consciousnessCalculator;
         _heatEffectsCalculator = heatEffectsCalculator;
         _gameFactory = gameFactory;
+        _localizationService = localizationService;
+        _commandLoggerFactory = commandLoggerFactory;
         _networkHostService = networkHostService;
     }
+    
+    private static Action<IGameCommand> SafeLog(ICommandLogger logger) =>
+        command =>
+        {
+            try
+            {
+                logger.Log(command);
+            }
+            catch
+            {
+                // Swallow to avoid impacting a publisher
+            }
+        };
 
     public async Task InitializeLobby()
     {
@@ -90,6 +118,15 @@ public class GameManager : IGameManager
             // Start server listening loop in background
             _ = Task.Run(() => _serverGame?.Start());
         }
+        if (!_loggingSubscribed)
+        {
+            var transportPublisher = transportAdapter.TransportPublishers.FirstOrDefault(ta => ta is RxTransportPublisher);
+            _commandLogger = _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame);
+            
+            _logHandler = SafeLog(_commandLogger);
+            _commandPublisher.Subscribe(_logHandler, transportPublisher);
+            _loggingSubscribed = true;
+        }
     }
 
     public void SetBattleMap(BattleMap battleMap)
@@ -118,5 +155,6 @@ public class GameManager : IGameManager
         
         // Dispose network host
         _networkHostService?.Dispose();
+        _commandLogger?.Dispose();
     }
 }

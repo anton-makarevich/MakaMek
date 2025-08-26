@@ -82,7 +82,7 @@ public class CommandTransportAdapterTests
         SetupAdapter(); // Start with one publisher
         var newPublisher = Substitute.For<ITransportPublisher>();
         var command = new RollDiceCommand { GameOriginId = Guid.NewGuid() };
-        _sut.Initialize(_ => { }); // Initialize to enable subscription on add
+        _sut.Initialize((_,_) => { }); // Initialize to enable subscription on add
 
         // Act
         _sut.AddPublisher(newPublisher);
@@ -100,8 +100,7 @@ public class CommandTransportAdapterTests
         // Arrange
         SetupAdapter();
         var command = new RollDiceCommand { GameOriginId = Guid.NewGuid() };
-        Action<IGameCommand>? callback = null;
-        _sut.Initialize(_ => callback = _ => { });
+        _sut.Initialize((_, _) => { });
         var initialPublishCount = 0;
         _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
             .Do(_ => initialPublishCount++);
@@ -120,8 +119,7 @@ public class CommandTransportAdapterTests
         // Arrange
         SetupAdapter();
         var command = new RollDiceCommand { GameOriginId = Guid.NewGuid() };
-        Action<IGameCommand>? callback = null;
-        _sut.Initialize(_ => callback = _ => { });
+        _sut.Initialize((_,_) => { });
         var initialPublishCount = 0;
         _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
             .Do(_ => initialPublishCount++);
@@ -172,7 +170,7 @@ public class CommandTransportAdapterTests
         IGameCommand? receivedCommand = null;
         
         // Act
-        _sut.Initialize(cmd => receivedCommand = cmd); // Call Initialize AFTER setting up When…Do
+        _sut.Initialize((cmd,_) => receivedCommand = cmd); // Call Initialize AFTER setting up When…Do
         
         // Assert Initialization subscribed to both
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
@@ -203,7 +201,7 @@ public class CommandTransportAdapterTests
         
         bool receivedCallbackCalled = false;
         // Act & Assert
-        _sut.Initialize(_ => receivedCallbackCalled = true); // Initialize first
+        _sut.Initialize((_,_) => receivedCallbackCalled = true); // Initialize first
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
         subscribedCallback.ShouldNotBeNull();
         
@@ -224,7 +222,7 @@ public class CommandTransportAdapterTests
         var receivedCallbackCalled = false;
         
         // Act & Assert
-        _sut.Initialize(_ => receivedCallbackCalled = true);
+        _sut.Initialize((_,_) => receivedCallbackCalled = true);
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
         subscribedCallback.ShouldNotBeNull();
         
@@ -276,7 +274,7 @@ public class CommandTransportAdapterTests
         Should.NotThrow(() =>
         {
             var sut = new CommandTransportAdapter(); // No publishers
-            sut.Initialize(_ => { }); // Initialize should be safe
+            sut.Initialize((_,_) => { }); // Initialize should be safe
             sut.PublishCommand(new TurnIncrementedCommand
             {
                 GameOriginId = Guid.NewGuid(),
@@ -294,7 +292,7 @@ public class CommandTransportAdapterTests
         var nonDisposablePublisher = Substitute.For<ITransportPublisher>();
         
         var sut = new CommandTransportAdapter(disposablePublisher1, disposablePublisher2, nonDisposablePublisher);
-        Action<IGameCommand> commandCallback = _ => {};
+        Action<IGameCommand, ITransportPublisher> commandCallback = (_,_) => {};
         sut.Initialize(commandCallback);
         
         // Act
@@ -326,7 +324,7 @@ public class CommandTransportAdapterTests
             .Do(x => capturedCallback = x.Arg<Action<TransportMessage>>());
             
         // Re-initialize with a new callback
-        sut.Initialize(_ => {});
+        sut.Initialize((_,_) => {});
         
         capturedCallback.ShouldNotBeNull();
     }
@@ -343,7 +341,7 @@ public class CommandTransportAdapterTests
             .Do(_ => throw new InvalidOperationException("Test exception during dispose"));
         
         var sut = new CommandTransportAdapter(throwingPublisher, normalPublisher);
-        sut.Initialize(_ => {});
+        sut.Initialize((_,_) => {});
         
         // Act - This should not throw despite the exception in Dispose()
         Should.NotThrow(() => sut.ClearPublishers());
@@ -372,8 +370,8 @@ public class CommandTransportAdapterTests
         SetupAdapter();
 
         // Act
-        _sut.Initialize(_=>{ });
-        _sut.Initialize(_=>{ }); // Should be ignored
+        _sut.Initialize((_,_)=>{ });
+        _sut.Initialize((_,_)=>{ }); // Should be ignored
 
         // Assert
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
