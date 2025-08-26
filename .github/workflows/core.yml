@@ -12,6 +12,8 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      COVERAGE_EXCLUSIONS: "**/FileCommandLogger.cs"
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -22,7 +24,7 @@ jobs:
           dotnet-version: 9.x
 
       - name: Run Core tests
-        run: dotnet test tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Core]*
+        run: dotnet test tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Core]* /p:ExcludeByFile="${{ env.COVERAGE_EXCLUSIONS }}"
 
       - name: Upload Core tests results
         run: bash <(curl -s https://codecov.io/bash) -f "tests/MakaMek.Core.Tests/coverage.opencover.xml" -t ${{ secrets.CODECOV_TOKEN }}

@@ -100,8 +100,7 @@ public class CommandTransportAdapterTests
         // Arrange
         SetupAdapter();
         var command = new RollDiceCommand { GameOriginId = Guid.NewGuid() };
-        Action<IGameCommand, ITransportPublisher>? callback = null;
-        _sut.Initialize((_, _) => callback = (_, _) => { });
+        _sut.Initialize((_, _) => { });
         var initialPublishCount = 0;
         _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
             .Do(_ => initialPublishCount++);
@@ -120,8 +119,7 @@ public class CommandTransportAdapterTests
         // Arrange
         SetupAdapter();
         var command = new RollDiceCommand { GameOriginId = Guid.NewGuid() };
-        Action<IGameCommand, ITransportPublisher>? callback = null;
-        _sut.Initialize((_,_) => callback = (_,_) => { });
+        _sut.Initialize((_,_) => { });
         var initialPublishCount = 0;
         _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
             .Do(_ => initialPublishCount++);
