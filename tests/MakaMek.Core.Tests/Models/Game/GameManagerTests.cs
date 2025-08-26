@@ -12,6 +12,8 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Services.Logging;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
@@ -404,6 +406,86 @@ public class GameManagerTests : IDisposable
 
         // Assert
         _serverGame.BattleMap.ShouldBe(battleMap); // Verify the map was set
+    }
+
+    [Fact]
+    public async Task InitializeLobby_SubscribesLoggerAndLogsOnReceivedCommand()
+    {
+        // Arrange
+        var logger = Substitute.For<ICommandLogger>();
+        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        Action<IGameCommand>? capturedHandler = null;
+        _commandPublisher
+            .When(cp => cp.Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>()))
+            .Do(ci => capturedHandler = ci.Arg<Action<IGameCommand>>());
+
+        // Act
+        await _sut.InitializeLobby();
+
+        // Assert subscribe and factory usage
+        _commandLoggerFactory.Received(1).CreateFileLogger(_localizationService, _serverGame);
+        _commandPublisher.Received()
+            .Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>());
+        capturedHandler.ShouldNotBeNull();
+
+        // When publisher invokes handler, logger.Log should be called
+        var cmd = Substitute.For<IGameCommand>();
+        capturedHandler!(cmd);
+        logger.Received(1).Log(cmd);
+    }
+
+    [Fact]
+    public async Task InitializeLobby_SafeLog_SwallowsLoggerExceptions()
+    {
+        // Arrange
+        var logger = Substitute.For<ICommandLogger>();
+        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        Action<IGameCommand>? capturedHandler = null;
+        _commandPublisher
+            .When(cp => cp.Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>()))
+            .Do(ci => capturedHandler = ci.Arg<Action<IGameCommand>>());
+        await _sut.InitializeLobby();
+        capturedHandler.ShouldNotBeNull();
+        var cmd = Substitute.For<IGameCommand>();
+        logger
+            .When(l => l.Log(cmd))
+            .Do(_ => throw new Exception("Logger failure"));
+
+        // Act & Assert: handler should not throw despite logger throwing
+        Should.NotThrow(() => capturedHandler!(cmd));
+        logger.Received(1).Log(cmd);
+    }
+
+    [Fact]
+    public async Task InitializeLobby_CalledMultipleTimes_SubscribesLoggingOnlyOnce()
+    {
+        // Arrange
+        var logger = Substitute.For<ICommandLogger>();
+        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+
+        // Act
+        await _sut.InitializeLobby();
+        await _sut.InitializeLobby();
+
+        // Assert
+        _commandPublisher.Received()
+            .Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>());
+        _commandLoggerFactory.Received(1).CreateFileLogger(_localizationService, _serverGame);
+    }
+
+    [Fact]
+    public async Task Dispose_DisposesCommandLogger()
+    {
+        // Arrange
+        var logger = Substitute.For<ICommandLogger>();
+        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        await _sut.InitializeLobby();
+
+        // Act
+        _sut.Dispose();
+
+        // Assert
+        logger.Received(1).Dispose();
     }
 
     public void Dispose()
