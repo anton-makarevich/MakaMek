@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Services.Logging;
 
-public interface ICommandLogger
+public interface ICommandLogger: IDisposable
 {
     // Logs a game command. Implementations should handle their own exceptions.
     void Log(IGameCommand command);

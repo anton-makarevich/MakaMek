@@ -33,6 +33,9 @@ public class GameManager : IGameManager
     private bool _isDisposed;
     private readonly ILocalizationService _localizationService;
     private readonly ICommandLoggerFactory _commandLoggerFactory;
+    private ICommandLogger? _commandLogger;
+    private Action<IGameCommand>? _logHandler;
+    private bool _loggingSubscribed;
 
     public GameManager(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
@@ -115,9 +118,15 @@ public class GameManager : IGameManager
             // Start server listening loop in background
             _ = Task.Run(() => _serverGame?.Start());
         }
-        var transportPublisher = transportAdapter.TransportPublishers.FirstOrDefault(ta => ta is RxTransportPublisher);
-        var commandLogger = _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame);
-        _commandPublisher.Subscribe(SafeLog(commandLogger), transportPublisher);
+        if (!_loggingSubscribed)
+        {
+            var transportPublisher = transportAdapter.TransportPublishers.FirstOrDefault(ta => ta is RxTransportPublisher);
+            _commandLogger = _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame);
+            
+            _logHandler = SafeLog(_commandLogger);
+            _commandPublisher.Subscribe(_logHandler, transportPublisher);
+            _loggingSubscribed = true;
+        }
     }
 
     public void SetBattleMap(BattleMap battleMap)
@@ -146,5 +155,6 @@ public class GameManager : IGameManager
         
         // Dispose network host
         _networkHostService?.Dispose();
+        _commandLogger?.Dispose();
     }
 }

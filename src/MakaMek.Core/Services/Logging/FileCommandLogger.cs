@@ -7,16 +7,16 @@ using Sanet.MakaMek.Core.Services.Localization;
 namespace Sanet.MakaMek.Core.Services.Logging;
 
 // Resilient, non-blocking logger writing command.Render() lines to a file.
-public sealed class FileCommandLogger : ICommandLogger, IDisposable
+public sealed class FileCommandLogger : ICommandLogger
 {
     private readonly ILocalizationService _localizationService;
     private readonly IGame _game;
     private readonly string _filePath;
     private readonly BlockingCollection<string> _queue = new(new ConcurrentQueue<string>());
-    private readonly CancellationTokenSource _cts = new();
     private readonly Task _worker;
     private readonly string _logDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MakaMek", "Commands");
+    private bool _isDisposed;
 
     public FileCommandLogger(ILocalizationService localizationService, IGame game)
     {
@@ -31,8 +31,8 @@ public sealed class FileCommandLogger : ICommandLogger, IDisposable
         try
         {
             if (command.GameOriginId != _game.Id) return;
-            var line = $"{DateTimeOffset.UtcNow:o} | {command.GetType().Name}:{Environment.NewLine}{SafeRender(command)}";
-            _queue.Add(line, _cts.Token);
+            var line = $"{DateTimeOffset.UtcNow:o} | {command.GetType().Name}:{Environment.NewLine}{SafeRender(command)}{Environment.NewLine}";
+            _queue.Add(line);
         }
         catch
         {
@@ -65,29 +65,20 @@ public sealed class FileCommandLogger : ICommandLogger, IDisposable
             // If directory creation fails, we still keep draining queue and swallowing errors
         }
 
-        while (!_cts.IsCancellationRequested || _queue.Count > 0)
+        while (!_isDisposed)
         {
-            string? line = null;
             try
             {
-                line = _queue.TryTake(out var item, 100, _cts.Token) ? item : null;
+                if (_queue.Count < 1) continue;
+                var line = _queue.TryTake(out var item, 100) ? item : null;
+                if (line == null)
+                    continue;
+                // Append asynchronously; create the file if it doesn't exist
+                await File.AppendAllTextAsync(_filePath, line + Environment.NewLine, Encoding.UTF8);
             }
             catch
             {
                 // Ignore cancellation/other errors here to keep the loop resilient
-            }
-
-            if (line == null)
-                continue;
-
-            try
-            {
-                // Append asynchronously; create the file if it doesn't exist
-                await File.AppendAllTextAsync(_filePath, line + Environment.NewLine, Encoding.UTF8, _cts.Token);
-            }
-            catch
-            {
-                // Swallows write errors to avoid affecting gameplay
             }
         }
     }
@@ -96,7 +87,6 @@ public sealed class FileCommandLogger : ICommandLogger, IDisposable
     {
         try
         {
-            _cts.Cancel();
             _queue.CompleteAdding();
             _worker.Wait(TimeSpan.FromSeconds(2));
         }
@@ -106,8 +96,8 @@ public sealed class FileCommandLogger : ICommandLogger, IDisposable
         }
         finally
         {
-            _cts.Dispose();
             _queue.Dispose();
+            _isDisposed = true;
         }
     }
 }
