@@ -94,6 +94,22 @@ public class GameManagerTests : IDisposable
             _commandLoggerFactory,
             _networkHostService);
     }
+    
+    private GameManager CreateSutWithNullHost() => new GameManager(
+        _rulesProvider,
+        _mechFactory,
+        _commandPublisher,
+        _diceRoller,
+        _toHitCalculator,
+        _structureDamageCalculator,
+        _criticalHitsCalculator,
+        _pilotingSkillCalculator,
+        _consciousnessCalculator,
+        _heatEffectsCalculator,
+        _fallProcessor,
+        _gameFactory,
+        _localizationService,
+        _commandLoggerFactory);
 
     [Fact]
     public async Task InitializeLobby_WithLanEnabled_AndNotRunning_StartsNetworkHostAndAddsPublisher()
@@ -260,21 +276,7 @@ public class GameManagerTests : IDisposable
     public void IsLanServerRunning_WhenHostIsNull_ReturnsFalse()
     {
         // Arrange
-        var sutWithNullHost = new GameManager(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _structureDamageCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor,
-            _gameFactory,
-            _localizationService,
-            _commandLoggerFactory);
+        var sutWithNullHost = CreateSutWithNullHost();
 
         // Act & Assert
         sutWithNullHost.IsLanServerRunning.ShouldBeFalse();
@@ -296,21 +298,7 @@ public class GameManagerTests : IDisposable
     public void CanStartLanServer_WhenHostIsNull_ReturnsFalse()
     {
         // Arrange
-        var sutWithNullHost = new GameManager(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _structureDamageCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor,
-            _gameFactory,
-            _localizationService,
-            _commandLoggerFactory);
+        var sutWithNullHost = CreateSutWithNullHost();
 
         // Act & Assert
         sutWithNullHost.CanStartLanServer.ShouldBeFalse();
@@ -362,21 +350,7 @@ public class GameManagerTests : IDisposable
     public void Dispose_WhenHostIsNull_DoesNotThrow()
     {
         // Arrange
-        var sutWithNullHost = new GameManager(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _structureDamageCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor,
-            _gameFactory,
-            _localizationService,
-            _commandLoggerFactory);
+        var sutWithNullHost = CreateSutWithNullHost();
 
         // Act & Assert
         Should.NotThrow(() => sutWithNullHost.Dispose());
