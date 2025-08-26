@@ -95,6 +95,20 @@ public class CommandPublisherTests
         _transportPublisher.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
         _transportCallback.ShouldNotBeNull(); // Callback should be captured by now
     }
+    
+    [Fact]
+    public void Subscribe_ShouldSubscribeToTransport_WithTransportPublisher()
+    {
+        // Arrange
+        var transportPublisher = Substitute.For<ITransportPublisher>();
+        
+        // Act
+        _sut.Subscribe(cmd => _ = cmd, transportPublisher);
+        
+        // Assert
+        _transportPublisher.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
+        _transportCallback.ShouldNotBeNull(); // Callback should be captured by now
+    }
 
     [Fact]
     public void Subscribe_MultipleSubscribers_AllReceiveCommands()
