@@ -211,10 +211,10 @@ public class FakeLocalizationServiceTests
     // Heat update command strings
     [InlineData("Command_HeatUpdated_Header", "Heat update for {0} (Previous: {1})")]
     [InlineData("Command_HeatUpdated_Sources", "Heat sources:")]
-    [InlineData("Command_HeatUpdated_MovementHeat", "  + {0} movement ({1} MP): {2} heat")]
-    [InlineData("Command_HeatUpdated_WeaponHeat", "  + Firing {0}: {1} heat")]
+    [InlineData("Command_HeatUpdated_MovementHeat", "+ {0} movement ({1} MP): {2} heat")]
+    [InlineData("Command_HeatUpdated_WeaponHeat", "+ Firing {0}: {1} heat")]
     [InlineData("Command_HeatUpdated_TotalGenerated", "Total heat generated: {0}")]
-    [InlineData("Command_HeatUpdated_Dissipation", "  - Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat")]
+    [InlineData("Command_HeatUpdated_Dissipation", "- Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat")]
     // Start phase
     [InlineData("StartPhase_ActionLabel", "Ready to play")]
     [InlineData("StartPhase_PlayerActionLabel", "Ready")]
@@ -257,8 +257,10 @@ public class FakeLocalizationServiceTests
     // Consciousness roll commands
     [InlineData("Command_PilotConsciousnessRoll_Consciousness", "consciousness")]
     [InlineData("Command_PilotConsciousnessRoll_Recovery", "consciousness recovery")]
-    [InlineData("Command_PilotConsciousnessRoll_Success", "{0} {1} roll succeeded: [{2}] = {3} vs {4}")]
-    [InlineData("Command_PilotConsciousnessRoll_Failure", "{0} {1} roll failed: [{2}] = {3} vs {4}")]
+    [InlineData("Command_PilotConsciousnessRoll_Success", "{0} {1} roll succeeded")]
+    [InlineData("Command_PilotConsciousnessRoll_Failure", "{0} {1} roll failed")]
+    [InlineData("Command_PilotConsciousnessRoll_ConsciousnessNumber", "Consciousness Number: {0}")]
+    [InlineData("Command_PilotConsciousnessRoll_RollResult", "Roll Result: {0}")]
 
     // Pilot status
     [InlineData("Pilot_Status_Unknown", "UNKNOWN")]

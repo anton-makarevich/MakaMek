@@ -21,6 +21,19 @@ public class PilotConsciousnessRollCommandTests
     public PilotConsciousnessRollCommandTests()
     {
         _localizationService = Substitute.For<ILocalizationService>();
+        _localizationService.GetString("Command_PilotConsciousnessRoll_ConsciousnessNumber")
+            .Returns("Consciousness Number: {0}");
+        _localizationService.GetString("Command_PilotConsciousnessRoll_RollResult")
+            .Returns("Roll Result: {0}");
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Failure")
+            .Returns("{0} {1} roll failed");
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Success")
+            .Returns("{0} {1} roll succeeded");
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Recovery")
+            .Returns("consciousness recovery");
+        _localizationService.GetString("Command_PilotConsciousnessRoll_Consciousness")
+            .Returns("consciousness");
+        
         _game = Substitute.For<IGame>();
         var pilot = Substitute.For<IPilot>();
         _unitId = Guid.NewGuid();
@@ -60,15 +73,13 @@ public class PilotConsciousnessRollCommandTests
             Timestamp = DateTime.UtcNow
         };
 
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Consciousness").Returns("consciousness");
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Success")
-            .Returns("{0} {1} roll succeeded: [{2}] = {3} vs {4}");
-
         // Act
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("John Doe consciousness roll succeeded: [4, 5] = 9 vs 7");
+        result.ShouldContain("John Doe consciousness roll succeeded");
+        result.ShouldContain("Consciousness Number: 7");
+        result.ShouldContain("Roll Result: 9");
     }
 
     [Fact]
@@ -86,16 +97,14 @@ public class PilotConsciousnessRollCommandTests
             GameOriginId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow
         };
-
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Consciousness").Returns("consciousness");
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Failure")
-            .Returns("{0} {1} roll failed: [{2}] = {3} vs {4}");
-
+        
         // Act
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("John Doe consciousness roll failed: [2, 3] = 5 vs 10");
+        result.ShouldContain("John Doe consciousness roll failed");
+        result.ShouldContain("Consciousness Number: 10");
+        result.ShouldContain("Roll Result: 5");
     }
 
     [Fact]
@@ -114,15 +123,13 @@ public class PilotConsciousnessRollCommandTests
             Timestamp = DateTime.UtcNow
         };
 
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Recovery").Returns("consciousness recovery");
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Success")
-            .Returns("{0} {1} roll succeeded: [{2}] = {3} vs {4}");
-
         // Act
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("John Doe consciousness recovery roll succeeded: [3, 4] = 7 vs 5");
+        result.ShouldContain("John Doe consciousness recovery roll succeeded");
+        result.ShouldContain("Consciousness Number: 5");
+        result.ShouldContain("Roll Result: 7");
     }
 
     [Fact]
@@ -140,16 +147,14 @@ public class PilotConsciousnessRollCommandTests
             GameOriginId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow
         };
-
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Recovery").Returns("consciousness recovery");
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Failure")
-            .Returns("{0} {1} roll failed: [{2}] = {3} vs {4}");
-
+        
         // Act
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("John Doe consciousness recovery roll failed: [1, 6] = 7 vs 11");
+        result.ShouldContain("John Doe consciousness recovery roll failed");
+        result.ShouldContain("Consciousness Number: 11");
+        result.ShouldContain("Roll Result: 7");
     }
 
     [Fact]
