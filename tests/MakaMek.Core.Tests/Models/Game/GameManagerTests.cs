@@ -387,7 +387,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var logger = Substitute.For<ICommandLogger>();
-        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        _commandLoggerFactory.CreateLogger(_localizationService, _serverGame).Returns(logger);
         Action<IGameCommand>? capturedHandler = null;
         _commandPublisher
             .When(cp => cp.Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>()))
@@ -397,7 +397,7 @@ public class GameManagerTests : IDisposable
         await _sut.InitializeLobby();
 
         // Assert subscribe and factory usage
-        _commandLoggerFactory.Received(1).CreateFileLogger(_localizationService, _serverGame);
+        _commandLoggerFactory.Received(1).CreateLogger(_localizationService, _serverGame);
         _commandPublisher.Received()
             .Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>());
         capturedHandler.ShouldNotBeNull();
@@ -413,7 +413,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var logger = Substitute.For<ICommandLogger>();
-        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        _commandLoggerFactory.CreateLogger(_localizationService, _serverGame).Returns(logger);
         Action<IGameCommand>? capturedHandler = null;
         _commandPublisher
             .When(cp => cp.Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>()))
@@ -435,7 +435,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var logger = Substitute.For<ICommandLogger>();
-        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        _commandLoggerFactory.CreateLogger(_localizationService, _serverGame).Returns(logger);
 
         // Act
         await _sut.InitializeLobby();
@@ -444,7 +444,7 @@ public class GameManagerTests : IDisposable
         // Assert
         _commandPublisher.Received()
             .Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>());
-        _commandLoggerFactory.Received(1).CreateFileLogger(_localizationService, _serverGame);
+        _commandLoggerFactory.Received(1).CreateLogger(_localizationService, _serverGame);
     }
 
     [Fact]
@@ -452,7 +452,7 @@ public class GameManagerTests : IDisposable
     {
         // Arrange
         var logger = Substitute.For<ICommandLogger>();
-        _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame).Returns(logger);
+        _commandLoggerFactory.CreateLogger(_localizationService, _serverGame).Returns(logger);
         await _sut.InitializeLobby();
 
         // Act

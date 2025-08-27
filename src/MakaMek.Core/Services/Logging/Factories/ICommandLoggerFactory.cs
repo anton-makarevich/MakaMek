@@ -5,5 +5,5 @@ namespace Sanet.MakaMek.Core.Services.Logging.Factories;
 
 public interface ICommandLoggerFactory
 {
-    ICommandLogger CreateFileLogger(ILocalizationService localizationService, IGame game);
+    ICommandLogger CreateLogger(ILocalizationService localizationService, IGame game);
 }
