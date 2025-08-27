@@ -6,23 +6,23 @@ namespace Sanet.MakaMek.Core.Tests.Services.Localization;
 public class FakeLocalizationServiceTests
 {
     [Theory]
-    [InlineData("Command_JoinGame", "{0} has joined game with {1} units.")]
-    [InlineData("Command_MoveUnit", "{0} moved {1} to {2} facing {3} using {4}.")]
-    [InlineData("Command_DeployUnit", "{0} deployed {1} to {2} facing {3}.")]
-    [InlineData("Command_TryStandup", "{0} attempts to stand up {1}.")]
+    [InlineData("Command_JoinGame", "{0} has joined game with {1} units")]
+    [InlineData("Command_MoveUnit", "{0} moved {1} to {2} facing {3} using {4}")]
+    [InlineData("Command_DeployUnit", "{0} deployed {1} to {2} facing {3}")]
+    [InlineData("Command_TryStandup", "{0} attempts to stand up {1}")]
     [InlineData("Command_MechStandup", "{0} Mech stood up successfully. {1}")]
     [InlineData("Command_RollDice", "{0} rolls")]
-    [InlineData("Command_DiceRolled", "{0} rolled {1}.")]
-    [InlineData("Command_UpdatePlayerStatus", "{0}'s status is {1}.")]
-    [InlineData("Command_ChangePhase", "Game changed phase to {0}.")]
-    [InlineData("Command_ChangeActivePlayer", "{0}'s turn.")]
-    [InlineData("Command_ChangeActivePlayerUnits", "{0}'s turn to play {1} units.")]
-    [InlineData("Command_TurnEnded", "{0} has ended their turn.")]
-    [InlineData("Command_ShutdownUnit", "{0} requests to shut down {1}.")]
-    [InlineData("Command_StartupUnit", "{0} requests to start up {1}.")]
-    [InlineData("Command_TurnIncremented", "Turn {0} has started.")]
-    [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game.")]
-    [InlineData("Command_SetBattleMap", "Battle map has been set.")]
+    [InlineData("Command_DiceRolled", "{0} rolled {1}")]
+    [InlineData("Command_UpdatePlayerStatus", "{0}'s status is {1}")]
+    [InlineData("Command_ChangePhase", "Game changed phase to {0}")]
+    [InlineData("Command_ChangeActivePlayer", "{0}'s turn")]
+    [InlineData("Command_ChangeActivePlayerUnits", "{0}'s turn to play {1} units")]
+    [InlineData("Command_TurnEnded", "{0} has ended their turn")]
+    [InlineData("Command_ShutdownUnit", "{0} requests to shut down {1}")]
+    [InlineData("Command_StartupUnit", "{0} requests to start up {1}")]
+    [InlineData("Command_TurnIncremented", "Turn {0} has started")]
+    [InlineData("Command_RequestGameLobbyStatus", "Client {0} requested game lobby status for game")]
+    [InlineData("Command_SetBattleMap", "Battle map has been set")]
     public void GetString_BasicCommands_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
@@ -117,7 +117,6 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_PilotingSkillRoll_BasePilotingSkill", "Base Piloting Skill: {0}")]
     [InlineData("Command_PilotingSkillRoll_Modifiers", "Modifiers:")]
     [InlineData("Command_PilotingSkillRoll_TotalTargetNumber", "Total Target Number: {0}")]
-    [InlineData("Command_PilotingSkillRoll_RollResult", "Roll Result: {0}")]
     // Piloting Skill Roll Types
     [InlineData("PilotingSkillRollType_GyroHit", "Gyro Hit")]
     [InlineData("PilotingSkillRollType_GyroDestroyed", "Gyro Destroyed")]
@@ -211,10 +210,10 @@ public class FakeLocalizationServiceTests
     // Heat update command strings
     [InlineData("Command_HeatUpdated_Header", "Heat update for {0} (Previous: {1})")]
     [InlineData("Command_HeatUpdated_Sources", "Heat sources:")]
-    [InlineData("Command_HeatUpdated_MovementHeat", "  + {0} movement ({1} MP): {2} heat")]
-    [InlineData("Command_HeatUpdated_WeaponHeat", "  + Firing {0}: {1} heat")]
+    [InlineData("Command_HeatUpdated_MovementHeat", "+ {0} movement ({1} MP): {2} heat")]
+    [InlineData("Command_HeatUpdated_WeaponHeat", "+ Firing {0}: {1} heat")]
     [InlineData("Command_HeatUpdated_TotalGenerated", "Total heat generated: {0}")]
-    [InlineData("Command_HeatUpdated_Dissipation", "  - Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat")]
+    [InlineData("Command_HeatUpdated_Dissipation", "- Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat")]
     // Start phase
     [InlineData("StartPhase_ActionLabel", "Ready to play")]
     [InlineData("StartPhase_PlayerActionLabel", "Ready")]
@@ -257,8 +256,10 @@ public class FakeLocalizationServiceTests
     // Consciousness roll commands
     [InlineData("Command_PilotConsciousnessRoll_Consciousness", "consciousness")]
     [InlineData("Command_PilotConsciousnessRoll_Recovery", "consciousness recovery")]
-    [InlineData("Command_PilotConsciousnessRoll_Success", "{0} {1} roll succeeded: [{2}] = {3} vs {4}")]
-    [InlineData("Command_PilotConsciousnessRoll_Failure", "{0} {1} roll failed: [{2}] = {3} vs {4}")]
+    [InlineData("Command_PilotConsciousnessRoll_Success", "{0} {1} roll succeeded")]
+    [InlineData("Command_PilotConsciousnessRoll_Failure", "{0} {1} roll failed")]
+    [InlineData("Command_PilotConsciousnessRoll_ConsciousnessNumber", "Consciousness Number: {0}")]
+    [InlineData("Command_RollResult", "Roll Result: {0}")]
 
     // Pilot status
     [InlineData("Pilot_Status_Unknown", "UNKNOWN")]

@@ -6,17 +6,17 @@ public class FakeLocalizationService: ILocalizationService
     {
         return key switch
         {
-            "Command_JoinGame" => "{0} has joined game with {1} units.",
-            "Command_MoveUnit" => "{0} moved {1} to {2} facing {3} using {4}.",
-            "Command_DeployUnit" => "{0} deployed {1} to {2} facing {3}.",
-            "Command_TryStandup" => "{0} attempts to stand up {1}.",
+            "Command_JoinGame" => "{0} has joined game with {1} units",
+            "Command_MoveUnit" => "{0} moved {1} to {2} facing {3} using {4}",
+            "Command_DeployUnit" => "{0} deployed {1} to {2} facing {3}",
+            "Command_TryStandup" => "{0} attempts to stand up {1}",
             "Command_MechStandup" => "{0} Mech stood up successfully. {1}",
             "Command_RollDice" => "{0} rolls",
-            "Command_DiceRolled" => "{0} rolled {1}.",
-            "Command_UpdatePlayerStatus" => "{0}'s status is {1}.",
-            "Command_ChangePhase" => "Game changed phase to {0}.",
-            "Command_ChangeActivePlayer" => "{0}'s turn.",
-            "Command_ChangeActivePlayerUnits" => "{0}'s turn to play {1} units.",
+            "Command_DiceRolled" => "{0} rolled {1}",
+            "Command_UpdatePlayerStatus" => "{0}'s status is {1}",
+            "Command_ChangePhase" => "Game changed phase to {0}",
+            "Command_ChangeActivePlayer" => "{0}'s turn",
+            "Command_ChangeActivePlayerUnits" => "{0}'s turn to play {1} units",
             "Command_WeaponConfiguration_TorsoRotation" => "{0}'s {1} rotates torso to face {2}",
             "Command_WeaponConfiguration_ArmsFlip" => "{0}'s {1} flips arms {2}",
             "Command_WeaponAttackDeclaration_NoAttacks" => "{0}'s {1} declares no attacks",
@@ -46,12 +46,12 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_DestroyedParts" => "Destroyed parts:",
             "Command_WeaponAttackResolution_DestroyedPart" => "- {0} destroyed",
             "Command_WeaponAttackResolution_UnitDestroyed" => "{0} has been destroyed!",
-            "Command_TurnEnded" => "{0} has ended their turn.",
-            "Command_ShutdownUnit" => "{0} requests to shut down {1}.",
-            "Command_StartupUnit" => "{0} requests to start up {1}.",
-            "Command_TurnIncremented" => "Turn {0} has started.",
-            "Command_RequestGameLobbyStatus" => "Client {0} requested game lobby status for game.",
-            "Command_SetBattleMap" => "Battle map has been set.",
+            "Command_TurnEnded" => "{0} has ended their turn",
+            "Command_ShutdownUnit" => "{0} requests to shut down {1}",
+            "Command_StartupUnit" => "{0} requests to start up {1}",
+            "Command_TurnIncremented" => "Turn {0} has started",
+            "Command_RequestGameLobbyStatus" => "Client {0} requested game lobby status for game",
+            "Command_SetBattleMap" => "Battle map has been set",
             "Direction_Forward" => "forward",
             "Direction_Backward" => "backward",
             
@@ -69,7 +69,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_PilotingSkillRoll_BasePilotingSkill" => "Base Piloting Skill: {0}",
             "Command_PilotingSkillRoll_Modifiers" => "Modifiers:",
             "Command_PilotingSkillRoll_TotalTargetNumber" => "Total Target Number: {0}",
-            "Command_PilotingSkillRoll_RollResult" => "Roll Result: {0}",
+            "Command_RollResult" => "Roll Result: {0}",
             
             // Piloting Skill Roll Types
             "PilotingSkillRollType_GyroHit" => "Gyro Hit",
@@ -167,16 +167,17 @@ public class FakeLocalizationService: ILocalizationService
             // Heat update command strings
             "Command_HeatUpdated_Header" => "Heat update for {0} (Previous: {1})",
             "Command_HeatUpdated_Sources" => "Heat sources:",
-            "Command_HeatUpdated_MovementHeat" => "  + {0} movement ({1} MP): {2} heat",
-            "Command_HeatUpdated_WeaponHeat" => "  + Firing {0}: {1} heat",
+            "Command_HeatUpdated_MovementHeat" => "+ {0} movement ({1} MP): {2} heat",
+            "Command_HeatUpdated_WeaponHeat" => "+ Firing {0}: {1} heat",
             "Command_HeatUpdated_TotalGenerated" => "Total heat generated: {0}",
-            "Command_HeatUpdated_Dissipation" => "  - Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat",
+            "Command_HeatUpdated_Dissipation" => "- Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat",
 
             // Consciousness roll command strings
             "Command_PilotConsciousnessRoll_Consciousness" => "consciousness",
             "Command_PilotConsciousnessRoll_Recovery" => "consciousness recovery",
-            "Command_PilotConsciousnessRoll_Success" => "{0} {1} roll succeeded: [{2}] = {3} vs {4}",
-            "Command_PilotConsciousnessRoll_Failure" => "{0} {1} roll failed: [{2}] = {3} vs {4}",
+            "Command_PilotConsciousnessRoll_Success" => "{0} {1} roll succeeded",
+            "Command_PilotConsciousnessRoll_Failure" => "{0} {1} roll failed",
+            "Command_PilotConsciousnessRoll_ConsciousnessNumber" => "Consciousness Number: {0}",
             
             // Start phase
             "StartPhase_ActionLabel" => "Ready to play",

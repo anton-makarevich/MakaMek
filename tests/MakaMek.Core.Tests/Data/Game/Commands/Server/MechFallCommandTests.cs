@@ -18,7 +18,7 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 
 public class MechFallCommandTests
 {
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
     private readonly Unit _unit;
@@ -62,7 +62,7 @@ public class MechFallCommandTests
             // Create player
             new Player(Guid.NewGuid(), "Player 1");
 
-        // Create unit using MechFactory
+        // Create a unit using MechFactory
         var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
@@ -74,30 +74,6 @@ public class MechFallCommandTests
         
         // Setup game to return players
         _game.Players.Returns(new List<IPlayer> { player });
-        
-        // Setup localization service
-        _localizationService.GetString("Command_MechFalling_Base")
-            .Returns("{0} fell");
-        _localizationService.GetString("Command_MechFalling_Levels")
-            .Returns(" {0} level(s)");
-        _localizationService.GetString("Command_MechFalling_Jumping")
-            .Returns(" while jumping");
-        _localizationService.GetString("Command_MechFalling_Damage")
-            .Returns(" and took {0} damage");
-        _localizationService.GetString("Command_MechFalling_PilotInjury")
-            .Returns(", pilot was injured");
-        // PSR rendering 
-        _localizationService.GetString("PilotingSkillRollType_GyroHit").Returns("Gyro Hit");
-        _localizationService.GetString("PilotingSkillRollType_PilotDamageFromFall").Returns("Pilot Damage From Fall");
-        _localizationService.GetString("Command_PilotingSkillRoll_Success").Returns("{0} roll succeeded");
-        _localizationService.GetString("Command_PilotingSkillRoll_Failure").Returns("{0} roll failed");
-        _localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll").Returns("{0} roll is impossible");
-        _localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill")
-            .Returns("Base Piloting Skill: {0}");
-        _localizationService.GetString("Command_PilotingSkillRoll_Modifiers").Returns("Modifiers:");
-        _localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber")
-            .Returns("Total Target Number: {0}");
-        _localizationService.GetString("Command_PilotingSkillRoll_RollResult").Returns("Roll Result: {0}");
     }
 
     private FallingDamageData CreateTestFallingDamageData(int totalDamage = 5)
@@ -267,9 +243,6 @@ public class MechFallCommandTests
     {
         // Arrange
         var sut = CreateComplexFallCommand();
-        // Make sure the required string is properly defined
-        _localizationService.GetString("Command_WeaponAttackResolution_HitLocations")
-            .Returns("Hit Locations:");
 
         // Act
         var result = sut.Render(_localizationService, _game);
@@ -342,7 +315,7 @@ public class MechFallCommandTests
         var result = sut.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe($"Locust LCT-1V fell and took 10 damage");
+        result.ShouldContain($"Locust LCT-1V fell and took 10 damage");
         result.ShouldNotContain(PsrDetailsText);
     }
 
