@@ -69,7 +69,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_PilotingSkillRoll_BasePilotingSkill" => "Base Piloting Skill: {0}",
             "Command_PilotingSkillRoll_Modifiers" => "Modifiers:",
             "Command_PilotingSkillRoll_TotalTargetNumber" => "Total Target Number: {0}",
-            "Command_PilotingSkillRoll_RollResult" => "Roll Result: {0}",
+            "Command_RollResult" => "Roll Result: {0}",
             
             // Piloting Skill Roll Types
             "PilotingSkillRollType_GyroHit" => "Gyro Hit",
@@ -178,7 +178,6 @@ public class FakeLocalizationService: ILocalizationService
             "Command_PilotConsciousnessRoll_Success" => "{0} {1} roll succeeded",
             "Command_PilotConsciousnessRoll_Failure" => "{0} {1} roll failed",
             "Command_PilotConsciousnessRoll_ConsciousnessNumber" => "Consciousness Number: {0}",
-            "Command_PilotConsciousnessRoll_RollResult" => "Roll Result: {0}",
             
             // Start phase
             "StartPhase_ActionLabel" => "Ready to play",

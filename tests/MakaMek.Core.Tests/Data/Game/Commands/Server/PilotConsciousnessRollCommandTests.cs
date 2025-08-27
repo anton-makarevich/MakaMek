@@ -20,19 +20,7 @@ public class PilotConsciousnessRollCommandTests
 
     public PilotConsciousnessRollCommandTests()
     {
-        _localizationService = Substitute.For<ILocalizationService>();
-        _localizationService.GetString("Command_PilotConsciousnessRoll_ConsciousnessNumber")
-            .Returns("Consciousness Number: {0}");
-        _localizationService.GetString("Command_PilotConsciousnessRoll_RollResult")
-            .Returns("Roll Result: {0}");
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Failure")
-            .Returns("{0} {1} roll failed");
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Success")
-            .Returns("{0} {1} roll succeeded");
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Recovery")
-            .Returns("consciousness recovery");
-        _localizationService.GetString("Command_PilotConsciousnessRoll_Consciousness")
-            .Returns("consciousness");
+        _localizationService = new FakeLocalizationService();
         
         _game = Substitute.For<IGame>();
         var pilot = Substitute.For<IPilot>();
@@ -61,7 +49,7 @@ public class PilotConsciousnessRollCommandTests
     public void Render_WithSuccessfulConsciousnessRoll_ReturnsFormattedString()
     {
         // Arrange
-        var command = new PilotConsciousnessRollCommand
+        var sut = new PilotConsciousnessRollCommand
         {
             UnitId = _unitId,
             PilotId = _pilotId,
@@ -74,7 +62,7 @@ public class PilotConsciousnessRollCommandTests
         };
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldContain("John Doe consciousness roll succeeded");
@@ -86,7 +74,7 @@ public class PilotConsciousnessRollCommandTests
     public void Render_WithFailedConsciousnessRoll_ReturnsFormattedString()
     {
         // Arrange
-        var command = new PilotConsciousnessRollCommand
+        var sut = new PilotConsciousnessRollCommand
         {
             UnitId = _unitId,
             PilotId = _pilotId,
@@ -99,7 +87,7 @@ public class PilotConsciousnessRollCommandTests
         };
         
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldContain("John Doe consciousness roll failed");
@@ -111,7 +99,7 @@ public class PilotConsciousnessRollCommandTests
     public void Render_WithSuccessfulRecoveryRoll_ReturnsFormattedString()
     {
         // Arrange
-        var command = new PilotConsciousnessRollCommand
+        var sut = new PilotConsciousnessRollCommand
         {
             UnitId = _unitId,
             PilotId = _pilotId,
@@ -124,7 +112,7 @@ public class PilotConsciousnessRollCommandTests
         };
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldContain("John Doe consciousness recovery roll succeeded");
@@ -136,7 +124,7 @@ public class PilotConsciousnessRollCommandTests
     public void Render_WithFailedRecoveryRoll_ReturnsFormattedString()
     {
         // Arrange
-        var command = new PilotConsciousnessRollCommand
+        var sut = new PilotConsciousnessRollCommand
         {
             UnitId = _unitId,
             PilotId = _pilotId,
@@ -149,7 +137,7 @@ public class PilotConsciousnessRollCommandTests
         };
         
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldContain("John Doe consciousness recovery roll failed");
@@ -161,7 +149,7 @@ public class PilotConsciousnessRollCommandTests
     public void Render_WithNonExistentUnit_ReturnsEmptyString()
     {
         // Arrange
-        var command = new PilotConsciousnessRollCommand
+        var sut = new PilotConsciousnessRollCommand
         {
             UnitId = Guid.NewGuid(), // Different unit ID
             PilotId = _pilotId,
@@ -174,7 +162,7 @@ public class PilotConsciousnessRollCommandTests
         };
 
         // Act
-        var result = command.Render(_localizationService, _game);
+        var result = sut.Render(_localizationService, _game);
 
         // Assert
         result.ShouldBe(string.Empty);

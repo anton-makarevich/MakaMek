@@ -117,7 +117,6 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_PilotingSkillRoll_BasePilotingSkill", "Base Piloting Skill: {0}")]
     [InlineData("Command_PilotingSkillRoll_Modifiers", "Modifiers:")]
     [InlineData("Command_PilotingSkillRoll_TotalTargetNumber", "Total Target Number: {0}")]
-    [InlineData("Command_PilotingSkillRoll_RollResult", "Roll Result: {0}")]
     // Piloting Skill Roll Types
     [InlineData("PilotingSkillRollType_GyroHit", "Gyro Hit")]
     [InlineData("PilotingSkillRollType_GyroDestroyed", "Gyro Destroyed")]
@@ -260,7 +259,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_PilotConsciousnessRoll_Success", "{0} {1} roll succeeded")]
     [InlineData("Command_PilotConsciousnessRoll_Failure", "{0} {1} roll failed")]
     [InlineData("Command_PilotConsciousnessRoll_ConsciousnessNumber", "Consciousness Number: {0}")]
-    [InlineData("Command_PilotConsciousnessRoll_RollResult", "Roll Result: {0}")]
+    [InlineData("Command_RollResult", "Roll Result: {0}")]
 
     // Pilot status
     [InlineData("Pilot_Status_Unknown", "UNKNOWN")]

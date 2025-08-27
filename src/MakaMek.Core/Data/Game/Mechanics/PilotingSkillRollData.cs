@@ -86,7 +86,7 @@ public record PilotingSkillRollData
         if (!PsrBreakdown.IsImpossible)
         {
             stringBuilder.AppendLine(string.Format(
-                localizationService.GetString("Command_PilotingSkillRoll_RollResult"),
+                localizationService.GetString("Command_RollResult"),
                 rollTotal));
         }
         

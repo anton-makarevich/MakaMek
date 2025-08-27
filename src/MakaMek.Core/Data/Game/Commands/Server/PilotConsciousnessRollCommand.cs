@@ -37,7 +37,7 @@ public record struct PilotConsciousnessRollCommand : IGameCommand
         var template = localizationService.GetString(resultKey);
         stringBuilder.AppendLine(string.Format(template, pilot.Name, rollType));
         stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_PilotConsciousnessRoll_ConsciousnessNumber"), ConsciousnessNumber));
-        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_PilotConsciousnessRoll_RollResult"), total));
+        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_RollResult"), total));
         return stringBuilder.ToString().TrimEnd();
     }
 }
