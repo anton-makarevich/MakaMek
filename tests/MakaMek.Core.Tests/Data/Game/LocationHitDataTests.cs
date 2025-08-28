@@ -90,7 +90,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldContain("Aimed Shot targeting Head succeeded, Roll: 7");
+        result.Trim().ShouldContain("Aimed Shot targeting H succeeded, Roll: 7");
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldContain("Aimed Shot targeting CenterTorso failed, Roll: 5");
+        result.Trim().ShouldContain("Aimed Shot targeting CT failed, Roll: 5");
     }
 
 
@@ -148,8 +148,8 @@ public class LocationHitDataTests
         // Assert
         result.ShouldNotBeEmpty();
         result.Trim().ShouldContain(shouldSucceed
-            ? $"Aimed Shot targeting RightArm succeeded, Roll: {rollTotal}"
-            : $"Aimed Shot targeting RightArm failed, Roll: {rollTotal}");
+            ? $"Aimed Shot targeting RA succeeded, Roll: {rollTotal}"
+            : $"Aimed Shot targeting RA failed, Roll: {rollTotal}");
     }
 
     [Fact]
@@ -305,7 +305,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Aimed Shot targeting LeftArm failed, Roll: 4");
+        result.ShouldContain("Aimed Shot targeting LA failed, Roll: 4");
         result.ShouldContain("LA (Roll: 12) → LT: 6 armor, 2 structure damage");
         result.ShouldContain("Excess damage 3 armor, 1 structure transferred to CT");
         result.ShouldContain("Excess damage 2 armor transferred to RT");
