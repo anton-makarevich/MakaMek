@@ -98,7 +98,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             }
 
             // Add destroyed parts information
-            if (ResolutionData.DestroyedParts != null && ResolutionData.DestroyedParts.Any())
+            if (ResolutionData.DestroyedParts != null && ResolutionData.DestroyedParts.Count != 0)
             {
                 stringBuilder.AppendLine(
                     localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts"));
