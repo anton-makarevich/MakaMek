@@ -4,8 +4,8 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Services.Logging;
 
-// Resilient, non-blocking logger writing command.Render() lines to console.
-// Designed for WASM/browser environments where file system is not available.
+// Logger writing command.Render() lines to console.
+// Designed for WASM/browser environments where a file system is not available.
 public sealed class ConsoleCommandLogger : ICommandLogger
 {
     private readonly ILocalizationService _localizationService;
@@ -19,16 +19,10 @@ public sealed class ConsoleCommandLogger : ICommandLogger
 
     public void Log(IGameCommand command)
     {
-        try
-        {
-            if (command.GameOriginId != _game.Id) return;
-            var line = $"{DateTimeOffset.UtcNow:o} | {command.GetType().Name}:{Environment.NewLine}{SafeRender(command)}{Environment.NewLine}";
-            Console.WriteLine(line);
-        }
-        catch
-        {
-            // Swallow to avoid impacting normal operations
-        }
+        if (command.GameOriginId != _game.Id) return;
+        var line =
+            $"{DateTimeOffset.UtcNow:o} | {command.GetType().Name}:{Environment.NewLine}{SafeRender(command)}{Environment.NewLine}";
+        Console.WriteLine(line);
     }
 
     private string SafeRender(IGameCommand command)
