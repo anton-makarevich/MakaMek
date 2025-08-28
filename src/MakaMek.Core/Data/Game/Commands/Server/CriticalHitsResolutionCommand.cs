@@ -69,11 +69,9 @@ public record CriticalHitsResolutionCommand : IGameCommand
                         var comp = part?.GetComponentAtSlot(component.Slot);
                         if (comp != null)
                         {
-                            var localizedCtLocation = $"MechPart_{criticalHitData.Location}_Short";
-
                             stringBuilder.AppendLine(string.Format(
                                 localizationService.GetString("Command_CriticalHitsResolution_CriticalHit"),
-                                localizedCtLocation,
+                                localizedLocation,
                                 component.Slot + 1,
                                 comp.Name));
                         }

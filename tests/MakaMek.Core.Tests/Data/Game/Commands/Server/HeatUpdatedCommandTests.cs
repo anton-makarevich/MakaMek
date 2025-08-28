@@ -14,7 +14,7 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 
 public class HeatUpdatedCommandTests
 {
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
     private readonly Unit _unit;
@@ -37,20 +37,6 @@ public class HeatUpdatedCommandTests
         
         // Setup game to return players
         _game.Players.Returns(new List<IPlayer> { player });
-        
-        // Setup localization service
-        _localizationService.GetString("Command_HeatUpdated_Header")
-            .Returns("Heat update for {0} (Previous: {1})");
-        _localizationService.GetString("Command_HeatUpdated_Sources")
-            .Returns("Heat sources:");
-        _localizationService.GetString("Command_HeatUpdated_MovementHeat")
-            .Returns("  + {0} movement ({1} MP): {2} heat");
-        _localizationService.GetString("Command_HeatUpdated_WeaponHeat")
-            .Returns("  + Firing {0}: {1} heat");
-        _localizationService.GetString("Command_HeatUpdated_TotalGenerated")
-            .Returns("Total heat generated: {0}");
-        _localizationService.GetString("Command_HeatUpdated_Dissipation")
-            .Returns("  - Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat");
     }
 
     [Fact]
@@ -82,7 +68,7 @@ public class HeatUpdatedCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain($"Heat update for {_unit.Name} (Previous: 0)");
+        result.ShouldContain($"Heat update for {_unit.Model} (Previous: 0)");
         result.ShouldContain("Heat sources:");
         result.ShouldContain("Total heat generated: 0");
         result.ShouldContain("Heat dissipation from 10 heat sinks and 10 engine heat sinks: -20 heat");
