@@ -14,7 +14,7 @@ public class FileCommandLoggerFactoryTests
     private readonly IGame _game = Substitute.For<IGame>();
 
     [Fact]
-    public void CreateLogger_ShouldReturnFileCommandLogger_ThatUsesProvidedServices()
+    public void CreateLogger_ShouldReturnFileCommandLogger()
     {
         // Arrange & Act
         var logger = _sut.CreateLogger(_localizationService, _game);

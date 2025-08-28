@@ -3,7 +3,7 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Services.Logging.Factories;
 
-public class ConsoleCommandLoggerFactory : ICommandLoggerFactory
+public sealed class ConsoleCommandLoggerFactory : ICommandLoggerFactory
 {
     public ICommandLogger CreateLogger(ILocalizationService localizationService, IGame game)
     {

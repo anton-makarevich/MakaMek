@@ -14,7 +14,7 @@ public class ConsoleCommandLoggerFactoryTests
     private readonly IGame _game = Substitute.For<IGame>();
 
     [Fact]
-    public void CreateLogger_ShouldReturnConsoleCommandLogger_ThatUsesProvidedServices()
+    public void CreateLogger_ShouldReturnConsoleCommandLogger()
     {
         // Arrange & Act
         var logger = _sut.CreateLogger(_localizationService, _game);
