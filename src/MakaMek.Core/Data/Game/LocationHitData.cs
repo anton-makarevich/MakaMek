@@ -121,11 +121,10 @@ public record LocationHitData(
         else if (hasStructure)
         {
             key = $"{baseKey}_StructureOnly";
-        }
+        } 
         else
         {
-            // Fallback to the original format for zero damage (shouldn't happen in practice)
-            key = baseKey;
+            return string.Empty;
         }
 
         var template = localizationService.GetString(key);
@@ -145,13 +144,9 @@ public record LocationHitData(
                 return string.Format(template, localizedLocation1, localizedLocation2, armorDamage, rollInfo);
             }
 
-            if (hasStructure)
-            {
-                return string.Format(template, localizedLocation1, localizedLocation2, structureDamage, rollInfo);
-            }
-
-            // Fallback
-            return string.Format(template, localizedLocation1, localizedLocation2, armorDamage + structureDamage, rollInfo);
+            if (!hasStructure) return string.Empty;
+            
+            return string.Format(template, localizedLocation1, localizedLocation2, structureDamage, rollInfo);
         }
 
         // Regular hit case
