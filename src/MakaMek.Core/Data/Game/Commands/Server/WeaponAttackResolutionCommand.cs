@@ -68,14 +68,11 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             if (ResolutionData.HitLocationsData.ClusterRoll.Count > 1)
             {
                 // Add cluster roll information
-                if (ResolutionData.HitLocationsData.ClusterRoll.Count > 0)
-                {
-                    var clusterRollTotal = ResolutionData.HitLocationsData.ClusterRoll.Sum(d => d.Result);
-                    stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_WeaponAttackResolution_ClusterRoll"),
-                        clusterRollTotal));
-                }
-
+                var clusterRollTotal = ResolutionData.HitLocationsData.ClusterRoll.Sum(d => d.Result);
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_WeaponAttackResolution_ClusterRoll"),
+                    clusterRollTotal));
+                
                 if (ResolutionData.HitLocationsData.MissilesHit > 0)
                 {
                     stringBuilder.AppendLine(string.Format(

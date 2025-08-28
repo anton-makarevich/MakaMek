@@ -34,6 +34,7 @@ public record LocationHitData(
         var aimedShotTotal = isAimedShot ? AimedShotRoll.Sum() : 0;
         var aimedShotSuccessful = isAimedShot && aimedShotTotal is >= 6 and <= 8;
         var locationRollTotal = LocationRoll.Length > 0 ? LocationRoll.Sum() : 0;
+        var localizedInitialLocation = localizationService.GetString($"MechPart_{InitialLocation}_Short");
 
         if (isAimedShot)
         {
@@ -42,14 +43,14 @@ public record LocationHitData(
                 var template = localizationService.GetString("Command_WeaponAttackResolution_AimedShotSuccessful");
                 stringBuilder.AppendLine(string.Format(
                     template,
-                    InitialLocation,
+                    localizedInitialLocation,
                     aimedShotTotal));
             }
             else
             {
                 stringBuilder.AppendLine(string.Format(
                     localizationService.GetString("Command_WeaponAttackResolution_AimedShotFailed"),
-                    InitialLocation,
+                    localizedInitialLocation,
                     aimedShotTotal));
             }
         }
@@ -64,7 +65,7 @@ public record LocationHitData(
                 Damage[0].Location,
                 Damage[0].ArmorDamage,
                 Damage[0].StructureDamage,
-                locationRollTotal.ToString()));
+                locationRollTotal));
         }
         else
         {
@@ -75,7 +76,7 @@ public record LocationHitData(
                 null,
                 Damage[0].ArmorDamage,
                 Damage[0].StructureDamage,
-                locationRollTotal.ToString()));
+                locationRollTotal));
         }
         
         if (Damage.Count > 1)
@@ -103,7 +104,7 @@ public record LocationHitData(
         PartLocation? location2,
         int armorDamage,
         int structureDamage,
-        string rollInfo)
+        int rollInfo)
     {
         var hasArmor = armorDamage > 0;
         var hasStructure = structureDamage > 0;
@@ -164,13 +165,9 @@ public record LocationHitData(
             return string.Format(template, localizedLocation1, armorDamage, rollInfo);
         }
 
-        if (hasStructure)
-        {
-            return string.Format(template, localizedLocation1, structureDamage, rollInfo);
-        }
-
-        // Fallback
-        return string.Format(template, localizedLocation1, armorDamage + structureDamage, rollInfo);
+        if (!hasStructure) return string.Empty;
+        
+        return string.Format(template, localizedLocation1, structureDamage, rollInfo);
     }
 
     /// <summary>
@@ -186,7 +183,7 @@ public record LocationHitData(
         var hasStructure = structureDamage > 0;
 
         var localizedLocation = localizationService.GetString($"MechPart_{location}_Short");
-        
+
         string key;
         if (hasArmor && hasStructure)
         {
@@ -202,18 +199,9 @@ public record LocationHitData(
             return string.Format(template, localizedLocation, armorDamage);
         }
 
-        if (hasStructure)
-        {
-            key = "Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly";
-            var template = localizationService.GetString(key);
-            return string.Format(template, localizedLocation, structureDamage);
-        }
-        else
-        {
-            // Fallback to the original format for zero damage
-            key = "Command_WeaponAttackResolution_HitLocationExcessDamage";
-            var template = localizationService.GetString(key);
-            return string.Format(template, localizedLocation, armorDamage + structureDamage);
-        }
+        if (!hasStructure) return string.Empty;
+
+        key = "Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly";
+        return string.Format(localizationService.GetString(key), localizedLocation, structureDamage);
     }
 }

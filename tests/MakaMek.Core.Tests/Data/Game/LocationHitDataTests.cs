@@ -196,6 +196,73 @@ public class LocationHitDataTests
     }
 
     [Fact]
+    public void Render_StructureOnlyDamage_ReturnsCorrectOutput()
+    {
+        // Arrange - Create a hit with only structure damage (no armor damage)
+        var sut = new LocationHitData(
+        [
+            new LocationDamageData(PartLocation.LeftTorso, 0, 3, false) // 0 armor, 3 structure damage
+        ],
+        [], // No aimed shot
+        [5], // Location roll
+        PartLocation.LeftTorso
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.Trim().ShouldBe("LT (Roll: 5): 3 structure damage");
+    }
+
+    [Fact]
+    public void Render_StructureOnlyDamageWithTransfer_ReturnsCorrectOutput()
+    {
+        // Arrange - Create a hit with only structure damage that transfers
+        var sut = new LocationHitData(
+        [
+            new LocationDamageData(PartLocation.LeftTorso, 0, 3, false) // 0 armor, 3 structure damage
+        ],
+        [], // No aimed shot
+        [5], // Location roll
+        PartLocation.RightTorso // Different from damage location to trigger transfer
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.Trim().ShouldBe("RT (Roll: 5) → LT: 3 structure damage");
+    }
+
+    [Fact]
+    public void Render_ExcessDamageWithStructureOnly_ReturnsCorrectOutput()
+    {
+        // Arrange - Multiple damage locations with structure-only damage
+        var sut = new LocationHitData(
+        [
+            new LocationDamageData(PartLocation.LeftArm, 0, 5, false), // Structure damage to LA
+            new LocationDamageData(PartLocation.LeftTorso, 0, 3, false), // Excess damage to LT
+            new LocationDamageData(PartLocation.CenterTorso, 0, 2, false) // More excess to CT
+        ],
+        [], // No aimed shot
+        [4, 4], // Location roll
+        PartLocation.LeftArm
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("LA (Roll: 8): 5 structure damage");
+        result.ShouldContain("Excess damage 3 structure transferred to LT");
+        result.ShouldContain("Excess damage 2 structure transferred to CT");
+    }
+
+    [Fact]
     public void Render_ShouldNotShowExcessDamage_WhenOnlyOneDamageLocation()
     {
         // Arrange - This verifies lines 76-85 are not executed when Damage.Count <= 1
