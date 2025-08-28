@@ -3,9 +3,9 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Services.Logging.Factories;
 
-public class CommandLoggerFactory : ICommandLoggerFactory
+public sealed class FileCommandLoggerFactory : ICommandLoggerFactory
 {
-    public ICommandLogger CreateFileLogger(ILocalizationService localizationService, IGame game)
+    public ICommandLogger CreateLogger(ILocalizationService localizationService, IGame game)
     {
         return new FileCommandLogger(localizationService, game);
     }

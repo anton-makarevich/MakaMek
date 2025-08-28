@@ -7,28 +7,28 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Services.Logging.Factories;
 
-public class CommandLoggerFactoryTests
+public class FileCommandLoggerFactoryTests
 {
-    private readonly CommandLoggerFactory _sut = new();
+    private readonly FileCommandLoggerFactory _sut = new();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IGame _game = Substitute.For<IGame>();
 
     [Fact]
-    public void CreateFileLogger_ShouldReturnFileCommandLogger_ThatUsesProvidedServices()
+    public void CreateLogger_ShouldReturnFileCommandLogger()
     {
         // Arrange & Act
-        var logger = _sut.CreateFileLogger(_localizationService, _game);
-        
+        var logger = _sut.CreateLogger(_localizationService, _game);
+
         // Assert
         logger.ShouldBeOfType<FileCommandLogger>();
     }
 
     [Fact]
-    public void CreateFileLogger_ShouldReturnNewInstance_EachTime()
+    public void CreateLogger_ShouldReturnNewInstance_EachTime()
     {
         // Act
-        var logger1 = _sut.CreateFileLogger(_localizationService, _game);
-        var logger2 = _sut.CreateFileLogger(_localizationService, _game);
+        var logger1 = _sut.CreateLogger(_localizationService, _game);
+        var logger2 = _sut.CreateLogger(_localizationService, _game);
 
         // Assert
         logger1.ShouldBeOfType<FileCommandLogger>();

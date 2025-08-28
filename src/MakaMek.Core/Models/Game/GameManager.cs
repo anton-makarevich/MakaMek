@@ -121,7 +121,7 @@ public class GameManager : IGameManager
         if (!_loggingSubscribed)
         {
             var transportPublisher = transportAdapter.TransportPublishers.FirstOrDefault(ta => ta is RxTransportPublisher);
-            _commandLogger = _commandLoggerFactory.CreateFileLogger(_localizationService, _serverGame);
+            _commandLogger = _commandLoggerFactory.CreateLogger(_localizationService, _serverGame);
             
             _logHandler = SafeLog(_commandLogger);
             _commandPublisher.Subscribe(_logHandler, transportPublisher);
