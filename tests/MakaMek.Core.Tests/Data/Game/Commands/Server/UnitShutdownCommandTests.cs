@@ -15,7 +15,7 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 
 public class UnitShutdownCommandTests
 {
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly FakeLocalizationService _localizationService = new();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
     private readonly Unit _unit;
@@ -36,20 +36,6 @@ public class UnitShutdownCommandTests
         
         // Setup game to return players
         _game.Players.Returns(new List<IPlayer> { player });
-        
-        // Setup localization service
-        _localizationService.GetString("Command_MechShutdown_Avoided")
-            .Returns("{0} avoided shutdown (heat level {1}, roll: [{2}] = {3} vs {4})");
-        _localizationService.GetString("Command_MechShutdown_AutomaticHeat")
-            .Returns("{0} automatically shut down due to excessive heat (level {1})");
-        _localizationService.GetString("Command_MechShutdown_UnconsciousPilot")
-            .Returns("{0} shut down due to unconscious pilot (heat level {1})");
-        _localizationService.GetString("Command_MechShutdown_FailedRoll")
-            .Returns("{0} shut down due to heat (level {1}, roll: [{2}] = {3} vs {4})");
-        _localizationService.GetString("Command_MechShutdown_Voluntary")
-            .Returns("{0} voluntarily shut down");
-        _localizationService.GetString("Command_MechShutdown_Generic")
-            .Returns("{0} shut down");
     }
 
     private AvoidShutdownRollData CreateSuccessfulRollData()
@@ -92,7 +78,9 @@ public class UnitShutdownCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("LCT-1V avoided shutdown (heat level 15, roll: [5, 6] = 11 vs 8)");
+        result.ShouldContain("LCT-1V avoided shutdown (heat level 15)");
+        result.ShouldContain("Avoid Number: 8");
+        result.ShouldContain("Roll Result: 11");
     }
 
     [Fact]
@@ -161,7 +149,9 @@ public class UnitShutdownCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("LCT-1V shut down due to heat (level 20, roll: [2, 3] = 5 vs 10)");
+        result.ShouldContain("LCT-1V shut down due to heat (level 20)");
+        result.ShouldContain("Avoid Number: 10");
+        result.ShouldContain("Roll Result: 5");
     }
 
     [Fact]

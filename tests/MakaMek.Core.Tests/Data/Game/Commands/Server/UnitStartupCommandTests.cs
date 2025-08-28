@@ -14,7 +14,7 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 
 public class UnitStartupCommandTests
 {
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly FakeLocalizationService _localizationService = new();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
     private readonly Unit _unit;
@@ -38,18 +38,6 @@ public class UnitStartupCommandTests
         
         // Setup game to return players
         _game.Players.Returns(new List<IPlayer> { player });
-        
-        // Setup localization service
-        _localizationService.GetString("Command_MechRestart_Automatic")
-            .Returns("{0} automatically restarted (heat level {1})");
-        _localizationService.GetString("Command_MechRestart_Successful")
-            .Returns("{0} successfully restarted (heat level {1}, roll: [{2}] = {3} vs {4})");
-        _localizationService.GetString("Command_MechRestart_Failed")
-            .Returns("{0} failed to restart (heat level {1}, roll: [{2}] = {3} vs {4})");
-        _localizationService.GetString("Command_MechRestart_Impossible")
-            .Returns("{0} cannot restart (heat level {1})");
-        _localizationService.GetString("Command_MechRestart_Generic")
-            .Returns("{0} restart attempt");
     }
 
     private AvoidShutdownRollData CreateSuccessfulRollData()
@@ -134,7 +122,9 @@ public class UnitStartupCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("LCT-1V successfully restarted (heat level 15, roll: [4, 5] = 9 vs 8)");
+        result.ShouldContain("LCT-1V successfully restarted (heat level 15)");
+        result.ShouldContain("Avoid Number: 8");
+        result.ShouldContain("Roll Result: 9");
     }
 
     [Fact]
@@ -155,7 +145,9 @@ public class UnitStartupCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("LCT-1V failed to restart (heat level 20, roll: [2, 3] = 5 vs 10)");
+        result.ShouldContain("LCT-1V failed to restart (heat level 20)");
+        result.ShouldContain("Avoid Number: 10");
+        result.ShouldContain("Roll Result: 5");
     }
 
     [Fact]

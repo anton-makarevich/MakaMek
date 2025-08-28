@@ -244,14 +244,15 @@ public class FakeLocalizationService: ILocalizationService
 
             // Heat shutdown/restart commands
             "Command_MechRestart_Automatic" => "{0} automatically restarted (heat level {1})",
-            "Command_MechRestart_Successful" => "{0} successfully restarted (heat level {1}, roll: [{2}] = {3} vs {4})",
-            "Command_MechRestart_Failed" => "{0} failed to restart (heat level {1}, roll: [{2}] = {3} vs {4})",
+            "Command_MechRestart_Successful" => "{0} successfully restarted (heat level {1})",
+            "Command_MechRestart_Failed" => "{0} failed to restart (heat level {1})",
             "Command_MechRestart_Impossible" => "{0} cannot restart (heat level {1})",
             "Command_MechRestart_Generic" => "{0} restart attempt",
-            "Command_MechShutdown_Avoided" => "{0} avoided shutdown (heat level {1}, roll: [{2}] = {3} vs {4})",
+            "Command_AvoidNumber" => "Avoid Number: {0}",
+            "Command_MechShutdown_Avoided" => "{0} avoided shutdown (heat level {1})",
             "Command_MechShutdown_AutomaticHeat" => "{0} automatically shut down due to excessive heat (level {1})",
             "Command_MechShutdown_UnconsciousPilot" => "{0} shut down due to unconscious pilot (heat level {1})",
-            "Command_MechShutdown_FailedRoll" => "{0} shut down due to heat (level {1}, roll: [{2}] = {3} vs {4})",
+            "Command_MechShutdown_FailedRoll" => "{0} shut down due to heat (level {1})",
             "Command_MechShutdown_Voluntary" => "{0} voluntarily shut down",
             "Command_MechShutdown_Generic" => "{0} shut down",
 

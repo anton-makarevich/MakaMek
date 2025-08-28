@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Game;
+﻿using System.Text;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -54,23 +55,31 @@ public record struct UnitStartupCommand : IGameCommand
                     unit.Model, unit.CurrentHeat),
 
             { AvoidShutdownRoll.IsSuccessful: true } =>
-                string.Format(localizationService.GetString("Command_MechRestart_Successful"),
-                    unit.Model,
-                    command.AvoidShutdownRoll?.HeatLevel,
-                    string.Join(", ", command.AvoidShutdownRoll?.DiceResults??[]),
-                    command.AvoidShutdownRoll?.DiceResults.Sum(),
-                    command.AvoidShutdownRoll?.AvoidNumber),
+                BuildRollMessage(localizationService, unit.Model, "Command_MechRestart_Successful",
+                    command.AvoidShutdownRoll),
 
             { AvoidShutdownRoll.IsSuccessful: false } =>
-                string.Format(localizationService.GetString("Command_MechRestart_Failed"),
-                    unit.Model,
-                    command.AvoidShutdownRoll?.HeatLevel,
-                    string.Join(", ", command.AvoidShutdownRoll?.DiceResults??[]),
-                    command.AvoidShutdownRoll?.DiceResults.Sum(),
-                    command.AvoidShutdownRoll?.AvoidNumber),
+                BuildRollMessage(localizationService, unit.Model, "Command_MechRestart_Failed",
+                    command.AvoidShutdownRoll),
 
             _ => string.Format(localizationService.GetString("Command_MechRestart_Generic"),
                 unit.Model)
         };
+    }
+
+    private static string BuildRollMessage(ILocalizationService localizationService, string unitModel,
+        string messageKey, AvoidShutdownRollData? rollData)
+    {
+        if (rollData == null) return string.Empty;
+
+        var stringBuilder = new StringBuilder();
+        var total = rollData.DiceResults.Sum();
+
+        var template = localizationService.GetString(messageKey);
+        stringBuilder.AppendLine(string.Format(template, unitModel, rollData.HeatLevel));
+        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_AvoidNumber"), rollData.AvoidNumber));
+        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_RollResult"), total));
+
+        return stringBuilder.ToString().TrimEnd();
     }
 }
