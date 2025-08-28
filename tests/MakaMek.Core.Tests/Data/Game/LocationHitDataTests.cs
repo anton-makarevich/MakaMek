@@ -52,7 +52,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldBe("CenterTorso: 4 armor, 1 structure damage (Roll: 6)");
+        result.Trim().ShouldBe("CT (Roll: 6): 4 armor, 1 structure damage");
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldBe("RightTorso → CenterTorso: 4 armor, 1 structure damage (Roll: 6)");
+        result.Trim().ShouldBe("RT (Roll: 6) → CT: 4 armor, 1 structure damage");
     }
 
     [Fact]
@@ -190,9 +190,9 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("LeftArm: 5 armor, 2 structure damage (Roll: 8)");
-        result.ShouldContain("Excess damage 3 armor transferred to LeftTorso");
-        result.ShouldContain("Excess damage 2 armor, 1 structure transferred to CenterTorso");
+        result.ShouldContain("LA (Roll: 8): 5 armor, 2 structure damage");
+        result.ShouldContain("Excess damage 3 armor transferred to LT");
+        result.ShouldContain("Excess damage 2 armor, 1 structure transferred to CT");
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("LeftArm: 5 armor, 2 structure damage (Roll: 8)");
+        result.ShouldContain("LA (Roll: 8): 5 armor, 2 structure damage");
         result.ShouldNotContain("Excess damage");
         result.ShouldNotContain("transferred");
     }
@@ -239,8 +239,8 @@ public class LocationHitDataTests
         // Assert
         result.ShouldNotBeEmpty();
         result.ShouldContain("Aimed Shot targeting LeftArm failed, Roll: 4");
-        result.ShouldContain("LeftArm → LeftTorso: 6 armor, 2 structure damage (Roll: 12)");
-        result.ShouldContain("Excess damage 3 armor, 1 structure transferred to CenterTorso");
-        result.ShouldContain("Excess damage 2 armor transferred to RightTorso");
+        result.ShouldContain("LA (Roll: 12) → LT: 6 armor, 2 structure damage");
+        result.ShouldContain("Excess damage 3 armor, 1 structure transferred to CT");
+        result.ShouldContain("Excess damage 2 armor transferred to RT");
     }
 }
