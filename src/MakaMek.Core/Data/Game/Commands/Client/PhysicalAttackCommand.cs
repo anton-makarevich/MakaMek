@@ -20,11 +20,11 @@ public record struct PhysicalAttackCommand : IClientCommand
         if (unit == null || target == null) return string.Empty;
 
         var localizedTemplate = localizationService.GetString("Command_PhysicalAttack");
-        return string.Format(localizedTemplate, 
-            player?.Name, 
-            unit.Name,
-            target.Name,
-            AttackType); 
+        return string.Format(localizedTemplate,
+            player?.Name,
+            unit.Model,
+            target.Model,
+            AttackType);
     }
 
     public required Guid AttackerUnitId { get; init; }

@@ -52,7 +52,7 @@ public record struct AmmoExplosionCommand : IGameCommand
             {
                 // Explosion avoided
                 var successTemplate = localizationService.GetString("Command_AmmoExplosion_Avoided");
-                stringBuilder.AppendLine(string.Format(successTemplate, unit.Name));
+                stringBuilder.AppendLine(string.Format(successTemplate, unit.Model));
 
                 // Add roll details
             }
@@ -60,7 +60,7 @@ public record struct AmmoExplosionCommand : IGameCommand
             {
                 // Explosion occurred due to failed roll
                 var failureTemplate = localizationService.GetString("Command_AmmoExplosion_Failed");
-                stringBuilder.AppendLine(string.Format(failureTemplate, unit.Name));
+                stringBuilder.AppendLine(string.Format(failureTemplate, unit.Model));
 
                 // Add roll details
             }

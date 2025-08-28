@@ -46,7 +46,7 @@ public record struct UnitShutdownCommand : IGameCommand
         {
             ShutdownReason.Heat when command.AvoidShutdownRoll?.IsSuccessful == true =>
                 string.Format(localizationService.GetString("Command_MechShutdown_Avoided"),
-                    unit.Name,
+                    unit.Model,
                     command.AvoidShutdownRoll?.HeatLevel,
                     string.Join(", ", command.AvoidShutdownRoll?.DiceResults ?? []),
                     command.AvoidShutdownRoll?.DiceResults.Sum(),
@@ -54,15 +54,15 @@ public record struct UnitShutdownCommand : IGameCommand
 
             ShutdownReason.Heat when isPilotUnconscious =>
                             string.Format(localizationService.GetString("Command_MechShutdown_UnconsciousPilot"),
-                                unit.Name, unit.CurrentHeat),
-            
+                                unit.Model, unit.CurrentHeat),
+
             ShutdownReason.Heat when command.IsAutomaticShutdown =>
                 string.Format(localizationService.GetString("Command_MechShutdown_AutomaticHeat"),
-                    unit.Name, unit.CurrentHeat),
+                    unit.Model, unit.CurrentHeat),
 
             ShutdownReason.Heat when command.AvoidShutdownRoll != null =>
                 string.Format(localizationService.GetString("Command_MechShutdown_FailedRoll"),
-                    unit.Name,
+                    unit.Model,
                     command.AvoidShutdownRoll?.HeatLevel,
                     string.Join(", ", command.AvoidShutdownRoll?.DiceResults ?? []),
                     command.AvoidShutdownRoll?.DiceResults.Sum(),
@@ -70,10 +70,10 @@ public record struct UnitShutdownCommand : IGameCommand
 
             ShutdownReason.Voluntary =>
                 string.Format(localizationService.GetString("Command_MechShutdown_Voluntary"),
-                    unit.Name),
+                    unit.Model),
 
             _ => string.Format(localizationService.GetString("Command_MechShutdown_Generic"),
-                unit.Name)
+                unit.Model)
         };
     }
 }

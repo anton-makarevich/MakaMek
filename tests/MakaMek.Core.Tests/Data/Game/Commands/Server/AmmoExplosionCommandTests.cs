@@ -80,7 +80,7 @@ public class AmmoExplosionCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain("Test Mech TST-1 avoided ammo explosion due to heat");
+        result.ShouldContain("TST-1 avoided ammo explosion due to heat");
         result.ShouldContain("Heat level: 25, Roll: 9 vs 6");
     }
 
@@ -103,7 +103,7 @@ public class AmmoExplosionCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain("Test Mech TST-1 suffered ammo explosion due to heat");
+        result.ShouldContain("TST-1 suffered ammo explosion due to heat");
         result.ShouldContain("Heat level: 25, Roll: 5 vs 6");
     }
 
@@ -138,7 +138,7 @@ public class AmmoExplosionCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain("Test Mech TST-1 suffered ammo explosion due to heat");
+        result.ShouldContain("TST-1 suffered ammo explosion due to heat");
         result.ShouldContain("Explosion caused critical hits:");
         result.ShouldContain("- LRM-5 Ammo in CenterTorso destroyed by explosion");
     }
@@ -169,7 +169,7 @@ public class AmmoExplosionCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain("Test Mech TST-1 avoided ammo explosion due to heat");
+        result.ShouldContain("TST-1 avoided ammo explosion due to heat");
         result.ShouldNotContain("Explosion caused critical hits:");
     }
 

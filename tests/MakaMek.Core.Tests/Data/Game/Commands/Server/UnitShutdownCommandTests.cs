@@ -92,7 +92,7 @@ public class UnitShutdownCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V avoided shutdown (heat level 15, roll: [5, 6] = 11 vs 8)");
+        result.ShouldBe("LCT-1V avoided shutdown (heat level 15, roll: [5, 6] = 11 vs 8)");
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class UnitShutdownCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V automatically shut down due to excessive heat (level 30)");
+        result.ShouldBe("LCT-1V automatically shut down due to excessive heat (level 30)");
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class UnitShutdownCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V shut down due to unconscious pilot (heat level 0)");
+        result.ShouldBe("LCT-1V shut down due to unconscious pilot (heat level 0)");
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class UnitShutdownCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V shut down due to heat (level 20, roll: [2, 3] = 5 vs 10)");
+        result.ShouldBe("LCT-1V shut down due to heat (level 20, roll: [2, 3] = 5 vs 10)");
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class UnitShutdownCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V voluntarily shut down");
+        result.ShouldBe("LCT-1V voluntarily shut down");
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public class UnitShutdownCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V shut down");
+        result.ShouldBe("LCT-1V shut down");
     }
 
     [Fact]

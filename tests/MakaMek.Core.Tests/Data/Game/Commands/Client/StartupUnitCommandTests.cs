@@ -64,7 +64,7 @@ public class StartupUnitCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Test Player requests to start up Locust LCT-1V.");
+        result.ShouldBe("Test Player requests to start up LCT-1V.");
         _localizationService.Received(1).GetString("Command_StartupUnit");
     }
 

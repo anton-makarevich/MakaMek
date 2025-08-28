@@ -29,6 +29,6 @@ public record struct TryStandupCommand : IClientCommand
         if (unit is null) return string.Empty;
         
         var localizedTemplate = localizationService.GetString("Command_TryStandup");
-        return string.Format(localizedTemplate, player?.Name, unit.Name);
+        return string.Format(localizedTemplate, player?.Name, unit.Model);
     }
 }

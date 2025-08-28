@@ -92,7 +92,7 @@ public class UnitStartupCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V automatically restarted (heat level 15)");
+        result.ShouldBe("LCT-1V automatically restarted (heat level 15)");
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class UnitStartupCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V cannot restart (heat level 15)");
+        result.ShouldBe("LCT-1V cannot restart (heat level 15)");
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class UnitStartupCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V successfully restarted (heat level 15, roll: [4, 5] = 9 vs 8)");
+        result.ShouldBe("LCT-1V successfully restarted (heat level 15, roll: [4, 5] = 9 vs 8)");
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class UnitStartupCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V failed to restart (heat level 20, roll: [2, 3] = 5 vs 10)");
+        result.ShouldBe("LCT-1V failed to restart (heat level 20, roll: [2, 3] = 5 vs 10)");
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public class UnitStartupCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Locust LCT-1V restart attempt");
+        result.ShouldBe("LCT-1V restart attempt");
     }
 
     [Fact]

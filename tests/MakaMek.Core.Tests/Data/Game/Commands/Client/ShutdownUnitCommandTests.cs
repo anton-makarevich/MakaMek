@@ -76,7 +76,7 @@ public class ShutdownUnitCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Test Player requests to shut down Locust LCT-1V.");
+        result.ShouldBe("Test Player requests to shut down LCT-1V.");
         _localizationService.Received(1).GetString("Command_ShutdownUnit");
     }
 

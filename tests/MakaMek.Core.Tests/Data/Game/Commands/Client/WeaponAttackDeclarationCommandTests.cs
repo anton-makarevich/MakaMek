@@ -163,7 +163,7 @@ public class WeaponAttackDeclarationCommandTests
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_NoAttacks");
 
-        var expectedResult = $"{_player1.Name}'s {_attacker.Name} didn't declare any attacks";
+        var expectedResult = $"{_player1.Name}'s {_attacker.Model} didn't declare any attacks";
         
         result.ShouldBe(expectedResult);
     }
@@ -183,8 +183,8 @@ public class WeaponAttackDeclarationCommandTests
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_Header");
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_WeaponLine");
         
-        var expectedResult = $"{_player1.Name}'s {_attacker.Name} declared following attacks:" +Environment.NewLine +
-                             $"- Medium Laser at {_player2.Name}'s {_target.Name}";
+        var expectedResult = $"{_player1.Name}'s {_attacker.Model} declared following attacks:" +Environment.NewLine +
+                             $"- Medium Laser at {_player2.Name}'s {_target.Model}";
         
         result.ShouldBe(expectedResult);
     }
@@ -217,9 +217,9 @@ public class WeaponAttackDeclarationCommandTests
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_Header");
         _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_WeaponLine");
         
-        var expectedResult = $"{_player1.Name}'s {_attacker.Name} declared following attacks:" + Environment.NewLine +
-                             $"- Medium Laser at {_player2.Name}'s {_target.Name}" + Environment.NewLine +
-                             $"- Large Laser at {_player2.Name}'s {_target.Name}";
+        var expectedResult = $"{_player1.Name}'s {_attacker.Model} declared following attacks:" + Environment.NewLine +
+                             $"- Medium Laser at {_player2.Name}'s {_target.Model}" + Environment.NewLine +
+                             $"- Large Laser at {_player2.Name}'s {_target.Model}";
         
         result.ShouldBe(expectedResult);
     }

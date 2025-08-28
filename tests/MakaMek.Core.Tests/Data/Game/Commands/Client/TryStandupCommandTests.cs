@@ -53,7 +53,7 @@ public class TryStandupCommandTests
         var result = sut.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe("Player 1 attempts to stand up Locust LCT-1V.");
+        result.ShouldBe("Player 1 attempts to stand up LCT-1V.");
         _localizationService.Received(1).GetString("Command_TryStandup");
     }
 

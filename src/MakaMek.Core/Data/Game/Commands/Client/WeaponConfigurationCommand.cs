@@ -26,13 +26,13 @@ public record struct WeaponConfigurationCommand : IClientCommand
             WeaponConfigurationType.TorsoRotation => string.Format(
                 localizationService.GetString("Command_WeaponConfiguration_TorsoRotation"),
                 player.Name,
-                unit.Name,
+                unit.Model,
                 unit.Position!.Coordinates.Neighbor((HexDirection)Configuration.Value)),
             WeaponConfigurationType.ArmsFlip => string.Format(
                 localizationService.GetString("Command_WeaponConfiguration_ArmsFlip"),
                 player.Name,
-                unit.Name,
-                Configuration.Value == 1 
+                unit.Model,
+                Configuration.Value == 1
                     ? localizationService.GetString("Direction_Forward")
                     : localizationService.GetString("Direction_Backward")),
             _ => string.Empty

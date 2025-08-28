@@ -122,7 +122,7 @@ public class HeatUpdatedCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain($"Heat update for {_unit.Name} (Previous: 0)");
+        result.ShouldContain($"Heat update for {_unit.Model} (Previous: 0)");
         result.ShouldContain("Heat sources:");
         result.ShouldContain("Run movement (5 MP): 2 heat");
         result.ShouldContain("Total heat generated: 2");
@@ -164,7 +164,7 @@ public class HeatUpdatedCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain($"Heat update for {_unit.Name} (Previous: 0)");
+        result.ShouldContain($"Heat update for {_unit.Model} (Previous: 0)");
         result.ShouldContain("Heat sources:");
         result.ShouldContain("Firing Medium Laser: 3 heat");
         result.ShouldContain("Firing Large Laser: 8 heat");
@@ -212,7 +212,7 @@ public class HeatUpdatedCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain($"Heat update for {_unit.Name} (Previous: 5)");
+        result.ShouldContain($"Heat update for {_unit.Model} (Previous: 5)");
         result.ShouldContain("Heat sources:");
         result.ShouldContain("Jump movement (3 MP): 3 heat");
         result.ShouldContain("Firing Medium Laser: 3 heat");

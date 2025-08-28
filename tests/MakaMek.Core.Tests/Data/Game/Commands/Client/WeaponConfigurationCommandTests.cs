@@ -104,7 +104,7 @@ public class WeaponConfigurationCommandTests
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponConfiguration_TorsoRotation");
-        result.ShouldBe($"{_player1.Name}'s {_unit.Name} rotates torso to face {expectedHex}");
+        result.ShouldBe($"{_player1.Name}'s {_unit.Model} rotates torso to face {expectedHex}");
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class WeaponConfigurationCommandTests
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponConfiguration_ArmsFlip");
-        result.ShouldBe($"{_player1.Name}'s {_unit.Name} flips arms forward");
+        result.ShouldBe($"{_player1.Name}'s {_unit.Model} flips arms forward");
     }
 
     [Fact]
@@ -144,6 +144,6 @@ public class WeaponConfigurationCommandTests
 
         // Assert
         _localizationService.Received(1).GetString("Command_WeaponConfiguration_ArmsFlip");
-        result.ShouldBe($"{_player1.Name}'s {_unit.Name} flips arms backward");
+        result.ShouldBe($"{_player1.Name}'s {_unit.Model} flips arms backward");
     }
 }

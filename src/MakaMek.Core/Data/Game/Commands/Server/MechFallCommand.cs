@@ -79,7 +79,7 @@ public record struct MechFallCommand : IGameCommand
         // Base message about falling
         stringBuilder.Append(string.Format(
             localizationService.GetString("Command_MechFalling_Base"),
-            unit.Name));
+            unit.Model));
             
         if (LevelsFallen > 0)
         {

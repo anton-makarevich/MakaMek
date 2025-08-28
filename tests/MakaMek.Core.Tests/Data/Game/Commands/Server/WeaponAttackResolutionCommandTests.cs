@@ -171,7 +171,7 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Player 1's Locust LCT-1V hits Player 2's Locust LCT-1V with Machine Gun");
+        result.ShouldContain("Player 1's LCT-1V hits Player 2's LCT-1V with Machine Gun");
         result.ShouldContain("Target: 8, Roll: 9");
         result.ShouldContain("Total Damage: 5");
         result.ShouldContain("CT (Roll: 6): 5 armor damage");
@@ -188,7 +188,7 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldBe("Player 1's Locust LCT-1V misses Player 2's Locust LCT-1V with Machine Gun (Target: 8, Roll: 5)");
+        result.ShouldBe("Player 1's LCT-1V misses Player 2's LCT-1V with Machine Gun (Target: 8, Roll: 5)");
         result.ShouldNotContain("Attack Direction");
     }
 
@@ -203,7 +203,7 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Player 1's Locust LCT-1V hits Player 2's Locust LCT-1V with Machine Gun");
+        result.ShouldContain("Player 1's LCT-1V hits Player 2's LCT-1V with Machine Gun");
         result.ShouldContain("Target: 7, Roll: 8");
         result.ShouldContain("Total Damage: 10");
         result.ShouldContain("Cluster Roll: 10");
@@ -455,6 +455,6 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V has been destroyed!");
+        result.ShouldContain("LCT-1V has been destroyed!");
     }
 }

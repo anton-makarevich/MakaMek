@@ -29,12 +29,13 @@ public record CriticalHitsResolutionCommand : IGameCommand
 
         foreach (var criticalHitData in CriticalHits)
         {
+            var localizedLocation = localizationService.GetString($"MechPart_{criticalHitData.Location}_Short");
             // Show location if there are multiple locations
             if (CriticalHits.Count > 1)
             {
                 stringBuilder.AppendLine(string.Format(
                     localizationService.GetString("Command_CriticalHitsResolution_Location"),
-                    criticalHitData.Location));
+                    localizedLocation));
             }
 
             // Show critical hit roll and results
@@ -47,7 +48,7 @@ public record CriticalHitsResolutionCommand : IGameCommand
             {
                 stringBuilder.AppendLine(string.Format(
                     localizationService.GetString("Command_CriticalHitsResolution_BlownOff"),
-                    criticalHitData.Location));
+                    localizedLocation));
                 continue;
             }
 
@@ -68,9 +69,11 @@ public record CriticalHitsResolutionCommand : IGameCommand
                         var comp = part?.GetComponentAtSlot(component.Slot);
                         if (comp != null)
                         {
+                            var localizedCtLocation = $"MechPart_{criticalHitData.Location}_Short";
+
                             stringBuilder.AppendLine(string.Format(
                                 localizationService.GetString("Command_CriticalHitsResolution_CriticalHit"),
-                                criticalHitData.Location,
+                                localizedCtLocation,
                                 component.Slot + 1,
                                 comp.Name));
                         }

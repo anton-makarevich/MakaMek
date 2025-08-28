@@ -183,7 +183,7 @@ public class MechFallCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V fell");
+        result.ShouldContain("LCT-1V fell");
         result.ShouldContain("and took 5 damage");
         result.ShouldNotContain("level(s)");
         result.ShouldNotContain("while jumping");
@@ -201,7 +201,7 @@ public class MechFallCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V fell");
+        result.ShouldContain("LCT-1V fell");
         result.ShouldContain("2 level(s)");
         result.ShouldContain("and took 5 damage");
     }
@@ -217,7 +217,7 @@ public class MechFallCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V fell");
+        result.ShouldContain("LCT-1V fell");
         result.ShouldContain("while jumping");
         result.ShouldContain("and took 5 damage");
     }
@@ -233,7 +233,7 @@ public class MechFallCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V fell");
+        result.ShouldContain("LCT-1V fell");
         result.ShouldContain("and took 5 damage");
         result.ShouldContain("pilot was injured");
     }
@@ -249,7 +249,7 @@ public class MechFallCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V fell");
+        result.ShouldContain("LCT-1V fell");
         result.ShouldContain("2 level(s)");
         result.ShouldContain("while jumping");
         result.ShouldContain("and took 8 damage");
@@ -296,7 +296,7 @@ public class MechFallCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V fell");
+        result.ShouldContain("LCT-1V fell");
         result.ShouldContain("pilot was injured");
         result.ShouldContain(psrDetailsText);
     }
@@ -315,7 +315,7 @@ public class MechFallCommandTests
         var result = sut.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain($"Locust LCT-1V fell and took 10 damage");
+        result.ShouldContain($"LCT-1V fell and took 10 damage");
         result.ShouldNotContain(PsrDetailsText);
     }
 
@@ -360,7 +360,7 @@ public class MechFallCommandTests
 
         // Assert
         result.ShouldContain(psrText); // Expecting PSR details();
-        result.ShouldContain("Locust LCT-1V fell and took 7 damage");
+        result.ShouldContain("LCT-1V fell and took 7 damage");
     }
 
     [Fact]
@@ -407,6 +407,6 @@ public class MechFallCommandTests
         // Assert
         result.ShouldContain(failedPsrDetailsRenderedText);
         result.ShouldContain(pilotDamagePsrRenderedText);
-        result.ShouldContain("Locust LCT-1V fell and took 12 damage");
+        result.ShouldContain("LCT-1V fell and took 12 damage");
     }
 }

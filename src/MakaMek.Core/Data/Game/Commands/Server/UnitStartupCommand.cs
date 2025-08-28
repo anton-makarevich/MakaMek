@@ -47,15 +47,15 @@ public record struct UnitStartupCommand : IGameCommand
         {
             { IsAutomaticRestart: true } =>
                 string.Format(localizationService.GetString("Command_MechRestart_Automatic"),
-                    unit.Name, unit.CurrentHeat),
+                    unit.Model, unit.CurrentHeat),
 
             { IsRestartPossible: false } =>
                 string.Format(localizationService.GetString("Command_MechRestart_Impossible"),
-                    unit.Name, unit.CurrentHeat),
+                    unit.Model, unit.CurrentHeat),
 
             { AvoidShutdownRoll.IsSuccessful: true } =>
                 string.Format(localizationService.GetString("Command_MechRestart_Successful"),
-                    unit.Name,
+                    unit.Model,
                     command.AvoidShutdownRoll?.HeatLevel,
                     string.Join(", ", command.AvoidShutdownRoll?.DiceResults??[]),
                     command.AvoidShutdownRoll?.DiceResults.Sum(),
@@ -63,14 +63,14 @@ public record struct UnitStartupCommand : IGameCommand
 
             { AvoidShutdownRoll.IsSuccessful: false } =>
                 string.Format(localizationService.GetString("Command_MechRestart_Failed"),
-                    unit.Name,
+                    unit.Model,
                     command.AvoidShutdownRoll?.HeatLevel,
                     string.Join(", ", command.AvoidShutdownRoll?.DiceResults??[]),
                     command.AvoidShutdownRoll?.DiceResults.Sum(),
                     command.AvoidShutdownRoll?.AvoidNumber),
 
             _ => string.Format(localizationService.GetString("Command_MechRestart_Generic"),
-                unit.Name)
+                unit.Model)
         };
     }
 }
