@@ -16,7 +16,7 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Client;
 
 public class WeaponAttackDeclarationCommandTests
 {
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
     private readonly Player _player1 = new Player(Guid.NewGuid(), "Player 1");
@@ -40,13 +40,6 @@ public class WeaponAttackDeclarationCommandTests
         targetData.Id = Guid.NewGuid();
         _target = mechFactory.Create(targetData);
         _player2.AddUnit(_target);
-
-        _localizationService.GetString("Command_WeaponAttackDeclaration_NoAttacks")
-            .Returns("{0}'s {1} didn't declare any attacks");
-        _localizationService.GetString("Command_WeaponAttackDeclaration_Header")
-            .Returns("{0}'s {1} declared following attacks:");
-        _localizationService.GetString("Command_WeaponAttackDeclaration_WeaponLine")
-            .Returns("- {0} at {1}'s {2}");
     }
 
     private WeaponAttackDeclarationCommand CreateCommand()
@@ -110,8 +103,7 @@ public class WeaponAttackDeclarationCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_NoAttacks");
-        result.ShouldBe($"{_player1.Name}'s {_attacker.Name} didn't declare any attacks");
+        result.ShouldBe($"{_player1.Name}'s {_attacker.Model} declares no attacks");
     }
 
     [Fact]
@@ -138,11 +130,8 @@ public class WeaponAttackDeclarationCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_Header");
-        _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_WeaponLine");
-        
-        var expectedResult = $"{_player1.Name}'s {_attacker.Name} declared following attacks:" + Environment.NewLine +
-                             $"- Medium Laser at {_player2.Name}'s {_target.Name}";
+        var expectedResult = $"{_player1.Name}'s {_attacker.Model} declares attacks:" + Environment.NewLine +
+                             $"- Medium Laser targeting {_player2.Name}'s {_target.Model}";
         
         result.ShouldBe(expectedResult);
     }
@@ -161,9 +150,7 @@ public class WeaponAttackDeclarationCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_NoAttacks");
-
-        var expectedResult = $"{_player1.Name}'s {_attacker.Name} didn't declare any attacks";
+        var expectedResult = $"{_player1.Name}'s {_attacker.Model} declares no attacks";
         
         result.ShouldBe(expectedResult);
     }
@@ -180,11 +167,8 @@ public class WeaponAttackDeclarationCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_Header");
-        _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_WeaponLine");
-        
-        var expectedResult = $"{_player1.Name}'s {_attacker.Name} declared following attacks:" +Environment.NewLine +
-                             $"- Medium Laser at {_player2.Name}'s {_target.Name}";
+        var expectedResult = $"{_player1.Name}'s {_attacker.Model} declares attacks:" +Environment.NewLine +
+                             $"- Medium Laser targeting {_player2.Name}'s {_target.Model}";
         
         result.ShouldBe(expectedResult);
     }
@@ -214,12 +198,9 @@ public class WeaponAttackDeclarationCommandTests
         var result = command.Render(_localizationService, _game);
 
         // Assert
-        _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_Header");
-        _localizationService.Received(1).GetString("Command_WeaponAttackDeclaration_WeaponLine");
-        
-        var expectedResult = $"{_player1.Name}'s {_attacker.Name} declared following attacks:" + Environment.NewLine +
-                             $"- Medium Laser at {_player2.Name}'s {_target.Name}" + Environment.NewLine +
-                             $"- Large Laser at {_player2.Name}'s {_target.Name}";
+        var expectedResult = $"{_player1.Name}'s {_attacker.Model} declares attacks:" + Environment.NewLine +
+                             $"- Medium Laser targeting {_player2.Name}'s {_target.Model}" + Environment.NewLine +
+                             $"- Large Laser targeting {_player2.Name}'s {_target.Model}";
         
         result.ShouldBe(expectedResult);
     }

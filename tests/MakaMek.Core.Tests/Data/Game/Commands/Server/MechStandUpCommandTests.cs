@@ -92,7 +92,7 @@ public class MechStandUpCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V stood up");
+        result.ShouldContain("LCT-1V stood up");
         result.ShouldContain(psrText);
     }
 

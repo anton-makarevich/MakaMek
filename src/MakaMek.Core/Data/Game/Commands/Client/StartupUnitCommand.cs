@@ -31,6 +31,6 @@ public record struct StartupUnitCommand : IClientCommand
         if (player == null || unit == null) return string.Empty;
         
         var localizedTemplate = localizationService.GetString("Command_StartupUnit");
-        return string.Format(localizedTemplate, player.Name, unit.Name);
+        return string.Format(localizedTemplate, player.Name, unit.Model);
     }
 }

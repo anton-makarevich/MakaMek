@@ -38,6 +38,6 @@ public record struct MechStandUpCommand : IGameCommand
         if (unit is null) return string.Empty;
         
         var localizedTemplate = localizationService.GetString("Command_MechStandup");
-        return string.Format(localizedTemplate, unit.Name, PilotingSkillRoll.Render(localizationService));
+        return string.Format(localizedTemplate, unit.Model, PilotingSkillRoll.Render(localizationService));
     }
 }

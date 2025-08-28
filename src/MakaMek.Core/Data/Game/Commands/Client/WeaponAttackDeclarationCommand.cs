@@ -20,12 +20,12 @@ public record struct WeaponAttackDeclarationCommand : IClientCommand
         if (WeaponTargets.Count == 0)
         {
             var noAttacksTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_NoAttacks");
-            return string.Format(noAttacksTemplate, player.Name, attacker.Name);
+            return string.Format(noAttacksTemplate, player.Name, attacker.Model);
         }
         
         var stringBuilder = new StringBuilder();
         var headerTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_Header");
-        stringBuilder.AppendLine(string.Format(headerTemplate, player.Name, attacker.Name));
+        stringBuilder.AppendLine(string.Format(headerTemplate, player.Name, attacker.Model));
         
         var weaponLineTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_WeaponLine");
         
@@ -38,10 +38,10 @@ public record struct WeaponAttackDeclarationCommand : IClientCommand
             var targetPlayer = targetUnit?.Owner;
             if (targetPlayer == null) continue;
             
-            stringBuilder.AppendLine(string.Format(weaponLineTemplate, 
-                weaponTarget.Weapon.Name, 
-                targetPlayer.Name, 
-                targetUnit!.Name));
+            stringBuilder.AppendLine(string.Format(weaponLineTemplate,
+                weaponTarget.Weapon.Name,
+                targetPlayer.Name,
+                targetUnit!.Model));
         }
         
         return stringBuilder.ToString().TrimEnd();

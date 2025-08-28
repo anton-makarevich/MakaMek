@@ -21,12 +21,12 @@ public record struct MoveUnitCommand: IClientCommand
             MovementPath.Last().To
             : unit.Position.ToData();
         var facingHex = new HexCoordinates(position.Coordinates).Neighbor((HexDirection)position.Facing);
-        return string.Format(localizedTemplate, 
-            player?.Name, 
-            unit.Name,
+        return string.Format(localizedTemplate,
+            player?.Name,
+            unit.Model,
             new HexCoordinates(position.Coordinates),
             facingHex,
-            MovementType); 
+            MovementType);
     }
 
     public required Guid UnitId { get; init; }

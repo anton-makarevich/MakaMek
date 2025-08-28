@@ -11,39 +11,11 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game;
 
 public class LocationHitDataTests
 {
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly Unit _unit;
 
     public LocationHitDataTests()
     {
-        // Initialize localization service with test values
-        _localizationService.GetString("Command_WeaponAttackResolution_HitLocation")
-            .Returns("{0}: {1} damage (Roll: {2})");
-        _localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer")
-            .Returns("{0} → {1}: {2} damage (Roll: {3})");
-        _localizationService.GetString("Command_WeaponAttackResolution_AimedShotSuccessful")
-            .Returns("Aimed Shot targeting {0} succeeded, Roll: {1}");
-        _localizationService.GetString("Command_WeaponAttackResolution_AimedShotFailed")
-            .Returns("Aimed Shot targeting {0} failed, Roll: {1}");
-        _localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferSuccessful")
-            .Returns("{0} → {1}: {2} damage (Aimed Shot: {3}, successful)");
-        _localizationService.GetString("Command_WeaponAttackResolution_AimedShotTransferFailed")
-            .Returns("{0} → {1}: {2} damage (Aimed Shot: {3}, failed, Roll: {4})");
-        _localizationService.GetString("Command_WeaponAttackResolution_CriticalHit")
-            .Returns("Critical hit in {0} slot {1}: {2}");
-        _localizationService.GetString("Command_WeaponAttackResolution_CritRoll")
-            .Returns("Critical roll: {0}");
-        _localizationService.GetString("Command_WeaponAttackResolution_NumCrits")
-            .Returns("Criticals: {0}");
-        _localizationService.GetString("Command_WeaponAttackResolution_BlownOff")
-            .Returns("LOCATION BLOWN OFF: {0}");
-        _localizationService.GetString("Command_WeaponAttackResolution_LocationCriticals")
-            .Returns("Critical hits in {0}:");
-        _localizationService.GetString("Command_WeaponAttackResolution_Explosion")
-            .Returns("{0} EXPLODES! Damage: {1}");
-        _localizationService.GetString("Command_WeaponAttackResolution_HitLocationExcessDamage")
-            .Returns("  Excess damage {1} transferred to {0}");
-            
         // Create unit using MechFactory
         var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
         var unitData = MechFactoryTests.CreateDummyMechData();
@@ -80,7 +52,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldBe("CenterTorso: 5 damage (Roll: 6)");
+        result.Trim().ShouldBe("CT (Roll: 6): 4 armor, 1 structure damage");
     }
 
     [Fact]
@@ -99,7 +71,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldBe("RightTorso → CenterTorso: 5 damage (Roll: 6)");
+        result.Trim().ShouldBe("RT (Roll: 6) → CT: 4 armor, 1 structure damage");
     }
 
     [Fact]
@@ -118,7 +90,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldContain("Aimed Shot targeting Head succeeded, Roll: 7");
+        result.Trim().ShouldContain("Aimed Shot targeting H succeeded, Roll: 7");
     }
 
     [Fact]
@@ -137,7 +109,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.Trim().ShouldContain("Aimed Shot targeting CenterTorso failed, Roll: 5");
+        result.Trim().ShouldContain("Aimed Shot targeting CT failed, Roll: 5");
     }
 
 
@@ -176,8 +148,8 @@ public class LocationHitDataTests
         // Assert
         result.ShouldNotBeEmpty();
         result.Trim().ShouldContain(shouldSucceed
-            ? $"Aimed Shot targeting RightArm succeeded, Roll: {rollTotal}"
-            : $"Aimed Shot targeting RightArm failed, Roll: {rollTotal}");
+            ? $"Aimed Shot targeting RA succeeded, Roll: {rollTotal}"
+            : $"Aimed Shot targeting RA failed, Roll: {rollTotal}");
     }
 
     [Fact]
@@ -218,9 +190,76 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("LeftArm: 7 damage (Roll: 8)");
-        result.ShouldContain("Excess damage 3 transferred to LeftTorso");
-        result.ShouldContain("Excess damage 3 transferred to CenterTorso");
+        result.ShouldContain("LA (Roll: 8): 5 armor, 2 structure damage");
+        result.ShouldContain("Excess damage 3 armor transferred to LT");
+        result.ShouldContain("Excess damage 2 armor, 1 structure transferred to CT");
+    }
+
+    [Fact]
+    public void Render_StructureOnlyDamage_ReturnsCorrectOutput()
+    {
+        // Arrange - Create a hit with only structure damage (no armor damage)
+        var sut = new LocationHitData(
+        [
+            new LocationDamageData(PartLocation.LeftTorso, 0, 3, false) // 0 armor, 3 structure damage
+        ],
+        [], // No aimed shot
+        [5], // Location roll
+        PartLocation.LeftTorso
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.Trim().ShouldBe("LT (Roll: 5): 3 structure damage");
+    }
+
+    [Fact]
+    public void Render_StructureOnlyDamageWithTransfer_ReturnsCorrectOutput()
+    {
+        // Arrange - Create a hit with only structure damage that transfers
+        var sut = new LocationHitData(
+        [
+            new LocationDamageData(PartLocation.LeftTorso, 0, 3, false) // 0 armor, 3 structure damage
+        ],
+        [], // No aimed shot
+        [5], // Location roll
+        PartLocation.RightTorso // Different from damage location to trigger transfer
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.Trim().ShouldBe("RT (Roll: 5) → LT: 3 structure damage");
+    }
+
+    [Fact]
+    public void Render_ExcessDamageWithStructureOnly_ReturnsCorrectOutput()
+    {
+        // Arrange - Multiple damage locations with structure-only damage
+        var sut = new LocationHitData(
+        [
+            new LocationDamageData(PartLocation.LeftArm, 0, 5, false), // Structure damage to LA
+            new LocationDamageData(PartLocation.LeftTorso, 0, 3, false), // Excess damage to LT
+            new LocationDamageData(PartLocation.CenterTorso, 0, 2, false) // More excess to CT
+        ],
+        [], // No aimed shot
+        [4, 4], // Location roll
+        PartLocation.LeftArm
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("LA (Roll: 8): 5 structure damage");
+        result.ShouldContain("Excess damage 3 structure transferred to LT");
+        result.ShouldContain("Excess damage 2 structure transferred to CT");
     }
 
     [Fact]
@@ -241,7 +280,7 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("LeftArm: 7 damage (Roll: 8)");
+        result.ShouldContain("LA (Roll: 8): 5 armor, 2 structure damage");
         result.ShouldNotContain("Excess damage");
         result.ShouldNotContain("transferred");
     }
@@ -266,9 +305,9 @@ public class LocationHitDataTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Aimed Shot targeting LeftArm failed, Roll: 4");
-        result.ShouldContain("LeftArm → LeftTorso: 8 damage (Roll: 12)");
-        result.ShouldContain("Excess damage 4 transferred to CenterTorso");
-        result.ShouldContain("Excess damage 2 transferred to RightTorso");
+        result.ShouldContain("Aimed Shot targeting LA failed, Roll: 4");
+        result.ShouldContain("LA (Roll: 12) → LT: 6 armor, 2 structure damage");
+        result.ShouldContain("Excess damage 3 armor, 1 structure transferred to CT");
+        result.ShouldContain("Excess damage 2 armor transferred to RT");
     }
 }

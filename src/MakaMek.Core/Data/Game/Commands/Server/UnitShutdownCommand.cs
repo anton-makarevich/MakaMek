@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Game;
+﻿using System.Text;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -39,41 +40,49 @@ public record struct UnitShutdownCommand : IGameCommand
         {
             return string.Empty;
         }
-        
+
         var isPilotUnconscious = unit.Pilot?.IsConscious == false;
 
         return command.ShutdownData.Reason switch
         {
             ShutdownReason.Heat when command.AvoidShutdownRoll?.IsSuccessful == true =>
-                string.Format(localizationService.GetString("Command_MechShutdown_Avoided"),
-                    unit.Name,
-                    command.AvoidShutdownRoll?.HeatLevel,
-                    string.Join(", ", command.AvoidShutdownRoll?.DiceResults ?? []),
-                    command.AvoidShutdownRoll?.DiceResults.Sum(),
-                    command.AvoidShutdownRoll?.AvoidNumber),
+                BuildRollMessage(localizationService, unit.Model, "Command_MechShutdown_Avoided",
+                    command.AvoidShutdownRoll),
 
             ShutdownReason.Heat when isPilotUnconscious =>
-                            string.Format(localizationService.GetString("Command_MechShutdown_UnconsciousPilot"),
-                                unit.Name, unit.CurrentHeat),
-            
+                string.Format(localizationService.GetString("Command_MechShutdown_UnconsciousPilot"),
+                    unit.Model, unit.CurrentHeat),
+
             ShutdownReason.Heat when command.IsAutomaticShutdown =>
                 string.Format(localizationService.GetString("Command_MechShutdown_AutomaticHeat"),
-                    unit.Name, unit.CurrentHeat),
+                    unit.Model, unit.CurrentHeat),
 
             ShutdownReason.Heat when command.AvoidShutdownRoll != null =>
-                string.Format(localizationService.GetString("Command_MechShutdown_FailedRoll"),
-                    unit.Name,
-                    command.AvoidShutdownRoll?.HeatLevel,
-                    string.Join(", ", command.AvoidShutdownRoll?.DiceResults ?? []),
-                    command.AvoidShutdownRoll?.DiceResults.Sum(),
-                    command.AvoidShutdownRoll?.AvoidNumber),
+                BuildRollMessage(localizationService, unit.Model, "Command_MechShutdown_FailedRoll",
+                    command.AvoidShutdownRoll),
 
             ShutdownReason.Voluntary =>
                 string.Format(localizationService.GetString("Command_MechShutdown_Voluntary"),
-                    unit.Name),
+                    unit.Model),
 
             _ => string.Format(localizationService.GetString("Command_MechShutdown_Generic"),
-                unit.Name)
+                unit.Model)
         };
+    }
+
+    private static string BuildRollMessage(ILocalizationService localizationService, string unitModel,
+        string messageKey, AvoidShutdownRollData? rollData)
+    {
+        if (rollData == null) return string.Empty;
+
+        var stringBuilder = new StringBuilder();
+        var total = rollData.DiceResults.Sum();
+
+        var template = localizationService.GetString(messageKey);
+        stringBuilder.AppendLine(string.Format(template, unitModel, rollData.HeatLevel));
+        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_AvoidNumber"), rollData.AvoidNumber));
+        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_RollResult"), total));
+
+        return stringBuilder.ToString().TrimEnd();
     }
 }

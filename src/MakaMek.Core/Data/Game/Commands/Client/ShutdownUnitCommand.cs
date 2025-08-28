@@ -31,6 +31,6 @@ public record struct ShutdownUnitCommand : IClientCommand
         if (player == null || unit == null) return string.Empty;
         
         var localizedTemplate = localizationService.GetString("Command_ShutdownUnit");
-        return string.Format(localizedTemplate, player.Name, unit.Name);
+        return string.Format(localizedTemplate, player.Name, unit.Model);
     }
 }

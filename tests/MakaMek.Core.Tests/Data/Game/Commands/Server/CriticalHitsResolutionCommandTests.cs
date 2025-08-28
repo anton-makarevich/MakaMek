@@ -15,7 +15,7 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 
 public class CriticalHitsResolutionCommandTests
 {
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
     private readonly Unit _target;
@@ -26,7 +26,7 @@ public class CriticalHitsResolutionCommandTests
             // Create player
             new Player(Guid.NewGuid(), "Player 1");
 
-        // Create target unit using MechFactory
+        // Create a target unit using MechFactory
         var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
         var targetData = MechFactoryTests.CreateDummyMechData();
         targetData.Id = Guid.NewGuid();
@@ -38,25 +38,6 @@ public class CriticalHitsResolutionCommandTests
         
         // Setup game to return players
         _game.Players.Returns(new List<IPlayer> { player });
-        
-        // Setup localization service
-        SetupLocalizationService();
-    }
-
-    private void SetupLocalizationService()
-    {
-        _localizationService.GetString("Command_CriticalHitsResolution_Location")
-            .Returns("Critical hits in {0}:");
-        _localizationService.GetString("Command_CriticalHitsResolution_CritRoll")
-            .Returns("Critical Roll: {0}");
-        _localizationService.GetString("Command_CriticalHitsResolution_BlownOff")
-            .Returns("Critical hit in {0}, location blown off");
-        _localizationService.GetString("Command_CriticalHitsResolution_NumCrits")
-            .Returns("Num Crits: {0}");
-        _localizationService.GetString("Command_CriticalHitsResolution_CriticalHit")
-            .Returns("Critical hit in {0} slot {1}: {2}");
-        _localizationService.GetString("Command_CriticalHitsResolution_Explosion")
-            .Returns("{0} exploded, damage: {1}");
     }
 
     [Fact]
@@ -74,9 +55,9 @@ public class CriticalHitsResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldNotContain("Critical hits in CenterTorso:");
+        result.ShouldNotContain("Critical hits in CT:");
         result.ShouldContain("Critical Roll: 8");
-        result.ShouldContain("Num Crits: 1");
+        result.ShouldContain("Number of critical hits: 1");
     }
 
     [Fact]
@@ -98,8 +79,8 @@ public class CriticalHitsResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Critical hits in CenterTorso:");
-        result.ShouldContain("Critical hits in LeftArm:");
+        result.ShouldContain("Critical hits in CT:");
+        result.ShouldContain("Critical hits in LA:");
     }
 
     [Fact]
@@ -115,9 +96,9 @@ public class CriticalHitsResolutionCommandTests
         // Assert
         result.ShouldNotBeEmpty();
         result.ShouldContain("Critical Roll: 12");
-        result.ShouldContain("Critical hit in LeftArm, location blown off");
+        result.ShouldContain("Critical hit in LA, location blown off");
         result.ShouldNotContain("Num Crits:");
-        result.ShouldNotContain("Critical hit in LeftArm slot");
+        result.ShouldNotContain("Critical hit in LA slot");
     }
 
     [Fact]
@@ -158,9 +139,9 @@ public class CriticalHitsResolutionCommandTests
         // Assert
         result.ShouldNotBeEmpty();
         result.ShouldContain("Critical Roll: 8");
-        result.ShouldContain("Num Crits: 2");
+        result.ShouldContain("Number of critical hits: 2");
         // Should only show the valid component hit
-        result.ShouldContain("Critical hit in CenterTorso slot 1:");
+        result.ShouldContain("Critical hit in CT slot 1:");
         // Should not show the invalid component hit
         result.ShouldNotContain("slot 100:");
     }
@@ -182,7 +163,7 @@ public class CriticalHitsResolutionCommandTests
         // Assert
         result.ShouldNotBeEmpty();
         result.ShouldContain("Critical Roll: 8");
-        result.ShouldContain("Num Crits: 1");
+        result.ShouldContain("Number of critical hits: 1");
         result.ShouldNotContain("exploded");
     }
 
@@ -230,18 +211,18 @@ public class CriticalHitsResolutionCommandTests
         result.ShouldNotBeEmpty();
         
         // Should show location headers for multiple locations
-        result.ShouldContain("Critical hits in CenterTorso:");
-        result.ShouldContain("Critical hits in LeftArm:");
-        result.ShouldContain("Critical hits in RightArm:");
-        
+        result.ShouldContain("Critical hits in CT:");
+        result.ShouldContain("Critical hits in LA:");
+        result.ShouldContain("Critical hits in RA:");
+
         // Should show blown off for LeftArm
-        result.ShouldContain("Critical hit in LeftArm, location blown off");
+        result.ShouldContain("Critical hit in LA, location blown off");
         
         // Should show explosion for CenterTorso
         result.ShouldContain("exploded, damage: 50");
         
         // Should show multiple critical hits for RightArm
-        result.ShouldContain("Num Crits: 2");
+        result.ShouldContain("Number of critical hits: 2");
     }
 
     private CriticalHitsResolutionCommand CreateCommand(List<LocationCriticalHitsData> criticalHits)

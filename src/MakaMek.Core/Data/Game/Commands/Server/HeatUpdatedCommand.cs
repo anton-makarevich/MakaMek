@@ -30,7 +30,7 @@ public record struct HeatUpdatedCommand : IGameCommand
         // Unit name and previous heat
         stringBuilder.AppendLine(string.Format(
             localizationService.GetString("Command_HeatUpdated_Header"),
-            unit.Name,
+            unit.Model,
             PreviousHeat));
             
         // Heat sources

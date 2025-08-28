@@ -41,10 +41,10 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             var hitTemplate = localizationService.GetString("Command_WeaponAttackResolution_Hit");
             stringBuilder.AppendLine(string.Format(hitTemplate,
                 player.Name,
-                attacker.Name,
+                attacker.Model,
                 weapon.Name,
                 targetPlayer.Name,
-                target.Name,
+                target.Model,
                 ResolutionData.ToHitNumber,
                 rollTotal));
 
@@ -68,14 +68,11 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             if (ResolutionData.HitLocationsData.ClusterRoll.Count > 1)
             {
                 // Add cluster roll information
-                if (ResolutionData.HitLocationsData.ClusterRoll.Count > 0)
-                {
-                    var clusterRollTotal = ResolutionData.HitLocationsData.ClusterRoll.Sum(d => d.Result);
-                    stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_WeaponAttackResolution_ClusterRoll"),
-                        clusterRollTotal));
-                }
-
+                var clusterRollTotal = ResolutionData.HitLocationsData.ClusterRoll.Sum(d => d.Result);
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_WeaponAttackResolution_ClusterRoll"),
+                    clusterRollTotal));
+                
                 if (ResolutionData.HitLocationsData.MissilesHit > 0)
                 {
                     stringBuilder.AppendLine(string.Format(
@@ -98,7 +95,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             }
 
             // Add destroyed parts information
-            if (ResolutionData.DestroyedParts != null && ResolutionData.DestroyedParts.Any())
+            if (ResolutionData.DestroyedParts != null && ResolutionData.DestroyedParts.Count != 0)
             {
                 stringBuilder.AppendLine(
                     localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts"));
@@ -119,7 +116,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             {
                 stringBuilder.AppendLine(string.Format(
                     localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
-                    target.Name));
+                    target.Model));
             }
         }
         else
@@ -128,10 +125,10 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             var missTemplate = localizationService.GetString("Command_WeaponAttackResolution_Miss");
             stringBuilder.AppendLine(string.Format(missTemplate,
                 player.Name,
-                attacker.Name,
+                attacker.Model,
                 weapon.Name,
                 targetPlayer.Name,
-                target.Name,
+                target.Model,
                 ResolutionData.ToHitNumber,
                 rollTotal));
         }

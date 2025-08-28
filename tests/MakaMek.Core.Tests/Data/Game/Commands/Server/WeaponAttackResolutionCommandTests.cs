@@ -1,5 +1,4 @@
 using NSubstitute;
-using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Units;
@@ -18,7 +17,7 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 
 public class WeaponAttackResolutionCommandTests
 {
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
     private readonly Player _player1;
@@ -57,50 +56,6 @@ public class WeaponAttackResolutionCommandTests
             Location = weapon.MountedOn!.Location,
             Slots = weapon.MountedAtSlots  // This might need adjustment based on the actual slot position
         };
-        
-        // Setup localization service
-        _localizationService.GetString("Command_WeaponAttackResolution_Hit")
-            .Returns("{0}'s {1} hits {3}'s {4} with {2} (Target: {5}, Roll: {6})");
-        _localizationService.GetString("Command_WeaponAttackResolution_Miss")
-            .Returns("{0}'s {1} misses {3}'s {4} with {2} (Target: {5}, Roll: {6})");
-        _localizationService.GetString("Command_WeaponAttackResolution_Direction")
-            .Returns("Attack Direction: {0}");
-        _localizationService.GetString("AttackDirection_Front")
-            .Returns("Front");
-        _localizationService.GetString("AttackDirection_Left")
-            .Returns("Left");
-        _localizationService.GetString("AttackDirection_Right")
-            .Returns("Right");
-        _localizationService.GetString("AttackDirection_Rear")
-            .Returns("Rear");
-        _localizationService.GetString("Command_WeaponAttackResolution_TotalDamage")
-            .Returns("Total Damage: {0}");
-        _localizationService.GetString("Command_WeaponAttackResolution_MissilesHit")
-            .Returns("Missiles Hit: {0}");
-        _localizationService.GetString("Command_WeaponAttackResolution_ClusterRoll")
-            .Returns("Cluster Roll: {0}");
-        _localizationService.GetString("Command_WeaponAttackResolution_HitLocations")
-            .Returns("Hit Locations:");
-        _localizationService.GetString("Command_WeaponAttackResolution_HitLocation")
-            .Returns("{0}: {1} damage (Roll: {2})");
-        _localizationService.GetString("Command_WeaponAttackResolution_HitLocationTransfer")
-            .Returns("{0} → {1}: {2} damage (Roll: {3})");
-        _localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts")
-            .Returns("Destroyed parts:");
-        _localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart")
-            .Returns("- {0} destroyed");
-        _localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed")
-            .Returns("{0} has been destroyed!");
-        
-        // Setup localized part names
-        _localizationService.GetString("MechPart_LeftArm").Returns("Left Arm");
-        _localizationService.GetString("MechPart_RightArm").Returns("Right Arm");
-        _localizationService.GetString("MechPart_LeftTorso").Returns("Left Torso");
-        _localizationService.GetString("MechPart_RightTorso").Returns("Right Torso");
-        _localizationService.GetString("MechPart_CenterTorso").Returns("Center Torso");
-        _localizationService.GetString("MechPart_Head").Returns("Head");
-        _localizationService.GetString("MechPart_LeftLeg").Returns("Left Leg");
-        _localizationService.GetString("MechPart_RightLeg").Returns("Right Leg");
     }
     
     private LocationHitData CreateHitDataForLocation(PartLocation partLocation,
@@ -216,10 +171,10 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Player 1's Locust LCT-1V hits Player 2's Locust LCT-1V with Machine Gun");
+        result.ShouldContain("Player 1's LCT-1V hits Player 2's LCT-1V with Machine Gun");
         result.ShouldContain("Target: 8, Roll: 9");
         result.ShouldContain("Total Damage: 5");
-        result.ShouldContain("CenterTorso: 5 damage");
+        result.ShouldContain("CT (Roll: 6): 5 armor damage");
     }
 
     [Fact]
@@ -233,7 +188,7 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldBe("Player 1's Locust LCT-1V misses Player 2's Locust LCT-1V with Machine Gun (Target: 8, Roll: 5)");
+        result.ShouldBe("Player 1's LCT-1V misses Player 2's LCT-1V with Machine Gun (Target: 8, Roll: 5)");
         result.ShouldNotContain("Attack Direction");
     }
 
@@ -248,15 +203,15 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Player 1's Locust LCT-1V hits Player 2's Locust LCT-1V with Machine Gun");
+        result.ShouldContain("Player 1's LCT-1V hits Player 2's LCT-1V with Machine Gun");
         result.ShouldContain("Target: 7, Roll: 8");
         result.ShouldContain("Total Damage: 10");
         result.ShouldContain("Cluster Roll: 10");
         result.ShouldContain("Missiles Hit: 5");
         result.ShouldContain("Hit Locations:");
-        result.ShouldContain("LeftArm: 2 damage");
-        result.ShouldContain("RightArm: 2 damage");
-        result.ShouldContain("CenterTorso: 6 damage");
+        result.ShouldContain("LA (Roll: 5): 2 armor damage");
+        result.ShouldContain("RA (Roll: 3): 2 armor damage");
+        result.ShouldContain("CT (Roll: 8): 6 armor damage");
     }
 
     [Fact]
@@ -411,7 +366,7 @@ public class WeaponAttackResolutionCommandTests
         var output = sut.Render(_localizationService, _game);
 
         // Assert
-        output.ShouldContain("LeftArm → LeftTorso: 5 damage");
+        output.ShouldContain("LA (Roll: 10) → LT: 5 armor damage");
     }
 
     [Fact]
@@ -500,6 +455,6 @@ public class WeaponAttackResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("Locust LCT-1V has been destroyed!");
+        result.ShouldContain("LCT-1V has been destroyed!");
     }
 }
