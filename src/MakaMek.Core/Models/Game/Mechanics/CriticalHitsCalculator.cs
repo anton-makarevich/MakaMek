@@ -40,7 +40,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         Ammo explodingComponent) // only ammo can explode from heat
     {
         var explosionDamage = explodingComponent.GetExplosionDamage();
-        if (explosionDamage <= 0) return []; //no possible damage no explosion
+        if (explosionDamage <= 0) return []; //no possible damage, no explosion
         
         var location = explodingComponent.GetLocation();
         if (!location.HasValue) return [];

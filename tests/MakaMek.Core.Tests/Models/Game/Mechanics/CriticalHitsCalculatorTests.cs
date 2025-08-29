@@ -180,7 +180,7 @@ public class CriticalHitsCalculatorTests
             structureDamageByLocation);
 
         // Assert
-        result.ShouldBeEmpty(); // Should return empty list when structure damage is 0
+        result.ShouldBeEmpty(); // Should return an empty list when structure damage is 0
         _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
     }
 
@@ -200,7 +200,7 @@ public class CriticalHitsCalculatorTests
             structureDamageByLocation);
 
         // Assert
-        result.ShouldBeEmpty(); // Should return empty list when structure damage is negative
+        result.ShouldBeEmpty(); // Should return an empty list when structure damage is negative
         _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
     }
 
@@ -210,7 +210,7 @@ public class CriticalHitsCalculatorTests
         // Arrange
         var testUnit = CreateTestMech();
 
-        // Create an ammo component that's not mounted to any part (no slots)
+        // Create an ammo component not mounted to any part (no slots)
         var ammo = new Ammo(Lrm5.Definition, 24);
         // Don't mount it to any part, so MountedAtSlots will be empty
 
@@ -218,7 +218,7 @@ public class CriticalHitsCalculatorTests
         var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
 
         // Assert
-        result.ShouldBeEmpty(); // Should return empty list when component has no mounted slots
+        result.ShouldBeEmpty(); // Should return an empty list when the component has no mounted slots
         _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
     }
 
@@ -238,7 +238,7 @@ public class CriticalHitsCalculatorTests
             structureDamageByLocation);
 
         // Assert
-        result.ShouldBeEmpty(); // Should return empty list when part is not found
+        result.ShouldBeEmpty(); // Should return an empty list when part is not found
         _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
     }
 
@@ -288,7 +288,7 @@ public class CriticalHitsCalculatorTests
             structureDamageByLocation);
 
         // Assert
-        result.ShouldBeEmpty(); // Should return empty list when structure is exactly 0
+        result.ShouldBeEmpty(); // Should return an empty list when structure is exactly 0
         _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice when structure is 0
     }
 }
