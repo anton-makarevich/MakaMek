@@ -54,47 +54,34 @@ public record CriticalHitsResolutionCommand : IGameCommand
 
             var part = target.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
                     
-            // Show number of critical hits
-            if (criticalHitData.NumCriticalHits > 0)
-            {
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_CriticalHitsResolution_NumCrits"),
-                    criticalHitData.NumCriticalHits));
+            // Show the number of critical hits
+            if (criticalHitData.NumCriticalHits <= 0) continue;
+            stringBuilder.AppendLine(string.Format(
+                localizationService.GetString("Command_CriticalHitsResolution_NumCrits"),
+                criticalHitData.NumCriticalHits));
 
-                // Show hit components
-                if (criticalHitData.HitComponents != null)
+            // Show hit components
+            if (criticalHitData.HitComponents != null)
+            {
+                foreach (var component in criticalHitData.HitComponents)
                 {
-                    foreach (var component in criticalHitData.HitComponents)
+                    var comp = part?.GetComponentAtSlot(component.Slot);
+                    if (comp == null) continue;
+                    stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_CriticalHitsResolution_CriticalHit"),
+                        localizedLocation,
+                        component.Slot + 1,
+                        comp.Name));
+                    if (component.ExplosionDamage > 0)
                     {
-                        var comp = part?.GetComponentAtSlot(component.Slot);
-                        if (comp != null)
-                        {
-                            stringBuilder.AppendLine(string.Format(
-                                localizationService.GetString("Command_CriticalHitsResolution_CriticalHit"),
-                                localizedLocation,
-                                component.Slot + 1,
-                                comp.Name));
-                        }
+                        stringBuilder.AppendLine(string.Format(
+                            localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
+                            comp.Name,
+                            component.ExplosionDamage));
                     }
                 }
             }
-
-            // Show explosions
-            if (criticalHitData.Explosions.Count <= 0) continue;
-            
-            foreach (var explosion in criticalHitData.Explosions)
-            {
-                var comp = part?.GetComponentAtSlot(explosion.Slot);
-                if (comp != null)
-                {
-                    stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
-                        comp.Name,
-                        explosion.ExplosionDamage));
-                }
-            }
         }
-
         return stringBuilder.ToString();
     }
 }

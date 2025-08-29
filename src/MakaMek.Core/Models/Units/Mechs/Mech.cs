@@ -684,10 +684,11 @@ public class Mech : Unit
     {
         var component = part.GetComponentAtSlot(slot);
         if (component == null) throw new ArgumentException("Invalid slot");
-        return new ComponentHitData()
+        return new ComponentHitData
         {
             Slot = slot,
-            Type = component.ComponentType
+            Type = component.ComponentType,
+            ExplosionDamage = component.GetExplosionDamage()
         }; 
     }
 }

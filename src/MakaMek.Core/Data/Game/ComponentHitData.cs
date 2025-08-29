@@ -6,4 +6,5 @@ public record ComponentHitData
 {
     public required int Slot { get; init; }
     public required MakaMekComponent Type { get; init; }
+    public required int ExplosionDamage { get; init; }
 };

@@ -91,23 +91,14 @@ public record struct AmmoExplosionCommand : IGameCommand
                                 localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed"),
                                 component.Name,
                                 criticalHitData.Location));
+                            if (componentHit.ExplosionDamage > 0)
+                            {
+                                stringBuilder.AppendLine(string.Format(
+                                    localizationService.GetString("Command_AmmoExplosion_Explosion"),
+                                    component.Name,
+                                    componentHit.ExplosionDamage));
+                            }
                         }
-                    }
-                }
-
-                // Show explosions from the new data structure
-                if (criticalHitData.Explosions.Count <= 0) continue;
-
-                foreach (var explosion in criticalHitData.Explosions)
-                {
-                    var part = unit.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
-                    var component = part?.GetComponentAtSlot(explosion.Slot);
-                    if (component != null)
-                    {
-                        stringBuilder.AppendLine(string.Format(
-                            localizationService.GetString("Command_AmmoExplosion_Explosion"),
-                            component.Name,
-                            explosion.ExplosionDamage));
                     }
                 }
             }
