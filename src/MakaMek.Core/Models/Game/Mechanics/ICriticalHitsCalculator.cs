@@ -11,8 +11,8 @@ public interface ICriticalHitsCalculator
     /// </summary>
     /// <param name="unit">The unit receiving damage</param>
     /// <param name="damageData">Precomputed damage for a specific location (armor/structure and destroyed flag).</param>
-    /// <returns>A list of LocationCriticalHitsData originating at the damaged location (may include chain effects such as explosions).</returns>
-    List<LocationCriticalHitsData> CalculateCriticalHitsForStructureDamage(
+    /// <returns>A LocationCriticalHitsData originating at the damaged location (including explosions).</returns>
+    LocationCriticalHitsData? CalculateCriticalHitsForStructureDamage(
         Unit unit,
         LocationDamageData damageData);
 
@@ -22,7 +22,7 @@ public interface ICriticalHitsCalculator
     /// <param name="unit">The owning unit receiving the explosion effects</param>
     /// <param name="explodingComponent">The component that exploded due to heat</param>
     /// <returns>Critical-hit data beginning at the component's location</returns>
-    List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
+    LocationCriticalHitsData? CalculateCriticalHitsForHeatExplosion(
         Unit unit,
         Ammo explodingComponent);
 }

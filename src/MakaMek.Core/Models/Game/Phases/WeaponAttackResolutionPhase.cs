@@ -22,7 +22,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     // Units with weapons that have targets, organized by player
     private readonly Dictionary<Guid, List<Unit>> _unitsWithTargets = new();
     
-    // Dictionary to track accumulated damage data for PSR calculations at phase end
+    // Dictionary to track accumulated damage data for PSR calculations at the phase end
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamageData = new();
 
     public override void Enter()
@@ -110,13 +110,14 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             currentWeaponTarget.Weapon.Location,
             currentWeaponTarget.Weapon.Slots);
         
-        var allUnits = Game.AlivePlayers.SelectMany(p => p.AliveUnits);
+        // Take all units not just alive as we should resolve attack even if the unit is already destroyed
+        var allUnits = Game.AlivePlayers.SelectMany(p => p.Units); 
         var targetUnit = allUnits.FirstOrDefault(u => u.Id == currentWeaponTarget.TargetId);
 
         if (currentWeapon != null && targetUnit != null)
         {
             var resolution = ResolveAttack(currentUnit, targetUnit, currentWeapon, currentWeaponTarget);
-            PublishAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
+            FinalizeAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
         }
 
         // Move to the next weapon
@@ -273,7 +274,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
 
         int[] locationRoll = [];
-        // If aimed shot location is null, determine hit location normally
+        // If the aimed shot location is null, determine the hit location normally
         var hitLocation = aimedShotLocation ?? GetHitLocation(out locationRoll);
         
         // Store the initial location in case we need to transfer
@@ -350,7 +351,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return HitDirection.Front;
     }
 
-    private void PublishAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target, AttackResolutionData resolution)
+    private void FinalizeAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target, AttackResolutionData resolution)
     {
         // Track destroyed parts before damage
         var destroyedPartsBefore = target.Parts.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
@@ -500,7 +501,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             }
         }
 
-        // If no critical hits occurred, no need to send command
+        // If no critical hits occurred, no need to send a command
         if (allCriticalHitsData.Count == 0)
             return allCriticalHitsData;
 

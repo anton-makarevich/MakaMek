@@ -11,44 +11,38 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 public class CriticalHitsCalculator : ICriticalHitsCalculator
 {
     private readonly IDiceRoller _diceRoller;
+    private readonly IStructureDamageCalculator _structureDamageCalculator;
 
-    public CriticalHitsCalculator(IDiceRoller diceRoller)
+    public CriticalHitsCalculator(IDiceRoller diceRoller, IStructureDamageCalculator structureDamageCalculator)
     {
         _diceRoller = diceRoller;
+        _structureDamageCalculator = structureDamageCalculator;
     }
 
-    public List<LocationCriticalHitsData> CalculateCriticalHitsForStructureDamage(
+    public LocationCriticalHitsData? CalculateCriticalHitsForStructureDamage(
         Unit unit,
         LocationDamageData damageData)
     {
-        var criticalHitsData = new List<LocationCriticalHitsData>();
+        if (damageData.StructureDamage <= 0) return null;
 
-        if (damageData.StructureDamage <= 0) return criticalHitsData;
-
-        var locationCriticalHits = CalculateCriticalHitsForLocation(
+        return CalculateCriticalHitsForLocation(
             unit, damageData.Location, damageData.StructureDamage);
-        if (locationCriticalHits != null)
-        {
-            criticalHitsData.Add(locationCriticalHits);
-        }
-
-        return criticalHitsData;
     }
 
-    public List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
+    public LocationCriticalHitsData? CalculateCriticalHitsForHeatExplosion(
         Unit unit,
         Ammo explodingComponent) // only ammo can explode from heat
     {
         var explosionDamage = explodingComponent.GetExplosionDamage();
-        if (explosionDamage <= 0) return []; //no possible damage, no explosion
+        if (explosionDamage <= 0) return null; //no possible damage, no explosion
         
         var location = explodingComponent.GetLocation();
-        if (!location.HasValue) return [];
+        if (!location.HasValue) return null;
 
         // Ensure the component has a resolvable slot
         var slots = explodingComponent.MountedAtSlots;
         if (slots.Length == 0)
-            return [];
+            return null;
 
         // Create the initial forced critical hit for the exploding component
         var componentHitData = new ComponentHitData
@@ -58,16 +52,9 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         };
 
         // Get explosion damage if the component can explode
-        var explosions = new List<ExplosionData>();
-        if (explodingComponent is { CanExplode: true, HasExploded: false })
-        {
-                explosions.Add(new ExplosionData(
-                    explodingComponent.ComponentType,
-                    slots[0],
-                    explosionDamage));
-        }
+        var explosions = _structureDamageCalculator.CalculateStructureDamage(unit, location.Value, explosionDamage, HitDirection.Front);
 
-        var criticalHit = new LocationCriticalHitsData(
+        return new LocationCriticalHitsData(
             location.Value,
             [], // No roll for forced critical hit
             1, // One forced critical hit
@@ -75,20 +62,6 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             false, // Not blown off
             explosions
         );
-
-        var criticalHitsData = new List<LocationCriticalHitsData> { criticalHit };
-
-        // If there was an explosion, calculate cascading critical hits from the explosion damage
-        if (explosions.Count != 0)
-        {
-            var totalExplosionDamage = explosions.Sum(e => e.ExplosionDamage);
-            // Calculate critical hits caused by explosion structure damage cascading across locations
-            var cascadeHits = CalculateCriticalHitsForExplosionCascade(unit, location.Value, totalExplosionDamage);
-            if (cascadeHits.Count > 0)
-                criticalHitsData.AddRange(cascadeHits);
-        }
-
-        return criticalHitsData;
     }
 
     /// <summary>
@@ -109,7 +82,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             return null;
 
         // Check for explosions from hit components
-        var explosions = new List<ExplosionData>();
+        var explosions = new List<LocationDamageData>();
         if (criticalHitsData.HitComponents == null)
             return criticalHitsData with
             {
@@ -120,73 +93,9 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             var component = part.GetComponentAtSlot(componentData.Slot);
             if (component is not { CanExplode: true, HasExploded: false }) continue;
             var explosionDamage = component.GetExplosionDamage();
-            if (explosionDamage > 0)
-            {
-                explosions.Add(new ExplosionData(
-                    component.ComponentType,
-                    componentData.Slot,
-                    explosionDamage));
-            }
+            explosions = _structureDamageCalculator.CalculateStructureDamage(unit, location, explosionDamage, HitDirection.Front);
         }
 
         return criticalHitsData with { Location = location, Explosions = explosions };
-    }
-
-    /// <summary>
-    /// Calculates critical hits resulting from an explosion's structure-only damage that cascades
-    /// through the damage transfer chain. This does not mutate the unit; it simulates using current
-    /// structure values and transfers excess damage to the next location as per rules.
-    /// </summary>
-    private List<LocationCriticalHitsData> CalculateCriticalHitsForExplosionCascade(
-        Unit unit,
-        PartLocation startLocation,
-        int explosionDamage)
-    {
-        var result = new List<LocationCriticalHitsData>();
-        if (explosionDamage <= 0) return result;
-
-        var remaining = explosionDamage;
-        PartLocation? current = startLocation;
-
-        while (remaining > 0 && current.HasValue)
-        {
-            var part = unit.Parts.FirstOrDefault(p => p.Location == current.Value);
-            if (part is null) break;
-
-            // Explosion applies structure-only damage; armor is ignored
-            var availableStructure = Math.Max(0, part.CurrentStructure);
-            if (availableStructure <= 0)
-            {
-                // Already destroyed, continue transfer without rolling here
-                current = unit.GetTransferLocation(current.Value);
-                continue;
-            }
-
-            var structureDamageHere = Math.Min(remaining, availableStructure);
-
-            // Roll for critical hits at this location if any structure damage is applied
-            if (structureDamageHere > 0)
-            {
-                var crits = CalculateCriticalHitsForLocation(unit, current.Value, structureDamageHere);
-                if (crits != null)
-                {
-                    result.Add(crits);
-                }
-            }
-
-            // Determine if we transfer further
-            var locationDestroyedByThis = structureDamageHere >= availableStructure;
-            remaining -= structureDamageHere;
-            if (remaining > 0 && locationDestroyedByThis)
-            {
-                current = unit.GetTransferLocation(current.Value);
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        return result;
     }
 }
