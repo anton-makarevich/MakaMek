@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
@@ -36,11 +37,91 @@ public class CriticalHitsCalculatorTests
         // Setup mech factory
         _mechFactory = new MechFactory(rules, localizationService);
     }
-
+    
     private Unit CreateTestMech()
     {
         var mechData = MechFactoryTests.CreateDummyMechData();
         return _mechFactory.Create(mechData);
+    }
+
+    [Fact]
+    public void HeatExplosion_ExactDestroy_NoTransfer_RollsCritsOnlyAtOrigin()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+        var leftTorso = unit.Parts.First(p => p.Location == PartLocation.LeftTorso);
+        var ammo = new Ammo(Lrm5.Definition, 1); // 5 x 1 = 5 damage equals LT structure
+        leftTorso.TryAddComponent(ammo, [0]).ShouldBeTrue();
+
+        // Crit roll for LT = 10 (2 crits)
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(6)]);
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1), new DiceResult(2));
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(unit, ammo);
+
+        // Assert
+        result.Count.ShouldBeGreaterThanOrEqualTo(2); // forced + cascade@LT
+        var forced = result[0];
+        forced.Location.ShouldBe(PartLocation.LeftTorso);
+        forced.Roll.ShouldBe([]);
+        forced.NumCriticalHits.ShouldBe(1);
+
+        var ltCascade = result.Skip(1).FirstOrDefault(r => r.Location == PartLocation.LeftTorso && r.Roll.Length == 2);
+        ltCascade.ShouldNotBeNull();
+        ltCascade!.Roll.Sum().ShouldBe(10);
+        // No CT entry since no excess
+        result.Any(r => r.Location == PartLocation.CenterTorso && r.Roll.Length == 2).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HeatExplosion_ExcessTransfersToCenterTorso_RollsCritsAtBothLocations()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+        var leftTorso = unit.Parts.First(p => p.Location == PartLocation.LeftTorso);
+        var ammo = new Ammo(MachineGun.Definition, 6); // 12 damage -> 8 to LT, 4 to CT
+        leftTorso.TryAddComponent(ammo, [1]).ShouldBeTrue();
+
+        _mockDiceRoller.Roll2D6().Returns(
+            [new DiceResult(5), new DiceResult(5)], // LT = 10
+            [new DiceResult(5), new DiceResult(5)]  // CT = 10
+        );
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1), new DiceResult(2), new DiceResult(3), new DiceResult(4));
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(unit, ammo);
+
+        // Assert
+        result.Count.ShouldBeGreaterThanOrEqualTo(3); // forced + LT + CT
+        result.Any(r => r.Location == PartLocation.LeftTorso && r.Roll.Sum() == 10).ShouldBeTrue();
+        result.Any(r => r.Location == PartLocation.CenterTorso && r.Roll.Sum() == 10).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HeatExplosion_MultiLocationCascade_LegToTorsoToCenterTorso()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+        var rightLeg = unit.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var ammo = new Ammo(MachineGun.Definition, 13); // 26 damage -> 8 RL, 8 RT, 10 CT
+        rightLeg.TryAddComponent(ammo, [0]).ShouldBeTrue();
+
+        _mockDiceRoller.Roll2D6().Returns(
+            [new DiceResult(6), new DiceResult(4)], // RL = 10
+            [new DiceResult(6), new DiceResult(4)], // RT = 10
+            [new DiceResult(6), new DiceResult(4)]  // CT = 10
+        );
+        _mockDiceRoller.RollD6().Returns(new DiceResult(1), new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5), new DiceResult(6));
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(unit, ammo);
+
+        // Assert
+        result.Count.ShouldBeGreaterThanOrEqualTo(4); // forced + RL + RT + CT
+        result.Any(r => r.Location == PartLocation.RightLeg && r.Roll.Sum() == 10).ShouldBeTrue();
+        result.Any(r => r.Location == PartLocation.RightTorso && r.Roll.Sum() == 10).ShouldBeTrue();
+        result.Any(r => r.Location == PartLocation.CenterTorso && r.Roll.Sum() == 10).ShouldBeTrue();
     }
     
     [Fact]

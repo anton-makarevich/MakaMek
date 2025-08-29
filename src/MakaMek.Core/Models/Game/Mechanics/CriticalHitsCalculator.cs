@@ -79,14 +79,13 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         var criticalHitsData = new List<LocationCriticalHitsData> { criticalHit };
 
         // If there was an explosion, calculate cascading critical hits from the explosion damage
-        if (explosions.Any())
+        if (explosions.Count != 0)
         {
             var totalExplosionDamage = explosions.Sum(e => e.ExplosionDamage);
-            var cascadingCriticalHits = CalculateCriticalHitsForLocation(unit, location.Value, totalExplosionDamage);
-            if (cascadingCriticalHits != null)
-            {
-                criticalHitsData.Add(cascadingCriticalHits);
-            }
+            // Calculate critical hits caused by explosion structure damage cascading across locations
+            var cascadeHits = CalculateCriticalHitsForExplosionCascade(unit, location.Value, totalExplosionDamage);
+            if (cascadeHits.Count > 0)
+                criticalHitsData.AddRange(cascadeHits);
         }
 
         return criticalHitsData;
@@ -131,5 +130,63 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         }
 
         return criticalHitsData with { Location = location, Explosions = explosions };
+    }
+
+    /// <summary>
+    /// Calculates critical hits resulting from an explosion's structure-only damage that cascades
+    /// through the damage transfer chain. This does not mutate the unit; it simulates using current
+    /// structure values and transfers excess damage to the next location as per rules.
+    /// </summary>
+    private List<LocationCriticalHitsData> CalculateCriticalHitsForExplosionCascade(
+        Unit unit,
+        PartLocation startLocation,
+        int explosionDamage)
+    {
+        var result = new List<LocationCriticalHitsData>();
+        if (explosionDamage <= 0) return result;
+
+        var remaining = explosionDamage;
+        PartLocation? current = startLocation;
+
+        while (remaining > 0 && current.HasValue)
+        {
+            var part = unit.Parts.FirstOrDefault(p => p.Location == current.Value);
+            if (part is null) break;
+
+            // Explosion applies structure-only damage; armor is ignored
+            var availableStructure = Math.Max(0, part.CurrentStructure);
+            if (availableStructure <= 0)
+            {
+                // Already destroyed, continue transfer without rolling here
+                current = unit.GetTransferLocation(current.Value);
+                continue;
+            }
+
+            var structureDamageHere = Math.Min(remaining, availableStructure);
+
+            // Roll for critical hits at this location if any structure damage is applied
+            if (structureDamageHere > 0)
+            {
+                var crits = CalculateCriticalHitsForLocation(unit, current.Value, structureDamageHere);
+                if (crits != null)
+                {
+                    result.Add(crits);
+                }
+            }
+
+            // Determine if we transfer further
+            var locationDestroyedByThis = structureDamageHere >= availableStructure;
+            remaining -= structureDamageHere;
+            if (remaining > 0 && locationDestroyedByThis)
+            {
+                current = unit.GetTransferLocation(current.Value);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return result;
     }
 }
