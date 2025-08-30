@@ -139,7 +139,7 @@ public class CriticalHitsResolutionCommandTests
         result.ShouldContain("Critical Roll: 8");
         result.ShouldContain("Number of critical hits: 2");
         // Should only show the valid component hit
-        result.ShouldContain("Critical hit in CT slot 1:");
+        result.ShouldContain("Critical hit in slot 1:");
         // Should not show the invalid component hit
         result.ShouldNotContain("slot 100:");
     }

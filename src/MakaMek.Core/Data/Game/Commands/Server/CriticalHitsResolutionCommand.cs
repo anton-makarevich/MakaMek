@@ -69,7 +69,6 @@ public record CriticalHitsResolutionCommand : IGameCommand
                     if (comp == null) continue;
                     stringBuilder.AppendLine(string.Format(
                         localizationService.GetString("Command_CriticalHitsResolution_CriticalHit"),
-                        localizedLocation,
                         component.Slot + 1,
                         comp.Name));
                     var explosionDamage = comp.GetExplosionDamage();
@@ -80,7 +79,6 @@ public record CriticalHitsResolutionCommand : IGameCommand
                             comp.Name,
                             explosionDamage));
                     }
-                    stringBuilder.AppendLine();
                 }
             }
         }
