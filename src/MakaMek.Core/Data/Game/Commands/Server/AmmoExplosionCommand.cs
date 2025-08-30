@@ -20,14 +20,14 @@ public record struct AmmoExplosionCommand : IGameCommand
     /// <summary>
     /// The roll data for the ammo explosion avoidance attempt
     /// </summary>
-    public AvoidAmmoExplosionRollData? AvoidExplosionRoll { get; init; }
+    public AvoidAmmoExplosionRollData AvoidExplosionRoll { get; init; }
 
     /// <summary>
     /// Critical hits resolution data for the explosion
     /// </summary>
     public List<LocationCriticalHitsData> CriticalHits { get; init; }
 
-    public string  Render(ILocalizationService localizationService, IGame game)
+    public string Render(ILocalizationService localizationService, IGame game)
     {
         var unitId = UnitId; // Copy to a local variable to avoid struct access issues
         var unit = game.Players
@@ -42,35 +42,33 @@ public record struct AmmoExplosionCommand : IGameCommand
         var stringBuilder = new StringBuilder();
 
         // Check if an explosion occurred
-        var explosionOccurred = AvoidExplosionRoll?.IsSuccessful == false;
+        var explosionOccurred = !AvoidExplosionRoll.IsSuccessful;
+        
+        var rollTotal = AvoidExplosionRoll.DiceResults.Sum();
 
-        if (AvoidExplosionRoll != null)
+        if (AvoidExplosionRoll.IsSuccessful)
         {
-            var rollTotal = AvoidExplosionRoll.DiceResults.Sum();
+            // Explosion avoided
+            var successTemplate = localizationService.GetString("Command_AmmoExplosion_Avoided");
+            stringBuilder.AppendLine(string.Format(successTemplate, unit.Model));
 
-            if (AvoidExplosionRoll.IsSuccessful)
-            {
-                // Explosion avoided
-                var successTemplate = localizationService.GetString("Command_AmmoExplosion_Avoided");
-                stringBuilder.AppendLine(string.Format(successTemplate, unit.Model));
-
-                // Add roll details
-            }
-            else
-            {
-                // Explosion occurred due to a failed roll
-                var failureTemplate = localizationService.GetString("Command_AmmoExplosion_Failed");
-                stringBuilder.AppendLine(string.Format(failureTemplate, unit.Model));
-
-                // Add roll details
-            }
-
-            stringBuilder.AppendLine(string.Format(
-                localizationService.GetString("Command_AmmoExplosion_RollDetails"),
-                AvoidExplosionRoll.HeatLevel,
-                rollTotal,
-                AvoidExplosionRoll.AvoidNumber));
+            // Add roll details
         }
+        else
+        {
+            // Explosion occurred due to a failed roll
+            var failureTemplate = localizationService.GetString("Command_AmmoExplosion_Failed");
+            stringBuilder.AppendLine(string.Format(failureTemplate, unit.Model));
+
+            // Add roll details
+        }
+
+        stringBuilder.AppendLine(string.Format(
+            localizationService.GetString("Command_AmmoExplosion_RollDetails"),
+            AvoidExplosionRoll.HeatLevel,
+            rollTotal,
+            AvoidExplosionRoll.AvoidNumber));
+
 
         // If an explosion occurred, show the critical hits details
         if (!explosionOccurred) return stringBuilder.ToString().TrimEnd();
