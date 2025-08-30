@@ -201,7 +201,7 @@ public class CriticalHitsResolutionCommandTests
             new LocationCriticalHitsData(PartLocation.RightArm, [3, 3], 2,
                 [
                     new ComponentHitData { Slot = 1, Type = MakaMekComponent.MediumLaser },
-                    new ComponentHitData { Slot = ammo.MountedAtSlots[0], Type = ammo.ComponentType }
+                    new ComponentHitData { Slot = ammo.MountedAtSlots[0], Type = ammo.ComponentType, ExplosionDamage = 100 }
                 ],
                 false, [])
         ]);
@@ -219,9 +219,7 @@ public class CriticalHitsResolutionCommandTests
 
         // Should show blown off for LeftArm
         result.ShouldContain("Critical hit in LA, location blown off");
-
-
-
+        
         // Should show multiple critical hits for RightArm
         result.ShouldContain("Number of critical hits: 2");
         // Should show explosion in RightArm

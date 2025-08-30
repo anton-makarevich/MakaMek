@@ -687,7 +687,8 @@ public class Mech : Unit
         return new ComponentHitData
         {
             Slot = slot,
-            Type = component.ComponentType
+            Type = component.ComponentType,
+            ExplosionDamage = component.GetExplosionDamage()
         }; 
     }
 }

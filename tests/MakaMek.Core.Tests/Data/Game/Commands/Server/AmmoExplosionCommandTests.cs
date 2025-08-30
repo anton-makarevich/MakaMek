@@ -221,7 +221,12 @@ public class AmmoExplosionCommandTests
             PartLocation.CenterTorso,
             [4, 5],
             1,
-            [new ComponentHitData { Type = ammo.ComponentType, Slot = ammo.MountedAtSlots[0] }],
+            [new ComponentHitData
+            {
+                Type = ammo.ComponentType,
+                Slot = ammo.MountedAtSlots[0],
+                ExplosionDamage = 100
+            }],
             false,
             []);
 
@@ -329,8 +334,18 @@ public class AmmoExplosionCommandTests
             [4, 5],
             2,
             [
-                new ComponentHitData { Type = ac5.ComponentType, Slot = ac5.MountedAtSlots[0] },
-                new ComponentHitData { Type = lrm10.ComponentType, Slot = lrm10.MountedAtSlots[0] }
+                new ComponentHitData
+                {
+                    Type = ac5.ComponentType,
+                    Slot = ac5.MountedAtSlots[0],
+                    ExplosionDamage = 5
+                },
+                new ComponentHitData
+                {
+                    Type = lrm10.ComponentType,
+                    Slot = lrm10.MountedAtSlots[0],
+                    ExplosionDamage = 10
+                }
             ],
             false,
             []);
