@@ -20,12 +20,12 @@ public record struct AmmoExplosionCommand : IGameCommand
     /// <summary>
     /// The roll data for the ammo explosion avoidance attempt
     /// </summary>
-    public AvoidAmmoExplosionRollData AvoidExplosionRoll { get; init; }
+    public required AvoidAmmoExplosionRollData AvoidExplosionRoll { get; init; }
 
     /// <summary>
     /// Critical hits resolution data for the explosion
     /// </summary>
-    public List<LocationCriticalHitsData> CriticalHits { get; init; }
+    public required List<LocationCriticalHitsData> CriticalHits { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {

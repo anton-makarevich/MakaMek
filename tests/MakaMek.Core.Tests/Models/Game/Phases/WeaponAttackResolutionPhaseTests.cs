@@ -1163,7 +1163,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             GameOriginId = Guid.Empty,
             TargetId = unit.Id,
             CriticalHits = [new LocationCriticalHitsData(
-                PartLocation.LeftLeg,
+                location,
                 [4, 5],
                 1,
                 [new ComponentHitData { Type = component, Slot = slot }],

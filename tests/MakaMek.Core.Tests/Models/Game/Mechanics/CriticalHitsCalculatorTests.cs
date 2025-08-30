@@ -73,10 +73,6 @@ public class CriticalHitsCalculatorTests
         var ammo = new Ammo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
 
-        // Setup dice roller for cascading critical hits (if any)
-        _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
-        _mockDiceRoller.RollD6().Returns(new DiceResult(2));
-        
         // Setup structure damage calculator to return damage from explosion
         _mockDamageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
@@ -352,6 +348,7 @@ public class CriticalHitsCalculatorTests
         result.CriticalHits.Count.ShouldBe(3); 
         result.CriticalHits.ShouldContain(ch => ch.Location == PartLocation.CenterTorso);
         result.CriticalHits.ShouldContain(ch => ch.Location == PartLocation.LeftTorso);
+        result.CriticalHits.ShouldContain(ch => ch.Location == PartLocation.RightTorso);
         _mockDiceRoller.Received(3).Roll2D6(); 
     }
 
@@ -404,6 +401,8 @@ public class CriticalHitsCalculatorTests
         result.ShouldNotBeNull();
         result.CriticalHits.Count.ShouldBe(3); // Initial + 2 explosion
         result.CriticalHits.ShouldContain(ch => ch.Location == PartLocation.CenterTorso);
+        result.CriticalHits.ShouldContain(ch => ch.Location == PartLocation.LeftTorso);
+        result.CriticalHits.ShouldContain(ch => ch.Location == PartLocation.RightTorso);
         _mockDiceRoller.Received(3).Roll2D6(); 
     }
 
