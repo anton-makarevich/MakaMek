@@ -52,7 +52,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         };
 
         // Get explosion damage if the component can explode
-        var explosions = _damageTransferCalculator.CalculateStructureDamage(unit, location.Value, explosionDamage, HitDirection.Front);
+        var explosions = _damageTransferCalculator.CalculateExplosionDamage(unit, location.Value, explosionDamage);
 
         return new LocationCriticalHitsData(
             location.Value,
@@ -93,7 +93,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             var component = part.GetComponentAtSlot(componentData.Slot);
             if (component is not { CanExplode: true, HasExploded: false }) continue;
             var explosionDamage = component.GetExplosionDamage();
-            explosions = _damageTransferCalculator.CalculateStructureDamage(unit, location, explosionDamage, HitDirection.Front);
+            explosions = _damageTransferCalculator.CalculateExplosionDamage(unit, location, explosionDamage);
         }
 
         return criticalHitsData with { Location = location, Explosions = explosions };

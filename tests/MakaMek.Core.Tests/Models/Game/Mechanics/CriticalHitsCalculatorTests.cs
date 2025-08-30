@@ -107,11 +107,10 @@ public class CriticalHitsCalculatorTests
         _mockDiceRoller.RollD6().Returns(new DiceResult(2));
         
         // Setup structure damage calculator to return damage from explosion
-        _mockDamageTransferCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
-                Arg.Is<int>(d => d > 0),
-                Arg.Any<HitDirection>())
+                Arg.Is<int>(d => d > 0))
             .Returns([
                 new LocationDamageData(PartLocation.CenterTorso, 0, 5, false)
             ]);
@@ -157,11 +156,10 @@ public class CriticalHitsCalculatorTests
         );
         
         // Setup structure damage calculator to return damage from explosion
-        _mockDamageTransferCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
-                Arg.Is<int>(d => d > 0),
-                Arg.Any<HitDirection>())
+                Arg.Is<int>(d => d > 0))
             .Returns([
                 new LocationDamageData(PartLocation.CenterTorso, 0, 5, false)
             ]);
