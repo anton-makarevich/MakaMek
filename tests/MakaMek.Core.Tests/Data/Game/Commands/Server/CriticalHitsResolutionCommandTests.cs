@@ -46,7 +46,13 @@ public class CriticalHitsResolutionCommandTests
         // Arrange
         var command = CreateCommand([
             new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
-                [new ComponentHitData { Slot = 0, Type = MakaMekComponent.Engine }],
+                [new ComponentHitData
+                    {
+                        Slot = 0,
+                        Type = MakaMekComponent.Engine,
+                        ExplosionDamage = 10
+                    }
+                ],
                 false, [])
         ]);
 
@@ -66,11 +72,23 @@ public class CriticalHitsResolutionCommandTests
         // Arrange
         var command = CreateCommand([
             new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
-                [new ComponentHitData { Slot = 0, Type = MakaMekComponent.Engine }],
+                [new ComponentHitData
+                    {
+                        Slot = 0,
+                        Type = MakaMekComponent.Engine,
+                        ExplosionDamage = 0
+                    }
+                ],
                 false, []),
 
             new LocationCriticalHitsData(PartLocation.LeftArm, [3, 3], 1,
-                [new ComponentHitData { Slot = 1, Type = MakaMekComponent.MediumLaser }],
+                [new ComponentHitData
+                    {
+                        Slot = 1,
+                        Type = MakaMekComponent.MediumLaser,
+                        ExplosionDamage = 0
+                    }
+                ],
                 false, [])
         ]);
 
@@ -107,7 +125,7 @@ public class CriticalHitsResolutionCommandTests
         // Arrange
         var command = CreateCommand([
             new LocationCriticalHitsData(PartLocation.CenterTorso, [2, 2], 0, null, false,
-                [new ExplosionData(MakaMekComponent.ISAmmoAC20, 5, 100)])
+                [new LocationDamageData(PartLocation.CenterTorso, 0, 100, false)])
         ]);
 
         // Act

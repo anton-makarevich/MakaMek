@@ -29,7 +29,7 @@ public record struct AmmoExplosionCommand : IGameCommand
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
-        var unitId = UnitId; // Copy to local variable to avoid struct access issues
+        var unitId = UnitId; // Copy to a local variable to avoid struct access issues
         var unit = game.Players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == unitId);
@@ -41,7 +41,7 @@ public record struct AmmoExplosionCommand : IGameCommand
 
         var stringBuilder = new StringBuilder();
 
-        // Check if explosion occurred
+        // Check if an explosion occurred
         var explosionOccurred = AvoidExplosionRoll?.IsSuccessful == false;
 
         if (AvoidExplosionRoll != null)
@@ -58,7 +58,7 @@ public record struct AmmoExplosionCommand : IGameCommand
             }
             else
             {
-                // Explosion occurred due to failed roll
+                // Explosion occurred due to a failed roll
                 var failureTemplate = localizationService.GetString("Command_AmmoExplosion_Failed");
                 stringBuilder.AppendLine(string.Format(failureTemplate, unit.Model));
 
@@ -72,7 +72,7 @@ public record struct AmmoExplosionCommand : IGameCommand
                 AvoidExplosionRoll.AvoidNumber));
         }
 
-        // If explosion occurred, show the critical hits details
+        // If an explosion occurred, show the critical hits details
         if (explosionOccurred)
         {
             stringBuilder.AppendLine(localizationService.GetString("Command_AmmoExplosion_CriticalHits"));
@@ -91,12 +91,13 @@ public record struct AmmoExplosionCommand : IGameCommand
                                 localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed"),
                                 component.Name,
                                 criticalHitData.Location));
-                            if (componentHit.ExplosionDamage > 0)
+                            var explosionDamage = component.GetExplosionDamage();
+                            if (explosionDamage > 0)
                             {
                                 stringBuilder.AppendLine(string.Format(
                                     localizationService.GetString("Command_AmmoExplosion_Explosion"),
                                     component.Name,
-                                    componentHit.ExplosionDamage));
+                                    explosionDamage));
                             }
                         }
                     }

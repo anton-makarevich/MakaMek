@@ -490,14 +490,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         {
             foreach (var damageData in locationHit.Damage)
             {
-                if (damageData.StructureDamage > 0)
-                {
-                    // Calculate critical hits for this specific location damage
-                    var criticalHitsData = Game.CriticalHitsCalculator
-                        .CalculateCriticalHitsForStructureDamage(target, damageData);
+                if (damageData.StructureDamage <= 0) continue;
+                // Calculate critical hits for this specific location damage
+                var criticalHitsData = Game.CriticalHitsCalculator
+                    .CalculateCriticalHitsForStructureDamage(target, damageData);
 
-                    allCriticalHitsData.AddRange(criticalHitsData);
-                }
+                if (criticalHitsData != null) allCriticalHitsData.AddRange(criticalHitsData);
             }
         }
 
