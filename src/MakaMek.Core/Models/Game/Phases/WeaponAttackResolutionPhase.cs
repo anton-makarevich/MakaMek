@@ -399,7 +399,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(command);
 
         // Calculate and send critical hits if any location received structure damage
-        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;      
+        
+        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;   
         
         var criticalHits = CalculateAndSendCriticalHits(target, resolution.HitLocationsData);
         
@@ -486,16 +487,24 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var allCriticalHitsData = new List<LocationCriticalHitsData>();
 
         // Process each location that received damage
-        foreach (var locationHit in hitLocationsData.HitLocations)
+        var locationsWithStructureDamage = new Queue<LocationDamageData>( hitLocationsData.HitLocations
+            .SelectMany(l => l.Damage)
+            .Where(d => d.StructureDamage > 0));
+        
+        while (locationsWithStructureDamage.Count > 0)
         {
-            foreach (var damageData in locationHit.Damage)
+            var locationHitDamage = locationsWithStructureDamage.Dequeue();
+            var criticalHitsData = Game.CriticalHitsCalculator
+                .CalculateCriticalHitsForStructureDamage(target, locationHitDamage);
+            if (criticalHitsData != null)
             {
-                if (damageData.StructureDamage <= 0) continue;
-                // Calculate critical hits for this specific location damage
-                var criticalHitsData = Game.CriticalHitsCalculator
-                    .CalculateCriticalHitsForStructureDamage(target, damageData);
-
-                if (criticalHitsData != null) allCriticalHitsData.AddRange(criticalHitsData);
+                target.ApplyCriticalHits([criticalHitsData]);
+                allCriticalHitsData.Add(criticalHitsData);
+            }
+            var explosions = criticalHitsData?.Explosions ?? [];
+            foreach (var explosion in explosions)
+            {
+                locationsWithStructureDamage.Enqueue(explosion); // Add any explosion damage to the queue
             }
         }
 
@@ -511,7 +520,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             CriticalHits = allCriticalHitsData
         };
 
-        Game.OnCriticalHitsResolution(criticalHitsCommand);
         Game.CommandPublisher.PublishCommand(criticalHitsCommand);
         return allCriticalHitsData;
     }
