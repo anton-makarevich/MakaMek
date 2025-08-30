@@ -133,7 +133,7 @@ public class CriticalHitsCalculatorTests
     }
 
     [Fact]
-    public void CalculateCriticalHitsForStructureDamage_WithExplosiveComponents_IncludesExplosionData()
+    public void CalculateCriticalHitsForStructureDamage_WithExplosiveComponent_IncludesExplosionData()
     {
         // Arrange
         var testUnit = CreateTestMech();
@@ -173,6 +173,105 @@ public class CriticalHitsCalculatorTests
         result.Explosions.Count.ShouldBe(1);
         result.Explosions[0].Location.ShouldBe(PartLocation.CenterTorso);
         result.Explosions[0].StructureDamage.ShouldBe(5);
+    }
+    
+    [Fact]
+    public void CalculateCriticalHitsForStructureDamage_WithExplosiveComponents_IncludesExplosionDataForAllOfThem()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        var leftArm = testUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
+
+        // Add an explodable ammo component
+        var ammo = new Ammo(Lrm5.Definition, 24);
+        leftArm.TryAddComponent(ammo).ShouldBeTrue();
+        var ammo2 = new Ammo(Lrm5.Definition, 24);
+        leftArm.TryAddComponent(ammo2).ShouldBeTrue();
+
+        var structureDamageByLocation = new LocationDamageData(PartLocation.LeftArm,
+            5,
+            5,
+            false);
+
+        // Setup dice roller to hit the ammo component
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(5), new DiceResult(5)]); // 2 crits
+        _mockDiceRoller.RollD6().Returns(
+            new DiceResult(4), 
+            new DiceResult(3)
+        );
+        
+        // Setup structure damage calculator to return damage from explosion
+        _mockDamageTransferCalculator.CalculateExplosionDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftArm),
+                Arg.Is<int>(d => d > 0))
+            .Returns([
+                new LocationDamageData(PartLocation.LeftArm, 0, 5, false)
+            ]);
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForStructureDamage(testUnit, structureDamageByLocation);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Explosions.ShouldNotBeNull();
+        result.Explosions.Count.ShouldBe(2);
+        result.Explosions[0].Location.ShouldBe(PartLocation.LeftArm);
+        result.Explosions[0].StructureDamage.ShouldBe(5);
+        result.Explosions[1].Location.ShouldBe(PartLocation.LeftArm);
+        result.Explosions[1].StructureDamage.ShouldBe(5);
+    }
+    
+    [Fact]
+    public void CalculateCriticalHitsForStructureDamage_WithExplosiveComponents_IncludesExplosionDataForAllAffectedLocations()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        var leftArm = testUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
+
+        // Add an explodable ammo component
+        var ammo = new Ammo(Lrm5.Definition, 24);
+        leftArm.TryAddComponent(ammo).ShouldBeTrue();
+        var ammo2 = new Ammo(Lrm5.Definition, 24);
+        leftArm.TryAddComponent(ammo2).ShouldBeTrue();
+
+        var structureDamageByLocation = new LocationDamageData(PartLocation.LeftArm,
+            5,
+            5,
+            false);
+
+        // Setup dice roller to hit the ammo component
+        _mockDiceRoller.Roll2D6().Returns([new DiceResult(5), new DiceResult(5)]); // 2 crits
+        _mockDiceRoller.RollD6().Returns(
+            new DiceResult(4), 
+            new DiceResult(3)
+        );
+        
+        // Setup structure damage calculator to return damage from explosion
+        _mockDamageTransferCalculator.CalculateExplosionDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.LeftArm),
+                Arg.Is<int>(d => d > 0))
+            .Returns([
+                new LocationDamageData(PartLocation.LeftArm, 0, 5, false),
+                new LocationDamageData(PartLocation.LeftTorso, 0, 5, false)
+            ]);
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForStructureDamage(testUnit, structureDamageByLocation);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Explosions.ShouldNotBeNull();
+        result.Explosions.Count.ShouldBe(4);
+        result.Explosions[0].Location.ShouldBe(PartLocation.LeftArm);
+        result.Explosions[0].StructureDamage.ShouldBe(5);
+        result.Explosions[1].Location.ShouldBe(PartLocation.LeftTorso);
+        result.Explosions[1].StructureDamage.ShouldBe(5);
+        result.Explosions[2].Location.ShouldBe(PartLocation.LeftArm);
+        result.Explosions[2].StructureDamage.ShouldBe(5);
+        result.Explosions[3].Location.ShouldBe(PartLocation.LeftTorso);
+        result.Explosions[3].StructureDamage.ShouldBe(5);
     }
 
     [Fact]

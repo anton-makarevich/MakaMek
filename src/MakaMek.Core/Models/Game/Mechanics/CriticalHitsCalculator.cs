@@ -93,7 +93,11 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             var component = part.GetComponentAtSlot(componentData.Slot);
             if (component is not { CanExplode: true, HasExploded: false }) continue;
             var explosionDamage = component.GetExplosionDamage();
-            explosions = _damageTransferCalculator.CalculateExplosionDamage(unit, location, explosionDamage);
+            if (explosionDamage <= 0) continue;
+            var perComponent = _damageTransferCalculator
+                .CalculateExplosionDamage(unit, location, explosionDamage);
+            if (perComponent is { Count: > 0 })
+                explosions.AddRange(perComponent);
         }
 
         return criticalHitsData with { Location = location, Explosions = explosions };
