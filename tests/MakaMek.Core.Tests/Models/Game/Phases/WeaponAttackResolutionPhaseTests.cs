@@ -1305,4 +1305,51 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received().PublishCommand(
             Arg.Any<CriticalHitsResolutionCommand>());
     }
+
+    [Fact]
+    public void Enter_ShouldAccumulateBlownOffLegAndTriggerPsr_WhenLegIsBlownOff()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+
+        // Setup structure damage calculator to return structure damage for left leg
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns([new LocationDamageData(PartLocation.LeftLeg, 3, 2, false)]);
+
+        // Setup critical hits calculator to return a blown-off leg
+        var criticalHitsCommand = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Game.Id,
+            TargetId = _player2Unit1.Id,
+            CriticalHits = [new LocationCriticalHitsData(
+                PartLocation.LeftLeg,
+                [6, 6], // Roll of 12 for blown-off
+                3,
+                null, // No component hits when blown off
+                true, // IsBlownOff = true
+                [])]
+        };
+
+        MockCriticalHitsCalculator.CalculateCriticalHits(
+                Arg.Any<Unit>(),
+                Arg.Any<AttackHitLocationsData>())
+            .Returns(criticalHitsCommand);
+        
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify that FallProcessor was called with the blown-off leg in destroyed parts
+        MockFallProcessor.Received().ProcessPotentialFall(
+            Arg.Any<Mech>(),
+            Arg.Any<IGame>(),
+            Arg.Any<List<ComponentHitData>>(),
+            Arg.Is<List<PartLocation>>(parts => parts.Contains(PartLocation.LeftLeg)));
+    }
 }
