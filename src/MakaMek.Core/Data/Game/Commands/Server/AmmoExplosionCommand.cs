@@ -27,7 +27,7 @@ public record struct AmmoExplosionCommand : IGameCommand
     /// </summary>
     public List<LocationCriticalHitsData> CriticalHits { get; init; }
 
-    public string Render(ILocalizationService localizationService, IGame game)
+    public string  Render(ILocalizationService localizationService, IGame game)
     {
         var unitId = UnitId; // Copy to a local variable to avoid struct access issues
         var unit = game.Players
@@ -85,21 +85,19 @@ public record struct AmmoExplosionCommand : IGameCommand
                     {
                         var part = unit.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
                         var component = part?.GetComponentAtSlot(componentHit.Slot);
-                        if (component != null)
+                        if (component == null || component.ComponentType != componentHit.Type) continue;
+                        var localizedLocation = localizationService.GetString($"MechPart_{criticalHitData.Location}_Short");
+                        stringBuilder.AppendLine(string.Format(
+                            localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed"),
+                            component.Name,
+                            localizedLocation));
+                        var explosionDamage = componentHit.ExplosionDamage;
+                        if (explosionDamage > 0)
                         {
-                            var localizedLocation = localizationService.GetString($"MechPart_{criticalHitData.Location}_Short");
                             stringBuilder.AppendLine(string.Format(
-                                localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed"),
+                                localizationService.GetString("Command_AmmoExplosion_Explosion"),
                                 component.Name,
-                                localizedLocation));
-                            var explosionDamage = componentHit.ExplosionDamage;
-                            if (explosionDamage > 0)
-                            {
-                                stringBuilder.AppendLine(string.Format(
-                                    localizationService.GetString("Command_AmmoExplosion_Explosion"),
-                                    component.Name,
-                                    explosionDamage));
-                            }
+                                explosionDamage));
                         }
                     }
                 }

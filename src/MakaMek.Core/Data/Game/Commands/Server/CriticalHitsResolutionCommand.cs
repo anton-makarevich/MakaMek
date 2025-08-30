@@ -63,20 +63,20 @@ public record CriticalHitsResolutionCommand : IGameCommand
             // Show hit components
             if (criticalHitData.HitComponents != null)
             {
-                foreach (var component in criticalHitData.HitComponents)
+                foreach (var componentHit in criticalHitData.HitComponents)
                 {
-                    var comp = part?.GetComponentAtSlot(component.Slot);
-                    if (comp == null) continue;
+                    var component = part?.GetComponentAtSlot(componentHit.Slot);
+                    if (component == null || component.ComponentType != componentHit.Type) continue;
                     stringBuilder.AppendLine(string.Format(
                         localizationService.GetString("Command_CriticalHitsResolution_CriticalHit"),
-                        component.Slot + 1,
-                        comp.Name));
-                    var explosionDamage = component.ExplosionDamage;
+                        componentHit.Slot + 1,
+                        component.Name));
+                    var explosionDamage = componentHit.ExplosionDamage;
                     if (explosionDamage > 0)
                     {
                         stringBuilder.AppendLine(string.Format(
                             localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
-                            comp.Name,
+                            component.Name,
                             explosionDamage));
                     }
                 }

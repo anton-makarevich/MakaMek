@@ -294,7 +294,7 @@ public class AmmoExplosionCommandTests
             PartLocation.CenterTorso,
             [4, 5],
             1,
-            [new ComponentHitData { Type = MakaMekComponent.ISAmmoAC2, Slot = 1 }],
+            [new ComponentHitData { Type = MakaMekComponent.ISAmmoAC2, Slot = 1, ExplosionDamage = 100 }],
             false,
             []);
 
