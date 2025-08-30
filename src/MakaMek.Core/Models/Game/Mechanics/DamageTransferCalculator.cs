@@ -15,40 +15,19 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         int totalDamage,
         HitDirection hitDirection)
     {
-        var damageDistribution = new List<LocationDamageData>();
-        var remainingDamage = totalDamage;
-        PartLocation? currentLocation = initialLocation;
-
-        while (remainingDamage > 0 && currentLocation.HasValue)
-        {
-            var part = unit.Parts.FirstOrDefault(p => p.Location == currentLocation.Value);
-            if (part == null)
-                break;
-
-            var locationDamage = CalculateLocationDamage(part, remainingDamage, hitDirection);
-            damageDistribution.Add(locationDamage);
-
-            // Calculate remaining damage after this location
-            remainingDamage -= (locationDamage.ArmorDamage + locationDamage.StructureDamage);
-
-            // If a location is destroyed and there's remaining damage, transfer to the next location
-            if (locationDamage.IsLocationDestroyed && remainingDamage > 0)
-            {
-                currentLocation = unit.GetTransferLocation(currentLocation.Value);
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        return damageDistribution;
+        return CalculateDamageDistribution(unit, initialLocation, totalDamage, hitDirection);
     }
 
     public List<LocationDamageData> CalculateExplosionDamage(
         Unit unit,
         PartLocation initialLocation,
         int totalDamage)
+    {
+        return CalculateDamageDistribution(unit, initialLocation, totalDamage, HitDirection.Front, true);
+    }
+    
+    private List<LocationDamageData> CalculateDamageDistribution(Unit unit, PartLocation initialLocation, int totalDamage,
+        HitDirection hitDirection, bool isExplosion = false)
     {
         var damageDistribution = new List<LocationDamageData>();
         var remainingDamage = totalDamage;
@@ -60,11 +39,13 @@ public class DamageTransferCalculator : IDamageTransferCalculator
             if (part == null)
                 break;
 
-            var locationDamage = CalculateExplosionLocationDamage(part, remainingDamage);
+            var locationDamage = isExplosion
+                ? CalculateExplosionLocationDamage(part, remainingDamage)
+                : CalculateLocationDamage(part, remainingDamage, hitDirection);
             damageDistribution.Add(locationDamage);
 
             // Calculate remaining damage after this location
-            remainingDamage -= locationDamage.StructureDamage;
+            remainingDamage -= (locationDamage.ArmorDamage + locationDamage.StructureDamage);
 
             // If a location is destroyed and there's remaining damage, transfer to the next location
             if (locationDamage.IsLocationDestroyed && remainingDamage > 0)
