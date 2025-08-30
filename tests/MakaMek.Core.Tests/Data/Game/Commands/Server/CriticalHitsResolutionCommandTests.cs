@@ -114,7 +114,7 @@ public class CriticalHitsResolutionCommandTests
         result.ShouldNotBeEmpty();
         result.ShouldContain("Critical Roll: 12");
         result.ShouldContain("Critical hit in LA, location blown off");
-        result.ShouldNotContain("Num Crits:");
+        result.ShouldNotContain("Number of critical hits:");
         result.ShouldNotContain("Critical hit in LA slot");
     }
 
