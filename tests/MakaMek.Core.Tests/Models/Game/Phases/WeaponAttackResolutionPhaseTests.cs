@@ -1250,7 +1250,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return structure damage
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1295,7 +1294,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return multiple locations with structure damage
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1346,7 +1344,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return structure damage
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1388,7 +1385,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return structure damage
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1461,7 +1457,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return structure damage
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1540,7 +1535,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return structure damage
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1621,7 +1615,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return structure damage
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1675,7 +1668,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return mixed damage (some with structure, some without)
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1726,7 +1718,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return structure damage
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1764,7 +1755,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
         // Setup structure damage calculator to return multiple hit locations with different damage types
-        MockDamageTransferCalculator.ClearReceivedCalls();
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),

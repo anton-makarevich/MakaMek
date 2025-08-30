@@ -22,7 +22,7 @@ public class CriticalHitsCalculatorTests
 
     public CriticalHitsCalculatorTests()
     {
-        // Setup calculator with mock dice roller
+        // Setup calculator with mock dice roller and damage transfer calculator
         _sut = new CriticalHitsCalculator(_mockDiceRoller, _mockDamageTransferCalculator);
 
         // Setup rules provider
@@ -42,7 +42,7 @@ public class CriticalHitsCalculatorTests
     }
     
     [Fact]
-    public void CalculateCriticalHitsForStructureDamage_WithNoStructureDamage_ReturnsEmptyList()
+    public void CalculateCriticalHitsForStructureDamage_WithNoStructureDamage_ReturnsNull()
     {
         // Arrange
         var testUnit = CreateTestMech();
@@ -89,6 +89,8 @@ public class CriticalHitsCalculatorTests
         result.ShouldNotBeNull();
         result.Roll.ShouldBe([4, 4]);
         result.NumCriticalHits.ShouldBe(1);
+        result.Location.ShouldBe(PartLocation.CenterTorso);
+        _mockDiceRoller.Received(1).Roll2D6();
     }
 
     [Fact]
@@ -100,7 +102,7 @@ public class CriticalHitsCalculatorTests
 
         // Add an explodable ammo component
         var ammo = new Ammo(Lrm5.Definition, 24);
-        centerTorso.TryAddComponent(ammo, [10]);
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
 
         // Setup dice roller for cascading critical hits (if any)
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
@@ -121,7 +123,7 @@ public class CriticalHitsCalculatorTests
         // Assert
         result.ShouldNotBeNull();
         result.Location.ShouldBe(PartLocation.CenterTorso);
-        result.Roll.ShouldBe([]); // No roll for forced critical hit
+        result.Roll.ShouldBeEmpty(); // No roll for forced critical hit
         result.NumCriticalHits.ShouldBe(1); // One forced critical hit
         result.HitComponents.ShouldNotBeNull();
         result.HitComponents!.Length.ShouldBe(1);
@@ -141,7 +143,7 @@ public class CriticalHitsCalculatorTests
 
         // Add an explodable ammo component
         var ammo = new Ammo(Lrm5.Definition, 24);
-        centerTorso.TryAddComponent(ammo, [10]);
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
 
         var structureDamageByLocation = new LocationDamageData(PartLocation.CenterTorso,
             5,
@@ -196,8 +198,8 @@ public class CriticalHitsCalculatorTests
         // Setup dice roller to hit the ammo component
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(5), new DiceResult(5)]); // 2 crits
         _mockDiceRoller.RollD6().Returns(
-            new DiceResult(4), 
-            new DiceResult(3)
+            new DiceResult(ammo.MountedAtSlots[0]+1), 
+            new DiceResult(ammo2.MountedAtSlots[0]+1)
         );
         
         // Setup structure damage calculator to return damage from explosion
@@ -380,5 +382,25 @@ public class CriticalHitsCalculatorTests
         // Assert
         result.ShouldBeNull(); // Should return null when the structure is exactly 0
         _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice when structure is 0
+    }
+    
+    [Fact]
+    public void CalculateCriticalHitsForHeatExplosion_ShouldReturnNull_WhenExplosionDamageIsZero()
+    {
+        // Arrange
+        var testUnit = CreateTestMech();
+        var centerTorso = testUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+
+        // Ammo with 0 rounds -> zero explosion damage
+        var ammo = new Ammo(Lrm5.Definition, 0);
+        centerTorso.TryAddComponent(ammo).ShouldBeTrue();
+
+        // Act
+        var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
+
+        // Assert
+        result.ShouldBeNull();
+        _mockDamageTransferCalculator.DidNotReceive().CalculateExplosionDamage(Arg.Any<Unit>(), Arg.Any<PartLocation>(), Arg.Any<int>());
+        _mockDiceRoller.DidNotReceive().Roll2D6();
     }
 }
