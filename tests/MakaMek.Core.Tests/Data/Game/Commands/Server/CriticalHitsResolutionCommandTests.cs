@@ -6,6 +6,8 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Utils;
@@ -46,7 +48,12 @@ public class CriticalHitsResolutionCommandTests
         // Arrange
         var command = CreateCommand([
             new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
-                [new ComponentHitData { Slot = 0, Type = MakaMekComponent.Engine }],
+                [new ComponentHitData
+                    {
+                        Slot = 0,
+                        Type = MakaMekComponent.Engine
+                    }
+                ],
                 false, [])
         ]);
 
@@ -66,11 +73,21 @@ public class CriticalHitsResolutionCommandTests
         // Arrange
         var command = CreateCommand([
             new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
-                [new ComponentHitData { Slot = 0, Type = MakaMekComponent.Engine }],
+                [new ComponentHitData
+                    {
+                        Slot = 0,
+                        Type = MakaMekComponent.Engine
+                    }
+                ],
                 false, []),
 
             new LocationCriticalHitsData(PartLocation.LeftArm, [3, 3], 1,
-                [new ComponentHitData { Slot = 1, Type = MakaMekComponent.MediumLaser }],
+                [new ComponentHitData
+                    {
+                        Slot = 1,
+                        Type = MakaMekComponent.MediumLaser
+                    }
+                ],
                 false, [])
         ]);
 
@@ -97,27 +114,8 @@ public class CriticalHitsResolutionCommandTests
         result.ShouldNotBeEmpty();
         result.ShouldContain("Critical Roll: 12");
         result.ShouldContain("Critical hit in LA, location blown off");
-        result.ShouldNotContain("Num Crits:");
+        result.ShouldNotContain("Number of critical hits:");
         result.ShouldNotContain("Critical hit in LA slot");
-    }
-
-    [Fact]
-    public void Render_WithZeroCritsButExplosion_ShouldShowExplosionDetails()
-    {
-        // Arrange
-        var command = CreateCommand([
-            new LocationCriticalHitsData(PartLocation.CenterTorso, [2, 2], 0, null, false,
-                [new ExplosionData(MakaMekComponent.ISAmmoAC20, 5, 100)])
-        ]);
-
-        // Act
-        var result = command.Render(_localizationService, _game);
-
-        // Assert
-        result.ShouldNotBeEmpty();
-        result.ShouldContain("Critical Roll: 4");
-        result.ShouldNotContain("Num Crits:");
-        result.ShouldContain("exploded, damage: 100");
     }
 
     [Fact]
@@ -154,7 +152,7 @@ public class CriticalHitsResolutionCommandTests
             new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
                 [new ComponentHitData { Slot = 0, Type = MakaMekComponent.Engine }],
                 false,
-                [new ExplosionData(MakaMekComponent.ISAmmoAC20, 99, 100)])
+                [])
         ]);
 
         // Act
@@ -189,17 +187,21 @@ public class CriticalHitsResolutionCommandTests
     public void Render_WithComplexScenario_ShouldFormatCorrectly()
     {
         // Arrange - Multiple locations, some with crits, some blown off, some with explosions
+        var rightArm = _target.Parts.First(p => p.Location == PartLocation.RightArm);
+        var ammo = new Ammo(Lrm5.Definition, 20);
+        rightArm.TryAddComponent(ammo).ShouldBeTrue();
+
         var command = CreateCommand([
             new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
                 [new ComponentHitData { Slot = 0, Type = MakaMekComponent.Engine }],
                 false,
-                [new ExplosionData(MakaMekComponent.ISAmmoAC20, 5, 50)]),
+                []),
 
             new LocationCriticalHitsData(PartLocation.LeftArm, [6, 6], 0, null, true, []),
             new LocationCriticalHitsData(PartLocation.RightArm, [3, 3], 2,
                 [
                     new ComponentHitData { Slot = 1, Type = MakaMekComponent.MediumLaser },
-                    new ComponentHitData { Slot = 2, Type = MakaMekComponent.HeatSink }
+                    new ComponentHitData { Slot = ammo.MountedAtSlots[0], Type = ammo.ComponentType }
                 ],
                 false, [])
         ]);
@@ -209,7 +211,7 @@ public class CriticalHitsResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        
+
         // Should show location headers for multiple locations
         result.ShouldContain("Critical hits in CT:");
         result.ShouldContain("Critical hits in LA:");
@@ -217,12 +219,13 @@ public class CriticalHitsResolutionCommandTests
 
         // Should show blown off for LeftArm
         result.ShouldContain("Critical hit in LA, location blown off");
-        
-        // Should show explosion for CenterTorso
-        result.ShouldContain("exploded, damage: 50");
-        
+
+
+
         // Should show multiple critical hits for RightArm
         result.ShouldContain("Number of critical hits: 2");
+        // Should show explosion in RightArm
+        result.ShouldContain("exploded, damage: 100");
     }
 
     private CriticalHitsResolutionCommand CreateCommand(List<LocationCriticalHitsData> criticalHits)

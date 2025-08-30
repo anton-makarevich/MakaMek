@@ -7,13 +7,27 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// <summary>
 /// Calculates structure damage distribution without applying it to units
 /// </summary>
-public class StructureDamageCalculator : IStructureDamageCalculator
+public class DamageTransferCalculator : IDamageTransferCalculator
 {
-    public List<LocationDamageData> CalculateStructureDamage(
+    public IReadOnlyList<LocationDamageData> CalculateStructureDamage(
         Unit unit,
         PartLocation initialLocation,
         int totalDamage,
         HitDirection hitDirection)
+    {
+        return CalculateDamageDistribution(unit, initialLocation, totalDamage, hitDirection);
+    }
+
+    public IReadOnlyList<LocationDamageData> CalculateExplosionDamage(
+        Unit unit,
+        PartLocation initialLocation,
+        int totalDamage)
+    {
+        return CalculateDamageDistribution(unit, initialLocation, totalDamage, HitDirection.Front, true);
+    }
+    
+    private List<LocationDamageData> CalculateDamageDistribution(Unit unit, PartLocation initialLocation, int totalDamage,
+        HitDirection hitDirection, bool isExplosion = false)
     {
         var damageDistribution = new List<LocationDamageData>();
         var remainingDamage = totalDamage;
@@ -25,13 +39,15 @@ public class StructureDamageCalculator : IStructureDamageCalculator
             if (part == null)
                 break;
 
-            var locationDamage = CalculateLocationDamage(part, remainingDamage, hitDirection);
+            var locationDamage = isExplosion
+                ? CalculateExplosionLocationDamage(part, remainingDamage)
+                : CalculateLocationDamage(part, remainingDamage, hitDirection);
             damageDistribution.Add(locationDamage);
 
             // Calculate remaining damage after this location
             remainingDamage -= (locationDamage.ArmorDamage + locationDamage.StructureDamage);
 
-            // If location is destroyed and there's remaining damage, transfer to next location
+            // If a location is destroyed and there's remaining damage, transfer to the next location
             if (locationDamage.IsLocationDestroyed && remainingDamage > 0)
             {
                 currentLocation = unit.GetTransferLocation(currentLocation.Value);
@@ -74,6 +90,21 @@ public class StructureDamageCalculator : IStructureDamageCalculator
             structureDamage,
             locationDestroyed,
             isRearArmor
+        );
+    }
+
+    private LocationDamageData CalculateExplosionLocationDamage(UnitPart part, int incomingDamage)
+    {
+        // Explosion damage bypasses armor entirely
+        var availableStructure = part.CurrentStructure;
+        var structureDamage = Math.Min(incomingDamage, availableStructure);
+        var locationDestroyed = structureDamage >= part.CurrentStructure;
+
+        return new LocationDamageData(
+            part.Location,
+            0,
+            structureDamage,
+            locationDestroyed 
         );
     }
 

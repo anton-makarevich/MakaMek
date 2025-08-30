@@ -22,7 +22,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     // Units with weapons that have targets, organized by player
     private readonly Dictionary<Guid, List<Unit>> _unitsWithTargets = new();
     
-    // Dictionary to track accumulated damage data for PSR calculations at phase end
+    // Dictionary to track accumulated damage data for PSR calculations at the phase end
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamageData = new();
 
     public override void Enter()
@@ -110,13 +110,14 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             currentWeaponTarget.Weapon.Location,
             currentWeaponTarget.Weapon.Slots);
         
-        var allUnits = Game.AlivePlayers.SelectMany(p => p.AliveUnits);
+        // Take all units not just alive as we should resolve attack even if the unit is already destroyed
+        var allUnits = Game.Players.SelectMany(p => p.Units); 
         var targetUnit = allUnits.FirstOrDefault(u => u.Id == currentWeaponTarget.TargetId);
 
         if (currentWeapon != null && targetUnit != null)
         {
             var resolution = ResolveAttack(currentUnit, targetUnit, currentWeapon, currentWeaponTarget);
-            PublishAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
+            FinalizeAttackResolution(currentPlayer, currentUnit, currentWeapon, targetUnit, resolution);
         }
 
         // Move to the next weapon
@@ -273,7 +274,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
 
         int[] locationRoll = [];
-        // If aimed shot location is null, determine hit location normally
+        // If the aimed shot location is null, determine the hit location normally
         var hitLocation = aimedShotLocation ?? GetHitLocation(out locationRoll);
         
         // Store the initial location in case we need to transfer
@@ -291,8 +292,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
         }
         
-        // Use StructureDamageCalculator to calculate damage distribution
-        var damageData = Game.StructureDamageCalculator.CalculateStructureDamage(
+        // Use DamageTransferCalculator to calculate damage distribution
+        var damageData = Game.DamageTransferCalculator.CalculateStructureDamage(
             target, hitLocation, damage, attackDirection);
 
         return new LocationHitData(
@@ -350,7 +351,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return HitDirection.Front;
     }
 
-    private void PublishAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target, AttackResolutionData resolution)
+    private void FinalizeAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target, AttackResolutionData resolution)
     {
         // Track destroyed parts before damage
         var destroyedPartsBefore = target.Parts.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
@@ -398,12 +399,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(command);
 
         // Calculate and send critical hits if any location received structure damage
-        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;      
+        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;   
         
         var criticalHits = CalculateAndSendCriticalHits(target, resolution.HitLocationsData);
-        
-        // Check for conditions that might cause the mech to fall
-        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
         
         // Check for component hits that can cause a fall
         var allComponentHits = criticalHits.SelectMany(ch => ch.HitComponents ?? []);
@@ -485,22 +483,29 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var allCriticalHitsData = new List<LocationCriticalHitsData>();
 
         // Process each location that received damage
-        foreach (var locationHit in hitLocationsData.HitLocations)
+        var locationsWithStructureDamage = new Queue<LocationDamageData>( hitLocationsData.HitLocations
+            .SelectMany(l => l.Damage)
+            .Where(d => d.StructureDamage > 0));
+        
+        while (locationsWithStructureDamage.Count > 0)
         {
-            foreach (var damageData in locationHit.Damage)
+            var locationHitDamage = locationsWithStructureDamage.Dequeue();
+            var criticalHitsData = Game.CriticalHitsCalculator
+                .CalculateCriticalHitsForStructureDamage(target, locationHitDamage);
+            if (criticalHitsData != null)
             {
-                if (damageData.StructureDamage > 0)
-                {
-                    // Calculate critical hits for this specific location damage
-                    var criticalHitsData = Game.CriticalHitsCalculator
-                        .CalculateCriticalHitsForStructureDamage(target, damageData);
-
-                    allCriticalHitsData.AddRange(criticalHitsData);
-                }
+                target.ApplyCriticalHits([criticalHitsData]);
+                allCriticalHitsData.Add(criticalHitsData);
+            }
+            var explosions = criticalHitsData?.ExplosionsDamage ?? [];
+            foreach (var explosion in explosions)
+            {
+                if (explosion.StructureDamage > 0)
+                    locationsWithStructureDamage.Enqueue(explosion); // Add any explosion damage to the queue
             }
         }
 
-        // If no critical hits occurred, no need to send command
+        // If no critical hits occurred, no need to send a command
         if (allCriticalHitsData.Count == 0)
             return allCriticalHitsData;
 
@@ -512,8 +517,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             CriticalHits = allCriticalHitsData
         };
 
-        Game.OnCriticalHitsResolution(criticalHitsCommand);
         Game.CommandPublisher.PublishCommand(criticalHitsCommand);
+        
+        // Process consciousness rolls for pilot damage accumulated during critical hits
+        ProcessConsciousnessRollsForUnit(target);
+        
         return allCriticalHitsData;
     }
 

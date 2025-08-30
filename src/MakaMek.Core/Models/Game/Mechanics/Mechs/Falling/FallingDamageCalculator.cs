@@ -14,15 +14,15 @@ public class FallingDamageCalculator : IFallingDamageCalculator
 {
     private readonly IDiceRoller _diceRoller;
     private readonly IRulesProvider _rulesProvider;
-    private readonly IStructureDamageCalculator _structureDamageCalculator;
+    private readonly IDamageTransferCalculator _damageTransferCalculator;
 
     public FallingDamageCalculator(IDiceRoller diceRoller,
         IRulesProvider rulesProvider,
-        IStructureDamageCalculator structureDamageCalculator)
+        IDamageTransferCalculator damageTransferCalculator)
     {
         _diceRoller = diceRoller;
         _rulesProvider = rulesProvider;
-        _structureDamageCalculator = structureDamageCalculator;
+        _damageTransferCalculator = damageTransferCalculator;
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public class FallingDamageCalculator : IFallingDamageCalculator
             var locationRollResult = locationRolls.Sum();
             var hitLocation = _rulesProvider.GetHitLocation(locationRollResult, attackDirection);
             
-            var locationDamage = _structureDamageCalculator.CalculateStructureDamage(
+            var locationDamage = _damageTransferCalculator.CalculateStructureDamage(
                 mech,
                 hitLocation,
                 damageAmount,

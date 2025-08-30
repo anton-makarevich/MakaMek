@@ -745,7 +745,7 @@ public class MechTests
 
         foreach (var component in part.Components)
         {
-            if (component.MountedAtSlots[0] != 0)
+            if (component.MountedAtSlots[0] != 1)
                 component.Hit(); // destroy all components but first
         }
 
@@ -821,12 +821,9 @@ public class MechTests
             [new DiceResult(6), new DiceResult(6)] // 12 total for crit roll
         );
         diceRoller.RollD6().Returns(
-            new DiceResult(2),
-            new DiceResult(3),
-            new DiceResult(2),
             new DiceResult(4),
-            new DiceResult(2),
-            new DiceResult(5));
+            new DiceResult(5),
+            new DiceResult(6));
 
         // Act
         var critsData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);

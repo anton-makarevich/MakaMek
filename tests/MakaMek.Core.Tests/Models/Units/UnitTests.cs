@@ -1228,7 +1228,7 @@ public class UnitTests
                     }
                 ],
                 false,
-                [ new ExplosionData(MakaMekComponent.MachineGun, explodableComponent.MountedAtSlots[0], 3) ])
+                [new LocationDamageData(PartLocation.LeftArm, 0, 30, false)])
         };
         
         // Pre-assert: component has not exploded
@@ -1289,8 +1289,8 @@ public class UnitTests
                 ],
                 false,
                 [ 
-                    new ExplosionData(MakaMekComponent.MachineGun, explodableComponent1.MountedAtSlots[0], 3),
-                    new ExplosionData(MakaMekComponent.MachineGun, explodableComponent2.MountedAtSlots[0], 1) 
+                    new LocationDamageData(PartLocation.LeftArm, 0, 30, false),
+                    new LocationDamageData(PartLocation.LeftArm, 0, 10, false) 
                 ])
         };
         
@@ -1332,7 +1332,7 @@ public class UnitTests
                     }
                 ],
                 false,
-                [ new ExplosionData(MakaMekComponent.MachineGun, explodableComponent.MountedAtSlots[0], 3) ])
+                [new LocationDamageData(PartLocation.LeftArm, 0, 30, false) ])
         };
         
         // Pre-assert: component has already exploded
@@ -1737,7 +1737,7 @@ public class UnitTests
                     }
                 ],
                 false,
-                [ new ExplosionData(MakaMekComponent.MachineGun, explodableComponent.MountedAtSlots[0], 3) ])
+                [ new LocationDamageData(PartLocation.LeftArm, 0, 30, false) ])
         };
         var initialTotalDamage = sut.TotalPhaseDamage;
 

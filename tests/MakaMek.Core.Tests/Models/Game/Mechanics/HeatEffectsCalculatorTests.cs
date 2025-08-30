@@ -27,7 +27,7 @@ public class HeatEffectsCalculatorTests
     {
         _sut = new HeatEffectsCalculator(_rulesProvider, _diceRoller, _criticalHitsCalculator);
 
-        // Default mocks - can be overridden in specific tests
+        // Default mocks can be overridden in specific tests
         _rulesProvider.GetHeatShutdownAvoidNumber(Arg.Any<int>()).Returns(4);
         _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(4);
     }
@@ -76,22 +76,6 @@ public class HeatEffectsCalculatorTests
         FullAmmoRounds: 24,
         WeaponComponentType: MakaMekComponent.LRM5,
         AmmoComponentType: MakaMekComponent.ISAmmoLRM5);
-
-    private static readonly WeaponDefinition Lrm10 = new(
-        Name: "LRM-10",
-        ElementaryDamage: 1,
-        Heat: 4,
-        MinimumRange: 6,
-        ShortRange: 7,
-        MediumRange: 14,
-        LongRange: 21,
-        Type: WeaponType.Missile,
-        BattleValue: 90,
-        Clusters: 1,
-        ClusterSize: 10,
-        FullAmmoRounds: 12,
-        WeaponComponentType: MakaMekComponent.LRM10,
-        AmmoComponentType: MakaMekComponent.ISAmmoLRM10);
 
     [Fact]
     public void GetAmmoExplosionAvoidNumber_ShouldReturnCorrectValue()
@@ -183,12 +167,10 @@ public class HeatEffectsCalculatorTests
         _diceRoller.Roll2D6().Returns(diceResults);
         
         // Setup critical hits calculator
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.CenterTorso, [4, 4], 1, [
+        var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
                 new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
-            ],false,[])
-        };
+            ],false,[]);
+        
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
             .Returns(criticalHits);
@@ -222,12 +204,10 @@ public class HeatEffectsCalculatorTests
         _diceRoller.Roll2D6().Returns(diceResults);
 
         // Setup critical hits calculator
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.CenterTorso, [4, 4], 1, [
+        var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
                 new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
-            ],false,[])
-        };
+            ],false,[]);
+        
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
             .Returns(criticalHits);
@@ -263,12 +243,9 @@ public class HeatEffectsCalculatorTests
         _diceRoller.RollD6().Returns(diceResults[0]);
 
         // Setup critical hits calculator
-        var criticalHits = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.CenterTorso, [4, 4], 1, [
+        var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
                 new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
-            ],false,[])
-        };
+            ],false,[]);
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(Arg.Any<Unit>(),
                 Arg.Any<Ammo>())
             .Returns(criticalHits);

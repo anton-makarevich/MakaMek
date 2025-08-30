@@ -638,13 +638,13 @@ public class Mech : Unit
         {
             if (availableSlots.Count == 1)
             {
-                result.Add(CreateComponentHitData(part,0));
+                result.Add(CreateComponentHitData(part,availableSlots[0]));
                 availableSlots.RemoveAt(0);
                 break;
             }
             var slot = -1;
             // Roll for slot as per 6/12 slot logic
-            if (part.TotalSlots <= 6)
+            if (availableSlots.Count <= 6)
             {
                 // 1d6, map 1-6 to 0-5
                 do {
@@ -684,7 +684,7 @@ public class Mech : Unit
     {
         var component = part.GetComponentAtSlot(slot);
         if (component == null) throw new ArgumentException("Invalid slot");
-        return new ComponentHitData()
+        return new ComponentHitData
         {
             Slot = slot,
             Type = component.ComponentType

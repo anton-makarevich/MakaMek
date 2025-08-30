@@ -22,7 +22,7 @@ public interface IGameFactory
         ICommandPublisher commandPublisher,
         IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
-        IStructureDamageCalculator structureDamageCalculator,
+        IDamageTransferCalculator damageTransferCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
