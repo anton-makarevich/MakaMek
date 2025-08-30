@@ -401,10 +401,17 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Calculate and send critical hits if any location received structure damage
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;   
         
-        var criticalHits = CalculateAndSendCriticalHits(target, resolution.HitLocationsData);
+        var criticalHitsCommand = Game.CriticalHitsCalculator
+            .CalculateCriticalHits(target, resolution.HitLocationsData);
+        if (criticalHitsCommand == null) return;
+        criticalHitsCommand.GameOriginId = Game.Id;
+        Game.CommandPublisher.PublishCommand(criticalHitsCommand);
+        
+        // Process consciousness rolls for pilot damage accumulated during critical hits
+        ProcessConsciousnessRollsForUnit(target);
         
         // Check for component hits that can cause a fall
-        var allComponentHits = criticalHits.SelectMany(ch => ch.HitComponents ?? []);
+        var allComponentHits = criticalHitsCommand.CriticalHits.SelectMany(ch => ch.HitComponents ?? []);
         
         // Add component hits to accumulated damage data
         if (!_accumulatedDamageData.TryGetValue(target.Id, out var accumulatedDamage))
@@ -471,58 +478,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         // Clear the accumulated damage data after processing
         _accumulatedDamageData.Clear();
-    }
-
-    /// <summary>
-    /// Calculates critical hits for locations that received structure damage and sends the command
-    /// </summary>
-    /// <param name="target">The target unit</param>
-    /// <param name="hitLocationsData">The hit locations data containing damage information</param>
-    private List<LocationCriticalHitsData> CalculateAndSendCriticalHits(Unit target, AttackHitLocationsData hitLocationsData)
-    {
-        var allCriticalHitsData = new List<LocationCriticalHitsData>();
-
-        // Process each location that received damage
-        var locationsWithStructureDamage = new Queue<LocationDamageData>( hitLocationsData.HitLocations
-            .SelectMany(l => l.Damage)
-            .Where(d => d.StructureDamage > 0));
-        
-        while (locationsWithStructureDamage.Count > 0)
-        {
-            var locationHitDamage = locationsWithStructureDamage.Dequeue();
-            var criticalHitsData = Game.CriticalHitsCalculator
-                .CalculateCriticalHitsForStructureDamage(target, locationHitDamage);
-            if (criticalHitsData != null)
-            {
-                target.ApplyCriticalHits([criticalHitsData]);
-                allCriticalHitsData.Add(criticalHitsData);
-            }
-            var explosions = criticalHitsData?.ExplosionsDamage ?? [];
-            foreach (var explosion in explosions)
-            {
-                if (explosion.StructureDamage > 0)
-                    locationsWithStructureDamage.Enqueue(explosion); // Add any explosion damage to the queue
-            }
-        }
-
-        // If no critical hits occurred, no need to send a command
-        if (allCriticalHitsData.Count == 0)
-            return allCriticalHitsData;
-
-        // Send critical hits resolution command
-        var criticalHitsCommand = new CriticalHitsResolutionCommand
-        {
-            GameOriginId = Game.Id,
-            TargetId = target.Id,
-            CriticalHits = allCriticalHitsData
-        };
-
-        Game.CommandPublisher.PublishCommand(criticalHitsCommand);
-        
-        // Process consciousness rolls for pilot damage accumulated during critical hits
-        ProcessConsciousnessRollsForUnit(target);
-        
-        return allCriticalHitsData;
     }
 
     /// <summary>

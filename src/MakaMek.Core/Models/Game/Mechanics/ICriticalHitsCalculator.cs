@@ -1,4 +1,5 @@
 ﻿using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
@@ -7,14 +8,11 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 public interface ICriticalHitsCalculator
 {
     /// <summary>
-    /// Calculates critical hits for all locations that received structure damage
+    /// Calculates critical hits for locations that received structure damage
     /// </summary>
-    /// <param name="unit">The unit receiving damage</param>
-    /// <param name="damageData">Precomputed damage for a specific location (armor/structure and destroyed flag).</param>
-    /// <returns>A LocationCriticalHitsData originating at the damaged location (including explosions).</returns>
-    LocationCriticalHitsData? CalculateCriticalHitsForStructureDamage(
-        Unit unit,
-        LocationDamageData damageData);
+    /// <param name="target">The target unit</param>
+    /// <param name="hitLocationsData">The hit locations data containing damage information</param>
+    CriticalHitsResolutionCommand? CalculateCriticalHits(Unit target, AttackHitLocationsData hitLocationsData);
 
     /// <summary>
     /// Calculates critical hits for heat-induced component explosion
