@@ -30,7 +30,7 @@ public class ServerGame : BaseGame, IDisposable
         ICommandPublisher commandPublisher,
         IDiceRoller diceRoller,
         IToHitCalculator toHitCalculator,
-        IStructureDamageCalculator structureDamageCalculator,
+        IDamageTransferCalculator damageTransferCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
@@ -40,14 +40,14 @@ public class ServerGame : BaseGame, IDisposable
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
     {
         DiceRoller = diceRoller;
-        StructureDamageCalculator = structureDamageCalculator;
+        DamageTransferCalculator = damageTransferCalculator;
         CriticalHitsCalculator = criticalHitsCalculator;
         FallProcessor = fallProcessor;
         PhaseManager = phaseManager ?? new BattleTechPhaseManager();
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }
 
-    public IStructureDamageCalculator StructureDamageCalculator { get; }
+    public IDamageTransferCalculator DamageTransferCalculator { get; }
 
     public ICriticalHitsCalculator CriticalHitsCalculator { get; }
 

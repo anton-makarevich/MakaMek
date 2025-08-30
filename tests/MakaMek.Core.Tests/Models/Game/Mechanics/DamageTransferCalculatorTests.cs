@@ -10,14 +10,14 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
 
-public class StructureDamageCalculatorTests
+public class DamageTransferCalculatorTests
 {
-    private readonly StructureDamageCalculator _sut;
+    private readonly DamageTransferCalculator _sut;
     private readonly MechFactory _mechFactory;
 
-    public StructureDamageCalculatorTests()
+    public DamageTransferCalculatorTests()
     {
-        _sut = new StructureDamageCalculator();
+        _sut = new DamageTransferCalculator();
         
         // Setup rules provider for unit creation
         IRulesProvider rules = new ClassicBattletechRulesProvider();

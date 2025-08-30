@@ -16,7 +16,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 public class FallingDamageCalculatorTests
 {
     private readonly IDiceRoller _mockDiceRoller = Substitute.For<IDiceRoller>();
-    private readonly IStructureDamageCalculator _mockStructureDamageCalculator = Substitute.For<IStructureDamageCalculator>();
+    private readonly IDamageTransferCalculator _mockDamageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
     private readonly FallingDamageCalculator _sut;
 
     public FallingDamageCalculatorTests()
@@ -25,7 +25,7 @@ public class FallingDamageCalculatorTests
         IRulesProvider rules = new ClassicBattletechRulesProvider();
 
         // Setup calculator with mock dice roller and rules provider
-        _sut = new FallingDamageCalculator(_mockDiceRoller, rules, _mockStructureDamageCalculator);
+        _sut = new FallingDamageCalculator(_mockDiceRoller, rules, _mockDamageTransferCalculator);
     }
 
     private static List<UnitPart> CreateBasicPartsData()
@@ -122,7 +122,7 @@ public class FallingDamageCalculatorTests
         );
         
         // Setup structure damage calculator to return correct data
-        _mockStructureDamageCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
                 Arg.Is<int>(d => d == 5),
@@ -130,7 +130,7 @@ public class FallingDamageCalculatorTests
             .Returns([
                 new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
             ]);
-        _mockStructureDamageCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
                 Arg.Is<int>(d => d == 5),
@@ -138,7 +138,7 @@ public class FallingDamageCalculatorTests
             .Returns([
                 new LocationDamageData(PartLocation.LeftTorso, 5, 0, false)
             ]);
-        _mockStructureDamageCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.LeftArm),
                 Arg.Is<int>(d => d == 5),
@@ -164,17 +164,17 @@ public class FallingDamageCalculatorTests
         result.HitLocations.HitLocations[2].Damage[0].ArmorDamage.ShouldBe(5);
         result.HitLocations.HitLocations[2].Damage[0].Location.ShouldBe(PartLocation.LeftArm);
         
-        _mockStructureDamageCalculator.Received(1).CalculateStructureDamage(
+        _mockDamageTransferCalculator.Received(1).CalculateStructureDamage(
             Arg.Any<Unit>(),
             Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
             5,
             Arg.Any<HitDirection>());
-        _mockStructureDamageCalculator.Received(1).CalculateStructureDamage(
+        _mockDamageTransferCalculator.Received(1).CalculateStructureDamage(
             Arg.Any<Unit>(),
             Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
             5,
             Arg.Any<HitDirection>());
-        _mockStructureDamageCalculator.Received(1).CalculateStructureDamage(
+        _mockDamageTransferCalculator.Received(1).CalculateStructureDamage(
             Arg.Any<Unit>(),
             Arg.Is<PartLocation>(l => l == PartLocation.LeftArm),
             5,
@@ -199,7 +199,7 @@ public class FallingDamageCalculatorTests
         );
         
         // Setup structure damage calculator to return correct data
-        _mockStructureDamageCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
                 Arg.Is<int>(d => d == 5),
@@ -207,7 +207,7 @@ public class FallingDamageCalculatorTests
             .Returns([
                 new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
             ]);
-        _mockStructureDamageCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
                 Arg.Is<int>(d => d == 3),
@@ -251,7 +251,7 @@ public class FallingDamageCalculatorTests
         );
         
         // Setup structure damage calculator to return correct data
-        _mockStructureDamageCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
                 Arg.Is<int>(d => d == 5),
@@ -259,7 +259,7 @@ public class FallingDamageCalculatorTests
             .Returns([
                 new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)
             ]);
-        _mockStructureDamageCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.LeftTorso),
                 Arg.Is<int>(d => d == 3),

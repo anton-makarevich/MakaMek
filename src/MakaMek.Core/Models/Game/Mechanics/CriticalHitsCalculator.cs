@@ -11,12 +11,12 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 public class CriticalHitsCalculator : ICriticalHitsCalculator
 {
     private readonly IDiceRoller _diceRoller;
-    private readonly IStructureDamageCalculator _structureDamageCalculator;
+    private readonly IDamageTransferCalculator _damageTransferCalculator;
 
-    public CriticalHitsCalculator(IDiceRoller diceRoller, IStructureDamageCalculator structureDamageCalculator)
+    public CriticalHitsCalculator(IDiceRoller diceRoller, IDamageTransferCalculator damageTransferCalculator)
     {
         _diceRoller = diceRoller;
-        _structureDamageCalculator = structureDamageCalculator;
+        _damageTransferCalculator = damageTransferCalculator;
     }
 
     public LocationCriticalHitsData? CalculateCriticalHitsForStructureDamage(
@@ -52,7 +52,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         };
 
         // Get explosion damage if the component can explode
-        var explosions = _structureDamageCalculator.CalculateStructureDamage(unit, location.Value, explosionDamage, HitDirection.Front);
+        var explosions = _damageTransferCalculator.CalculateStructureDamage(unit, location.Value, explosionDamage, HitDirection.Front);
 
         return new LocationCriticalHitsData(
             location.Value,
@@ -93,7 +93,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             var component = part.GetComponentAtSlot(componentData.Slot);
             if (component is not { CanExplode: true, HasExploded: false }) continue;
             var explosionDamage = component.GetExplosionDamage();
-            explosions = _structureDamageCalculator.CalculateStructureDamage(unit, location, explosionDamage, HitDirection.Front);
+            explosions = _damageTransferCalculator.CalculateStructureDamage(unit, location, explosionDamage, HitDirection.Front);
         }
 
         return criticalHitsData with { Location = location, Explosions = explosions };

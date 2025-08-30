@@ -28,7 +28,7 @@ public abstract class GamePhaseTestsBase
     protected readonly IPhaseManager MockPhaseManager= Substitute.For<IPhaseManager>();
     protected readonly IFallProcessor MockFallProcessor= Substitute.For<IFallProcessor>();
     protected readonly IToHitCalculator MockToHitCalculator= Substitute.For<IToHitCalculator>();
-    protected readonly IStructureDamageCalculator MockStructureDamageCalculator= Substitute.For<IStructureDamageCalculator>();
+    protected readonly IDamageTransferCalculator MockDamageTransferCalculator= Substitute.For<IDamageTransferCalculator>();
     protected readonly ICriticalHitsCalculator MockCriticalHitsCalculator= Substitute.For<ICriticalHitsCalculator>();
     protected readonly IConsciousnessCalculator MockConsciousnessCalculator= Substitute.For<IConsciousnessCalculator>();
     protected readonly IHeatEffectsCalculator MockHeatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
@@ -42,7 +42,7 @@ public abstract class GamePhaseTestsBase
         
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             MockToHitCalculator,
-            MockStructureDamageCalculator,
+            MockDamageTransferCalculator,
             MockCriticalHitsCalculator,
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,
@@ -55,7 +55,7 @@ public abstract class GamePhaseTestsBase
     {
         Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             MockToHitCalculator,
-            MockStructureDamageCalculator,
+            MockDamageTransferCalculator,
             MockCriticalHitsCalculator,
             MockPilotingSkillCalculator,
             MockConsciousnessCalculator,

@@ -16,14 +16,14 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
 public class CriticalHitsCalculatorTests
 {
     private readonly IDiceRoller _mockDiceRoller = Substitute.For<IDiceRoller>();
-    private readonly IStructureDamageCalculator _mockStructureDamageCalculator = Substitute.For<IStructureDamageCalculator>();
+    private readonly IDamageTransferCalculator _mockDamageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
     private readonly CriticalHitsCalculator _sut;
     private readonly MechFactory _mechFactory;
 
     public CriticalHitsCalculatorTests()
     {
         // Setup calculator with mock dice roller
-        _sut = new CriticalHitsCalculator(_mockDiceRoller, _mockStructureDamageCalculator);
+        _sut = new CriticalHitsCalculator(_mockDiceRoller, _mockDamageTransferCalculator);
 
         // Setup rules provider
         IRulesProvider rules = new ClassicBattletechRulesProvider();
@@ -107,7 +107,7 @@ public class CriticalHitsCalculatorTests
         _mockDiceRoller.RollD6().Returns(new DiceResult(2));
         
         // Setup structure damage calculator to return damage from explosion
-        _mockStructureDamageCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
                 Arg.Is<int>(d => d > 0),
@@ -157,7 +157,7 @@ public class CriticalHitsCalculatorTests
         );
         
         // Setup structure damage calculator to return damage from explosion
-        _mockStructureDamageCalculator.CalculateStructureDamage(
+        _mockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
                 Arg.Is<int>(d => d > 0),

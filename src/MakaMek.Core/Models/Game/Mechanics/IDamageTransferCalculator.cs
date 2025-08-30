@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// <summary>
 /// Service for calculating structure damage distribution without applying it to units
 /// </summary>
-public interface IStructureDamageCalculator
+public interface IDamageTransferCalculator
 {
     /// <summary>
     /// Calculates how damage would be distributed across locations without applying it

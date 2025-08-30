@@ -293,7 +293,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
         
         // Use StructureDamageCalculator to calculate damage distribution
-        var damageData = Game.StructureDamageCalculator.CalculateStructureDamage(
+        var damageData = Game.DamageTransferCalculator.CalculateStructureDamage(
             target, hitLocation, damage, attackDirection);
 
         return new LocationHitData(
