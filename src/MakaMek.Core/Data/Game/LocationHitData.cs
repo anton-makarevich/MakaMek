@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Core.Data.Game;
 /// Represents a single hit location with its damage and optional critical hits (slot indexes)
 /// </summary>
 public record LocationHitData(
-    List<LocationDamageData> Damage,
+    IReadOnlyList<LocationDamageData> Damage,
     int[] AimedShotRoll,
     int[] LocationRoll,
     PartLocation InitialLocation

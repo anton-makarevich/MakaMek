@@ -870,7 +870,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void PublishCommand_ShouldAndApplyDamage()
+    public void PublishCommand_ShouldApplyDamage()
     {
         // Arrange
         SetupPlayer1WeaponTargets();
@@ -1336,7 +1336,49 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received(1).PublishCommand(
             Arg.Any<CriticalHitsResolutionCommand>());
     }
+    
+    [Fact]
+    public void Enter_ShouldNotProcessExplosionDamage_WhenStructureDamageIsZero()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
+        // Setup structure damage calculator to return structure damage
+        MockDamageTransferCalculator.ClearReceivedCalls();
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns([new LocationDamageData(PartLocation.CenterTorso, 3, 2, false)]);
+
+        // Setup critical hits calculator to return critical hits with explosion damage
+        var explosionDamage = new LocationDamageData(PartLocation.LeftTorso, 0, 0, false);
+        var criticalHitsWithExplosion = new LocationCriticalHitsData(
+            PartLocation.CenterTorso,
+            [4, 5],
+            1,
+            [new ComponentHitData { Type = MakaMekComponent.ISAmmoAC20, Slot = 1 }],
+            false,
+            [explosionDamage]);
+
+        MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<LocationDamageData>(d => d.Location == PartLocation.CenterTorso && d.StructureDamage > 0))
+            .Returns(criticalHitsWithExplosion);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Critical hits calculator should be called once for initial damage only
+        MockCriticalHitsCalculator.Received(1).CalculateCriticalHitsForStructureDamage(
+            Arg.Any<Unit>(),
+            Arg.Any<LocationDamageData>());
+    }
+    
     [Fact]
     public void Enter_ShouldProcessExplosionDamage_WhenCriticalHitCausesExplosion()
     {

@@ -9,7 +9,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// </summary>
 public class DamageTransferCalculator : IDamageTransferCalculator
 {
-    public List<LocationDamageData> CalculateStructureDamage(
+    public IReadOnlyList<LocationDamageData> CalculateStructureDamage(
         Unit unit,
         PartLocation initialLocation,
         int totalDamage,
@@ -18,7 +18,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         return CalculateDamageDistribution(unit, initialLocation, totalDamage, hitDirection);
     }
 
-    public List<LocationDamageData> CalculateExplosionDamage(
+    public IReadOnlyList<LocationDamageData> CalculateExplosionDamage(
         Unit unit,
         PartLocation initialLocation,
         int totalDamage)

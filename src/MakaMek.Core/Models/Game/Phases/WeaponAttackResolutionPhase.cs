@@ -111,7 +111,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             currentWeaponTarget.Weapon.Slots);
         
         // Take all units not just alive as we should resolve attack even if the unit is already destroyed
-        var allUnits = Game.AlivePlayers.SelectMany(p => p.Units); 
+        var allUnits = Game.Players.SelectMany(p => p.Units); 
         var targetUnit = allUnits.FirstOrDefault(u => u.Id == currentWeaponTarget.TargetId);
 
         if (currentWeapon != null && targetUnit != null)
@@ -292,7 +292,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
         }
         
-        // Use StructureDamageCalculator to calculate damage distribution
+        // Use DamageTransferCalculator to calculate damage distribution
         var damageData = Game.DamageTransferCalculator.CalculateStructureDamage(
             target, hitLocation, damage, attackDirection);
 
@@ -500,7 +500,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var explosions = criticalHitsData?.ExplosionsDamage ?? [];
             foreach (var explosion in explosions)
             {
-                locationsWithStructureDamage.Enqueue(explosion); // Add any explosion damage to the queue
+                if (explosion.StructureDamage > 0)
+                    locationsWithStructureDamage.Enqueue(explosion); // Add any explosion damage to the queue
             }
         }
 

@@ -15,8 +15,8 @@ public interface IDamageTransferCalculator
     /// <param name="initialLocation">The initial hit location</param>
     /// <param name="totalDamage">The total damage to distribute</param>
     /// <param name="hitDirection">The direction of the hit for armor calculations</param>
-    /// <returns>Mapping of locations to their armor and structure damage</returns>
-    List<LocationDamageData> CalculateStructureDamage(
+    /// <returns>List of locations to their armor and structure damage</returns>
+    IReadOnlyList<LocationDamageData> CalculateStructureDamage(
         Unit unit,
         PartLocation initialLocation,
         int totalDamage,
@@ -24,13 +24,13 @@ public interface IDamageTransferCalculator
 
     /// <summary>
     /// Calculates how explosion damage would be distributed across locations without applying it.
-    /// Explosion damage bypasses armor entirely and applies directly to structure.
+    /// Explosion damage bypasses armor entirely and applies directly to the structure.
     /// </summary>
     /// <param name="unit">The unit receiving damage</param>
     /// <param name="initialLocation">The initial hit location</param>
     /// <param name="totalDamage">The total damage to distribute</param>
-    /// <returns>Mapping of locations to their structure damage (armor damage will always be 0)</returns>
-    List<LocationDamageData> CalculateExplosionDamage(
+    /// <returns>List of locations to their structure damage (armor damage will always be 0)</returns>
+    IReadOnlyList<LocationDamageData> CalculateExplosionDamage(
         Unit unit,
         PartLocation initialLocation,
         int totalDamage);
