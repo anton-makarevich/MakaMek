@@ -263,4 +263,196 @@ public class StructureDamageCalculatorTests
         result[2].StructureDamage.ShouldBe(0);
         result[2].IsLocationDestroyed.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void CalculateExplosionDamage_WithZeroDamage_ReturnsEmptyList()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+
+        // Act
+        var result = _sut.CalculateExplosionDamage(unit, PartLocation.CenterTorso, 0);
+
+        // Assert
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void CalculateExplosionDamage_WithNegativeDamage_ReturnsEmptyList()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+
+        // Act
+        var result = _sut.CalculateExplosionDamage(unit, PartLocation.CenterTorso, -5);
+
+        // Assert
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void CalculateExplosionDamage_WithInvalidLocation_ReturnsEmptyList()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+
+        // Act
+        var result = _sut.CalculateExplosionDamage(unit, (PartLocation)999, 10);
+
+        // Assert
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void CalculateExplosionDamage_BypassesArmorCompletely_DamagesStructureDirectly()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+        const int explosionDamage = 5; // Less than available structure
+
+        // Act
+        var result = _sut.CalculateExplosionDamage(unit, PartLocation.CenterTorso, explosionDamage);
+
+        // Assert
+        result.ShouldHaveSingleItem();
+        var damageData = result[0];
+        damageData.Location.ShouldBe(PartLocation.CenterTorso);
+        damageData.ArmorDamage.ShouldBe(0); // Armor should not be damaged
+        damageData.StructureDamage.ShouldBe(explosionDamage);
+        damageData.IsLocationDestroyed.ShouldBeFalse();
+        damageData.IsRearArmor.ShouldBeFalse(); // Explosion doesn't affect rear armor flag
+    }
+
+    [Fact]
+    public void CalculateExplosionDamage_DestroyLocation_ReturnsCorrectData()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var explosionDamage = centerTorso.CurrentStructure; // Exactly destroy structure
+
+        // Act
+        var result = _sut.CalculateExplosionDamage(unit, PartLocation.CenterTorso, explosionDamage);
+
+        // Assert
+        result.ShouldHaveSingleItem();
+        var damageData = result[0];
+        damageData.Location.ShouldBe(PartLocation.CenterTorso);
+        damageData.ArmorDamage.ShouldBe(0); // No armor damage
+        damageData.StructureDamage.ShouldBe(centerTorso.CurrentStructure);
+        damageData.IsLocationDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CalculateExplosionDamage_ExcessDamageWithTransfer_ReturnsMultipleLocations()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+
+        // Calculate damage to destroy left arm structure and damage left torso structure (but not destroy it)
+        // Left arm has 4 structure, left torso has 8 structure, so 4 + 3 = 7 total damage
+        var explosionDamage = leftArm.CurrentStructure + 3;
+
+        // Act
+        var result = _sut.CalculateExplosionDamage(unit, PartLocation.LeftArm, explosionDamage);
+
+        // Assert
+        result.Count.ShouldBe(2);
+
+        // First location (LeftArm) should be destroyed with no armor damage
+        var armDamage = result[0];
+        armDamage.Location.ShouldBe(PartLocation.LeftArm);
+        armDamage.ArmorDamage.ShouldBe(0); // No armor damage from the explosion
+        armDamage.StructureDamage.ShouldBe(leftArm.CurrentStructure);
+        armDamage.IsLocationDestroyed.ShouldBeTrue();
+
+        // Second location (LeftTorso) should receive excess damage to structure only
+        var torsoDamage = result[1];
+        torsoDamage.Location.ShouldBe(PartLocation.LeftTorso);
+        torsoDamage.ArmorDamage.ShouldBe(0); // No armor damage from the explosion
+        torsoDamage.StructureDamage.ShouldBe(3);
+        torsoDamage.IsLocationDestroyed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CalculateExplosionDamage_ChainedTransfer_HandlesMultipleTransfers()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftTorso = unit.Parts.First(p => p.Location == PartLocation.LeftTorso);
+
+        // Calculate damage to destroy left arm, left torso, and damage center torso structure
+        var explosionDamage = leftArm.CurrentStructure + leftTorso.CurrentStructure + 3;
+
+        // Act
+        var result = _sut.CalculateExplosionDamage(unit, PartLocation.LeftArm, explosionDamage);
+
+        // Assert
+        result.Count.ShouldBe(3);
+
+        // LeftArm should be destroyed with no armor damage
+        result[0].Location.ShouldBe(PartLocation.LeftArm);
+        result[0].ArmorDamage.ShouldBe(0);
+        result[0].IsLocationDestroyed.ShouldBeTrue();
+
+        // LeftTorso should be destroyed with no armor damage
+        result[1].Location.ShouldBe(PartLocation.LeftTorso);
+        result[1].ArmorDamage.ShouldBe(0);
+        result[1].IsLocationDestroyed.ShouldBeTrue();
+
+        // CenterTorso should receive excess damage to structure only
+        result[2].Location.ShouldBe(PartLocation.CenterTorso);
+        result[2].ArmorDamage.ShouldBe(0);
+        result[2].StructureDamage.ShouldBe(3);
+        result[2].IsLocationDestroyed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CalculateExplosionDamage_MaximumDamage_HandlesCorrectly()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var maximumDamage = int.MaxValue;
+
+        // Act
+        var result = _sut.CalculateExplosionDamage(unit, PartLocation.CenterTorso, maximumDamage);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        var damageData = result[0];
+        damageData.Location.ShouldBe(PartLocation.CenterTorso);
+        damageData.ArmorDamage.ShouldBe(0); // No armor damage from the explosion
+        damageData.StructureDamage.ShouldBe(centerTorso.CurrentStructure);
+        damageData.IsLocationDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CalculateExplosionDamage_ComparedToRegularDamage_BypassesArmor()
+    {
+        // Arrange
+        var unit = CreateTestMech();
+        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var damage = centerTorso.CurrentArmor + 3; // Damage that would normally hit armor first
+
+        // Act
+        var regularResult = _sut.CalculateStructureDamage(unit, PartLocation.CenterTorso, damage, HitDirection.Front);
+        var explosionResult = _sut.CalculateExplosionDamage(unit, PartLocation.CenterTorso, damage);
+
+        // Assert
+        regularResult.ShouldHaveSingleItem();
+        explosionResult.ShouldHaveSingleItem();
+
+        // Regular damage should hit armor first, then structure
+        var regularDamage = regularResult[0];
+        regularDamage.ArmorDamage.ShouldBe(centerTorso.CurrentArmor);
+        regularDamage.StructureDamage.ShouldBe(3);
+
+        // Explosion damage should bypass armor completely
+        var explosionDamage = explosionResult[0];
+        explosionDamage.ArmorDamage.ShouldBe(0);
+        explosionDamage.StructureDamage.ShouldBe(Math.Min(damage, centerTorso.CurrentStructure));
+    }
 }

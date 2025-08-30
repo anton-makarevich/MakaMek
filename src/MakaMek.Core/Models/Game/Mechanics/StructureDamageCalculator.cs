@@ -31,7 +31,42 @@ public class StructureDamageCalculator : IStructureDamageCalculator
             // Calculate remaining damage after this location
             remainingDamage -= (locationDamage.ArmorDamage + locationDamage.StructureDamage);
 
-            // If location is destroyed and there's remaining damage, transfer to next location
+            // If a location is destroyed and there's remaining damage, transfer to the next location
+            if (locationDamage.IsLocationDestroyed && remainingDamage > 0)
+            {
+                currentLocation = unit.GetTransferLocation(currentLocation.Value);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return damageDistribution;
+    }
+
+    public List<LocationDamageData> CalculateExplosionDamage(
+        Unit unit,
+        PartLocation initialLocation,
+        int totalDamage)
+    {
+        var damageDistribution = new List<LocationDamageData>();
+        var remainingDamage = totalDamage;
+        PartLocation? currentLocation = initialLocation;
+
+        while (remainingDamage > 0 && currentLocation.HasValue)
+        {
+            var part = unit.Parts.FirstOrDefault(p => p.Location == currentLocation.Value);
+            if (part == null)
+                break;
+
+            var locationDamage = CalculateExplosionLocationDamage(part, remainingDamage);
+            damageDistribution.Add(locationDamage);
+
+            // Calculate remaining damage after this location
+            remainingDamage -= locationDamage.StructureDamage;
+
+            // If a location is destroyed and there's remaining damage, transfer to the next location
             if (locationDamage.IsLocationDestroyed && remainingDamage > 0)
             {
                 currentLocation = unit.GetTransferLocation(currentLocation.Value);
@@ -74,6 +109,21 @@ public class StructureDamageCalculator : IStructureDamageCalculator
             structureDamage,
             locationDestroyed,
             isRearArmor
+        );
+    }
+
+    private LocationDamageData CalculateExplosionLocationDamage(UnitPart part, int incomingDamage)
+    {
+        // Explosion damage bypasses armor entirely
+        var availableStructure = part.CurrentStructure;
+        var structureDamage = Math.Min(incomingDamage, availableStructure);
+        var locationDestroyed = structureDamage >= part.CurrentStructure;
+
+        return new LocationDamageData(
+            part.Location,
+            0,
+            structureDamage,
+            locationDestroyed 
         );
     }
 
