@@ -413,6 +413,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Check for component hits that can cause a fall
         var allComponentHits = criticalHitsCommand.CriticalHits.SelectMany(ch => ch.HitComponents ?? []);
         
+        // Also track parts blown off by critical hits (e.g., leg/arm/head)
+        var blownOffParts = criticalHitsCommand.CriticalHits
+                    .Where(ch => ch.IsBlownOff)
+                    .Select(ch => ch.Location);
+        
         // Add component hits to accumulated damage data
         if (!_accumulatedDamageData.TryGetValue(target.Id, out var accumulatedDamage))
         {
@@ -421,6 +426,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
         accumulatedDamage.AllComponentHits.AddRange(allComponentHits);
         accumulatedDamage.AllDestroyedParts.AddRange(resolution.DestroyedParts ?? []);
+        accumulatedDamage.AllDestroyedParts.AddRange(blownOffParts);
     }
     
     private void MoveToNextUnit()
