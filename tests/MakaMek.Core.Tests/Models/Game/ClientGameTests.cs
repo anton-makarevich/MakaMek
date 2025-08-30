@@ -2374,8 +2374,7 @@ public class ClientGameTests
                         Type = MakaMekComponent.ISAmmoLRM5
                     }
                 ],false,
-                    [ new ExplosionData(MakaMekComponent.ISAmmoLRM5, slot, 5) // 1 shot of lrm5
-                ])
+                    [ ])
             ]
         };
 

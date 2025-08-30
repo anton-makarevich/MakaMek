@@ -1153,7 +1153,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 unit ?? Arg.Any<Unit>(),
                 Arg.Is<LocationDamageData>(loc => loc.Location == location))
             .Returns(
-            [
                 new LocationCriticalHitsData(location,
                     [3,4],
                     1,
@@ -1166,8 +1165,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     ],
                     false,
                     []
-                )
-            ]);
+                ));
     }
 
     private void SetupDiceRolls(params int[] rolls)
@@ -1272,7 +1270,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<LocationDamageData>(d => d.StructureDamage > 0))
-            .Returns([expectedCriticalHits]);
+            .Returns(expectedCriticalHits);
 
         // Act
         _sut.Enter();
@@ -1312,14 +1310,14 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<LocationDamageData>(d => d.Location == PartLocation.CenterTorso && d.StructureDamage > 0))
-            .Returns([new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 5], 1,
-                [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }], false, [])]);
+            .Returns(new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 5], 1,
+                [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }], false, []));
 
         MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftArm && d.StructureDamage > 0))
-            .Returns([new LocationCriticalHitsData(PartLocation.LeftArm, [3, 4], 1,
-                [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }], false, [])]);
+            .Returns(new LocationCriticalHitsData(PartLocation.LeftArm, [3, 4], 1,
+                [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }], false, []));
 
         // Act
         _sut.Enter();
@@ -1364,8 +1362,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftArm && d.StructureDamage > 0))
-            .Returns([new LocationCriticalHitsData(PartLocation.LeftArm, [3, 4], 1,
-                [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }], false, [])]);
+            .Returns(new LocationCriticalHitsData(PartLocation.LeftArm, [3, 4], 1,
+                [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }], false, []));
 
         // Act
         _sut.Enter();
@@ -1408,10 +1406,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             .Returns([new LocationDamageData(PartLocation.CenterTorso, 3, 2, false)]);
 
         // Setup critical hits calculator to return no critical hits (empty list)
+        LocationCriticalHitsData? data = null;
         MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<LocationDamageData>(d => d.StructureDamage > 0))
-            .Returns([]);
+            .Returns(data);
 
         // Act
         _sut.Enter();
@@ -1453,14 +1452,14 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftArm && d.StructureDamage > 0))
-            .Returns([new LocationCriticalHitsData(PartLocation.LeftArm, [3, 4], 1,
-                [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }], false, [])]);
+            .Returns(new LocationCriticalHitsData(PartLocation.LeftArm, [3, 4], 1,
+                [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }], false, []));
 
         MockCriticalHitsCalculator.CalculateCriticalHitsForStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<LocationDamageData>(d => d.Location == PartLocation.LeftLeg && d.StructureDamage > 0))
-            .Returns([new LocationCriticalHitsData(PartLocation.LeftLeg, [5, 6], 2,
-                [new ComponentHitData { Type = MakaMekComponent.LowerLegActuator, Slot = 3 }], false, [])]);
+            .Returns(new LocationCriticalHitsData(PartLocation.LeftLeg, [5, 6], 2,
+                [new ComponentHitData { Type = MakaMekComponent.LowerLegActuator, Slot = 3 }], false, []));
 
         // Act
         _sut.Enter();

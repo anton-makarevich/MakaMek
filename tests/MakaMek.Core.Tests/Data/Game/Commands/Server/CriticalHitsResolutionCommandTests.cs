@@ -49,8 +49,7 @@ public class CriticalHitsResolutionCommandTests
                 [new ComponentHitData
                     {
                         Slot = 0,
-                        Type = MakaMekComponent.Engine,
-                        ExplosionDamage = 10
+                        Type = MakaMekComponent.Engine
                     }
                 ],
                 false, [])
@@ -75,8 +74,7 @@ public class CriticalHitsResolutionCommandTests
                 [new ComponentHitData
                     {
                         Slot = 0,
-                        Type = MakaMekComponent.Engine,
-                        ExplosionDamage = 0
+                        Type = MakaMekComponent.Engine
                     }
                 ],
                 false, []),
@@ -85,8 +83,7 @@ public class CriticalHitsResolutionCommandTests
                 [new ComponentHitData
                     {
                         Slot = 1,
-                        Type = MakaMekComponent.MediumLaser,
-                        ExplosionDamage = 0
+                        Type = MakaMekComponent.MediumLaser
                     }
                 ],
                 false, [])
@@ -172,7 +169,7 @@ public class CriticalHitsResolutionCommandTests
             new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
                 [new ComponentHitData { Slot = 0, Type = MakaMekComponent.Engine }],
                 false,
-                [new ExplosionData(MakaMekComponent.ISAmmoAC20, 99, 100)])
+                [])
         ]);
 
         // Act
@@ -211,7 +208,7 @@ public class CriticalHitsResolutionCommandTests
             new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
                 [new ComponentHitData { Slot = 0, Type = MakaMekComponent.Engine }],
                 false,
-                [new ExplosionData(MakaMekComponent.ISAmmoAC20, 5, 50)]),
+                []),
 
             new LocationCriticalHitsData(PartLocation.LeftArm, [6, 6], 0, null, true, []),
             new LocationCriticalHitsData(PartLocation.RightArm, [3, 3], 2,

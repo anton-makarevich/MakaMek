@@ -10,6 +10,8 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
 
@@ -113,7 +115,7 @@ public class AmmoExplosionCommandTests
         // Arrange
         var centerTorso = _testMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
         var ammo = new Ammo(CreateLrm5Definition(), 24);
-        centerTorso.TryAddComponent(ammo, [10]); // Use slot 10 which is available
+        centerTorso.TryAddComponent(ammo, [10]); // Use slot 10, which is available
 
         var command = CreateCommand() with
         {
@@ -222,17 +224,20 @@ public class AmmoExplosionCommandTests
     }
 
     [Fact]
-    public void Render_ShouldShowExplosionDetails_WhenExplosionsExist()
+    public void Render_ShouldShowExplosionDetails_WhenComponentIsExplodable()
     {
         // Arrange
-        var explosionData = new ExplosionData(MakaMekComponent.ISAmmoAC20, 5, 100);
+        var ct = _testMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var ammo = new Ammo(CreateLrm5Definition(), 20);
+        ct.TryAddComponent(ammo).ShouldBeTrue();
+        
         var criticalHitData = new LocationCriticalHitsData(
             PartLocation.CenterTorso,
             [4, 5],
             1,
-            [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+            [new ComponentHitData { Type = ammo.ComponentType, Slot = ammo.MountedAtSlots[0] }],
             false,
-            [explosionData]);
+            []);
 
         var command = new AmmoExplosionCommand
         {
@@ -266,7 +271,7 @@ public class AmmoExplosionCommandTests
             1,
             [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
             false,
-            []); // No explosions
+            []); 
 
         var command = new AmmoExplosionCommand
         {
@@ -294,14 +299,13 @@ public class AmmoExplosionCommandTests
     public void Render_ShouldHandleInvalidExplosionSlot_WhenComponentNotFound()
     {
         // Arrange
-        var explosionData = new ExplosionData(MakaMekComponent.ISAmmoAC20, 99, 100); // Invalid slot
         var criticalHitData = new LocationCriticalHitsData(
             PartLocation.CenterTorso,
             [4, 5],
             1,
-            [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+            [new ComponentHitData { Type = MakaMekComponent.ISAmmoAC2, Slot = 1 }],
             false,
-            [explosionData]);
+            []);
 
         var command = new AmmoExplosionCommand
         {
@@ -322,25 +326,28 @@ public class AmmoExplosionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldNotContain("exploded"); // Should not show explosion for invalid component
+        result.ShouldNotContain("exploded"); // Should not show explosion for an invalid component
     }
 
     [Fact]
     public void Render_ShouldShowMultipleExplosions_WhenMultipleExplosionsExist()
     {
         // Arrange
-        var explosion1 = new ExplosionData(MakaMekComponent.ISAmmoAC20, 5, 100);
-        var explosion2 = new ExplosionData(MakaMekComponent.ISAmmoLRM10, 6, 50);
+        var leftArm = _testMech.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var ac5 = new Ammo(Ac5.Definition, 1);
+        var lrm10 = new Ammo(Lrm10.Definition, 1);
+        leftArm.TryAddComponent(ac5).ShouldBeTrue();
+        leftArm.TryAddComponent(lrm10).ShouldBeTrue();
         var criticalHitData = new LocationCriticalHitsData(
-            PartLocation.CenterTorso,
+            PartLocation.LeftArm,
             [4, 5],
             2,
             [
-                new ComponentHitData { Type = MakaMekComponent.ISAmmoAC20, Slot = 5 },
-                new ComponentHitData { Type = MakaMekComponent.ISAmmoLRM10, Slot = 6 }
+                new ComponentHitData { Type = ac5.ComponentType, Slot = ac5.MountedAtSlots[0] },
+                new ComponentHitData { Type = lrm10.ComponentType, Slot = lrm10.MountedAtSlots[0] }
             ],
             false,
-            [explosion1, explosion2]);
+            []);
 
         var command = new AmmoExplosionCommand
         {
@@ -361,7 +368,7 @@ public class AmmoExplosionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain("exploded, damage: 100");
-        result.ShouldContain("exploded, damage: 50");
+        result.ShouldContain("exploded, damage: 5");
+        result.ShouldContain("exploded, damage: 10");
     }
 }
