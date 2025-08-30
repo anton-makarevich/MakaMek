@@ -105,6 +105,16 @@ public class CriticalHitsCalculatorTests
         // Setup dice roller for cascading critical hits (if any)
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(3)]);
         _mockDiceRoller.RollD6().Returns(new DiceResult(2));
+        
+        // Setup structure damage calculator to return damage from explosion
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d > 0),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 0, 5, false)
+            ]);
 
         // Act
         var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
@@ -119,6 +129,8 @@ public class CriticalHitsCalculatorTests
         result.HitComponents[0].Slot.ShouldBe(10);
         result.Explosions.ShouldNotBeNull();
         result.Explosions.Count.ShouldBe(1);
+        result.Explosions[0].Location.ShouldBe(PartLocation.CenterTorso);
+        result.Explosions[0].StructureDamage.ShouldBe(5);
     }
 
     [Fact]
@@ -143,6 +155,16 @@ public class CriticalHitsCalculatorTests
             new DiceResult(5), 
             new DiceResult(5)  
         );
+        
+        // Setup structure damage calculator to return damage from explosion
+        _mockStructureDamageCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
+                Arg.Is<int>(d => d > 0),
+                Arg.Any<HitDirection>())
+            .Returns([
+                new LocationDamageData(PartLocation.CenterTorso, 0, 5, false)
+            ]);
 
         // Act
         var result = _sut.CalculateCriticalHitsForStructureDamage(testUnit, structureDamageByLocation);
@@ -152,7 +174,7 @@ public class CriticalHitsCalculatorTests
         result.Explosions.ShouldNotBeNull();
         result.Explosions.Count.ShouldBe(1);
         result.Explosions[0].Location.ShouldBe(PartLocation.CenterTorso);
-        result.Explosions[0].StructureDamage.ShouldBeGreaterThan(0);
+        result.Explosions[0].StructureDamage.ShouldBe(5);
     }
 
     [Fact]
