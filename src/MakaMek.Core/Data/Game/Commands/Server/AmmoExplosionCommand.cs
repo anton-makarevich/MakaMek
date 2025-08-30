@@ -92,7 +92,7 @@ public record struct AmmoExplosionCommand : IGameCommand
                                 localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed"),
                                 component.Name,
                                 localizedLocation));
-                            var explosionDamage = component.GetExplosionDamage();
+                            var explosionDamage = componentHit.ExplosionDamage;
                             if (explosionDamage > 0)
                             {
                                 stringBuilder.AppendLine(string.Format(

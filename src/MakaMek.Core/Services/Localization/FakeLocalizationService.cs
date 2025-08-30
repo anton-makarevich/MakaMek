@@ -50,7 +50,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_CriticalHitsResolution_CritRoll" => "Critical Roll: {0}",
             "Command_CriticalHitsResolution_BlownOff" => "Critical hit in {0}, location blown off",
             "Command_CriticalHitsResolution_NumCrits" => "Number of critical hits: {0}",
-            "Command_CriticalHitsResolution_CriticalHit" => "Critical hit in {0} slot {1}: {2}",
+            "Command_CriticalHitsResolution_CriticalHit" => "Critical hit in slot {0}: {1}",
             "Command_CriticalHitsResolution_Explosion" => "{0} exploded, damage: {1}",
             "Command_WeaponAttackResolution_DestroyedParts" => "Destroyed parts:",
             "Command_WeaponAttackResolution_DestroyedPart" => "- {0} destroyed",

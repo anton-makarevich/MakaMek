@@ -48,7 +48,8 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         var componentHitData = new ComponentHitData
         {
             Type = explodingComponent.ComponentType,
-            Slot = slots[0]
+            Slot = slots[0],
+            ExplosionDamage = explosionDamage
         };
 
         // Get explosion damage if the component can explode
