@@ -521,6 +521,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         };
 
         Game.CommandPublisher.PublishCommand(criticalHitsCommand);
+        
+        // Process consciousness rolls for pilot damage accumulated during critical hits
+        ProcessConsciousnessRollsForUnit(target);
+        
         return allCriticalHitsData;
     }
 
