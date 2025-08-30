@@ -399,13 +399,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(command);
 
         // Calculate and send critical hits if any location received structure damage
-        
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;   
         
         var criticalHits = CalculateAndSendCriticalHits(target, resolution.HitLocationsData);
-        
-        // Check for conditions that might cause the mech to fall
-        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
         
         // Check for component hits that can cause a fall
         var allComponentHits = criticalHits.SelectMany(ch => ch.HitComponents ?? []);
@@ -501,7 +497,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 target.ApplyCriticalHits([criticalHitsData]);
                 allCriticalHitsData.Add(criticalHitsData);
             }
-            var explosions = criticalHitsData?.Explosions ?? [];
+            var explosions = criticalHitsData?.ExplosionsDamage ?? [];
             foreach (var explosion in explosions)
             {
                 locationsWithStructureDamage.Enqueue(explosion); // Add any explosion damage to the queue

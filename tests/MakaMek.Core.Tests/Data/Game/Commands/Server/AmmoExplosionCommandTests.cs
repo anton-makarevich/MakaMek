@@ -19,7 +19,7 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 
 public class AmmoExplosionCommandTests
 {
-    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _unitId = Guid.NewGuid();
     private readonly Mech _testMech;
@@ -34,20 +34,6 @@ public class AmmoExplosionCommandTests
         player.Units.Returns([_testMech]);
 
         _game.Players.Returns([player]);
-
-        // Setup default localization strings
-        _localizationService.GetString("Command_AmmoExplosion_Avoided")
-            .Returns("{0} avoided ammo explosion due to heat");
-        _localizationService.GetString("Command_AmmoExplosion_Failed")
-            .Returns("{0} suffered ammo explosion due to heat");
-        _localizationService.GetString("Command_AmmoExplosion_RollDetails")
-            .Returns("Heat level: {0}, Roll: {1} vs {2}");
-        _localizationService.GetString("Command_AmmoExplosion_CriticalHits")
-            .Returns("Explosion caused critical hits:");
-        _localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed")
-            .Returns("- {0} in {1} destroyed by explosion");
-        _localizationService.GetString("Command_AmmoExplosion_Explosion")
-            .Returns("{0} exploded, damage: {1}");
     }
 
     [Fact]
@@ -142,7 +128,7 @@ public class AmmoExplosionCommandTests
         // Assert
         result.ShouldContain("TST-1 suffered ammo explosion due to heat");
         result.ShouldContain("Explosion caused critical hits:");
-        result.ShouldContain("- LRM-5 Ammo in CenterTorso destroyed by explosion");
+        result.ShouldContain("- LRM-5 Ammo in CT destroyed by explosion");
     }
 
     [Fact]

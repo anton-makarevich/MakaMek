@@ -86,7 +86,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         if (criticalHitsData.HitComponents == null)
             return criticalHitsData with
             {
-                Location = location, Explosions = explosions
+                Location = location, ExplosionsDamage = explosions
             };
         foreach (var componentData in criticalHitsData.HitComponents)
         {
@@ -100,6 +100,6 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
                 explosions.AddRange(perComponent);
         }
 
-        return criticalHitsData with { Location = location, Explosions = explosions };
+        return criticalHitsData with { Location = location, ExplosionsDamage = explosions };
     }
 }

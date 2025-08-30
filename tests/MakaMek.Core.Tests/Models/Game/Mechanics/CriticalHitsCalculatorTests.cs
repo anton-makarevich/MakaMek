@@ -126,10 +126,10 @@ public class CriticalHitsCalculatorTests
         result.HitComponents.ShouldNotBeNull();
         result.HitComponents!.Length.ShouldBe(1);
         result.HitComponents[0].Slot.ShouldBe(10);
-        result.Explosions.ShouldNotBeNull();
-        result.Explosions.Count.ShouldBe(1);
-        result.Explosions[0].Location.ShouldBe(PartLocation.CenterTorso);
-        result.Explosions[0].StructureDamage.ShouldBe(5);
+        result.ExplosionsDamage.ShouldNotBeNull();
+        result.ExplosionsDamage.Count.ShouldBe(1);
+        result.ExplosionsDamage[0].Location.ShouldBe(PartLocation.CenterTorso);
+        result.ExplosionsDamage[0].StructureDamage.ShouldBe(5);
     }
 
     [Fact]
@@ -169,10 +169,10 @@ public class CriticalHitsCalculatorTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Explosions.ShouldNotBeNull();
-        result.Explosions.Count.ShouldBe(1);
-        result.Explosions[0].Location.ShouldBe(PartLocation.CenterTorso);
-        result.Explosions[0].StructureDamage.ShouldBe(5);
+        result.ExplosionsDamage.ShouldNotBeNull();
+        result.ExplosionsDamage.Count.ShouldBe(1);
+        result.ExplosionsDamage[0].Location.ShouldBe(PartLocation.CenterTorso);
+        result.ExplosionsDamage[0].StructureDamage.ShouldBe(5);
     }
     
     [Fact]
@@ -214,12 +214,12 @@ public class CriticalHitsCalculatorTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Explosions.ShouldNotBeNull();
-        result.Explosions.Count.ShouldBe(2);
-        result.Explosions[0].Location.ShouldBe(PartLocation.LeftArm);
-        result.Explosions[0].StructureDamage.ShouldBe(5);
-        result.Explosions[1].Location.ShouldBe(PartLocation.LeftArm);
-        result.Explosions[1].StructureDamage.ShouldBe(5);
+        result.ExplosionsDamage.ShouldNotBeNull();
+        result.ExplosionsDamage.Count.ShouldBe(2);
+        result.ExplosionsDamage[0].Location.ShouldBe(PartLocation.LeftArm);
+        result.ExplosionsDamage[0].StructureDamage.ShouldBe(5);
+        result.ExplosionsDamage[1].Location.ShouldBe(PartLocation.LeftArm);
+        result.ExplosionsDamage[1].StructureDamage.ShouldBe(5);
     }
     
     [Fact]
@@ -262,16 +262,16 @@ public class CriticalHitsCalculatorTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Explosions.ShouldNotBeNull();
-        result.Explosions.Count.ShouldBe(4);
-        result.Explosions[0].Location.ShouldBe(PartLocation.LeftArm);
-        result.Explosions[0].StructureDamage.ShouldBe(5);
-        result.Explosions[1].Location.ShouldBe(PartLocation.LeftTorso);
-        result.Explosions[1].StructureDamage.ShouldBe(5);
-        result.Explosions[2].Location.ShouldBe(PartLocation.LeftArm);
-        result.Explosions[2].StructureDamage.ShouldBe(5);
-        result.Explosions[3].Location.ShouldBe(PartLocation.LeftTorso);
-        result.Explosions[3].StructureDamage.ShouldBe(5);
+        result.ExplosionsDamage.ShouldNotBeNull();
+        result.ExplosionsDamage.Count.ShouldBe(4);
+        result.ExplosionsDamage[0].Location.ShouldBe(PartLocation.LeftArm);
+        result.ExplosionsDamage[0].StructureDamage.ShouldBe(5);
+        result.ExplosionsDamage[1].Location.ShouldBe(PartLocation.LeftTorso);
+        result.ExplosionsDamage[1].StructureDamage.ShouldBe(5);
+        result.ExplosionsDamage[2].Location.ShouldBe(PartLocation.LeftArm);
+        result.ExplosionsDamage[2].StructureDamage.ShouldBe(5);
+        result.ExplosionsDamage[3].Location.ShouldBe(PartLocation.LeftTorso);
+        result.ExplosionsDamage[3].StructureDamage.ShouldBe(5);
     }
 
     [Fact]
