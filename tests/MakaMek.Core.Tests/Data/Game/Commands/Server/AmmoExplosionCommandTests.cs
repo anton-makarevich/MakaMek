@@ -35,6 +35,60 @@ public class AmmoExplosionCommandTests
 
         _game.Players.Returns([player]);
     }
+    
+    private AmmoExplosionCommand CreateCommand()
+    {
+        return new AmmoExplosionCommand
+        {
+            UnitId = _unitId,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            AvoidExplosionRoll = new AvoidAmmoExplosionRollData
+            {
+                HeatLevel = 25,
+                DiceResults = [3, 4],
+                AvoidNumber = 8,
+                IsSuccessful = false
+            },
+            CriticalHits = []
+        };
+    }
+
+    private static WeaponDefinition CreateLrm5Definition()
+    {
+        return new WeaponDefinition(
+            Name: "LRM-5",
+            ElementaryDamage: 1,
+            Heat: 2,
+            MinimumRange: 6,
+            ShortRange: 7,
+            MediumRange: 14,
+            LongRange: 21,
+            Type: WeaponType.Missile,
+            BattleValue: 45,
+            Clusters: 1,
+            ClusterSize: 5,
+            FullAmmoRounds: 24,
+            WeaponComponentType: MakaMekComponent.LRM5,
+            AmmoComponentType: MakaMekComponent.ISAmmoLRM5);
+    }
+
+    private static List<UnitPart> CreateBasicPartsData()
+    {
+        var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
+        centerTorso.TryAddComponent(new Engine(250));
+        return
+        [
+            new Head("Head", 9, 3),
+            centerTorso,
+            new SideTorso("LeftTorso", PartLocation.LeftTorso, 25, 8, 6),
+            new SideTorso("RightTorso", PartLocation.RightTorso, 25, 8, 6),
+            new Arm("RightArm", PartLocation.RightArm, 17, 6),
+            new Arm("LeftArm", PartLocation.LeftArm, 17, 6),
+            new Leg("RightLeg", PartLocation.RightLeg, 25, 8),
+            new Leg("LeftLeg", PartLocation.LeftLeg, 25, 8)
+        ];
+    }
 
     [Fact]
     public void Render_ShouldReturnEmpty_WhenUnitNotFound()
@@ -101,7 +155,7 @@ public class AmmoExplosionCommandTests
         // Arrange
         var centerTorso = _testMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
         var ammo = new Ammo(CreateLrm5Definition(), 24);
-        centerTorso.TryAddComponent(ammo, [10]); // Use slot 10, which is available
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue(); // Use slot 10, which is available
 
         var command = CreateCommand() with
         {
@@ -159,54 +213,6 @@ public class AmmoExplosionCommandTests
         // Assert
         result.ShouldContain("TST-1 avoided ammo explosion due to heat");
         result.ShouldNotContain("Explosion caused critical hits:");
-    }
-
-    private AmmoExplosionCommand CreateCommand()
-    {
-        return new AmmoExplosionCommand
-        {
-            UnitId = _unitId,
-            GameOriginId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow,
-            AvoidExplosionRoll = null,
-            CriticalHits = []
-        };
-    }
-
-    private static WeaponDefinition CreateLrm5Definition()
-    {
-        return new WeaponDefinition(
-            Name: "LRM-5",
-            ElementaryDamage: 1,
-            Heat: 2,
-            MinimumRange: 6,
-            ShortRange: 7,
-            MediumRange: 14,
-            LongRange: 21,
-            Type: WeaponType.Missile,
-            BattleValue: 45,
-            Clusters: 1,
-            ClusterSize: 5,
-            FullAmmoRounds: 24,
-            WeaponComponentType: MakaMekComponent.LRM5,
-            AmmoComponentType: MakaMekComponent.ISAmmoLRM5);
-    }
-
-    private static List<UnitPart> CreateBasicPartsData()
-    {
-        var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
-        centerTorso.TryAddComponent(new Engine(250));
-        return
-        [
-            new Head("Head", 9, 3),
-            centerTorso,
-            new SideTorso("LeftTorso", PartLocation.LeftTorso, 25, 8, 6),
-            new SideTorso("RightTorso", PartLocation.RightTorso, 25, 8, 6),
-            new Arm("RightArm", PartLocation.RightArm, 17, 6),
-            new Arm("LeftArm", PartLocation.LeftArm, 17, 6),
-            new Leg("RightLeg", PartLocation.RightLeg, 25, 8),
-            new Leg("LeftLeg", PartLocation.LeftLeg, 25, 8)
-        ];
     }
 
     [Fact]

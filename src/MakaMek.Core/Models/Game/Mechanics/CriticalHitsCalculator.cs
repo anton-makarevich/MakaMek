@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -18,8 +19,48 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         _diceRoller = diceRoller;
         _damageTransferCalculator = damageTransferCalculator;
     }
+    
+    public CriticalHitsResolutionCommand? ApplyCriticalHits(Unit unit, List<LocationDamageData> hitLocationsData)
+    {
+        var allCriticalHitsData = new List<LocationCriticalHitsData>();
 
-    public LocationCriticalHitsData? CalculateCriticalHitsForStructureDamage(
+        // Process each location that received damage
+        var locationsWithStructureDamage = new Queue<LocationDamageData>( hitLocationsData
+            .Where(d => d.StructureDamage > 0));
+        
+        while (locationsWithStructureDamage.Count > 0)
+        {
+            var locationHitDamage = locationsWithStructureDamage.Dequeue();
+            var criticalHitsData = CalculateCriticalHitsForStructureDamage(unit, locationHitDamage);
+            if (criticalHitsData != null)
+            {
+                // KNOWN ISSUE
+                // This is a side-effect and a deviation from the common design of applying server commands via BaseGame 
+                unit.ApplyCriticalHits([criticalHitsData]);
+                allCriticalHitsData.Add(criticalHitsData);
+            }
+            var explosions = criticalHitsData?.ExplosionsDamage ?? [];
+            foreach (var explosion in explosions)
+            {
+                if (explosion.StructureDamage > 0)
+                    locationsWithStructureDamage.Enqueue(explosion); // Add any explosion damage to the queue
+            }
+        }
+
+        // If no critical hits occurred, no need to send a command
+        if (allCriticalHitsData.Count == 0)
+            return null;
+
+        // Send critical hits resolution command
+        return new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Guid.Empty,
+            TargetId = unit.Id,
+            CriticalHits = allCriticalHitsData
+        };
+    }
+
+    private LocationCriticalHitsData? CalculateCriticalHitsForStructureDamage(
         Unit unit,
         LocationDamageData damageData)
     {

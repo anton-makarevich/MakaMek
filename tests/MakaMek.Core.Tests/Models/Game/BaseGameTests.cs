@@ -1091,7 +1091,14 @@ public class BaseGameTests : BaseGame
         {
             GameOriginId = Guid.NewGuid(),
             UnitId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow
+            CriticalHits = [],
+            AvoidExplosionRoll = new AvoidAmmoExplosionRollData
+            {
+                HeatLevel = 25,
+                DiceResults = [2, 3],
+                AvoidNumber = 6,
+                IsSuccessful = false
+            }
         };
 
         // Act
