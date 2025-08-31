@@ -2374,7 +2374,9 @@ public class ClientGameTests
                         Type = MakaMekComponent.ISAmmoLRM5
                     }
                 ],false,
-                    [ ])
+                    [
+                        new LocationDamageData(PartLocation.CenterTorso, 0, 5, false)
+                    ])
             ]
         };
 

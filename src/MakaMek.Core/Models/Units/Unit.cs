@@ -491,13 +491,16 @@ public abstract class Unit
                 foreach (var explosionDamage in locationData.ExplosionsDamage)
                 {
                     var explosionTargetPart = _parts.Find(p => p.Location == explosionDamage.Location);
-                    if (explosionTargetPart == null) continue;
+                    if (explosionTargetPart == null || explosionDamage.StructureDamage <= 0) continue;
 
                     // Explosion damage bypasses armor and only affects structure
                     explosionTargetPart.ApplyStructureDamage(explosionDamage.StructureDamage);
 
                     // Track explosion damage in total phase damage
                     TotalPhaseDamage += explosionDamage.StructureDamage;
+                    
+                    // Trigger explosion event
+                    AddEvent(new UiEvent(UiEventType.Explosion, explosionTargetPart.Name));
                 }
             }
         }

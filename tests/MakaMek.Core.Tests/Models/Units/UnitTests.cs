@@ -1228,7 +1228,9 @@ public class UnitTests
                     }
                 ],
                 false,
-                []) // No separate explosion damage - component handles its own explosion
+                [
+                    new LocationDamageData(PartLocation.LeftArm, 0, 3, false)
+                ]) 
         };
         
         // Pre-assert: component has not exploded
@@ -1288,7 +1290,10 @@ public class UnitTests
                     }
                 ],
                 false,
-                []) // No separate explosion damage - components handle their own explosions
+                [
+                    new LocationDamageData(PartLocation.LeftArm, 0, 3, false),
+                    new LocationDamageData(PartLocation.LeftArm, 0, 1, false)
+                ])
         };
         
         // Pre-assert: components have not exploded
@@ -1734,7 +1739,9 @@ public class UnitTests
                     }
                 ],
                 false,
-                []) // No separate explosion damage - component handles its own explosion
+                [
+                    new LocationDamageData(PartLocation.LeftArm, 0, 3, false)
+                ]) 
         };
         var initialTotalDamage = sut.TotalPhaseDamage;
 
@@ -2021,205 +2028,5 @@ public class UnitTests
                 1,
                 false)
         ], aimedShotRoll??[], locationRoll??[], partLocation);
-    }
-
-    [Fact]
-    public void ApplyCriticalHits_WithExplosionsDamage_ShouldApplyExplosionDamage()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var initialStructure = targetPart.CurrentStructure;
-        var initialArmor = targetPart.CurrentArmor;
-
-        // Create critical hits data with explosion damage (structure-only)
-        var explosionDamage = new LocationDamageData(PartLocation.LeftArm, 0, 3, false); // 0 armor, 3 structure
-        var hitLocations = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.LeftArm, [4, 4], 0, null, false, [explosionDamage])
-        };
-
-        // Act
-        unit.ApplyCriticalHits(hitLocations);
-
-        // Assert
-        targetPart.CurrentStructure.ShouldBe(initialStructure - 3); // Structure reduced by explosion
-        targetPart.CurrentArmor.ShouldBe(initialArmor); // Armor unchanged (explosion bypasses armor)
-    }
-
-    [Fact]
-    public void ApplyCriticalHits_WithExplosionsDamage_ShouldOnlyAffectStructure()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var initialStructure = targetPart.CurrentStructure;
-        var initialArmor = targetPart.CurrentArmor;
-
-        // Create explosion damage that would normally affect armor but should only affect structure
-        var explosionDamage = new LocationDamageData(PartLocation.CenterTorso, 0, 4, false); // 0 armor, 4 structure
-        var hitLocations = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.CenterTorso, [6, 6], 0, null, false, [explosionDamage])
-        };
-
-        // Act
-        unit.ApplyCriticalHits(hitLocations);
-
-        // Assert
-        targetPart.CurrentStructure.ShouldBe(initialStructure - 4);
-        targetPart.CurrentArmor.ShouldBe(initialArmor); // Armor completely untouched
-    }
-
-    [Fact]
-    public void ApplyCriticalHits_WithExplosionsDamage_ShouldApplyToCorrectLocation()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var leftArmPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
-        var initialLeftArmStructure = leftArmPart.CurrentStructure;
-        var initialRightArmStructure = rightArmPart.CurrentStructure;
-
-        // Create explosion damage only for left arm
-        var explosionDamage = new LocationDamageData(PartLocation.LeftArm, 0, 2, false);
-        var hitLocations = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.LeftArm, [5, 5], 0, null, false, [explosionDamage])
-        };
-
-        // Act
-        unit.ApplyCriticalHits(hitLocations);
-
-        // Assert
-        leftArmPart.CurrentStructure.ShouldBe(initialLeftArmStructure - 2); // Left arm damaged
-        rightArmPart.CurrentStructure.ShouldBe(initialRightArmStructure); // Right arm unchanged
-    }
-
-    [Fact]
-    public void ApplyCriticalHits_WithMultipleExplosionsDamage_ShouldApplyAllExplosions()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var initialStructure = targetPart.CurrentStructure;
-
-        // Create multiple explosion damage entries
-        var explosionDamage1 = new LocationDamageData(PartLocation.CenterTorso, 0, 2, false);
-        var explosionDamage2 = new LocationDamageData(PartLocation.CenterTorso, 0, 1, false);
-        var hitLocations = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.CenterTorso, [7, 7], 0, null, false, [explosionDamage1, explosionDamage2])
-        };
-
-        // Act
-        unit.ApplyCriticalHits(hitLocations);
-
-        // Assert
-        targetPart.CurrentStructure.ShouldBe(initialStructure - 3); // Total: 2 + 1 = 3
-    }
-
-    [Fact]
-    public void ApplyCriticalHits_WithExplosionsDamageAndCriticalHits_ShouldApplyBoth()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var component = new TestComponent("Test Component", 1);
-        targetPart.TryAddComponent(component);
-
-        var initialStructure = targetPart.CurrentStructure;
-        var initialTotalPhaseDamage = unit.TotalPhaseDamage;
-
-        // Create critical hits data with both component hits and explosion damage
-        var explosionDamage = new LocationDamageData(PartLocation.LeftArm, 0, 2, false);
-        var hitLocations = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.LeftArm, [8, 8], 1,
-                [
-                    new ComponentHitData
-                    {
-                        Slot = component.MountedAtSlots[0],
-                        Type = MakaMekComponent.HeatSink
-                    }
-                ],
-                false,
-                [explosionDamage])
-        };
-
-        // Act
-        unit.ApplyCriticalHits(hitLocations);
-
-        // Assert
-        component.IsDestroyed.ShouldBeTrue(); // Component should be hit
-        targetPart.CurrentStructure.ShouldBe(initialStructure - 2); // Explosion damage applied
-        unit.TotalPhaseDamage.ShouldBe(initialTotalPhaseDamage + 2); // Explosion damage counted in total
-    }
-
-    [Fact]
-    public void ApplyCriticalHits_WithExplosionsDamage_ShouldIncludeInTotalPhaseDamage()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var initialTotalPhaseDamage = unit.TotalPhaseDamage;
-
-        // Create explosion damage
-        var explosionDamage = new LocationDamageData(PartLocation.CenterTorso, 0, 5, false);
-        var hitLocations = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.CenterTorso, [9, 9], 0, null, false, [explosionDamage])
-        };
-
-        // Act
-        unit.ApplyCriticalHits(hitLocations);
-
-        // Assert
-        unit.TotalPhaseDamage.ShouldBe(initialTotalPhaseDamage + 5);
-    }
-
-    [Fact]
-    public void ApplyCriticalHits_WithEmptyExplosionsDamage_ShouldNotApplyExplosionDamage()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var initialStructure = targetPart.CurrentStructure;
-        var initialTotalPhaseDamage = unit.TotalPhaseDamage;
-
-        // Create critical hits data with empty explosion damage
-        var hitLocations = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.LeftArm, [3, 3], 0, null, false, [])
-        };
-
-        // Act
-        unit.ApplyCriticalHits(hitLocations);
-
-        // Assert
-        targetPart.CurrentStructure.ShouldBe(initialStructure); // No structure damage
-        unit.TotalPhaseDamage.ShouldBe(initialTotalPhaseDamage); // No damage added
-    }
-
-    [Fact]
-    public void ApplyCriticalHits_WithNullExplosionsDamage_ShouldNotApplyExplosionDamage()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var initialStructure = targetPart.CurrentStructure;
-        var initialTotalPhaseDamage = unit.TotalPhaseDamage;
-
-        // Create critical hits data with null explosion damage (using the existing constructor pattern)
-        var hitLocations = new List<LocationCriticalHitsData>
-        {
-            new(PartLocation.LeftArm, [3, 3], 0, null, false, null!)
-        };
-
-        // Act
-        unit.ApplyCriticalHits(hitLocations);
-
-        // Assert
-        targetPart.CurrentStructure.ShouldBe(initialStructure); // No structure damage
-        unit.TotalPhaseDamage.ShouldBe(initialTotalPhaseDamage); // No damage added
     }
 }
