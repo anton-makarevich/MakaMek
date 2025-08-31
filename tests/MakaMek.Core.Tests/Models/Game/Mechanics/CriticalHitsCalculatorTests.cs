@@ -35,31 +35,17 @@ public class CriticalHitsCalculatorTests
         _mechFactory = new MechFactory(rules, localizationService);
     }
     
+    // Helper methods for creating test data
     private Unit CreateTestMech()
     {
         var mechData = MechFactoryTests.CreateDummyMechData();
         return _mechFactory.Create(mechData);
     }
     
-    // Helper methods for creating test data
-    private static AttackHitLocationsData CreateHitLocationsData(List<LocationHitData> hitLocations)
+    private static LocationDamageData CreateLocationDamageData(PartLocation location, int armorDamage,
+        int structureDamage)
     {
-        return new AttackHitLocationsData(
-            HitLocations: hitLocations,
-            TotalDamage: hitLocations.SelectMany(h => h.Damage).Sum(d => d.ArmorDamage + d.StructureDamage),
-            ClusterRoll: [],
-            MissilesHit: 0
-        );
-    }
-
-    private static LocationHitData CreateLocationHitData(PartLocation location, int armorDamage, int structureDamage)
-    {
-        return new LocationHitData(
-            [new LocationDamageData(location, armorDamage, structureDamage, false)],
-            [], // AimedShotRoll
-            [], // LocationRoll
-            location
-        );
+        return new LocationDamageData(location, armorDamage, structureDamage, false);
     }
 
     [Fact]
@@ -149,9 +135,9 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 5, 0) // Only armor damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 5, 0) // Only armor damage
+        ];
 
         // Act
         var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
@@ -166,9 +152,9 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 3, 2) // Structure damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Structure damage
+        ];
 
         // Setup dice roller for critical hit checks
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
@@ -191,10 +177,10 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 3, 2), // Structure damage
-            CreateLocationHitData(PartLocation.LeftArm, 2, 1)     // Structure damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2), // Structure damage
+            CreateLocationDamageData(PartLocation.LeftArm, 2, 1)     // Structure damage
+        ];
 
         // Setup dice roller for critical hit checks
         _mockDiceRoller.Roll2D6().Returns(
@@ -222,9 +208,9 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 3, 2) // Structure damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Structure damage
+        ];
 
         // Setup dice roller and explosion damage with zero structure damage
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]);
@@ -258,9 +244,9 @@ public class CriticalHitsCalculatorTests
         var ammo = new Ammo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
 
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 3, 2) // Structure damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Structure damage
+        ];
 
         // Setup dice roller to hit the ammo component
         _mockDiceRoller.Roll2D6().Returns(
@@ -306,9 +292,9 @@ public class CriticalHitsCalculatorTests
         var ammo2 = new Ammo(Lrm5.Definition, 24);
         leftTorso.TryAddComponent(ammo2, [8]).ShouldBeTrue();
 
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 3, 2) // Initial structure damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Initial structure damage
+        ];
 
         // Setup dice roller for chained explosions
         _mockDiceRoller.Roll2D6().Returns(
@@ -365,9 +351,9 @@ public class CriticalHitsCalculatorTests
         var ammo2 = new Ammo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo2, [11]).ShouldBeTrue();
 
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 3, 2) // Structure damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Structure damage
+        ];
 
         // Setup dice roller for multiple explosions
         _mockDiceRoller.Roll2D6().Returns(
@@ -411,12 +397,12 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 5, 0), // Only armor damage
-            CreateLocationHitData(PartLocation.LeftArm, 3, 2),     // Structure damage
-            CreateLocationHitData(PartLocation.RightArm, 4, 0),    // Only armor damage
-            CreateLocationHitData(PartLocation.LeftLeg, 4, 3)      // Structure damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 5, 0), // Only armor damage
+            CreateLocationDamageData(PartLocation.LeftArm, 3, 2),     // Structure damage
+            CreateLocationDamageData(PartLocation.RightArm, 4, 0),    // Only armor damage
+            CreateLocationDamageData(PartLocation.LeftLeg, 4, 3)      // Structure damage
+        ];
 
         // Setup dice roller for locations with structure damage
         _mockDiceRoller.Roll2D6().Returns(
@@ -446,9 +432,9 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 3, 2) // Structure damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 3, 2) // Structure damage
+        ];
 
         // Setup dice roller to return no critical hits
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(1), new DiceResult(1)]); // Roll of 2 (no crits)
@@ -468,12 +454,12 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var hitLocationsData = CreateHitLocationsData([
-            CreateLocationHitData(PartLocation.CenterTorso, 5, 0), // No structure damage
-            CreateLocationHitData(PartLocation.LeftArm, 3, 1),     // Structure damage
-            CreateLocationHitData(PartLocation.RightArm, 2, 0),    // No structure damage
-            CreateLocationHitData(PartLocation.LeftLeg, 4, 3)      // Structure damage
-        ]);
+        List<LocationDamageData> hitLocationsData = [
+            CreateLocationDamageData(PartLocation.CenterTorso, 5, 0), // No structure damage
+            CreateLocationDamageData(PartLocation.LeftArm, 3, 1),     // Structure damage
+            CreateLocationDamageData(PartLocation.RightArm, 2, 0),    // No structure damage
+            CreateLocationDamageData(PartLocation.LeftLeg, 4, 3)      // Structure damage
+        ];
 
         // Setup dice roller for locations with structure damage
         _mockDiceRoller.Roll2D6().Returns(

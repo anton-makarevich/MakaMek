@@ -37,7 +37,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
     public WeaponAttackResolutionPhaseTests()
     {
-        // Create mock next phase and configure the phase manager
+        // Create a next phase mock and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.WeaponAttackResolution, Game).Returns(_mockNextPhase);
 
@@ -199,7 +199,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         _sut.Enter();
 
         // Assert
-        // Should transition to next phase
+        // Should transition to the next phase
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.WeaponAttackResolution, Game);
         _mockNextPhase.Received(1).Enter();
     }
@@ -216,7 +216,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         _sut.Enter();
 
         // Assert
-        // Should transition to next phase after processing all attacks
+        // Should transition to the next phase after processing all attacks
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.WeaponAttackResolution, Game);
         _mockNextPhase.Received(1).Enter();
     }
@@ -271,7 +271,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange - Setup weapon targets
         SetupPlayer1WeaponTargets();
-        SetupDiceRolls(8, 6); // First roll is for attack (8), second is for hit location (6)
+        SetupDiceRolls(8, 6); // The first roll is for attack (8), the second is for hit location (6)
         SetMap();
 
         // Act
@@ -287,7 +287,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange - Setup weapon targets
         SetupPlayer1WeaponTargets();
-        SetupDiceRolls(5, 6); // First roll is for attack (5), which is less than to-hit number (7)
+        SetupDiceRolls(5, 6); // The first roll is for attack (5), which is less than to-hit number (7)
         SetMap();
 
         // Act
@@ -323,7 +323,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange: Setup weapon targets so that unit1 attacks unit2's head with lethal damage
         SetupPlayer1WeaponTargets();
-        SetupDiceRolls(5, 6); // First roll is for attack (5), which is less than to-hit number (7)
+        SetupDiceRolls(5, 6); // The first roll is for attack (5), which is less than to-hit number (7)
         SetMap();
 
         // Make sure the attack will hit and deal enough damage to destroy the head
@@ -336,7 +336,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Act
         _sut.Enter();
 
-        // Assert: Should transition to next phase and not get stuck
+        // Assert: Should transition to the next phase and not get stuck
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.WeaponAttackResolution, Game);
         _mockNextPhase.Received(1).Enter();
         // Unit2 should be destroyed
@@ -369,7 +369,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var attackingUnit = _player1Unit1;
         var weaponWithoutTarget = attackingUnit.Parts[1].GetComponents<Weapon>().First();
 
-        // Set target for the second weapon (same as first weapon) using new system
+        // Set a target for the second weapon (same as the first weapon)
         var additionalWeaponTargets = new List<WeaponTargetData>
         {
             new()
@@ -388,10 +388,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             attackingUnit.GetAllWeaponTargetsData().Concat(additionalWeaponTargets).ToList());
 
         // Configure dice rolls to ensure hits and specific hit locations
-        // First roll (8) is for first attack (hit)
-        // Second roll (10) is for first hit location (left arm)
-        // Third roll (8) is for second attack (hit)
-        // Fourth roll (10) is for second hit location (same location)
+        // First roll (8) is for the first attack (hit)
+        // Second roll (10) is for the first hit location (left arm)
+        // Third roll (8) is for the second attack (hit)
+        // Fourth roll (10) is for the second hit location (same location)
         SetupDiceRolls(8, 10, 8, 10);
 
         // Act
@@ -444,7 +444,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var clusterWeapon = new TestClusterWeapon(1, 5);
         var part1 = _player1Unit1.Parts.First(p => p.Location == PartLocation.LeftArm);
         part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
-        // Set target for the cluster weapon using new system
+        // Set a target for the cluster weapon
         var clusterWeaponTargets = new List<WeaponTargetData>
         {
             new()
@@ -506,7 +506,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); 
         var part1 = _player1Unit1.Parts.First(p=>p.Location == PartLocation.LeftArm);
         part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
-        // Set target for the cluster weapon using new system
+        // Set a target for the cluster weapon 
         var clusterWeaponTargets = new List<WeaponTargetData>
         {
             new()
@@ -559,7 +559,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var clusterWeapon = new TestClusterWeapon(10, 5); // LRM-10
         var part1 = _player1Unit1.Parts.First(p => p.Location == PartLocation.LeftArm);
         part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
-        // Set target for the cluster weapon using new system
+        // Set a target for the cluster weapon 
         var clusterWeaponTargets = new List<WeaponTargetData>
         {
             new()
@@ -611,19 +611,19 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         // Ensure BattleMap is null (default state after ServerGame creation in test base)
         Game.BattleMap.ShouldBeNull();
-
+    
         // Setup weapon targets - necessary to reach the ResolveAttack call
         SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls, values don't matter much here
-
+    
         // Act
         var act = () => _sut.Enter();
-
+    
         // Assert
         // Verify that calling Enter throws the specific exception because BattleMap is null
         var exception = Should.Throw<Exception>(act);
         exception.Message.ShouldBe("Battle map is null");
-
+    
         // Verify no commands were published as the exception happens before that
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackResolutionCommand>());
     }
@@ -1173,7 +1173,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         MockCriticalHitsCalculator.CalculateCriticalHits(
                 Arg.Is<Unit>(u => u.Id == unit.Id),
-                Arg.Any<AttackHitLocationsData>())
+                Arg.Any<List<LocationDamageData>>())
             .Returns(criticalHitsCommand);
     }
 
@@ -1239,7 +1239,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Setup critical hits calculator to return null (no critical hits for armor-only damage)
         MockCriticalHitsCalculator.CalculateCriticalHits(
                 Arg.Any<Unit>(),
-                Arg.Any<AttackHitLocationsData>())
+                Arg.Any<List<LocationDamageData>>())
             .Returns((CriticalHitsResolutionCommand?)null);
 
         // Act
@@ -1249,7 +1249,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Critical hits calculator should be called even for armor-only damage (the filter is inside)
         MockCriticalHitsCalculator.Received().CalculateCriticalHits(
             Arg.Any<Unit>(),
-            Arg.Any<AttackHitLocationsData>());
+            Arg.Any<List<LocationDamageData>>());
 
         // No critical hits command should be published when the calculator returns null
         CommandPublisher.DidNotReceive().PublishCommand(
@@ -1288,7 +1288,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         MockCriticalHitsCalculator.CalculateCriticalHits(
                 Arg.Any<Unit>(),
-                Arg.Any<AttackHitLocationsData>())
+                Arg.Any<List<LocationDamageData>>())
             .Returns(expectedCommand);
 
         // Act
@@ -1299,7 +1299,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Note: Due to initiative order, Player 2 attacks first, so _player1Unit1 is the first target
         MockCriticalHitsCalculator.Received().CalculateCriticalHits(
             Arg.Any<Unit>(),
-            Arg.Any<AttackHitLocationsData>());
+            Arg.Any<List<LocationDamageData>>());
 
         // The command returned by calculator should be published
         CommandPublisher.Received().PublishCommand(
@@ -1338,7 +1338,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         MockCriticalHitsCalculator.CalculateCriticalHits(
                 Arg.Any<Unit>(),
-                Arg.Any<AttackHitLocationsData>())
+                Arg.Any<List<LocationDamageData>>())
             .Returns(criticalHitsCommand);
         
         // Act
