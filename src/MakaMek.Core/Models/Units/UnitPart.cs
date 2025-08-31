@@ -143,8 +143,13 @@ public abstract class UnitPart
     /// </summary>
     /// <param name="damage">The amount of total damage to apply</param>
     /// <param name="direction">The direction of the hit</param>
-    public int ApplyDamage(int damage, HitDirection direction)
+    /// <param name="isExplosion">Skips armor damage if true</param>
+    public virtual int ApplyDamage(int damage, HitDirection direction, bool isExplosion = false)
     {
+        if (isExplosion)
+        {
+            return ApplyStructureDamage(damage);
+        }
         var remainingDamage = damage;
         var part = this;
 
@@ -174,7 +179,7 @@ public abstract class UnitPart
     /// Applies pre-calculated structure damage to this part
     /// </summary>
     /// <param name="structureDamage">The amount of structure damage to apply</param>
-    public int ApplyStructureDamage(int structureDamage)
+    private int ApplyStructureDamage(int structureDamage)
     {
         if (structureDamage <= 0) return structureDamage;
 
