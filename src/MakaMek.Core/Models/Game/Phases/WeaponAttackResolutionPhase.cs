@@ -405,21 +405,25 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var criticalHitsCommand = Game.CriticalHitsCalculator
             .ApplyCriticalHits(target, resolution.HitLocationsData.HitLocations
                 .SelectMany(h => h.Damage).ToList());
-        if (criticalHitsCommand == null) return;
-        criticalHitsCommand.GameOriginId = Game.Id;
-        Game.CommandPublisher.PublishCommand(criticalHitsCommand);
+        IEnumerable<ComponentHitData> allComponentHits = [];
+        List<PartLocation> blownOffParts = [];
+        if (criticalHitsCommand != null)
+        {
+            criticalHitsCommand.GameOriginId = Game.Id;
+            Game.CommandPublisher.PublishCommand(criticalHitsCommand);
 
-        // Process consciousness rolls for pilot damage accumulated during critical hits
-        ProcessConsciousnessRollsForUnit(target);
+            // Process consciousness rolls for pilot damage accumulated during critical hits
+            ProcessConsciousnessRollsForUnit(target);
 
-        // Check for component hits that can cause a fall
-        var allComponentHits = criticalHitsCommand.CriticalHits.SelectMany(ch => ch.HitComponents ?? []);
+            // Check for component hits that can cause a fall
+            allComponentHits = criticalHitsCommand.CriticalHits.SelectMany(ch => ch.HitComponents ?? []);
 
-        // Also track parts blown off by critical hits (e.g., leg/arm/head)
-        var blownOffParts = criticalHitsCommand.CriticalHits
-            .Where(ch => ch.IsBlownOff)
-            .Select(ch => ch.Location).ToList();
-
+            // Also track parts blown off by critical hits (e.g., leg/arm/head)
+            blownOffParts = criticalHitsCommand.CriticalHits
+                .Where(ch => ch.IsBlownOff)
+                .Select(ch => ch.Location).ToList();
+        }
+        
         var allDestroyedParts = (resolution.DestroyedParts ?? [])
             .Concat(blownOffParts).Distinct();
 
