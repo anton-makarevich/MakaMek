@@ -71,4 +71,34 @@ public class HeadTests
         // Assert
         pilot.Injuries.ShouldBe(1);
     }
+    
+    [Fact]
+    public void ApplyDamage_ShouldNoHitPilot_WhenPilotIsNotAssigned()
+    {
+        // Arrange
+        var sut = new Head("Head",  8, 3);
+        var pilot = new MechWarrior("John", "Doe");
+
+        // Act
+        sut.ApplyDamage(1, HitDirection.Front);
+
+        // Assert
+        pilot.Injuries.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void ApplyDamage_ShouldNotHitPilot_WhenDamageIsZero()
+    {
+        // Arrange
+        var sut = new Head("Head",  8, 3);
+        var mech = new Mech("Test", "TST-1A", 50, 6, [sut]);
+        var pilot = new MechWarrior("John", "Doe");
+        mech.AssignPilot(pilot);
+
+        // Act
+        sut.ApplyDamage(0, HitDirection.Front);
+
+        // Assert
+        pilot.Injuries.ShouldBe(0);
+    }
 }

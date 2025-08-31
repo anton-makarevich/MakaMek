@@ -25,7 +25,8 @@ public class Head : UnitPart
     
     public override int ApplyDamage(int damage, HitDirection direction, bool isExplosion = false)
     {
-        Unit?.Pilot?.Hit();
+        if (damage > 0)
+            Unit?.Pilot?.Hit();
         return base.ApplyDamage(damage, direction, isExplosion);
     }
 }

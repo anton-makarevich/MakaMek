@@ -139,7 +139,9 @@ public abstract class UnitPart
     }
 
     /// <summary>
-    /// Applies pre-calculated armor damage to this part
+    /// Applies damage to this part.
+    /// If isExplosion is true, bypasses armor and damage transfer, applying structure damage only to this part.
+    /// Returns the overflow (unapplied) damage, if any.
     /// </summary>
     /// <param name="damage">The amount of total damage to apply</param>
     /// <param name="direction">The direction of the hit</param>
