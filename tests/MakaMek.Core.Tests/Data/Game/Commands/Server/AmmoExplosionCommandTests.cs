@@ -43,7 +43,13 @@ public class AmmoExplosionCommandTests
             UnitId = _unitId,
             GameOriginId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow,
-            AvoidExplosionRoll = null,
+            AvoidExplosionRoll = new AvoidAmmoExplosionRollData
+            {
+                HeatLevel = 25,
+                DiceResults = [3, 4],
+                AvoidNumber = 8,
+                IsSuccessful = false
+            },
             CriticalHits = []
         };
     }
@@ -149,7 +155,7 @@ public class AmmoExplosionCommandTests
         // Arrange
         var centerTorso = _testMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
         var ammo = new Ammo(CreateLrm5Definition(), 24);
-        centerTorso.TryAddComponent(ammo, [10]); // Use slot 10, which is available
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue(); // Use slot 10, which is available
 
         var command = CreateCommand() with
         {

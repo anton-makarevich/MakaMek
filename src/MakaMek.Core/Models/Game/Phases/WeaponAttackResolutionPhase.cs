@@ -351,33 +351,34 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return HitDirection.Front;
     }
 
-    private void FinalizeAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target, AttackResolutionData resolution)
+    private void FinalizeAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target,
+        AttackResolutionData resolution)
     {
         // Track destroyed parts before damage
         var destroyedPartsBefore = target.Parts.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
         var wasDestroyedBefore = target.IsDestroyed;
-        
+
         // Apply damage to the target
         if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null })
         {
             target.ApplyDamage(resolution.HitLocationsData.HitLocations, resolution.AttackDirection);
             ProcessConsciousnessRollsForUnit(target);
         }
-        
+
         // Check which parts are newly destroyed
         var destroyedPartsAfter = target.Parts.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
         var newlyDestroyedParts = destroyedPartsAfter.Except(destroyedPartsBefore).ToList();
-        
+
         // Check if the unit was destroyed by this attack
         var unitNewlyDestroyed = !wasDestroyedBefore && target.IsDestroyed;
-        
+
         // Update the resolution data with destruction information
-        resolution = resolution with 
-        { 
+        resolution = resolution with
+        {
             DestroyedParts = newlyDestroyedParts.Any() ? newlyDestroyedParts : null,
             UnitDestroyed = unitNewlyDestroyed
         };
-        
+
         // Create and publish a command to inform clients about the attack resolution
         var command = new WeaponAttackResolutionCommand
         {
@@ -393,42 +394,47 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             TargetId = target.Id,
             ResolutionData = resolution
         };
-        
+
         attacker.FireWeapon(command.WeaponData);
 
         Game.CommandPublisher.PublishCommand(command);
 
         // Calculate and send critical hits if any location received structure damage
-        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;   
-        
+        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
+
         var criticalHitsCommand = Game.CriticalHitsCalculator
             .CalculateCriticalHits(target, resolution.HitLocationsData);
         if (criticalHitsCommand == null) return;
         criticalHitsCommand.GameOriginId = Game.Id;
         Game.CommandPublisher.PublishCommand(criticalHitsCommand);
-        
+
         // Process consciousness rolls for pilot damage accumulated during critical hits
         ProcessConsciousnessRollsForUnit(target);
-        
+
         // Check for component hits that can cause a fall
         var allComponentHits = criticalHitsCommand.CriticalHits.SelectMany(ch => ch.HitComponents ?? []);
-        
+
         // Also track parts blown off by critical hits (e.g., leg/arm/head)
         var blownOffParts = criticalHitsCommand.CriticalHits
-                    .Where(ch => ch.IsBlownOff)
-                    .Select(ch => ch.Location);
-        
+            .Where(ch => ch.IsBlownOff)
+            .Select(ch => ch.Location).ToList();
+
+        var allDestroyedParts = (resolution.DestroyedParts ?? [])
+            .Concat(blownOffParts);
+
         // Add component hits to accumulated damage data
         if (!_accumulatedDamageData.TryGetValue(target.Id, out var accumulatedDamage))
         {
             accumulatedDamage = new UnitPhaseAccumulatedDamage();
             _accumulatedDamageData[target.Id] = accumulatedDamage;
         }
+
         accumulatedDamage.AllComponentHits.AddRange(allComponentHits);
-        accumulatedDamage.AllDestroyedParts.AddRange(resolution.DestroyedParts ?? []);
-        accumulatedDamage.AllDestroyedParts.AddRange(blownOffParts);
+        foreach (var part in allDestroyedParts)
+            if (!accumulatedDamage.AllDestroyedParts.Contains(part))
+                accumulatedDamage.AllDestroyedParts.Add(part);
     }
-    
+
     private void MoveToNextUnit()
     {
         _currentUnitIndex++;

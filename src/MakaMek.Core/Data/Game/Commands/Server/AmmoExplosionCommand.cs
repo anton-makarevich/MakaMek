@@ -43,10 +43,10 @@ public record struct AmmoExplosionCommand : IGameCommand
 
         // Check if an explosion occurred
         var explosionOccurred = !AvoidExplosionRoll.IsSuccessful;
-        
+
         var rollTotal = AvoidExplosionRoll.DiceResults.Sum();
 
-        if (AvoidExplosionRoll.IsSuccessful)
+        if (!explosionOccurred)
         {
             // Explosion avoided
             var successTemplate = localizationService.GetString("Command_AmmoExplosion_Avoided");
@@ -72,30 +72,29 @@ public record struct AmmoExplosionCommand : IGameCommand
 
         // If an explosion occurred, show the critical hits details
         if (!explosionOccurred) return stringBuilder.ToString().TrimEnd();
-        {
-            stringBuilder.AppendLine(localizationService.GetString("Command_AmmoExplosion_CriticalHits"));
 
-            foreach (var criticalHitData in CriticalHits)
+        stringBuilder.AppendLine(localizationService.GetString("Command_AmmoExplosion_CriticalHits"));
+
+        foreach (var criticalHitData in CriticalHits)
+        {
+            if (criticalHitData.HitComponents == null) continue;
+            foreach (var componentHit in criticalHitData.HitComponents)
             {
-                if (criticalHitData.HitComponents == null) continue;
-                foreach (var componentHit in criticalHitData.HitComponents)
+                var part = unit.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
+                var component = part?.GetComponentAtSlot(componentHit.Slot);
+                if (component == null || component.ComponentType != componentHit.Type) continue;
+                var localizedLocation = localizationService.GetString($"MechPart_{criticalHitData.Location}_Short");
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed"),
+                    component.Name,
+                    localizedLocation));
+                var explosionDamage = componentHit.ExplosionDamage;
+                if (explosionDamage > 0)
                 {
-                    var part = unit.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
-                    var component = part?.GetComponentAtSlot(componentHit.Slot);
-                    if (component == null || component.ComponentType != componentHit.Type) continue;
-                    var localizedLocation = localizationService.GetString($"MechPart_{criticalHitData.Location}_Short");
                     stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed"),
+                        localizationService.GetString("Command_AmmoExplosion_Explosion"),
                         component.Name,
-                        localizedLocation));
-                    var explosionDamage = componentHit.ExplosionDamage;
-                    if (explosionDamage > 0)
-                    {
-                        stringBuilder.AppendLine(string.Format(
-                            localizationService.GetString("Command_AmmoExplosion_Explosion"),
-                            component.Name,
-                            explosionDamage));
-                    }
+                        explosionDamage));
                 }
             }
         }

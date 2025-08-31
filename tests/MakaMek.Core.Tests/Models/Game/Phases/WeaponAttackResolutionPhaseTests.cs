@@ -1172,7 +1172,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         };
 
         MockCriticalHitsCalculator.CalculateCriticalHits(
-                Arg.Any<Unit>(),
+                Arg.Is<Unit>(u => u.Id == unit.Id),
                 Arg.Any<AttackHitLocationsData>())
             .Returns(criticalHitsCommand);
     }
