@@ -140,7 +140,7 @@ public class CriticalHitsCalculatorTests
         ];
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldBeNull(); // No critical hits when no structure damage
@@ -161,7 +161,7 @@ public class CriticalHitsCalculatorTests
         _mockDiceRoller.RollD6().Returns(new DiceResult(2)); // Slot
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();
@@ -193,7 +193,7 @@ public class CriticalHitsCalculatorTests
         );
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();
@@ -225,7 +225,7 @@ public class CriticalHitsCalculatorTests
             .Returns([explosionDamage]);
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();
@@ -268,7 +268,7 @@ public class CriticalHitsCalculatorTests
             .Returns([explosionDamage]);
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();
@@ -327,7 +327,7 @@ public class CriticalHitsCalculatorTests
             .Returns([secondExplosionDamage]);
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();
@@ -381,7 +381,7 @@ public class CriticalHitsCalculatorTests
             .Returns([firstExplosionDamage], [secondExplosionDamage]);
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();
@@ -415,7 +415,7 @@ public class CriticalHitsCalculatorTests
         );
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();
@@ -428,7 +428,7 @@ public class CriticalHitsCalculatorTests
     }
 
     [Fact]
-    public void CalculateCriticalHits_ShouldReturnCommandWithEmptyList_WhenNoCriticalHitsOccur()
+    public void CalculateCriticalHits_ShouldReturnCommandWithZeroCritEntry_WhenNoCriticalHitsOccur()
     {
         // Arrange
         var testUnit = CreateTestMech();
@@ -440,7 +440,7 @@ public class CriticalHitsCalculatorTests
         _mockDiceRoller.Roll2D6().Returns([new DiceResult(1), new DiceResult(1)]); // Roll of 2 (no crits)
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull(); // Public method returns command even with no crits
@@ -472,7 +472,7 @@ public class CriticalHitsCalculatorTests
         );
 
         // Act
-        var result = _sut.CalculateCriticalHits(testUnit, hitLocationsData);
+        var result = _sut.ApplyCriticalHits(testUnit, hitLocationsData);
 
         // Assert
         result.ShouldNotBeNull();

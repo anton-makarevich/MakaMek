@@ -403,7 +403,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
 
         var criticalHitsCommand = Game.CriticalHitsCalculator
-            .CalculateCriticalHits(target, resolution.HitLocationsData.HitLocations
+            .ApplyCriticalHits(target, resolution.HitLocationsData.HitLocations
                 .SelectMany(h => h.Damage).ToList());
         if (criticalHitsCommand == null) return;
         criticalHitsCommand.GameOriginId = Game.Id;
@@ -421,7 +421,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             .Select(ch => ch.Location).ToList();
 
         var allDestroyedParts = (resolution.DestroyedParts ?? [])
-            .Concat(blownOffParts);
+            .Concat(blownOffParts).Distinct();
 
         // Add component hits to accumulated damage data
         if (!_accumulatedDamageData.TryGetValue(target.Id, out var accumulatedDamage))
@@ -479,10 +479,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
             foreach (var fallingCommand in mechFallingCommands)
             {
-                Game.CommandPublisher.PublishCommand(fallingCommand);
-                if (fallingCommand.DamageData is null) continue;
                 Game.OnMechFalling(fallingCommand);
-                
+                Game.CommandPublisher.PublishCommand(fallingCommand);
+                if (fallingCommand.DamageData is null) break;
+
                 var locationsWithDamagedStructure = fallingCommand.DamageData.HitLocations.HitLocations
                     .Where(h => h.Damage.Any(d => d.StructureDamage > 0))
                     .SelectMany(h => h.Damage)
@@ -490,7 +490,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 if (locationsWithDamagedStructure.Count != 0)
                 {
                     var fallCriticalHitsCommand = Game.CriticalHitsCalculator
-                        .CalculateCriticalHits(targetMech, locationsWithDamagedStructure);
+                        .ApplyCriticalHits(targetMech, locationsWithDamagedStructure);
                     if (fallCriticalHitsCommand != null)
                     {
                         fallCriticalHitsCommand.GameOriginId = Game.Id;

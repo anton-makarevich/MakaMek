@@ -76,8 +76,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             // Standup succeeded - create and publish a standup command
             var standUpCommand = fallContextData.ToMechStandUpCommand(tryStandUpCommand.NewFacing);
             if (standUpCommand == null) return;
-            Game.CommandPublisher.PublishCommand(standUpCommand);
             Game.OnMechStandUp(standUpCommand.Value);
+            Game.CommandPublisher.PublishCommand(standUpCommand);
         }
 
         if (unit.GetMovementPoints(tryStandUpCommand.MovementTypeAfterStandup) > 0) return;
@@ -106,9 +106,9 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
     
     private void ProcessFallCommand(MechFallCommand fallCommand, Mech mech)
     {
-        Game.CommandPublisher.PublishCommand(fallCommand);
         Game.OnMechFalling(fallCommand);
-        
+        Game.CommandPublisher.PublishCommand(fallCommand);
+
         var locationsWithDamagedStructure = fallCommand.DamageData?.HitLocations.HitLocations
             .Where(h => h.Damage.Any(d => d.StructureDamage > 0))
             .SelectMany(h => h.Damage)
@@ -116,7 +116,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         if (locationsWithDamagedStructure.Count != 0)
         {
             var fallCriticalHitsCommand = Game.CriticalHitsCalculator
-                .CalculateCriticalHits(mech, locationsWithDamagedStructure);
+                .ApplyCriticalHits(mech, locationsWithDamagedStructure);
             if (fallCriticalHitsCommand != null)
             {
                 fallCriticalHitsCommand.GameOriginId = Game.Id;

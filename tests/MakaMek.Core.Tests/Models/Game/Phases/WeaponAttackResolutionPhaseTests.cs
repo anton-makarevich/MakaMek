@@ -1171,7 +1171,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 [])]
         };
 
-        MockCriticalHitsCalculator.CalculateCriticalHits(
+        MockCriticalHitsCalculator.ApplyCriticalHits(
                 Arg.Is<Unit>(u => u.Id == unit.Id),
                 Arg.Any<List<LocationDamageData>>())
             .Returns(criticalHitsCommand);
@@ -1237,7 +1237,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             .Returns([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)]);
 
         // Setup critical hits calculator to return null (no critical hits for armor-only damage)
-        MockCriticalHitsCalculator.CalculateCriticalHits(
+        MockCriticalHitsCalculator.ApplyCriticalHits(
                 Arg.Any<Unit>(),
                 Arg.Any<List<LocationDamageData>>())
             .Returns((CriticalHitsResolutionCommand?)null);
@@ -1247,7 +1247,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         // Critical hits calculator should be called even for armor-only damage (the filter is inside)
-        MockCriticalHitsCalculator.Received().CalculateCriticalHits(
+        MockCriticalHitsCalculator.Received().ApplyCriticalHits(
             Arg.Any<Unit>(),
             Arg.Any<List<LocationDamageData>>());
 
@@ -1286,7 +1286,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 [])]
         };
 
-        MockCriticalHitsCalculator.CalculateCriticalHits(
+        MockCriticalHitsCalculator.ApplyCriticalHits(
                 Arg.Any<Unit>(),
                 Arg.Any<List<LocationDamageData>>())
             .Returns(expectedCommand);
@@ -1297,7 +1297,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         // Critical hits calculator should be called with hit locations data
         // Note: Due to initiative order, Player 2 attacks first, so _player1Unit1 is the first target
-        MockCriticalHitsCalculator.Received().CalculateCriticalHits(
+        MockCriticalHitsCalculator.Received().ApplyCriticalHits(
             Arg.Any<Unit>(),
             Arg.Any<List<LocationDamageData>>());
 
@@ -1336,7 +1336,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 [])]
         };
 
-        MockCriticalHitsCalculator.CalculateCriticalHits(
+        MockCriticalHitsCalculator.ApplyCriticalHits(
                 Arg.Any<Unit>(),
                 Arg.Any<List<LocationDamageData>>())
             .Returns(criticalHitsCommand);

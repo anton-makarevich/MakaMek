@@ -20,7 +20,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         _damageTransferCalculator = damageTransferCalculator;
     }
     
-    public CriticalHitsResolutionCommand? CalculateCriticalHits(Unit target, List<LocationDamageData> hitLocationsData)
+    public CriticalHitsResolutionCommand? ApplyCriticalHits(Unit unit, List<LocationDamageData> hitLocationsData)
     {
         var allCriticalHitsData = new List<LocationCriticalHitsData>();
 
@@ -31,10 +31,12 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         while (locationsWithStructureDamage.Count > 0)
         {
             var locationHitDamage = locationsWithStructureDamage.Dequeue();
-            var criticalHitsData = CalculateCriticalHitsForStructureDamage(target, locationHitDamage);
+            var criticalHitsData = CalculateCriticalHitsForStructureDamage(unit, locationHitDamage);
             if (criticalHitsData != null)
             {
-                target.ApplyCriticalHits([criticalHitsData]);
+                // KNOWN ISSUE
+                // This is a side-effect and a deviation from the common design of applying server commands via BaseGame 
+                unit.ApplyCriticalHits([criticalHitsData]);
                 allCriticalHitsData.Add(criticalHitsData);
             }
             var explosions = criticalHitsData?.ExplosionsDamage ?? [];
@@ -53,7 +55,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         return new CriticalHitsResolutionCommand
         {
             GameOriginId = Guid.Empty,
-            TargetId = target.Id,
+            TargetId = unit.Id,
             CriticalHits = allCriticalHitsData
         };
     }
