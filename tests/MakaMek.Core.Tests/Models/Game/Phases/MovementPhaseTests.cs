@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -659,5 +660,168 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 cmd.GameOriginId == Game.Id &&
                 cmd.IsRecoveryAttempt == false &&
                 cmd.IsSuccessful == false));
+    }
+
+    [Fact]
+    public void ProcessFallCommand_ShouldApplyCriticalHits_WhenFallDamageCausesStructureDamage()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit.SetProne();
+
+        // Configure the FallProcessor to return failed standup data with damage
+        var fallDamageData = new FallingDamageData(
+            HexDirection.Bottom,
+            new HitLocationsData(
+                HitLocations: [new LocationHitData(
+                    [new LocationDamageData(PartLocation.CenterTorso, 3, 2, false)], // Structure damage
+                    [],
+                    [3, 4],
+                    PartLocation.CenterTorso)],
+                TotalDamage: 5),
+            new DiceResult(3),
+            HitDirection.Front);
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            ReasonType = FallReasonType.StandUpAttempt,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.StandupAttempt,
+                DiceResults = [1, 1],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = fallDamageData,
+            LevelsFallen = 0,
+            WasJumping = false
+        };
+
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(fallContextData);
+
+        // Setup critical hits calculator to return critical hits for fall damage
+        var fallCriticalHitsCommand = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Game.Id,
+            TargetId = unit.Id,
+            CriticalHits = [new LocationCriticalHitsData(
+                PartLocation.CenterTorso,
+                [5, 4],
+                2,
+                [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
+                false,
+                [])]
+        };
+
+        MockCriticalHitsCalculator.ApplyCriticalHits(
+                Arg.Is<Unit>(u => u.Id == unit.Id),
+                Arg.Any<List<LocationDamageData>>())
+            .Returns(fallCriticalHitsCommand);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // Assert
+        // Verify that critical hits calculator was called with structure damage
+        MockCriticalHitsCalculator.Received().ApplyCriticalHits(
+            Arg.Is<Unit>(u => u.Id == unit.Id),
+            Arg.Is<List<LocationDamageData>>(list =>
+                list.Any(d => d.Location == PartLocation.CenterTorso && d.StructureDamage > 0)));
+
+        // Verify that critical hits command was published
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<CriticalHitsResolutionCommand>(cmd =>
+                cmd.TargetId == unit.Id &&
+                cmd.GameOriginId == Game.Id &&
+                cmd.CriticalHits.Any(ch => ch.Location == PartLocation.CenterTorso)));
+
+        // Verify that fall command was also published
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd =>
+                cmd.UnitId == unit.Id &&
+                cmd.DamageData != null));
+    }
+
+    [Fact]
+    public void ProcessFallCommand_ShouldNotApplyCriticalHits_WhenFallDamageOnlyAffectsArmor()
+    {
+        // Arrange
+        _sut.Enter();
+        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
+        unit.SetProne();
+
+        // Configure the FallProcessor to return failed standup data with armor-only damage
+        var fallDamageData = new FallingDamageData(
+            HexDirection.Bottom,
+            new HitLocationsData(
+                HitLocations: [new LocationHitData(
+                    [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], // Only armor damage
+                    [],
+                    [3, 4],
+                    PartLocation.CenterTorso)],
+                TotalDamage: 5),
+            new DiceResult(3),
+            HitDirection.Front);
+
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            ReasonType = FallReasonType.StandUpAttempt,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.StandupAttempt,
+                DiceResults = [1, 1],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = fallDamageData,
+            LevelsFallen = 0,
+            WasJumping = false
+        };
+
+        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game).Returns(fallContextData);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(new TryStandupCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = _player1Id,
+            UnitId = _unit1Id,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // Assert
+        // Verify that critical hits calculator was not called since no structure damage
+        MockCriticalHitsCalculator.DidNotReceive().ApplyCriticalHits(
+            Arg.Any<Unit>(),
+            Arg.Any<List<LocationDamageData>>());
+
+        // Verify that no critical hits command was published
+        CommandPublisher.DidNotReceive().PublishCommand(
+            Arg.Any<CriticalHitsResolutionCommand>());
+
+        // Verify that fall command was still published
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd =>
+                cmd.UnitId == unit.Id &&
+                cmd.DamageData != null));
     }
 }

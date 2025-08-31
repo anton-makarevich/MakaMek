@@ -1352,4 +1352,132 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Any<List<ComponentHitData>>(),
             Arg.Is<List<PartLocation>>(parts => parts.Contains(PartLocation.LeftLeg)));
     }
+
+    [Fact]
+    public void Enter_ShouldPublishCriticalHitsCommand_WhenFallProcessorReturnsStructureDamage()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+        
+        // Configure the MockFallProcessor to return MechFallingCommands
+        var mechFallingCommand = new MechFallCommand
+        {
+            UnitId = _player1Unit1.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            GameOriginId = Game.Id,
+            DamageData = new FallingDamageData(HexDirection.Bottom,
+                new HitLocationsData(
+                    HitLocations: [
+                        new LocationHitData(
+                            [new LocationDamageData(PartLocation.LeftTorso, 3, 2, false)], // Structure damage
+                            [],
+                            [3, 4],
+                            PartLocation.LeftLeg)
+                    ],
+                    TotalDamage: 8), new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Any<Mech>(),
+                Arg.Any<IGame>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<List<PartLocation>>())
+            .Returns(new List<MechFallCommand> { mechFallingCommand });
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify that FallProcessor.ProcessPotentialFall was called
+        MockFallProcessor.Received().ProcessPotentialFall(
+            Arg.Is<Mech>(u => u == _player1Unit1), // Target unit
+            Arg.Is<IGame>(m => m == Game),
+            Arg.Any<List<ComponentHitData>>(),
+            Arg.Any<List<PartLocation>>());
+        
+        // Verify that the MechFallingCommand was published
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd => 
+                cmd.UnitId == _player1Unit1.Id && 
+                cmd.GameOriginId == Game.Id));
+        
+        // Verify that critical hits calculator was called for fall damage
+        MockCriticalHitsCalculator.Received().ApplyCriticalHits(
+            Arg.Is<Unit>(u => u.Id == _player1Unit1.Id),
+            Arg.Is<List<LocationDamageData>>(list => list.Any(d => d.Location == PartLocation.LeftTorso)));
+        
+        // Verify that 2 critical hits commands were published (initial for weapon damage and for falling damage)
+        CommandPublisher.Received(2).PublishCommand(
+            Arg.Is<CriticalHitsResolutionCommand>(cmd =>
+                cmd.TargetId == _player1Unit1.Id &&
+                cmd.GameOriginId == Game.Id ));
+    }
+    
+    [Fact]
+    public void Enter_ShouldNotPublishCriticalHitsCommand_WhenFallProcessorReturnsNoStructureDamage()
+    {
+        // Arrange
+        SetMap();
+        SetupPlayer1WeaponTargets();
+        SetupCriticalHitsFor(MakaMekComponent.LowerLegActuator,2, PartLocation.LeftLeg, _player1Unit1);
+        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
+        
+        // Configure the MockFallProcessor to return MechFallingCommands
+        var mechFallingCommand = new MechFallCommand
+        {
+            UnitId = _player1Unit1.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            GameOriginId = Game.Id,
+            DamageData = new FallingDamageData(HexDirection.Bottom,
+                new HitLocationsData(
+                    HitLocations: [
+                        new LocationHitData(
+                            [new LocationDamageData(PartLocation.LeftTorso, 3, 0, false)], // No structure damage
+                            [],
+                            [3, 4],
+                            PartLocation.LeftLeg)
+                    ],
+                    TotalDamage: 8), new DiceResult(3), HitDirection.Front)
+        };
+
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Any<Mech>(),
+                Arg.Any<IGame>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<List<PartLocation>>())
+            .Returns(new List<MechFallCommand> { mechFallingCommand });
+        
+        // Act
+        _sut.Enter();
+        
+        // Assert
+        // Verify that FallProcessor.ProcessPotentialFall was called
+        MockFallProcessor.Received().ProcessPotentialFall(
+            Arg.Is<Mech>(u => u == _player1Unit1), // Target unit
+            Arg.Is<IGame>(m => m == Game),
+            Arg.Any<List<ComponentHitData>>(),
+            Arg.Any<List<PartLocation>>());
+        
+        // Verify that the MechFallingCommand was published
+        CommandPublisher.Received().PublishCommand(
+            Arg.Is<MechFallCommand>(cmd => 
+                cmd.UnitId == _player1Unit1.Id && 
+                cmd.GameOriginId == Game.Id));
+        
+        // Verify that critical hits calculator was not called for fall damage
+        MockCriticalHitsCalculator.DidNotReceive().ApplyCriticalHits(
+            Arg.Is<Unit>(u => u.Id == _player1Unit1.Id),
+            Arg.Is<List<LocationDamageData>>(list => list.Any(d => d.Location == PartLocation.LeftTorso)));
+        
+        // Verify that only 1 critical hits commands were published (initial for weapon damage)
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<CriticalHitsResolutionCommand>(cmd =>
+                cmd.TargetId == _player1Unit1.Id &&
+                cmd.GameOriginId == Game.Id ));
+    }
 }
