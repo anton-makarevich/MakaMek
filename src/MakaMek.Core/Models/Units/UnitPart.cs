@@ -40,7 +40,7 @@ public abstract class UnitPart
     // Abstract property to be implemented by derived classes
     internal abstract bool CanBeBlownOff { get; }
     
-    // Property to track if the part is blown off, with private setter
+    // Property to track if the part is blown off, with a private setter
     public bool IsBlownOff { get; private set; }
     
     // A part is destroyed if either structure is depleted or it's blown off
@@ -238,45 +238,25 @@ public abstract class UnitPart
     }
     
     /// <summary>
-    /// Records a critical hit on a specific slot and damages the component in that slot if it exists
+    /// Records a critical hit on a specific slot
     /// </summary>
     /// <param name="slot">The slot index that was hit</param>
-    public int CriticalHit(int slot)
+    public void CriticalHit(int slot)
     {
-        var appliedDamage = 0;
+        if (slot < 0 || slot >= TotalSlots) return;
         _hitSlots.Add(slot);
-        
+
         var component = GetComponentAtSlot(slot);
-        
-        if (component is not { IsDestroyed: false }) return 0;
+
+        if (component is not { IsDestroyed: false }) return;
         // Raise critical hit event
         Unit?.AddEvent(new UiEvent(UiEventType.CriticalHit, component.Name));
         
-        var explosionDamage = component.GetExplosionDamage();
-        
         component.Hit();
-        // Raise component destroyed event if the component was destroyed by this hit
+        // Raise a component destroyed event if the component was destroyed by this hit
         if (component.IsDestroyed)
         {
             Unit?.AddEvent(new UiEvent(UiEventType.ComponentDestroyed, component.Name));
         }
-                
-        var part = this;
-        while (explosionDamage > 0 && part != null)
-        {
-            var remainingDamage = part.ApplyStructureDamage(explosionDamage);
-            appliedDamage += explosionDamage - remainingDamage;
-            explosionDamage = remainingDamage;
-            
-            // Trigger explosion event
-            Unit?.AddEvent(new UiEvent(UiEventType.Explosion, component.Name));
-    
-            if (explosionDamage > 0)
-            {
-                part = part.DamageTransferPart;
-            }
-        }
-        
-        return appliedDamage;
     }
 }

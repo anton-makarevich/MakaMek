@@ -1228,7 +1228,9 @@ public class UnitTests
                     }
                 ],
                 false,
-                [new LocationDamageData(PartLocation.LeftArm, 0, 30, false)])
+                [
+                    new LocationDamageData(PartLocation.LeftArm, 0, 3, false)
+                ]) 
         };
         
         // Pre-assert: component has not exploded
@@ -1288,9 +1290,9 @@ public class UnitTests
                     }
                 ],
                 false,
-                [ 
-                    new LocationDamageData(PartLocation.LeftArm, 0, 30, false),
-                    new LocationDamageData(PartLocation.LeftArm, 0, 10, false) 
+                [
+                    new LocationDamageData(PartLocation.LeftArm, 0, 3, false),
+                    new LocationDamageData(PartLocation.LeftArm, 0, 1, false)
                 ])
         };
         
@@ -1332,7 +1334,7 @@ public class UnitTests
                     }
                 ],
                 false,
-                [new LocationDamageData(PartLocation.LeftArm, 0, 30, false) ])
+                []) // No separate explosion damage - component handles its own explosion (or lack thereof)
         };
         
         // Pre-assert: component has already exploded
@@ -1737,7 +1739,9 @@ public class UnitTests
                     }
                 ],
                 false,
-                [ new LocationDamageData(PartLocation.LeftArm, 0, 30, false) ])
+                [
+                    new LocationDamageData(PartLocation.LeftArm, 0, 3, false)
+                ]) 
         };
         var initialTotalDamage = sut.TotalPhaseDamage;
 

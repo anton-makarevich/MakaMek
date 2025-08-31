@@ -260,7 +260,7 @@ public class CriticalHitsCalculatorTests
         );
 
         // Setup explosion damage
-        var explosionDamage = new LocationDamageData(PartLocation.LeftTorso, 0, 5, false);
+        var explosionDamage = new LocationDamageData(PartLocation.LeftTorso, 0, 2, false);
         _mockDamageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
@@ -311,8 +311,8 @@ public class CriticalHitsCalculatorTests
         );
 
         // Setup explosion damages
-        var firstExplosionDamage = new LocationDamageData(PartLocation.LeftTorso, 0, 5, false);
-        var secondExplosionDamage = new LocationDamageData(PartLocation.RightTorso, 0, 3, false);
+        var firstExplosionDamage = new LocationDamageData(PartLocation.LeftTorso, 0, 2, false);
+        var secondExplosionDamage = new LocationDamageData(PartLocation.RightTorso, 0, 2, false);
 
         _mockDamageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
@@ -371,8 +371,8 @@ public class CriticalHitsCalculatorTests
         );
 
         // Setup explosion damages
-        var firstExplosionDamage = new LocationDamageData(PartLocation.LeftTorso, 0, 5, false);
-        var secondExplosionDamage = new LocationDamageData(PartLocation.RightTorso, 0, 3, false);
+        var firstExplosionDamage = new LocationDamageData(PartLocation.LeftTorso, 0, 2, false);
+        var secondExplosionDamage = new LocationDamageData(PartLocation.RightTorso, 0, 2, false);
 
         _mockDamageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),

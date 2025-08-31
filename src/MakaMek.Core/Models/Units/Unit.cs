@@ -469,7 +469,7 @@ public abstract class Unit
             var targetPart = _parts.Find(p => p.Location == locationData.Location);
             if (targetPart == null) continue;
 
-            // Handle blown off parts
+            // Handle blown-off parts
             if (locationData.IsBlownOff)
             {
                 targetPart.BlowOff();
@@ -481,11 +481,30 @@ public abstract class Unit
             {
                 foreach (var componentHit in locationData.HitComponents)
                 {
-                    TotalPhaseDamage += targetPart.CriticalHit(componentHit.Slot);
+                    targetPart.CriticalHit(componentHit.Slot);
+                }
+            }
+
+            // Apply explosion damage if present and enabled
+            if (locationData.ExplosionsDamage.Count > 0)
+            {
+                // Trigger explosion event
+                AddEvent(new UiEvent(UiEventType.Explosion, targetPart.Name));
+
+                foreach (var explosionDamage in locationData.ExplosionsDamage)
+                {
+                    var damagedPart = _parts.Find(p => p.Location == explosionDamage.Location);
+                    if (damagedPart == null || explosionDamage.StructureDamage <= 0) continue;
+
+                    // Explosion damage bypasses armor and only affects structure
+                    damagedPart.ApplyStructureDamage(explosionDamage.StructureDamage);
+
+                    // Track explosion damage in total phase damage
+                    TotalPhaseDamage += explosionDamage.StructureDamage;
                 }
             }
         }
-        
+
         UpdateDestroyedStatus();
 
         if (IsDestroyed)
