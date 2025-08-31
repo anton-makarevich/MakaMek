@@ -488,19 +488,22 @@ public abstract class Unit
             // Apply explosion damage if present and enabled
             if (locationData.ExplosionsDamage.Count > 0)
             {
+                var explosionTargetPart = _parts.Find(p => p.Location == locationData.Location);
+                if (explosionTargetPart != null)
+                {
+                    // Trigger explosion event
+                    AddEvent(new UiEvent(UiEventType.Explosion, explosionTargetPart.Name));
+                }
                 foreach (var explosionDamage in locationData.ExplosionsDamage)
                 {
-                    var explosionTargetPart = _parts.Find(p => p.Location == explosionDamage.Location);
-                    if (explosionTargetPart == null || explosionDamage.StructureDamage <= 0) continue;
+                    var damagedPart = _parts.Find(p => p.Location == explosionDamage.Location);
+                    if (damagedPart == null || explosionDamage.StructureDamage <= 0) continue;
 
                     // Explosion damage bypasses armor and only affects structure
-                    explosionTargetPart.ApplyStructureDamage(explosionDamage.StructureDamage);
+                    damagedPart.ApplyStructureDamage(explosionDamage.StructureDamage);
 
                     // Track explosion damage in total phase damage
                     TotalPhaseDamage += explosionDamage.StructureDamage;
-                    
-                    // Trigger explosion event
-                    AddEvent(new UiEvent(UiEventType.Explosion, explosionTargetPart.Name));
                 }
             }
         }

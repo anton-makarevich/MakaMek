@@ -40,7 +40,7 @@ public abstract class UnitPart
     // Abstract property to be implemented by derived classes
     internal abstract bool CanBeBlownOff { get; }
     
-    // Property to track if the part is blown off, with private setter
+    // Property to track if the part is blown off, with a private setter
     public bool IsBlownOff { get; private set; }
     
     // A part is destroyed if either structure is depleted or it's blown off
@@ -252,7 +252,7 @@ public abstract class UnitPart
         Unit?.AddEvent(new UiEvent(UiEventType.CriticalHit, component.Name));
         
         component.Hit();
-        // Raise component destroyed event if the component was destroyed by this hit
+        // Raise a component destroyed event if the component was destroyed by this hit
         if (component.IsDestroyed)
         {
             Unit?.AddEvent(new UiEvent(UiEventType.ComponentDestroyed, component.Name));
