@@ -497,7 +497,7 @@ public abstract class Unit
                     if (damagedPart == null || explosionDamage.StructureDamage <= 0) continue;
 
                     // Explosion damage bypasses armor and only affects structure
-                    damagedPart.ApplyStructureDamage(explosionDamage.StructureDamage);
+                    damagedPart.ApplyDamage(explosionDamage.StructureDamage, HitDirection.Front, true);
 
                     // Track explosion damage in total phase damage
                     TotalPhaseDamage += explosionDamage.StructureDamage;
