@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -68,11 +69,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         {
             // Standup failed - create and publish a fall command
             var fallCommand = fallContextData.ToMechFallCommand();
-            Game.CommandPublisher.PublishCommand(fallCommand);
-            Game.OnMechFalling(fallCommand);
-
-            // Process consciousness rolls after fall
-            ProcessConsciousnessRollsForUnit(unit);
+            ProcessFallCommand(fallCommand, unit);
         }
         else
         {
@@ -104,10 +101,29 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         if (!fallContextData.IsFalling) return;
         // Jump failed - create and publish a fall command
         var fallCommand = fallContextData.ToMechFallCommand();
+        ProcessFallCommand(fallCommand, mech);
+    }
+    
+    private void ProcessFallCommand(MechFallCommand fallCommand, Mech mech)
+    {
         Game.CommandPublisher.PublishCommand(fallCommand);
         Game.OnMechFalling(fallCommand);
-
-        // Process consciousness rolls after fall
+        
+        var locationsWithDamagedStructure = fallCommand.DamageData?.HitLocations.HitLocations
+            .Where(h => h.Damage.Any(d => d.StructureDamage > 0))
+            .SelectMany(h => h.Damage)
+            .ToList()??[];
+        if (locationsWithDamagedStructure.Count != 0)
+        {
+            var fallCriticalHitsCommand = Game.CriticalHitsCalculator
+                .CalculateCriticalHits(mech, locationsWithDamagedStructure);
+            if (fallCriticalHitsCommand != null)
+            {
+                fallCriticalHitsCommand.GameOriginId = Game.Id;
+                Game.CommandPublisher.PublishCommand(fallCriticalHitsCommand);
+            }
+        }
+        // Process consciousness rolls for pilot damage accumulated during this phase
         ProcessConsciousnessRollsForUnit(mech);
     }
 

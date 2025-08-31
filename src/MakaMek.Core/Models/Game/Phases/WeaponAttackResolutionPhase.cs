@@ -403,7 +403,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
 
         var criticalHitsCommand = Game.CriticalHitsCalculator
-            .CalculateCriticalHits(target, resolution.HitLocationsData);
+            .CalculateCriticalHits(target, resolution.HitLocationsData.HitLocations
+                .SelectMany(h => h.Damage).ToList());
         if (criticalHitsCommand == null) return;
         criticalHitsCommand.GameOriginId = Game.Id;
         Game.CommandPublisher.PublishCommand(criticalHitsCommand);
@@ -431,8 +432,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         accumulatedDamage.AllComponentHits.AddRange(allComponentHits);
         foreach (var part in allDestroyedParts)
-            if (!accumulatedDamage.AllDestroyedParts.Contains(part))
-                accumulatedDamage.AllDestroyedParts.Add(part);
+            accumulatedDamage.AllDestroyedParts.Add(part);
     }
 
     private void MoveToNextUnit()
@@ -482,10 +482,25 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 Game.CommandPublisher.PublishCommand(fallingCommand);
                 if (fallingCommand.DamageData is null) continue;
                 Game.OnMechFalling(fallingCommand);
+                
+                var locationsWithDamagedStructure = fallingCommand.DamageData.HitLocations.HitLocations
+                    .Where(h => h.Damage.Any(d => d.StructureDamage > 0))
+                    .SelectMany(h => h.Damage)
+                    .ToList();
+                if (locationsWithDamagedStructure.Count != 0)
+                {
+                    var fallCriticalHitsCommand = Game.CriticalHitsCalculator
+                        .CalculateCriticalHits(targetMech, locationsWithDamagedStructure);
+                    if (fallCriticalHitsCommand != null)
+                    {
+                        fallCriticalHitsCommand.GameOriginId = Game.Id;
+                        Game.CommandPublisher.PublishCommand(fallCriticalHitsCommand);
+                    }
+                }
+                // Process consciousness rolls for pilot damage accumulated during this phase
+                ProcessConsciousnessRollsForUnit(targetMech);
+                break;
             }
-
-            // Process consciousness rolls for pilot damage accumulated during this phase
-            ProcessConsciousnessRollsForUnit(targetMech);
         }
         
         // Clear the accumulated damage data after processing

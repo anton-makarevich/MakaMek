@@ -20,13 +20,12 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         _damageTransferCalculator = damageTransferCalculator;
     }
     
-    public CriticalHitsResolutionCommand? CalculateCriticalHits(Unit target, AttackHitLocationsData hitLocationsData)
+    public CriticalHitsResolutionCommand? CalculateCriticalHits(Unit target, List<LocationDamageData> hitLocationsData)
     {
         var allCriticalHitsData = new List<LocationCriticalHitsData>();
 
         // Process each location that received damage
-        var locationsWithStructureDamage = new Queue<LocationDamageData>( hitLocationsData.HitLocations
-            .SelectMany(l => l.Damage)
+        var locationsWithStructureDamage = new Queue<LocationDamageData>( hitLocationsData
             .Where(d => d.StructureDamage > 0));
         
         while (locationsWithStructureDamage.Count > 0)
