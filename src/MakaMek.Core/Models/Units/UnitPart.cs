@@ -243,6 +243,7 @@ public abstract class UnitPart
     /// <param name="slot">The slot index that was hit</param>
     public void CriticalHit(int slot)
     {
+        if (slot < 0 || slot >= TotalSlots) return;
         _hitSlots.Add(slot);
 
         var component = GetComponentAtSlot(slot);

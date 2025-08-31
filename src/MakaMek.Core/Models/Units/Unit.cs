@@ -488,12 +488,9 @@ public abstract class Unit
             // Apply explosion damage if present and enabled
             if (locationData.ExplosionsDamage.Count > 0)
             {
-                var explosionTargetPart = _parts.Find(p => p.Location == locationData.Location);
-                if (explosionTargetPart != null)
-                {
-                    // Trigger explosion event
-                    AddEvent(new UiEvent(UiEventType.Explosion, explosionTargetPart.Name));
-                }
+                // Trigger explosion event
+                AddEvent(new UiEvent(UiEventType.Explosion, targetPart.Name));
+
                 foreach (var explosionDamage in locationData.ExplosionsDamage)
                 {
                     var damagedPart = _parts.Find(p => p.Location == explosionDamage.Location);
