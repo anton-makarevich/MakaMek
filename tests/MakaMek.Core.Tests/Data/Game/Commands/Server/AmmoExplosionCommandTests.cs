@@ -168,7 +168,7 @@ public class AmmoExplosionCommandTests
             },
             CriticalHits =
             [
-                new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4],
+                new LocationCriticalHitsData(PartLocation.CenterTorso, [],
                     1,
                     [new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }],
                     false,
@@ -182,7 +182,10 @@ public class AmmoExplosionCommandTests
         // Assert
         result.ShouldContain("TST-1 suffered ammo explosion due to heat");
         result.ShouldContain("Explosion caused critical hits:");
-        result.ShouldContain("- LRM-5 Ammo in CT destroyed by explosion");
+        result.ShouldContain("Critical hits in CT:");
+        result.ShouldNotContain("Critical Roll:");
+        result.ShouldNotContain("Number of critical hits: 1");
+        result.ShouldContain("Critical hit in slot 11: LRM-5 Ammo");
     }
 
     [Fact]

@@ -62,7 +62,7 @@ public class CriticalHitsResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldNotContain("Critical hits in CT:");
+        result.ShouldContain("Critical hits in CT:");
         result.ShouldContain("Critical Roll: 8");
         result.ShouldContain("Number of critical hits: 1");
     }
