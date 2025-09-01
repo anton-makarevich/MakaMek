@@ -228,6 +228,31 @@ public class CriticalHitsResolutionCommandTests
         result.ShouldContain("exploded, damage: 100");
     }
 
+    [Fact]
+    public void Render_ShouldShowHeaderMessage()
+    {
+        // Arrange
+        var command = CreateCommand([
+            new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
+                [new ComponentHitData
+                    {
+                        Slot = 0,
+                        Type = MakaMekComponent.Engine
+                    }
+                ],
+                false)
+        ]);
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain($"{_target.Model} suffered structure damage and requires Critical Hits rolls");
+        result.ShouldContain("Critical Roll: 8");
+        result.ShouldContain("Number of critical hits: 1");
+    }
+    
     private CriticalHitsResolutionCommand CreateCommand(List<LocationCriticalHitsData> criticalHits)
     {
         return new CriticalHitsResolutionCommand

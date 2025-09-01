@@ -77,9 +77,56 @@ public record LocationCriticalHitsData(
                         component.Name,
                         explosionDamage));
                 }
+
+                // Add explosion damage distribution if present
+                if (componentHit.ExplosionDamageDistribution.Length <= 0) continue;
+                stringBuilder.AppendLine(localizationService.GetString("Command_CriticalHitsResolution_ExplosionDamageDistribution"));
+                foreach (var damageData in componentHit.ExplosionDamageDistribution)
+                {
+                    stringBuilder.AppendLine(FormatExplosionDamageMessage(localizationService, damageData));
+                }
             }
         }
 
         return stringBuilder.ToString();
+    }
+
+    /// <summary>
+    /// Formats an explosion damage message using the appropriate localization key based on damage types
+    /// </summary>
+    private static string FormatExplosionDamageMessage(
+        ILocalizationService localizationService,
+        LocationDamageData damageData)
+    {
+        var hasArmor = damageData.ArmorDamage > 0;
+        var hasStructure = damageData.StructureDamage > 0;
+
+        if (!hasArmor && !hasStructure)
+        {
+            return string.Empty;
+        }
+
+        var localizedLocation = localizationService.GetString($"MechPart_{damageData.Location}_Short");
+
+        string key;
+        string template;
+        if (hasArmor && hasStructure)
+        {
+            key = "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorAndStructure";
+            template = localizationService.GetString(key);
+            return string.Format(template, localizedLocation, damageData.ArmorDamage, damageData.StructureDamage);
+        }
+
+        if (hasArmor)
+        {
+            key = "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorOnly";
+            template = localizationService.GetString(key);
+            return string.Format(template, localizedLocation, damageData.ArmorDamage);
+        }
+
+        // hasStructure must be true
+        key = "Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly";
+        template = localizationService.GetString(key);
+        return string.Format(template, localizedLocation, damageData.StructureDamage);
     }
 };

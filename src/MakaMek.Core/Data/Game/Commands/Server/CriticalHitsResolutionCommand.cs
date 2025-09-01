@@ -27,6 +27,11 @@ public record CriticalHitsResolutionCommand : IGameCommand
 
         var stringBuilder = new StringBuilder();
 
+        // Add header message
+        stringBuilder.AppendLine(string.Format(
+            localizationService.GetString("Command_CriticalHitsResolution_Header"),
+            target.Model));
+
         foreach (var criticalHitData in CriticalHits)
         {
             // Use the centralized rendering method
