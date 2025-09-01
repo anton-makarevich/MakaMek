@@ -20,7 +20,6 @@ public record LocationCriticalHitsData(
     /// </summary>
     /// <param name="localizationService">Service used to get localized strings</param>
     /// <param name="unit">Unit to get component names and parts</param>
-    /// <param name="showLocationHeader">Whether to show the location header (used when multiple locations)</param>
     /// <returns>String representation of the critical hits for this location</returns>
     public string Render(ILocalizationService localizationService, Unit unit)
     {
@@ -48,7 +47,7 @@ public record LocationCriticalHitsData(
                 return stringBuilder.ToString();
             }
 
-            // Show number of critical hits
+            // Show the number of critical hits
             stringBuilder.AppendLine(string.Format(
                 localizationService.GetString("Command_CriticalHitsResolution_NumCrits"),
                 NumCriticalHits));
