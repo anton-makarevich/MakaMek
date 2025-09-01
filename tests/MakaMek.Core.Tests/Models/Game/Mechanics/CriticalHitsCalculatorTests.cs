@@ -65,31 +65,32 @@ public class CriticalHitsCalculatorTests
                 Arg.Is<PartLocation>(l => l == PartLocation.CenterTorso),
                 Arg.Is<int>(d => d > 0))
             .Returns([
-                new LocationDamageData(PartLocation.CenterTorso, 0, 5, false)
+                new LocationDamageData(PartLocation.CenterTorso, 0, 0, false) // no damage to not chain calculations
             ]);
 
         // Act
         var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Location.ShouldBe(PartLocation.CenterTorso);
-        result.Roll.ShouldBeEmpty(); // No roll for forced critical hit
-        result.NumCriticalHits.ShouldBe(1); // One forced critical hit
-        result.HitComponents.ShouldNotBeNull();
-        result.HitComponents!.Length.ShouldBe(1);
-        result.HitComponents[0].Slot.ShouldBe(10);
-        result.ExplosionsDamage.ShouldNotBeNull();
-        result.ExplosionsDamage.Count.ShouldBe(1);
-        result.ExplosionsDamage[0].Location.ShouldBe(PartLocation.CenterTorso);
-        result.ExplosionsDamage[0].StructureDamage.ShouldBe(5);
+        result.ShouldNotBeEmpty();
+        var locationData = result[0];
+        locationData.Location.ShouldBe(PartLocation.CenterTorso);
+        locationData.Roll.ShouldBeEmpty(); // No roll for forced critical hit
+        locationData.NumCriticalHits.ShouldBe(1); // One forced critical hit
+        locationData.HitComponents.ShouldNotBeNull();
+        locationData.HitComponents!.Length.ShouldBe(1);
+        locationData.HitComponents[0].Slot.ShouldBe(10);
+        locationData.ExplosionsDamage.ShouldNotBeNull();
+        locationData.ExplosionsDamage.Count.ShouldBe(1);
+        locationData.ExplosionsDamage[0].Location.ShouldBe(PartLocation.CenterTorso);
+        locationData.ExplosionsDamage[0].StructureDamage.ShouldBe(0);
     }
 
 
 
 
     [Fact]
-    public void CalculateCriticalHitsForHeatExplosion_ShouldReturnNull_WhenComponentHasNoMountedSlots()
+    public void CalculateCriticalHitsForHeatExplosion_ShouldReturnEmptyList_WhenComponentHasNoMountedSlots()
     {
         // Arrange
         var testUnit = CreateTestMech();
@@ -102,14 +103,14 @@ public class CriticalHitsCalculatorTests
         var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
 
         // Assert
-        result.ShouldBeNull(); // Should return null when the component has no mounted slots
+        result.ShouldBeEmpty(); // Should return null when the component has no mounted slots
         _mockDiceRoller.DidNotReceive().Roll2D6(); // Should not roll dice
     }
 
 
     
     [Fact]
-    public void CalculateCriticalHitsForHeatExplosion_ShouldReturnNull_WhenExplosionDamageIsZero()
+    public void CalculateCriticalHitsForHeatExplosion_ShouldReturnEmptyList_WhenExplosionDamageIsZero()
     {
         // Arrange
         var testUnit = CreateTestMech();
@@ -123,7 +124,7 @@ public class CriticalHitsCalculatorTests
         var result = _sut.CalculateCriticalHitsForHeatExplosion(testUnit, ammo);
 
         // Assert
-        result.ShouldBeNull();
+        result.ShouldBeEmpty();
         _mockDamageTransferCalculator.DidNotReceive().CalculateExplosionDamage(Arg.Any<Unit>(), Arg.Any<PartLocation>(), Arg.Any<int>());
         _mockDiceRoller.DidNotReceive().Roll2D6();
     }

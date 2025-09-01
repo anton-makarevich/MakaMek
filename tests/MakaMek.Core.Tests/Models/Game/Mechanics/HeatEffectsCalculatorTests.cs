@@ -173,7 +173,7 @@ public class HeatEffectsCalculatorTests
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
-            .Returns(criticalHits);
+            .Returns([criticalHits]);
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
@@ -210,7 +210,7 @@ public class HeatEffectsCalculatorTests
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
-            .Returns(criticalHits);
+            .Returns([criticalHits]);
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
@@ -248,7 +248,7 @@ public class HeatEffectsCalculatorTests
             ],false,[]);
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(Arg.Any<Unit>(),
                 Arg.Any<Ammo>())
-            .Returns(criticalHits);
+            .Returns([criticalHits]);
 
         // Act
         var result = _sut.CheckForHeatAmmoExplosion(mech);
