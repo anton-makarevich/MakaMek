@@ -12,8 +12,7 @@ public record LocationCriticalHitsData(
     int[] Roll,
     int NumCriticalHits,
     ComponentHitData[]? HitComponents,
-    bool IsBlownOff, // Indicates if the location is blown off (for head and limbs on critical roll of 12)
-    IReadOnlyList<LocationDamageData> ExplosionsDamage
+    bool IsBlownOff // Indicates if the location is blown off (for head and limbs on critical roll of 12)
 )
 {
     /// <summary>

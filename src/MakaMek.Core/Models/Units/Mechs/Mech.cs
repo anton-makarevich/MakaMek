@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
@@ -570,10 +571,12 @@ public class Mech : Unit
     /// </summary>
     /// <param name="location">The hit location</param>
     /// <param name="diceRoller">The dice roller to use for critical hit determination</param>
+    /// <param name="damageTransferCalculator">Damage transfer calculator to calculate damage distribution</param>
     /// <returns>Critical hit data or null if no critical hits</returns>
     public override LocationCriticalHitsData? CalculateCriticalHitsData(
         PartLocation location, 
-        IDiceRoller diceRoller)
+        IDiceRoller diceRoller,
+        IDamageTransferCalculator damageTransferCalculator)
     {
         var part = _parts.FirstOrDefault(p => p.Location == location);
         if (part is not { CurrentStructure: > 0 })
@@ -589,15 +592,15 @@ public class Mech : Unit
         var isBlownOff = part.CanBeBlownOff && numCrits == 3;
         if (isBlownOff)
         {
-            return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff,[]);
+            return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff);
         }
         
         if (numCrits > 0)
         {
-            hitComponents = DetermineCriticalHitSlots(part, numCrits, diceRoller);
+            hitComponents = DetermineCriticalHitSlots(part, numCrits, diceRoller, damageTransferCalculator);
         }
         
-        return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff,[]);
+        return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff);
     }
 
     /// <summary>
@@ -624,8 +627,12 @@ public class Mech : Unit
     /// <param name="part">The unit part receiving critical hits</param>
     /// <param name="numCriticalHits">Number of critical hits to determine</param>
     /// <param name="diceRoller">The dice roller to use</param>
+    /// <param name="damageTransferCalculator">Damage transfer calculator to calculate damage distribution</param>
     /// <returns>Array of slot indices affected by critical hits, or null if none</returns>
-    private ComponentHitData[]? DetermineCriticalHitSlots(UnitPart part, int numCriticalHits, IDiceRoller diceRoller)
+    private ComponentHitData[]? DetermineCriticalHitSlots(UnitPart part,
+        int numCriticalHits,
+        IDiceRoller diceRoller,
+        IDamageTransferCalculator damageTransferCalculator)
     {
         var availableSlots = Enumerable.Range(0, part.TotalSlots)
             .Where(slot => !part.HitSlots.Contains(slot)
@@ -638,7 +645,7 @@ public class Mech : Unit
         {
             if (availableSlots.Count == 1)
             {
-                result.Add(CreateComponentHitData(part,availableSlots[0]));
+                result.Add(ComponentHitData.CreateComponentHitData(part,availableSlots[0], damageTransferCalculator));
                 availableSlots.RemoveAt(0);
                 break;
             }
@@ -674,21 +681,9 @@ public class Mech : Unit
             }
 
             if (slot == -1) continue;
-            result.Add(CreateComponentHitData(part, slot));
+            result.Add(ComponentHitData.CreateComponentHitData(part, slot, damageTransferCalculator));
             availableSlots.Remove(slot);
         }
         return result.Count > 0 ? result.ToArray() : null;
-    }
-
-    private ComponentHitData CreateComponentHitData(UnitPart part, int slot)
-    {
-        var component = part.GetComponentAtSlot(slot);
-        if (component == null) throw new ArgumentException("Invalid slot");
-        return new ComponentHitData
-        {
-            Slot = slot,
-            Type = component.ComponentType,
-            ExplosionDamage = component.GetExplosionDamage()
-        }; 
     }
 }

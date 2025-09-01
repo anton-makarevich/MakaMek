@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
@@ -482,25 +483,22 @@ public abstract class Unit
                 foreach (var componentHit in locationData.HitComponents)
                 {
                     targetPart.CriticalHit(componentHit.Slot);
-                }
-            }
+                    if (componentHit.ExplosionDamage <= 0 
+                        || componentHit.ExplosionDamageDistribution == null) continue;
+                    // Trigger explosion event
+                    AddEvent(new UiEvent(UiEventType.Explosion, targetPart.Name));
+                    // Apply explosion damage if present and enabled
+                    foreach (var explosionDamage in componentHit.ExplosionDamageDistribution)
+                    {
+                        var damagedPart = _parts.Find(p => p.Location == explosionDamage.Location);
+                        if (damagedPart == null || explosionDamage.StructureDamage <= 0) continue;
 
-            // Apply explosion damage if present and enabled
-            if (locationData.ExplosionsDamage.Count > 0)
-            {
-                // Trigger explosion event
-                AddEvent(new UiEvent(UiEventType.Explosion, targetPart.Name));
+                        // Explosion damage bypasses armor and only affects structure
+                        damagedPart.ApplyDamage(explosionDamage.StructureDamage, HitDirection.Front, true);
 
-                foreach (var explosionDamage in locationData.ExplosionsDamage)
-                {
-                    var damagedPart = _parts.Find(p => p.Location == explosionDamage.Location);
-                    if (damagedPart == null || explosionDamage.StructureDamage <= 0) continue;
-
-                    // Explosion damage bypasses armor and only affects structure
-                    damagedPart.ApplyDamage(explosionDamage.StructureDamage, HitDirection.Front, true);
-
-                    // Track explosion damage in total phase damage
-                    TotalPhaseDamage += explosionDamage.StructureDamage;
+                        // Track explosion damage in total phase damage
+                        TotalPhaseDamage += explosionDamage.StructureDamage;
+                    }
                 }
             }
         }
@@ -670,10 +668,12 @@ public abstract class Unit
     /// </summary>
     /// <param name="location">The hit location</param>
     /// <param name="diceRoller">The dice roller to use for critical hit determination</param>
+    /// <param name="damageTransferCalculator">Damage transfer calculator to calculate explosion damage distribution</param>
     /// <returns>Critical hit data or null if no critical hits</returns>
     public abstract LocationCriticalHitsData? CalculateCriticalHitsData(
         PartLocation location, 
-        IDiceRoller diceRoller);
+        IDiceRoller diceRoller,
+        IDamageTransferCalculator damageTransferCalculator);
     
     // UI events queue for unit events (damage, etc.)
     public IReadOnlyCollection<UiEvent> Notifications => _notifications.ToArray();
