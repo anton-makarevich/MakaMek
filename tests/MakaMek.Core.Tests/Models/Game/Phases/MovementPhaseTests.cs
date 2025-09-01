@@ -26,7 +26,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
     public MovementPhaseTests()
     {
-        // Create mock next phase and configure the phase manager
+        // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.Movement, Game).Returns(_mockNextPhase);
         
@@ -714,8 +714,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 [5, 4],
                 2,
                 [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
-                false,
-                [])]
+                false)]
         };
 
         MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(
@@ -741,7 +740,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             Arg.Is<List<LocationDamageData>>(list =>
                 list.Any(d => d.Location == PartLocation.CenterTorso && d.StructureDamage > 0)));
 
-        // Verify that critical hits command was published
+        // Verify that the critical hits command was published
         CommandPublisher.Received().PublishCommand(
             Arg.Is<CriticalHitsResolutionCommand>(cmd =>
                 cmd.TargetId == unit.Id &&

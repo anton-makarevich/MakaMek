@@ -35,8 +35,7 @@ public class LocationCriticalHitsDataTests
                 Slot = 0,
                 Type = MakaMekComponent.Engine
             }],
-            false,
-            []);
+            false);
 
         // Act
         var result = sut.Render(_localizationService, _unit);
@@ -62,8 +61,7 @@ public class LocationCriticalHitsDataTests
                 Slot = 0,
                 Type = MakaMekComponent.Engine
             }],
-            false,
-            []);
+            false);
 
         // Act
         var result = sut.Render(_localizationService, _unit);
@@ -84,8 +82,7 @@ public class LocationCriticalHitsDataTests
             [6, 6],
             0,
             null,
-            true,
-            []);
+            true);
 
         // Act
         var result = sut.Render(_localizationService, _unit);
@@ -107,8 +104,7 @@ public class LocationCriticalHitsDataTests
             [2, 2],
             0,
             [],
-            false,
-            []);
+            false);
 
         // Act
         var result = sut.Render(_localizationService, _unit);
@@ -134,8 +130,7 @@ public class LocationCriticalHitsDataTests
                 Type = MakaMekComponent.Engine,
                 ExplosionDamage = 25
             }],
-            false,
-            []);
+            false);
 
         // Act
         var result = sut.Render(_localizationService, _unit);
@@ -160,8 +155,7 @@ public class LocationCriticalHitsDataTests
                 new ComponentHitData { Slot = 0, Type = MakaMekComponent.Engine }, // Valid slot
                 new ComponentHitData { Slot = 99, Type = MakaMekComponent.MediumLaser } // Invalid slot
             ],
-            false,
-            []);
+            false);
 
         // Act
         var result = sut.Render(_localizationService, _unit);

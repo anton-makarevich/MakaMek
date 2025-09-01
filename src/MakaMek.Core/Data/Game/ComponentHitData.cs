@@ -8,8 +8,8 @@ public record ComponentHitData
 {
     public required int Slot { get; init; }
     public required MakaMekComponent Type { get; init; }
-    public int ExplosionDamage { get; init; } = 0;
-    public LocationDamageData[]? ExplosionDamageDistribution  { get; init; }
+    public int ExplosionDamage { get; init; }
+    public LocationDamageData[] ExplosionDamageDistribution  { get; init; } = [];
     
     public static ComponentHitData CreateComponentHitData(
         UnitPart part,

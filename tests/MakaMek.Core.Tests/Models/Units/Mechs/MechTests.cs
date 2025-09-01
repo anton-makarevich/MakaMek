@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -22,6 +23,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 
 public class MechTests
 {
+    private readonly IDiceRoller _diceRoller = Substitute.For<IDiceRoller>();
+    private readonly IDamageTransferCalculator _damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
     private static List<UnitPart> CreateBasicPartsData()
     {
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
@@ -632,15 +635,17 @@ public class MechTests
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
             part.TryAddComponent(new TestComponent([i]));
-
-        var diceRoller = Substitute.For<IDiceRoller>();
-        diceRoller.Roll2D6().Returns(
+        
+        _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
         );
-        diceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
+        _diceRoller.RollD6().Returns(new DiceResult(2),
+            new DiceResult(3),
+            new DiceResult(4),
+            new DiceResult(5));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, _diceRoller, _damageTransferCalculator);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -665,18 +670,17 @@ public class MechTests
         for (var i = 1; i < 7; i++)
             part.TryAddComponent(new TestComponent([i]));
 
-        var diceRoller = Substitute.For<IDiceRoller>();
-        diceRoller.Roll2D6().Returns(
+        _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
         );
-        diceRoller.RollD6().Returns(
+        _diceRoller.RollD6().Returns(
             new DiceResult(4),
             new DiceResult(3),
             new DiceResult(4),
             new DiceResult(5));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, _diceRoller, _damageTransferCalculator);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -692,14 +696,13 @@ public class MechTests
         var part = new Leg("TestLeg", PartLocation.RightLeg, 0, 10);
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
 
-        var diceRoller = Substitute.For<IDiceRoller>();
-        diceRoller.Roll2D6().Returns(
+        _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
         );
-        diceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
+        _diceRoller.RollD6().Returns(new DiceResult(2), new DiceResult(3), new DiceResult(4), new DiceResult(5));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightLeg, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightLeg, _diceRoller, _damageTransferCalculator);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -718,13 +721,12 @@ public class MechTests
         for (var i = 1; i < part.TotalSlots; i++)
             part.TryAddComponent(new TestComponent([i]));
 
-        var diceRoller = Substitute.For<IDiceRoller>();
-        diceRoller.Roll2D6().Returns(
+        _diceRoller.Roll2D6().Returns(
             [new(3), new(3)] // 6 total for crit roll (no crits)
         );
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, _diceRoller, _damageTransferCalculator);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -751,14 +753,13 @@ public class MechTests
 
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
 
-        var diceRoller = Substitute.For<IDiceRoller>();
-        diceRoller.Roll2D6().Returns(
+        _diceRoller.Roll2D6().Returns(
             [new(4), new(5)] // 9 total for crit roll
         );
-        diceRoller.RollD6().Returns(new DiceResult(1));
+        _diceRoller.RollD6().Returns(new DiceResult(1));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(location, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(location, _diceRoller, _damageTransferCalculator);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -775,13 +776,12 @@ public class MechTests
         part.CriticalHit(0); // destroy shoulder
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
 
-        var diceRoller = Substitute.For<IDiceRoller>();
-        diceRoller.Roll2D6().Returns(
+        _diceRoller.Roll2D6().Returns(
             [new(4), new(5)] // 9 total for crit roll
         );
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, _diceRoller, _damageTransferCalculator);
 
         // Assert
         critsData?.HitComponents.ShouldBeNull();
@@ -794,13 +794,12 @@ public class MechTests
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
 
-        var diceRoller = Substitute.For<IDiceRoller>();
-        diceRoller.Roll2D6().Returns(
+        _diceRoller.Roll2D6().Returns(
             [new(6), new(6)] // 12 total for crit roll
         );
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.RightArm, _diceRoller, _damageTransferCalculator);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -816,17 +815,16 @@ public class MechTests
         var part = new CenterTorso("TestTorso", 0, 10, 6);
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
 
-        var diceRoller = Substitute.For<IDiceRoller>();
-        diceRoller.Roll2D6().Returns(
+        _diceRoller.Roll2D6().Returns(
             [new DiceResult(6), new DiceResult(6)] // 12 total for crit roll
         );
-        diceRoller.RollD6().Returns(
+        _diceRoller.RollD6().Returns(
             new DiceResult(4),
             new DiceResult(5),
             new DiceResult(6));
 
         // Act
-        var critsData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
+        var critsData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, _diceRoller, _damageTransferCalculator);
 
         // Assert
         critsData.ShouldNotBeNull();
@@ -841,21 +839,20 @@ public class MechTests
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
         var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var diceRoller = Substitute.For<IDiceRoller>();
 
         // Gyro is in slots 3-6 of center torso
         // First, hit slot 3
         centerTorso.CriticalHit(3);
 
         // Setup dice roller to return values that would hit slot 1
-        diceRoller.Roll2D6().Returns(
+        _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(4)] // Total 9 for crit roll (1 crit)
         );
-        diceRoller.RollD6()
+        _diceRoller.RollD6()
             .Returns(new DiceResult(4)); //that should go to the second group where only one slot is available (6) 
 
         // Act
-        var critData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
+        var critData = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, _diceRoller, _damageTransferCalculator);
 
         // Assert
         critData.ShouldNotBeNull();
@@ -2317,15 +2314,15 @@ public class MechTests
 
         // Destroy the left arm by reducing structure to 0
         leftArm.ApplyDamage(leftArm.CurrentArmor + leftArm.CurrentStructure, HitDirection.Front);
-
-        var diceRoller = Substitute.For<IDiceRoller>();
-
+        
         // Act
-        var result = mech.CalculateCriticalHitsData(PartLocation.LeftArm, diceRoller);
+        var result = mech.CalculateCriticalHitsData(PartLocation.LeftArm,
+            _diceRoller,
+            _damageTransferCalculator);
 
         // Assert
         result.ShouldBeNull(); // Should return null for destroyed part
-        diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for destroyed part
+        _diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for destroyed part
     }
 
     [Fact]
@@ -2333,14 +2330,15 @@ public class MechTests
     {
         // Arrange - This tests lines 579-580 (null check when part is not found)
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var diceRoller = Substitute.For<IDiceRoller>();
 
         // Act
-        var result = mech.CalculateCriticalHitsData((PartLocation)999, diceRoller); // Invalid location
+        var result = mech.CalculateCriticalHitsData((PartLocation)999,
+            _diceRoller,
+            _damageTransferCalculator); // Invalid location
 
         // Assert
         result.ShouldBeNull(); // Should return null for non-existent part
-        diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for non-existent part
+        _diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for non-existent part
     }
 
     [Fact]
@@ -2348,18 +2346,19 @@ public class MechTests
     {
         // Arrange - This verifies lines 579-580 pass when part has structure
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var diceRoller = Substitute.For<IDiceRoller>();
 
         // Setup dice roller to return valid critical hit roll
-        diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
-        diceRoller.RollD6().Returns(new DiceResult(3)); // Slot roll
+        _diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
+        _diceRoller.RollD6().Returns(new DiceResult(3)); // Slot roll
 
         // Act
-        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
+        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso,
+            _diceRoller,
+            _damageTransferCalculator);
 
         // Assert
         result.ShouldNotBeNull(); // Should return valid data for part with structure
-        diceRoller.Received(1).Roll2D6(); // Should roll dice for valid part
+        _diceRoller.Received(1).Roll2D6(); // Should roll dice for valid part
     }
 
     [Fact]
@@ -2371,14 +2370,14 @@ public class MechTests
 
         // Destroy the center torso by applying enough damage to reduce structure to 0
         centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure, HitDirection.Front);
-
-        var diceRoller = Substitute.For<IDiceRoller>();
-
+        
         // Act
-        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso, diceRoller);
+        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso,
+            _diceRoller,
+            _damageTransferCalculator);
 
         // Assert
         result.ShouldBeNull(); // Should return null when structure is exactly 0
-        diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice when structure is 0
+        _diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice when structure is 0
     }
 }

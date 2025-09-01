@@ -484,7 +484,7 @@ public abstract class Unit
                 {
                     targetPart.CriticalHit(componentHit.Slot);
                     if (componentHit.ExplosionDamage <= 0 
-                        || componentHit.ExplosionDamageDistribution == null) continue;
+                        || componentHit.ExplosionDamageDistribution.Length == 0) continue;
                     // Trigger explosion event
                     AddEvent(new UiEvent(UiEventType.Explosion, targetPart.Name));
                     // Apply explosion damage if present and enabled

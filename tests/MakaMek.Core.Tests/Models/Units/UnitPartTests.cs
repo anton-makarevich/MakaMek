@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -503,7 +504,9 @@ public class UnitPartTests
             _ => null
         };
 
-        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)
+        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location,
+            IDiceRoller diceRoller,
+            IDamageTransferCalculator damageTransferCalculator)
             => throw new NotImplementedException();
 
         protected override void ApplyHeatEffects()

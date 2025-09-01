@@ -2371,12 +2371,13 @@ public class ClientGameTests
                     new ComponentHitData
                     {
                         Slot = slot,
-                        Type = MakaMekComponent.ISAmmoLRM5
+                        Type = MakaMekComponent.ISAmmoLRM5,
+                        ExplosionDamage = 5,
+                        ExplosionDamageDistribution = [
+                            new LocationDamageData(PartLocation.CenterTorso, 0, 5, false)
+                        ]
                     }
-                ],false,
-                    [
-                        new LocationDamageData(PartLocation.CenterTorso, 0, 5, false)
-                    ])
+                ],false)
             ]
         };
 
@@ -2418,8 +2419,7 @@ public class ClientGameTests
                     [4, 5],
                     1,
                     [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
-                    false,
-                    [])
+                    false)
             ]
         };
 
@@ -2454,8 +2454,7 @@ public class ClientGameTests
                     [4, 5],
                     1,
                     [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
-                    false,
-                    [])
+                    false)
             ]
         };
 
@@ -2499,15 +2498,13 @@ public class ClientGameTests
                     [4, 5],
                     1,
                     [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
-                    false,
-                    []),
+                    false),
                 new LocationCriticalHitsData(
                     PartLocation.LeftArm,
                     [3, 4],
                     1,
                     [new ComponentHitData { Type = MakaMekComponent.MediumLaser, Slot = 2 }],
-                    false,
-                    [])
+                    false)
             ]
         };
 

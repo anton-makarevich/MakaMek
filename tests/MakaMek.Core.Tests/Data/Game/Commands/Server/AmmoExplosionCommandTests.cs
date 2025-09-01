@@ -171,8 +171,7 @@ public class AmmoExplosionCommandTests
                 new LocationCriticalHitsData(PartLocation.CenterTorso, [],
                     1,
                     [new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }],
-                    false,
-                    [])
+                    false)
             ]
         };
 
@@ -205,8 +204,7 @@ public class AmmoExplosionCommandTests
             [
                 new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
                     [new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }],
-                    false,
-                    [])
+                    false)
             ]
         };
 
@@ -236,8 +234,7 @@ public class AmmoExplosionCommandTests
                 Slot = ammo.MountedAtSlots[0],
                 ExplosionDamage = 100
             }],
-            false,
-            []);
+            false);
 
         var command = new AmmoExplosionCommand
         {
@@ -270,8 +267,7 @@ public class AmmoExplosionCommandTests
             [4, 5],
             1,
             [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
-            false,
-            []); 
+            false); 
 
         var command = new AmmoExplosionCommand
         {
@@ -304,8 +300,7 @@ public class AmmoExplosionCommandTests
             [4, 5],
             1,
             [new ComponentHitData { Type = MakaMekComponent.ISAmmoAC2, Slot = 1, ExplosionDamage = 100 }],
-            false,
-            []);
+            false);
 
         var command = new AmmoExplosionCommand
         {
@@ -356,8 +351,7 @@ public class AmmoExplosionCommandTests
                     ExplosionDamage = 10
                 }
             ],
-            false,
-            []);
+            false);
 
         var command = new AmmoExplosionCommand
         {
