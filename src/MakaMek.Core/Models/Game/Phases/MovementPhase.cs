@@ -116,7 +116,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         if (locationsWithDamagedStructure.Count != 0)
         {
             var fallCriticalHitsCommand = Game.CriticalHitsCalculator
-                .ApplyCriticalHits(mech, locationsWithDamagedStructure);
+                .CalculateAndApplyCriticalHits(mech, locationsWithDamagedStructure);
             if (fallCriticalHitsCommand != null)
             {
                 fallCriticalHitsCommand.GameOriginId = Game.Id;

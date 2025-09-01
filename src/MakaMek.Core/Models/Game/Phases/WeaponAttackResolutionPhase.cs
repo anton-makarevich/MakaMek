@@ -403,7 +403,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
 
         var criticalHitsCommand = Game.CriticalHitsCalculator
-            .ApplyCriticalHits(target, resolution.HitLocationsData.HitLocations
+            .CalculateAndApplyCriticalHits(target, resolution.HitLocationsData.HitLocations
                 .SelectMany(h => h.Damage).ToList());
         IEnumerable<ComponentHitData> allComponentHits = [];
         List<PartLocation> blownOffParts = [];
@@ -494,7 +494,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 if (locationsWithDamagedStructure.Count != 0)
                 {
                     var fallCriticalHitsCommand = Game.CriticalHitsCalculator
-                        .ApplyCriticalHits(targetMech, locationsWithDamagedStructure);
+                        .CalculateAndApplyCriticalHits(targetMech, locationsWithDamagedStructure);
                     if (fallCriticalHitsCommand != null)
                     {
                         fallCriticalHitsCommand.GameOriginId = Game.Id;
