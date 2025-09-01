@@ -20,7 +20,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         _damageTransferCalculator = damageTransferCalculator;
     }
     
-    public CriticalHitsResolutionCommand? ApplyCriticalHits(Unit unit, List<LocationDamageData> hitLocationsData)
+    public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(Unit unit, List<LocationDamageData> hitLocationsData)
     {
         var allCriticalHitsData = new List<LocationCriticalHitsData>();
 
@@ -31,7 +31,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         while (locationsWithStructureDamage.Count > 0)
         {
             var locationHitDamage = locationsWithStructureDamage.Dequeue();
-            var criticalHitsData = CalculateCriticalHitsForStructureDamage(unit, locationHitDamage);
+            var criticalHitsData = CalculateCriticalHitsForLocation(unit, locationHitDamage.Location, locationHitDamage.StructureDamage);
             if (criticalHitsData != null)
             {
                 // KNOWN ISSUE
@@ -58,16 +58,6 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             TargetId = unit.Id,
             CriticalHits = allCriticalHitsData
         };
-    }
-
-    private LocationCriticalHitsData? CalculateCriticalHitsForStructureDamage(
-        Unit unit,
-        LocationDamageData damageData)
-    {
-        if (damageData.StructureDamage <= 0) return null;
-
-        return CalculateCriticalHitsForLocation(
-            unit, damageData.Location, damageData.StructureDamage);
     }
 
     public LocationCriticalHitsData? CalculateCriticalHitsForHeatExplosion(

@@ -258,7 +258,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         var location = ammoComponent.GetLocation();
         if (!location.HasValue) return [];
 
-        // Use existing critical hits calculator to process the explosion
+        // Use the critical hits calculator to process the explosion
         var criticalHitsData = _criticalHitsCalculator
             .CalculateCriticalHitsForHeatExplosion(mech,ammoComponent);
         return criticalHitsData != null ? [criticalHitsData] : [];
