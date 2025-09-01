@@ -130,6 +130,7 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_GyroDestroyed", "Gyro Destroyed")]
     [InlineData("PilotingSkillRollType_PilotDamageFromFall", "Pilot Damage From Fall")]
     [InlineData("PilotingSkillRollType_LowerLegActuatorHit", "Lower Leg Actuator Hit")]
+    [InlineData("PilotingSkillRollType_UpperLegActuatorHit", "Upper Leg Actuator Hit")]
     [InlineData("PilotingSkillRollType_HeavyDamage", "Heavy Damage")]
     [InlineData("PilotingSkillRollType_HipActuatorHit", "Hip Actuator Hit")]
     [InlineData("PilotingSkillRollType_FootActuatorHit", "Foot Actuator Hit")]

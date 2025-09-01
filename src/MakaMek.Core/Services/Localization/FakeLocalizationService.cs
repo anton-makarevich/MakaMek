@@ -84,6 +84,7 @@ public class FakeLocalizationService: ILocalizationService
             "PilotingSkillRollType_GyroDestroyed" => "Gyro Destroyed",
             "PilotingSkillRollType_PilotDamageFromFall" => "Pilot Damage From Fall",
             "PilotingSkillRollType_LowerLegActuatorHit" => "Lower Leg Actuator Hit",
+            "PilotingSkillRollType_UpperLegActuatorHit" => "Upper Leg Actuator Hit",
             "PilotingSkillRollType_HeavyDamage" => "Heavy Damage",
             "PilotingSkillRollType_HipActuatorHit" => "Hip Actuator Hit",
             "PilotingSkillRollType_FootActuatorHit" => "Foot Actuator Hit",
