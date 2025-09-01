@@ -21,7 +21,7 @@ public interface ICriticalHitsCalculator
     /// <param name="unit">The owning unit receiving the explosion effects</param>
     /// <param name="explodingComponent">The component that exploded due to heat</param>
     /// <returns>Critical-hit data beginning at the component's location</returns>
-    LocationCriticalHitsData? CalculateCriticalHitsForHeatExplosion(
+    List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
         Unit unit,
         Ammo explodingComponent);
 }

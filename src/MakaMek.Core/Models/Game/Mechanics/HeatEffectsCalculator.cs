@@ -261,6 +261,6 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         // Use the critical hits calculator to process the explosion
         var criticalHitsData = _criticalHitsCalculator
             .CalculateCriticalHitsForHeatExplosion(mech,ammoComponent);
-        return criticalHitsData != null ? [criticalHitsData] : [];
+        return criticalHitsData;
     }
 }

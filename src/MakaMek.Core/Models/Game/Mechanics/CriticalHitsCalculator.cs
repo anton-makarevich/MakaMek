@@ -22,30 +22,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     
     public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(Unit unit, List<LocationDamageData> hitLocationsData)
     {
-        var allCriticalHitsData = new List<LocationCriticalHitsData>();
-
-        // Process each location that received damage
-        var locationsWithStructureDamage = new Queue<LocationDamageData>( hitLocationsData
-            .Where(d => d.StructureDamage > 0));
-        
-        while (locationsWithStructureDamage.Count > 0)
-        {
-            var locationHitDamage = locationsWithStructureDamage.Dequeue();
-            var criticalHitsData = CalculateCriticalHitsForLocation(unit, locationHitDamage.Location, locationHitDamage.StructureDamage);
-            if (criticalHitsData != null)
-            {
-                // KNOWN ISSUE
-                // This is a side-effect and a deviation from the common design of applying server commands via BaseGame 
-                unit.ApplyCriticalHits([criticalHitsData]);
-                allCriticalHitsData.Add(criticalHitsData);
-            }
-            var explosions = criticalHitsData?.ExplosionsDamage ?? [];
-            foreach (var explosion in explosions)
-            {
-                if (explosion.StructureDamage > 0)
-                    locationsWithStructureDamage.Enqueue(explosion); // Add any explosion damage to the queue
-            }
-        }
+        var allCriticalHitsData = ProcessAndApplyCriticalHitsDamage(unit, hitLocationsData);
 
         // If no critical hits occurred, no need to send a command
         if (allCriticalHitsData.Count == 0)
@@ -59,21 +36,21 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             CriticalHits = allCriticalHitsData
         };
     }
-
-    public LocationCriticalHitsData? CalculateCriticalHitsForHeatExplosion(
+    
+    public List<LocationCriticalHitsData> CalculateCriticalHitsForHeatExplosion(
         Unit unit,
         Ammo explodingComponent) // only ammo can explode from heat
     {
         var explosionDamage = explodingComponent.GetExplosionDamage();
-        if (explosionDamage <= 0) return null; //no possible damage, no explosion
+        if (explosionDamage <= 0) return []; //no possible damage, no explosion
         
         var location = explodingComponent.GetLocation();
-        if (!location.HasValue) return null;
+        if (!location.HasValue) return [];
 
         // Ensure the component has a resolvable slot
         var slots = explodingComponent.MountedAtSlots;
         if (slots.Length == 0)
-            return null;
+            return [];
 
         // Create the initial forced critical hit for the exploding component
         var componentHitData = new ComponentHitData
@@ -85,15 +62,51 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
 
         // Get explosion damage if the component can explode
         var explosions = _damageTransferCalculator.CalculateExplosionDamage(unit, location.Value, explosionDamage);
+        
+        var explosionConsequences = 
+            ProcessAndApplyCriticalHitsDamage(unit, explosions.ToList());
 
-        return new LocationCriticalHitsData(
+        return new List<LocationCriticalHitsData>
+        {
+            new(
             location.Value,
             [], // No roll for forced critical hit
             1, // One forced critical hit
             [componentHitData],
             false, // Not blown off
             explosions
-        );
+        )}
+            .Concat(explosionConsequences).ToList();
+    }
+    
+    private List<LocationCriticalHitsData> ProcessAndApplyCriticalHitsDamage(Unit unit, List<LocationDamageData> hitLocationsData)
+    {
+        var allCriticalHitsData = new List<LocationCriticalHitsData>();
+
+        // Process each location that received damage
+        var locationsWithStructureDamage = new Queue<LocationDamageData>( hitLocationsData
+            .Where(d => d.StructureDamage > 0));
+        
+        while (locationsWithStructureDamage.Count > 0)
+        {
+            var locationHitDamage = locationsWithStructureDamage.Dequeue();
+            var criticalHitsData = CalculateCriticalHitsForLocation(unit, locationHitDamage.Location, locationHitDamage.StructureDamage);
+            if (criticalHitsData != null)
+            {
+                // KNOWN ISSUE
+                // This is a side effect and a deviation from the common design of applying server commands via BaseGame 
+                unit.ApplyCriticalHits([criticalHitsData]);
+                allCriticalHitsData.Add(criticalHitsData);
+            }
+            var explosions = criticalHitsData?.ExplosionsDamage ?? [];
+            foreach (var explosion in explosions)
+            {
+                if (explosion.StructureDamage > 0)
+                    locationsWithStructureDamage.Enqueue(explosion); // Add any explosion damage to the queue
+            }
+        }
+
+        return allCriticalHitsData;
     }
 
     /// <summary>
