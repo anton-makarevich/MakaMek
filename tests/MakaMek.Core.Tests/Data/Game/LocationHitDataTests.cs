@@ -215,6 +215,27 @@ public class LocationHitDataTests
         result.ShouldNotBeEmpty();
         result.Trim().ShouldBe("LT (Roll: 5): 3 structure damage");
     }
+    
+    [Fact]
+    public void Render_ArmorOnlyDamage_ReturnsCorrectOutput()
+    {
+        // Arrange - Create a hit with only structure damage (no structure damage)
+        var sut = new LocationHitData(
+            [
+                new LocationDamageData(PartLocation.LeftTorso, 3, 0, false) // 3 armor, 0 structure damage
+            ],
+            [], // No aimed shot
+            [5], // Location roll
+            PartLocation.LeftTorso
+        );
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.Trim().ShouldBe("LT (Roll: 5): 3 armor damage");
+    }
 
     [Fact]
     public void Render_StructureOnlyDamageWithTransfer_ReturnsCorrectOutput()

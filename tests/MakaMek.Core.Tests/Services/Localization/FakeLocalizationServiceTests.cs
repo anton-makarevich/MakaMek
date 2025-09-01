@@ -70,7 +70,6 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer_ArmorOnly", "{0} (Roll: {3}) → {1}: {2} armor damage")]
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer_StructureOnly", "{0} (Roll: {3}) → {1}: {2} structure damage")]
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer", "{0} (Roll: {3}) → {1}: {2} damage")]
-    [InlineData("Command_WeaponAttackResolution_HitLocationExcessDamage", "  Excess damage {1} transferred to {0}")]
     [InlineData("Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorAndStructure", "  Excess damage {1} armor, {2} structure transferred to {0}")]
     [InlineData("Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorOnly", "  Excess damage {1} armor transferred to {0}")]
     [InlineData("Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly", "  Excess damage {1} structure transferred to {0}")]
