@@ -40,7 +40,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
                 break;
 
             // Check if the location is already destroyed - if so, skip to transfer location
-            if (IsLocationAlreadyDestroyed(part, isExplosion))
+            if (part.CurrentStructure <= 0)
             {
                 currentLocation = unit.GetTransferLocation(currentLocation.Value);
                 continue;
@@ -66,18 +66,6 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         }
 
         return damageDistribution;
-    }
-
-    private static bool IsLocationAlreadyDestroyed(UnitPart part, bool isExplosion)
-    {
-        // For explosions, only check structure since explosions bypass armor
-        if (isExplosion)
-        {
-            return part.CurrentStructure <= 0;
-        }
-
-        // For regular damage, check both armor and structure
-        return part is { CurrentArmor: <= 0, CurrentStructure: <= 0 };
     }
 
     private LocationDamageData CalculateLocationDamage(UnitPart part, int incomingDamage, HitDirection hitDirection)

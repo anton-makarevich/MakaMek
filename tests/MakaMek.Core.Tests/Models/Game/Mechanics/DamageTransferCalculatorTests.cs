@@ -462,8 +462,7 @@ public class DamageTransferCalculatorTests
         // Arrange
         var unit = CreateTestMech();
         var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var leftTorso = unit.Parts.First(p => p.Location == PartLocation.LeftTorso);
-        
+
         // Manually destroy the left arm by setting both armor and structure to 0
         leftArm.ApplyDamage(leftArm.CurrentArmor + leftArm.CurrentStructure, HitDirection.Front);
 
@@ -477,11 +476,11 @@ public class DamageTransferCalculatorTests
         // Act - Apply damage to the already destroyed location
         var result = _sut.CalculateStructureDamage(unit, PartLocation.LeftArm, testDamage, HitDirection.Front);
 
-        // Assert - Should skip the destroyed location and go directly to transfer location (LeftTorso)
+        // Assert - Should skip the destroyed location and go directly to the transfer location (LeftTorso)
         result.ShouldHaveSingleItem();
         var damageData = result[0];
         damageData.Location.ShouldBe(PartLocation.LeftTorso); // Should transfer to LeftTorso
-        damageData.ArmorDamage.ShouldBe(testDamage); // All damage should go to transfer location
+        damageData.ArmorDamage.ShouldBe(testDamage); // All damage should go to the transfer location
         damageData.StructureDamage.ShouldBe(0);
         damageData.IsLocationDestroyed.ShouldBeFalse();
 
@@ -504,18 +503,18 @@ public class DamageTransferCalculatorTests
         leftArm.CurrentStructure.ShouldBe(0);
         leftArm.IsDestroyed.ShouldBeTrue();
 
-        // Use damage less than LeftTorso structure to avoid destroying it and causing further transfer
+        // Use damage less than the LeftTorso structure to avoid destroying it and causing further transfer
         var testDamage = leftTorso.CurrentStructure - 1;
 
         // Act - Apply explosion damage to the already destroyed location
         var result = _sut.CalculateExplosionDamage(unit, PartLocation.LeftArm, testDamage);
 
-        // Assert - Should skip the destroyed location and go directly to transfer location (LeftTorso)
+        // Assert - Should skip the destroyed location and go directly to the transfer location (LeftTorso)
         result.ShouldHaveSingleItem();
         var damageData = result[0];
         damageData.Location.ShouldBe(PartLocation.LeftTorso); // Should transfer to LeftTorso
         damageData.ArmorDamage.ShouldBe(0); // Explosion damage doesn't affect armor
-        damageData.StructureDamage.ShouldBe(testDamage); // All damage should go to transfer location structure
+        damageData.StructureDamage.ShouldBe(testDamage); // All damage should go to the transfer location structure
         damageData.IsLocationDestroyed.ShouldBeFalse();
 
         // Should NOT contain any entry for the destroyed LeftArm location
