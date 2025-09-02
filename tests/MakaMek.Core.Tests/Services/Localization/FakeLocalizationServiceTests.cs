@@ -118,6 +118,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Direction_Forward", "forward")]
     [InlineData("Direction_Backward", "backward")]
     // MechFallingCommand strings
+    [InlineData("Command_MechFalling_PsrIntro", "{0} may fall")]
     [InlineData("Command_MechFalling_Base", "{0} fell")]
     [InlineData("Command_MechFalling_Levels", " {0} level(s)")]
     [InlineData("Command_MechFalling_Jumping", " while jumping")]

@@ -338,7 +338,8 @@ public class MechFallCommandTests
         var result = sut.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldBe($"{psrDetailsRenderedText}");
+        result.ShouldContain("LCT-1V may fall");
+        result.ShouldContain(psrDetailsRenderedText);
     }
 
     [Fact]

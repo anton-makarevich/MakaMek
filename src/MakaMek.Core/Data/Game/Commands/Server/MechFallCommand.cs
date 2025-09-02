@@ -60,16 +60,21 @@ public record struct MechFallCommand : IGameCommand
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == command.UnitId);
             
-        if (unit == null)
+        if (unit == null || (FallPilotingSkillRoll == null && DamageData == null))
         {
             return string.Empty;
         }
-        
+
         var stringBuilder = new StringBuilder();
+
+        // Intro line: subject + action/situation summary before any PSR details
+        stringBuilder.AppendLine(string.Format(
+                        localizationService.GetString("Command_MechFalling_PsrIntro"),
+                        unit.Model));
         
-        // Render the fall PSR details if it exists, regardless of outcome.
         if (FallPilotingSkillRoll != null)
         {
+            // Render the fall PSR details
             stringBuilder.AppendLine(FallPilotingSkillRoll.Render(localizationService));
         }
         
