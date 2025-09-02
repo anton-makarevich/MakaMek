@@ -70,6 +70,7 @@ public class FakeLocalizationService: ILocalizationService
             "Direction_Backward" => "backward",
             
             // MechFallingCommand strings
+            "Command_MechFalling_PsrIntro" => "{0} may fall",
             "Command_MechFalling_Base" => "{0} fell",
             "Command_MechFalling_Levels" => " {0} level(s)",
             "Command_MechFalling_Jumping" => " while jumping",
