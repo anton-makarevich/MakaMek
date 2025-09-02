@@ -39,19 +39,24 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_HitLocationTransfer_ArmorOnly" => "{0} (Roll: {3}) → {1}: {2} armor damage",
             "Command_WeaponAttackResolution_HitLocationTransfer_StructureOnly" => "{0} (Roll: {3}) → {1}: {2} structure damage",
             "Command_WeaponAttackResolution_AimedShotSuccessful" => "Aimed Shot targeting {0} succeeded, Roll: {1}",
-            "Command_WeaponAttackResolution_HitLocationExcessDamage" => "  Excess damage {1} transferred to {0}",
             "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorAndStructure" => "  Excess damage {1} armor, {2} structure transferred to {0}",
             "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorOnly" => "  Excess damage {1} armor transferred to {0}",
             "Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly" => "  Excess damage {1} structure transferred to {0}",
+            "Command_WeaponAttackResolution_HitLocationExplosionDamage_ArmorAndStructure" => "  {0}: {1} armor, {2} structure",
+            "Command_WeaponAttackResolution_HitLocationExplosionDamage_ArmorOnly" => "  {0}: {1} armor",
+            "Command_WeaponAttackResolution_HitLocationExplosionDamage_StructureOnly" => "  {0}: {1} structure",
             "Command_WeaponAttackResolution_AimedShotFailed" => "Aimed Shot targeting {0} failed, Roll: {1}",
 
             // Critical Hits Resolution Command
+            "Command_CriticalHitsResolution_Header" => "{0} suffered structure damage and requires critical hit rolls",
             "Command_CriticalHitsResolution_Location" => "Critical hits in {0}:",
             "Command_CriticalHitsResolution_CritRoll" => "Critical Roll: {0}",
             "Command_CriticalHitsResolution_BlownOff" => "Critical hit in {0}, location blown off",
             "Command_CriticalHitsResolution_NumCrits" => "Number of critical hits: {0}",
             "Command_CriticalHitsResolution_CriticalHit" => "Critical hit in slot {0}: {1}",
             "Command_CriticalHitsResolution_Explosion" => "{0} exploded, damage: {1}",
+            "Command_CriticalHitsResolution_ExplosionDamageDistribution" => "Explosion damage distribution:",
+
             "Command_WeaponAttackResolution_DestroyedParts" => "Destroyed parts:",
             "Command_WeaponAttackResolution_DestroyedPart" => "- {0} destroyed",
             "Command_WeaponAttackResolution_UnitDestroyed" => "{0} has been destroyed!",
@@ -85,6 +90,7 @@ public class FakeLocalizationService: ILocalizationService
             "PilotingSkillRollType_GyroDestroyed" => "Gyro Destroyed",
             "PilotingSkillRollType_PilotDamageFromFall" => "Pilot Damage From Fall",
             "PilotingSkillRollType_LowerLegActuatorHit" => "Lower Leg Actuator Hit",
+            "PilotingSkillRollType_UpperLegActuatorHit" => "Upper Leg Actuator Hit",
             "PilotingSkillRollType_HeavyDamage" => "Heavy Damage",
             "PilotingSkillRollType_HipActuatorHit" => "Hip Actuator Hit",
             "PilotingSkillRollType_FootActuatorHit" => "Foot Actuator Hit",
@@ -266,8 +272,6 @@ public class FakeLocalizationService: ILocalizationService
             "Command_AmmoExplosion_Failed" => "{0} suffered ammo explosion due to heat",
             "Command_AmmoExplosion_RollDetails" => "Heat level: {0}, Roll: {1} vs {2}",
             "Command_AmmoExplosion_CriticalHits" => "Explosion caused critical hits:",
-            "Command_AmmoExplosion_ComponentDestroyed" => "- {0} in {1} destroyed by explosion",
-            "Command_AmmoExplosion_Explosion" => "{0} exploded, damage: {1}",
             _ => key
         };
     }

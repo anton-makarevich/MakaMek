@@ -70,10 +70,12 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer_ArmorOnly", "{0} (Roll: {3}) → {1}: {2} armor damage")]
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer_StructureOnly", "{0} (Roll: {3}) → {1}: {2} structure damage")]
     [InlineData("Command_WeaponAttackResolution_HitLocationTransfer", "{0} (Roll: {3}) → {1}: {2} damage")]
-    [InlineData("Command_WeaponAttackResolution_HitLocationExcessDamage", "  Excess damage {1} transferred to {0}")]
     [InlineData("Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorAndStructure", "  Excess damage {1} armor, {2} structure transferred to {0}")]
     [InlineData("Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorOnly", "  Excess damage {1} armor transferred to {0}")]
     [InlineData("Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly", "  Excess damage {1} structure transferred to {0}")]
+    [InlineData("Command_WeaponAttackResolution_HitLocationExplosionDamage_ArmorAndStructure", "  {0}: {1} armor, {2} structure")]
+    [InlineData("Command_WeaponAttackResolution_HitLocationExplosionDamage_ArmorOnly", "  {0}: {1} armor")]
+    [InlineData("Command_WeaponAttackResolution_HitLocationExplosionDamage_StructureOnly", "  {0}: {1} structure")]
     [InlineData("Command_WeaponAttackResolution_AimedShotSuccessful", "Aimed Shot targeting {0} succeeded, Roll: {1}")]
     [InlineData("Command_WeaponAttackResolution_AimedShotFailed", "Aimed Shot targeting {0} failed, Roll: {1}")]
     [InlineData("Command_WeaponAttackResolution_DestroyedParts", "Destroyed parts:")]
@@ -98,6 +100,8 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_CriticalHitsResolution_NumCrits", "Number of critical hits: {0}")]
     [InlineData("Command_CriticalHitsResolution_CriticalHit", "Critical hit in slot {0}: {1}")]
     [InlineData("Command_CriticalHitsResolution_Explosion", "{0} exploded, damage: {1}")]
+    [InlineData("Command_CriticalHitsResolution_Header", "{0} suffered structure damage and requires critical hit rolls")]
+    [InlineData("Command_CriticalHitsResolution_ExplosionDamageDistribution", "Explosion damage distribution:")]
     public void GetString_CriticalHitsResolution_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
@@ -131,6 +135,7 @@ public class FakeLocalizationServiceTests
     [InlineData("PilotingSkillRollType_GyroDestroyed", "Gyro Destroyed")]
     [InlineData("PilotingSkillRollType_PilotDamageFromFall", "Pilot Damage From Fall")]
     [InlineData("PilotingSkillRollType_LowerLegActuatorHit", "Lower Leg Actuator Hit")]
+    [InlineData("PilotingSkillRollType_UpperLegActuatorHit", "Upper Leg Actuator Hit")]
     [InlineData("PilotingSkillRollType_HeavyDamage", "Heavy Damage")]
     [InlineData("PilotingSkillRollType_HipActuatorHit", "Hip Actuator Hit")]
     [InlineData("PilotingSkillRollType_FootActuatorHit", "Foot Actuator Hit")]
@@ -318,8 +323,6 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_AmmoExplosion_Failed", "{0} suffered ammo explosion due to heat")]
     [InlineData("Command_AmmoExplosion_RollDetails", "Heat level: {0}, Roll: {1} vs {2}")]
     [InlineData("Command_AmmoExplosion_CriticalHits", "Explosion caused critical hits:")]
-    [InlineData("Command_AmmoExplosion_ComponentDestroyed", "- {0} in {1} destroyed by explosion")]
-    [InlineData("Command_AmmoExplosion_Explosion", "{0} exploded, damage: {1}")]
     public void GetString_AmmoExplosion_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

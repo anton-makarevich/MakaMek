@@ -51,20 +51,21 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         var slots = explodingComponent.MountedAtSlots;
         if (slots.Length == 0)
             return [];
+        
+        var explosionDamageData = _damageTransferCalculator
+            .CalculateExplosionDamage(unit, location.Value, explosionDamage);
 
         // Create the initial forced critical hit for the exploding component
         var componentHitData = new ComponentHitData
         {
             Type = explodingComponent.ComponentType,
             Slot = slots[0],
-            ExplosionDamage = explosionDamage
+            ExplosionDamage = explosionDamage,
+            ExplosionDamageDistribution = explosionDamageData.ToArray()
         };
-
-        // Get explosion damage if the component can explode
-        var explosions = _damageTransferCalculator.CalculateExplosionDamage(unit, location.Value, explosionDamage);
         
         var explosionConsequences = 
-            ProcessAndApplyCriticalHitsDamage(unit, explosions.ToList());
+            ProcessAndApplyCriticalHitsDamage(unit, explosionDamageData.ToList());
 
         return new List<LocationCriticalHitsData>
         {
@@ -73,8 +74,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             [], // No roll for forced critical hit
             1, // One forced critical hit
             [componentHitData],
-            false, // Not blown off
-            explosions
+            false // Not blown off
         )}
             .Concat(explosionConsequences).ToList();
     }
@@ -98,7 +98,8 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
                 unit.ApplyCriticalHits([criticalHitsData]);
                 allCriticalHitsData.Add(criticalHitsData);
             }
-            var explosions = criticalHitsData?.ExplosionsDamage ?? [];
+            var explosions = criticalHitsData?
+                .HitComponents?.SelectMany(c => c.ExplosionDamageDistribution ?? []) ?? [];
             foreach (var explosion in explosions)
             {
                 if (explosion.StructureDamage > 0)
@@ -122,29 +123,10 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             return null;
 
         // Roll for critical hits
-        var criticalHitsData = unit.CalculateCriticalHitsData(location, _diceRoller);
+        var criticalHitsData = unit.CalculateCriticalHitsData(location, _diceRoller, _damageTransferCalculator);
         if (criticalHitsData == null)
             return null;
-
-        // Check for explosions from hit components
-        var explosions = new List<LocationDamageData>();
-        if (criticalHitsData.HitComponents == null)
-            return criticalHitsData with
-            {
-                Location = location, ExplosionsDamage = explosions
-            };
-        foreach (var componentData in criticalHitsData.HitComponents)
-        {
-            var component = part.GetComponentAtSlot(componentData.Slot);
-            if (component is not { CanExplode: true, HasExploded: false }) continue;
-            var explosionDamage = component.GetExplosionDamage();
-            if (explosionDamage <= 0) continue;
-            var perComponent = _damageTransferCalculator
-                .CalculateExplosionDamage(unit, location, explosionDamage);
-            if (perComponent is { Count: > 0 })
-                explosions.AddRange(perComponent);
-        }
-
-        return criticalHitsData with { Location = location, ExplosionsDamage = explosions };
+        
+        return criticalHitsData with { Location = location };
     }
 }

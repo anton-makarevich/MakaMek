@@ -39,6 +39,13 @@ public class DamageTransferCalculator : IDamageTransferCalculator
             if (part == null)
                 break;
 
+            // Check if the location is already destroyed - if so, skip to transfer location
+            if (part.CurrentStructure <= 0)
+            {
+                currentLocation = unit.GetTransferLocation(currentLocation.Value);
+                continue;
+            }
+
             var locationDamage = isExplosion
                 ? CalculateExplosionLocationDamage(part, remainingDamage)
                 : CalculateLocationDamage(part, remainingDamage, hitDirection);

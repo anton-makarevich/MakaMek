@@ -168,11 +168,10 @@ public class AmmoExplosionCommandTests
             },
             CriticalHits =
             [
-                new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4],
+                new LocationCriticalHitsData(PartLocation.CenterTorso, [],
                     1,
                     [new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }],
-                    false,
-                    [])
+                    false)
             ]
         };
 
@@ -182,7 +181,10 @@ public class AmmoExplosionCommandTests
         // Assert
         result.ShouldContain("TST-1 suffered ammo explosion due to heat");
         result.ShouldContain("Explosion caused critical hits:");
-        result.ShouldContain("- LRM-5 Ammo in CT destroyed by explosion");
+        result.ShouldContain("Critical hits in CT:");
+        result.ShouldNotContain("Critical Roll:");
+        result.ShouldNotContain("Number of critical hits: 1");
+        result.ShouldContain("Critical hit in slot 11: LRM-5 Ammo");
     }
 
     [Fact]
@@ -202,8 +204,7 @@ public class AmmoExplosionCommandTests
             [
                 new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1,
                     [new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }],
-                    false,
-                    [])
+                    false)
             ]
         };
 
@@ -233,8 +234,7 @@ public class AmmoExplosionCommandTests
                 Slot = ammo.MountedAtSlots[0],
                 ExplosionDamage = 100
             }],
-            false,
-            []);
+            false);
 
         var command = new AmmoExplosionCommand
         {
@@ -267,8 +267,7 @@ public class AmmoExplosionCommandTests
             [4, 5],
             1,
             [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
-            false,
-            []); 
+            false); 
 
         var command = new AmmoExplosionCommand
         {
@@ -301,8 +300,7 @@ public class AmmoExplosionCommandTests
             [4, 5],
             1,
             [new ComponentHitData { Type = MakaMekComponent.ISAmmoAC2, Slot = 1, ExplosionDamage = 100 }],
-            false,
-            []);
+            false);
 
         var command = new AmmoExplosionCommand
         {
@@ -353,8 +351,7 @@ public class AmmoExplosionCommandTests
                     ExplosionDamage = 10
                 }
             ],
-            false,
-            []);
+            false);
 
         var command = new AmmoExplosionCommand
         {

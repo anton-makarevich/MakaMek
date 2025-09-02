@@ -68,8 +68,7 @@ public record struct AmmoExplosionCommand : IGameCommand
             AvoidExplosionRoll.HeatLevel,
             rollTotal,
             AvoidExplosionRoll.AvoidNumber));
-
-
+        
         // If an explosion occurred, show the critical hits details
         if (!explosionOccurred) return stringBuilder.ToString().TrimEnd();
 
@@ -77,26 +76,7 @@ public record struct AmmoExplosionCommand : IGameCommand
 
         foreach (var criticalHitData in CriticalHits)
         {
-            if (criticalHitData.HitComponents == null) continue;
-            foreach (var componentHit in criticalHitData.HitComponents)
-            {
-                var part = unit.Parts.FirstOrDefault(p => p.Location == criticalHitData.Location);
-                var component = part?.GetComponentAtSlot(componentHit.Slot);
-                if (component == null || component.ComponentType != componentHit.Type) continue;
-                var localizedLocation = localizationService.GetString($"MechPart_{criticalHitData.Location}_Short");
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_AmmoExplosion_ComponentDestroyed"),
-                    component.Name,
-                    localizedLocation));
-                var explosionDamage = componentHit.ExplosionDamage;
-                if (explosionDamage > 0)
-                {
-                    stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_AmmoExplosion_Explosion"),
-                        component.Name,
-                        explosionDamage));
-                }
-            }
+            stringBuilder.Append(criticalHitData.Render(localizationService, unit));
         }
 
         return stringBuilder.ToString().TrimEnd();

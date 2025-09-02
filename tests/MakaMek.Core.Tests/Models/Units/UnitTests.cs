@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -63,12 +64,10 @@ public class UnitTests
                 ?null
                 : PartLocation.CenterTorso;
 
-        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location, IDiceRoller diceRoller)
-        {
-            throw new NotImplementedException();
-        }
-
-
+        public override LocationCriticalHitsData? CalculateCriticalHitsData(PartLocation location,
+            IDiceRoller diceRoller,
+            IDamageTransferCalculator damageTransferCalculator) => throw new NotImplementedException();
+        
         protected override void ApplyHeatEffects()
         {
         }
@@ -1113,8 +1112,7 @@ public class UnitTests
                             Type = MakaMekComponent.Cockpit
                         }
                     ],
-                    false,
-                    []);
+                    false);
 
         // Pre-assert: component is not destroyed
         cockpit.IsDestroyed.ShouldBeFalse();
@@ -1136,8 +1134,7 @@ public class UnitTests
         {
             new(PartLocation.LeftArm, [4, 4], 1,
                 [],
-                true,
-                [])
+                true)
         };
         
         // Act
@@ -1167,8 +1164,7 @@ public class UnitTests
                         Type = MakaMekComponent.MachineGun
                     }
                 ],
-                false,
-                [])
+                false)
         };
         
         // Act
@@ -1192,8 +1188,7 @@ public class UnitTests
         {
             new(PartLocation.LeftArm, [4, 4], 1,
                 [],
-                false,
-                [])
+                false)
         };
         
         // Act
@@ -1224,13 +1219,14 @@ public class UnitTests
                     new ComponentHitData
                     {
                         Slot = explodableComponent.MountedAtSlots[0],
-                        Type = MakaMekComponent.MachineGun
+                        Type = MakaMekComponent.MachineGun,
+                        ExplosionDamage = 3,
+                        ExplosionDamageDistribution = [
+                            new LocationDamageData(PartLocation.LeftArm, 0, 3, false)
+                        ]
                     }
                 ],
-                false,
-                [
-                    new LocationDamageData(PartLocation.LeftArm, 0, 3, false)
-                ]) 
+                false) 
         };
         
         // Pre-assert: component has not exploded
@@ -1281,19 +1277,23 @@ public class UnitTests
                     new ComponentHitData
                     {
                         Slot = explodableComponent1.MountedAtSlots[0],
-                        Type = MakaMekComponent.MachineGun
+                        Type = MakaMekComponent.MachineGun,
+                        ExplosionDamage = 3,
+                        ExplosionDamageDistribution = [
+                            new LocationDamageData(PartLocation.LeftArm, 0, 3, false)
+                        ]
                     },
                     new ComponentHitData
                     {
                         Slot = explodableComponent2.MountedAtSlots[0],
-                        Type = MakaMekComponent.MachineGun
+                        Type = MakaMekComponent.MachineGun,
+                        ExplosionDamage = 1,
+                        ExplosionDamageDistribution = [
+                            new LocationDamageData(PartLocation.LeftArm, 0, 1, false)
+                        ]
                     }
                 ],
-                false,
-                [
-                    new LocationDamageData(PartLocation.LeftArm, 0, 3, false),
-                    new LocationDamageData(PartLocation.LeftArm, 0, 1, false)
-                ])
+                false)
         };
         
         // Pre-assert: components have not exploded
@@ -1333,8 +1333,7 @@ public class UnitTests
                         Type = MakaMekComponent.MachineGun
                     }
                 ],
-                false,
-                []) // No separate explosion damage - component handles its own explosion (or lack thereof)
+                false)
         };
         
         // Pre-assert: component has already exploded
@@ -1367,8 +1366,7 @@ public class UnitTests
                         Type = MakaMekComponent.MachineGun
                     }
                 ],
-                false,
-                [])
+                false)
         };
         var initialStructure = targetPart.CurrentStructure;
 
@@ -1389,7 +1387,7 @@ public class UnitTests
 
         var hitLocations = new List<LocationCriticalHitsData>
         {
-            new(PartLocation.Head, [6, 6], 0, null, true, []) // Head blown off
+            new(PartLocation.Head, [6, 6], 0, null, true) // Head blown off
         };
 
         // Act
@@ -1426,8 +1424,7 @@ public class UnitTests
                         Type = MakaMekComponent.Engine
                     }
                 ],
-                false,
-                [])
+                false)
         };
 
         // Act
@@ -1463,8 +1460,7 @@ public class UnitTests
                         Type = MakaMekComponent.MachineGun
                     }
                 ],
-                false,
-                [])
+                false)
         };
 
         // Act
@@ -1735,13 +1731,14 @@ public class UnitTests
                     new ComponentHitData
                     {
                         Slot = explodableComponent.MountedAtSlots[0],
-                        Type = MakaMekComponent.MachineGun
+                        Type = MakaMekComponent.MachineGun,
+                        ExplosionDamage = 3,
+                        ExplosionDamageDistribution = [
+                            new LocationDamageData(PartLocation.LeftArm, 0, 3, false)
+                        ]
                     }
                 ],
-                false,
-                [
-                    new LocationDamageData(PartLocation.LeftArm, 0, 3, false)
-                ]) 
+                false) 
         };
         var initialTotalDamage = sut.TotalPhaseDamage;
 

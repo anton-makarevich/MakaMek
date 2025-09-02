@@ -1167,8 +1167,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 [4, 5],
                 1,
                 [new ComponentHitData { Type = component, Slot = slot }],
-                false,
-                [])]
+                false)]
         };
 
         MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(
@@ -1282,8 +1281,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 [4, 5],
                 1,
                 [new ComponentHitData { Type = MakaMekComponent.Engine, Slot = 1 }],
-                false,
-                [])]
+                false)]
         };
 
         MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(
@@ -1332,8 +1330,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 [6, 6], // Roll of 12 for blown-off
                 3,
                 null, // No component hits when blown off
-                true, // IsBlownOff = true
-                [])]
+                true)] // IsBlownOff = true
         };
 
         MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(

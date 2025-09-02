@@ -169,7 +169,7 @@ public class HeatEffectsCalculatorTests
         // Setup critical hits calculator
         var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
                 new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
-            ],false,[]);
+            ],false);
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
@@ -206,7 +206,7 @@ public class HeatEffectsCalculatorTests
         // Setup critical hits calculator
         var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
                 new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
-            ],false,[]);
+            ],false);
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
                 Arg.Any<Unit>(), Arg.Any<Ammo>())
@@ -245,7 +245,7 @@ public class HeatEffectsCalculatorTests
         // Setup critical hits calculator
         var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
                 new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
-            ],false,[]);
+            ],false);
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(Arg.Any<Unit>(),
                 Arg.Any<Ammo>())
             .Returns([criticalHits]);

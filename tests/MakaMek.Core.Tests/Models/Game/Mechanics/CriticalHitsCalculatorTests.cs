@@ -80,10 +80,10 @@ public class CriticalHitsCalculatorTests
         locationData.HitComponents.ShouldNotBeNull();
         locationData.HitComponents!.Length.ShouldBe(1);
         locationData.HitComponents[0].Slot.ShouldBe(10);
-        locationData.ExplosionsDamage.ShouldNotBeNull();
-        locationData.ExplosionsDamage.Count.ShouldBe(1);
-        locationData.ExplosionsDamage[0].Location.ShouldBe(PartLocation.CenterTorso);
-        locationData.ExplosionsDamage[0].StructureDamage.ShouldBe(0);
+        locationData.HitComponents[0].ExplosionDamageDistribution.ShouldNotBeEmpty();
+        locationData.HitComponents[0].ExplosionDamageDistribution.Length.ShouldBe(1);
+        locationData.HitComponents[0].ExplosionDamageDistribution[0].Location.ShouldBe(PartLocation.CenterTorso);
+        locationData.HitComponents[0].ExplosionDamageDistribution[0].StructureDamage.ShouldBe(0);
     }
 
     [Fact]
@@ -124,9 +124,9 @@ public class CriticalHitsCalculatorTests
         initialCrit.HitComponents.ShouldNotBeNull();
         initialCrit.HitComponents!.Length.ShouldBe(1);
         initialCrit.HitComponents[0].Slot.ShouldBe(10);
-        initialCrit.ExplosionsDamage.Count.ShouldBe(1);
-        initialCrit.ExplosionsDamage[0].Location.ShouldBe(PartLocation.CenterTorso);
-        initialCrit.ExplosionsDamage[0].StructureDamage.ShouldBe(5);
+        initialCrit.HitComponents[0].ExplosionDamageDistribution.Length.ShouldBe(1);
+        initialCrit.HitComponents[0].ExplosionDamageDistribution[0].Location.ShouldBe(PartLocation.CenterTorso);
+        initialCrit.HitComponents[0].ExplosionDamageDistribution[0].StructureDamage.ShouldBe(5);
         
         var explosionCrit = result[1];
         explosionCrit.Location.ShouldBe(PartLocation.CenterTorso);
@@ -135,7 +135,7 @@ public class CriticalHitsCalculatorTests
         explosionCrit.HitComponents.ShouldNotBeNull();
         explosionCrit.HitComponents!.Length.ShouldBe(1);
         explosionCrit.HitComponents[0].Slot.ShouldBe(1);
-        explosionCrit.ExplosionsDamage.ShouldBeEmpty();
+        explosionCrit.HitComponents[0].ExplosionDamageDistribution.ShouldBeEmpty();
     }
     
     [Fact]
