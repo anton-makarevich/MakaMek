@@ -68,8 +68,7 @@ public record struct AmmoExplosionCommand : IGameCommand
             AvoidExplosionRoll.HeatLevel,
             rollTotal,
             AvoidExplosionRoll.AvoidNumber));
-
-
+        
         // If an explosion occurred, show the critical hits details
         if (!explosionOccurred) return stringBuilder.ToString().TrimEnd();
 
@@ -77,7 +76,6 @@ public record struct AmmoExplosionCommand : IGameCommand
 
         foreach (var criticalHitData in CriticalHits)
         {
-            // Use the centralized rendering method for ammo explosion context
             stringBuilder.Append(criticalHitData.Render(localizationService, unit));
         }
 

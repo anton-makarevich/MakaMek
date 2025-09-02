@@ -219,7 +219,7 @@ public class LocationHitDataTests
     [Fact]
     public void Render_ArmorOnlyDamage_ReturnsCorrectOutput()
     {
-        // Arrange - Create a hit with only structure damage (no structure damage)
+        // Arrange - Create a hit with only armor damage (no structure damage)
         var sut = new LocationHitData(
             [
                 new LocationDamageData(PartLocation.LeftTorso, 3, 0, false) // 3 armor, 0 structure damage

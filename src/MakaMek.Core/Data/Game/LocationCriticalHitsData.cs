@@ -70,20 +70,20 @@ public record LocationCriticalHitsData(
                     component.Name));
 
                 var explosionDamage = componentHit.ExplosionDamage;
-                if (explosionDamage > 0)
-                {
-                    stringBuilder.AppendLine(string.Format(
-                        localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
-                        component.Name,
-                        explosionDamage));
-                }
+                if (explosionDamage <= 0) continue;
+                stringBuilder.AppendLine(string.Format(
+                    localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
+                    component.Name,
+                    explosionDamage));
 
                 // Add explosion damage distribution if present
                 if (componentHit.ExplosionDamageDistribution.Length <= 0) continue;
-                stringBuilder.AppendLine(localizationService.GetString("Command_CriticalHitsResolution_ExplosionDamageDistribution"));
+                stringBuilder.AppendLine(
+                    localizationService.GetString("Command_CriticalHitsResolution_ExplosionDamageDistribution"));
                 foreach (var damageData in componentHit.ExplosionDamageDistribution)
                 {
-                    stringBuilder.AppendLine(FormatExplosionDamageMessage(localizationService, damageData));
+                    stringBuilder.AppendLine(
+                        FormatExplosionDamageMessage(Location, localizationService, damageData));
                 }
             }
         }
@@ -95,6 +95,7 @@ public record LocationCriticalHitsData(
     /// Formats an explosion damage message using the appropriate localization key based on damage types
     /// </summary>
     private static string FormatExplosionDamageMessage(
+        PartLocation locationExploded,
         ILocalizationService localizationService,
         LocationDamageData damageData)
     {
@@ -108,24 +109,26 @@ public record LocationCriticalHitsData(
 
         var localizedLocation = localizationService.GetString($"MechPart_{damageData.Location}_Short");
 
-        string key;
+        var key = damageData.Location == locationExploded
+            ? "Command_WeaponAttackResolution_HitLocationExplosionDamage"
+            : "Command_WeaponAttackResolution_HitLocationExcessDamage";
         string template;
         if (hasArmor && hasStructure)
         {
-            key = "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorAndStructure";
+            key += "_ArmorAndStructure";
             template = localizationService.GetString(key);
             return string.Format(template, localizedLocation, damageData.ArmorDamage, damageData.StructureDamage);
         }
 
         if (hasArmor)
         {
-            key = "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorOnly";
+            key += "_ArmorOnly";
             template = localizationService.GetString(key);
             return string.Format(template, localizedLocation, damageData.ArmorDamage);
         }
 
         // hasStructure must be true
-        key = "Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly";
+        key += "_StructureOnly";
         template = localizationService.GetString(key);
         return string.Format(template, localizedLocation, damageData.StructureDamage);
     }

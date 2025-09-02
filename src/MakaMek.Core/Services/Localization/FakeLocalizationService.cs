@@ -42,6 +42,9 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorAndStructure" => "  Excess damage {1} armor, {2} structure transferred to {0}",
             "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorOnly" => "  Excess damage {1} armor transferred to {0}",
             "Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly" => "  Excess damage {1} structure transferred to {0}",
+            "Command_WeaponAttackResolution_HitLocationExplosionDamage_ArmorAndStructure" => "  {0}: {1} armor, {2} structure",
+            "Command_WeaponAttackResolution_HitLocationExplosionDamage_ArmorOnly" => "  {0}: {1} armor",
+            "Command_WeaponAttackResolution_HitLocationExplosionDamage_StructureOnly" => "  {0}: {1} structure",
             "Command_WeaponAttackResolution_AimedShotFailed" => "Aimed Shot targeting {0} failed, Roll: {1}",
 
             // Critical Hits Resolution Command

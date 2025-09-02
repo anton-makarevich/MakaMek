@@ -43,7 +43,7 @@ public class CriticalHitsResolutionCommandTests
     }
 
     [Fact]
-    public void Render_WithSingleLocation_ShouldNotShowLocationHeader()
+    public void Render_WithSingleLocation_ShouldShowLocationHeader()
     {
         // Arrange
         var command = CreateCommand([

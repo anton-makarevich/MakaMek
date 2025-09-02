@@ -169,6 +169,24 @@ public class LocationCriticalHitsDataTests
         // Should not show the invalid component hit
         result.ShouldNotContain("slot 100:");
     }
+    
+    [Fact]
+    public void Render_WithMismatchedComponentType_SkipsThatComponent()
+    {
+        var sut = new LocationCriticalHitsData(
+            PartLocation.CenterTorso,
+            [4, 4],
+            1,
+            [new ComponentHitData { Slot = 0, Type = MakaMekComponent.MediumLaser }], // slot has Engine
+            false);
+
+        var result = sut.Render(_localizationService, _unit);
+
+        result.ShouldContain("Critical hits in CT:");
+        result.ShouldContain("Critical Roll: 8");
+        result.ShouldContain("Number of critical hits: 1");
+        result.ShouldNotContain("slot 1:"); // a mismatched type should not render
+    }
 
     [Fact]
     public void Render_WithExplosionDamageDistribution_ShowsDistributionDetails()
@@ -186,7 +204,7 @@ public class LocationCriticalHitsDataTests
                 ExplosionDamageDistribution = [
                     new LocationDamageData(PartLocation.CenterTorso, 0, 10, false),
                     new LocationDamageData(PartLocation.LeftTorso, 5, 5, false),
-                    new LocationDamageData(PartLocation.RightTorso, 0, 5, false)
+                    new LocationDamageData(PartLocation.RightTorso, 5, 0, false)
                 ]
             }],
             false);
@@ -201,9 +219,41 @@ public class LocationCriticalHitsDataTests
         result.ShouldContain("Critical hit in slot 1:");
         result.ShouldContain("exploded, damage: 25");
         result.ShouldContain("Explosion damage distribution:");
-        result.ShouldContain("Excess damage 10 structure transferred to CT");
+        result.ShouldContain("CT: 10 structure");
         result.ShouldContain("Excess damage 5 armor, 5 structure transferred to LT");
-        result.ShouldContain("Excess damage 5 structure transferred to RT");
+        result.ShouldContain("Excess damage 5 armor transferred to RT");
+    }
+    
+    [Fact]
+    public void Render_WithExplosionDamageDistributionButNoActualDamage_DoesNotShowDistributionDetails()
+    {
+        // Arrange
+        var sut = new LocationCriticalHitsData(
+            PartLocation.CenterTorso,
+            [5, 5],
+            1,
+            [new ComponentHitData
+            {
+                Slot = 0,
+                Type = MakaMekComponent.Engine,
+                ExplosionDamage = 25,
+                ExplosionDamageDistribution = [
+                    new LocationDamageData(PartLocation.CenterTorso, 0, 0, false)
+                ]
+            }],
+            false);
+
+        // Act
+        var result = sut.Render(_localizationService, _unit);
+
+        // Assert
+        result.ShouldNotBeEmpty();
+        result.ShouldContain("Critical Roll: 10");
+        result.ShouldContain("Number of critical hits: 1");
+        result.ShouldContain("Critical hit in slot 1:");
+        result.ShouldContain("exploded, damage: 25");
+        result.ShouldContain("Explosion damage distribution:");
+        result.ShouldNotContain("CT: 10 structure");
     }
 
     [Fact]

@@ -25,6 +25,14 @@ public class MechTests
 {
     private readonly IDiceRoller _diceRoller = Substitute.For<IDiceRoller>();
     private readonly IDamageTransferCalculator _damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
+
+    public MechTests()
+    {
+        _damageTransferCalculator
+            .CalculateExplosionDamage(Arg.Any<Unit>(), Arg.Any<PartLocation>(), Arg.Any<int>())
+            .Returns([]);
+    }
+
     private static List<UnitPart> CreateBasicPartsData()
     {
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
