@@ -248,7 +248,7 @@ public class CriticalHitsResolutionCommandTests
 
         // Assert
         result.ShouldNotBeEmpty();
-        result.ShouldContain($"{_target.Model} suffered structure damage and requires Critical Hits rolls");
+        result.ShouldContain($"{_target.Model} suffered structure damage and requires critical hit rolls");
         result.ShouldContain("Critical Roll: 8");
         result.ShouldContain("Number of critical hits: 1");
     }

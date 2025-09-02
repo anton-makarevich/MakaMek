@@ -88,7 +88,7 @@ public record LocationCriticalHitsData(
             }
         }
 
-        return stringBuilder.ToString();
+        return stringBuilder.ToString().TrimEnd();
     }
 
     /// <summary>

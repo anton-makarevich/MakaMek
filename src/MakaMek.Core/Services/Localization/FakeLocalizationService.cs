@@ -48,7 +48,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_WeaponAttackResolution_AimedShotFailed" => "Aimed Shot targeting {0} failed, Roll: {1}",
 
             // Critical Hits Resolution Command
-            "Command_CriticalHitsResolution_Header" => "{0} suffered structure damage and requires Critical Hits rolls",
+            "Command_CriticalHitsResolution_Header" => "{0} suffered structure damage and requires critical hit rolls",
             "Command_CriticalHitsResolution_Location" => "Critical hits in {0}:",
             "Command_CriticalHitsResolution_CritRoll" => "Critical Roll: {0}",
             "Command_CriticalHitsResolution_BlownOff" => "Critical hit in {0}, location blown off",

@@ -100,7 +100,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_CriticalHitsResolution_NumCrits", "Number of critical hits: {0}")]
     [InlineData("Command_CriticalHitsResolution_CriticalHit", "Critical hit in slot {0}: {1}")]
     [InlineData("Command_CriticalHitsResolution_Explosion", "{0} exploded, damage: {1}")]
-    [InlineData("Command_CriticalHitsResolution_Header", "{0} suffered structure damage and requires Critical Hits rolls")]
+    [InlineData("Command_CriticalHitsResolution_Header", "{0} suffered structure damage and requires critical hit rolls")]
     [InlineData("Command_CriticalHitsResolution_ExplosionDamageDistribution", "Explosion damage distribution:")]
     public void GetString_CriticalHitsResolution_ReturnsExpectedString(string key, string expected)
     {
