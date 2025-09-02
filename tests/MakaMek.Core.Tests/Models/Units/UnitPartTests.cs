@@ -504,7 +504,7 @@ public class UnitPartTests
             _ => null
         };
 
-        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location,
+        public override LocationCriticalHitsData? CalculateCriticalHitsData(PartLocation location,
             IDiceRoller diceRoller,
             IDamageTransferCalculator damageTransferCalculator)
             => throw new NotImplementedException();

@@ -94,11 +94,8 @@ public class WeaponTests
         }
 
         public override PartLocation? GetTransferLocation(PartLocation location) => null;
-        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location,
+        public override LocationCriticalHitsData? CalculateCriticalHitsData(PartLocation location,
             IDiceRoller diceRoller,
-            IDamageTransferCalculator damageTransferCalculator)
-        {
-            throw new NotImplementedException();
-        }
+            IDamageTransferCalculator damageTransferCalculator) => throw new NotImplementedException();
     }
 }

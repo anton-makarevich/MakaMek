@@ -64,14 +64,10 @@ public class UnitTests
                 ?null
                 : PartLocation.CenterTorso;
 
-        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location,
+        public override LocationCriticalHitsData? CalculateCriticalHitsData(PartLocation location,
             IDiceRoller diceRoller,
-            IDamageTransferCalculator damageTransferCalculator)
-        {
-            throw new NotImplementedException();
-        }
-
-
+            IDamageTransferCalculator damageTransferCalculator) => throw new NotImplementedException();
+        
         protected override void ApplyHeatEffects()
         {
         }
