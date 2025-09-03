@@ -96,7 +96,7 @@ public class WeaponAttackDeclarationCommandTests
     public void Render_ReturnsNoAttacksMessage_WhenNoWeaponTargets()
     {
         // Arrange
-        var command = CreateCommand() with { WeaponTargets = new List<WeaponTargetData>() };
+        var command = CreateCommand() with { WeaponTargets = [] };
         _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
 
         // Act
@@ -135,13 +135,13 @@ public class WeaponAttackDeclarationCommandTests
         
         result.ShouldBe(expectedResult);
     }
-    
+
     [Fact]
     public void Render_ReturnsNoAttacksMessage_WhenTargetsNotFound()
     {
         // Arrange
         var command = CreateCommand();
-        command.WeaponTargets.Clear();
+        command.WeaponTargets[0] = command.WeaponTargets[0] with { TargetId = Guid.NewGuid() };
         
         _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
         _target.Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Top));
