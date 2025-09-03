@@ -27,64 +27,62 @@ public record LocationCriticalHitsData(
         var localizedLocation = localizationService.GetString($"MechPart_{Location}_Short");
 
         // Show location header
-        stringBuilder.AppendLine(string.Format(
+        stringBuilder.AppendFormat(
                 localizationService.GetString("Command_CriticalHitsResolution_Location"),
-                localizedLocation));
+                localizedLocation).AppendLine();
 
         if (Roll.Length > 0)
         {
             // Show critical hit roll
-            stringBuilder.AppendLine(string.Format(
+            stringBuilder.AppendFormat(
                 localizationService.GetString("Command_CriticalHitsResolution_CritRoll"),
-                Roll.Sum()));
+                Roll.Sum()).AppendLine();
 
             // Handle blown off location
             if (IsBlownOff)
             {
-                stringBuilder.AppendLine(string.Format(
+                stringBuilder.AppendFormat(
                     localizationService.GetString("Command_CriticalHitsResolution_BlownOff"),
-                    localizedLocation));
-                return stringBuilder.ToString();
+                    localizedLocation).AppendLine();
+                return stringBuilder.ToString().TrimEnd();
             }
 
             // Show the number of critical hits
-            stringBuilder.AppendLine(string.Format(
+            stringBuilder.AppendFormat(
                 localizationService.GetString("Command_CriticalHitsResolution_NumCrits"),
-                NumCriticalHits));
+                NumCriticalHits).AppendLine();
         }
 
         if (NumCriticalHits <= 0) return stringBuilder.ToString();
 
         // Show hit components
-        if (HitComponents != null)
+        if (HitComponents == null) return stringBuilder.ToString().TrimEnd();
+        var part = unit.Parts.FirstOrDefault(p => p.Location == Location);
+        foreach (var componentHit in HitComponents)
         {
-            var part = unit.Parts.FirstOrDefault(p => p.Location == Location);
-            foreach (var componentHit in HitComponents)
+            var component = part?.GetComponentAtSlot(componentHit.Slot);
+            if (component == null || component.ComponentType != componentHit.Type) continue;
+
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_CriticalHitsResolution_CriticalHit"),
+                componentHit.Slot + 1,
+                component.Name).AppendLine();
+
+            var explosionDamage = componentHit.ExplosionDamage;
+            if (explosionDamage <= 0) continue;
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
+                component.Name,
+                explosionDamage).AppendLine();
+
+            // Add explosion damage distribution if present
+            if (componentHit.ExplosionDamageDistribution.Length <= 0) continue;
+            stringBuilder.AppendLine(
+                localizationService.GetString("Command_CriticalHitsResolution_ExplosionDamageDistribution"));
+            foreach (var damageData in componentHit.ExplosionDamageDistribution)
             {
-                var component = part?.GetComponentAtSlot(componentHit.Slot);
-                if (component == null || component.ComponentType != componentHit.Type) continue;
-
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_CriticalHitsResolution_CriticalHit"),
-                    componentHit.Slot + 1,
-                    component.Name));
-
-                var explosionDamage = componentHit.ExplosionDamage;
-                if (explosionDamage <= 0) continue;
-                stringBuilder.AppendLine(string.Format(
-                    localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
-                    component.Name,
-                    explosionDamage));
-
-                // Add explosion damage distribution if present
-                if (componentHit.ExplosionDamageDistribution.Length <= 0) continue;
                 stringBuilder.AppendLine(
-                    localizationService.GetString("Command_CriticalHitsResolution_ExplosionDamageDistribution"));
-                foreach (var damageData in componentHit.ExplosionDamageDistribution)
-                {
-                    stringBuilder.AppendLine(
-                        FormatExplosionDamageMessage(Location, localizationService, damageData));
-                }
+                    FormatExplosionDamageMessage(Location, localizationService, damageData));
             }
         }
 
