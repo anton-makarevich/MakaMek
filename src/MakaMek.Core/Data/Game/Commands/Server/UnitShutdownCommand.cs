@@ -25,7 +25,7 @@ public record struct UnitShutdownCommand : IGameCommand
     public required ShutdownData ShutdownData { get; init; }
     
     /// <summary>
-    /// Whether the shutdown was automatic (heat 30+) or due to failed roll
+    /// Whether the shutdown was automatic (heat 30+) or due to a failed roll
     /// </summary>
     public bool IsAutomaticShutdown { get; init; }
 
@@ -79,9 +79,9 @@ public record struct UnitShutdownCommand : IGameCommand
         var total = rollData.DiceResults.Sum();
 
         var template = localizationService.GetString(messageKey);
-        stringBuilder.AppendLine(string.Format(template, unitModel, rollData.HeatLevel));
-        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_AvoidNumber"), rollData.AvoidNumber));
-        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_RollResult"), total));
+        stringBuilder.AppendFormat(template, unitModel, rollData.HeatLevel).AppendLine();
+        stringBuilder.AppendFormat(localizationService.GetString("Command_AvoidNumber"), rollData.AvoidNumber).AppendLine();
+        stringBuilder.AppendFormat(localizationService.GetString("Command_RollResult"), total).AppendLine();
 
         return stringBuilder.ToString().TrimEnd();
     }

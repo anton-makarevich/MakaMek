@@ -35,9 +35,9 @@ public record struct PilotConsciousnessRollCommand : IGameCommand
         var total = DiceResults.Sum();
 
         var template = localizationService.GetString(resultKey);
-        stringBuilder.AppendLine(string.Format(template, pilot.Name, rollType));
-        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_PilotConsciousnessRoll_ConsciousnessNumber"), ConsciousnessNumber));
-        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_RollResult"), total));
+        stringBuilder.AppendFormat(template, pilot.Name, rollType).AppendLine();
+        stringBuilder.AppendFormat(localizationService.GetString("Command_PilotConsciousnessRoll_ConsciousnessNumber"), ConsciousnessNumber).AppendLine();
+        stringBuilder.AppendFormat(localizationService.GetString("Command_RollResult"), total).AppendLine();
         return stringBuilder.ToString().TrimEnd();
     }
 }

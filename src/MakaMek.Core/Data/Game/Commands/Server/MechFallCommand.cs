@@ -68,9 +68,9 @@ public record struct MechFallCommand : IGameCommand
         var stringBuilder = new StringBuilder();
 
         // Intro line: subject + action/situation summary before any PSR details
-        stringBuilder.AppendLine(string.Format(
+        stringBuilder.AppendFormat(
                         localizationService.GetString("Command_MechFalling_PsrIntro"),
-                        unit.Model));
+                        unit.Model).AppendLine();
         
         if (FallPilotingSkillRoll != null)
         {
@@ -82,15 +82,15 @@ public record struct MechFallCommand : IGameCommand
         if (DamageData == null)
             return stringBuilder.ToString().TrimEnd();
         // Base message about falling
-        stringBuilder.Append(string.Format(
+        stringBuilder.AppendFormat(
             localizationService.GetString("Command_MechFalling_Base"),
-            unit.Model));
+            unit.Model);
             
         if (LevelsFallen > 0)
         {
-            stringBuilder.Append(string.Format(
+            stringBuilder.AppendFormat(
                 localizationService.GetString("Command_MechFalling_Levels"),
-                LevelsFallen));
+                LevelsFallen);
         }
             
         if (WasJumping)
@@ -98,9 +98,9 @@ public record struct MechFallCommand : IGameCommand
             stringBuilder.Append(localizationService.GetString("Command_MechFalling_Jumping"));
         }
             
-        stringBuilder.Append(string.Format(
+        stringBuilder.AppendFormat(
             localizationService.GetString("Command_MechFalling_Damage"),
-            DamageData.HitLocations.TotalDamage));
+            DamageData.HitLocations.TotalDamage);
             
         // Add detailed hit locations information - using the location's Render method
         if (DamageData.HitLocations.HitLocations.Count > 0)

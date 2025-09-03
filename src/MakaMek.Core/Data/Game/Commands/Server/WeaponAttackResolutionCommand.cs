@@ -39,45 +39,45 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
         if (ResolutionData.IsHit)
         {
             var hitTemplate = localizationService.GetString("Command_WeaponAttackResolution_Hit");
-            stringBuilder.AppendLine(string.Format(hitTemplate,
+            stringBuilder.AppendFormat(hitTemplate,
                 player.Name,
                 attacker.Model,
                 weapon.Name,
                 targetPlayer.Name,
                 target.Model,
                 ResolutionData.ToHitNumber,
-                rollTotal));
+                rollTotal).AppendLine();
 
             // Add an attack direction  
             var directionKey = $"AttackDirection_{ResolutionData.AttackDirection}";
             var directionString = localizationService.GetString(directionKey);
 
-            stringBuilder.AppendLine(string.Format(
+            stringBuilder.AppendFormat(
                 localizationService.GetString("Command_WeaponAttackResolution_Direction"),
-                directionString));
+                directionString).AppendLine();
 
 
             // Add damage information if hit
             if (ResolutionData.HitLocationsData == null) return stringBuilder.ToString().TrimEnd();
             // Add total damage
-            stringBuilder.AppendLine(string.Format(
+            stringBuilder.AppendFormat(
                 localizationService.GetString("Command_WeaponAttackResolution_TotalDamage"),
-                ResolutionData.HitLocationsData.TotalDamage));
+                ResolutionData.HitLocationsData.TotalDamage).AppendLine();
 
             // Add missiles hit information for cluster weapons
             if (ResolutionData.HitLocationsData.ClusterRoll.Count > 1)
             {
                 // Add cluster roll information
                 var clusterRollTotal = ResolutionData.HitLocationsData.ClusterRoll.Sum(d => d.Result);
-                stringBuilder.AppendLine(string.Format(
+                stringBuilder.AppendFormat(
                     localizationService.GetString("Command_WeaponAttackResolution_ClusterRoll"),
-                    clusterRollTotal));
+                    clusterRollTotal).AppendLine();
                 
                 if (ResolutionData.HitLocationsData.MissilesHit > 0)
                 {
-                    stringBuilder.AppendLine(string.Format(
+                    stringBuilder.AppendFormat(
                         localizationService.GetString("Command_WeaponAttackResolution_MissilesHit"),
-                        ResolutionData.HitLocationsData.MissilesHit));
+                        ResolutionData.HitLocationsData.MissilesHit).AppendLine();
                 }
             }
 
@@ -105,32 +105,32 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                     var partNameKey = $"MechPart_{location}";
                     var partName = localizationService.GetString(partNameKey);
 
-                    stringBuilder.AppendLine(string.Format(
+                    stringBuilder.AppendFormat(
                         localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
-                        partName));
+                        partName).AppendLine();
                 }
             }
 
             // Add unit destruction information
             if (ResolutionData.UnitDestroyed)
             {
-                stringBuilder.AppendLine(string.Format(
+                stringBuilder.AppendFormat(
                     localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
-                    target.Model));
+                    target.Model).AppendLine();
             }
         }
         else
         {
             // Miss case
             var missTemplate = localizationService.GetString("Command_WeaponAttackResolution_Miss");
-            stringBuilder.AppendLine(string.Format(missTemplate,
+            stringBuilder.AppendFormat(missTemplate,
                 player.Name,
                 attacker.Model,
                 weapon.Name,
                 targetPlayer.Name,
                 target.Model,
                 ResolutionData.ToHitNumber,
-                rollTotal));
+                rollTotal).AppendLine();
         }
 
         return stringBuilder.ToString().TrimEnd();

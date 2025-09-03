@@ -28,10 +28,10 @@ public record struct HeatUpdatedCommand : IGameCommand
         var stringBuilder = new StringBuilder();
         
         // Unit name and previous heat
-        stringBuilder.AppendLine(string.Format(
+        stringBuilder.AppendFormat(
             localizationService.GetString("Command_HeatUpdated_Header"),
             unit.Model,
-            PreviousHeat));
+            PreviousHeat).AppendLine();
             
         // Heat sources
         stringBuilder.AppendLine(localizationService.GetString("Command_HeatUpdated_Sources"));
@@ -39,33 +39,33 @@ public record struct HeatUpdatedCommand : IGameCommand
         // Movement heat sources
         foreach (var source in HeatData.MovementHeatSources)
         {
-            stringBuilder.AppendLine(string.Format(
+            stringBuilder.AppendFormat(
                 localizationService.GetString("Command_HeatUpdated_MovementHeat"),
                 source.MovementType,
                 source.MovementPointsSpent,
-                source.HeatPoints));
+                source.HeatPoints).AppendLine();
         }
         
         // Weapon heat sources
         foreach (var source in HeatData.WeaponHeatSources)
         {
-            stringBuilder.AppendLine(string.Format(
+            stringBuilder.AppendFormat(
                 localizationService.GetString("Command_HeatUpdated_WeaponHeat"),
                 source.WeaponName,
-                source.HeatPoints));
+                source.HeatPoints).AppendLine();
         }
         
         // Total heat generated
-        stringBuilder.AppendLine(string.Format(
+        stringBuilder.AppendFormat(
             localizationService.GetString("Command_HeatUpdated_TotalGenerated"),
-            HeatData.TotalHeatPoints));
+            HeatData.TotalHeatPoints).AppendLine();
             
         // Heat dissipation
-        stringBuilder.AppendLine(string.Format(
+        stringBuilder.AppendFormat(
             localizationService.GetString("Command_HeatUpdated_Dissipation"),
             HeatData.DissipationData.HeatSinks,
             HeatData.DissipationData.EngineHeatSinks,
-            HeatData.DissipationData.DissipationPoints));
+            HeatData.DissipationData.DissipationPoints).AppendLine();
             
         return stringBuilder.ToString().TrimEnd();
     }

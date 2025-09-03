@@ -50,7 +50,7 @@ public record struct AmmoExplosionCommand : IGameCommand
         {
             // Explosion avoided
             var successTemplate = localizationService.GetString("Command_AmmoExplosion_Avoided");
-            stringBuilder.AppendLine(string.Format(successTemplate, unit.Model));
+            stringBuilder.AppendFormat(successTemplate, unit.Model).AppendLine();
 
             // Add roll details
         }
@@ -58,16 +58,16 @@ public record struct AmmoExplosionCommand : IGameCommand
         {
             // Explosion occurred due to a failed roll
             var failureTemplate = localizationService.GetString("Command_AmmoExplosion_Failed");
-            stringBuilder.AppendLine(string.Format(failureTemplate, unit.Model));
+            stringBuilder.AppendFormat(failureTemplate, unit.Model).AppendLine();
 
             // Add roll details
         }
 
-        stringBuilder.AppendLine(string.Format(
+        stringBuilder.AppendFormat(
             localizationService.GetString("Command_AmmoExplosion_RollDetails"),
             AvoidExplosionRoll.HeatLevel,
             rollTotal,
-            AvoidExplosionRoll.AvoidNumber));
+            AvoidExplosionRoll.AvoidNumber).AppendLine();
         
         // If an explosion occurred, show the critical hits details
         if (!explosionOccurred) return stringBuilder.ToString().TrimEnd();

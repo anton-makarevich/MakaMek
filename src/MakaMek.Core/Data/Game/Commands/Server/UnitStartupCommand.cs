@@ -18,7 +18,7 @@ public record struct UnitStartupCommand : IGameCommand
     public required Guid UnitId { get; init; }
     
     /// <summary>
-    /// Whether the restart was automatic (heat below threshold)
+    /// Whether the restart was automatic (heat below the threshold)
     /// </summary>
     public required bool IsAutomaticRestart { get; init; }
 
@@ -76,9 +76,9 @@ public record struct UnitStartupCommand : IGameCommand
         var total = rollData.DiceResults.Sum();
 
         var template = localizationService.GetString(messageKey);
-        stringBuilder.AppendLine(string.Format(template, unitModel, rollData.HeatLevel));
-        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_AvoidNumber"), rollData.AvoidNumber));
-        stringBuilder.AppendLine(string.Format(localizationService.GetString("Command_RollResult"), total));
+        stringBuilder.AppendFormat(template, unitModel, rollData.HeatLevel).AppendLine();
+        stringBuilder.AppendFormat(localizationService.GetString("Command_AvoidNumber"), rollData.AvoidNumber).AppendLine();
+        stringBuilder.AppendFormat(localizationService.GetString("Command_RollResult"), total).AppendLine();
 
         return stringBuilder.ToString().TrimEnd();
     }

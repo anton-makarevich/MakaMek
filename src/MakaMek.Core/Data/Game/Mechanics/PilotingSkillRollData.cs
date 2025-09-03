@@ -47,25 +47,25 @@ public record PilotingSkillRollData
         {
             // Impossible roll case (auto-fail)
             var impossibleTemplate = localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll");
-            stringBuilder.AppendLine(string.Format(impossibleTemplate, rollTypeName));
+            stringBuilder.AppendFormat(impossibleTemplate, rollTypeName).AppendLine();
         }
         else if (IsSuccessful)
         {
             // Success case
             var successTemplate = localizationService.GetString("Command_PilotingSkillRoll_Success");
-            stringBuilder.AppendLine(string.Format(successTemplate, rollTypeName));
+            stringBuilder.AppendFormat(successTemplate, rollTypeName).AppendLine();
         }
         else
         {
             // Failure case
             var failureTemplate = localizationService.GetString("Command_PilotingSkillRoll_Failure");
-            stringBuilder.AppendLine(string.Format(failureTemplate, rollTypeName));
+            stringBuilder.AppendFormat(failureTemplate, rollTypeName).AppendLine();
         }
 
         // Add breakdown of modifiers
-        stringBuilder.AppendLine(string.Format(
+        stringBuilder.AppendFormat(
             localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill"),
-            PsrBreakdown.BasePilotingSkill));
+            PsrBreakdown.BasePilotingSkill).AppendLine();
 
         if (PsrBreakdown.Modifiers.Count > 0)
         {
@@ -77,17 +77,17 @@ public record PilotingSkillRollData
             }
         }
 
-        // Add total target number
-        stringBuilder.AppendLine(string.Format(
+        // Add the total target number
+        stringBuilder.AppendFormat(
             localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber"),
-            PsrBreakdown.ModifiedPilotingSkill));
+            PsrBreakdown.ModifiedPilotingSkill).AppendLine();
 
         // Add roll result if not an impossible roll
         if (!PsrBreakdown.IsImpossible)
         {
-            stringBuilder.AppendLine(string.Format(
+            stringBuilder.AppendFormat(
                 localizationService.GetString("Command_RollResult"),
-                rollTotal));
+                rollTotal).AppendLine();
         }
         
         return stringBuilder.ToString().TrimEnd();
