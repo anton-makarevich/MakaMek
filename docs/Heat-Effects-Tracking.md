@@ -11,7 +11,7 @@ Version: **0.42.x**
 
 #### 2. Heat-triggered Ammunition Explosions
 
-* [ ] If the heat level reaches or exceeds an Ammo Explosion thresh old of 19, 23, or 28 heat points, the ammunition a ’Mech carries may explode.
-* [ ] The explosion can be avoided by pure luck, as indicated by the Avoid number. 
-* [ ] When an overheated ’Mech’s ammo explodes, the ammunition critical slot with the most destructive ammo per shot explodes first. All of the appropriate ammo type in a single critical slot explodes.
-* [ ] If more than one critical hit slot holds  the appropriate ammo type, the one with the most shots remain ing explodes. If two or more locations have an equal number of shots remaining, randomly determine which one explodes. 
+* [x] If the heat level reaches or exceeds an Ammo Explosion thresh old of 19, 23, or 28 heat points, the ammunition a ’Mech carries may explode.
+* [x] The explosion can be avoided by pure luck, as indicated by the Avoid number. 
+* [x] When an overheated ’Mech’s ammo explodes, the ammunition critical slot with the most destructive ammo per shot explodes first. All of the appropriate ammo type in a single critical slot explodes.
+* [x] If more than one critical hit slot holds  the appropriate ammo type, the one with the most shots remain ing explodes. If two or more locations have an equal number of shots remaining, randomly determine which one explodes. 
