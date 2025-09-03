@@ -7,6 +7,9 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 public record struct WeaponAttackDeclarationCommand : IClientCommand
 {
     public required Guid GameOriginId { get; set; }
+    public required Guid AttackerId { get; init; }
+    public required List<WeaponTargetData> WeaponTargets { get; init; }
+    public required Guid PlayerId { get; init; }
     public DateTime Timestamp { get; set; }
 
     public string Render(ILocalizationService localizationService, IGame game)
@@ -59,8 +62,4 @@ public record struct WeaponAttackDeclarationCommand : IClientCommand
 
         return stringBuilder.ToString().TrimEnd();
     }
-
-    public required Guid AttackerId { get; init; }
-    public required List<WeaponTargetData> WeaponTargets { get; init; }
-    public Guid PlayerId { get; init; }
 }
