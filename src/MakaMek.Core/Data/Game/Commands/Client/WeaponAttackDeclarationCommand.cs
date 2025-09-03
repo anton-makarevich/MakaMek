@@ -25,7 +25,7 @@ public record struct WeaponAttackDeclarationCommand : IClientCommand
         
         var stringBuilder = new StringBuilder();
         var headerTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_Header");
-        stringBuilder.AppendLine(string.Format(headerTemplate, player.Name, attacker.Model));
+        stringBuilder.AppendFormat(headerTemplate, player.Name, attacker.Model).AppendLine();
         
         var weaponLineTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_WeaponLine");
         
@@ -38,10 +38,10 @@ public record struct WeaponAttackDeclarationCommand : IClientCommand
             var targetPlayer = targetUnit?.Owner;
             if (targetPlayer == null) continue;
             
-            stringBuilder.AppendLine(string.Format(weaponLineTemplate,
+            stringBuilder.AppendFormat(weaponLineTemplate,
                 weaponTarget.Weapon.Name,
                 targetPlayer.Name,
-                targetUnit!.Model));
+                targetUnit!.Model).AppendLine();
         }
         
         return stringBuilder.ToString().TrimEnd();

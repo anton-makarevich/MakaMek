@@ -41,17 +41,17 @@ public record LocationHitData(
             if (aimedShotSuccessful)
             {
                 var template = localizationService.GetString("Command_WeaponAttackResolution_AimedShotSuccessful");
-                stringBuilder.AppendLine(string.Format(
+                stringBuilder.AppendFormat(
                     template,
                     localizedInitialLocation,
-                    aimedShotTotal));
+                    aimedShotTotal).AppendLine();
             }
             else
             {
-                stringBuilder.AppendLine(string.Format(
+                stringBuilder.AppendFormat(
                     localizationService.GetString("Command_WeaponAttackResolution_AimedShotFailed"),
                     localizedInitialLocation,
-                    aimedShotTotal));
+                    aimedShotTotal).AppendLine();
             }
         }
         

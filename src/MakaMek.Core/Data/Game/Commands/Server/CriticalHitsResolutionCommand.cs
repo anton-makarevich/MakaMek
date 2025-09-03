@@ -27,10 +27,10 @@ public record CriticalHitsResolutionCommand : IGameCommand
 
         var stringBuilder = new StringBuilder();
 
-        // Add header message
-        stringBuilder.AppendLine(string.Format(
+        // Add a header message
+        stringBuilder.AppendFormat(
             localizationService.GetString("Command_CriticalHitsResolution_Header"),
-            target.Model));
+            target.Model).AppendLine();
 
         foreach (var criticalHitData in CriticalHits)
         {
