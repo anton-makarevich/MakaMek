@@ -42,13 +42,20 @@ public class CommandTransportAdapter
     /// <param name="publisher">The publisher to add</param>
     public void AddPublisher(ITransportPublisher? publisher)
     {
-        if (publisher == null || TransportPublishers.Contains(publisher)) return;
-        TransportPublishers.Add(publisher);
-            
-        // If Initialize has already been called, subscribe the new publisher immediately
-        if (_isInitialized && _onCommandReceived != null)
+        if (publisher == null) return;
+
+        // Guard with the same lock to avoid races with Initialize
+        lock (_initLock)
         {
-            SubscribePublisher(publisher, _onCommandReceived);
+            if (TransportPublishers.Contains(publisher)) return;
+
+            TransportPublishers.Add(publisher);
+
+            // Subscribe immediately if a callback is already available (init may be in progress)
+            if (_onCommandReceived != null)
+            {
+                SubscribePublisher(publisher, _onCommandReceived);
+            }
         }
     }
     
@@ -57,8 +64,18 @@ public class CommandTransportAdapter
     /// </summary>
     public void ClearPublishers()
     {
-        // Properly dispose publishers if they implement IDisposable
-        foreach (var publisher in TransportPublishers)
+        // Take a stable snapshot and clear shared state under lock
+        ITransportPublisher[] snapshot;
+        lock (_initLock)
+        {
+            snapshot = TransportPublishers.ToArray();
+            _onCommandReceived = null;
+            _isInitialized = false;
+            TransportPublishers.Clear();
+        }
+
+        // Dispose publishers outside the lock
+        foreach (var publisher in snapshot)
         {
             if (publisher is not IDisposable disposable) continue;
             try
@@ -70,9 +87,6 @@ public class CommandTransportAdapter
                 Console.WriteLine($"Error disposing publisher: {ex.Message}");
             }
         }
-        _onCommandReceived = null;
-        _isInitialized = false;
-        TransportPublishers.Clear();
     }
     
     /// <summary>
@@ -89,10 +103,23 @@ public class CommandTransportAdapter
             Timestamp = command.Timestamp
         };
         
-        // Publish to all transport publishers
-        foreach (var publisher in TransportPublishers)
+        // Publish to all transport publishers, isolating per-publisher failures
+        ITransportPublisher[] publishersSnapshot;
+        lock (_initLock)
         {
-            publisher.PublishMessage(message);
+            publishersSnapshot = TransportPublishers.ToArray();
+        }
+
+        foreach (var publisher in publishersSnapshot)
+        {
+            try
+            {
+                publisher.PublishMessage(message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error publishing to {publisher.GetType().Name}: {ex.Message}");
+            }
         }
     }
     
@@ -102,20 +129,21 @@ public class CommandTransportAdapter
     /// <param name="onCommandReceived">Callback for received commands</param>
     public void Initialize(Action<IGameCommand, ITransportPublisher> onCommandReceived)
     {
+        ITransportPublisher[] publishersSnapshot;
         lock (_initLock)
         {
             if (_isInitialized)
                 return; // Already initialized, do nothing
 
             _onCommandReceived = onCommandReceived;
+            _isInitialized = true; // Close race window with AddPublisher
+            publishersSnapshot = TransportPublishers.ToArray(); // Stable snapshot
+        }
 
-            // Subscribe to all publishers
-            foreach (var publisher in TransportPublishers)
-            {
-                SubscribePublisher(publisher, onCommandReceived);
-            }
-
-            _isInitialized = true;
+        // Subscribe outside the lock to minimize lock hold time
+        foreach (var publisher in publishersSnapshot)
+        {
+            SubscribePublisher(publisher, onCommandReceived);
         }
     }
     
@@ -212,10 +240,18 @@ public class CommandTransportAdapter
                 var command = DeserializeCommand(message);
                 onCommandReceived(command, publisher);
             }
+            catch (UnknownCommandTypeException uex)
+            {
+                Console.WriteLine($"Unknown MessageType '{message.MessageType}' from {message.SourceId}: {uex.Message}");
+            }
+            catch (JsonException jex)
+            {
+                Console.WriteLine($"JSON error for '{message.MessageType}' (SourceId={message.SourceId}): {jex.Message}");
+            }
             catch (Exception ex)
             {
                 // Log error but don't crash the transport subscription
-                Console.WriteLine($"Error processing received message: {ex.Message}");
+                Console.WriteLine($"Error processing '{message.MessageType}' (SourceId={message.SourceId}): {ex.Message}");
                 // Depending on logging strategy, might want a more robust logger here in the future
             }
         });
