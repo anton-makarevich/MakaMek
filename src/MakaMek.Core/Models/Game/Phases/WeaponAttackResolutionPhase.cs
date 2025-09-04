@@ -281,15 +281,13 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var initialLocation = hitLocation;
         
         // Check if the location is already destroyed and transfer if needed
-        var part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
-        while (part is { IsDestroyed: true })
+        while (target.Parts.TryGetValue(hitLocation, out var part) && part.IsDestroyed)
         {
             var nextLocation = part.GetNextTransferLocation();
             if (nextLocation == null || nextLocation == hitLocation)
                 break;
-                
+
             hitLocation = nextLocation.Value;
-            part = target.Parts.FirstOrDefault(p => p.Location == hitLocation);
         }
         
         // Use DamageTransferCalculator to calculate damage distribution
@@ -355,7 +353,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         AttackResolutionData resolution)
     {
         // Track destroyed parts before damage
-        var destroyedPartsBefore = target.Parts.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
+        var destroyedPartsBefore = target.Parts.Values
+            .Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
         var wasDestroyedBefore = target.IsDestroyed;
 
         // Apply damage to the target
@@ -366,7 +365,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
 
         // Check which parts are newly destroyed
-        var destroyedPartsAfter = target.Parts.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
+        var destroyedPartsAfter = target.Parts.Values.Where(p => p.IsDestroyed).Select(p => p.Location).ToList();
         var newlyDestroyedParts = destroyedPartsAfter.Except(destroyedPartsBefore).ToList();
 
         // Check if the unit was destroyed by this attack

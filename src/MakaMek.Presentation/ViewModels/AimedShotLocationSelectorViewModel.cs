@@ -54,7 +54,7 @@ public class AimedShotLocationSelectorViewModel : BaseViewModel
 
     private UnitPartViewModel CreateBodyPartViewModel(PartLocation location)
     {
-        var part = _target.Parts.FirstOrDefault(p => p.Location == location);
+        _target.Parts.TryGetValue(location, out var part);
         var isDestroyed = part?.IsDestroyed ?? true;
         var isSelectable = !isDestroyed;
 

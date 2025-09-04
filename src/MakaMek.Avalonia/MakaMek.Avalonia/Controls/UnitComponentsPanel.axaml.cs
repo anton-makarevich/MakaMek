@@ -37,7 +37,7 @@ public partial class UnitComponentsPanel : UserControl
             return;
         }
 
-        var components = Unit.Parts
+        var components = Unit.Parts.Values
             .SelectMany(p => p.Components)
             .ToList();
 

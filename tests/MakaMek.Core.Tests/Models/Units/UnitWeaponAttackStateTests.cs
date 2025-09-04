@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -47,7 +47,7 @@ public class UnitWeaponAttackStateTests
 
     private Weapon CreateWeapon(PartLocation location, Mech mech)
     {
-        var part = mech.Parts.First(p => p.Location == location);
+        var part = mech.Parts[location];
         var weapon = new MediumLaser();
         part.TryAddComponent(weapon);
         

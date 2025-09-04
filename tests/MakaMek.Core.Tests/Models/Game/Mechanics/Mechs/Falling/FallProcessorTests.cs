@@ -510,7 +510,7 @@ public class FallProcessorTests
         {
             // Find the part containing the gyro and remove it.
             // This assumes Gyro is in CenterTorso for standard mechs, but iterates to be safe.
-            var partContainingGyro = _testMech.Parts.FirstOrDefault(p => p.GetComponents<Gyro>().Any());
+            var partContainingGyro = _testMech.Parts.Values.FirstOrDefault(p => p.GetComponents<Gyro>().Any());
             partContainingGyro?.RemoveComponent(gyroComponent);
         }
         _testMech.GetAllComponents<Gyro>().ShouldBeEmpty("Test 'Mech should not have a Gyro for this scenario.");

@@ -18,7 +18,7 @@ namespace Sanet.MakaMek.Core.Models.Units;
 
 public abstract class Unit
 {
-    protected readonly List<UnitPart> _parts;
+    protected readonly Dictionary<PartLocation, UnitPart> _parts;
     private readonly Queue<UiEvent> _notifications = new();
     private readonly List<UiEvent> _events = [];
 
@@ -32,9 +32,9 @@ public abstract class Unit
         Name = $"{chassis} {model}";
         Tonnage = tonnage;
         BaseMovement = walkMp;
-        _parts = parts.ToList();
+        _parts = parts.ToDictionary(p => p.Location, p => p);
         // Set the Unit reference for each part
-        foreach (var part in _parts)
+        foreach (var part in _parts.Values)
         {
             part.Unit = this;
         }
@@ -256,7 +256,7 @@ public abstract class Unit
     protected abstract void ApplyHeatEffects();
     
     // Parts management
-    public IReadOnlyList<UnitPart> Parts =>_parts;
+    public IReadOnlyDictionary<PartLocation, UnitPart> Parts => _parts;
     public Guid Id { get; private set; } = Guid.Empty;
     public IPilot? Pilot { get; protected set; }
 
@@ -292,10 +292,10 @@ public abstract class Unit
     }
 
     // Armor and Structure totals
-    public int TotalMaxArmor => _parts.Sum(p => p.MaxArmor);
-    public int TotalCurrentArmor => _parts.Sum(p => p.CurrentArmor);
-    public int TotalMaxStructure => _parts.Sum(p => p.MaxStructure);
-    public int TotalCurrentStructure => _parts.Sum(p => p.CurrentStructure);
+    public int TotalMaxArmor => _parts.Values.Sum(p => p.MaxArmor);
+    public int TotalCurrentArmor => _parts.Values.Sum(p => p.CurrentArmor);
+    public int TotalMaxStructure => _parts.Values.Sum(p => p.MaxStructure);
+    public int TotalCurrentStructure => _parts.Values.Sum(p => p.CurrentStructure);
 
     // Movement tracking
     public int MovementPointsSpent { get; private set; }
@@ -434,8 +434,7 @@ public abstract class Unit
         {
             foreach (var locationDamage in hitLocation.Damage)
             {
-                var targetPart = _parts.Find(p => p.Location == locationDamage.Location);
-                if (targetPart == null) continue;
+                if (!_parts.TryGetValue(locationDamage.Location, out var targetPart)) continue;
     
                 // Apply pre-calculated armor and structure damage
                 var totalDamage = locationDamage.ArmorDamage + locationDamage.StructureDamage;
@@ -467,8 +466,7 @@ public abstract class Unit
     {
         foreach (var locationData in criticalHitsData)
         {
-            var targetPart = _parts.Find(p => p.Location == locationData.Location);
-            if (targetPart == null) continue;
+            if (!_parts.TryGetValue(locationData.Location, out var targetPart)) continue;
 
             // Handle blown-off parts
             if (locationData.IsBlownOff)
@@ -490,8 +488,8 @@ public abstract class Unit
                     // Apply explosion damage if present and enabled
                     foreach (var explosionDamage in componentHit.ExplosionDamageDistribution)
                     {
-                        var damagedPart = _parts.Find(p => p.Location == explosionDamage.Location);
-                        if (damagedPart == null || explosionDamage.StructureDamage <= 0) continue;
+                        if (!_parts.TryGetValue(explosionDamage.Location, out var damagedPart) 
+                            || explosionDamage.StructureDamage <= 0) continue;
 
                         // Explosion damage bypasses armor and only affects structure
                         damagedPart.ApplyDamage(explosionDamage.StructureDamage, HitDirection.Front, true);
@@ -516,7 +514,7 @@ public abstract class Unit
 
     public IEnumerable<T> GetAllComponents<T>() where T : Component
     {
-        return Parts.SelectMany(p => p.GetComponents<T>());
+        return Parts.Values.SelectMany(p => p.GetComponents<T>());
     }
     
     public IEnumerable<T> GetAvailableComponents<T>() where T : Component
@@ -563,8 +561,7 @@ public abstract class Unit
     /// <returns>All components at the specified location</returns>
     public IEnumerable<Component> GetComponentsAtLocation(PartLocation location)
     {
-        var part = _parts.FirstOrDefault(p => p.Location == location);
-        return part?.Components ?? [];
+        return _parts.TryGetValue(location, out var part) ? part.Components : [];
     }
 
     /// <summary>
@@ -575,8 +572,7 @@ public abstract class Unit
     /// <returns>All components of the specified type at the specified location</returns>
     public IEnumerable<T> GetComponentsAtLocation<T>(PartLocation location) where T : Component
     {
-        var part = _parts.FirstOrDefault(p => p.Location == location);
-        return part?.GetComponents<T>() ?? [];
+        return _parts.TryGetValue(location, out var part) ? part.GetComponents<T>() : [];
     }
     
     /// <summary>
@@ -604,13 +600,13 @@ public abstract class Unit
     public UnitPart? FindComponentPart(Component component)
     {
         // First check the component's MountedOn property
-        if (component.MountedOn != null && _parts.Contains(component.MountedOn))
+        if (component.MountedOn != null && _parts.ContainsValue(component.MountedOn))
         {
             return component.MountedOn;
         }
-        
+
         // Fallback to searching all parts
-        return _parts.FirstOrDefault(p => p.Components.Contains(component));
+        return _parts.Values.FirstOrDefault(p => p.Components.Contains(component));
     }
 
     public void Move(MovementType movementType, List<PathSegmentData> movementPath)

@@ -75,13 +75,13 @@ public class UnitTests
         protected override void UpdateDestroyedStatus()
         {
             // Implement the same logic as Mech for testing
-            var head = Parts.FirstOrDefault(p => p.Location == PartLocation.Head);
+            var head = Parts.Values.FirstOrDefault(p => p.Location == PartLocation.Head);
             if (head is { IsDestroyed: true })
             {
                 Status = UnitStatus.Destroyed;
                 return;
             }
-            var centerTorso = Parts.FirstOrDefault(p => p.Location == PartLocation.CenterTorso);
+            var centerTorso = Parts.Values.FirstOrDefault(p => p.Location == PartLocation.CenterTorso);
             if (centerTorso is { IsDestroyed: true })
             {
                 Status = UnitStatus.Destroyed;
@@ -112,7 +112,7 @@ public class UnitTests
     
     private void MountWeaponOnUnit(TestUnit unit, TestWeapon weapon, PartLocation location, int[] slots)
     {
-        var part = unit.Parts.First(p => p.Location == location);
+        var part = unit.Parts[location];
         part.TryAddComponent(weapon,slots);
     }
     
@@ -548,8 +548,8 @@ public class UnitTests
         };
         
         // Get initial armor values
-        var centerTorsoPart = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var leftArmPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var centerTorsoPart = unit.Parts[PartLocation.CenterTorso];
+        var leftArmPart = unit.Parts[PartLocation.LeftArm];
         var initialCenterTorsoArmor = centerTorsoPart.CurrentArmor;
         var initialLeftArmArmor = leftArmPart.CurrentArmor;
         
@@ -573,7 +573,7 @@ public class UnitTests
         };
         
         // Get initial armor values
-        var centerTorsoPart = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorsoPart = unit.Parts[PartLocation.CenterTorso];
         var initialCenterTorsoArmor = centerTorsoPart.CurrentArmor;
         
         // Act
@@ -592,13 +592,13 @@ public class UnitTests
         var hitLocations = new List<LocationHitData>();
         
         // Get initial armor values for all parts
-        var initialArmorValues = unit.Parts.ToDictionary(p => p.Location, p => p.CurrentArmor);
+        var initialArmorValues = unit.Parts.Values.ToDictionary(p => p.Location, p => p.CurrentArmor);
         
         // Act
         unit.ApplyDamage(hitLocations, HitDirection.Front);
         
         // Assert
-        foreach (var part in unit.Parts)
+        foreach (var part in unit.Parts.Values)
         {
             part.CurrentArmor.ShouldBe(initialArmorValues[part.Location]);
         }
@@ -736,7 +736,7 @@ public class UnitTests
         
         // Add ammo to the unit
         var ammo = new Ammo(Ac5.Definition, 10);
-        var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArmPart = unit.Parts[PartLocation.RightArm];
         rightArmPart.TryAddComponent(ammo);
         
         var weaponData = new WeaponData
@@ -817,7 +817,7 @@ public class UnitTests
         var ammo2 = new Ammo(Ac5.Definition, 8); // This one has more shots
         var ammo3 = new Ammo(Ac5.Definition, 5);
         
-        var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArmPart = unit.Parts[PartLocation.RightArm];
         rightArmPart.TryAddComponent(ammo1);
         rightArmPart.TryAddComponent(ammo2);
         rightArmPart.TryAddComponent(ammo3);
@@ -990,7 +990,7 @@ public class UnitTests
         var rulesProvider = Substitute.For<IRulesProvider>();
         
         // Add heat sinks to the unit
-        var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArmPart = unit.Parts[PartLocation.RightArm];
         rightArmPart.TryAddComponent(new HeatSink());
         rightArmPart.TryAddComponent(new HeatSink());
         
@@ -1013,7 +1013,7 @@ public class UnitTests
         var rulesProvider = Substitute.For<IRulesProvider>();
         
         // Add heat sinks to the unit
-        var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArmPart = unit.Parts[PartLocation.RightArm];
         var destroyedHeatSink = new HeatSink();
         destroyedHeatSink.Hit();
         rightArmPart.TryAddComponent(destroyedHeatSink);
@@ -1036,7 +1036,7 @@ public class UnitTests
         var rulesProvider = Substitute.For<IRulesProvider>();
         
         // Add heat sinks to the unit
-        var rightArmPart = unit.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArmPart = unit.Parts[PartLocation.RightArm];
         rightArmPart.TryAddComponent(new HeatSink());
         rightArmPart.TryAddComponent(new HeatSink());
         rightArmPart.BlowOff(); // destroy the part
@@ -1056,7 +1056,7 @@ public class UnitTests
         // Arrange
         var unit = CreateTestUnit();
         var testComponent = new TestComponent("Test Component");
-        var part = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var part = unit.Parts[PartLocation.LeftArm];
         part.TryAddComponent(testComponent);
         
         // Act
@@ -1074,7 +1074,7 @@ public class UnitTests
         // Arrange
         var unit = CreateTestUnit();
         var testComponent = new TestComponent("Test Component");
-        var part = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var part = unit.Parts[PartLocation.LeftArm];
         part.TryAddComponent(testComponent);
         
         // Make the component unavailable
@@ -1128,7 +1128,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = unit.Parts[PartLocation.LeftArm];
         
         var hitLocations = new List<LocationCriticalHitsData>
         {
@@ -1150,7 +1150,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = unit.Parts[PartLocation.LeftArm];
         var component = new TestComponent("Test Component", 3);
         targetPart.TryAddComponent(component);
         
@@ -1180,7 +1180,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = unit.Parts[PartLocation.LeftArm];
         var component = new TestComponent("Test Component", 3);
         targetPart.TryAddComponent(component);
         
@@ -1206,7 +1206,7 @@ public class UnitTests
         var unit = CreateTestUnit();
         var pilot = new MechWarrior("John", "Doe");
         unit.AssignPilot(pilot);
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = unit.Parts[PartLocation.LeftArm];
         
         // Create an explodable component
         var explodableComponent = new TestExplodableComponent("Explodable Component", 3);
@@ -1262,7 +1262,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = unit.Parts[PartLocation.LeftArm];
         
         // Create multiple explodable components
         var explodableComponent1 = new TestExplodableComponent("Explodable Component 1", 3);
@@ -1316,7 +1316,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = unit.Parts[PartLocation.LeftArm];
         
         // Create an explodable component that has already exploded
         var explodableComponent = new TestExplodableComponent("Explodable Component", 5);
@@ -1352,7 +1352,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = unit.Parts[PartLocation.LeftArm];
         var component = new TestComponent("Test Component", 3);
         targetPart.TryAddComponent(component);
 
@@ -1406,7 +1406,7 @@ public class UnitTests
     {
         // Arrange - This tests lines 491-494 (unit destruction due to critical hits)
         var unit = CreateTestUnit();
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
 
         // Destroy the center torso by reducing structure to 0
         centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure, HitDirection.Front);
@@ -1443,7 +1443,7 @@ public class UnitTests
     {
         // Arrange - This verifies lines 491-494 are not executed when unit is not destroyed
         var unit = CreateTestUnit();
-        var targetPart = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = unit.Parts[PartLocation.LeftArm];
         var component = new TestComponent("Test Component", 3);
         targetPart.TryAddComponent(component);
 
@@ -1718,7 +1718,7 @@ public class UnitTests
         var sut = CreateTestUnit();
         var pilot = new MechWarrior("John", "Doe");
         sut.AssignPilot(pilot);
-        var targetPart = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = sut.Parts[PartLocation.LeftArm];
         
         // Create an explodable component
         var explodableComponent = new TestExplodableComponent("Explodable Component", 3);

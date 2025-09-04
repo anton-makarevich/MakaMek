@@ -37,7 +37,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 return;
             }
 
-            foreach (var part in Unit.Parts)
+            foreach (var part in Unit.Parts.Values)
             {
                 switch (part.Location)
                 {
@@ -56,17 +56,17 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     case PartLocation.LeftTorso:
                         UpdateBar(LeftTorsoArmor, part.CurrentArmor, part.MaxArmor, part.IsDestroyed);
                         UpdateBar(LeftTorsoStructure, part.CurrentStructure, part.MaxStructure, part.IsDestroyed);
-                        if (part is Torso torsoLT)
+                        if (part is Torso torsoLt)
                         {
-                            UpdateBar(LeftTorsoRearArmor, torsoLT.CurrentRearArmor, torsoLT.MaxRearArmor, part.IsDestroyed);
+                            UpdateBar(LeftTorsoRearArmor, torsoLt.CurrentRearArmor, torsoLt.MaxRearArmor, part.IsDestroyed);
                         }
                         break;
                     case PartLocation.RightTorso:
                         UpdateBar(RightTorsoArmor, part.CurrentArmor, part.MaxArmor, part.IsDestroyed);
                         UpdateBar(RightTorsoStructure, part.CurrentStructure, part.MaxStructure, part.IsDestroyed);
-                        if (part is Torso torsoRT)
+                        if (part is Torso torsoRt)
                         {
-                            UpdateBar(RightTorsoRearArmor, torsoRT.CurrentRearArmor, torsoRT.MaxRearArmor, part.IsDestroyed);
+                            UpdateBar(RightTorsoRearArmor, torsoRt.CurrentRearArmor, torsoRt.MaxRearArmor, part.IsDestroyed);
                         }
                         break;
                     case PartLocation.LeftArm:
@@ -109,39 +109,39 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private void ClearHealthBars()
         {
             // Head
-            UpdateBar(HeadArmor, 0, 1, false);
-            UpdateBar(HeadStructure, 0, 1, false);
+            UpdateBar(HeadArmor, 0, 1);
+            UpdateBar(HeadStructure, 0, 1);
 
             // Center Torso
-            UpdateBar(CenterTorsoArmor, 0, 1, false);
-            UpdateBar(CenterTorsoStructure, 0, 1, false);
-            UpdateBar(CenterTorsoRearArmor, 0, 1, false);
+            UpdateBar(CenterTorsoArmor, 0, 1);
+            UpdateBar(CenterTorsoStructure, 0, 1);
+            UpdateBar(CenterTorsoRearArmor, 0, 1);
 
             // Left Torso
-            UpdateBar(LeftTorsoArmor, 0, 1, false);
-            UpdateBar(LeftTorsoStructure, 0, 1, false);
-            UpdateBar(LeftTorsoRearArmor, 0, 1, false);
+            UpdateBar(LeftTorsoArmor, 0, 1);
+            UpdateBar(LeftTorsoStructure, 0, 1);
+            UpdateBar(LeftTorsoRearArmor, 0, 1);
 
             // Right Torso
-            UpdateBar(RightTorsoArmor, 0, 1, false);
-            UpdateBar(RightTorsoStructure, 0, 1, false);
-            UpdateBar(RightTorsoRearArmor, 0, 1, false);
+            UpdateBar(RightTorsoArmor, 0, 1);
+            UpdateBar(RightTorsoStructure, 0, 1);
+            UpdateBar(RightTorsoRearArmor, 0, 1);
 
             // Left Arm
-            UpdateBar(LeftArmArmor, 0, 1, false);
-            UpdateBar(LeftArmStructure, 0, 1, false);
+            UpdateBar(LeftArmArmor, 0, 1);
+            UpdateBar(LeftArmStructure, 0, 1);
 
             // Right Arm
-            UpdateBar(RightArmArmor, 0, 1, false);
-            UpdateBar(RightArmStructure, 0, 1, false);
+            UpdateBar(RightArmArmor, 0, 1);
+            UpdateBar(RightArmStructure, 0, 1);
 
             // Left Leg
-            UpdateBar(LeftLegArmor, 0, 1, false);
-            UpdateBar(LeftLegStructure, 0, 1, false);
+            UpdateBar(LeftLegArmor, 0, 1);
+            UpdateBar(LeftLegStructure, 0, 1);
 
             // Right Leg
-            UpdateBar(RightLegArmor, 0, 1, false);
-            UpdateBar(RightLegStructure, 0, 1, false);
+            UpdateBar(RightLegArmor, 0, 1);
+            UpdateBar(RightLegStructure, 0, 1);
         }
     }
 }

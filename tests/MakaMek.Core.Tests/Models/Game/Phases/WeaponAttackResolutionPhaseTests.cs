@@ -328,7 +328,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Make sure the attack will hit and deal enough damage to destroy the head
         // Assume unit2's head is the first part and get its max armor/structure
-        var head = _player1Unit2.Parts.First(p => p.Location == PartLocation.Head);
+        var head = _player1Unit2.Parts[PartLocation.Head];
         var lethalDamage = head.MaxArmor + head.MaxStructure + 1;
 
         _player1Unit2.ApplyDamage([CreateHitDataForLocation(PartLocation.Head, lethalDamage)], HitDirection.Front); // Apply lethal damage();
@@ -359,7 +359,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         targetUnit.ResetTurnState();
 
         // Get the part we want to target (left arm)
-        var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = targetUnit.Parts[PartLocation.LeftArm];
 
         // Get the initial armor and structure values
         var initialArmor = targetPart.CurrentArmor;
@@ -367,7 +367,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Get the weapons from player1's unit
         var attackingUnit = _player1Unit1;
-        var weaponWithoutTarget = attackingUnit.Parts[1].GetComponents<Weapon>().First();
+        var weaponWithoutTarget = attackingUnit.Parts.Values.Skip(1).First().GetComponents<Weapon>().First();
 
         // Set a target for the second weapon (same as the first weapon)
         var additionalWeaponTargets = new List<WeaponTargetData>
@@ -377,7 +377,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Weapon = new WeaponData
                 {
                     Name = weaponWithoutTarget.Name,
-                    Location = attackingUnit.Parts[1].Location,
+                    Location = attackingUnit.Parts.Values.Skip(1).First().Location,
                     Slots = weaponWithoutTarget.MountedAtSlots
                 },
                 TargetId = targetUnit.Id,
@@ -424,7 +424,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var totalDamage = capturedCommands.Sum(cmd =>
             cmd.ResolutionData.HitLocationsData!.TotalDamage);
 
-        var nextPart = targetUnit.Parts.First(p => p.Location == targetPart.GetNextTransferLocation());
+        var nextLocation = targetPart.GetNextTransferLocation()!.Value;
+        var nextPart = targetUnit.Parts[nextLocation];
 
         // The total damage should match the difference in armor/structure
         var armorDamage = initialArmor - targetPart.CurrentArmor;
@@ -442,7 +443,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetMap();
         // Add a cluster weapon to unit1
         var clusterWeapon = new TestClusterWeapon(1, 5);
-        var part1 = _player1Unit1.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var part1 = _player1Unit1.Parts[PartLocation.LeftArm];
         part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
         // Set a target for the cluster weapon
         var clusterWeaponTargets = new List<WeaponTargetData>
@@ -504,7 +505,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetMap();
         // Setup PSR for heavy damage 36 > 20 to avoid NRE
         var clusterWeapon = new TestClusterWeapon(6, 6, 1); 
-        var part1 = _player1Unit1.Parts.First(p=>p.Location == PartLocation.LeftArm);
+        var part1 = _player1Unit1.Parts.Values.First(p=>p.Location == PartLocation.LeftArm);
         part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
         // Set a target for the cluster weapon 
         var clusterWeaponTargets = new List<WeaponTargetData>
@@ -557,7 +558,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Add a cluster weapon to unit1
         SetMap();
         var clusterWeapon = new TestClusterWeapon(10, 5); // LRM-10
-        var part1 = _player1Unit1.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var part1 = _player1Unit1.Parts[PartLocation.LeftArm];
         part1.TryAddComponent(clusterWeapon).ShouldBeTrue();
         // Set a target for the cluster weapon 
         var clusterWeaponTargets = new List<WeaponTargetData>
@@ -803,7 +804,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var targetUnit = _player2Unit1;
 
         // Get the part we want to target (left arm)
-        var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var targetPart = targetUnit.Parts[PartLocation.LeftArm];
 
         // Apply damage to the part to leave it with minimal structure
         // This way the next attack will destroy it
@@ -840,7 +841,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var targetUnit = _player2Unit1;
 
         // Get the part we want to target (center torso)
-        var targetPart = targetUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var targetPart = targetUnit.Parts[PartLocation.CenterTorso];
 
         // Apply damage to the center torso to leave it with minimal structure
         // This way the next attack will destroy the unit
@@ -964,7 +965,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             .Returns(new List<MechFallCommand> { mechFallingCommand });
         
         // Get initial armor value to verify damage is applied
-        var targetPart = _player1Unit1.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var targetPart = _player1Unit1.Parts[PartLocation.CenterTorso];
         var initialArmor = targetPart.CurrentArmor;
         
         // Act
@@ -1128,7 +1129,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Add a third weapon without a target to test that it's properly skipped
         var weaponWithoutTarget = new TestWeapon();
-        var part3 = _player1Unit1.Parts[1]; // Using the second part of unit1
+        var part3 = _player1Unit1.Parts.Values.Skip(1).First(); // Using the second part of unit1
         part3.TryAddComponent(weaponWithoutTarget).ShouldBeTrue();
         // Deliberately not setting a target for this weapon
 

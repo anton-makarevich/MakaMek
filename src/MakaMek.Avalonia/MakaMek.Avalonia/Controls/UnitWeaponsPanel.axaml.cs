@@ -42,7 +42,7 @@ public partial class UnitWeaponsPanel : UserControl
         }
 
         var weapons = Unit.Parts
-            .SelectMany(p => p.GetComponents<Weapon>())
+            .SelectMany(p => p.Value.GetComponents<Weapon>())
             .ToList();
 
         var grouped = weapons

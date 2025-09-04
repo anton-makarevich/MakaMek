@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
@@ -153,7 +153,7 @@ public class AmmoExplosionCommandTests
     public void Render_ShouldIncludeCriticalHits_WhenExplosionOccursWithCriticalHits()
     {
         // Arrange
-        var centerTorso = _testMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = _testMech.Parts[PartLocation.CenterTorso];
         var ammo = new Ammo(CreateLrm5Definition(), 24);
         centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue(); // Use slot 10, which is available
 
@@ -220,7 +220,7 @@ public class AmmoExplosionCommandTests
     public void Render_ShouldShowExplosionDetails_WhenComponentIsExplodable()
     {
         // Arrange
-        var ct = _testMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var ct = _testMech.Parts[PartLocation.CenterTorso];
         var ammo = new Ammo(CreateLrm5Definition(), 20);
         ct.TryAddComponent(ammo).ShouldBeTrue();
         
@@ -328,7 +328,7 @@ public class AmmoExplosionCommandTests
     public void Render_ShouldShowMultipleExplosions_WhenMultipleExplosionsExist()
     {
         // Arrange
-        var leftArm = _testMech.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = _testMech.Parts[PartLocation.LeftArm];
         var ac5 = new Ammo(Ac5.Definition, 1);
         var lrm10 = new Ammo(Lrm10.Definition, 1);
         leftArm.TryAddComponent(ac5).ShouldBeTrue();
