@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -190,7 +190,7 @@ public class CriticalHitsResolutionCommandTests
     public void Render_WithComplexScenario_ShouldFormatCorrectly()
     {
         // Arrange - Multiple locations, some with crits, some blown off, some with explosions
-        var rightArm = _target.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArm = _target.Parts[PartLocation.RightArm];
         var ammo = new Ammo(Lrm5.Definition, 20);
         rightArm.TryAddComponent(ammo).ShouldBeTrue();
 

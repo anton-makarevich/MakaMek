@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -60,7 +60,7 @@ public class AimedShotLocationSelectorViewModelTests
     public void UnitPartViewModel_WithDestroyedPart_ShouldNotBeSelectable()
     {
         // Arrange
-        _target.Parts.First(p => p.Location == PartLocation.Head).ApplyDamage(1000, HitDirection.Front);
+        _target.Parts[PartLocation.Head].ApplyDamage(1000, HitDirection.Front);
         var sut = CreateViewModel();
 
         // Act & Assert
@@ -153,7 +153,7 @@ public class AimedShotLocationSelectorViewModelTests
     public void UnitPartViewModel_WithDamagedPart_ShouldReflectCurrentValues()
     {
         // Arrange
-        var headPart = _target.Parts.First(p => p.Location == PartLocation.Head);
+        var headPart = _target.Parts[PartLocation.Head];
         headPart.ApplyDamage(5, HitDirection.Front); // Apply some damage
         var sut = CreateViewModel();
 

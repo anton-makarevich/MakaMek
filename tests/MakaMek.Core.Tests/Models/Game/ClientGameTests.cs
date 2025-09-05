@@ -1009,8 +1009,8 @@ public class ClientGameTests
         };
 
         // Get initial armor values for verification
-        var centerTorsoPart = targetMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var leftArmPart = targetMech.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var centerTorsoPart = targetMech.Parts[PartLocation.CenterTorso];
+        var leftArmPart = targetMech.Parts[PartLocation.LeftArm];
         var initialCenterTorsoArmor = centerTorsoPart.CurrentArmor;
         var initialLeftArmArmor = leftArmPart.CurrentArmor;
 
@@ -2072,7 +2072,7 @@ public class ClientGameTests
             DamageData = fallingDamageData
         };
         var unit = _sut.Players.First().Units.First(u => u.Id == unitId);
-        var initialArmor = unit.Parts.First(p => p.Location == PartLocation.CenterTorso).CurrentArmor;
+        var initialArmor = unit.Parts[PartLocation.CenterTorso].CurrentArmor;
         
         // Act
         _sut.HandleCommand(mechFallingCommand);
@@ -2086,7 +2086,7 @@ public class ClientGameTests
         unit.Status.ShouldHaveFlag(UnitStatus.Prone);
         
         // Verify damage was applied
-        var currentArmor = unit.Parts.First(p => p.Location == PartLocation.CenterTorso).CurrentArmor;
+        var currentArmor = unit.Parts[PartLocation.CenterTorso].CurrentArmor;
         currentArmor.ShouldBe(initialArmor - 5);
     }
 
@@ -2349,7 +2349,7 @@ public class ClientGameTests
         _sut.HandleCommand(joinCommand);
         var mech = _sut.Players.SelectMany(p => p.Units).First() as Mech;
         var lrm5 = new Ammo(Lrm5.Definition, 1);
-        var ct = mech!.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var ct = mech!.Parts[PartLocation.CenterTorso];
         ct.TryAddComponent(lrm5);
         var slot = lrm5.MountedAtSlots[0];
 
@@ -2385,7 +2385,7 @@ public class ClientGameTests
         _sut.HandleCommand(explosionCommand);
 
         // Assert - Verify the unit took damage from the explosion
-        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = mech.Parts[PartLocation.CenterTorso];
         centerTorso.CurrentStructure.ShouldBe(centerTorso.MaxStructure - 5);
     }
 
@@ -2436,7 +2436,7 @@ public class ClientGameTests
         var unit = _sut.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == unitData.Id.Value);
         unit.ShouldNotBeNull();
         // The critical hits should have been applied to the unit
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
         centerTorso.HitSlots.ShouldNotBeEmpty();
     }
 
@@ -2521,10 +2521,10 @@ public class ClientGameTests
         var unit = _sut.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == unitData.Id.Value);
         unit.ShouldNotBeNull();
 
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
         centerTorso.HitSlots.ShouldNotBeEmpty();
 
-        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = unit.Parts[PartLocation.LeftArm];
         leftArm.HitSlots.ShouldNotBeEmpty();
     }
 }

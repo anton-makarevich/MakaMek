@@ -53,7 +53,7 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var centerTorso = testUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Add an explodable ammo component
         var ammo = new Ammo(Lrm5.Definition, 24);
@@ -91,7 +91,7 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var centerTorso = testUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Add an explodable ammo component
         var ammo = new Ammo(Lrm5.Definition, 24);
@@ -163,7 +163,7 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var centerTorso = testUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Ammo with 0 rounds -> zero explosion damage
         var ammo = new Ammo(Lrm5.Definition, 0);
@@ -288,7 +288,7 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var centerTorso = testUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Add an explodable ammo component
         var ammo = new Ammo(Lrm5.Definition, 24);
@@ -333,8 +333,8 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var centerTorso = testUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var leftTorso = testUnit.Parts.First(p => p.Location == PartLocation.LeftTorso);
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
+        var leftTorso = testUnit.Parts[PartLocation.LeftTorso];
 
         // Add explodable ammo components
         var ammo1 = new Ammo(Lrm5.Definition, 24);
@@ -393,7 +393,7 @@ public class CriticalHitsCalculatorTests
     {
         // Arrange
         var testUnit = CreateTestMech();
-        var centerTorso = testUnit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Add multiple explodable ammo components
         var ammo1 = new Ammo(Lrm5.Definition, 24);

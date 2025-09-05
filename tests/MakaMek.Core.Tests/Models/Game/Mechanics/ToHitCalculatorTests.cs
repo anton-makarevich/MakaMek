@@ -70,7 +70,7 @@ public class ToHitCalculatorTests
         _attacker.AssignPilot(new MechWarrior("John", "Doe"));
         _attacker.Deploy(attackerPosition);
         _attacker.Move(MovementType.StandingStill, []);
-        _attacker.Parts.FirstOrDefault(p=>p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
+        _attacker.Parts.Values.FirstOrDefault(p=>p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
 
         // Setup target
         var targetData = MechFactoryTests.CreateDummyMechData();

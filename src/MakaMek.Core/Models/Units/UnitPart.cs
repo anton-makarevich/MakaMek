@@ -229,7 +229,8 @@ public abstract class UnitPart
         return Unit?.GetTransferLocation(Location);
     }
 
-    private UnitPart? DamageTransferPart => Unit?.Parts.FirstOrDefault(p => p.Location == GetNextTransferLocation()); 
+    private UnitPart? DamageTransferPart => GetNextTransferLocation() is { } location 
+                                            && Unit?.Parts.TryGetValue(location, out var part) == true ? part : null;
     
     /// <summary>
     /// Blows off this part as a result of a critical hit

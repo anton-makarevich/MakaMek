@@ -16,7 +16,7 @@ public static class UnitExtensions
     {
         // Create armor values dictionary
         var armorValues = new Dictionary<PartLocation, ArmorLocation>();
-        foreach (var part in unit.Parts)
+        foreach (var part in unit.Parts.Values)
         {
             var armorLocation = part switch
             {
@@ -44,7 +44,7 @@ public static class UnitExtensions
         // Create equipment dictionary
         var locationEquipment = new Dictionary<PartLocation, List<MakaMekComponent>>();
         
-        foreach (var part in unit.Parts)
+        foreach (var part in unit.Parts.Values)
         {
             var equipment = new List<MakaMekComponent>();
             

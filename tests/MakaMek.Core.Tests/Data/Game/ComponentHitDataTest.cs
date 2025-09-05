@@ -1,4 +1,4 @@
-﻿using JetBrains.Annotations;
+using JetBrains.Annotations;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
@@ -39,7 +39,7 @@ public class ComponentHitDataTest
     public void CreateComponentHitData_ShouldCreateCorrectData_WhenComponentHasNoExplosionDamage()
     {
         // Arrange
-        var part = _unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var part = _unit.Parts[PartLocation.CenterTorso];
         
         _damageTransferCalculator.CalculateExplosionDamage(
                 Arg.Any<Unit>(),
@@ -61,7 +61,7 @@ public class ComponentHitDataTest
     public void CreateComponentHitData_ShouldCreateCorrectData_WhenComponentHasExplosionDamage()
     {
         // Arrange
-        var part = _unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var part = _unit.Parts[PartLocation.CenterTorso];
         var ammo = new Ammo(Lrm5.Definition, 1);
         part.TryAddComponent(ammo, [10]).ShouldBeTrue();
         
@@ -82,7 +82,7 @@ public class ComponentHitDataTest
     public void CreateComponentHitData_ShouldThrow_WhenSlotIsInvalid()
     {
         // Arrange
-        var part = _unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var part = _unit.Parts[PartLocation.CenterTorso];
         
         // Act & Assert
         Should.Throw<ArgumentException>(() => ComponentHitData.CreateComponentHitData(part, 99, _damageTransferCalculator))

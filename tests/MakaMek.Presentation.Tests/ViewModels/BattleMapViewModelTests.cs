@@ -693,7 +693,7 @@ public class BattleMapViewModelTests
 
         // Assert
         items.ShouldNotBeEmpty();
-        items.Count.ShouldBe(unit.Parts.Sum(p => p.GetComponents<Weapon>().Count()));
+        items.Count.ShouldBe(unit.Parts.Values.Sum(p => p.GetComponents<Weapon>().Count()));
     }
 
     [Fact]
@@ -1085,7 +1085,7 @@ public class BattleMapViewModelTests
         target.Deploy(targetPosition);
         
         // Get a weapon from the attacker to use in the command
-        var weapon = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
         
         // Create weapon target data
         var weaponTargetData = new WeaponTargetData
@@ -1201,8 +1201,8 @@ public class BattleMapViewModelTests
         target.Deploy(targetPosition);
         
         // Get weapons from the attackers
-        var weapon1 = attacker1.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
-        var weapon2 = attacker2.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weapon1 = attacker1.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weapon2 = attacker2.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
         
         // Create weapon target data
         var weaponTargetData1 = new WeaponTargetData
@@ -1337,7 +1337,7 @@ public class BattleMapViewModelTests
         target.Deploy(targetPosition);
         
         // Get two weapons from the attacker
-        var weapons = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
+        var weapons = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
         var weapon1 = weapons[0];
         var weapon2 = weapons.Count > 1 ? weapons[1] : weapons[0]; // Fallback in case there's only one weapon
         
@@ -1515,7 +1515,7 @@ public class BattleMapViewModelTests
         target.Deploy(targetPosition);
 
         // Get a weapon from the attacker
-        var weapon = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
 
         // Create weapon target data
         var weaponTargetData = new WeaponTargetData

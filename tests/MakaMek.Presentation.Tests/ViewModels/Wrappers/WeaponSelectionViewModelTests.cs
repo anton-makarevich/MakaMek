@@ -52,7 +52,7 @@ public class WeaponSelectionViewModelTests
         var attacker = mechFactory.Create(mechData);
         
         _weapon = new MediumLaser();
-        var part = attacker.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var part = attacker.Parts[PartLocation.LeftArm];
         part.TryAddComponent(_weapon);
         
         _localizationService.GetString("MechPart_Head_Short").Returns("H");

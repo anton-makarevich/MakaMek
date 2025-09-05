@@ -212,7 +212,7 @@ public class UnitPartTests
     public void GetNextTransferLocation_ReturnsCorrectLocation()
     {
         var testUnit = UnitTests.CreateTestUnit();
-        var sut = testUnit.Parts.First(p=>p.Location==PartLocation.LeftArm);
+        var sut = testUnit.Parts.Values.First(p=>p.Location==PartLocation.LeftArm);
 
         sut.GetNextTransferLocation().ShouldBe(PartLocation.CenterTorso);
     }
@@ -236,9 +236,9 @@ public class UnitPartTests
     public void IsDestroyed_ShouldBeTrue_WhenParentPartIsDestroyed()
     {
         var testUnit = UnitTests.CreateTestUnit();
-        var parent = testUnit.Parts.First(p=>p.Location==PartLocation.CenterTorso);
+        var parent = testUnit.Parts.Values.First(p=>p.Location==PartLocation.CenterTorso);
         parent.BlowOff();
-        var sut = testUnit.Parts.First(p=>p.Location==PartLocation.LeftArm);
+        var sut = testUnit.Parts.Values.First(p=>p.Location==PartLocation.LeftArm);
 
         sut.IsDestroyed.ShouldBeTrue();
     }
@@ -514,7 +514,7 @@ public class UnitPartTests
 
         public void AddPart(UnitPart part)
         {
-            _parts.Add(part);
+            _parts[part.Location] = part;
             part.Unit = this;
         }
     }

@@ -781,7 +781,7 @@ public class MovementStateTests
     {
         // Arrange
         _sut.HandleUnitSelection(_unit1);
-        var leg = _unit1.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leg = _unit1.Parts[PartLocation.LeftLeg];
         leg.ApplyDamage(20, HitDirection.Front); // Destroy the leg
 
         // Act
@@ -897,7 +897,7 @@ public class MovementStateTests
                 Modifiers = []
             });
         proneMech!.SetProne();
-        var leg = proneMech.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leg = proneMech.Parts[PartLocation.LeftLeg];
         leg.ApplyDamage(20, HitDirection.Front); // Destroy the leg
         _sut.HandleUnitSelection(proneMech);
         
@@ -1353,7 +1353,7 @@ public class MovementStateTests
                 BasePilotingSkill = 4,
                 Modifiers = []
             });
-        var leg = proneMech!.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leg = proneMech!.Parts[PartLocation.LeftLeg];
         proneMech.SetProne();
         _sut.HandleUnitSelection(proneMech);
 

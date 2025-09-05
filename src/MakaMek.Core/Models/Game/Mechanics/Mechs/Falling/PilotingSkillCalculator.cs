@@ -210,7 +210,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             });
 
             // Leg destroyed modifier (for pilot damage during fall)
-            var destroyedLegs = mech.Parts.OfType<Leg>().Count(leg => leg.IsDestroyed);
+            var destroyedLegs = mech.Parts.Values.OfType<Leg>().Count(leg => leg.IsDestroyed);
             for (var i = 0; i < destroyedLegs; i++)
             {
                 modifiers.Add(new LegDestroyedModifier

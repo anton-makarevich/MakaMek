@@ -49,7 +49,7 @@ public class WeaponAttackResolutionCommandTests
         _game.Players.Returns(new List<IPlayer> { _player1, player2 });
         
         // Setup weapon data - using the Medium Laser in the right arm
-        var weapon = _attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weapon = _attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
         _weaponData = new WeaponData
         {
             Name = weapon.Name, // Added Name property

@@ -36,7 +36,7 @@ public class HeatEffectsCalculatorTests
     private Mech CreateTestMechWithAmmo()
     {
         var mech = CreateTestMech();
-        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Add a single ammo component
         var ammo = new Ammo(Lrm5, 24);
@@ -48,7 +48,7 @@ public class HeatEffectsCalculatorTests
     private Mech CreateTestMechWithMultipleAmmo()
     {
         var mech = CreateTestMech();
-        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Add multiple ammo components with different damage values
         var ammo1 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage

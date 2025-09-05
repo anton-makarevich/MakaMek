@@ -22,14 +22,14 @@ public class Mech : Unit
     public int StandupAttempts { private set; get; }
     public int PossibleTorsoRotation { get; }
     
-    public HexDirection? TorsoDirection=> _parts.OfType<Torso>().FirstOrDefault()?.Facing;
+    public HexDirection? TorsoDirection=> _parts.Values.OfType<Torso>().FirstOrDefault()?.Facing;
 
     public bool HasUsedTorsoTwist
     {
         get
         {
             if (Position == null) return false;
-            var torsos = _parts.OfType<Torso>();
+            var torsos = _parts.Values.OfType<Torso>();
             return torsos.Any(t => t.Facing != Position.Facing);
         }
     }
@@ -78,7 +78,7 @@ public class Mech : Unit
         
         // Check if rotation is within the allowed range
         if (steps > PossibleTorsoRotation) return;
-        foreach (var torso in _parts.OfType<Torso>())
+        foreach (var torso in _parts.Values.OfType<Torso>())
         {
             torso.Rotate(newFacing);
         }
@@ -86,14 +86,12 @@ public class Mech : Unit
 
     protected override void UpdateDestroyedStatus()
     {
-        var head = _parts.Find(p => p.Location == PartLocation.Head);
-        if (head is { IsDestroyed: true })
+        if (_parts.TryGetValue(PartLocation.Head, out var head) && head.IsDestroyed)
         {
             Status = UnitStatus.Destroyed;
             return;
         }
-        var centerTorso = _parts.Find(p => p.Location == PartLocation.CenterTorso);
-        if (centerTorso is { IsDestroyed: true })
+        if (_parts.TryGetValue(PartLocation.CenterTorso, out var centerTorso) && centerTorso.IsDestroyed)
         {
             Status = UnitStatus.Destroyed;
         }
@@ -240,7 +238,7 @@ public class Mech : Unit
         }
         
         // Leg destruction penalty
-        var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed);
+        var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
         var legDestructionPenalty = LegDestroyedPenalty.Create(destroyedLegs, BaseMovement);
         if (legDestructionPenalty != null)
         {
@@ -336,7 +334,7 @@ public class Mech : Unit
     private IEnumerable<RollModifier> GetArmCriticalHitModifiers(PartLocation location)
     {
         // Check the requested arm
-        var arm = _parts.OfType<Arm>().FirstOrDefault(a => a.Location == location && a.IsDestroyed == false);
+        var arm = _parts.Values.OfType<Arm>().FirstOrDefault(a => a.Location == location && a.IsDestroyed == false);
         if (arm == null) return [];
 
         var modifiers = new List<RollModifier>();
@@ -419,7 +417,7 @@ public class Mech : Unit
     public bool CanRun {
         get
         {
-            var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
+            var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
             if (destroyedLegs > 0) return false;
             return true;
         }
@@ -458,7 +456,7 @@ public class Mech : Unit
         
         if (!IsGyroAvailable) return false;
 
-        var destroyedLegs = _parts.OfType<Leg>().Count(p=> p.IsDestroyed);
+        var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
         if (destroyedLegs >= 2) return false;
 
         // Check if the Mech has at least one movement point available
@@ -516,7 +514,7 @@ public class Mech : Unit
         {
             base.Position = value;
             // Reset torso rotation when the position changes
-            foreach (var torso in _parts.OfType<Torso>())
+            foreach (var torso in _parts.Values.OfType<Torso>())
             {
                 torso.ResetRotation();
             }
@@ -538,9 +536,9 @@ public class Mech : Unit
                 return true;
 
             // A mech with both legs and both arms destroyed/blown off is immobile
-            var destroyedLegs = _parts.OfType<Leg>().Count(leg => leg.IsDestroyed);
+            var destroyedLegs = _parts.Values.OfType<Leg>().Count(leg => leg.IsDestroyed);
             if (destroyedLegs < 2) return false;
-            var destroyedArms = _parts.OfType<Arm>().Count(arm => arm.IsDestroyed);
+            var destroyedArms = _parts.Values.OfType<Arm>().Count(arm => arm.IsDestroyed);
             if (destroyedArms >= 2)
                 return true;
 
@@ -560,7 +558,7 @@ public class Mech : Unit
         StandupAttempts = 0;
         
         // Reset torso rotation
-        foreach (var torso in _parts.OfType<Torso>())
+        foreach (var torso in _parts.Values.OfType<Torso>())
         {
             torso.ResetRotation();
         }
@@ -578,7 +576,7 @@ public class Mech : Unit
         IDiceRoller diceRoller,
         IDamageTransferCalculator damageTransferCalculator)
     {
-        var part = _parts.FirstOrDefault(p => p.Location == location);
+        _parts.TryGetValue(location, out var part);
         if (part is not { CurrentStructure: > 0 })
             return null;
             

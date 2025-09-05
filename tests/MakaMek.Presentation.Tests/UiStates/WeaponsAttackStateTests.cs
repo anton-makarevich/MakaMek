@@ -753,8 +753,8 @@ public class WeaponsAttackStateTests
         weapons.ShouldNotBeEmpty();
         // All weapons from torso and arms should be able to fire forward
         weapons.Count.ShouldBe(_unit1.Parts
-            .Where(p => p.Location is PartLocation.LeftArm or PartLocation.RightArm or PartLocation.CenterTorso)
-            .SelectMany(p => p.GetComponents<Weapon>())
+            .Where(p => p.Value.Location is PartLocation.LeftArm or PartLocation.RightArm or PartLocation.CenterTorso)
+            .SelectMany(p => p.Value.GetComponents<Weapon>())
             .Count());
     }
 
@@ -766,7 +766,7 @@ public class WeaponsAttackStateTests
         _unit1.Deploy(position);
         _sut.HandleUnitSelection(_unit1);
         // Get maximum weapon range
-        var maxRange = _unit1.Parts
+        var maxRange = _unit1.Parts.Values
             .SelectMany(p => p.GetComponents<Weapon>())
             .Max(w => w.LongRange);
         var targetCoordinates = new HexCoordinates(1, maxRange + 2); // Beyond maximum range
@@ -804,7 +804,7 @@ public class WeaponsAttackStateTests
 
         // Assert
         items.ShouldNotBeEmpty();
-        items.Count.ShouldBe(unit.Parts.Sum(p => p.GetComponents<Weapon>().Count()));
+        items.Count.ShouldBe(unit.Parts.Values.Sum(p => p.GetComponents<Weapon>().Count()));
         items.All(i => i.IsEnabled == false).ShouldBeTrue();
         items.All(i => i.IsSelected == false).ShouldBeTrue();
         items.All(i => i.Target == null).ShouldBeTrue();
@@ -884,7 +884,7 @@ public class WeaponsAttackStateTests
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==targetPosition.Coordinates));
         _sut.HandleUnitSelection(target);
 
-        var weapon = attacker.Parts
+        var weapon = attacker.Parts.Values
             .SelectMany(p => p.GetComponents<Weapon>())
             .First();
         var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
@@ -918,7 +918,7 @@ public class WeaponsAttackStateTests
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==targetPosition.Coordinates));
         _sut.HandleUnitSelection(target);
 
-        var weapon = attacker.Parts
+        var weapon = attacker.Parts.Values
             .SelectMany(p => p.GetComponents<Weapon>())
             .First();
         var weaponSelection = _sut.WeaponSelectionItems.First(i => i.Weapon == weapon);
@@ -958,7 +958,7 @@ public class WeaponsAttackStateTests
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==target1Position.Coordinates));
         _sut.HandleUnitSelection(target1);
 
-        var weapon = attacker.Parts
+        var weapon = attacker.Parts.Values
             .SelectMany(p => p.GetComponents<Weapon>())
             .First();
 
@@ -1076,7 +1076,7 @@ public class WeaponsAttackStateTests
         selectTargetAction.OnExecute();
         
         // Get two different weapons to target different enemies
-        var weapons = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
+        var weapons = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
         
         // Select the first target and weapon
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetInForwardPosition.Coordinates));
@@ -1167,7 +1167,7 @@ public class WeaponsAttackStateTests
         selectTargetAction.OnExecute();
         
         // Get two different weapons to target different enemies
-        var weapons = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
+        var weapons = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
         
         // Select the primary target and first weapon
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == primaryTargetPosition.Coordinates));
@@ -1230,7 +1230,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(target);
         
         // Select a weapon
-        var weapon = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
         var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
         weaponSelection.IsSelected = true;
         
@@ -1281,7 +1281,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(target);
 
         // Select a weapon and set aimed shot
-        var weapon = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
         var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
         weaponSelection.IsSelected = true;
         weaponSelection.AimedShotTarget = PartLocation.Head;
@@ -1329,7 +1329,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(target);
 
         // Select a weapon without aimed shot
-        var weapon = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
         var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
         weaponSelection.IsSelected = true;
         // Don't set AimedShotTarget
@@ -1372,7 +1372,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(target);
         
         // Select a weapon
-        var weapon = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
         var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
         weaponSelection.IsSelected = true;
         
@@ -1508,7 +1508,7 @@ public class WeaponsAttackStateTests
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h=>h.Coordinates==targetPosition.Coordinates));
         _sut.HandleUnitSelection(target);
 
-        var weapon = attacker.Parts
+        var weapon = attacker.Parts.Values
             .SelectMany(p => p.GetComponents<Weapon>())
             .First();
         var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
@@ -1593,7 +1593,7 @@ public class WeaponsAttackStateTests
         selectTargetAction.OnExecute();
 
         // Get two different weapons
-        var weapons = attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
+        var weapons = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
         // Make one weapon unavailable
         weapons[1].Hit(); 
 
@@ -1622,7 +1622,7 @@ public class WeaponsAttackStateTests
         
         // Create a unit with no weapons
         var unitWithNoWeapons = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        var weapons = unitWithNoWeapons.Parts.SelectMany(p => p.GetComponents<Weapon>()).ToList();
+        var weapons = unitWithNoWeapons.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).ToList();
         foreach (var weapon in weapons)
         {
             weapon.MountedOn?.RemoveComponent(weapon);

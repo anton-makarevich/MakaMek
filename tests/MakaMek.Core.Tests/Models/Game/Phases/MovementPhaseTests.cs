@@ -430,7 +430,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Make sure the unit is a Mech and is prone
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
         // destroy the left leg to remove MP
-        var leg = unit.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leg = unit.Parts[PartLocation.LeftLeg];
         leg.ApplyDamage(20, HitDirection.Front);
         unit.SetProne();
 

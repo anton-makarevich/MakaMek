@@ -35,8 +35,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
 
         while (remainingDamage > 0 && currentLocation.HasValue)
         {
-            var part = unit.Parts.FirstOrDefault(p => p.Location == currentLocation.Value);
-            if (part == null)
+            if (!unit.Parts.TryGetValue(currentLocation.Value, out var part))
                 break;
 
             // Check if the location is already destroyed - if so, skip to transfer location

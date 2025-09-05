@@ -57,7 +57,7 @@ public record LocationCriticalHitsData(
 
         // Show hit components
         if (HitComponents == null) return stringBuilder.ToString().TrimEnd();
-        var part = unit.Parts.FirstOrDefault(p => p.Location == Location);
+        unit.Parts.TryGetValue(Location, out var part);
         foreach (var componentHit in HitComponents)
         {
             var component = part?.GetComponentAtSlot(componentHit.Slot);
