@@ -118,8 +118,8 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         PartLocation location,
         int structureDamage)
     {
-        var part = unit.Parts.FirstOrDefault(p => p.Location == location);
-        if (part is not { CurrentStructure: > 0 } || structureDamage <= 0)
+        if (!unit.Parts.TryGetValue(location, out var part) 
+            || part is not { CurrentStructure: > 0 } || structureDamage <= 0)
             return null;
 
         // Roll for critical hits

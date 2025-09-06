@@ -290,7 +290,7 @@ public class WeaponsAttackState : IUiState
         var unitPosition = Attacker.Position;
         _weaponRanges.Clear();
 
-        foreach (var part in Attacker.Parts)
+        foreach (var part in Attacker.Parts.Values)
         {
             var weapons = part.GetComponents<Weapon>();
             foreach (var weapon in weapons)
@@ -344,7 +344,7 @@ public class WeaponsAttackState : IUiState
         if (Attacker?.Position == null) return;
 
         // Get all hexes in maximum weapon range and unhighlight them
-        var weapons = Attacker.Parts
+        var weapons = Attacker.Parts.Values
             .SelectMany(p => p.GetComponents<Weapon>())
             .ToList();
             
@@ -393,7 +393,7 @@ public class WeaponsAttackState : IUiState
         _weaponViewModels.Clear();
         if (Attacker == null) return;
 
-        foreach (var weapon in Attacker.Parts.SelectMany(p => p.GetComponents<Weapon>()))
+        foreach (var weapon in Attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()))
         {
             var viewModel = new WeaponSelectionViewModel(
                 weapon: weapon,

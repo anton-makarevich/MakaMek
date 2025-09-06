@@ -83,14 +83,14 @@ public class MechTests
 
         // Assert
         mech.Parts.Count.ShouldBe(8, "all mech locations should be initialized");
-        mech.Parts.ShouldContain(p => p.Location == PartLocation.Head);
-        mech.Parts.ShouldContain(p => p.Location == PartLocation.CenterTorso);
-        mech.Parts.ShouldContain(p => p.Location == PartLocation.LeftTorso);
-        mech.Parts.ShouldContain(p => p.Location == PartLocation.RightTorso);
-        mech.Parts.ShouldContain(p => p.Location == PartLocation.LeftArm);
-        mech.Parts.ShouldContain(p => p.Location == PartLocation.RightArm);
-        mech.Parts.ShouldContain(p => p.Location == PartLocation.LeftLeg);
-        mech.Parts.ShouldContain(p => p.Location == PartLocation.RightLeg);
+        mech.Parts.ShouldContainKey(PartLocation.Head);
+        mech.Parts.ShouldContainKey(PartLocation.CenterTorso);
+        mech.Parts.ShouldContainKey(PartLocation.LeftTorso);
+        mech.Parts.ShouldContainKey(PartLocation.RightTorso);
+        mech.Parts.ShouldContainKey(PartLocation.LeftArm);
+        mech.Parts.ShouldContainKey(PartLocation.RightArm);
+        mech.Parts.ShouldContainKey(PartLocation.LeftLeg);
+        mech.Parts.ShouldContainKey(PartLocation.RightLeg);
     }
 
     [Theory]
@@ -566,7 +566,7 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
         var weapon = new MediumLaser();
         // Attach a weapon to a part (e.g., right arm)
-        var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArm = sut.Parts[PartLocation.RightArm];
         rightArm.TryAddComponent(weapon);
         sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
         // Set a dummy target
@@ -846,7 +846,7 @@ public class MechTests
     {
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Gyro is in slots 3-6 of center torso
         // First, hit slot 3
@@ -910,7 +910,7 @@ public class MechTests
 
         // Jumping MP should not be affected by heat
         var jumpJets = new JumpJets();
-        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts[PartLocation.LeftLeg];
         leftLeg.TryAddComponent(jumpJets);
 
         var originalJumpMp = jumpJets.JumpMp;
@@ -1036,7 +1036,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
-        var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leg = sut.Parts[PartLocation.LeftLeg];
         leg.BlowOff();
 
         // Act & Assert
@@ -1048,7 +1048,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
-        var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leg = sut.Parts[PartLocation.LeftLeg];
         leg.ApplyDamage(100, HitDirection.Front);
         leg.IsDestroyed.ShouldBeTrue();
 
@@ -1573,10 +1573,10 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 4, parts);
         sut.SetProne();
 
-        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts[PartLocation.LeftLeg];
         leftLeg.ApplyDamage(100, HitDirection.Front);
         leftLeg.IsDestroyed.ShouldBeTrue();
-        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts[PartLocation.RightLeg];
         rightLeg.ApplyDamage(100, HitDirection.Front);
         rightLeg.IsDestroyed.ShouldBeTrue();
 
@@ -1595,10 +1595,10 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 4, parts);
         sut.SetProne();
 
-        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts[PartLocation.LeftLeg];
         leftLeg.BlowOff();
         leftLeg.IsBlownOff.ShouldBeTrue();
-        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts[PartLocation.RightLeg];
         rightLeg.BlowOff();
         rightLeg.IsBlownOff.ShouldBeTrue();
 
@@ -1617,10 +1617,10 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 4, parts);
         sut.SetProne();
 
-        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts[PartLocation.LeftLeg];
         leftLeg.BlowOff();
         leftLeg.IsBlownOff.ShouldBeTrue();
-        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts[PartLocation.RightLeg];
         rightLeg.ApplyDamage(100, HitDirection.Front);
         rightLeg.IsDestroyed.ShouldBeTrue();
 
@@ -1896,7 +1896,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
-        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts[PartLocation.LeftLeg];
 
         // Act
         leftLeg.BlowOff();
@@ -2031,15 +2031,15 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
 
         // Destroy both legs
-        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts[PartLocation.LeftLeg];
         leftLeg.ApplyDamage(100, HitDirection.Front);
-        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts[PartLocation.RightLeg];
         rightLeg.ApplyDamage(100, HitDirection.Front);
 
         // Destroy both arms
-        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         leftArm.ApplyDamage(100, HitDirection.Front);
-        var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArm = sut.Parts[PartLocation.RightArm];
         rightArm.ApplyDamage(100, HitDirection.Front);
 
         // Act & Assert
@@ -2056,13 +2056,13 @@ public class MechTests
         sut.AssignPilot(pilot);
 
         // Destroy both legs
-        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts[PartLocation.LeftLeg];
         leftLeg.ApplyDamage(20, HitDirection.Front);
-        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts[PartLocation.RightLeg];
         rightLeg.ApplyDamage(20, HitDirection.Front);
 
         // Destroy one arm
-        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         leftArm.ApplyDamage(20, HitDirection.Front);
 
         // Act & Assert
@@ -2079,9 +2079,9 @@ public class MechTests
         sut.AssignPilot(pilot);
 
         // Destroy both legs
-        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts[PartLocation.LeftLeg];
         leftLeg.ApplyDamage(20, HitDirection.Front);
-        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts[PartLocation.RightLeg];
         rightLeg.ApplyDamage(20, HitDirection.Front);
 
         // Act & Assert
@@ -2098,9 +2098,9 @@ public class MechTests
         sut.AssignPilot(pilot);
 
         // Destroy both arms
-        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         leftArm.ApplyDamage(20, HitDirection.Front);
-        var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArm = sut.Parts[PartLocation.RightArm];
         rightArm.ApplyDamage(20, HitDirection.Front);
 
         // Act & Assert
@@ -2114,15 +2114,15 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
 
         // Destroy one leg, blow off another
-        var leftLeg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leftLeg = sut.Parts[PartLocation.LeftLeg];
         leftLeg.ApplyDamage(100, HitDirection.Front);
-        var rightLeg = sut.Parts.First(p => p.Location == PartLocation.RightLeg);
+        var rightLeg = sut.Parts[PartLocation.RightLeg];
         rightLeg.BlowOff();
 
         // Destroy one arm, blow off another
-        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         leftArm.ApplyDamage(100, HitDirection.Front);
-        var rightArm = sut.Parts.First(p => p.Location == PartLocation.RightArm);
+        var rightArm = sut.Parts[PartLocation.RightArm];
         rightArm.BlowOff();
 
         // Act & Assert
@@ -2134,7 +2134,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
-        var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leg = sut.Parts[PartLocation.LeftLeg];
 
         // Act
         leg.BlowOff();
@@ -2148,7 +2148,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
-        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         leftArm.BlowOff();
 
         // Act
@@ -2163,7 +2163,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
-        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         var shoulderActuator = leftArm.GetComponent<ShoulderActuator>();
         shoulderActuator!.Hit();
     
@@ -2182,7 +2182,7 @@ public class MechTests
     {
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
-        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         var upperArmActuator = new UpperArmActuator();
         leftArm.TryAddComponent(upperArmActuator);
         var lowerArmActuator = new LowerArmActuator();
@@ -2221,7 +2221,7 @@ public class MechTests
     {
         // Arrange - destroy all actuators, but shoulder should take precedence
         var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
-        var leftArm = sut.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         var upperArmActuator = new UpperArmActuator();
         leftArm.TryAddComponent(upperArmActuator);
         var lowerArmActuator = new LowerArmActuator();
@@ -2303,7 +2303,7 @@ public class MechTests
         // Arrange
         var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
         sut.SetProne();
-        var leg = sut.Parts.First(p => p.Location == PartLocation.LeftLeg);
+        var leg = sut.Parts[PartLocation.LeftLeg];
         leg.ApplyDamage(100, HitDirection.Front);
         
         // Act
@@ -2318,7 +2318,7 @@ public class MechTests
     {
         // Arrange - This tests lines 579-580 (null check for part with no structure)
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var leftArm = mech.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = mech.Parts[PartLocation.LeftArm];
 
         // Destroy the left arm by reducing structure to 0
         leftArm.ApplyDamage(leftArm.CurrentArmor + leftArm.CurrentStructure, HitDirection.Front);
@@ -2374,7 +2374,7 @@ public class MechTests
     {
         // Arrange - This specifically tests the CurrentStructure > 0 condition in lines 579-580
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-        var centerTorso = mech.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Destroy the center torso by applying enough damage to reduce structure to 0
         centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure, HitDirection.Front);

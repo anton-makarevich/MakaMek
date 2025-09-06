@@ -70,7 +70,7 @@ public class MechFactory : IMechFactory
     {
         foreach (var (location, equipment) in unitData.LocationEquipment)
         {
-            var part = mech.Parts.First(p => p.Location == location);
+            var part = mech.Parts[location];
             var componentCounts = new Dictionary<MakaMekComponent, int>(); // Track component counts
 
             foreach (var item in equipment)

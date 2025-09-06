@@ -506,8 +506,8 @@ public class BaseGameTests : BaseGame
         };
 
         // Get initial armor values for verification
-        var centerTorsoPart = targetMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var leftArmPart = targetMech.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var centerTorsoPart = targetMech.Parts[PartLocation.CenterTorso];
+        var leftArmPart = targetMech.Parts[PartLocation.LeftArm];
         var initialCenterTorsoArmor = centerTorsoPart.CurrentArmor;
         var initialLeftArmArmor = leftArmPart.CurrentArmor;
 
@@ -621,8 +621,8 @@ public class BaseGameTests : BaseGame
         };
 
         // Get initial values for verification
-        var centerTorsoPart = targetMech.Parts.First(p => p.Location == PartLocation.CenterTorso);
-        var leftArmPart = targetMech.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var centerTorsoPart = targetMech.Parts[PartLocation.CenterTorso];
+        var leftArmPart = targetMech.Parts[PartLocation.LeftArm];
         var initialCenterTorsoArmor = centerTorsoPart.CurrentArmor;
         var initialLeftArmArmor = leftArmPart.CurrentArmor;
 

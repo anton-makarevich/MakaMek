@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -98,7 +98,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
         var totalDamage = centerTorso.CurrentArmor + 3; // Exceed armor by 3
         
         // Act
@@ -118,7 +118,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
         var totalDamage = centerTorso.CurrentArmor + centerTorso.CurrentStructure; // Destroy location
         
         // Act
@@ -138,7 +138,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = unit.Parts[PartLocation.LeftArm];
 
         // Calculate damage to destroy left arm and damage left torso
         var totalDamage = leftArm.CurrentArmor + leftArm.CurrentStructure + 5;
@@ -169,7 +169,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso) as Torso;
+        var centerTorso = unit.Parts[PartLocation.CenterTorso] as Torso;
         centerTorso.ShouldNotBeNull();
         
         var totalDamage = centerTorso.CurrentRearArmor + 2; // Exceed rear armor by 2
@@ -192,7 +192,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
         var maximumDamage = int.MaxValue;
         
         // Act
@@ -236,8 +236,8 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var leftTorso = unit.Parts.First(p => p.Location == PartLocation.LeftTorso);
+        var leftArm = unit.Parts[PartLocation.LeftArm];
+        var leftTorso = unit.Parts[PartLocation.LeftTorso];
 
         // Calculate damage to destroy left arm, left torso, and damage center torso
         var totalDamage = leftArm.CurrentArmor + leftArm.CurrentStructure +
@@ -328,7 +328,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
         var explosionDamage = centerTorso.CurrentStructure; // Exactly destroy structure
 
         // Act
@@ -348,7 +348,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = unit.Parts[PartLocation.LeftArm];
 
         // Calculate damage to destroy left arm structure and damage left torso structure (but not destroy it)
         // Left arm has 4 structure, left torso has 8 structure, so 4 + 3 = 7 total damage
@@ -380,8 +380,8 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var leftTorso = unit.Parts.First(p => p.Location == PartLocation.LeftTorso);
+        var leftArm = unit.Parts[PartLocation.LeftArm];
+        var leftTorso = unit.Parts[PartLocation.LeftTorso];
 
         // Calculate damage to destroy left arm, left torso, and damage center torso structure
         var explosionDamage = leftArm.CurrentStructure + leftTorso.CurrentStructure + 3;
@@ -414,7 +414,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
         var maximumDamage = int.MaxValue;
 
         // Act
@@ -434,7 +434,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var centerTorso = unit.Parts.First(p => p.Location == PartLocation.CenterTorso);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
         var damage = centerTorso.CurrentArmor + 3; // Damage that would normally hit armor first
 
         // Act
@@ -461,7 +461,7 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
+        var leftArm = unit.Parts[PartLocation.LeftArm];
 
         // Manually destroy the left arm by setting both armor and structure to 0
         leftArm.ApplyDamage(leftArm.CurrentArmor + leftArm.CurrentStructure, HitDirection.Front);
@@ -493,8 +493,8 @@ public class DamageTransferCalculatorTests
     {
         // Arrange
         var unit = CreateTestMech();
-        var leftArm = unit.Parts.First(p => p.Location == PartLocation.LeftArm);
-        var leftTorso = unit.Parts.First(p => p.Location == PartLocation.LeftTorso);
+        var leftArm = unit.Parts[PartLocation.LeftArm];
+        var leftTorso = unit.Parts[PartLocation.LeftTorso];
 
         // Manually destroy the left arm by setting structure to 0 (explosion bypasses armor)
         leftArm.ApplyDamage(leftArm.CurrentArmor + leftArm.CurrentStructure, HitDirection.Front);

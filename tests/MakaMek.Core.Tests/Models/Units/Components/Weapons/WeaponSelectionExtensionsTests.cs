@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -24,7 +24,7 @@ public class WeaponSelectionExtensionsTests
 
     private Weapon CreateWeapon(PartLocation location, bool isAvailable)
     {
-        var part = _mech.Parts.First(p => p.Location == location);
+        var part = _mech.Parts[location];
         var weapon = new MediumLaser();
         part.TryAddComponent(weapon);
         
