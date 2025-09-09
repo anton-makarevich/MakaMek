@@ -13,7 +13,6 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls.Shapes;
-using Avalonia.Data.Converters;
 using Avalonia.Interactivity;
 using Avalonia.Media.Immutable;
 using Sanet.MakaMek.Avalonia.Converters;

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Globalization;
-using System.Linq;
 using Avalonia.Data.Converters;
 
 namespace Sanet.MakaMek.Avalonia.Converters;

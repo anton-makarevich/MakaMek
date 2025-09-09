@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Melee;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -91,15 +92,41 @@ public class MechFactory : IMechFactory
         return itemName switch
         {
             MakaMekComponent.Engine => new Engine(unitData.EngineRating, MapEngineType(unitData.EngineType)),
+            // Ammunition
+            MakaMekComponent.ISAmmoAC2 => Ac2.CreateAmmo(),
             MakaMekComponent.ISAmmoAC5 =>Ac5.CreateAmmo(),
+            MakaMekComponent.ISAmmoAC10 => Ac10.CreateAmmo(),
+            MakaMekComponent.ISAmmoAC20 => Ac20.CreateAmmo(),
             MakaMekComponent.ISAmmoSRM2 => Srm2.CreateAmmo(),
-            MakaMekComponent.ISAmmoMG => MachineGun.CreateAmmo(),
+            MakaMekComponent.ISAmmoSRM4 => Srm4.CreateAmmo(),
+            MakaMekComponent.ISAmmoSRM6 => Srm6.CreateAmmo(),
             MakaMekComponent.ISAmmoLRM5 => Lrm5.CreateAmmo(),
+            MakaMekComponent.ISAmmoLRM10 => Lrm10.CreateAmmo(),
+            MakaMekComponent.ISAmmoLRM15 => Lrm15.CreateAmmo(),
+            MakaMekComponent.ISAmmoLRM20 => Lrm20.CreateAmmo(),
+            MakaMekComponent.ISAmmoMG => MachineGun.CreateAmmo(),
+            // Energy Weapons
+            MakaMekComponent.SmallLaser => new SmallLaser(),
             MakaMekComponent.MediumLaser => new MediumLaser(),
-            MakaMekComponent.LRM5 => new Lrm5(),
-            MakaMekComponent.SRM2 => new Srm2(),
-            MakaMekComponent.MachineGun => new MachineGun(),
+            MakaMekComponent.LargeLaser => new LargeLaser(),
+            MakaMekComponent.PPC => new Ppc(),
+            MakaMekComponent.Flamer => new Flamer(),
+            // Ballistic Weapons
+            MakaMekComponent.AC2 => new Ac2(),
             MakaMekComponent.AC5 => new Ac5(),
+            MakaMekComponent.AC10 => new Ac10(),
+            MakaMekComponent.AC20 => new Ac20(),
+            MakaMekComponent.MachineGun => new MachineGun(),
+            // Missile Weapons
+            MakaMekComponent.LRM5 => new Lrm5(),
+            MakaMekComponent.LRM10 => new Lrm10(),
+            MakaMekComponent.LRM15 => new Lrm15(),
+            MakaMekComponent.LRM20 => new Lrm20(),
+            MakaMekComponent.SRM2 => new Srm2(),
+            MakaMekComponent.SRM4 => new Srm4(),
+            MakaMekComponent.SRM6 => new Srm6(),
+            // Melee Weapons
+            MakaMekComponent.Hatchet => new Hatchet(),
             MakaMekComponent.HeatSink => new HeatSink(),
             MakaMekComponent.Shoulder => new ShoulderActuator(),
             MakaMekComponent.UpperArmActuator => new UpperArmActuator(),

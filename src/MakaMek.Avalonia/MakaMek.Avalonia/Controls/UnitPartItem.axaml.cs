@@ -1,6 +1,5 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using System.Windows.Input;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
