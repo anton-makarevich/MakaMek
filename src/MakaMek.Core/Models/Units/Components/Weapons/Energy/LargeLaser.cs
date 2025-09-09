@@ -1,7 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Data.Units;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
-using Data.Community;
 
 public class LargeLaser() : Weapon(Definition)
 {

@@ -1,5 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Community;
-using Sanet.MakaMek.Core.Data.Units;
+﻿using Sanet.MakaMek.Core.Data.Units;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
@@ -19,8 +18,8 @@ public class Srm6() : Weapon(Definition)
         LongRange: 9,
         Type: WeaponType.Missile,
         BattleValue: 59,
-        Clusters: 3,
-        ClusterSize: 2,
+        Clusters: 6,
+        ClusterSize: 1,
         Size: 2,
         FullAmmoRounds: 15,
         WeaponComponentType: MakaMekComponent.SRM6,

@@ -1,5 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Community;
-using Sanet.MakaMek.Core.Data.Game;
+﻿using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
