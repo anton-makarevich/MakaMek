@@ -10,7 +10,7 @@ using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Data.Community;
+namespace Sanet.MakaMek.Core.Tests.Utils;
 
 public class MechFactoryTests
 {
