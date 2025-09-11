@@ -4,5 +4,6 @@ public enum WeaponType
 {
     Energy,
     Ballistic,
-    Missile
+    Missile,
+    Melee
 }

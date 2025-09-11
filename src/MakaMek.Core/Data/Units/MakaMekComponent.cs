@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Core.Data.Community;
+namespace Sanet.MakaMek.Core.Data.Units;
 
 public enum MakaMekComponent
 {
@@ -19,6 +19,7 @@ public enum MakaMekComponent
     MediumLaser,
     LargeLaser,
     PPC,
+    Flamer,
     LRM5,
     LRM10,
     LRM15,
@@ -30,6 +31,7 @@ public enum MakaMekComponent
     AC5,
     AC10,
     AC20,
+    Hatchet,
     HeatSink,
     Shoulder,
     UpperArmActuator,
