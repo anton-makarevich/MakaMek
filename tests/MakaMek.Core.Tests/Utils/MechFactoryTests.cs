@@ -660,6 +660,7 @@ public class MechFactoryTests
             MakaMekComponent.ISAmmoAC2,
             MakaMekComponent.ISAmmoAC10,
             MakaMekComponent.ISAmmoAC20,
+            MakaMekComponent.ISAmmoLRM10,
             MakaMekComponent.ISAmmoLRM15,
             MakaMekComponent.ISAmmoLRM20,
             MakaMekComponent.ISAmmoSRM4,
