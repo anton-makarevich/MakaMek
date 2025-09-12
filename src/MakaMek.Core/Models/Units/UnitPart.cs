@@ -97,22 +97,32 @@ public abstract class UnitPart
         
         
 
-        var slotToMount = slots!=null
-            ? slots[0]
-            : FindMountLocation(component.Size);
-        if (slotToMount == -1)
+        int[] slotsToUse;
+
+        if (slots != null)
         {
-            return false;
+            // Use the provided specific slots
+            slotsToUse = slots;
         }
-        
-        // Check if the component can be mounted at the found slot
-        if (!CanAddComponent(component, slots??[slotToMount]))
+        else
+        {
+            // Find available slots automatically
+            var slotToMount = FindMountLocation(component.Size);
+            if (slotToMount == -1)
+            {
+                return false;
+            }
+            slotsToUse = Enumerable.Range(slotToMount, component.Size).ToArray();
+        }
+
+        // Check if the component can be mounted at the specified slots
+        if (!CanAddComponent(component, slotsToUse))
         {
             return false;
         }
 
-        // Use the new Mount method that includes UnitPart reference
-        component.Mount(Enumerable.Range(slotToMount, component.Size).ToArray(), this);
+        // Mount the component at the specified slots
+        component.Mount(slotsToUse, this);
         _components.Add(component);
         return true;
     }

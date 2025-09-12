@@ -78,17 +78,20 @@ public class UnitExtensionsTests
         foreach (var location in _originalUnitData.LocationEquipment.Keys)
         {
             convertedUnitData.LocationEquipment.ContainsKey(location).ShouldBeTrue();
-            
+
             var originalEquipment = _originalUnitData.LocationEquipment[location];
             var convertedEquipment = convertedUnitData.LocationEquipment[location];
-            
-            // Check that the equipment lists contain the same items (ignoring order)
-            convertedEquipment.Count.ShouldBe(originalEquipment.Count);
-            
-            foreach (var item in originalEquipment)
+
+            // Check that the equipment slot layouts contain the same components
+            var originalComponents = originalEquipment.ComponentAssignments.SelectMany(ca => ca.Slots.Select(s => ca.Component)).ToList();
+            var convertedComponents = convertedEquipment.ComponentAssignments.SelectMany(ca => ca.Slots.Select(s => ca.Component)).ToList();
+
+            convertedComponents.Count.ShouldBe(originalComponents.Count);
+
+            foreach (var item in originalComponents)
             {
-                convertedEquipment.ShouldContain(item);
-                convertedEquipment.Count(e => e == item).ShouldBe(originalEquipment.Count(e => e == item));
+                convertedComponents.ShouldContain(item);
+                convertedComponents.Count(e => e == item).ShouldBe(originalComponents.Count(e => e == item));
             }
         }
     }
@@ -114,9 +117,11 @@ public class UnitExtensionsTests
         // Verify that the multi-slot component is properly represented
         convertedUnitData.LocationEquipment.ContainsKey(PartLocation.LeftTorso).ShouldBeTrue();
         var convertedEquipment = convertedUnitData.LocationEquipment[PartLocation.LeftTorso];
-        
-        // Should have 1 AC5 entry for the single AC5 component (which takes 4 slots)
-        convertedEquipment.Count(e => e == MakaMekComponent.AC5).ShouldBe(1);
+
+        // Should have 1 AC5 component assignment (which takes 4 slots)
+        var ac5Assignments = convertedEquipment.ComponentAssignments.Where(ca => ca.Component == MakaMekComponent.AC5).ToList();
+        ac5Assignments.Count.ShouldBe(1);
+        ac5Assignments.First().Slots.Length.ShouldBe(4);
     }
 
     [Fact]
@@ -134,7 +139,9 @@ public class UnitExtensionsTests
         
         // Verify that the engine is in the center torso
         convertedUnitData.LocationEquipment.ContainsKey(PartLocation.CenterTorso).ShouldBeTrue();
-        convertedUnitData.LocationEquipment[PartLocation.CenterTorso].ShouldContain(MakaMekComponent.Engine);
+        var centerTorsoLayout = convertedUnitData.LocationEquipment[PartLocation.CenterTorso];
+        var engineAssignments = centerTorsoLayout.ComponentAssignments.Where(ca => ca.Component == MakaMekComponent.Engine).ToList();
+        engineAssignments.Count.ShouldBe(1);
     }
     
     [Fact]
@@ -175,17 +182,20 @@ public class UnitExtensionsTests
         foreach (var location in _originalUnitData.LocationEquipment.Keys)
         {
             convertedUnitData.LocationEquipment.ContainsKey(location).ShouldBeTrue();
-            
+
             var originalEquipment = _originalUnitData.LocationEquipment[location];
             var convertedEquipment = convertedUnitData.LocationEquipment[location];
-            
-            // Check that the equipment lists contain the same items (ignoring order)
-            convertedEquipment.Count.ShouldBe(originalEquipment.Count);
-            
-            foreach (var item in originalEquipment)
+
+            // Check that the equipment slot layouts contain the same components
+            var originalComponents = originalEquipment.ComponentAssignments.SelectMany(ca => ca.Slots.Select(s => ca.Component)).ToList();
+            var convertedComponents = convertedEquipment.ComponentAssignments.SelectMany(ca => ca.Slots.Select(s => ca.Component)).ToList();
+
+            convertedComponents.Count.ShouldBe(originalComponents.Count);
+
+            foreach (var item in originalComponents)
             {
-                convertedEquipment.ShouldContain(item);
-                convertedEquipment.Count(e => e == item).ShouldBe(originalEquipment.Count(e => e == item));
+                convertedComponents.ShouldContain(item);
+                convertedComponents.Count(e => e == item).ShouldBe(originalComponents.Count(e => e == item));
             }
         }
         

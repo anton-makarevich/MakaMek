@@ -67,11 +67,12 @@ public class MtfDataProvider:IMechDataProvider
         return mechData;
     }
 
-    private (Dictionary<PartLocation, List<MakaMekComponent>> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines)
+    private (Dictionary<PartLocation, LocationSlotLayout> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines)
     {
-        var locationEquipment = new Dictionary<PartLocation, List<MakaMekComponent>>();
+        var locationEquipment = new Dictionary<PartLocation, LocationSlotLayout>();
         var armorValues = new Dictionary<PartLocation, ArmorLocation>();
         PartLocation? currentLocation = null;
+        var currentSlotIndex = 0;
         var parsingArmor = false;
 
         foreach (var line in lines)
@@ -132,16 +133,22 @@ public class MtfDataProvider:IMechDataProvider
                 if (TryParseLocation(locationText, out var location))
                 {
                     currentLocation = location;
+                    currentSlotIndex = 0; // Reset slot index for new location
                     if (!locationEquipment.ContainsKey(location))
-                        locationEquipment[location] = new List<MakaMekComponent>();
+                        locationEquipment[location] = new LocationSlotLayout();
                 }
                 continue;
             }
 
-            // Add equipment to current location
-            if (currentLocation.HasValue && !line.Contains("-Empty-"))
+            // Add equipment to current location with slot tracking
+            if (currentLocation.HasValue)
             {
-                locationEquipment[currentLocation.Value].Add(MapMtfStringToComponent(line));
+                if (!line.Contains("-Empty-"))
+                {
+                    var component = MapMtfStringToComponent(line);
+                    locationEquipment[currentLocation.Value].AssignComponent(currentSlotIndex, component);
+                }
+                currentSlotIndex++; // Increment slot index for each line (including empty slots)
             }
         }
         return (locationEquipment, armorValues);
