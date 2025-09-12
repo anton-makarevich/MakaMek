@@ -68,20 +68,17 @@ public class MechFactory : IMechFactory
 
     private void AddEquipmentToParts(Mech mech, UnitData unitData)
     {
-        foreach (var (location, equipment) in unitData.LocationEquipment)
+        foreach (var (location, slotLayout) in unitData.LocationEquipment)
         {
             var part = mech.Parts[location];
-            var componentCounts = new Dictionary<MakaMekComponent, int>(); // Track component counts
 
-            foreach (var item in equipment)
+            foreach (var componentAssignment in slotLayout.ComponentAssignments)
             {
-                componentCounts.TryAdd(item, 0);
-                componentCounts[item]++;
+                var component = CreateComponent(componentAssignment.Component, unitData);
+                if (component == null) continue;
 
-                var component = CreateComponent(item, unitData);
-                if (component == null || (componentCounts[item] < component.Size && component is not Engine)) continue;
-                part.TryAddComponent(component);
-                componentCounts[item] = 0; // Reset count after adding
+                // Use the exact slot positions from the MTF file
+                part.TryAddComponent(component, componentAssignment.Slots);
             }
         }
     }
