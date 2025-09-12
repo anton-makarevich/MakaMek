@@ -40,30 +40,29 @@ public static class UnitExtensions
         var engineRating = engine?.Rating ?? 0;
         var engineType = engine?.Type.ToString() ?? "Fusion";
         
-        // Create equipment dictionary
-        var locationEquipment = new Dictionary<PartLocation, List<MakaMekComponent>>();
-        
+        // Create equipment dictionary with slot layouts
+        var locationEquipment = new Dictionary<PartLocation, LocationSlotLayout>();
+
         foreach (var part in unit.Parts.Values)
         {
-            var equipment = new List<MakaMekComponent>();
-            
+            var slotLayout = new LocationSlotLayout();
+
             // Filter out automatically added components
             var filteredComponents = part.Components
                 .Where(c => c.IsRemovable)
                 .ToList();
-                
+
             foreach (var component in filteredComponents)
             {
-                // Use the ComponentType property directly
-                    // Add each component exactly once, regardless of how many slots it occupies
-                equipment.Add(component.ComponentType);
+                // Add component to its actual mounted slots
+                foreach (var slot in component.MountedAtSlots)
+                {
+                    slotLayout.AssignComponent(slot, component.ComponentType);
+                }
             }
-            
-            // Only add the location if it has equipment
-            if (equipment.Count > 0)
-            {
-                locationEquipment[part.Location] = equipment;
-            }
+
+            // Always add the location (even if empty) to maintain consistency
+            locationEquipment[part.Location] = slotLayout;
         }
         
         return new UnitData
