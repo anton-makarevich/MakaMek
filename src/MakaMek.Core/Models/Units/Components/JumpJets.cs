@@ -8,7 +8,7 @@ public class JumpJets : Component
     {
     }
 
-    public JumpJets(int jumpMp) : base("Jump Jets", [])
+    public JumpJets(int jumpMp) : base("Jump Jets")
     {
         JumpMp = jumpMp;
     }

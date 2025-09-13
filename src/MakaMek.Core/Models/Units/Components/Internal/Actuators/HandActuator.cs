@@ -2,12 +2,7 @@ using Sanet.MakaMek.Core.Data.Units;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
-public class HandActuator : Component
+public class HandActuator() : Component("Hand Actuator")
 {
-    private static readonly int[] HandSlots = [3];
-    public HandActuator() : base("Hand Actuator", HandSlots)
-    {
-    }
-
     public override MakaMekComponent ComponentType => MakaMekComponent.HandActuator;
 }

@@ -6,7 +6,7 @@ public class Ammo : Component
 {
     private int _remainingShots;
 
-    public Ammo(WeaponDefinition definition, int initialShots) : base($"{definition.Name} Ammo", [])
+    public Ammo(WeaponDefinition definition, int initialShots) : base($"{definition.Name} Ammo")
     {
         if (!definition.RequiresAmmo)
         {
