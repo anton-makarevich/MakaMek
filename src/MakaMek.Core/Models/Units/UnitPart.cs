@@ -82,21 +82,6 @@ public abstract class UnitPart
 
     public bool TryAddComponent(Component component, int[]? slots=null)
     {
-        if (component.IsFixed)
-        {
-            if (!CanAddComponent(component, component.MountedAtSlots))
-            {
-                return false;
-            }
-
-            _components.Add(component);
-            // Update the component with its mount location
-            component.Mount(component.MountedAtSlots, this);
-            return true;
-        }
-        
-        
-
         int[] slotsToUse;
 
         if (slots != null)
@@ -226,7 +211,7 @@ public abstract class UnitPart
             return false;
         }
 
-        if (component is { IsMounted: true, IsFixed: false })
+        if (component is { IsMounted: true })
         {
             component.UnMount();
         }

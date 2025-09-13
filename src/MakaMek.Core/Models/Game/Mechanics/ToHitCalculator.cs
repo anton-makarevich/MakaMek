@@ -57,7 +57,7 @@ public class ToHitCalculator : IToHitCalculator
             WeaponRange.OutOfRange => weapon.LongRange+1,
             _ => throw new ArgumentException($"Unknown weapon range: {range}")
         };
-        var weaponLocation = weapon.MountedOn?.Location ?? throw new Exception($"Weapon {weapon.Name} is not mounted");
+        var weaponLocation = weapon.GetPrimaryMountLocation()?.Location ?? throw new Exception($"Weapon {weapon.Name} is not mounted");
         var otherModifiers = GetDetailedOtherModifiers(attacker, target,weaponLocation, isPrimaryTarget, aimedShotTarget);
         var terrainModifiers = GetTerrainModifiers(attacker, target, map);
 

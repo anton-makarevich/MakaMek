@@ -7,7 +7,7 @@ public abstract class Weapon : Component
     private readonly WeaponDefinition _definition;
 
     protected Weapon(WeaponDefinition definition) 
-        : base(definition.Name, [], definition.Size)
+        : base(definition.Name, definition.Size)
     {
         _definition = definition;
         BattleValue = definition.BattleValue;
@@ -48,7 +48,7 @@ public abstract class Weapon : Component
         return new WeaponData
         {
             Name = Name,
-            Location = MountedOn?.Location,
+            Location = GetPrimaryMountLocation()?.Location,
             Slots = MountedAtSlots
         };
     }

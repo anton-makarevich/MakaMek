@@ -54,10 +54,14 @@ public static class UnitExtensions
 
             foreach (var component in filteredComponents)
             {
-                // Add component to its actual mounted slots
-                foreach (var slot in component.MountedAtSlots)
+                var assignmentsForThisLocation = component.SlotAssignments;
+
+                foreach (var assignment in assignmentsForThisLocation)
                 {
-                    slotLayout.AssignComponent(slot, component.ComponentType);
+                    foreach (var slot in assignment.Slots)
+                    {
+                        slotLayout.AssignComponent(slot, component.ComponentType);
+                    }
                 }
             }
 

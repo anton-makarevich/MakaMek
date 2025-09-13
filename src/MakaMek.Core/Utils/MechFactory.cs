@@ -68,17 +68,34 @@ public class MechFactory : IMechFactory
 
     private void AddEquipmentToParts(Mech mech, UnitData unitData)
     {
+        // Group components by type to handle multi-location components
+        var componentsByType = new Dictionary<MakaMekComponent, List<(PartLocation location, int[] slots)>>();
+
         foreach (var (location, slotLayout) in unitData.LocationEquipment)
         {
-            var part = mech.Parts[location];
-
             foreach (var componentAssignment in slotLayout.ComponentAssignments)
             {
-                var component = CreateComponent(componentAssignment.Component, unitData);
-                if (component == null) continue;
+                if (!componentsByType.ContainsKey(componentAssignment.Component))
+                {
+                    componentsByType[componentAssignment.Component] = [];
+                }
+                componentsByType[componentAssignment.Component].Add((location, componentAssignment.Slots));
+            }
+        }
 
-                // Use the exact slot positions from the MTF file
-                part.TryAddComponent(component, componentAssignment.Slots);
+        // Create and mount components
+        foreach (var (componentType, locationSlots) in componentsByType)
+        {
+            var component = CreateComponent(componentType, unitData);
+            if (component == null) continue;
+
+            // Handle multi-location components
+            foreach (var (location, slots) in locationSlots)
+            {
+                var part = mech.Parts[location];
+
+                // Add component to unit part
+                part.TryAddComponent(component, slots);
             }
         }
     }

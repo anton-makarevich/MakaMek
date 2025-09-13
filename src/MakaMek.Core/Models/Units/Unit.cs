@@ -592,23 +592,6 @@ public abstract class Unit
            c.MountedAtSlots.SequenceEqual(slots));
     }
 
-    /// <summary>
-    /// Finds the part that contains a specific component
-    /// </summary>
-    /// <param name="component">The component to find</param>
-    /// <returns>The part containing the component, or null if not found</returns>
-    public UnitPart? FindComponentPart(Component component)
-    {
-        // First check the component's MountedOn property
-        if (component.MountedOn != null && _parts.ContainsValue(component.MountedOn))
-        {
-            return component.MountedOn;
-        }
-
-        // Fallback to searching all parts
-        return _parts.Values.FirstOrDefault(p => p.Components.Contains(component));
-    }
-
     public void Move(MovementType movementType, List<PathSegmentData> movementPath)
     {
         if (Position == null)

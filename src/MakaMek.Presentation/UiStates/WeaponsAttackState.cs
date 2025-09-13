@@ -535,7 +535,7 @@ public class WeaponsAttackState : IUiState
                     Weapon = new WeaponData
                     {
                         Name = weapon.Name,
-                        Location = weapon.MountedOn?.Location ?? throw new Exception("Weapon is not mounted"),
+                        Location = weapon.GetPrimaryMountLocation()?.Location ?? throw new Exception("Weapon is not mounted"),
                         Slots = weapon.MountedAtSlots
                     },
                     TargetId = target.Id,

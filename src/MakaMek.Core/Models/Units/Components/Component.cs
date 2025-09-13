@@ -5,63 +5,80 @@ namespace Sanet.MakaMek.Core.Models.Units.Components;
 
 public abstract class Component : IManufacturedItem
 {
-    protected Component(string name, int[] slots, int size = 1, string manufacturer = "Unknown", int healthPoints = 1)
+    private readonly List<CriticalSlotAssignment> _slotAssignments = [];
+
+    protected Component(string name, int size = 1, string manufacturer = "Unknown", int healthPoints = 1)
     {
         Name = name;
-        MountedAtSlots = slots;
-        IsFixed = slots.Length > 0;
-        Size = IsFixed
-        ? slots.Length
-        : size;
+        Size = size;
         Manufacturer = manufacturer;
         HealthPoints = healthPoints;
     }
 
     public string Name { get; }
-    public int[] MountedAtSlots { get; private set; }
-    public bool IsActive { get; protected set; } = true;
+    public int[] MountedAtSlots =>SlotAssignments
+        .SelectMany(a => a.Slots)
+        .OrderBy(slot => slot)
+        .ToArray();
     
-    public bool IsAvailable => IsActive 
-                               && !IsDestroyed 
-                               && IsMounted 
-                               && !MountedOn!.IsDestroyed;
-    
+    public bool IsActive { get; private set; } = true;
+
+    public bool IsAvailable => IsActive
+                               && !IsDestroyed
+                               && IsMounted
+                               && !SlotAssignments.Any(a => a.UnitPart.IsDestroyed);
+
     public int Size { get; }
     public string Manufacturer { get; }
-    public bool IsFixed { get; }
-    public int BattleValue { get; protected set; }
+    public int BattleValue { get; protected init; }
 
-    // Reference to the part this component is mounted on
-    public UnitPart? MountedOn { get; private set; }
+    // Multi-location slot assignments
+    public IReadOnlyList<CriticalSlotAssignment> SlotAssignments => _slotAssignments;
+
+    // Multi-location mounted parts
+    public IReadOnlyList<UnitPart> MountedOn => SlotAssignments.Select(a => a.UnitPart).ToList();
 
     // Component type property for mapping to MakaMekComponent enum
     public abstract MakaMekComponent ComponentType { get; }
 
-    // Slot positioning
-    public bool IsMounted => MountedAtSlots.Length > 0 && MountedOn != null;
+    // component is mounted when all required slots are assigned
+    public bool IsMounted => SlotAssignments.Sum(a => a.Length) == Size && SlotAssignments.Count > 0;
 
     public void Mount(int[] slots, UnitPart mountLocation)
     {
+        Mount(new CriticalSlotAssignment
+        {
+            UnitPart = mountLocation,
+            FirstSlot = slots[0],
+            Length = slots.Length
+        });
+    }
+
+    public void Mount(IEnumerable<CriticalSlotAssignment> slotAssignments)
+    {
+        foreach (var slotAssignment in slotAssignments)
+        {
+            Mount(slotAssignment);
+        }
+    }
+
+    public void Mount(CriticalSlotAssignment slotAssignment)
+    {
         if (IsMounted) return;
-        if (slots.Length != Size)
+        var occupiedSlots = _slotAssignments.Sum(a=>a.Length);
+        if (occupiedSlots + slotAssignment.Length > Size)
         {
             throw new ComponentException($"Component {Name} requires {Size} slots.");
         }
         
-        MountedAtSlots = slots;
-        MountedOn = mountLocation;
+        _slotAssignments.Add(slotAssignment);
     }
 
     public void UnMount()
     {
-        if (IsFixed)
-        {
-            throw new ComponentException("Fixed components cannot be unmounted.");
-        }
         if (!IsMounted) return;
-        
-        MountedAtSlots = [];
-        MountedOn = null;
+
+        _slotAssignments.Clear();
     }
 
     public virtual void Hit()
@@ -70,7 +87,7 @@ public abstract class Component : IManufacturedItem
         if (CanExplode && !HasExploded)
         {
             HasExploded = true;
-            MountedOn?.Unit?.Pilot?.ExplosionHit();
+            GetPrimaryMountLocation()?.Unit?.Pilot?.ExplosionHit();
         }
     }
 
@@ -80,10 +97,14 @@ public abstract class Component : IManufacturedItem
 
     public virtual void Activate() => IsActive = true;
     public virtual void Deactivate() => IsActive = false;
-    
-    // Helper method to get the location of this component
-    public PartLocation? GetLocation() => MountedOn?.Location;
-    
+
+    // Helper methods for multi-location components
+    public IEnumerable<PartLocation> GetLocations() => SlotAssignments.Select(a => a.Location);
+
+    // Backward compatibility methods
+    public UnitPart? GetPrimaryMountLocation() => SlotAssignments.FirstOrDefault()?.UnitPart;
+    public PartLocation? GetLocation() => GetPrimaryMountLocation()?.Location;
+
     public virtual bool IsRemovable => true;
 
     public ComponentStatus Status
@@ -96,7 +117,8 @@ public abstract class Component : IManufacturedItem
                 return ComponentStatus.Removed;
             if (!IsActive)
                 return ComponentStatus.Deactivated;
-            if (MountedOn is { IsDestroyed: true })
+            // Component is lost if ANY location is destroyed (as per user's note)
+            if (SlotAssignments.Any(a => a.UnitPart.IsDestroyed))
                 return ComponentStatus.Lost;
             if (Hits>0 && Hits<HealthPoints)
                 return ComponentStatus.Damaged;

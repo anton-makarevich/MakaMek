@@ -386,7 +386,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             AttackerId = attacker.Id,
             WeaponData = new WeaponData
             {
-                Location = weapon.MountedOn!.Location,
+                Location = weapon.GetPrimaryMountLocation()!.Location,
                 Name = weapon.Name,
                 Slots = weapon.MountedAtSlots
             },

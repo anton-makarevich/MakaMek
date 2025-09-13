@@ -4,13 +4,23 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties
 namespace Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
 public class Engine(int rating, EngineType type = EngineType.Fusion)
-    : Component($"{type} Engine {rating}", EngineSlots, healthPoints: 3)
+    : Component($"{type} Engine {rating}",  GetEngineSize(type), healthPoints: 3)
 {
     public int Rating { get; } = rating;
     public EngineType Type { get; } = type;
 
-    // Engine takes slots 1-3 and 8-10 in CT
-    private static readonly int[] EngineSlots = [0, 1, 2, 7, 8, 9];
+    private static int GetEngineSize(EngineType type)
+    {
+        return type switch
+        {
+            EngineType.Fusion => 6,      // Standard fusion: 6 slots in CT
+            EngineType.XLFusion => 10,   // XL fusion: 6 slots in CT + 4 slots in side torsos
+            EngineType.Light => 4,       // Light engine: 4 slots in CT
+            EngineType.Compact => 3,     // Compact engine: 3 slots in CT
+            EngineType.ICE => 6,         // ICE engine: 6 slots in CT
+            _ => 6
+        };
+    }
 
     /// <summary>
     /// Gets the current heat penalty caused by engine damage.

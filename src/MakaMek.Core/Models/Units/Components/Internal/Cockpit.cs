@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Units;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
-public class Cockpit() : Component("Cockpit", [2])
+public class Cockpit() : Component("Cockpit")
 {
     public override MakaMekComponent ComponentType => MakaMekComponent.Cockpit;
     public override bool IsRemovable => false;
@@ -11,6 +11,6 @@ public class Cockpit() : Component("Cockpit", [2])
     {
         base.Hit();
         // Kill the pilot
-        MountedOn?.Unit?.Pilot?.Kill();
+        GetPrimaryMountLocation()?.Unit?.Pilot?.Kill();
     }
 }
