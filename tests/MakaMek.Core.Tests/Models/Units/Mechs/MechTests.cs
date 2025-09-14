@@ -642,7 +642,7 @@ public class MechTests
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
-            part.TryAddComponent(new TestComponent([i]));
+            part.TryAddComponent(new TestComponent());
         
         _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
@@ -664,7 +664,7 @@ public class MechTests
         critsData.NumCriticalHits.ShouldBe(2);
     }
 
-    private class TestComponent(int[] slots) : Component("Test", slots)
+    private class TestComponent() : Component("Test")
     {
         public override MakaMekComponent ComponentType => MakaMekComponent.MachineGun;
     }
@@ -676,7 +676,7 @@ public class MechTests
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         for (var i = 1; i < 7; i++)
-            part.TryAddComponent(new TestComponent([i]));
+            part.TryAddComponent(new TestComponent());
 
         _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
@@ -727,7 +727,7 @@ public class MechTests
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
-            part.TryAddComponent(new TestComponent([i]));
+            part.TryAddComponent(new TestComponent());
 
         _diceRoller.Roll2D6().Returns(
             [new(3), new(3)] // 6 total for crit roll (no crits)

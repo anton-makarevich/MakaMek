@@ -20,7 +20,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units;
 
 public class UnitTests
 {
-    private class TestComponent(string name, int size = 1) : Component(name, [], size)
+    private class TestComponent(string name, int size = 1) : Component(name, size)
     {
         public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
@@ -186,9 +186,9 @@ public class UnitTests
         rightArmPart.TryAddComponent(rightArmComponent);
         
         // Act
-        var leftArmComponentPart = testUnit.FindComponentPart(leftArmComponent);
-        var rightArmComponentPart = testUnit.FindComponentPart(rightArmComponent);
-        var unmountedComponentPart = testUnit.FindComponentPart(unmountedComponent);
+        var leftArmComponentPart = leftArmComponent.GetPrimaryMountLocation();
+        var rightArmComponentPart = rightArmComponent.GetPrimaryMountLocation();
+        var unmountedComponentPart = unmountedComponent.GetPrimaryMountLocation();
         
         // Assert
         leftArmComponentPart.ShouldBe(leftArmPart);

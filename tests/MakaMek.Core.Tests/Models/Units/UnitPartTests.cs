@@ -73,7 +73,7 @@ public class UnitPartTests
     {
         // Arrange
         var part = new TestUnitPart(PartLocation.LeftArm, 0, 5, 12);
-        var masc = new TestComponent("Test MASC", [0, 1]);
+        var masc = new TestComponent("Test MASC");
         part.TryAddComponent(masc);
 
         // Act
@@ -91,7 +91,7 @@ public class UnitPartTests
     {
         // Arrange
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
-        var testComponent = new TestComponent("Test Component", [0, 1]);
+        var testComponent = new TestComponent("Test Component");
         part.TryAddComponent(testComponent);
 
         // Act
@@ -109,8 +109,8 @@ public class UnitPartTests
     {
         // Arrange
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
-        var smallComponent = new TestComponent("Small Component", [0, 1]);
-        var largeComponent = new TestComponent("Large Component", [0, 1, 2, 3]);
+        var smallComponent = new TestComponent("Small Component");
+        var largeComponent = new TestComponent("Large Component");
 
         // Act & Assert
         part.TryAddComponent(smallComponent).ShouldBeTrue();
@@ -127,7 +127,7 @@ public class UnitPartTests
     {
         // Arrange
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
-        var smallComponent = new TestComponent("Small Component", [0, 1]);
+        var smallComponent = new TestComponent("Small Component");
 
         // Act & Assert
         part.TryAddComponent(smallComponent).ShouldBeTrue();
@@ -138,7 +138,7 @@ public class UnitPartTests
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
-        var largeComponent = new TestComponent("Large Component", [0, 1, 2, 3]);
+        var largeComponent = new TestComponent("Large Component");
 
         // Act & Assert
         sut.TryAddComponent(largeComponent).ShouldBeFalse();
@@ -149,14 +149,14 @@ public class UnitPartTests
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
-        var smallComponent = new TestComponent("Small Component", [0, 1]);
-        var largeComponent = new TestComponent("Large Component", [0, 1, 2, 3]);
+        var smallComponent = new TestComponent("Small Component");
+        var largeComponent = new TestComponent("Large Component");
 
         // Act & Assert
         sut.TryAddComponent(smallComponent);
         sut.TryAddComponent(largeComponent).ShouldBeFalse();
-        sut.TryAddComponent(new TestComponent("Not fixed Component", [])).ShouldBeTrue();
-        sut.TryAddComponent(new TestComponent("Not fixed Component 2", [])).ShouldBeFalse();
+        sut.TryAddComponent(new TestComponent("Not fixed Component")).ShouldBeTrue();
+        sut.TryAddComponent(new TestComponent("Not fixed Component 2")).ShouldBeFalse();
     }
 
     [Fact]
@@ -164,8 +164,8 @@ public class UnitPartTests
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 6);
-        var component1 = new TestComponent("Component 1", [0, 1]);
-        var component2 = new TestComponent("Component 2", [3, 4, 5]);
+        var component1 = new TestComponent("Component 1");
+        var component2 = new TestComponent("Component 2");
         
         sut.TryAddComponent(component1).ShouldBeTrue();
         sut.TryAddComponent(component2).ShouldBeTrue();
@@ -184,8 +184,8 @@ public class UnitPartTests
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 8);
-        var fixedComponent = new TestComponent("Fixed Component", [2,3,4,5]);
-        var component = new TestComponent("TestComponent", [], 4);
+        var fixedComponent = new TestComponent("Fixed Component");
+        var component = new TestComponent("TestComponent", 4);
 
         // Act & Assert
         sut.TryAddComponent(fixedComponent).ShouldBeTrue();
@@ -197,7 +197,7 @@ public class UnitPartTests
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
-        var component = new TestComponent("NegSlot", [-1]);
+        var component = new TestComponent("NegSlot");
         
         // Act
         var result = sut.TryAddComponent(component);
@@ -262,7 +262,7 @@ public class UnitPartTests
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
-        var component = new TestComponent("Test Component", [2, 3, 4]);
+        var component = new TestComponent("Test Component");
         sut.TryAddComponent(component);
         
         // Act
@@ -278,7 +278,7 @@ public class UnitPartTests
     {
         // Arrange
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
-        var component = new TestComponent("Test Component", [2, 3, 4]);
+        var component = new TestComponent("Test Component");
         part.TryAddComponent(component);
         component.Hit(); // Destroy the component first
         
@@ -295,7 +295,7 @@ public class UnitPartTests
     {
         // Arrange
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
-        var component = new TestComponent("Test Component", [2, 3, 4]);
+        var component = new TestComponent("Test Component");
         part.TryAddComponent(component);
         
         // Act
@@ -391,7 +391,7 @@ public class UnitPartTests
         var unit = new TestUnit();
         part.Unit = unit;
         
-        var component = new TestComponent("Test Component",[]);
+        var component = new TestComponent("Test Component");
         part.TryAddComponent(component);
         
         // Act
@@ -413,7 +413,7 @@ public class UnitPartTests
         var unit = new TestUnit();
         part.Unit = unit;
         
-        var component = new TestComponent("Test Component",[]);
+        var component = new TestComponent("Test Component");
         part.TryAddComponent(component);
         
         // Act
@@ -431,7 +431,7 @@ public class UnitPartTests
         destroyedEvent.Parameters[0].ShouldBe(component.Name);
     }
     
-    private class TestComponent(string name, int[] slots, int size = 1) : Component(name, slots, size)
+    private class TestComponent(string name, int size = 1) : Component(name, size)
     {
         public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
@@ -441,7 +441,7 @@ public class UnitPartTests
     {
         // Arrange - This tests line 73 (slot bounds checking)
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
-        var component = new TestComponent("Test Component", [3]); // Slot 3 is out of bounds
+        var component = new TestComponent("Test Component"); // Slot 3 is out of bounds
 
         // Act
         var result = part.TryAddComponent(component);
@@ -457,7 +457,7 @@ public class UnitPartTests
     {
         // Arrange - This tests line 73 (slot bounds checking with multiple slots)
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
-        var component = new TestComponent("Test Component", [1, 2, 3, 4]); // Slots 3 and 4 are out of bounds
+        var component = new TestComponent("Test Component"); // Slots 3 and 4 are out of bounds
 
         // Act
         var result = part.TryAddComponent(component);
@@ -473,7 +473,7 @@ public class UnitPartTests
     {
         // Arrange - This verifies line 73 passes when slots are valid
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 5); // 5 slots (0, 1, 2, 3, 4)
-        var component = new TestComponent("Test Component", [2, 3, 4]); // All slots are in bounds
+        var component = new TestComponent("Test Component"); // All slots are in bounds
 
         // Act
         var result = part.TryAddComponent(component);
@@ -504,7 +504,7 @@ public class UnitPartTests
             _ => null
         };
 
-        public override LocationCriticalHitsData? CalculateCriticalHitsData(PartLocation location,
+        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location,
             IDiceRoller diceRoller,
             IDamageTransferCalculator damageTransferCalculator)
             => throw new NotImplementedException();
