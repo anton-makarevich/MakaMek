@@ -9,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -596,7 +595,7 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         CreateSut();
-        var part = _weapon.MountedOn;
+        var part = _weapon.GetPrimaryMountLocation();
         if (part == null) throw new Exception("Weapon must be mounted on a part for this test.");
         part.ApplyDamage(1000, HitDirection.Front);
         _localizationService.GetString("Attack_LocationDestroyed").Returns("Location is destroyed");
