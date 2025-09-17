@@ -12,11 +12,11 @@ public record struct UnitData
     public required int EngineRating { get; init; }
     public required string EngineType { get; init; }
     public required Dictionary<PartLocation, ArmorLocation> ArmorValues { get; init; }
-
+    
     /// <summary>
-    /// Equipment with precise critical slot assignments for each location
+    /// Component-centric equipment model with per-instance components and multi-location support
     /// </summary>
-    public required Dictionary<PartLocation, LocationSlotLayout> LocationEquipment { get; init; }
+    public required IReadOnlyList<ComponentData> Equipment { get; init; }
 
     public required Dictionary<string, string> AdditionalAttributes { get; init; }
     public required Dictionary<string,string> Quirks { get; init; }

@@ -68,34 +68,27 @@ public class MechFactory : IMechFactory
 
     private void AddEquipmentToParts(Mech mech, UnitData unitData)
     {
-        // Group components by type to handle multi-location components
-        var componentsByType = new Dictionary<MakaMekComponent, List<(PartLocation location, int[] slots)>>();
+        if (!unitData.Equipment.Any())
+            return;
 
-        foreach (var (location, slotLayout) in unitData.LocationEquipment)
-        {
-            foreach (var componentAssignment in slotLayout.ComponentAssignments)
-            {
-                if (!componentsByType.ContainsKey(componentAssignment.Component))
-                {
-                    componentsByType[componentAssignment.Component] = [];
-                }
-                componentsByType[componentAssignment.Component].Add((location, componentAssignment.Slots));
-            }
-        }
+        AddEquipmentFromComponentData(mech, unitData);
+    }
 
-        // Create and mount components
-        foreach (var (componentType, locationSlots) in componentsByType)
+    private void AddEquipmentFromComponentData(Mech mech, UnitData unitData)
+    {
+        foreach (var componentData in unitData.Equipment)
         {
-            var component = CreateComponent(componentType, unitData);
+            var component = CreateComponent(componentData.Type, unitData);
             if (component == null) continue;
 
-            // Handle multi-location components
-            foreach (var (location, slots) in locationSlots)
+            // Mount to additional locations (without adding to their component lists)
+            foreach (var assignment in componentData.Assignments)
             {
-                var part = mech.Parts[location];
+                var part = mech.Parts[assignment.Location];
+                var slots = assignment.Slots.ToArray();
 
-                // Add component to unit part
-                part.TryAddComponent(component, slots);
+                // Mount the component to this location using the Mount method directly
+                component.Mount(slots, part);
             }
         }
     }
