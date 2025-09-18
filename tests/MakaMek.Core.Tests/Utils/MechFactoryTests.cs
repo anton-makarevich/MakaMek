@@ -54,8 +54,7 @@ public class MechFactoryTests
                 { PartLocation.LeftLeg, new ArmorLocation { FrontArmor = 8 } },
                 { PartLocation.RightLeg, new ArmorLocation { FrontArmor = 8 } }
             },
-            LocationEquipment = new Dictionary<PartLocation, LocationSlotLayout>(),
-            Equipment = equipment ?? new List<ComponentData>(),
+            Equipment = equipment ?? [],
             AdditionalAttributes = new Dictionary<string, string>(),
             Quirks = new Dictionary<string, string>()
         };
@@ -106,8 +105,7 @@ public class MechFactoryTests
                 { PartLocation.LeftLeg, new ArmorLocation { FrontArmor = 8 } },
                 { PartLocation.RightLeg, new ArmorLocation { FrontArmor = 8 } }
             },
-            LocationEquipment = locationEquipmentDict,
-            Equipment = new List<ComponentData>(),
+            Equipment = [],
             AdditionalAttributes = new Dictionary<string, string>(),
             Quirks = new Dictionary<string, string>()
         };

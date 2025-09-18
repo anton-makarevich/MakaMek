@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -40,33 +41,36 @@ public static class UnitExtensions
         var engineRating = engine?.Rating ?? 0;
         var engineType = engine?.Type.ToString() ?? "Fusion";
         
-        // Create equipment dictionary with slot layouts
-        var locationEquipment = new Dictionary<PartLocation, LocationSlotLayout>();
+        // Create component-centric equipment list
+        var equipment = new List<ComponentData>();
+        var processedComponents = new HashSet<Component>();
 
         foreach (var part in unit.Parts.Values)
         {
-            var slotLayout = new LocationSlotLayout();
-
             // Filter out automatically added components
             var filteredComponents = part.Components
-                .Where(c => c.IsRemovable)
+                .Where(c => c.IsRemovable && !processedComponents.Contains(c))
                 .ToList();
 
             foreach (var component in filteredComponents)
             {
-                var assignmentsForThisLocation = component.SlotAssignments;
+                // Mark component as processed to avoid duplicates for multi-location components
+                processedComponents.Add(component);
 
-                foreach (var assignment in assignmentsForThisLocation)
+                // Convert CriticalSlotAssignments to LocationSlotAssignments
+                var assignments = component.SlotAssignments
+                    .Select(assignment => new LocationSlotAssignment(
+                        assignment.Location,
+                        assignment.FirstSlot,
+                        assignment.Length))
+                    .ToList();
+
+                equipment.Add(new ComponentData
                 {
-                    foreach (var slot in assignment.Slots)
-                    {
-                        slotLayout.AssignComponent(slot, component.ComponentType);
-                    }
-                }
+                    Type = component.ComponentType,
+                    Assignments = assignments
+                });
             }
-
-            // Always add the location (even if empty) to maintain consistency
-            locationEquipment[part.Location] = slotLayout;
         }
         
         return new UnitData
@@ -79,7 +83,7 @@ public static class UnitExtensions
             EngineRating = engineRating,
             EngineType = engineType,
             ArmorValues = armorValues,
-            LocationEquipment = locationEquipment,
+            Equipment = equipment,
             AdditionalAttributes = new Dictionary<string, string>(),
             Quirks = new Dictionary<string, string>()
         };

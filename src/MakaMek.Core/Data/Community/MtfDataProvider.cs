@@ -10,8 +10,8 @@ public class MtfDataProvider:IMechDataProvider
     {
         var listLines = lines.ToList();
         var mechData = ParseBasicData(listLines);
-        var (locationEquipment, armorValues) = ParseLocationData(listLines);
-        
+        var (equipment, armorValues) = ParseLocationData(listLines);
+
         return new UnitData
         {
             Chassis = mechData["chassis"],
@@ -21,7 +21,7 @@ public class MtfDataProvider:IMechDataProvider
             EngineRating = int.Parse(mechData["EngineRating"]),
             EngineType = mechData["EngineType"],
             ArmorValues = armorValues,
-            LocationEquipment = locationEquipment,
+            Equipment = equipment,
             Quirks = mechData.Where(pair => pair.Key.StartsWith("quirk")).ToDictionary(),
             AdditionalAttributes = mechData.Where(pair => pair.Key.StartsWith("system")).ToDictionary()
         };
@@ -67,9 +67,10 @@ public class MtfDataProvider:IMechDataProvider
         return mechData;
     }
 
-    private (Dictionary<PartLocation, LocationSlotLayout> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines)
+    private (List<ComponentData> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines)
     {
-        var locationEquipment = new Dictionary<PartLocation, LocationSlotLayout>();
+        // Track components by location and slot for consolidation
+        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, MakaMekComponent>>();
         var armorValues = new Dictionary<PartLocation, ArmorLocation>();
         PartLocation? currentLocation = null;
         var currentSlotIndex = 0;
@@ -81,7 +82,7 @@ public class MtfDataProvider:IMechDataProvider
             {
                 if (currentLocation == PartLocation.RightLeg)
                 {
-                    return (locationEquipment, armorValues);
+                    break; // End of equipment data
                 }
                 continue;
             }
@@ -134,8 +135,8 @@ public class MtfDataProvider:IMechDataProvider
                 {
                     currentLocation = location;
                     currentSlotIndex = 0; // Reset slot index for new location
-                    if (!locationEquipment.ContainsKey(location))
-                        locationEquipment[location] = new LocationSlotLayout();
+                    if (!locationSlotComponents.ContainsKey(location))
+                        locationSlotComponents[location] = new Dictionary<int, MakaMekComponent>();
                 }
                 continue;
             }
@@ -146,12 +147,94 @@ public class MtfDataProvider:IMechDataProvider
                 if (!line.Contains("-Empty-"))
                 {
                     var component = MapMtfStringToComponent(line);
-                    locationEquipment[currentLocation.Value].AssignComponent(currentSlotIndex, component);
+                    locationSlotComponents[currentLocation.Value][currentSlotIndex] = component;
                 }
                 currentSlotIndex++; // Increment slot index for each line (including empty slots)
             }
         }
-        return (locationEquipment, armorValues);
+
+        // Convert location-slot data to component-centric data
+        var equipment = ConvertToComponentData(locationSlotComponents);
+        return (equipment, armorValues);
+    }
+
+    /// <summary>
+    /// Converts location-slot component data to component-centric ComponentData objects
+    /// </summary>
+    private List<ComponentData> ConvertToComponentData(Dictionary<PartLocation, Dictionary<int, MakaMekComponent>> locationSlotComponents)
+    {
+        var componentDataList = new List<ComponentData>();
+        var processedSlots = new HashSet<(PartLocation, int)>(); // Track processed slots
+
+        foreach (var (location, slotComponents) in locationSlotComponents)
+        {
+            foreach (var (slot, component) in slotComponents.OrderBy(kvp => kvp.Key))
+            {
+                if (processedSlots.Contains((location, slot)))
+                    continue;
+
+                // Find all consecutive slots with the same component in this location
+                var assignments = new List<LocationSlotAssignment>();
+                var currentSlot = slot;
+                var consecutiveSlots = 1;
+
+                // Mark this slot as processed
+                processedSlots.Add((location, currentSlot));
+
+                // Check for consecutive slots with the same component
+                while (slotComponents.TryGetValue(currentSlot + consecutiveSlots, out var nextComponent) &&
+                       nextComponent == component)
+                {
+                    processedSlots.Add((location, currentSlot + consecutiveSlots));
+                    consecutiveSlots++;
+                }
+
+                // Create assignment for this consecutive block
+                assignments.Add(new LocationSlotAssignment(location, currentSlot, consecutiveSlots));
+
+                if (IsMultiLocationComponent(component))
+                {
+                    // Check if this component appears in other locations (multi-location component)
+                    foreach (var (otherLocation, otherSlotComponents) in locationSlotComponents)
+                    {
+                        foreach (var (otherSlot, otherComponent) in otherSlotComponents.OrderBy(kvp => kvp.Key))
+                        {
+                            if (otherComponent != component || processedSlots.Contains((otherLocation, otherSlot)))
+                                continue;
+                            // Find consecutive slots in this other location
+                            var otherCurrentSlot = otherSlot;
+                            var otherConsecutiveSlots = 1;
+                            processedSlots.Add((otherLocation, otherCurrentSlot));
+
+                            while (otherSlotComponents.TryGetValue(otherCurrentSlot + otherConsecutiveSlots,
+                                       out var otherNextComponent) &&
+                                   otherNextComponent == component)
+                            {
+                                processedSlots.Add((otherLocation, otherCurrentSlot + otherConsecutiveSlots));
+                                otherConsecutiveSlots++;
+                            }
+
+                            assignments.Add(new LocationSlotAssignment(otherLocation, otherCurrentSlot,
+                                otherConsecutiveSlots));
+                        }
+                    }
+                }
+
+                // Create ComponentData for this component instance
+                componentDataList.Add(new ComponentData
+                {
+                    Type = component,
+                    Assignments = assignments
+                });
+            }
+        }
+
+        return componentDataList;
+    }
+
+    private static bool IsMultiLocationComponent(MakaMekComponent component)
+    {
+        return component== MakaMekComponent.Engine;
     }
 
     private MakaMekComponent MapMtfStringToComponent(string mtfString)
