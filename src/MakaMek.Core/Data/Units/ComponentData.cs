@@ -53,7 +53,4 @@ public record AmmoStateData(int RemainingShots) : ComponentSpecificData;
 /// </summary>
 public record EngineStateData(int Rating, EngineType Type) : ComponentSpecificData;
 
-/// <summary>
-/// State data specific to jump jet components
-/// </summary>
-public record JumpJetStateData(int JumpMp) : ComponentSpecificData;
+

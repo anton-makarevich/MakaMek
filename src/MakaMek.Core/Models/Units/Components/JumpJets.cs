@@ -12,26 +12,16 @@ public class JumpJets : Component
         1, // 1 health point
         true); // Removable
 
-    public JumpJets(int jumpMp = 1, ComponentData? componentData = null)
+    public JumpJets(ComponentData? componentData = null)
         : base(Definition, componentData)
     {
-        // Set jump MP from component data or use provided value
-        if (componentData?.SpecificData is JumpJetStateData jumpJetState)
-        {
-            JumpMp = jumpJetState.JumpMp;
-        }
-        else
-        {
-            JumpMp = jumpMp;
-        }
+        // Each jump jet always provides exactly 1 MP as per BattleTech rules
+        JumpMp = 1;
     }
 
     public int JumpMp { get; }
 
     public override MakaMekComponent ComponentType => MakaMekComponent.JumpJet;
 
-    protected override ComponentSpecificData? GetSpecificData()
-    {
-        return new JumpJetStateData(JumpMp);
-    }
+    // No specific data needed since JumpMp is always 1
 }

@@ -6,8 +6,7 @@ public class ShoulderActuator : Component
 {
     public static readonly ActuatorDefinition Definition = new(
         "Shoulder",
-        MakaMekComponent.Shoulder,
-        false); // Not removable
+        MakaMekComponent.Shoulder);
 
     public ShoulderActuator(ComponentData? componentData = null) : base(Definition, componentData)
     {

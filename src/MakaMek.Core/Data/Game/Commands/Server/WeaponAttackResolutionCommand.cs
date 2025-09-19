@@ -22,7 +22,10 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
         var command = this;
         var player = game.Players.FirstOrDefault(p => p.Id == command.PlayerId);
         var attacker = player?.Units.FirstOrDefault(u => u.Id == command.AttackerId);
-        var weapon = attacker?.GetMountedComponentAtLocation<Weapon>(WeaponData.Location, WeaponData.Slots);
+        var primaryAssignment = WeaponData.Assignments.FirstOrDefault();
+        var weapon = primaryAssignment != null ?
+            attacker?.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.Slots.ToArray()) :
+            null;
         var target = game.Players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == command.TargetId);

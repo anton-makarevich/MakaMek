@@ -5,26 +5,20 @@ namespace Sanet.MakaMek.Core.Data.Units;
 /// </summary>
 public abstract record ComponentDefinition(
     string Name,
-    int Size = 1,
-    int HealthPoints = 1,
-    int BattleValue = 0,
-    bool IsRemovable = true,
-    MakaMekComponent ComponentType = MakaMekComponent.HeatSink)
-{
-    /// <summary>
-    /// Gets the manufacturer of this component
-    /// </summary>
-    public virtual string Manufacturer => "Unknown";
-}
+    int Size,
+    int HealthPoints,
+    int BattleValue,
+    bool IsRemovable,
+    MakaMekComponent ComponentType,
+    string Manufacturer = "Unknown");
 
 /// <summary>
 /// Definition for actuator components (shoulder, arm, leg actuators)
 /// </summary>
 public record ActuatorDefinition(
     string Name,
-    MakaMekComponent ComponentType,
-    bool IsRemovable = false)
-    : ComponentDefinition(Name, 1, 1, 0, IsRemovable, ComponentType);
+    MakaMekComponent ComponentType)
+    : ComponentDefinition(Name, 1, 1, 0, false, ComponentType);
 
 /// <summary>
 /// Definition for internal components (life support, sensors, cockpit, gyro)

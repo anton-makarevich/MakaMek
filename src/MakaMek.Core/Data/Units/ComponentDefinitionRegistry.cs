@@ -53,25 +53,25 @@ public class ComponentDefinitionRegistry : IComponentDefinitionRegistry
     {
         return new Dictionary<MakaMekComponent, ComponentDefinition>
         {
-            // Actuators
-            [MakaMekComponent.Shoulder] = new ActuatorDefinition("Shoulder", MakaMekComponent.Shoulder),
-            [MakaMekComponent.UpperArmActuator] = new ActuatorDefinition("Upper Arm Actuator", MakaMekComponent.UpperArmActuator),
-            [MakaMekComponent.LowerArmActuator] = new ActuatorDefinition("Lower Arm", MakaMekComponent.LowerArmActuator),
-            [MakaMekComponent.HandActuator] = new ActuatorDefinition("Hand Actuator", MakaMekComponent.HandActuator),
-            [MakaMekComponent.Hip] = new ActuatorDefinition("Hip", MakaMekComponent.Hip),
-            [MakaMekComponent.UpperLegActuator] = new ActuatorDefinition("Upper Leg", MakaMekComponent.UpperLegActuator),
-            [MakaMekComponent.LowerLegActuator] = new ActuatorDefinition("Lower Leg", MakaMekComponent.LowerLegActuator),
-            [MakaMekComponent.FootActuator] = new ActuatorDefinition("Foot Actuator", MakaMekComponent.FootActuator),
+            // Actuators - using static Definition properties
+            [MakaMekComponent.Shoulder] = ShoulderActuator.Definition,
+            [MakaMekComponent.UpperArmActuator] = UpperArmActuator.Definition,
+            [MakaMekComponent.LowerArmActuator] = LowerArmActuator.Definition,
+            [MakaMekComponent.HandActuator] = HandActuator.Definition,
+            [MakaMekComponent.Hip] = HipActuator.Definition,
+            [MakaMekComponent.UpperLegActuator] = UpperLegActuator.Definition,
+            [MakaMekComponent.LowerLegActuator] = LowerLegActuator.Definition,
+            [MakaMekComponent.FootActuator] = FootActuator.Definition,
 
-            // Internal Components
-            [MakaMekComponent.Gyro] = new InternalDefinition("Gyro", 2, MakaMekComponent.Gyro, 4),
-            [MakaMekComponent.LifeSupport] = new InternalDefinition("Life Support", 1, MakaMekComponent.LifeSupport),
-            [MakaMekComponent.Sensors] = new InternalDefinition("Sensors", 2, MakaMekComponent.Sensors),
-            [MakaMekComponent.Cockpit] = new InternalDefinition("Cockpit", 1, MakaMekComponent.Cockpit),
+            // Internal Components - using static Definition properties
+            [MakaMekComponent.Gyro] = Gyro.Definition,
+            [MakaMekComponent.LifeSupport] = LifeSupport.Definition,
+            [MakaMekComponent.Sensors] = Sensors.Definition,
+            [MakaMekComponent.Cockpit] = Cockpit.Definition,
 
-            // Equipment
-            [MakaMekComponent.HeatSink] = new EquipmentDefinition("Heat Sink", MakaMekComponent.HeatSink, 0),
-            [MakaMekComponent.JumpJet] = new EquipmentDefinition("Jump Jets", MakaMekComponent.JumpJet, 0),
+            // Equipment - using static Definition properties
+            [MakaMekComponent.HeatSink] = HeatSink.Definition,
+            [MakaMekComponent.JumpJet] = JumpJets.Definition,
 
             // Weapons - using existing static definitions
             [MakaMekComponent.MachineGun] = MachineGun.Definition,
@@ -100,24 +100,24 @@ public class ComponentDefinitionRegistry : IComponentDefinitionRegistry
         return new Dictionary<MakaMekComponent, Func<ComponentData?, Component>>
         {
             // Actuators
-            [MakaMekComponent.Shoulder] = data => new ShoulderActuator(),
-            [MakaMekComponent.UpperArmActuator] = data => new UpperArmActuator(),
-            [MakaMekComponent.LowerArmActuator] = data => new LowerArmActuator(),
-            [MakaMekComponent.HandActuator] = data => new HandActuator(),
-            [MakaMekComponent.Hip] = data => new HipActuator(),
-            [MakaMekComponent.UpperLegActuator] = data => new UpperLegActuator(),
-            [MakaMekComponent.LowerLegActuator] = data => new LowerLegActuator(),
-            [MakaMekComponent.FootActuator] = data => new FootActuator(),
+            [MakaMekComponent.Shoulder] = data => new ShoulderActuator(data),
+            [MakaMekComponent.UpperArmActuator] = data => new UpperArmActuator(data),
+            [MakaMekComponent.LowerArmActuator] = data => new LowerArmActuator(data),
+            [MakaMekComponent.HandActuator] = data => new HandActuator(data),
+            [MakaMekComponent.Hip] = data => new HipActuator(data),
+            [MakaMekComponent.UpperLegActuator] = data => new UpperLegActuator(data),
+            [MakaMekComponent.LowerLegActuator] = data => new LowerLegActuator(data),
+            [MakaMekComponent.FootActuator] = data => new FootActuator(data),
 
             // Internal Components
-            [MakaMekComponent.Gyro] = data => new Gyro(),
-            [MakaMekComponent.LifeSupport] = data => new LifeSupport(),
-            [MakaMekComponent.Sensors] = data => new Sensors(),
-            [MakaMekComponent.Cockpit] = data => new Cockpit(),
+            [MakaMekComponent.Gyro] = data => new Gyro(data),
+            [MakaMekComponent.LifeSupport] = data => new LifeSupport(data),
+            [MakaMekComponent.Sensors] = data => new Sensors(data),
+            [MakaMekComponent.Cockpit] = data => new Cockpit(data),
 
             // Equipment
-            [MakaMekComponent.HeatSink] = data => new HeatSink(),
-            [MakaMekComponent.JumpJet] = data => CreateJumpJet(data),
+            [MakaMekComponent.HeatSink] = data => new HeatSink(data),
+            [MakaMekComponent.JumpJet] = data => new JumpJets(data),
 
             // Engine (special case with state data)
             [MakaMekComponent.Engine] = data => CreateEngine(data),
@@ -162,22 +162,11 @@ public class ComponentDefinitionRegistry : IComponentDefinitionRegistry
     {
         if (data?.SpecificData is EngineStateData engineState)
         {
-            return new Engine(engineState.Rating, engineState.Type);
+            return new Engine(engineState.Rating, engineState.Type, data);
         }
 
         // Default engine if no state data provided
-        return new Engine(200, EngineType.Fusion);
-    }
-
-    private static Component CreateJumpJet(ComponentData? data)
-    {
-        if (data?.SpecificData is JumpJetStateData jumpJetState)
-        {
-            return new JumpJets(jumpJetState.JumpMp);
-        }
-
-        // Default jump jet if no state data provided
-        return new JumpJets(1);
+        return new Engine(200, EngineType.Fusion, data);
     }
 
     private static Component CreateAmmo(WeaponDefinition weaponDefinition, ComponentData? data)

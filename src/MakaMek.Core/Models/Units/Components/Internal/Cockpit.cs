@@ -2,10 +2,18 @@ using Sanet.MakaMek.Core.Data.Units;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
-public class Cockpit() : Component("Cockpit")
+public class Cockpit : Component
 {
+    public static readonly InternalDefinition Definition = new(
+        "Cockpit",
+        1, // 1 health point
+        MakaMekComponent.Cockpit);
+
+    public Cockpit(ComponentData? componentData = null) : base(Definition, componentData)
+    {
+    }
+
     public override MakaMekComponent ComponentType => MakaMekComponent.Cockpit;
-    public override bool IsRemovable => false;
 
     public override void Hit()
     {

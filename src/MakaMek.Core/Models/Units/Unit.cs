@@ -210,9 +210,10 @@ public abstract class Unit
 
         foreach (var weaponTarget in weaponTargets)
         {
-            var weapon = GetMountedComponentAtLocation<Weapon>(
-                weaponTarget.Weapon.Location,
-                weaponTarget.Weapon.Slots);
+            var primaryAssignment = weaponTarget.Weapon.Assignments.FirstOrDefault();
+            var weapon = primaryAssignment != null ?
+                GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.Slots.ToArray()) :
+                null;
             if (weapon == null) continue;
 
             if (weapon.Heat <= 0) continue;

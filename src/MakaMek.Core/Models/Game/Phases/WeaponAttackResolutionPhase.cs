@@ -106,9 +106,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var currentWeaponTarget = weaponTargets[_currentWeaponIndex];
         
         // Find the weapon and target unit
-        var currentWeapon = currentUnit.GetMountedComponentAtLocation<Weapon>(
-            currentWeaponTarget.Weapon.Location,
-            currentWeaponTarget.Weapon.Slots);
+        var primaryAssignment = currentWeaponTarget.Weapon.Assignments.FirstOrDefault();
+        var currentWeapon = primaryAssignment != null ?
+            currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.Slots.ToArray()) :
+            null;
         
         // Take all units not just alive as we should resolve attack even if the unit is already destroyed
         var allUnits = Game.Players.SelectMany(p => p.Units); 
@@ -384,11 +385,18 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             GameOriginId = Game.Id,
             PlayerId = player.Id,
             AttackerId = attacker.Id,
-            WeaponData = new WeaponData
+            WeaponData = new ComponentData
             {
-                Location = weapon.GetPrimaryMountLocation()!.Location,
-                Name = weapon.Name,
-                Slots = weapon.MountedAtSlots
+                Type = weapon.ComponentType,
+                Assignments = new List<LocationSlotAssignment>
+                {
+                    new LocationSlotAssignment(
+                        weapon.GetPrimaryMountLocation()!.Location,
+                        weapon.MountedAtSlots.First(),
+                        weapon.MountedAtSlots.Length)
+                },
+                Hits = weapon.Hits,
+                IsActive = !weapon.IsDestroyed
             },
             TargetId = target.Id,
             ResolutionData = resolution
