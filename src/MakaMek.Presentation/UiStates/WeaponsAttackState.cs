@@ -532,12 +532,7 @@ public class WeaponsAttackState : IUiState
 
                 weaponTargetsData.Add(new WeaponTargetData
                 {
-                    Weapon = new WeaponData
-                    {
-                        Name = weapon.Name,
-                        Location = weapon.GetPrimaryMountLocation()?.Location ?? throw new Exception("Weapon is not mounted"),
-                        Slots = weapon.MountedAtSlots
-                    },
+                    Weapon = weapon.ToData(),
                     TargetId = target.Id,
                     IsPrimaryTarget = isPrimaryTarget,
                     AimedShotTarget = aimedShotTarget

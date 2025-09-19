@@ -6,11 +6,10 @@ public abstract class Weapon : Component
 {
     private readonly WeaponDefinition _definition;
 
-    protected Weapon(WeaponDefinition definition) 
-        : base(definition.Name, definition.Size)
+    protected Weapon(WeaponDefinition definition, ComponentData? componentData = null)
+        : base(definition, componentData)
     {
         _definition = definition;
-        BattleValue = definition.BattleValue;
     }
 
     public int Damage => _definition.TotalDamage;
@@ -42,14 +41,4 @@ public abstract class Weapon : Component
     /// Indicates whether this weapon is capable of making aimed shots
     /// </summary>
     public virtual bool IsAimShotCapable => true;
-    
-    public WeaponData ToData()
-    {
-        return new WeaponData
-        {
-            Name = Name,
-            Location = GetPrimaryMountLocation()?.Location,
-            Slots = MountedAtSlots
-        };
-    }
 }

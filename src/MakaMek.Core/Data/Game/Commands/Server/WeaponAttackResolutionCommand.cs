@@ -10,7 +10,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid AttackerId { get; init; }
-    public required WeaponData WeaponData { get; init; }
+    public required ComponentData WeaponData { get; init; }
     public required Guid TargetId { get; init; }
     public required AttackResolutionData ResolutionData { get; init; }
 

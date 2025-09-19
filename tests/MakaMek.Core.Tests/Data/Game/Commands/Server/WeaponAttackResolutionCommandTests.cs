@@ -23,7 +23,7 @@ public class WeaponAttackResolutionCommandTests
     private readonly Player _player1;
     private readonly Unit _attacker;
     private readonly Unit _target;
-    private readonly WeaponData _weaponData;
+    private readonly ComponentData _weaponData;
 
     public WeaponAttackResolutionCommandTests()
     {
@@ -50,12 +50,7 @@ public class WeaponAttackResolutionCommandTests
         
         // Setup weapon data - using the Medium Laser in the right arm
         var weapon = _attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
-        _weaponData = new WeaponData
-        {
-            Name = weapon.Name, // Added Name property
-            Location = weapon.GetPrimaryMountLocation()!.Location,
-            Slots = weapon.MountedAtSlots  // This might need adjustment based on the actual slot position
-        };
+        _weaponData = weapon.ToData();
     }
     
     private LocationHitData CreateHitDataForLocation(PartLocation partLocation,

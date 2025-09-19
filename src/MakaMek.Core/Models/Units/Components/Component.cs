@@ -7,6 +7,25 @@ public abstract class Component : IManufacturedItem
 {
     private readonly List<CriticalSlotAssignment> _slotAssignments = [];
 
+    protected Component(ComponentDefinition definition, ComponentData? componentData = null)
+    {
+        Name = definition.Name;
+        Size = definition.Size;
+        Manufacturer = definition.Manufacturer;
+        HealthPoints = definition.HealthPoints;
+        BattleValue = definition.BattleValue;
+        IsRemovable = definition.IsRemovable;
+
+        // Restore mutable state if provided
+        if (componentData != null)
+        {
+            Hits = componentData.Hits;
+            IsActive = componentData.IsActive;
+            HasExploded = componentData.HasExploded;
+        }
+    }
+
+    // Legacy constructor for backward compatibility during migration
     protected Component(string name, int size = 1, string manufacturer = "Unknown", int healthPoints = 1)
     {
         Name = name;
@@ -31,6 +50,7 @@ public abstract class Component : IManufacturedItem
     public int Size { get; }
     public string Manufacturer { get; }
     public int BattleValue { get; protected init; }
+    public bool IsRemovable { get; protected init; } = true;
 
     // Multi-location slot assignments
     public IReadOnlyList<CriticalSlotAssignment> SlotAssignments => _slotAssignments;
@@ -105,8 +125,6 @@ public abstract class Component : IManufacturedItem
     public UnitPart? GetPrimaryMountLocation() => SlotAssignments.FirstOrDefault()?.UnitPart;
     public PartLocation? GetLocation() => GetPrimaryMountLocation()?.Location;
 
-    public virtual bool IsRemovable => true;
-
     public ComponentStatus Status
     {
         get
@@ -130,4 +148,30 @@ public abstract class Component : IManufacturedItem
     public virtual bool CanExplode => false;
     public virtual int GetExplosionDamage() => 0;
     public bool HasExploded { get; protected set; }
+
+    /// <summary>
+    /// Converts this component to ComponentData for state persistence
+    /// </summary>
+    public virtual ComponentData ToData()
+    {
+        return new ComponentData
+        {
+            Type = ComponentType,
+            Assignments = SlotAssignments
+                .Select(assignment => new LocationSlotAssignment(
+                    assignment.Location,
+                    assignment.FirstSlot,
+                    assignment.Length))
+                .ToList(),
+            Hits = Hits,
+            IsActive = IsActive,
+            HasExploded = HasExploded,
+            SpecificData = GetSpecificData()
+        };
+    }
+
+    /// <summary>
+    /// Override this method to provide component-specific state data
+    /// </summary>
+    protected virtual ComponentSpecificData? GetSpecificData() => null;
 }

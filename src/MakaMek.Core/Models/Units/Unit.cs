@@ -390,8 +390,12 @@ public abstract class Unit
     public WeaponTargetData? GetWeaponTargetData(PartLocation weaponLocation, int[] weaponSlots)
     {
         return _weaponTargets.FirstOrDefault(wt =>
-            wt.Weapon.Location == weaponLocation &&
-            wt.Weapon.Slots.SequenceEqual(weaponSlots));
+        {
+            var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
+            return primaryAssignment != null &&
+                   primaryAssignment.Location == weaponLocation &&
+                   primaryAssignment.Slots.SequenceEqual(weaponSlots);
+        });
     }
 
     // Methods
@@ -613,13 +617,16 @@ public abstract class Unit
     /// This applies heat to the unit and consumes ammo if required.
     /// </summary>
     /// <param name="weaponData">Data identifying the weapon to fire</param>
-    public void FireWeapon(WeaponData weaponData)
+    public void FireWeapon(ComponentData weaponData)
     {
         // Find the weapon using the location and slots from weaponData
+        var primaryAssignment = weaponData.Assignments.FirstOrDefault();
+        if (primaryAssignment == null) return;
+
         var weapon = GetMountedComponentAtLocation<Weapon>(
-            weaponData.Location, 
-            weaponData.Slots);
-            
+            primaryAssignment.Location,
+            primaryAssignment.Slots.ToArray());
+
         if (weapon is not { IsAvailable: true })
             return;
         

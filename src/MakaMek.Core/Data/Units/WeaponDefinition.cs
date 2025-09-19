@@ -22,6 +22,7 @@ public record WeaponDefinition(
     int FullAmmoRounds = 1,
     MakaMekComponent WeaponComponentType = MakaMekComponent.MachineGun,
     MakaMekComponent? AmmoComponentType = null)
+    : ComponentDefinition(Name, Size, 1, BattleValue, true, WeaponComponentType)
 {
     /// <summary>
     /// Indicates whether this weapon requires ammunition to fire

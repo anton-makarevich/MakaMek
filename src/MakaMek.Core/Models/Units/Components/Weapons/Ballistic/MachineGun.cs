@@ -20,7 +20,7 @@ public class MachineGun : Weapon
         AmmoComponentType: MakaMekComponent.ISAmmoMG);
         
     // Constructor uses the static definition
-    public MachineGun() : base(Definition)
+    public MachineGun(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
 

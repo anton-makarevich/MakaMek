@@ -17,11 +17,13 @@ public class MechFactory : IMechFactory
 {
     private readonly IRulesProvider _rulesProvider;
     private readonly ILocalizationService _localizationService;
+    private readonly IComponentDefinitionRegistry _componentRegistry;
 
-    public MechFactory(IRulesProvider rulesProvider, ILocalizationService localizationService)
+    public MechFactory(IRulesProvider rulesProvider, ILocalizationService localizationService, IComponentDefinitionRegistry componentRegistry)
     {
         _rulesProvider = rulesProvider;
         _localizationService = localizationService;
+        _componentRegistry = componentRegistry;
     }
 
     public Mech Create(UnitData unitData)
@@ -78,7 +80,7 @@ public class MechFactory : IMechFactory
     {
         foreach (var componentData in unitData.Equipment)
         {
-            var component = CreateComponent(componentData.Type, unitData);
+            var component = CreateComponent(componentData, unitData);
             if (component == null) continue;
 
             // Mount to additional locations (without adding to their component lists)
@@ -93,62 +95,26 @@ public class MechFactory : IMechFactory
         }
     }
 
-    private Component? CreateComponent(MakaMekComponent itemName, UnitData unitData)
+    private Component? CreateComponent(ComponentData componentData, UnitData unitData)
     {
-        return itemName switch
+        // Handle special cases that need additional data from UnitData
+        if (componentData.Type == MakaMekComponent.Engine)
         {
-            MakaMekComponent.Engine => new Engine(unitData.EngineRating, MapEngineType(unitData.EngineType)),
-            // Ammunition
-            MakaMekComponent.ISAmmoAC2 => Ac2.CreateAmmo(),
-            MakaMekComponent.ISAmmoAC5 =>Ac5.CreateAmmo(),
-            MakaMekComponent.ISAmmoAC10 => Ac10.CreateAmmo(),
-            MakaMekComponent.ISAmmoAC20 => Ac20.CreateAmmo(),
-            MakaMekComponent.ISAmmoSRM2 => Srm2.CreateAmmo(),
-            MakaMekComponent.ISAmmoSRM4 => Srm4.CreateAmmo(),
-            MakaMekComponent.ISAmmoSRM6 => Srm6.CreateAmmo(),
-            MakaMekComponent.ISAmmoLRM5 => Lrm5.CreateAmmo(),
-            MakaMekComponent.ISAmmoLRM10 => Lrm10.CreateAmmo(),
-            MakaMekComponent.ISAmmoLRM15 => Lrm15.CreateAmmo(),
-            MakaMekComponent.ISAmmoLRM20 => Lrm20.CreateAmmo(),
-            MakaMekComponent.ISAmmoMG => MachineGun.CreateAmmo(),
-            // Energy Weapons
-            MakaMekComponent.SmallLaser => new SmallLaser(),
-            MakaMekComponent.MediumLaser => new MediumLaser(),
-            MakaMekComponent.LargeLaser => new LargeLaser(),
-            MakaMekComponent.PPC => new Ppc(),
-            MakaMekComponent.Flamer => new Flamer(),
-            // Ballistic Weapons
-            MakaMekComponent.AC2 => new Ac2(),
-            MakaMekComponent.AC5 => new Ac5(),
-            MakaMekComponent.AC10 => new Ac10(),
-            MakaMekComponent.AC20 => new Ac20(),
-            MakaMekComponent.MachineGun => new MachineGun(),
-            // Missile Weapons
-            MakaMekComponent.LRM5 => new Lrm5(),
-            MakaMekComponent.LRM10 => new Lrm10(),
-            MakaMekComponent.LRM15 => new Lrm15(),
-            MakaMekComponent.LRM20 => new Lrm20(),
-            MakaMekComponent.SRM2 => new Srm2(),
-            MakaMekComponent.SRM4 => new Srm4(),
-            MakaMekComponent.SRM6 => new Srm6(),
-            // Melee Weapons
-            MakaMekComponent.Hatchet => new Hatchet(),
-            MakaMekComponent.HeatSink => new HeatSink(),
-            MakaMekComponent.Shoulder => new ShoulderActuator(),
-            MakaMekComponent.UpperArmActuator => new UpperArmActuator(),
-            MakaMekComponent.LowerArmActuator => new LowerArmActuator(),
-            MakaMekComponent.HandActuator => new HandActuator(),
-            MakaMekComponent.JumpJet => new JumpJets(),
-            MakaMekComponent.Gyro => null,
-            MakaMekComponent.LifeSupport => null,
-            MakaMekComponent.Sensors => null,
-            MakaMekComponent.Cockpit => null,
-            MakaMekComponent.Hip => null,
-            MakaMekComponent.UpperLegActuator => null,
-            MakaMekComponent.LowerLegActuator => null,
-            MakaMekComponent.FootActuator => null,
-            _ => throw new NotImplementedException($"{itemName} is not implemented")
-        };
+            // Create engine with specific rating and type from UnitData
+            var engineData = new ComponentData
+            {
+                Type = MakaMekComponent.Engine,
+                Assignments = componentData.Assignments,
+                Hits = componentData.Hits,
+                IsActive = componentData.IsActive,
+                HasExploded = componentData.HasExploded,
+                SpecificData = new EngineStateData(unitData.EngineRating, MapEngineType(unitData.EngineType))
+            };
+            return _componentRegistry.CreateComponent(componentData.Type, engineData);
+        }
+
+        // Use registry for all other components
+        return _componentRegistry.CreateComponent(componentData.Type, componentData);
     }
 
     private EngineType MapEngineType(string engineType)
