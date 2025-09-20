@@ -35,6 +35,7 @@ public static class CoreServices
             
         services.AddTransient<ICommandPublisher, CommandPublisher>();
         services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
+        services.AddSingleton<IComponentProvider, ClassicBattletechComponentProvider>();
         services.AddSingleton<IMechFactory, MechFactory>();
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<IDamageTransferCalculator, DamageTransferCalculator>();

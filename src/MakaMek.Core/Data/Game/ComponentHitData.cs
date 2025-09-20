@@ -1,5 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Data.Units.Components;
+﻿using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units;
 
