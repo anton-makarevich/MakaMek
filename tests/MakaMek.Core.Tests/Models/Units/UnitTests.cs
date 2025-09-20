@@ -1,6 +1,5 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -21,10 +20,11 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units;
 
 public class UnitTests
 {
-    private class TestComponent(string name, int size = 1) : Component(name, size)
-    {
-        public override MakaMekComponent ComponentType => throw new NotImplementedException();
-    }
+    private class TestComponent(string name, int size = 1) : Component(new EquipmentDefinition(
+        name,
+        MakaMekComponent.Masc,
+        0,
+        size));
 
     private class TestWeapon : Weapon
     {
@@ -36,8 +36,6 @@ public class UnitTests
         {
             Mount(slots, null!); // Will be properly mounted later
         }
-
-        public override MakaMekComponent ComponentType => throw new NotImplementedException();
     }
     
     private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)
@@ -64,7 +62,7 @@ public class UnitTests
                 ?null
                 : PartLocation.CenterTorso;
 
-        public override LocationCriticalHitsData? CalculateCriticalHitsData(PartLocation location,
+        public override LocationCriticalHitsData CalculateCriticalHitsData(PartLocation location,
             IDiceRoller diceRoller,
             IDamageTransferCalculator damageTransferCalculator) => throw new NotImplementedException();
         
@@ -177,7 +175,6 @@ public class UnitTests
         // Arrange
         var leftArmPart = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 10);
         var rightArmPart = new TestUnitPart("Right Arm", PartLocation.RightArm, 10, 5, 10);
-        var testUnit = new TestUnit("Test", "Unit", 20, 4, [leftArmPart, rightArmPart]);
         
         var leftArmComponent = new TestComponent("Left Arm Component", 2);
         var rightArmComponent = new TestComponent("Right Arm Component", 2);
@@ -239,7 +236,7 @@ public class UnitTests
     }
 
     [Fact]
-    public void GetMountedComponentAtLocationBySlots_ShouldReturnComponentAtSpecificSlots()
+    public void GetMountedComponentAtLocation_ShouldReturnComponentAtSpecificSlot()
     {
         // Arrange
         var unit = CreateTestUnit();
@@ -250,9 +247,9 @@ public class UnitTests
         MountWeaponOnUnit(unit, weapon2, PartLocation.LeftArm, [2, 3]);
 
         // Act
-        var foundWeapon1 = unit.GetMountedComponentAtLocationBySlots<Weapon>(PartLocation.LeftArm, [0, 1]);
-        var foundWeapon2 = unit.GetMountedComponentAtLocationBySlots<Weapon>(PartLocation.LeftArm, [2, 3]);
-        var notFoundWeapon = unit.GetMountedComponentAtLocationBySlots<Weapon>(PartLocation.LeftArm, [4, 5]);
+        var foundWeapon1 = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 0);
+        var foundWeapon2 = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 2);
+        var notFoundWeapon = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 4);
 
         // Assert
         foundWeapon1.ShouldNotBeNull();
@@ -265,7 +262,7 @@ public class UnitTests
     }
 
     [Fact]
-    public void GetMountedComponentAtLocationBySlots_ShouldReturnNull_WhenEmptySlots()
+    public void GetMountedComponentAtLocation_ShouldReturnNull_WhenSlotDoesNotExist()
     {
         // Arrange
         var unit = CreateTestUnit();
@@ -273,7 +270,7 @@ public class UnitTests
         MountWeaponOnUnit(unit, weapon, PartLocation.LeftArm, [0, 1]);
 
         // Act
-        var result = unit.GetMountedComponentAtLocationBySlots<Weapon>(PartLocation.LeftArm, []);
+        var result = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, -1);
 
         // Assert
         result.ShouldBeNull();
@@ -289,11 +286,13 @@ public class UnitTests
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = "Test Weapon",
-                    Location = PartLocation.LeftArm,
-                    Slots = [0, 1]
+                    Type = MakaMekComponent.ISAmmoMG,
+                    Assignments = [
+                        new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)
+                    ]
                 },
                 TargetId = targetUnit.Id,
                 IsPrimaryTarget = true
@@ -328,11 +327,13 @@ public class UnitTests
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = "Test Weapon",
-                    Location = PartLocation.LeftArm,
-                    Slots = [0, 1]
+                    Type = MakaMekComponent.ISAmmoMG,
+                    Assignments = [
+                        new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)
+                    ]
                 },
                 TargetId = targetId,
                 IsPrimaryTarget = true
@@ -376,22 +377,26 @@ public class UnitTests
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = "Weapon 1",
-                    Location = PartLocation.LeftArm,
-                    Slots = [0, 1]
+                    Type = MakaMekComponent.MachineGun,
+                    Assignments = [
+                        new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)
+                    ]
                 },
                 TargetId = targetId1,
                 IsPrimaryTarget = true
             },
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = "Weapon 2",
-                    Location = PartLocation.RightArm,
-                    Slots = [2, 3]
+                    Assignments = [
+                        new LocationSlotAssignment(PartLocation.RightArm, 2, 2)
+                    ],
+                    Type = MakaMekComponent.MachineGun
                 },
                 TargetId = targetId2,
                 IsPrimaryTarget = true
@@ -435,22 +440,26 @@ public class UnitTests
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = "Test Weapon",
-                    Location = PartLocation.LeftArm,
-                    Slots = [0, 1]
+                    Type = MakaMekComponent.MachineGun,
+                    Assignments = [
+                        new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)
+                    ]
                 },
                 TargetId = targetId,
                 IsPrimaryTarget = true
             },
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = "Non-existent Weapon",
-                    Location = PartLocation.RightArm,
-                    Slots = [4, 5]
+                    Type = MakaMekComponent.MachineGun,
+                    Assignments = [
+                        new LocationSlotAssignment(PartLocation.RightArm, 4, 2)
+                    ]
                 },
                 TargetId = targetId,
                 IsPrimaryTarget = false
@@ -780,11 +789,11 @@ public class UnitTests
         var rightArmPart = unit.Parts[PartLocation.RightArm];
         rightArmPart.TryAddComponent(ammo);
         
-        var weaponData = new WeaponData
+        var weaponData = new ComponentData
         {
             Name = ballisticWeapon.Name,
-            Location = PartLocation.LeftArm,
-            Slots = [0, 1]
+            Type = MakaMekComponent.AC5,
+            Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)]
         };
 
         var initialAmmoShots = ammo.RemainingShots;
@@ -802,11 +811,11 @@ public class UnitTests
         // Arrange
         var unit = CreateTestUnit();
         
-        var weaponData = new WeaponData
+        var weaponData = new ComponentData
         {
             Name = "Non-existent Weapon",
-            Location = PartLocation.LeftArm,
-            Slots = [0, 1]
+            Type = MakaMekComponent.MachineGun,
+            Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)]
         };
         
         var initialHeat = unit.CurrentHeat;
@@ -829,11 +838,11 @@ public class UnitTests
         // Destroy the weapon
         weapon.Hit();
         
-        var weaponData = new WeaponData
+        var weaponData = new ComponentData
         {
             Name = weapon.Name,
-            Location = PartLocation.LeftArm,
-            Slots = [0, 1]
+            Type = MakaMekComponent.MachineGun,
+            Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)]
         };
         
         var initialHeat = unit.CurrentHeat;
@@ -863,11 +872,11 @@ public class UnitTests
         rightArmPart.TryAddComponent(ammo2);
         rightArmPart.TryAddComponent(ammo3);
         
-        var weaponData = new WeaponData
+        var weaponData = new ComponentData
         {
             Name = ballisticWeapon.Name,
-            Location = PartLocation.LeftArm,
-            Slots = [0, 1]
+            Type = MakaMekComponent.AC5,
+            Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)]
         };
         
         // Act
@@ -946,11 +955,11 @@ public class UnitTests
         unit.DeclareWeaponAttack([
             new WeaponTargetData
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = "Test Laser",
-                    Location = PartLocation.RightArm,
-                    Slots = [3]
+                    Type = MakaMekComponent.ISAmmoMG,
+                    Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 3, 1)]
                 },
                 TargetId = targetUnit.Id,
                 IsPrimaryTarget = true

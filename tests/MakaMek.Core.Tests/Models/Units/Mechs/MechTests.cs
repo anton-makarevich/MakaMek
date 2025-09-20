@@ -1,6 +1,5 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -665,10 +664,9 @@ public class MechTests
         critsData.NumCriticalHits.ShouldBe(2);
     }
 
-    private class TestComponent() : Component("Test")
-    {
-        public override MakaMekComponent ComponentType => MakaMekComponent.MachineGun;
-    }
+    private class TestComponent() : Component(new EquipmentDefinition(
+        "Test Component",
+        MakaMekComponent.Masc));
 
     [Fact]
     public void CalculateCriticalHitsData_ShouldReturnOnlyAvailableInSecondGroup()
@@ -924,7 +922,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets(2));
+        leftLeg.TryAddComponent(new JumpJets());
 
         var sut = new Mech("Test", "TST-1A", 50, 5, parts);
         sut.SetProne();
@@ -939,7 +937,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets(2));
+        leftLeg.TryAddComponent(new JumpJets());
 
         var sut = new Mech("Test", "TST-1A", 50, 5, parts);
         sut.AttemptStandup(); // This increments StandupAttempts
@@ -965,7 +963,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        var jumpJets = new JumpJets(2);
+        var jumpJets = new JumpJets();
         leftLeg.TryAddComponent(jumpJets);
 
         var sut = new Mech("Test", "TST-1A", 50, 5, parts);
@@ -983,7 +981,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets(2));
+        leftLeg.TryAddComponent(new JumpJets());
 
         var sut = new Mech("Test", "TST-1A", 50, 5, parts);
 
@@ -998,7 +996,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
-        leftLeg.TryAddComponent(new JumpJets(2));
+        leftLeg.TryAddComponent(new JumpJets());
 
         var sut = new Mech("Test", "TST-1A", 50, 5, parts);
         sut.AttemptStandup(); // This increments StandupAttempts

@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -432,10 +431,11 @@ public class UnitPartTests
         destroyedEvent.Parameters[0].ShouldBe(component.Name);
     }
     
-    private class TestComponent(string name, int size = 1) : Component(name, size)
-    {
-        public override MakaMekComponent ComponentType => throw new NotImplementedException();
-    }
+    private class TestComponent(string name, int size = 1) : Component(new EquipmentDefinition(
+        name,
+        MakaMekComponent.Masc,
+        0,
+        size));
     
     [Fact]
     public void TryAddComponent_ShouldReturnFalse_WhenSlotOutOfBounds()

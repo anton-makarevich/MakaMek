@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Exceptions;
@@ -9,10 +8,12 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Components;
 
 public class ComponentTests
 {
-    private class TestComponent(string name, int size = 1, int healthPoints = 1) : Component(name, size, healthPoints:healthPoints)
-    {
-        public override MakaMekComponent ComponentType => throw new NotImplementedException();
-    }
+    private class TestComponent(string name, int size = 1, int healthPoints = 1) : Component(new EquipmentDefinition(
+        name,
+        MakaMekComponent.Masc,
+        0,
+        size,
+        healthPoints));
     
     private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)
         : UnitPart(name, location, maxArmor, maxStructure, slots)
