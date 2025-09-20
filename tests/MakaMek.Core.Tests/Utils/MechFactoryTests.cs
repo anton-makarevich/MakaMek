@@ -31,7 +31,8 @@ public class MechFactoryTests
             { PartLocation.LeftLeg, 8 },
             { PartLocation.RightLeg, 8 }
         });
-        _mechFactory = new MechFactory(structureValueProvider, Substitute.For<ILocalizationService>());
+        var componentProvider = Substitute.For<IComponentProvider>();
+        _mechFactory = new MechFactory(structureValueProvider, componentProvider,Substitute.For<ILocalizationService>());
     }
 
     private static UnitData CreateBasicMechData(List<ComponentData>? equipment = null)
@@ -61,32 +62,8 @@ public class MechFactoryTests
         };
     }
 
-    // Legacy method for backward compatibility with other tests
-    public static UnitData CreateDummyMechData(Tuple<PartLocation, LocationSlotLayout>? locationEquipment = null)
+    public static UnitData CreateDummyMechData()
     {
-        // Create default slot layouts for backward compatibility
-        var leftArmLayout = new LocationSlotLayout();
-        leftArmLayout.AssignComponent(0, MakaMekComponent.MachineGun);
-
-        var rightLegLayout = new LocationSlotLayout();
-        rightLegLayout.AssignComponent(0, MakaMekComponent.ISAmmoMG);
-
-        var centerTorsoLayout = new LocationSlotLayout();
-        centerTorsoLayout.AssignComponent(3, MakaMekComponent.Gyro);
-
-        var locationEquipmentDict = new Dictionary<PartLocation, LocationSlotLayout>
-        {
-            { PartLocation.LeftArm, leftArmLayout },
-            { PartLocation.RightLeg, rightLegLayout },
-            { PartLocation.CenterTorso, centerTorsoLayout }
-        };
-
-        // Override with provided equipment if specified
-        if (locationEquipment != null)
-        {
-            locationEquipmentDict[locationEquipment.Item1] = locationEquipment.Item2;
-        }
-
         return new UnitData
         {
             Chassis = "Test",

@@ -13,13 +13,13 @@ public class MechFactory : IMechFactory
 {
     private readonly IRulesProvider _rulesProvider;
     private readonly ILocalizationService _localizationService;
-    private readonly IComponentProvider _componentRegistry;
+    private readonly IComponentProvider _componentProvider;
 
-    public MechFactory(IRulesProvider rulesProvider, ILocalizationService localizationService, IComponentProvider componentRegistry)
+    public MechFactory(IRulesProvider rulesProvider,  IComponentProvider componentProvider, ILocalizationService localizationService)
     {
         _rulesProvider = rulesProvider;
         _localizationService = localizationService;
-        _componentRegistry = componentRegistry;
+        _componentProvider = componentProvider;
     }
 
     public Mech Create(UnitData unitData)
@@ -77,7 +77,6 @@ public class MechFactory : IMechFactory
         foreach (var componentData in unitData.Equipment)
         {
             var component = CreateComponent(componentData, unitData);
-            if (component == null) continue;
 
             // Mount to additional locations (without adding to their component lists)
             foreach (var assignment in componentData.Assignments)
@@ -91,7 +90,7 @@ public class MechFactory : IMechFactory
         }
     }
 
-    private Component? CreateComponent(ComponentData componentData, UnitData unitData)
+    private Component CreateComponent(ComponentData componentData, UnitData unitData)
     {
         // Handle special cases that need additional data from UnitData
         if (componentData.Type == MakaMekComponent.Engine)
@@ -106,11 +105,11 @@ public class MechFactory : IMechFactory
                 HasExploded = componentData.HasExploded,
                 SpecificData = new EngineStateData(unitData.EngineRating, MapEngineType(unitData.EngineType))
             };
-            return _componentRegistry.CreateComponent(componentData.Type, engineData);
+            return _componentProvider.CreateComponent(componentData.Type, engineData);
         }
 
         // Use registry for all other components
-        return _componentRegistry.CreateComponent(componentData.Type, componentData);
+        return _componentProvider.CreateComponent(componentData.Type, componentData);
     }
 
     private EngineType MapEngineType(string engineType)
