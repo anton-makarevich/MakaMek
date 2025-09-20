@@ -218,8 +218,8 @@ public class BattleMapViewModel : BaseViewModel
                 // Initial offset for new target
                 // Get the actual weapon from the attacker
                 var weapon = attacker.GetMountedComponentAtLocation<Weapon>(
-                    wt.Weapon.Location,
-                    wt.Weapon.Slots);
+                    wt.Weapon.Assignments.First().Location,
+                    wt.Weapon.Assignments.First().FirstSlot);
                 
                 if (weapon == null) throw new Exception("The weapon is not found");
 
