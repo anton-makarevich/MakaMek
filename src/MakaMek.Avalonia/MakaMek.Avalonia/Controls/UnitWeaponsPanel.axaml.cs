@@ -46,10 +46,10 @@ public partial class UnitWeaponsPanel : UserControl
             .ToList();
 
         var grouped = weapons
-            .GroupBy(w => w.MountedOn)
+            .GroupBy(w => w.MountedOn[0])
             .Select(g => new ComponentGroup
             {
-                MountedOn = g.Key?.Name??"NA",
+                MountedOn = g.Key.Name,
                 Components = g.Select(w=>w as Component).ToList()
             })
             .ToList();
