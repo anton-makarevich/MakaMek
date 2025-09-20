@@ -59,74 +59,64 @@ public class MtfDataProviderTests
 
         // Assert
         // Left Arm - verify exact slot positions
-        var leftArmLayout = mechData.LocationEquipment[PartLocation.LeftArm];
-        leftArmLayout.GetComponentAtSlot(0).ShouldBe(MakaMekComponent.Shoulder);
-        leftArmLayout.GetComponentAtSlot(1).ShouldBe(MakaMekComponent.UpperArmActuator);
-        leftArmLayout.GetComponentAtSlot(2).ShouldBe(MakaMekComponent.MachineGun);
-        leftArmLayout.GetComponentAtSlot(3).ShouldBeNull(); // Empty slot
+        VerifyArmEquipmentSlotPositions(mechData, PartLocation.LeftArm);
 
         // Right Arm - verify exact slot positions
-        var rightArmLayout = mechData.LocationEquipment[PartLocation.RightArm];
-        rightArmLayout.GetComponentAtSlot(0).ShouldBe(MakaMekComponent.Shoulder);
-        rightArmLayout.GetComponentAtSlot(1).ShouldBe(MakaMekComponent.UpperArmActuator);
-        rightArmLayout.GetComponentAtSlot(2).ShouldBe(MakaMekComponent.MachineGun);
-        rightArmLayout.GetComponentAtSlot(3).ShouldBeNull(); // Empty slot
+        VerifyArmEquipmentSlotPositions(mechData, PartLocation.RightArm);
 
-        // Center Torso - verify exact slot positions based on MTF file
-        var centerTorsoLayout = mechData.LocationEquipment[PartLocation.CenterTorso];
-        centerTorsoLayout.GetComponentAtSlot(0).ShouldBe(MakaMekComponent.Engine);
-        centerTorsoLayout.GetComponentAtSlot(1).ShouldBe(MakaMekComponent.Engine);
-        centerTorsoLayout.GetComponentAtSlot(2).ShouldBe(MakaMekComponent.Engine);
-        centerTorsoLayout.GetComponentAtSlot(3).ShouldBe(MakaMekComponent.Gyro);
-        centerTorsoLayout.GetComponentAtSlot(4).ShouldBe(MakaMekComponent.Gyro);
-        centerTorsoLayout.GetComponentAtSlot(5).ShouldBe(MakaMekComponent.Gyro);
-        centerTorsoLayout.GetComponentAtSlot(6).ShouldBe(MakaMekComponent.Gyro);
-        centerTorsoLayout.GetComponentAtSlot(7).ShouldBe(MakaMekComponent.Engine);
-        centerTorsoLayout.GetComponentAtSlot(8).ShouldBe(MakaMekComponent.Engine);
-        centerTorsoLayout.GetComponentAtSlot(9).ShouldBe(MakaMekComponent.Engine);
-        centerTorsoLayout.GetComponentAtSlot(10).ShouldBe(MakaMekComponent.MediumLaser);
-        centerTorsoLayout.GetComponentAtSlot(11).ShouldBe(MakaMekComponent.ISAmmoMG);
-    }
+        // Center Torso - verify exact slot positions based on the MTF file
+        const PartLocation location = PartLocation.CenterTorso;
+        
+        var engine = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.Engine
+            && cd.Assignments.Any(a => a.Location == location));
+        engine.ShouldNotBeNull();
+        engine.Assignments.Count.ShouldBe(2);
+        engine.Assignments[0].FirstSlot.ShouldBe(0);
+        engine.Assignments[0].Length.ShouldBe(3);
+        engine.Assignments[1].FirstSlot.ShouldBe(7);
+        engine.Assignments[1].Length.ShouldBe(3);
+        
+        var gyro = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.Gyro
+            && cd.Assignments.Any(a => a.Location == location));
+        gyro.ShouldNotBeNull();
+        gyro.Assignments.Count.ShouldBe(1);
+        gyro.Assignments[0].FirstSlot.ShouldBe(3);
+        gyro.Assignments[0].Length.ShouldBe(4); 
+        
+        var mediumLaser = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.MediumLaser
+            && cd.Assignments.Any(a => a.Location == location));
+        mediumLaser.ShouldNotBeNull();
+        mediumLaser.Assignments.Count.ShouldBe(1);
+        mediumLaser.Assignments[0].FirstSlot.ShouldBe(10);
+        mediumLaser.Assignments[0].Length.ShouldBe(1);
+        
+        var ammo = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.ISAmmoMG
+            && cd.Assignments.Any(a => a.Location == location));
+        ammo.ShouldNotBeNull();
+        ammo.Assignments.Count.ShouldBe(1);
+        ammo.Assignments[0].FirstSlot.ShouldBe(11);
+        ammo.Assignments[0].Length.ShouldBe(1);
 
-    [Fact]
-    public void Parse_LocustMtf_ReturnsCorrectComponentAssignments()
-    {
-        // Arrange
-        var parser = new MtfDataProvider();
+        void VerifyArmEquipmentSlotPositions(UnitData unitData, PartLocation partLocation)
+        {
+            var shoulder = unitData.Equipment
+                .FirstOrDefault(cd => cd.Type == MakaMekComponent.Shoulder 
+                                      && cd.Assignments.Any(a => a.Location == partLocation));
+            shoulder.ShouldNotBeNull();
+            shoulder.Assignments[0].FirstSlot.ShouldBe(0);
+        
+            var upperArm = unitData.Equipment
+                .FirstOrDefault(cd => cd.Type == MakaMekComponent.UpperArmActuator 
+                                      && cd.Assignments.Any(a => a.Location == partLocation));
+            upperArm.ShouldNotBeNull();
+            upperArm.Assignments[0].FirstSlot.ShouldBe(1);
 
-        // Act
-        var mechData = parser.LoadMechFromTextData(_locustMtfData);
-
-        // Assert
-        var centerTorsoLayout = mechData.LocationEquipment[PartLocation.CenterTorso];
-        var assignments = centerTorsoLayout.ComponentAssignments;
-
-        // Engine should occupy slots 0-2 and 7-9 (6 slots total, in two separate assignments due to non-consecutive slots)
-        var engineAssignments = assignments.Where(a => a.Component == MakaMekComponent.Engine).ToList();
-        engineAssignments.Count.ShouldBe(2);
-
-        var firstEngineAssignment = engineAssignments.FirstOrDefault(a => a.Slots.Contains(0));
-        firstEngineAssignment.ShouldNotBeNull();
-        firstEngineAssignment.Slots.ShouldBe(new[] { 0, 1, 2 });
-
-        var secondEngineAssignment = engineAssignments.FirstOrDefault(a => a.Slots.Contains(7));
-        secondEngineAssignment.ShouldNotBeNull();
-        secondEngineAssignment.Slots.ShouldBe(new[] { 7, 8, 9 });
-
-        // Gyro should occupy slots 3-6 (4 slots total)
-        var gyroAssignment = assignments.FirstOrDefault(a => a.Component == MakaMekComponent.Gyro);
-        gyroAssignment.ShouldNotBeNull();
-        gyroAssignment.Slots.ShouldBe(new[] { 3, 4, 5, 6 });
-
-        // Medium Laser should occupy slot 10 (1 slot)
-        var laserAssignment = assignments.FirstOrDefault(a => a.Component == MakaMekComponent.MediumLaser);
-        laserAssignment.ShouldNotBeNull();
-        laserAssignment.Slots.ShouldBe(new[] { 10 });
-
-        // Ammo should occupy slot 11 (1 slot)
-        var ammoAssignment = assignments.FirstOrDefault(a => a.Component == MakaMekComponent.ISAmmoMG);
-        ammoAssignment.ShouldNotBeNull();
-        ammoAssignment.Slots.ShouldBe(new[] { 11 });
+            var machineGun = unitData.Equipment
+                .FirstOrDefault(cd => cd.Type == MakaMekComponent.MachineGun 
+                                      && cd.Assignments.Any(a => a.Location == partLocation));
+            machineGun.ShouldNotBeNull();
+            machineGun.Assignments[0].FirstSlot.ShouldBe(2);
+        }
     }
 
     [Fact]
@@ -139,16 +129,12 @@ public class MtfDataProviderTests
         var mechData = parser.LoadMechFromTextData(_locustMtfData);
 
         // Assert
-        var leftTorsoLayout = mechData.LocationEquipment[PartLocation.LeftTorso];
+        var leftTorsoLayout = mechData.Equipment.Select(cd => cd.Assignments)
+            .Where(a => a.Any(assignment => assignment.Location == PartLocation.LeftTorso))
+            .ToList();
 
-        // Left Torso should be completely empty (all slots null)
-        for (int slot = 0; slot < 12; slot++)
-        {
-            leftTorsoLayout.GetComponentAtSlot(slot).ShouldBeNull($"Slot {slot} should be empty");
-        }
-
-        leftTorsoLayout.OccupiedSlotCount.ShouldBe(0);
-        leftTorsoLayout.ComponentAssignments.Count.ShouldBe(0);
+        // Left Torso should be completely empty 
+        leftTorsoLayout.ShouldBeEmpty();
     }
 
     [Fact]
@@ -161,20 +147,32 @@ public class MtfDataProviderTests
         var mechData = parser.LoadMechFromTextData(_locustMtfData);
 
         // Assert
-        var headLayout = mechData.LocationEquipment[PartLocation.Head];
+        const PartLocation location = PartLocation.Head;
 
         // Based on the MTF file structure
-        headLayout.GetComponentAtSlot(0).ShouldBe(MakaMekComponent.LifeSupport);
-        headLayout.GetComponentAtSlot(1).ShouldBe(MakaMekComponent.Sensors);
-        headLayout.GetComponentAtSlot(2).ShouldBe(MakaMekComponent.Cockpit);
-        headLayout.GetComponentAtSlot(3).ShouldBeNull(); // Empty
-        headLayout.GetComponentAtSlot(4).ShouldBe(MakaMekComponent.Sensors);
-        headLayout.GetComponentAtSlot(5).ShouldBe(MakaMekComponent.LifeSupport);
-
-        // Slots 6-11 should be empty
-        for (int slot = 6; slot < 12; slot++)
-        {
-            headLayout.GetComponentAtSlot(slot).ShouldBeNull($"Head slot {slot} should be empty");
-        }
+        var lifeSupport = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.LifeSupport
+            && cd.Assignments.Any(a => a.Location == location));
+        lifeSupport.ShouldNotBeNull();
+        lifeSupport.Assignments.Count.ShouldBe(2);
+        lifeSupport.Assignments[0].FirstSlot.ShouldBe(0);
+        lifeSupport.Assignments[0].Length.ShouldBe(1);
+        lifeSupport.Assignments[1].FirstSlot.ShouldBe(5);
+        lifeSupport.Assignments[1].Length.ShouldBe(1);
+        
+        var sensors = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.Sensors
+            && cd.Assignments.Any(a => a.Location == location));
+        sensors.ShouldNotBeNull();
+        sensors.Assignments.Count.ShouldBe(2);
+        sensors.Assignments[0].FirstSlot.ShouldBe(1);
+        sensors.Assignments[0].Length.ShouldBe(1);
+        sensors.Assignments[1].FirstSlot.ShouldBe(4);
+        sensors.Assignments[1].Length.ShouldBe(1);
+        
+        var cockpit = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.Cockpit
+            && cd.Assignments.Any(a => a.Location == location));
+        cockpit.ShouldNotBeNull();
+        cockpit.Assignments.Count.ShouldBe(1);
+        cockpit.Assignments[0].FirstSlot.ShouldBe(2);
+        cockpit.Assignments[0].Length.ShouldBe(1);
     }
 }

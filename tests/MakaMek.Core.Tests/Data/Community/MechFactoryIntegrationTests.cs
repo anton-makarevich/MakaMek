@@ -19,7 +19,11 @@ public class MechFactoryIntegrationTests
         // Arrange
         var parser = new MtfDataProvider();
         var structureValueProvider = new ClassicBattletechRulesProvider(); // Use actual provider
-        var mechFactory = new MechFactory(structureValueProvider, Substitute.For<ILocalizationService>());
+        var componentProvider = new ClassicBattletechComponentProvider();
+        var mechFactory = new MechFactory(
+            structureValueProvider,
+            componentProvider,
+            Substitute.For<ILocalizationService>());
 
         // Get all MTF files from Resources/Mechs
         var mtfFiles = Directory.GetFiles(MechDirectory, "*.mtf");

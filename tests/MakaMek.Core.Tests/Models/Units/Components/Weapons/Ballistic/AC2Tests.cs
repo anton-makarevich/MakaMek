@@ -1,5 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Data.Units.Components;
+﻿using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;

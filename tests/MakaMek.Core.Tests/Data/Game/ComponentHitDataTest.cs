@@ -1,7 +1,6 @@
 ﻿using JetBrains.Annotations;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -10,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -26,7 +24,10 @@ public class ComponentHitDataTest
     public ComponentHitDataTest()
     {
         var unitData = MechFactoryTests.CreateDummyMechData();
-        _unit = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>())
+        _unit = new MechFactory(
+                new ClassicBattletechRulesProvider(),
+                new ClassicBattletechComponentProvider(),
+                Substitute.For<ILocalizationService>())
             .Create(unitData);
         
         

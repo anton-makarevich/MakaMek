@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Units;
@@ -16,12 +15,13 @@ public class UnitExtensionsTests
     private readonly MechFactory _mechFactory;
     private readonly UnitData _originalUnitData;
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
 
     public UnitExtensionsTests()
     {
         _originalUnitData = MechFactoryTests.CreateDummyMechData();
         _originalUnitData.Id = Guid.NewGuid();
-        _mechFactory = new MechFactory(_rulesProvider, Substitute.For<ILocalizationService>());
+        _mechFactory = new MechFactory(_rulesProvider, _componentProvider, Substitute.For<ILocalizationService>());
     }
 
     [Fact]
@@ -76,29 +76,15 @@ public class UnitExtensionsTests
 
         // Assert
         // Verify that all locations have the same equipment
-        foreach (var location in _originalUnitData.LocationEquipment.Keys)
+        foreach (var originalComponent in _originalUnitData.Equipment)
         {
-            convertedUnitData.LocationEquipment.ContainsKey(location).ShouldBeTrue();
-
-            var originalEquipment = _originalUnitData.LocationEquipment[location];
-            var convertedEquipment = convertedUnitData.LocationEquipment[location];
-
-            // Check that the equipment slot layouts contain the same components
-            var originalComponents = originalEquipment.ComponentAssignments.SelectMany(ca => ca.Slots.Select(s => ca.Component)).ToList();
-            var convertedComponents = convertedEquipment.ComponentAssignments.SelectMany(ca => ca.Slots.Select(s => ca.Component)).ToList();
-
-            convertedComponents.Count.ShouldBe(originalComponents.Count);
-
-            foreach (var item in originalComponents)
-            {
-                convertedComponents.ShouldContain(item);
-                convertedComponents.Count(e => e == item).ShouldBe(originalComponents.Count(e => e == item));
-            }
+            var convertedComponent = convertedUnitData.Equipment.FirstOrDefault(cd =>
+                cd.Type == originalComponent.Type
+                && cd.Assignments.SequenceEqual(originalComponent.Assignments));
+            convertedComponent.ShouldNotBeNull();
         }
     }
-
-    // TODO: Add test for ToData() method with new Equipment model when implemented
-
+    
     [Fact]
     public void ToData_ConvertsMechToUnitData_WithEngine()
     {
@@ -113,10 +99,15 @@ public class UnitExtensionsTests
         convertedUnitData.EngineType.ShouldBe(_originalUnitData.EngineType);
         
         // Verify that the engine is in the center torso
-        convertedUnitData.LocationEquipment.ContainsKey(PartLocation.CenterTorso).ShouldBeTrue();
-        var centerTorsoLayout = convertedUnitData.LocationEquipment[PartLocation.CenterTorso];
-        var engineAssignments = centerTorsoLayout.ComponentAssignments.Where(ca => ca.Component == MakaMekComponent.Engine).ToList();
-        engineAssignments.Count.ShouldBe(1);
+        var engineComponent = convertedUnitData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.Engine);
+        engineComponent.ShouldNotBeNull();
+        engineComponent.Assignments.Count.ShouldBe(2);
+        engineComponent.Assignments[0].Location.ShouldBe(PartLocation.CenterTorso);
+        engineComponent.Assignments[0].FirstSlot.ShouldBe(0);
+        engineComponent.Assignments[0].Length.ShouldBe(3);
+        engineComponent.Assignments[1].Location.ShouldBe(PartLocation.CenterTorso);
+        engineComponent.Assignments[1].FirstSlot.ShouldBe(7);
+        engineComponent.Assignments[1].Length.ShouldBe(3);
     }
     
     [Fact]
@@ -153,25 +144,13 @@ public class UnitExtensionsTests
         }
         
         // Compare LocationEquipment - check that both dictionaries have the same keys
-        _originalUnitData.LocationEquipment.Keys.Count.ShouldBe(convertedUnitData.LocationEquipment.Keys.Count);
-        foreach (var location in _originalUnitData.LocationEquipment.Keys)
+        _originalUnitData.Equipment.Count.ShouldBe(convertedUnitData.Equipment.Count);
+        foreach (var originalComponent in _originalUnitData.Equipment)
         {
-            convertedUnitData.LocationEquipment.ContainsKey(location).ShouldBeTrue();
-
-            var originalEquipment = _originalUnitData.LocationEquipment[location];
-            var convertedEquipment = convertedUnitData.LocationEquipment[location];
-
-            // Check that the equipment slot layouts contain the same components
-            var originalComponents = originalEquipment.ComponentAssignments.SelectMany(ca => ca.Slots.Select(s => ca.Component)).ToList();
-            var convertedComponents = convertedEquipment.ComponentAssignments.SelectMany(ca => ca.Slots.Select(s => ca.Component)).ToList();
-
-            convertedComponents.Count.ShouldBe(originalComponents.Count);
-
-            foreach (var item in originalComponents)
-            {
-                convertedComponents.ShouldContain(item);
-                convertedComponents.Count(e => e == item).ShouldBe(originalComponents.Count(e => e == item));
-            }
+            var convertedComponent = convertedUnitData.Equipment.FirstOrDefault(cd =>
+                cd.Type == originalComponent.Type
+                && cd.Assignments.SequenceEqual(originalComponent.Assignments));
+            convertedComponent.ShouldNotBeNull();
         }
         
         // Check AdditionalAttributes and Quirks
