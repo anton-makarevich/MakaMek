@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Core.Data.Units;
+namespace Sanet.MakaMek.Core.Data.Units.Components;
 
 /// <summary>
 /// Base definition for all components containing immutable properties

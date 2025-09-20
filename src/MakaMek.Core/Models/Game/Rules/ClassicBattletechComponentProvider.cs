@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
@@ -8,26 +9,17 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Melee;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-namespace Sanet.MakaMek.Core.Data.Units;
-
-/// <summary>
-/// Interface for component definition registry
-/// </summary>
-public interface IComponentDefinitionRegistry
-{
-    ComponentDefinition GetDefinition(MakaMekComponent componentType);
-    Component CreateComponent(MakaMekComponent componentType, ComponentData? componentData = null);
-}
+namespace Sanet.MakaMek.Core.Models.Game.Rules;
 
 /// <summary>
 /// Registry containing all component definitions and factory methods
 /// </summary>
-public class ComponentDefinitionRegistry : IComponentDefinitionRegistry
+public class ClassicBattletechComponentProvider : IComponentProvider
 {
     private readonly Dictionary<MakaMekComponent, ComponentDefinition> _definitions;
     private readonly Dictionary<MakaMekComponent, Func<ComponentData?, Component>> _factories;
 
-    public ComponentDefinitionRegistry()
+    public ClassicBattletechComponentProvider()
     {
         _definitions = InitializeDefinitions();
         _factories = InitializeFactories();

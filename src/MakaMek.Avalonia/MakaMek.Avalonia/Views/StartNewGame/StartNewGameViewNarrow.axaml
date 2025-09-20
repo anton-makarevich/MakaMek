@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.NewGame.Fragments"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="800"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewNarrow"
              x:DataType="viewModels1:StartNewGameViewModel">
@@ -25,19 +26,19 @@
         <TabControl>
             <TabItem Header="Map">
                 <ScrollViewer Classes="gameScrollViewer">
-                    <fragments:MapConfigFragment/>
+                    <fragments1:MapConfigFragment/>
                 </ScrollViewer>
             </TabItem>
             
             <TabItem Header="Network" IsVisible="{Binding CanStartLanServer}">
                 <ScrollViewer Classes="gameScrollViewer">
-                    <fragments:NetworkFragment/>
+                    <fragments1:NetworkFragment/>
                 </ScrollViewer>
             </TabItem>
             
             <TabItem Header="Players">
                 <ScrollViewer Classes="gameScrollViewer">
-                    <fragments:PlayersFragment/>
+                    <fragments1:PlayersFragment/>
                 </ScrollViewer>
             </TabItem>
         </TabControl>

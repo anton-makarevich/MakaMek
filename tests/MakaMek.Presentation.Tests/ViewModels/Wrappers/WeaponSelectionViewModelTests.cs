@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;

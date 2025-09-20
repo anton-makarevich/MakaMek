@@ -1,6 +1,4 @@
-﻿using Sanet.MakaMek.Core.Models.Units.Components.Engines;
-
-namespace Sanet.MakaMek.Core.Data.Units;
+﻿namespace Sanet.MakaMek.Core.Data.Units.Components;
 
 /// <summary>
 /// Represents a component instance with its slot assignments and mutable state
@@ -47,20 +45,3 @@ public record ComponentData
     /// </summary>
     public ComponentSpecificData? SpecificData { get; init; }
 }
-
-/// <summary>
-/// Base class for component-specific state data
-/// </summary>
-public abstract record ComponentSpecificData;
-
-/// <summary>
-/// State data specific to ammunition components
-/// </summary>
-public record AmmoStateData(int RemainingShots) : ComponentSpecificData;
-
-/// <summary>
-/// State data specific to engine components
-/// </summary>
-public record EngineStateData(int Rating, EngineType Type) : ComponentSpecificData;
-
-

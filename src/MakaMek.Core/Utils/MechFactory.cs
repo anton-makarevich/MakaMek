@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -17,9 +18,9 @@ public class MechFactory : IMechFactory
 {
     private readonly IRulesProvider _rulesProvider;
     private readonly ILocalizationService _localizationService;
-    private readonly IComponentDefinitionRegistry _componentRegistry;
+    private readonly IComponentProvider _componentRegistry;
 
-    public MechFactory(IRulesProvider rulesProvider, ILocalizationService localizationService, IComponentDefinitionRegistry componentRegistry)
+    public MechFactory(IRulesProvider rulesProvider, ILocalizationService localizationService, IComponentProvider componentRegistry)
     {
         _rulesProvider = rulesProvider;
         _localizationService = localizationService;

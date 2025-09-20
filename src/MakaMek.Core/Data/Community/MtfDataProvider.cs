@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Data.Community;

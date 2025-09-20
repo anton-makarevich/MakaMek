@@ -1,6 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Models.Units;
 
-namespace Sanet.MakaMek.Core.Data.Units;
+namespace Sanet.MakaMek.Core.Data.Units.Components;
 
 /// <summary>
 /// Represents a critical slot assignment for a component in a specific location

@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
-namespace Sanet.MakaMek.Core.Data.Units;
+namespace Sanet.MakaMek.Core.Data.Units.Components;
 
 /// <summary>
 /// Represents the core definition of a weapon system, used by both Weapon and Ammo classes.

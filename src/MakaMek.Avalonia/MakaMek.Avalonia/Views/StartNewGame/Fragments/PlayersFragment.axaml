@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Sanet.MakaMek.Avalonia.Views.NewGame.Fragments.PlayersFragment"
+             x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.PlayersFragment"
              x:DataType="viewModels1:NewGameViewModel">
     <StackPanel Classes="verticalSpaced">
         <Button Content="Add Player" Command="{Binding AddPlayerCommand}"

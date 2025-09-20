@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
-namespace Sanet.MakaMek.Core.Data.Units;
+namespace Sanet.MakaMek.Core.Data.Units.Components;
 
 /// <summary>
 /// Definition for engine components with variable size based on engine type

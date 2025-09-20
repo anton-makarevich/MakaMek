@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Units;
