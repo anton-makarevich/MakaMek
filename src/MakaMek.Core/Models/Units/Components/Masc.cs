@@ -6,7 +6,7 @@ public class Masc : Component
 {
     
     public static readonly EquipmentDefinition Definition = new(
-        "Jump Jets",
+        "MASC",
         MakaMekComponent.Masc,
         0, // To be updated
         1, // 1 slot

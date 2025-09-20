@@ -6,36 +6,30 @@ namespace Sanet.MakaMek.Core.Models.Units.Components;
 public abstract class Component : IManufacturedItem
 {
     private readonly List<CriticalSlotAssignment> _slotAssignments = [];
+    protected readonly ComponentDefinition _definition;
+    private readonly string? _manufacturerOverride;
 
     protected Component(ComponentDefinition definition, ComponentData? componentData = null)
     {
-        // Use ComponentData name override if available, otherwise use definition name
+        _definition = definition;
         Name = definition.Name;
-        Size = definition.Size;
-        // Use ComponentData manufacturer if available, otherwise use definition default
-        Manufacturer = "Unknown";
-        HealthPoints = definition.HealthPoints;
-        BattleValue = definition.BattleValue;
-        IsRemovable = definition.IsRemovable;
-        ComponentType = definition.ComponentType;
 
         // Restore mutable state if provided
         if (componentData == null) return;
-        if (!string.IsNullOrEmpty(componentData.Name))
-            Name = componentData.Name;
-        if (!string.IsNullOrEmpty(componentData.Manufacturer))
-            Manufacturer = componentData.Manufacturer;
+        if (!string.IsNullOrEmpty(componentData.Name)) Name = componentData.Name;
+        _manufacturerOverride = componentData.Manufacturer;
         Hits = componentData.Hits;
         IsActive = componentData.IsActive;
         HasExploded = componentData.HasExploded;
     }
 
     public string Name { get; }
+
     public int[] MountedAtSlots =>SlotAssignments
         .SelectMany(a => a.Slots)
         .OrderBy(slot => slot)
         .ToArray();
-    
+
     public bool IsActive { get; private set; } = true;
 
     public bool IsAvailable => IsActive
@@ -43,10 +37,10 @@ public abstract class Component : IManufacturedItem
                                && IsMounted
                                && !SlotAssignments.Any(a => a.UnitPart.IsDestroyed);
 
-    public int Size { get; }
-    public string Manufacturer { get; }
-    public int BattleValue { get; protected init; }
-    public bool IsRemovable { get; protected init; }
+    public int Size => _definition.Size;
+    public string Manufacturer => _manufacturerOverride ?? "Unknown";
+    public int BattleValue => _definition.BattleValue;
+    public bool IsRemovable => _definition.IsRemovable;
 
     // Multi-location slot assignments
     public IReadOnlyList<CriticalSlotAssignment> SlotAssignments => _slotAssignments;
@@ -55,7 +49,7 @@ public abstract class Component : IManufacturedItem
     public IReadOnlyList<UnitPart> MountedOn => SlotAssignments.Select(a => a.UnitPart).ToList();
 
     // Component type property for mapping to MakaMekComponent enum
-    public MakaMekComponent ComponentType { get; }
+    public MakaMekComponent ComponentType => _definition.ComponentType;
 
     // component is mounted when all required slots are assigned
     public bool IsMounted => SlotAssignments.Sum(a => a.Length) == Size && SlotAssignments.Count > 0;
@@ -107,7 +101,7 @@ public abstract class Component : IManufacturedItem
         }
     }
 
-    public int HealthPoints { get; }
+    public int HealthPoints => _definition.HealthPoints;
     public int Hits { get; private set; }
     public bool IsDestroyed => Hits >= HealthPoints;
 

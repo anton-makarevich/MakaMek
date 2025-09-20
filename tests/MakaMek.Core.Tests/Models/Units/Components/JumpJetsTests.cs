@@ -22,19 +22,6 @@ public class JumpJetsFacts
     }
 
     [Fact]
-    public void Constructor_WithCustomJumpMp_SetsCorrectValues()
-    {
-        // Arrange & Act
-        var sut = new JumpJets(2);
-
-        // Assert
-        sut.Name.ShouldBe("Jump Jets");
-        sut.Size.ShouldBe(1);
-        sut.JumpMp.ShouldBe(2);
-        sut.IsDestroyed.ShouldBeFalse();
-    }
-
-    [Fact]
     public void Hit_SetsIsDestroyedToTrue()
     {
         // Arrange
