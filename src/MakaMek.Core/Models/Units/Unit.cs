@@ -212,7 +212,7 @@ public abstract class Unit
         {
             var primaryAssignment = weaponTarget.Weapon.Assignments.FirstOrDefault();
             var weapon = primaryAssignment != null ?
-                GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.Slots.ToArray()) :
+                GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot) :
                 null;
             if (weapon == null) continue;
 
@@ -581,20 +581,20 @@ public abstract class Unit
     }
     
     /// <summary>
-    /// Gets components of a specific type at a specific location and slots
+    /// Gets components of a specific type at a specific location and slot
     /// </summary>
     /// <typeparam name="T">The type of component to find</typeparam>
     /// <param name="location">The location to check</param>
-    /// <param name="slots">The slots where the component is mounted</param>
-    /// <returns>Components of the specified type at the specified location and slots</returns>
-    public T? GetMountedComponentAtLocation<T>(PartLocation? location, int[] slots) where T : Component
+    /// <param name="slot">Any slot where the component is mounted</param>
+    /// <returns>Components of the specified type at the specified location starting at the given slot</returns>
+    public T? GetMountedComponentAtLocation<T>(PartLocation? location, int slot) where T : Component
     {
-        if (location == null || slots.Length == 0)
+        if (location == null)
             return null;
         var components = GetComponentsAtLocation<T>(location.Value);
-  
-        return components.FirstOrDefault(c => 
-           c.MountedAtSlots.SequenceEqual(slots));
+
+        return components.FirstOrDefault(c =>
+           c.MountedAtSlots.Contains(slot));
     }
 
     public void Move(MovementType movementType, List<PathSegmentData> movementPath)
@@ -626,7 +626,7 @@ public abstract class Unit
 
         var weapon = GetMountedComponentAtLocation<Weapon>(
             primaryAssignment.Location,
-            primaryAssignment.Slots.ToArray());
+            primaryAssignment.FirstSlot);
 
         if (weapon is not { IsAvailable: true })
             return;

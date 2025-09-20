@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public class Srm6() : Weapon(Definition)
+public class Srm6 : Weapon
 {
     /// <inheritdoc />
     public override bool IsAimShotCapable => false;
@@ -24,7 +24,12 @@ public class Srm6() : Weapon(Definition)
         FullAmmoRounds: 15,
         WeaponComponentType: MakaMekComponent.SRM6,
         AmmoComponentType: MakaMekComponent.ISAmmoSRM6);
-    
+
+    // Constructor uses the static definition
+    public Srm6(ComponentData? componentData = null) : base(Definition, componentData)
+    {
+    }
+
     public static Ammo CreateAmmo()
     {
         return new Ammo(Definition, Definition.FullAmmoRounds);

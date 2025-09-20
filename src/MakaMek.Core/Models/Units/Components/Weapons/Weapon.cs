@@ -35,8 +35,6 @@ public abstract class Weapon : Component
     /// </summary>
     public WeaponRange GetRangeBracket(int distance) => _definition.GetRangeBracket(distance);
     
-    public override MakaMekComponent ComponentType => _definition.WeaponComponentType;
-    
     /// <summary>
     /// Indicates whether this weapon is capable of making aimed shots
     /// </summary>

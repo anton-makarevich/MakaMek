@@ -9,29 +9,25 @@ public abstract class Component : IManufacturedItem
 
     protected Component(ComponentDefinition definition, ComponentData? componentData = null)
     {
+        // Use ComponentData name override if available, otherwise use definition name
         Name = definition.Name;
         Size = definition.Size;
-        Manufacturer = definition.Manufacturer;
+        // Use ComponentData manufacturer if available, otherwise use definition default
+        Manufacturer = "Unknown";
         HealthPoints = definition.HealthPoints;
         BattleValue = definition.BattleValue;
         IsRemovable = definition.IsRemovable;
+        ComponentType = definition.ComponentType;
 
         // Restore mutable state if provided
-        if (componentData != null)
-        {
-            Hits = componentData.Hits;
-            IsActive = componentData.IsActive;
-            HasExploded = componentData.HasExploded;
-        }
-    }
-
-    // Legacy constructor for backward compatibility during migration
-    protected Component(string name, int size = 1, string manufacturer = "Unknown", int healthPoints = 1)
-    {
-        Name = name;
-        Size = size;
-        Manufacturer = manufacturer;
-        HealthPoints = healthPoints;
+        if (componentData == null) return;
+        if (!string.IsNullOrEmpty(componentData.Name))
+            Name = componentData.Name;
+        if (!string.IsNullOrEmpty(componentData.Manufacturer))
+            Manufacturer = componentData.Manufacturer;
+        Hits = componentData.Hits;
+        IsActive = componentData.IsActive;
+        HasExploded = componentData.HasExploded;
     }
 
     public string Name { get; }
@@ -50,7 +46,7 @@ public abstract class Component : IManufacturedItem
     public int Size { get; }
     public string Manufacturer { get; }
     public int BattleValue { get; protected init; }
-    public bool IsRemovable { get; protected init; } = true;
+    public bool IsRemovable { get; protected init; }
 
     // Multi-location slot assignments
     public IReadOnlyList<CriticalSlotAssignment> SlotAssignments => _slotAssignments;
@@ -59,7 +55,7 @@ public abstract class Component : IManufacturedItem
     public IReadOnlyList<UnitPart> MountedOn => SlotAssignments.Select(a => a.UnitPart).ToList();
 
     // Component type property for mapping to MakaMekComponent enum
-    public abstract MakaMekComponent ComponentType { get; }
+    public MakaMekComponent ComponentType { get; }
 
     // component is mounted when all required slots are assigned
     public bool IsMounted => SlotAssignments.Sum(a => a.Length) == Size && SlotAssignments.Count > 0;

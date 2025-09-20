@@ -108,7 +108,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Find the weapon and target unit
         var primaryAssignment = currentWeaponTarget.Weapon.Assignments.FirstOrDefault();
         var currentWeapon = primaryAssignment != null ?
-            currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.Slots.ToArray()) :
+            currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot) :
             null;
         
         // Take all units not just alive as we should resolve attack even if the unit is already destroyed

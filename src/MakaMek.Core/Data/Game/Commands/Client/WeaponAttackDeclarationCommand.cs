@@ -1,6 +1,5 @@
 using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -55,15 +54,8 @@ public record struct WeaponAttackDeclarationCommand : IClientCommand
             var targetPlayer = targetUnit.Owner;
             if (targetPlayer == null) continue;
 
-            // Get weapon name from the actual weapon component
-            var primaryAssignment = weaponTarget.Weapon.Assignments.FirstOrDefault();
-            var weapon = primaryAssignment != null ?
-                attacker?.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.Slots.ToArray()) :
-                null;
-            var weaponName = weapon?.Name ?? "Unknown Weapon";
-
             stringBuilder.AppendFormat(weaponLineTemplate,
-                weaponName,
+                weaponTarget.Weapon.Name,
                 targetPlayer.Name,
                 targetUnit.Model).AppendLine();
         }

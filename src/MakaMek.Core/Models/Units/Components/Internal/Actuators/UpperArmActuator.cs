@@ -11,6 +11,4 @@ public class UpperArmActuator : Component
     public UpperArmActuator(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.UpperArmActuator;
 }

@@ -26,7 +26,7 @@ public class Lrm20 : Weapon
         AmmoComponentType: MakaMekComponent.ISAmmoLRM20);
         
     // Constructor uses the static definition
-    public Lrm20() : base(Definition)
+    public Lrm20(ComponentData? componentData = null) : base(Definition, componentData)
     {
         // 1 damage per missile, 20 missiles
     }

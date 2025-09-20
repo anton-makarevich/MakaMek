@@ -12,6 +12,4 @@ public class Sensors : Component
     public Sensors(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.Sensors;
 }

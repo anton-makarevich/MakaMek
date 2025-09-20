@@ -4,13 +4,21 @@ namespace Sanet.MakaMek.Core.Models.Units.Components;
 
 public class Masc : Component
 {
-    public Masc(string name) : base(name)
+    
+    public static readonly EquipmentDefinition Definition = new(
+        "Jump Jets",
+        MakaMekComponent.Masc,
+        0, // To be updated
+        1, // 1 slot
+        1, // 1 health point
+        true); // Removable
+
+    public Masc(ComponentData? componentData = null)
+        : base(Definition, componentData)
     {
         Deactivate(); // MASC starts deactivated
     }
-
-    public override MakaMekComponent ComponentType=> MakaMekComponent.Masc;
-
+    
     public override void Hit()
     {
         base.Hit();

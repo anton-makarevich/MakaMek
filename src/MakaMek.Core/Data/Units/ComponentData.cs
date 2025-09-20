@@ -33,6 +33,16 @@ public record ComponentData
     public bool HasExploded { get; init; } = false;
 
     /// <summary>
+    /// Override name for this specific component instance (optional)
+    /// </summary>
+    public string? Name { get; init; }
+
+    /// <summary>
+    /// Manufacturer of this specific component instance (optional, falls back to definition default)
+    /// </summary>
+    public string? Manufacturer { get; init; }
+
+    /// <summary>
     /// Component-specific state data using discriminated union pattern
     /// </summary>
     public ComponentSpecificData? SpecificData { get; init; }

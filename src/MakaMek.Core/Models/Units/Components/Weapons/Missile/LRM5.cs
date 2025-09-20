@@ -25,7 +25,7 @@ public class Lrm5 : Weapon
         AmmoComponentType: MakaMekComponent.ISAmmoLRM5);
         
     // Constructor uses the static definition
-    public Lrm5() : base(Definition)
+    public Lrm5(ComponentData? componentData = null) : base(Definition, componentData)
     {
         // 1 damage per missile, 5 missiles
     }

@@ -18,7 +18,7 @@ public class MediumLaser : Weapon
         WeaponComponentType: MakaMekComponent.MediumLaser);
         
     // Constructor uses the static definition
-    public MediumLaser() : base(Definition)
+    public MediumLaser(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
 }

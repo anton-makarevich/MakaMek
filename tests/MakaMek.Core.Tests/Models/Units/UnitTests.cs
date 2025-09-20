@@ -197,42 +197,83 @@ public class UnitTests
     }
     
     [Fact]
-    public void GetMountedComponentAtLocation_ShouldReturnComponentAtSpecificSlots()
+    public void GetMountedComponentAtLocation_ShouldReturnComponentAtSpecificFirstSlot()
     {
         // Arrange
         var unit = CreateTestUnit();
         var weapon1 = new TestWeapon("Weapon 1", [0, 1]);
         var weapon2 = new TestWeapon("Weapon 2", [2, 3]);
-        
+
         MountWeaponOnUnit(unit, weapon1, PartLocation.LeftArm, [0, 1]);
         MountWeaponOnUnit(unit, weapon2, PartLocation.LeftArm, [2, 3]);
-        
+
         // Act
-        var foundWeapon1 = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, [0, 1]);
-        var foundWeapon2 = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, [2, 3]);
-        var notFoundWeapon = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, [4, 5]);
-        
+        var foundWeapon1 = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 0);
+        var foundWeapon2 = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 2);
+        var notFoundWeapon = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 4);
+
         // Assert
         foundWeapon1.ShouldNotBeNull();
         foundWeapon1.ShouldBe(weapon1);
-        
+
         foundWeapon2.ShouldNotBeNull();
         foundWeapon2.ShouldBe(weapon2);
-        
+
         notFoundWeapon.ShouldBeNull();
     }
-    
+
     [Fact]
-    public void GetMountedComponentAtLocation_ShouldReturnNull_WhenEmptySlots()
+    public void GetMountedComponentAtLocation_ShouldReturnNull_WhenInvalidFirstSlot()
     {
         // Arrange
         var unit = CreateTestUnit();
         var weapon = new TestWeapon("Weapon", [0, 1]);
         MountWeaponOnUnit(unit, weapon, PartLocation.LeftArm, [0, 1]);
-        
+
         // Act
-        var result = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, []);
-        
+        var result = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 5);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetMountedComponentAtLocationBySlots_ShouldReturnComponentAtSpecificSlots()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon1 = new TestWeapon("Weapon 1", [0, 1]);
+        var weapon2 = new TestWeapon("Weapon 2", [2, 3]);
+
+        MountWeaponOnUnit(unit, weapon1, PartLocation.LeftArm, [0, 1]);
+        MountWeaponOnUnit(unit, weapon2, PartLocation.LeftArm, [2, 3]);
+
+        // Act
+        var foundWeapon1 = unit.GetMountedComponentAtLocationBySlots<Weapon>(PartLocation.LeftArm, [0, 1]);
+        var foundWeapon2 = unit.GetMountedComponentAtLocationBySlots<Weapon>(PartLocation.LeftArm, [2, 3]);
+        var notFoundWeapon = unit.GetMountedComponentAtLocationBySlots<Weapon>(PartLocation.LeftArm, [4, 5]);
+
+        // Assert
+        foundWeapon1.ShouldNotBeNull();
+        foundWeapon1.ShouldBe(weapon1);
+
+        foundWeapon2.ShouldNotBeNull();
+        foundWeapon2.ShouldBe(weapon2);
+
+        notFoundWeapon.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetMountedComponentAtLocationBySlots_ShouldReturnNull_WhenEmptySlots()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var weapon = new TestWeapon("Weapon", [0, 1]);
+        MountWeaponOnUnit(unit, weapon, PartLocation.LeftArm, [0, 1]);
+
+        // Act
+        var result = unit.GetMountedComponentAtLocationBySlots<Weapon>(PartLocation.LeftArm, []);
+
         // Assert
         result.ShouldBeNull();
     }

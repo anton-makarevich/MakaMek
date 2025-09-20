@@ -7,7 +7,7 @@ public class JumpJets : Component
     public static readonly EquipmentDefinition Definition = new(
         "Jump Jets",
         MakaMekComponent.JumpJet,
-        0, // No battle value
+        0, // To be updated
         1, // 1 slot
         1, // 1 health point
         true); // Removable
@@ -20,8 +20,4 @@ public class JumpJets : Component
     }
 
     public int JumpMp { get; }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.JumpJet;
-
-    // No specific data needed since JumpMp is always 1
 }

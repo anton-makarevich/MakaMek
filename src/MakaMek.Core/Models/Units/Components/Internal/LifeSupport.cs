@@ -12,6 +12,4 @@ public class LifeSupport : Component
     public LifeSupport(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.LifeSupport;
 }

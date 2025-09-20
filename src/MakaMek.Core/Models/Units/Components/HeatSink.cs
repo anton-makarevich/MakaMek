@@ -24,6 +24,4 @@ public class HeatSink : Component
     }
 
     public int HeatDissipation { get; }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.HeatSink;
 }

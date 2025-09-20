@@ -51,7 +51,7 @@ public class Ammo : Component
         return true;
     }
 
-    public override MakaMekComponent ComponentType => Definition.AmmoComponentType ?? throw new InvalidOperationException("Ammo component type not defined");
+
 
     public override void Hit()
     {

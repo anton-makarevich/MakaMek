@@ -13,8 +13,6 @@ public class Cockpit : Component
     {
     }
 
-    public override MakaMekComponent ComponentType => MakaMekComponent.Cockpit;
-
     public override void Hit()
     {
         base.Hit();

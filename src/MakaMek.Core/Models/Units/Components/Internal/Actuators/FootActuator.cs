@@ -11,6 +11,4 @@ public class FootActuator : Component
     public FootActuator(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.FootActuator;
 }

@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 
-public class Ac10() : Weapon(Definition)
+public class Ac10 : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
@@ -19,8 +19,12 @@ public class Ac10() : Weapon(Definition)
         FullAmmoRounds: 10,
         WeaponComponentType: MakaMekComponent.AC10,
         AmmoComponentType: MakaMekComponent.ISAmmoAC10);
-        
+
     // Constructor uses the static definition
+    public Ac10(ComponentData? componentData = null) : base(Definition, componentData)
+    {
+    }
+
     public static Ammo CreateAmmo()
     {
         return new Ammo(Definition, Definition.FullAmmoRounds);

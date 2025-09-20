@@ -25,7 +25,7 @@ public class Srm2 : Weapon
         AmmoComponentType: MakaMekComponent.ISAmmoSRM2);
             
     // Constructor uses the static definition
-    public Srm2() : base(Definition)
+    public Srm2(ComponentData? componentData = null) : base(Definition, componentData)
     {
         // 2 damage per missile, 2 missiles
     }

@@ -11,6 +11,4 @@ public class ShoulderActuator : Component
     public ShoulderActuator(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.Shoulder;
 }

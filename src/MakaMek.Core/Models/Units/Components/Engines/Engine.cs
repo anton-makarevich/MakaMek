@@ -33,8 +33,6 @@ public class Engine : Component
 
     public int NumberOfHeatSinks => 10;
 
-    public override MakaMekComponent ComponentType => MakaMekComponent.Engine;
-
     protected override ComponentSpecificData? GetSpecificData()
     {
         return new EngineStateData(Rating, Type);

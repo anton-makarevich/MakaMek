@@ -11,6 +11,4 @@ public class HandActuator : Component
     public HandActuator(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.HandActuator;
 }

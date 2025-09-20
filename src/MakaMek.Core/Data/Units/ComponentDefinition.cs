@@ -9,8 +9,7 @@ public abstract record ComponentDefinition(
     int HealthPoints,
     int BattleValue,
     bool IsRemovable,
-    MakaMekComponent ComponentType,
-    string Manufacturer = "Unknown");
+    MakaMekComponent ComponentType);
 
 /// <summary>
 /// Definition for actuator components (shoulder, arm, leg actuators)

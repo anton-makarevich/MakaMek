@@ -11,6 +11,4 @@ public class HipActuator : Component
     public HipActuator(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.Hip;
 }

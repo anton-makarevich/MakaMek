@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Units;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public class Lrm10() : Weapon(Definition)
+public class Lrm10 : Weapon
 {
     // Static definition for this weapon type
     /// <inheritdoc />
@@ -23,8 +23,11 @@ public class Lrm10() : Weapon(Definition)
         FullAmmoRounds:12,
         WeaponComponentType: MakaMekComponent.LRM10,
         AmmoComponentType: MakaMekComponent.ISAmmoLRM10);
-        
+
     // Constructor uses the static definition
+    public Lrm10(ComponentData? componentData = null) : base(Definition, componentData)
+    {
+    }
 
     public static Ammo CreateAmmo()
     {

@@ -13,6 +13,4 @@ public class Gyro : Component
     public Gyro(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.Gyro;
 }
