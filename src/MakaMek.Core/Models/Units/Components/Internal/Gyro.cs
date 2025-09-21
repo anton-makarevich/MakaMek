@@ -2,15 +2,11 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
-public class Gyro : Component
+public class Gyro(ComponentData? componentData = null) : Component(Definition, componentData)
 {
     public static readonly InternalDefinition Definition = new(
         "Gyro",
         2, // 2 health points
         MakaMekComponent.Gyro,
         4); // 4 slots
-
-    public Gyro(ComponentData? componentData = null) : base(Definition, componentData)
-    {
-    }
 }

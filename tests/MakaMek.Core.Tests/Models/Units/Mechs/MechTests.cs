@@ -35,8 +35,17 @@ public class MechTests
 
     private static List<UnitPart> CreateBasicPartsData()
     {
+        var engineData = new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            Assignments =
+            [
+                new LocationSlotAssignment(PartLocation.CenterTorso, 0, 5)
+            ],
+            SpecificData = new EngineStateData(250, EngineType.Fusion)
+        };
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
-        centerTorso.TryAddComponent(new Engine(250));
+        centerTorso.TryAddComponent(new Engine(engineData));
         return
         [
             new Head("Head", 9, 3),
@@ -2328,8 +2337,8 @@ public class MechTests
             _damageTransferCalculator);
 
         // Assert
-        result.ShouldBeNull(); // Should return null for destroyed part
-        _diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for destroyed part
+        result.ShouldBeNull(); // Should return null for the destroyed part
+        _diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for the destroyed part
     }
 
     [Fact]
@@ -2344,8 +2353,8 @@ public class MechTests
             _damageTransferCalculator); // Invalid location
 
         // Assert
-        result.ShouldBeNull(); // Should return null for non-existent part
-        _diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for non-existent part
+        result.ShouldBeNull(); // Should return null for a non-existent part
+        _diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice for a non-existent part
     }
 
     [Fact]
@@ -2365,7 +2374,7 @@ public class MechTests
 
         // Assert
         result.ShouldNotBeNull(); // Should return valid data for part with structure
-        _diceRoller.Received(1).Roll2D6(); // Should roll dice for valid part
+        _diceRoller.Received(1).Roll2D6(); // Should roll dice for a valid part
     }
 
     [Fact]
@@ -2384,7 +2393,7 @@ public class MechTests
             _damageTransferCalculator);
 
         // Assert
-        result.ShouldBeNull(); // Should return null when structure is exactly 0
+        result.ShouldBeNull(); // Should return null when the structure is exactly 0
         _diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice when structure is 0
     }
 }

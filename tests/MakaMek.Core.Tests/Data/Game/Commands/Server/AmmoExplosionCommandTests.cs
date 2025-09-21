@@ -74,8 +74,18 @@ public class AmmoExplosionCommandTests
 
     private static List<UnitPart> CreateBasicPartsData()
     {
+        var engineData = new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            Assignments =
+            [
+                new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
+                new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
+            ],
+            SpecificData = new EngineStateData(250, EngineType.Fusion)
+        };
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
-        centerTorso.TryAddComponent(new Engine(250));
+        centerTorso.TryAddComponent(new Engine(engineData));
         return
         [
             new Head("Head", 9, 3),

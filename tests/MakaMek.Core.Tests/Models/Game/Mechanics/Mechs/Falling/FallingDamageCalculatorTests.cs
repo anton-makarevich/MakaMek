@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -24,14 +25,24 @@ public class FallingDamageCalculatorTests
         // Setup mock rules provider
         IRulesProvider rules = new ClassicBattletechRulesProvider();
 
-        // Setup calculator with mock dice roller and rules provider
+        // Setup calculator with mock dice roller and rule provider
         _sut = new FallingDamageCalculator(_mockDiceRoller, rules, _mockDamageTransferCalculator);
     }
 
     private static List<UnitPart> CreateBasicPartsData()
     {
+        var engineData = new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            Assignments =
+            [
+                new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
+                new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
+            ],
+            SpecificData = new EngineStateData(250, EngineType.Fusion)
+        };
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
-        centerTorso.TryAddComponent(new Engine(250));
+        centerTorso.TryAddComponent(new Engine(engineData));
         return
         [
             new Head("Head", 9, 3),
@@ -109,7 +120,7 @@ public class FallingDamageCalculatorTests
         // Arrange
         var mech = CreateTestMech(50);
         mech.Deploy(new HexPosition(1,1, HexDirection.Top));
-        const int levelsFallen = 2; // 15 damage for a 50 ton mech (50/10 * (2+1)
+        const int levelsFallen = 2; // 15 damage for a 50-ton mech (50/10 * (2+1)
         
         // Setup dice roller for facing roll
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
@@ -187,7 +198,7 @@ public class FallingDamageCalculatorTests
         // Arrange
         var mech = CreateTestMech(40);
         mech.Deploy(new HexPosition(1,1, HexDirection.Top));
-        const int levelsFallen = 1; // 8 damage for a 40 ton mech
+        const int levelsFallen = 1; // 8 damage for a 40-ton mech
         
         // Setup dice roller for facing roll
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));
@@ -239,7 +250,7 @@ public class FallingDamageCalculatorTests
         var mech = CreateTestMech(35);
         mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
         
-        const int levelsFallen = 1; // 8 damage for a 35 ton mech
+        const int levelsFallen = 1; // 8 damage for a 35-ton mech
         
         // Setup dice roller for facing roll
         _mockDiceRoller.RollD6().Returns(new DiceResult(1));

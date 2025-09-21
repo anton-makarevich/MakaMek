@@ -25,6 +25,8 @@ public abstract class Component : IManufacturedItem
 
     public string Name { get; }
 
+    public ComponentDefinition Definition => _definition;
+    
     public int[] MountedAtSlots =>SlotAssignments
         .SelectMany(a => a.Slots)
         .OrderBy(slot => slot)

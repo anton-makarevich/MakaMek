@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Models.Units;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
@@ -6,11 +7,21 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Engines;
 
 public class EngineTests
 {
+    private readonly ComponentData _engineData = new ComponentData
+            {
+                Type = MakaMekComponent.Engine,
+                Assignments =
+                [
+                    new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
+                    new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
+                ],
+                SpecificData = new EngineStateData(250, EngineType.Fusion)
+            };
     [Fact]
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var sut = new Engine(100);
+        var sut = new Engine(_engineData);
 
         // Assert
         sut.Name.ShouldBe("Fusion Engine 100");
@@ -27,7 +38,7 @@ public class EngineTests
     [Fact]
     public void FirstHit_DoesNotDestroyComponent()
     {
-        var sut = new Engine(100);
+        var sut = new Engine(_engineData);
         
         sut.Hit();
         
@@ -38,7 +49,7 @@ public class EngineTests
     [Fact]
     public void SecondHit_DoesNotDestroyComponent()
     {
-        var sut = new Engine(100);
+        var sut = new Engine(_engineData);
         
         sut.Hit();
         sut.Hit();
@@ -50,7 +61,7 @@ public class EngineTests
     [Fact]
     public void ThirdHit_DoesDestroyComponent()
     {
-        var sut = new Engine(100);
+        var sut = new Engine(_engineData);
         
         sut.Hit();
         sut.Hit();
@@ -68,7 +79,7 @@ public class EngineTests
     public void HeatPenalty_ReturnsCorrectValueBasedOnHits(int hits, int expectedPenalty)
     {
         // Arrange
-        var sut = new Engine(100);
+        var sut = new Engine(_engineData);
         
         // Act
         for (int i = 0; i < hits; i++)

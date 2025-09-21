@@ -17,7 +17,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Rules;
 public class ClassicBattletechComponentProvider : IComponentProvider
 {
     private readonly Dictionary<MakaMekComponent, ComponentDefinition> _definitions;
-    private readonly Dictionary<MakaMekComponent, Func<ComponentData?, Component>> _factories;
+    private readonly Dictionary<MakaMekComponent, Func<ComponentData?, Component?>> _factories;
 
     public ClassicBattletechComponentProvider()
     {
@@ -25,9 +25,9 @@ public class ClassicBattletechComponentProvider : IComponentProvider
         _factories = InitializeFactories();
     }
 
-    public ComponentDefinition? GetDefinition(MakaMekComponent componentType)
+    public ComponentDefinition? GetDefinition(MakaMekComponent componentType,ComponentSpecificData? specificData)
     {
-        return _definitions.GetValueOrDefault(componentType);
+        return _definitions.GetValueOrDefault(componentType, specificData);
     }
 
     public Component? CreateComponent(MakaMekComponent componentType, ComponentData? componentData = null)
@@ -78,12 +78,29 @@ public class ClassicBattletechComponentProvider : IComponentProvider
             [MakaMekComponent.SRM4] = Srm4.Definition,
             [MakaMekComponent.SRM6] = Srm6.Definition,
             [MakaMekComponent.Hatchet] = Hatchet.Definition,
+            
+            // Ammo - using existing static weapon definitions
+            [MakaMekComponent.ISAmmoMG] = Ammo.CreateAmmoDefinition(MachineGun.Definition),
+            [MakaMekComponent.ISAmmoAC2] = Ammo.CreateAmmoDefinition(Ac2.Definition),
+            [MakaMekComponent.ISAmmoAC5] = Ammo.CreateAmmoDefinition(Ac5.Definition),
+            [MakaMekComponent.ISAmmoAC10] = Ammo.CreateAmmoDefinition(Ac10.Definition),
+            [MakaMekComponent.ISAmmoAC20] = Ammo.CreateAmmoDefinition(Ac20.Definition),
+            [MakaMekComponent.ISAmmoLRM5] = Ammo.CreateAmmoDefinition(Lrm5.Definition),
+            [MakaMekComponent.ISAmmoLRM10] = Ammo.CreateAmmoDefinition(Lrm10.Definition),
+            [MakaMekComponent.ISAmmoLRM15] = Ammo.CreateAmmoDefinition(Lrm15.Definition),
+            [MakaMekComponent.ISAmmoLRM20] = Ammo.CreateAmmoDefinition(Lrm20.Definition),
+            [MakaMekComponent.ISAmmoSRM2] = Ammo.CreateAmmoDefinition(Srm2.Definition),
+            [MakaMekComponent.ISAmmoSRM4] = Ammo.CreateAmmoDefinition(Srm4.Definition),
+            [MakaMekComponent.ISAmmoSRM6] = Ammo.CreateAmmoDefinition(Srm6.Definition)
+            
+            // Engine - using existing static definition
+            [MakaMekComponent.Engine] = Engine.Definition
         };
     }
 
-    private Dictionary<MakaMekComponent, Func<ComponentData?, Component>> InitializeFactories()
+    private Dictionary<MakaMekComponent, Func<ComponentData?, Component?>> InitializeFactories()
     {
-        return new Dictionary<MakaMekComponent, Func<ComponentData?, Component>>
+        return new Dictionary<MakaMekComponent, Func<ComponentData?, Component?>>
         {
             // Actuators
             [MakaMekComponent.Shoulder] = data => new ShoulderActuator(data),
@@ -144,15 +161,14 @@ public class ClassicBattletechComponentProvider : IComponentProvider
         };
     }
 
-    private static Component CreateEngine(ComponentData? data)
+    private static Component? CreateEngine(ComponentData? data)
     {
-        if (data?.SpecificData is EngineStateData engineState)
+        if (data?.SpecificData is EngineStateData)
         {
-            return new Engine(engineState.Rating, engineState.Type, data);
+            return new Engine(data);
         }
 
-        // Default engine if no state data provided
-        return new Engine(200, EngineType.Fusion, data);
+        return null;
     }
 
     private static Component CreateAmmo(WeaponDefinition weaponDefinition, ComponentData? data)

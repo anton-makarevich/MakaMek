@@ -8,6 +8,6 @@ namespace Sanet.MakaMek.Core.Models.Game.Rules;
 /// </summary>
 public interface IComponentProvider
 {
-    ComponentDefinition? GetDefinition(MakaMekComponent componentType);
+    ComponentDefinition? GetDefinition(MakaMekComponent componentType, ComponentSpecificData? specificData = null);
     Component? CreateComponent(MakaMekComponent componentType, ComponentData? componentData = null);
 }

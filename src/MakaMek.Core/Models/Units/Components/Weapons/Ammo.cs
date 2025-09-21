@@ -27,7 +27,7 @@ public class Ammo : Component
         }
     }
 
-    private static ComponentDefinition CreateAmmoDefinition(WeaponDefinition weaponDefinition)
+    public static ComponentDefinition CreateAmmoDefinition(WeaponDefinition weaponDefinition)
     {
         return new EquipmentDefinition(
             $"{weaponDefinition.Name} Ammo",

@@ -2,14 +2,11 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
-public class LifeSupport : Component
+public class LifeSupport(ComponentData? componentData = null) : Component(Definition, componentData)
 {
     public static readonly InternalDefinition Definition = new(
         "Life Support",
         1, // 1 health point
-        MakaMekComponent.LifeSupport);
-
-    public LifeSupport(ComponentData? componentData = null) : base(Definition, componentData)
-    {
-    }
+        MakaMekComponent.LifeSupport,
+        2);
 }
