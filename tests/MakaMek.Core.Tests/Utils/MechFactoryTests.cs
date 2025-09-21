@@ -54,6 +54,7 @@ public class MechFactoryTests
 
     public static UnitData CreateDummyMechData(List<ComponentData>? equipment = null)
     {
+        var engineRating = 100;
         List<ComponentData> defaultEquipment =
         [
             new()
@@ -64,7 +65,7 @@ public class MechFactoryTests
                     new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
                     new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
                 ],
-                SpecificData = new EngineStateData(EngineType.Fusion, 100)
+                SpecificData = new EngineStateData(EngineType.Fusion, engineRating)
             }
         ];
         if (equipment != null)
@@ -76,8 +77,8 @@ public class MechFactoryTests
             Model = "LCT-1V",
             Mass = 20,
             WalkMp = 8,
-            EngineRating = 160,
-            EngineType = "Standard",
+            EngineRating = engineRating,
+            EngineType = "Fusion",
             ArmorValues = new Dictionary<PartLocation, ArmorLocation>
             {
                 { PartLocation.Head, new ArmorLocation { FrontArmor = 9 } },
