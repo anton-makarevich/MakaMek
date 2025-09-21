@@ -14,10 +14,14 @@ public class CockpitTests
 
         // Assert
         sut.Name.ShouldBe("Cockpit");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
-        sut.MountedAtSlots.ShouldBe([2]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.Cockpit);
         sut.IsRemovable.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        Cockpit.DefaultMountSlots.ShouldBe([2]);
     }
 }

@@ -9,6 +9,8 @@ public class Cockpit(ComponentData? componentData = null) : Component(Definition
         1, // 1 health point
         MakaMekComponent.Cockpit);
 
+    public static readonly int[] DefaultMountSlots = [2];
+
     public override void Hit()
     {
         base.Hit();

@@ -14,8 +14,6 @@ public class ShoulderActuatorTests
 
         // Assert
         sut.Name.ShouldBe("Shoulder");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
-        sut.MountedAtSlots.ShouldBe([0]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.Shoulder);
         sut.IsRemovable.ShouldBeFalse();

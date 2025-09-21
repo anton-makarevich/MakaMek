@@ -14,8 +14,6 @@ public class LowerLegActuatorTests
 
         // Assert
         sut.Name.ShouldBe("Lower Leg");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
-        sut.MountedAtSlots.ShouldBe([2]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.LowerLegActuator);
         sut.IsRemovable.ShouldBeFalse();

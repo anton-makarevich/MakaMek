@@ -9,4 +9,6 @@ public class LifeSupport(ComponentData? componentData = null) : Component(Defini
         1, // 1 health point
         MakaMekComponent.LifeSupport,
         2);
+
+    public static readonly int[] DefaultMountSlots = [0, 5];
 }

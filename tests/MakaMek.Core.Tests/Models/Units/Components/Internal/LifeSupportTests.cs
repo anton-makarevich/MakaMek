@@ -14,10 +14,14 @@ public class LifeSupportTests
 
         // Assert
         sut.Name.ShouldBe("Life Support");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(2);
-        sut.MountedAtSlots.ShouldBe([0, 5]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.LifeSupport);
         sut.IsRemovable.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        LifeSupport.DefaultMountSlots.ShouldBe([0, 5]);
     }
 }

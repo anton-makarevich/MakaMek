@@ -14,8 +14,6 @@ public class UpperArmActuatorTests
 
         // Assert
         sut.Name.ShouldBe("Upper Arm Actuator");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
-        sut.MountedAtSlots.ShouldBe([1]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.UpperArmActuator);
         sut.IsRemovable.ShouldBeTrue();

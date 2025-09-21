@@ -8,6 +8,6 @@ public class CenterTorso : Torso
         : base(name, PartLocation.CenterTorso, maxArmor, maxRearArmor, maxStructure)
     {
         // Add default components
-        TryAddComponent(new Gyro(),[3, 4, 5, 6]);
+        TryAddComponent(new Gyro(), Gyro.DefaultMountSlots);
     }
 }

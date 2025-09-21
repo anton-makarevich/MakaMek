@@ -8,10 +8,10 @@ public class Leg : UnitPart
         : base(name, location, maxArmor, maxStructure, 6)
     {
         // Add default components
-        TryAddComponent(new HipActuator());
-        TryAddComponent(new UpperLegActuator());
-        TryAddComponent(new LowerLegActuator());
-        TryAddComponent(new FootActuator());
+        TryAddComponent(new HipActuator(), HipActuator.DefaultMountSlots);
+        TryAddComponent(new UpperLegActuator(), UpperLegActuator.DefaultMountSlots);
+        TryAddComponent(new LowerLegActuator(), LowerLegActuator.DefaultMountSlots);
+        TryAddComponent(new FootActuator(), FootActuator.DefaultMountSlots);
     }
 
     internal override bool CanBeBlownOff => true;

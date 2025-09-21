@@ -26,8 +26,6 @@ public class EngineTests
         // Assert
         sut.Name.ShouldBe("Fusion Engine 100");
         sut.Rating.ShouldBe(100);
-        sut.MountedAtSlots.ToList().Count.ShouldBe(6);
-        sut.MountedAtSlots.ShouldBe([0, 1, 2, 7, 8, 9]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.Engine);
         sut.IsRemovable.ShouldBeTrue();

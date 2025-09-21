@@ -14,8 +14,6 @@ public class UpperLegActuatorTests
 
         // Assert
         sut.Name.ShouldBe("Upper Leg");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
-        sut.MountedAtSlots.ShouldBe([1]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.UpperLegActuator);
         sut.IsRemovable.ShouldBeFalse();

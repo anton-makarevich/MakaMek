@@ -23,7 +23,7 @@ public abstract class Component : IManufacturedItem
         HasExploded = componentData.HasExploded;
     }
 
-    public string Name { get; }
+    public string Name { get; protected set; }
     
     public int[] MountedAtSlots =>SlotAssignments
         .SelectMany(a => a.Slots)

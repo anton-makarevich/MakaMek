@@ -14,8 +14,6 @@ public class HandActuatorTests
 
         // Assert
         sut.Name.ShouldBe("Hand Actuator");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
-        sut.MountedAtSlots.ShouldBe([3]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.HandActuator);
         sut.IsRemovable.ShouldBeTrue();

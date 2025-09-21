@@ -15,12 +15,16 @@ public class GyroTests
 
         // Assert
         sut.Name.ShouldBe("Gyro");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(4);
-        sut.MountedAtSlots.ShouldBe([3, 4, 5, 6]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.Gyro);
         sut.IsRemovable.ShouldBeFalse();
         sut.HealthPoints.ShouldBe(2);
+    }
+
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        Gyro.DefaultMountSlots.ShouldBe([3, 4, 5, 6]);
     }
 
     [Fact]

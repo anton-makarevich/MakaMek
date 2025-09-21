@@ -9,4 +9,6 @@ public class Sensors(ComponentData? componentData = null) : Component(Definition
         2, // 2 health points
         MakaMekComponent.Sensors,
         2);
+
+    public static readonly int[] DefaultMountSlots = [1, 4];
 }

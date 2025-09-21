@@ -8,9 +8,9 @@ public class Head : UnitPart
         : base(name, PartLocation.Head, maxArmor, maxStructure, 6)
     {
         // Add default components
-        TryAddComponent(new LifeSupport());
-        TryAddComponent(new Sensors());
-        TryAddComponent(new Cockpit());
+        TryAddComponent(new LifeSupport(), LifeSupport.DefaultMountSlots);
+        TryAddComponent(new Sensors(), Sensors.DefaultMountSlots);
+        TryAddComponent(new Cockpit(), Cockpit.DefaultMountSlots);
     }
 
     internal override bool CanBeBlownOff => true;

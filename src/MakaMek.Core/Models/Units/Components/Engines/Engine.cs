@@ -17,6 +17,7 @@ public class Engine : Component
         {
             throw new ArgumentException("Invalid component data for engine");
         }
+        Name = $"{Type} Engine {engineState.Rating}";
         Rating = engineState.Rating;
         Type = engineState.Type;
     }
