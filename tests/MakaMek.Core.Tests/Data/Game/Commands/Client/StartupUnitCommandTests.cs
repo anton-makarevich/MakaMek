@@ -34,7 +34,10 @@ public class StartupUnitCommandTests
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = _unitId;
 
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var unit = mechFactory.Create(mechData);
         player.AddUnit(unit);
 

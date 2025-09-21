@@ -34,7 +34,10 @@ public class PilotConsciousnessRollCommandTests
         // Setup unit
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = _unitId;
-        var unit = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService).Create(unitData);
+        var unit = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService).Create(unitData);
         unit.AssignPilot(pilot);
 
         // Setup player

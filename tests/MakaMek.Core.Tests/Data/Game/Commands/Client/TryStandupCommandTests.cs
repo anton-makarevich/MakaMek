@@ -23,7 +23,10 @@ public class TryStandupCommandTests
     {
         _game.Players.Returns([_player]);
         var unitData = MechFactoryTests.CreateDummyMechData();
-        _mech = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService).Create(unitData);
+        _mech = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService).Create(unitData);
         _player.AddUnit(_mech);
         
         // Set the mech as prone for testing

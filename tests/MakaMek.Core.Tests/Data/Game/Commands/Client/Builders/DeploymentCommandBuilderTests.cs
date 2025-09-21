@@ -21,7 +21,9 @@ public class DeploymentCommandBuilderTests
     public DeploymentCommandBuilderTests()
     {
         _builder = new DeploymentCommandBuilder(_gameId, _playerId);
-        _unit = new MechFactory(new ClassicBattletechRulesProvider(),
+        _unit = new MechFactory(
+                new ClassicBattletechRulesProvider(),
+                new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData());
         _coordinates = new HexCoordinates(1, 1);

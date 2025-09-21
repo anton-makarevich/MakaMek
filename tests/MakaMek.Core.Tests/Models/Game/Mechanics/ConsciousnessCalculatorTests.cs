@@ -25,7 +25,9 @@ public class ConsciousnessCalculatorTests
         
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
-        Unit unit = new MechFactory(new ClassicBattletechRulesProvider(), 
+        Unit unit = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>()).Create(unitData);
 
         // Setup default pilot state

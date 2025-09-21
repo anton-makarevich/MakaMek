@@ -34,7 +34,10 @@ public abstract class GamePhaseTestsBase
     protected readonly IHeatEffectsCalculator MockHeatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     protected readonly IPilotingSkillCalculator MockPilotingSkillCalculator= Substitute.For<IPilotingSkillCalculator>();
     
-    private readonly IMechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),Substitute.For<ILocalizationService>());
+    private readonly IMechFactory _mechFactory = new MechFactory(
+        new ClassicBattletechRulesProvider(),
+        new ClassicBattletechComponentProvider(),
+        Substitute.For<ILocalizationService>());
 
     protected GamePhaseTestsBase()
     {

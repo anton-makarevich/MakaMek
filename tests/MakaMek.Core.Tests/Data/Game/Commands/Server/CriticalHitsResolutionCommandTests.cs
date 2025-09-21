@@ -29,7 +29,10 @@ public class CriticalHitsResolutionCommandTests
             new Player(Guid.NewGuid(), "Player 1");
 
         // Create a target unit using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var targetData = MechFactoryTests.CreateDummyMechData();
         targetData.Id = Guid.NewGuid();
         

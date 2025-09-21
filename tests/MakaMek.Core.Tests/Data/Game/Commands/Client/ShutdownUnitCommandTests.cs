@@ -46,7 +46,10 @@ public class ShutdownUnitCommandTests
             { PartLocation.LeftLeg, 8 },
             { PartLocation.RightLeg, 8 }
         });
-        var mechFactory = new MechFactory(rulesProvider, _localizationService);
+        var mechFactory = new MechFactory(
+            rulesProvider,
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var unit = mechFactory.Create(mechData);
         player.AddUnit(unit);
 

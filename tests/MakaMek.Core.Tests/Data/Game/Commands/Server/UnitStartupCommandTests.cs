@@ -23,8 +23,11 @@ public class UnitStartupCommandTests
     {
         var player = new Player(Guid.NewGuid(), "Player 1");
 
-        // Create unit using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        // Create a unit using MechFactory
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         

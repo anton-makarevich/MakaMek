@@ -21,7 +21,9 @@ public class MoveUnitCommandBuilderTests
     {
         _playerId = Guid.NewGuid();
         _builder = new MoveUnitCommandBuilder(_gameId, _playerId);
-        _unit = new MechFactory(new ClassicBattletechRulesProvider(),
+        _unit = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>()).Create(MechFactoryTests.CreateDummyMechData());
     }
     

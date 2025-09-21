@@ -12,7 +12,9 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Players;
 
 public class PlayerTests
 {
-    private readonly MechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),
+    private readonly MechFactory _mechFactory = new MechFactory(
+        new ClassicBattletechRulesProvider(),
+        new ClassicBattletechComponentProvider(),
         Substitute.For<ILocalizationService>());
     
     private Unit CreateMech()

@@ -51,7 +51,9 @@ public class ToHitCalculatorTests
         _rules.GetAimedShotModifier(PartLocation.Head).Returns(3);
         _rules.GetAimedShotModifier(Arg.Is<PartLocation>(loc => loc != PartLocation.Head)).Returns(-4);
 
-        _mechFactory = new MechFactory(_rules, Substitute.For<ILocalizationService>());
+        _mechFactory = new MechFactory(_rules,
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
 
         // Setup weapon
         _weapon = new MediumLaser();
