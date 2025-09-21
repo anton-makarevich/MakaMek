@@ -74,6 +74,8 @@ public class MechFactory : IMechFactory
         foreach (var componentData in unitData.Equipment)
         {
             var component = _componentProvider.CreateComponent(componentData.Type, componentData);
+            if (component == null)
+                continue;
 
             // Mount to additional locations (without adding to their component lists)
             foreach (var assignment in componentData.Assignments)
@@ -81,8 +83,8 @@ public class MechFactory : IMechFactory
                 var part = mech.Parts[assignment.Location];
                 var slots = assignment.Slots.ToArray();
 
-                // Mount the component to this location using the Mount method directly
-                component.Mount(slots, part);
+                // Mount the component to this location 
+                part.TryAddComponent(component, slots);
             }
         }
     }
