@@ -1,9 +1,6 @@
 using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components;
-using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 
@@ -76,7 +73,7 @@ public class MechFactory : IMechFactory
     {
         foreach (var componentData in unitData.Equipment)
         {
-            var component = CreateComponent(componentData, unitData);
+            var component = _componentProvider.CreateComponent(componentData.Type, componentData);
 
             // Mount to additional locations (without adding to their component lists)
             foreach (var assignment in componentData.Assignments)
@@ -88,40 +85,5 @@ public class MechFactory : IMechFactory
                 component.Mount(slots, part);
             }
         }
-    }
-
-    private Component CreateComponent(ComponentData componentData, UnitData unitData)
-    {
-        // Handle special cases that need additional data from UnitData
-        if (componentData.Type == MakaMekComponent.Engine)
-        {
-            // Create engine with specific rating and type from UnitData
-            var engineData = new ComponentData
-            {
-                Type = MakaMekComponent.Engine,
-                Assignments = componentData.Assignments,
-                Hits = componentData.Hits,
-                IsActive = componentData.IsActive,
-                HasExploded = componentData.HasExploded,
-                SpecificData = new EngineStateData(unitData.EngineRating, MapEngineType(unitData.EngineType))
-            };
-            return _componentProvider.CreateComponent(componentData.Type, engineData);
-        }
-
-        // Use registry for all other components
-        return _componentProvider.CreateComponent(componentData.Type, componentData);
-    }
-
-    private EngineType MapEngineType(string engineType)
-    {
-        return engineType.ToLower() switch
-        {
-            "fusion" => EngineType.Fusion,
-            "xlfusion" => EngineType.XLFusion,
-            "ice" => EngineType.ICE,
-            "light" => EngineType.Light,
-            "compact" => EngineType.Compact,
-            _ => throw new NotImplementedException($"Unknown engine type: {engineType}")
-        };
     }
 }

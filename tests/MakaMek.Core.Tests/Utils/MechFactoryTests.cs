@@ -19,19 +19,8 @@ public class MechFactoryTests
 
     public MechFactoryTests()
     {
-        var structureValueProvider = Substitute.For<IRulesProvider>();
-        structureValueProvider.GetStructureValues(20).Returns(new Dictionary<PartLocation, int>
-        {
-            { PartLocation.Head, 8 },
-            { PartLocation.CenterTorso, 10 },
-            { PartLocation.LeftTorso, 8 },
-            { PartLocation.RightTorso, 8 },
-            { PartLocation.LeftArm, 4 },
-            { PartLocation.RightArm, 4 },
-            { PartLocation.LeftLeg, 8 },
-            { PartLocation.RightLeg, 8 }
-        });
-        var componentProvider = Substitute.For<IComponentProvider>();
+        var structureValueProvider = new ClassicBattletechRulesProvider();
+        var componentProvider = new ClassicBattletechComponentProvider();
         _mechFactory = new MechFactory(structureValueProvider, componentProvider,Substitute.For<ILocalizationService>());
     }
 
@@ -96,13 +85,10 @@ public class MechFactoryTests
         // Note: Slot 0 is occupied by ShoulderActuator, so use slot 1
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.MediumLaser,
-                Assignments = new List<LocationSlotAssignment>
-                {
-                    new LocationSlotAssignment(PartLocation.RightArm, 1, 1)
-                }
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 1)]
             }
         };
         var unitData = CreateBasicMechData(equipment);
@@ -133,10 +119,7 @@ public class MechFactoryTests
             new ComponentData
             {
                 Type = MakaMekComponent.AC5,
-                Assignments = new List<LocationSlotAssignment>
-                {
-                    new LocationSlotAssignment(PartLocation.RightArm, 1, 4) // AC/5 needs 4 slots
-                }
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 4)]
             }
         };
         var unitData = CreateBasicMechData(equipment);
@@ -160,7 +143,7 @@ public class MechFactoryTests
     [Fact]
     public void Create_WithMultiSlotComponent_MultipleAssignments_SameLocation_MountsCorrectly()
     {
-        // Arrange - Multi-slot component with non-consecutive slots in same location
+        // Arrange - Multi-slot component with non-consecutive slots in the same location
         // Example: Large Laser (2 slots) split as slots [1] and [4] in RightArm
         // Note: Slot 0 is occupied by ShoulderActuator
         var equipment = new List<ComponentData>
@@ -168,11 +151,11 @@ public class MechFactoryTests
             new ComponentData
             {
                 Type = MakaMekComponent.LargeLaser,
-                Assignments = new List<LocationSlotAssignment>
-                {
+                Assignments =
+                [
                     new LocationSlotAssignment(PartLocation.RightArm, 1, 1), // slot 1
-                    new LocationSlotAssignment(PartLocation.RightArm, 4, 1)  // slot 4
-                }
+                    new LocationSlotAssignment(PartLocation.RightArm, 4, 1)
+                ]
             }
         };
         var unitData = CreateBasicMechData(equipment);
@@ -190,11 +173,11 @@ public class MechFactoryTests
         laser.MountedAtSlots.ShouldBe([1, 4]);
         laser.SlotAssignments.Count.ShouldBe(2);
 
-        // Check first assignment
+        // Check the first assignment
         laser.SlotAssignments[0].Location.ShouldBe(PartLocation.RightArm);
         laser.SlotAssignments[0].Slots.ShouldBe([1]);
 
-        // Check second assignment
+        // Check the second assignment
         laser.SlotAssignments[1].Location.ShouldBe(PartLocation.RightArm);
         laser.SlotAssignments[1].Slots.ShouldBe([4]);
     }
@@ -209,12 +192,12 @@ public class MechFactoryTests
             new ComponentData
             {
                 Type = MakaMekComponent.Engine,
-                Assignments = new List<LocationSlotAssignment>
-                {
+                Assignments =
+                [
                     new LocationSlotAssignment(PartLocation.CenterTorso, 7, 5), // slots 7,8,9,10,11 (5 slots)
-                    new LocationSlotAssignment(PartLocation.LeftTorso, 0, 3),   // slots 0,1,2 (3 slots)
-                    new LocationSlotAssignment(PartLocation.RightTorso, 0, 2)   // slots 0,1 (2 slots)
-                }
+                    new LocationSlotAssignment(PartLocation.LeftTorso, 0, 3), // slots 0,1,2 (3 slots)
+                    new LocationSlotAssignment(PartLocation.RightTorso, 0, 2)
+                ]
             }
         };
         var unitData = CreateBasicMechData(equipment);
@@ -230,7 +213,7 @@ public class MechFactoryTests
         engine.SlotAssignments.Count.ShouldBe(3);
         engine.IsMounted.ShouldBeTrue();
         
-        // Check that engine is mounted across all three locations
+        // Check that the engine is mounted across all three locations
         var centerTorso = mech.Parts[PartLocation.CenterTorso];
         var leftTorso = mech.Parts[PartLocation.LeftTorso];
         var rightTorso = mech.Parts[PartLocation.RightTorso];
@@ -242,7 +225,7 @@ public class MechFactoryTests
         leftTorso.GetComponents<Engine>().Count().ShouldBe(0);
         rightTorso.GetComponents<Engine>().Count().ShouldBe(0);
         
-        // But engine should be mounted to all locations
+        // But the engine should be mounted to all locations
         engine.GetLocations().ShouldContain(PartLocation.CenterTorso);
         engine.GetLocations().ShouldContain(PartLocation.LeftTorso);
         engine.GetLocations().ShouldContain(PartLocation.RightTorso);
@@ -257,18 +240,12 @@ public class MechFactoryTests
             new ComponentData
             {
                 Type = MakaMekComponent.MediumLaser,
-                Assignments = new List<LocationSlotAssignment>
-                {
-                    new LocationSlotAssignment(PartLocation.RightArm, 1, 1) // Slot 0 occupied by ShoulderActuator
-                }
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 1)]
             },
             new ComponentData
             {
                 Type = MakaMekComponent.MediumLaser,
-                Assignments = new List<LocationSlotAssignment>
-                {
-                    new LocationSlotAssignment(PartLocation.LeftArm, 1, 1) // Slot 0 occupied by ShoulderActuator
-                }
+                Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 1, 1)]
             }
         };
         var unitData = CreateBasicMechData(equipment);
@@ -321,10 +298,7 @@ public class MechFactoryTests
             new ComponentData
             {
                 Type = MakaMekComponent.MediumLaser,
-                Assignments = new List<LocationSlotAssignment>
-                {
-                    new LocationSlotAssignment(PartLocation.RightArm, 2, 1) // slot 2
-                }
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 2, 1)]
             }
         };
         var unitData = CreateBasicMechData(equipment);

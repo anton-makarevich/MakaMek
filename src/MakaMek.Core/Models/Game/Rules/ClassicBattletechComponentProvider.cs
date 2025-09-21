@@ -25,20 +25,14 @@ public class ClassicBattletechComponentProvider : IComponentProvider
         _factories = InitializeFactories();
     }
 
-    public ComponentDefinition GetDefinition(MakaMekComponent componentType)
+    public ComponentDefinition? GetDefinition(MakaMekComponent componentType)
     {
-        if (_definitions.TryGetValue(componentType, out var definition))
-            return definition;
-
-        throw new ArgumentException($"No definition found for component type: {componentType}");
+        return _definitions.GetValueOrDefault(componentType);
     }
 
-    public Component CreateComponent(MakaMekComponent componentType, ComponentData? componentData = null)
+    public Component? CreateComponent(MakaMekComponent componentType, ComponentData? componentData = null)
     {
-        if (_factories.TryGetValue(componentType, out var factory))
-            return factory(componentData);
-
-        throw new ArgumentException($"No factory found for component type: {componentType}");
+        return _factories.TryGetValue(componentType, out var factory) ? factory(componentData) : null;
     }
 
     private Dictionary<MakaMekComponent, ComponentDefinition> InitializeDefinitions()
