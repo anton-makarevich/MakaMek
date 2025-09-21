@@ -519,7 +519,9 @@ public abstract class Unit
 
     public IEnumerable<T> GetAllComponents<T>() where T : Component
     {
-        return Parts.Values.SelectMany(p => p.GetComponents<T>());
+        return Parts.Values
+            .SelectMany(p => p.GetComponents<T>())
+            .Distinct();
     }
     
     public IEnumerable<T> GetAvailableComponents<T>() where T : Component

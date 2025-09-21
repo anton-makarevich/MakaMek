@@ -164,12 +164,9 @@ public class ClassicBattletechComponentProvider : IComponentProvider
 
     private static Component? CreateEngine(ComponentData? data)
     {
-        if (data?.SpecificData is EngineStateData)
-        {
-            return new Engine(data);
-        }
-
-        return null;
+        return data?.SpecificData is EngineStateData 
+            ? new Engine(data) 
+            : null;
     }
 
     private static Component CreateAmmo(WeaponDefinition weaponDefinition, ComponentData? data)

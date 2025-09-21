@@ -188,14 +188,14 @@ public class MechFactoryTests
         // Note: Gyro occupies slots 3-6 in CenterTorso, so we use slots 7-11 for engine
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.Engine,
                 Assignments =
                 [
-                    new LocationSlotAssignment(PartLocation.CenterTorso, 7, 4), // slots 7,8,9,10,11 (5 slots)
-                    new LocationSlotAssignment(PartLocation.LeftTorso, 2, 2), // slots 0,1,2 (3 slots)
-                    new LocationSlotAssignment(PartLocation.RightTorso, 2, 2)
+                    new LocationSlotAssignment(PartLocation.CenterTorso, 7, 4), // slots 7,8,9,10 (4 slots)
+                    new LocationSlotAssignment(PartLocation.LeftTorso, 2, 3), // slots 2,3,4 (3 slots)
+                    new LocationSlotAssignment(PartLocation.RightTorso, 2, 3)
                 ],
                 SpecificData = new EngineStateData(EngineType.XLFusion, 160)
             }
@@ -218,14 +218,12 @@ public class MechFactoryTests
         var leftTorso = mech.Parts[PartLocation.LeftTorso];
         var rightTorso = mech.Parts[PartLocation.RightTorso];
         
-        // Engine should be in CenterTorso's component list (first location)
+        // Engine should be in every location
         centerTorso.GetComponents<Engine>().Count().ShouldBe(1);
+        leftTorso.GetComponents<Engine>().Count().ShouldBe(1);
+        rightTorso.GetComponents<Engine>().Count().ShouldBe(1);
         
-        // Engine should NOT be in other parts' component lists (to avoid duplication)
-        leftTorso.GetComponents<Engine>().Count().ShouldBe(0);
-        rightTorso.GetComponents<Engine>().Count().ShouldBe(0);
-        
-        // But the engine should be mounted to all locations
+        // The engine should be mounted to all locations
         engine.GetLocations().ShouldContain(PartLocation.CenterTorso);
         engine.GetLocations().ShouldContain(PartLocation.LeftTorso);
         engine.GetLocations().ShouldContain(PartLocation.RightTorso);

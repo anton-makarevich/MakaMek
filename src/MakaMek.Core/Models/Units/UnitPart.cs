@@ -65,7 +65,7 @@ public abstract class UnitPart
 
     private bool CanAddComponent(Component component, int[] slots)
     {
-        if (component.Size > AvailableSlots)
+        if (slots.Length > AvailableSlots)
             return false;
 
         // Check if any required slots would be out of bounds
