@@ -3,21 +3,25 @@ using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Community;
 
 public class MtfDataProviderTests
 {
     private readonly string[] _locustMtfData = File.ReadAllLines("Resources/Mechs/LCT-1V.mtf");
+    private readonly string[] _shadowHawkMtfData = File.ReadAllLines("Resources/Mechs/SHD-2D.mtf");
+    private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
 
     [Fact]
     public void Parse_LocustMtf_ReturnsCorrectBasicData()
     {
         // Arrange
-        var parser = new MtfDataProvider();
+        var sut = new MtfDataProvider(_componentProvider);
 
         // Act
-        var mechData = parser.LoadMechFromTextData(_locustMtfData);
+        var mechData = sut.LoadMechFromTextData(_locustMtfData);
 
         // Assert
         mechData.Chassis.ShouldBe("Locust");
@@ -32,10 +36,10 @@ public class MtfDataProviderTests
     public void Parse_LocustMtf_ReturnsCorrectArmorValues()
     {
         // Arrange
-        var parser = new MtfDataProvider();
+        var sut = new MtfDataProvider(_componentProvider);
 
         // Act
-        var mechData = parser.LoadMechFromTextData(_locustMtfData);
+        var mechData = sut.LoadMechFromTextData(_locustMtfData);
 
         // Assert
         mechData.ArmorValues[PartLocation.LeftArm].FrontArmor.ShouldBe(4);
@@ -52,10 +56,10 @@ public class MtfDataProviderTests
     public void Parse_LocustMtf_ReturnsCorrectEquipmentWithSlotPositions()
     {
         // Arrange
-        var parser = new MtfDataProvider();
+        var sut = new MtfDataProvider(_componentProvider);
 
         // Act
-        var mechData = parser.LoadMechFromTextData(_locustMtfData);
+        var mechData = sut.LoadMechFromTextData(_locustMtfData);
 
         // Assert
         // Left Arm - verify exact slot positions
@@ -123,10 +127,10 @@ public class MtfDataProviderTests
     public void Parse_LocustMtf_HandlesEmptySlots()
     {
         // Arrange
-        var parser = new MtfDataProvider();
+        var sut = new MtfDataProvider(_componentProvider);
 
         // Act
-        var mechData = parser.LoadMechFromTextData(_locustMtfData);
+        var mechData = sut.LoadMechFromTextData(_locustMtfData);
 
         // Assert
         var leftTorsoLayout = mechData.Equipment.Select(cd => cd.Assignments)
@@ -141,10 +145,10 @@ public class MtfDataProviderTests
     public void Parse_LocustMtf_VerifiesHeadSlotLayout()
     {
         // Arrange
-        var parser = new MtfDataProvider();
+        var sut = new MtfDataProvider(_componentProvider);
 
         // Act
-        var mechData = parser.LoadMechFromTextData(_locustMtfData);
+        var mechData = sut.LoadMechFromTextData(_locustMtfData);
 
         // Assert
         const PartLocation location = PartLocation.Head;
@@ -174,5 +178,120 @@ public class MtfDataProviderTests
         cockpit.Assignments.Count.ShouldBe(1);
         cockpit.Assignments[0].FirstSlot.ShouldBe(2);
         cockpit.Assignments[0].Length.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Parse_LocustMtf_HandlesSequentialHeatSinks()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_locustMtfData);
+
+        // Assert - Heat sinks in legs should be treated as separate components
+        var leftLegHeatSinks = mechData.Equipment
+            .Where(cd => cd.Type == MakaMekComponent.HeatSink &&
+                        cd.Assignments.Any(a => a.Location == PartLocation.LeftLeg))
+            .ToList();
+
+        var rightLegHeatSinks = mechData.Equipment
+            .Where(cd => cd.Type == MakaMekComponent.HeatSink &&
+                        cd.Assignments.Any(a => a.Location == PartLocation.RightLeg))
+            .ToList();
+
+        // Should have 2 separate heat sink components in each leg
+        leftLegHeatSinks.Count.ShouldBe(2);
+        rightLegHeatSinks.Count.ShouldBe(2);
+
+        // Each heat sink should occupy exactly 1 slot
+        foreach (var heatSink in leftLegHeatSinks.Concat(rightLegHeatSinks))
+        {
+            heatSink.Assignments.Count.ShouldBe(1);
+            heatSink.Assignments[0].Length.ShouldBe(1);
+        }
+    }
+
+    [Fact]
+    public void Parse_LocustMtf_HandlesEngineWithCorrectSize()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_locustMtfData);
+
+        // Assert - Engine should be properly sized and have engine state data
+        var engine = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.Engine);
+        engine.ShouldNotBeNull();
+
+        // Engine should have EngineStateData
+        engine.SpecificData.ShouldBeOfType<EngineStateData>();
+        var engineData = (EngineStateData)engine.SpecificData!;
+        engineData.Type.ShouldBe(EngineType.Fusion);
+        engineData.Rating.ShouldBe(160);
+
+        // Standard fusion engine should occupy 6 slots total
+        engine.Assignments.Count.ShouldBe(2);
+        engine.Assignments[0].Length.ShouldBe(3);
+        engine.Assignments[1].Length.ShouldBe(3);
+        engine.Assignments[0].FirstSlot.ShouldBe(0);
+        engine.Assignments[1].FirstSlot.ShouldBe(7);
+        var totalSlots = engine.Assignments.Sum(a => a.Length);
+        totalSlots.ShouldBe(6);
+
+        // All slots should be in Center Torso for the standard fusion engine
+        engine.Assignments.All(a => a.Location == PartLocation.CenterTorso).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Parse_ShadowHawkMtf_HandlesMultiSlotWeapons()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_shadowHawkMtfData);
+
+        // Assert - AC/5 should occupy 4 slots in Left Torso
+        var ac5 = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.AC5);
+        ac5.ShouldNotBeNull();
+
+        // AC/5 should have exactly one assignment in Left Torso
+        ac5.Assignments.Count.ShouldBe(1);
+        ac5.Assignments[0].Location.ShouldBe(PartLocation.LeftTorso);
+        ac5.Assignments[0].Length.ShouldBe(4); // AC/5 is 4 slots
+        ac5.Assignments[0].FirstSlot.ShouldBe(1); // Should start at slot 1 (after Jump Jet at slot 0)
+    }
+
+    [Fact]
+    public void Parse_ShadowHawkMtf_HandlesSequentialHeatSinksInRightTorso()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_shadowHawkMtfData);
+
+        // Assert - Right Torso should have 3 separate heat sink components
+        var rightTorsoHeatSinks = mechData.Equipment
+            .Where(cd => cd.Type == MakaMekComponent.HeatSink &&
+                        cd.Assignments.Any(a => a.Location == PartLocation.RightTorso))
+            .ToList();
+
+        // Should have 3 separate heat sink components
+        rightTorsoHeatSinks.Count.ShouldBe(3);
+
+        // Each heat sink should occupy exactly 1 slot
+        foreach (var heatSink in rightTorsoHeatSinks)
+        {
+            heatSink.Assignments.Count.ShouldBe(1);
+            heatSink.Assignments[0].Length.ShouldBe(1);
+            heatSink.Assignments[0].Location.ShouldBe(PartLocation.RightTorso);
+        }
+
+        // Heat sinks should be in slots 0, 1, 2
+        var slots = rightTorsoHeatSinks.Select(hs => hs.Assignments[0].FirstSlot).OrderBy(s => s).ToArray();
+        slots.ShouldBe([0, 1, 2]);
     }
 }

@@ -2,16 +2,24 @@ using System.Text.RegularExpressions;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
 namespace Sanet.MakaMek.Core.Data.Community;
 
 public class MtfDataProvider:IMechDataProvider
 {
+    private readonly IComponentProvider _componentProvider;
+
+    public MtfDataProvider(IComponentProvider componentProvider)
+    {
+        _componentProvider = componentProvider;
+    }
     public UnitData LoadMechFromTextData(IEnumerable<string> lines)
     {
         var listLines = lines.ToList();
         var mechData = ParseBasicData(listLines);
-        var (equipment, armorValues) = ParseLocationData(listLines);
+        var (equipment, armorValues) = ParseLocationData(listLines, mechData);
 
         return new UnitData
         {
@@ -68,7 +76,7 @@ public class MtfDataProvider:IMechDataProvider
         return mechData;
     }
 
-    private (List<ComponentData> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines)
+    private (List<ComponentData> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines, Dictionary<string, string> mechData)
     {
         // Track components by location and slot for consolidation
         var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, MakaMekComponent>>();
@@ -155,14 +163,14 @@ public class MtfDataProvider:IMechDataProvider
         }
 
         // Convert location-slot data to component-centric data
-        var equipment = ConvertToComponentData(locationSlotComponents);
+        var equipment = ConvertToComponentData(locationSlotComponents, mechData);
         return (equipment, armorValues);
     }
 
     /// <summary>
     /// Converts location-slot component data to component-centric ComponentData objects
     /// </summary>
-    private List<ComponentData> ConvertToComponentData(Dictionary<PartLocation, Dictionary<int, MakaMekComponent>> locationSlotComponents)
+    private List<ComponentData> ConvertToComponentData(Dictionary<PartLocation, Dictionary<int, MakaMekComponent>> locationSlotComponents, Dictionary<string, string> mechData)
     {
         var componentDataList = new List<ComponentData>();
         var processedSlots = new HashSet<(PartLocation, int)>(); // Track processed slots
@@ -174,68 +182,150 @@ public class MtfDataProvider:IMechDataProvider
                 if (processedSlots.Contains((location, slot)))
                     continue;
 
-                // Find all consecutive slots with the same component in this location
-                var assignments = new List<LocationSlotAssignment>();
-                var currentSlot = slot;
-                var consecutiveSlots = 1;
+                // Get component size and specific data
+                var (componentSize, specificData) = GetComponentSizeAndData(component, mechData);
 
-                // Mark this slot as processed
-                processedSlots.Add((location, currentSlot));
-
-                // Check for consecutive slots with the same component
-                while (slotComponents.TryGetValue(currentSlot + consecutiveSlots, out var nextComponent) &&
-                       nextComponent == component)
-                {
-                    processedSlots.Add((location, currentSlot + consecutiveSlots));
-                    consecutiveSlots++;
-                }
-
-                // Create assignment for this consecutive block
-                assignments.Add(new LocationSlotAssignment(location, currentSlot, consecutiveSlots));
-
-                if (IsMultiLocationComponent(component))
-                {
-                    // Check if this component appears in other locations (multi-location component)
-                    foreach (var (otherLocation, otherSlotComponents) in locationSlotComponents)
-                    {
-                        foreach (var (otherSlot, otherComponent) in otherSlotComponents.OrderBy(kvp => kvp.Key))
-                        {
-                            if (otherComponent != component || processedSlots.Contains((otherLocation, otherSlot)))
-                                continue;
-                            // Find consecutive slots in this other location
-                            var otherCurrentSlot = otherSlot;
-                            var otherConsecutiveSlots = 1;
-                            processedSlots.Add((otherLocation, otherCurrentSlot));
-
-                            while (otherSlotComponents.TryGetValue(otherCurrentSlot + otherConsecutiveSlots,
-                                       out var otherNextComponent) &&
-                                   otherNextComponent == component)
-                            {
-                                processedSlots.Add((otherLocation, otherCurrentSlot + otherConsecutiveSlots));
-                                otherConsecutiveSlots++;
-                            }
-
-                            assignments.Add(new LocationSlotAssignment(otherLocation, otherCurrentSlot,
-                                otherConsecutiveSlots));
-                        }
-                    }
-                }
+                // Collect all slot assignments for this component instance using size-based validation
+                var assignments = CollectSlotAssignments(component, location, slot, locationSlotComponents, processedSlots, componentSize);
 
                 // Create ComponentData for this component instance
-                componentDataList.Add(new ComponentData
+                var componentData = new ComponentData
                 {
                     Type = component,
-                    Assignments = assignments
-                });
+                    Assignments = assignments,
+                    SpecificData = specificData
+                };
+
+                componentDataList.Add(componentData);
             }
         }
 
         return componentDataList;
     }
 
-    private static bool IsMultiLocationComponent(MakaMekComponent component)
+    /// <summary>
+    /// Gets the component size and specific data for the given component type
+    /// </summary>
+    private (int size, ComponentSpecificData? specificData) GetComponentSizeAndData(MakaMekComponent component, Dictionary<string, string> mechData)
     {
-        return component== MakaMekComponent.Engine;
+        ComponentSpecificData? specificData = null;
+
+        // Handle engine special case
+        if (component == MakaMekComponent.Engine)
+        {
+            if (mechData.TryGetValue("EngineRating", out var ratingStr) &&
+                mechData.TryGetValue("EngineType", out var typeStr) &&
+                int.TryParse(ratingStr, out var rating) &&
+                Enum.TryParse<EngineType>(typeStr, true, out var engineType))
+            {
+                specificData = new EngineStateData(engineType, rating);
+            }
+        }
+
+        var definition = _componentProvider.GetDefinition(component, specificData);
+        return (definition?.Size ?? 1, specificData);
+    }
+
+    /// <summary>
+    /// Collects slot assignments for a single component instance using size-based validation
+    /// </summary>
+    private List<LocationSlotAssignment> CollectSlotAssignments(
+        MakaMekComponent component,
+        PartLocation startLocation,
+        int startSlot,
+        Dictionary<PartLocation, Dictionary<int, MakaMekComponent>> locationSlotComponents,
+        HashSet<(PartLocation, int)> processedSlots,
+        int expectedSize)
+    {
+        var assignments = new List<LocationSlotAssignment>();
+        var totalAssignedSlots = 0;
+
+        // For single-slot components, just assign this one slot
+        if (expectedSize == 1)
+        {
+            processedSlots.Add((startLocation, startSlot));
+            assignments.Add(new LocationSlotAssignment(startLocation, startSlot, 1));
+            return assignments;
+        }
+
+        // For multi-slot components, collect consecutive slots up to the expected size
+        var currentAssignments = FindConsecutiveSlotsInLocation(component, startLocation, startSlot, locationSlotComponents, processedSlots, expectedSize - totalAssignedSlots);
+        assignments.AddRange(currentAssignments);
+        totalAssignedSlots += currentAssignments.Sum(a => a.Length);
+
+        // Continue searching other locations until we have enough slots
+        while (totalAssignedSlots < expectedSize)
+        {
+            var foundAdditional = false;
+
+            foreach (var (location, slotComponents) in locationSlotComponents)
+            {
+                if (totalAssignedSlots >= expectedSize) break;
+
+                foreach (var (slot, slotComponent) in slotComponents.OrderBy(kvp => kvp.Key))
+                {
+                    if (slotComponent != component || processedSlots.Contains((location, slot)))
+                        continue;
+
+                    var remainingSlots = expectedSize - totalAssignedSlots;
+                    var additionalAssignments = FindConsecutiveSlotsInLocation(component, location, slot, locationSlotComponents, processedSlots, remainingSlots);
+                    assignments.AddRange(additionalAssignments);
+                    totalAssignedSlots += additionalAssignments.Sum(a => a.Length);
+                    foundAdditional = true;
+
+                    if (totalAssignedSlots >= expectedSize) break;
+                }
+
+                if (totalAssignedSlots >= expectedSize) break;
+            }
+
+            // If we couldn't find any more slots, break to avoid infinite loop
+            if (!foundAdditional) break;
+        }
+
+        return assignments;
+    }
+
+    /// <summary>
+    /// Finds consecutive slots with the same component in a specific location, up to maxSlots
+    /// </summary>
+    private List<LocationSlotAssignment> FindConsecutiveSlotsInLocation(
+        MakaMekComponent component,
+        PartLocation location,
+        int startSlot,
+        Dictionary<PartLocation, Dictionary<int, MakaMekComponent>> locationSlotComponents,
+        HashSet<(PartLocation, int)> processedSlots,
+        int maxSlots = int.MaxValue)
+    {
+        var assignments = new List<LocationSlotAssignment>();
+
+        if (!locationSlotComponents.TryGetValue(location, out var slotComponents) ||
+            !slotComponents.TryGetValue(startSlot, out var slotComponent) ||
+            slotComponent != component ||
+            processedSlots.Contains((location, startSlot)))
+        {
+            return assignments;
+        }
+
+        var currentSlot = startSlot;
+        var consecutiveSlots = 1;
+
+        // Mark this slot as processed
+        processedSlots.Add((location, currentSlot));
+
+        // Check for consecutive slots with the same component, up to maxSlots
+        while (consecutiveSlots < maxSlots &&
+               slotComponents.TryGetValue(currentSlot + consecutiveSlots, out var nextComponent) &&
+               nextComponent == component)
+        {
+            processedSlots.Add((location, currentSlot + consecutiveSlots));
+            consecutiveSlots++;
+        }
+
+        // Create assignment for this consecutive block
+        assignments.Add(new LocationSlotAssignment(location, currentSlot, consecutiveSlots));
+
+        return assignments;
     }
 
     private MakaMekComponent MapMtfStringToComponent(string mtfString)

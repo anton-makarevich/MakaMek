@@ -17,9 +17,9 @@ public class MechFactoryIntegrationTests
     public void CreateFromMtfFiles_IntegrationTest()
     {
         // Arrange
-        var parser = new MtfDataProvider();
-        var structureValueProvider = new ClassicBattletechRulesProvider(); // Use actual provider
         var componentProvider = new ClassicBattletechComponentProvider();
+        var parser = new MtfDataProvider(componentProvider);
+        var structureValueProvider = new ClassicBattletechRulesProvider(); // Use actual provider
         var mechFactory = new MechFactory(
             structureValueProvider,
             componentProvider,
@@ -44,8 +44,9 @@ public class MechFactoryIntegrationTests
 
     public static UnitData LoadMechFromMtfFile(string mtfFile)
     {
-        var parser = new MtfDataProvider();
+        var componentProvider = new ClassicBattletechComponentProvider();
+        var parser = new MtfDataProvider(componentProvider);
         var mtfData = File.ReadAllLines(mtfFile);
-        return parser.LoadMechFromTextData(mtfData); 
+        return parser.LoadMechFromTextData(mtfData);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.CommandLine;
 using System.Text.Json;
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 
 namespace MakaMek.Tools.MtfConverter;
 
@@ -59,7 +60,8 @@ public class Program
             Console.WriteLine($"Created output directory: {outputPath}");
         }
 
-        var mtfDataProvider = new MtfDataProvider();
+        var componentProvider = new ClassicBattletechComponentProvider();
+        var mtfDataProvider = new MtfDataProvider(componentProvider);
         var jsonOptions = new JsonSerializerOptions
         {
             WriteIndented = true,
