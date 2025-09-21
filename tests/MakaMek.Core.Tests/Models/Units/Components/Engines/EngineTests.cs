@@ -15,7 +15,7 @@ public class EngineTests
                     new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
                     new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
                 ],
-                SpecificData = new EngineStateData(250, EngineType.Fusion)
+                SpecificData = new EngineStateData(EngineType.Fusion, 100)
             };
     [Fact]
     public void Constructor_InitializesCorrectly()

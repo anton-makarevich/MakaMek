@@ -42,7 +42,7 @@ public class MechTests
             [
                 new LocationSlotAssignment(PartLocation.CenterTorso, 0, 5)
             ],
-            SpecificData = new EngineStateData(250, EngineType.Fusion)
+            SpecificData = new EngineStateData(EngineType.Fusion, 100)
         };
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
         centerTorso.TryAddComponent(new Engine(engineData));

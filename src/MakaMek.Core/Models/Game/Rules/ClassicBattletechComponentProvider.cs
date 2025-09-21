@@ -25,9 +25,13 @@ public class ClassicBattletechComponentProvider : IComponentProvider
         _factories = InitializeFactories();
     }
 
-    public ComponentDefinition? GetDefinition(MakaMekComponent componentType,ComponentSpecificData? specificData)
+    public ComponentDefinition? GetDefinition(MakaMekComponent componentType,ComponentSpecificData? specificData = null)
     {
-        return _definitions.GetValueOrDefault(componentType, specificData);
+        if (componentType == MakaMekComponent.Engine && specificData is EngineStateData engineState)
+        {
+            return Engine.CreateEngineDefinition(engineState.Type, engineState.Rating);
+        }
+        return _definitions.GetValueOrDefault(componentType);
     }
 
     public Component? CreateComponent(MakaMekComponent componentType, ComponentData? componentData = null)
@@ -92,9 +96,6 @@ public class ClassicBattletechComponentProvider : IComponentProvider
             [MakaMekComponent.ISAmmoSRM2] = Ammo.CreateAmmoDefinition(Srm2.Definition),
             [MakaMekComponent.ISAmmoSRM4] = Ammo.CreateAmmoDefinition(Srm4.Definition),
             [MakaMekComponent.ISAmmoSRM6] = Ammo.CreateAmmoDefinition(Srm6.Definition)
-            
-            // Engine - using existing static definition
-            [MakaMekComponent.Engine] = Engine.Definition
         };
     }
 

@@ -39,7 +39,7 @@ public class FallingDamageCalculatorTests
                 new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
                 new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
             ],
-            SpecificData = new EngineStateData(250, EngineType.Fusion)
+            SpecificData = new EngineStateData(EngineType.Fusion, 200)
         };
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
         centerTorso.TryAddComponent(new Engine(engineData));

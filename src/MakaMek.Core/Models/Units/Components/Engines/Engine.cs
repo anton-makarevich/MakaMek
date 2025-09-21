@@ -39,7 +39,7 @@ public class Engine : Component
 
     protected override ComponentSpecificData GetSpecificData()
     {
-        return new EngineStateData(Rating, Type);
+        return new EngineStateData(Type, Rating);
     }
     
     public static EngineDefinition CreateEngineDefinition(EngineType type, int engineRating)

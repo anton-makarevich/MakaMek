@@ -146,12 +146,15 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
             result.BattleValue.ShouldBe(0);
         }
 
-        [Theory]
-        [InlineData(MakaMekComponent.Engine)]
-        public void GetDefinition_EngineComponent_ShouldReturnCorrectDefinition(MakaMekComponent componentType)
+        [Fact]
+        public void GetDefinition_EngineComponent_ShouldReturnCorrectDefinition()
         {
+            // Arrange
+            const MakaMekComponent componentType = MakaMekComponent.Engine;
+            var specificData = new EngineStateData(EngineType.Fusion, 200);
+            
             // Act
-            var result = _sut.GetDefinition(componentType);
+            var result = _sut.GetDefinition(componentType, specificData) as EngineDefinition;
 
             // Assert
             result.ShouldNotBeNull();
@@ -159,6 +162,21 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
             result.Name.ShouldNotBeNullOrEmpty();
             result.Size.ShouldBe(6);
             result.HealthPoints.ShouldBe(3);
+            result.Rating.ShouldBe(200);
+            result.Type.ShouldBe(EngineType.Fusion);
+        }
+
+        [Fact]
+        public void GetDefinition_EngineComponentWithoutSpecificData_ShouldReturnNull()
+        {
+            // Arrange
+            const MakaMekComponent componentType = MakaMekComponent.Engine;
+            
+            // Act
+            var result = _sut.GetDefinition(componentType);
+
+            // Assert
+            result.ShouldBeNull();
         }
 
         [Fact]
@@ -205,6 +223,20 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
         [InlineData(MakaMekComponent.Cockpit)]
         public void CreateComponent_ValidInternalComponent_ShouldReturnCorrectComponent(MakaMekComponent componentType)
         {
+            // Arrange
+            var expectedSize = componentType switch
+            {
+                MakaMekComponent.Gyro => 4,
+                MakaMekComponent.Cockpit => 1,
+                _ => 2
+            };
+            var expectedHealthPoints = componentType switch
+            {
+                MakaMekComponent.Gyro => 2,
+                MakaMekComponent.Sensors => 2,
+                _ => 1
+            };
+            
             // Act
             var result = _sut.CreateComponent(componentType);
 
@@ -212,7 +244,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
             result.ShouldNotBeNull();
             result.ComponentType.ShouldBe(componentType);
             result.Name.ShouldNotBeNullOrEmpty();
-            result.Size.ShouldBe(1);
+            result.Size.ShouldBe(expectedSize);
+            result.HealthPoints.ShouldBe(expectedHealthPoints);
             result.IsActive.ShouldBe(true);
             result.Hits.ShouldBe(0);
         }
@@ -261,6 +294,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
 
             // Assert
             result.ShouldNotBeNull();
+            result.ShouldBeAssignableTo<Weapon>();
             result.ComponentType.ShouldBe(componentType);
             result.Name.ShouldNotBeNullOrEmpty();
             result.Size.ShouldBeGreaterThan(0);
@@ -289,6 +323,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
 
             // Assert
             result.ShouldNotBeNull();
+            result.ShouldBeOfType<Ammo>();
             result.ComponentType.ShouldBe(componentType);
             result.Name.ShouldNotBeNullOrEmpty();
             result.Size.ShouldBe(1);
@@ -300,8 +335,16 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
         [Fact]
         public void CreateComponent_EngineComponent_ShouldReturnEngineWithDefaultValues()
         {
+            // Arrange
+            var engineData = new ComponentData
+            {
+                Type = MakaMekComponent.Engine,
+                Assignments = [],
+                SpecificData = new EngineStateData(EngineType.Fusion, 200)
+            };
+            
             // Act
-            var result = _sut.CreateComponent(MakaMekComponent.Engine);
+            var result = _sut.CreateComponent(MakaMekComponent.Engine, engineData);
 
             // Assert
             result.ShouldNotBeNull();
@@ -342,7 +385,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
             var componentData = new ComponentData
             {
                 Type = componentType,
-                Assignments = new List<LocationSlotAssignment>(),
+                Assignments = [],
                 Hits = 2,
                 IsActive = false,
                 Name = "Custom Actuator Name",
@@ -406,7 +449,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
             var componentData = new ComponentData
             {
                 Type = componentType,
-                Assignments = new List<LocationSlotAssignment>(),
+                Assignments = [],
                 Hits = 0,
                 IsActive = true,
                 SpecificData = ammoStateData
@@ -428,81 +471,13 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
         }
 
         [Fact]
-        public void CreateComponent_WithEngineStateData_ShouldReturnEngineWithCorrectConfiguration()
-        {
-            // Arrange
-            var engineStateData = new EngineStateData(Rating: 300, Type: EngineType.XLFusion);
-            var componentData = new ComponentData
-            {
-                Type = MakaMekComponent.Engine,
-                Assignments = new List<LocationSlotAssignment>(),
-                Hits = 1,
-                IsActive = true,
-                SpecificData = engineStateData
-            };
-
-            // Act
-            var result = _sut.CreateComponent(MakaMekComponent.Engine, componentData);
-
-            // Assert
-            result.ShouldNotBeNull();
-            result.ShouldBeOfType<Engine>();
-            result.Hits.ShouldBe(componentData.Hits);
-            result.IsActive.ShouldBe(componentData.IsActive);
-
-            // Verify engine-specific state is applied correctly
-            var engine = (Engine)result;
-            engine.Rating.ShouldBe(engineStateData.Rating);
-            engine.Type.ShouldBe(engineStateData.Type);
-        }
-
-        [Fact]
-        public void CreateComponent_EngineWithoutStateData_ShouldReturnDefaultEngine()
+        public void CreateComponent_EngineWithoutStateData_ShouldReturnNull()
         {
             // Act
             var result = _sut.CreateComponent(MakaMekComponent.Engine);
 
             // Assert
-            result.ShouldNotBeNull();
-            result.ShouldBeOfType<Engine>();
-
-            // Verify default engine configuration
-            var engine = (Engine)result;
-            engine.Rating.ShouldBe(200); // Default rating
-            engine.Type.ShouldBe(EngineType.Fusion); // Default type
-        }
-
-        [Theory]
-        [InlineData(MakaMekComponent.ISAmmoMG)]
-        [InlineData(MakaMekComponent.ISAmmoSRM2)]
-        [InlineData(MakaMekComponent.ISAmmoSRM4)]
-        [InlineData(MakaMekComponent.ISAmmoLRM5)]
-        [InlineData(MakaMekComponent.ISAmmoAC2)]
-        public void CreateComponent_AmmoWithoutStateData_ShouldReturnFullAmmo(MakaMekComponent componentType)
-        {
-            // Act
-            var result = _sut.CreateComponent(componentType);
-
-            // Assert
-            result.ShouldNotBeNull();
-            result.ShouldBeOfType<Ammo>();
-
-            // Verify full ammo (default state)
-            var ammo = (Ammo)result;
-            ammo.RemainingShots.ShouldBe(ammo.Definition.FullAmmoRounds);
-        }
-
-        [Fact]
-        public void CreateComponent_WithNullComponentData_ShouldReturnComponentWithDefaultState()
-        {
-            // Act
-            var result = _sut.CreateComponent(MakaMekComponent.MachineGun);
-
-            // Assert
-            result.ShouldNotBeNull();
-            result.ComponentType.ShouldBe(MakaMekComponent.MachineGun);
-            result.Hits.ShouldBe(0);
-            result.IsActive.ShouldBe(true);
+            result.ShouldBeNull();
         }
 
         [Fact]
