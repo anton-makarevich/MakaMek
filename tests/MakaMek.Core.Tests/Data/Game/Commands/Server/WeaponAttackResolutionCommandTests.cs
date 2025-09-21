@@ -36,7 +36,15 @@ public class WeaponAttackResolutionCommandTests
             new ClassicBattletechRulesProvider(),
             new ClassicBattletechComponentProvider(),
             _localizationService);
-        var attackerData = MechFactoryTests.CreateDummyMechData();
+        var attackerData = MechFactoryTests.CreateDummyMechData(
+        [
+            new ComponentData
+            {
+                Name = "Machine Gun",
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 1)]
+            }
+        ]);
         attackerData.Id = Guid.NewGuid();
         var targetData = MechFactoryTests.CreateDummyMechData();
         targetData.Id = Guid.NewGuid();
@@ -51,7 +59,7 @@ public class WeaponAttackResolutionCommandTests
         // Setup game to return players
         _game.Players.Returns(new List<IPlayer> { _player1, player2 });
         
-        // Setup weapon data - using the Medium Laser in the right arm
+        // Setup weapon data - using the MachineGun in the right arm
         var weapon = _attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
         _weaponData = weapon.ToData();
     }

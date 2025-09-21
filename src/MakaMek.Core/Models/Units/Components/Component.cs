@@ -179,6 +179,8 @@ public abstract class Component : IManufacturedItem
         return new ComponentData
         {
             Type = ComponentType,
+            Name = Name,
+            Manufacturer = Manufacturer,
             Assignments = SlotAssignments
                 .Select(assignment => new LocationSlotAssignment(
                     assignment.Location,

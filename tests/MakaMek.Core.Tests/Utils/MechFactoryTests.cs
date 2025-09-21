@@ -52,12 +52,28 @@ public class MechFactoryTests
         };
     }
 
-    public static UnitData CreateDummyMechData()
+    public static UnitData CreateDummyMechData(List<ComponentData>? equipment = null)
     {
+        List<ComponentData> defaultEquipment =
+        [
+            new()
+            {
+                Type = MakaMekComponent.Engine,
+                Assignments =
+                [
+                    new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
+                    new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
+                ],
+                SpecificData = new EngineStateData(EngineType.Fusion, 100)
+            }
+        ];
+        if (equipment != null)
+            defaultEquipment.AddRange(equipment);
+        
         return new UnitData
         {
-            Chassis = "Test",
-            Model = "Mech",
+            Chassis = "Locust",
+            Model = "LCT-1V",
             Mass = 20,
             WalkMp = 8,
             EngineRating = 160,
@@ -73,18 +89,7 @@ public class MechFactoryTests
                 { PartLocation.LeftLeg, new ArmorLocation { FrontArmor = 8 } },
                 { PartLocation.RightLeg, new ArmorLocation { FrontArmor = 8 } }
             },
-            Equipment = [
-                new ComponentData
-                {
-                    Type = MakaMekComponent.Engine,
-                    Assignments =
-                    [
-                        new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
-                        new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
-                    ],
-                    SpecificData = new EngineStateData(EngineType.Fusion, 100)
-                }
-            ],
+            Equipment = defaultEquipment,
             AdditionalAttributes = new Dictionary<string, string>(),
             Quirks = new Dictionary<string, string>()
         };
