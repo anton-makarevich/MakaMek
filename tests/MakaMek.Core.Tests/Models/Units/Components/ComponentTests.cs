@@ -50,6 +50,21 @@ public class ComponentTests
     }
 
     [Fact]
+    public void Mount_ShouldHandleNonConsecutiveSlots()
+    {
+        // Arrange
+        var component = new TestComponent("Test Component", 3);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+
+
+        // Act
+        component.Mount([2,4,5], unitPart);
+
+        // Assert
+        component.IsMounted.ShouldBeTrue();
+    }
+
+    [Fact]
     public void UnMount_ResetsMountedSlots()
     {
         // Arrange

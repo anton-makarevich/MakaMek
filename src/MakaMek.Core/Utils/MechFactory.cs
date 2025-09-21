@@ -77,13 +77,20 @@ public class MechFactory : IMechFactory
             if (component == null)
                 continue;
 
-            // Mount to additional locations (without adding to their component lists)
-            foreach (var assignment in componentData.Assignments)
-            {
-                var part = mech.Parts[assignment.Location];
-                var slots = assignment.Slots.ToArray();
+            // Group assignments by location
+            var groupedAssignments = componentData.Assignments
+                .GroupBy(a => a.Location);
 
-                // Mount the component to this location 
+            foreach (var group in groupedAssignments)
+            {
+                var part = mech.Parts[group.Key];
+
+                // Merge all slots from assignments for this location
+                var slots = group.SelectMany(a => a.Slots)
+                    .Distinct()
+                    .ToArray();
+
+                // Mount the component to this location once
                 part.TryAddComponent(component, slots);
             }
         }

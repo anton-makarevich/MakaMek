@@ -24,8 +24,6 @@ public abstract class Component : IManufacturedItem
     }
 
     public string Name { get; }
-
-    public ComponentDefinition Definition => _definition;
     
     public int[] MountedAtSlots =>SlotAssignments
         .SelectMany(a => a.Slots)
@@ -58,11 +56,43 @@ public abstract class Component : IManufacturedItem
 
     public void Mount(int[] slots, UnitPart mountLocation)
     {
+        if (slots.Length == 0)
+            return;
+
+        Array.Sort(slots); // Ensure slots are ordered
+
+        var start = slots[0];
+        var length = 1;
+
+        for (var i = 1; i < slots.Length; i++)
+        {
+            if (slots[i] == slots[i - 1] + 1)
+            {
+                // Still consecutive
+                length++;
+            }
+            else
+            {
+                // Break in sequence → commit current range
+                Mount(new CriticalSlotAssignment
+                {
+                    UnitPart = mountLocation,
+                    FirstSlot = start,
+                    Length = length
+                });
+
+                // Start a new range
+                start = slots[i];
+                length = 1;
+            }
+        }
+
+        // Commit the last range
         Mount(new CriticalSlotAssignment
         {
             UnitPart = mountLocation,
-            FirstSlot = slots[0],
-            Length = slots.Length
+            FirstSlot = start,
+            Length = length
         });
     }
 

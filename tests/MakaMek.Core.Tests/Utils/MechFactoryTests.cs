@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -144,16 +145,14 @@ public class MechFactoryTests
     public void Create_WithMultiSlotComponent_MultipleAssignments_SameLocation_MountsCorrectly()
     {
         // Arrange - Multi-slot component with non-consecutive slots in the same location
-        // Example: Large Laser (2 slots) split as slots [1] and [4] in RightArm
-        // Note: Slot 0 is occupied by ShoulderActuator
         var equipment = new List<ComponentData>
         {
             new ComponentData
             {
-                Type = MakaMekComponent.LargeLaser,
+                Type = MakaMekComponent.Sensors,
                 Assignments =
                 [
-                    new LocationSlotAssignment(PartLocation.RightArm, 1, 1), // slot 1
+                    new LocationSlotAssignment(PartLocation.RightArm, 2, 1), 
                     new LocationSlotAssignment(PartLocation.RightArm, 4, 1)
                 ]
             }
@@ -165,21 +164,21 @@ public class MechFactoryTests
 
         // Assert
         var rightArm = mech.Parts[PartLocation.RightArm];
-        var largeLasers = rightArm.GetComponents<LargeLaser>().ToList();
-        largeLasers.Count.ShouldBe(1);
+        var sensors = rightArm.GetComponents<Sensors>().ToList();
+        sensors.Count.ShouldBe(1);
 
-        var laser = largeLasers[0];
-        laser.IsMounted.ShouldBeTrue();
-        laser.MountedAtSlots.ShouldBe([1, 4]);
-        laser.SlotAssignments.Count.ShouldBe(2);
+        var sensor = sensors[0];
+        sensor.IsMounted.ShouldBeTrue();
+        sensor.MountedAtSlots.ShouldBe([2, 4]);
+        sensor.SlotAssignments.Count.ShouldBe(2);
 
         // Check the first assignment
-        laser.SlotAssignments[0].Location.ShouldBe(PartLocation.RightArm);
-        laser.SlotAssignments[0].Slots.ShouldBe([1]);
+        sensor.SlotAssignments[0].Location.ShouldBe(PartLocation.RightArm);
+        sensor.SlotAssignments[0].Slots.ShouldBe([2]);
 
         // Check the second assignment
-        laser.SlotAssignments[1].Location.ShouldBe(PartLocation.RightArm);
-        laser.SlotAssignments[1].Slots.ShouldBe([4]);
+        sensor.SlotAssignments[1].Location.ShouldBe(PartLocation.RightArm);
+        sensor.SlotAssignments[1].Slots.ShouldBe([4]);
     }
 
     [Fact]
@@ -194,10 +193,11 @@ public class MechFactoryTests
                 Type = MakaMekComponent.Engine,
                 Assignments =
                 [
-                    new LocationSlotAssignment(PartLocation.CenterTorso, 7, 5), // slots 7,8,9,10,11 (5 slots)
-                    new LocationSlotAssignment(PartLocation.LeftTorso, 0, 3), // slots 0,1,2 (3 slots)
-                    new LocationSlotAssignment(PartLocation.RightTorso, 0, 2)
-                ]
+                    new LocationSlotAssignment(PartLocation.CenterTorso, 7, 4), // slots 7,8,9,10,11 (5 slots)
+                    new LocationSlotAssignment(PartLocation.LeftTorso, 2, 2), // slots 0,1,2 (3 slots)
+                    new LocationSlotAssignment(PartLocation.RightTorso, 2, 2)
+                ],
+                SpecificData = new EngineStateData(EngineType.XLFusion, 160)
             }
         };
         var unitData = CreateBasicMechData(equipment);
