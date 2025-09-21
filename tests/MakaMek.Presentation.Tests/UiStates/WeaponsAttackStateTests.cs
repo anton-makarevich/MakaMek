@@ -23,7 +23,6 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -66,7 +65,10 @@ public class WeaponsAttackStateTests
         var playerId = Guid.NewGuid();
 
         var rules = new ClassicBattletechRulesProvider();
-        _mechFactory = new MechFactory(rules, _localizationService);
+        _mechFactory = new MechFactory(
+            rules,
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         
         _unitData = MechFactoryTests.CreateDummyMechData();
         _unit1 = _mechFactory.Create(_unitData);
@@ -641,25 +643,10 @@ public class WeaponsAttackStateTests
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unitDataNoWeapons = MechFactoryTests.CreateDummyMechData();
         // Remove all weapons from the unit
-        foreach (var (_, equipment) in unitDataNoWeapons.LocationEquipment)
+        unitDataNoWeapons = unitDataNoWeapons with
         {
-            equipment.RemoveAll(e => e is MakaMekComponent.MachineGun 
-                or MakaMekComponent.SmallLaser
-                or MakaMekComponent.MediumLaser
-                or MakaMekComponent.LargeLaser
-                or MakaMekComponent.PPC
-                or MakaMekComponent.LRM5
-                or MakaMekComponent.LRM10
-                or MakaMekComponent.LRM15
-                or MakaMekComponent.LRM20
-                or MakaMekComponent.SRM2
-                or MakaMekComponent.SRM4
-                or MakaMekComponent.SRM6
-                or MakaMekComponent.AC2
-                or MakaMekComponent.AC5
-                or MakaMekComponent.AC10
-                or MakaMekComponent.AC20);
-        }
+           Equipment = []
+        };
         var unitNoWeapons = _mechFactory.Create(unitDataNoWeapons);
         unitNoWeapons.Deploy(position);
 
@@ -676,42 +663,37 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        var unitData = MechFactoryTests.CreateDummyMechData();
-        
-        // Initialize all locations with empty lists if they don't exist
-        foreach (PartLocation location in Enum.GetValues(typeof(PartLocation)))
+        // Overwrite unit data with weapons in different locations
+        var unitData = MechFactoryTests.CreateDummyMechData() with
         {
-            if (!unitData.LocationEquipment.ContainsKey(location))
-                unitData.LocationEquipment[location] = new List<MakaMekComponent>();
-        }
-        
-        // First, remove all weapons
-        foreach (var (_, equipment) in unitData.LocationEquipment)
-        {
-            equipment.RemoveAll(e => e is MakaMekComponent.MachineGun 
-                or MakaMekComponent.SmallLaser
-                or MakaMekComponent.MediumLaser
-                or MakaMekComponent.LargeLaser
-                or MakaMekComponent.PPC
-                or MakaMekComponent.LRM5
-                or MakaMekComponent.LRM10
-                or MakaMekComponent.LRM15
-                or MakaMekComponent.LRM20
-                or MakaMekComponent.SRM2
-                or MakaMekComponent.SRM4
-                or MakaMekComponent.SRM6
-                or MakaMekComponent.AC2
-                or MakaMekComponent.AC5
-                or MakaMekComponent.AC10
-                or MakaMekComponent.AC20);
-        }
-        
-        // Add weapons to different locations
-        unitData.LocationEquipment[PartLocation.LeftTorso].Add(MakaMekComponent.LRM5);
-        unitData.LocationEquipment[PartLocation.RightTorso].Add(MakaMekComponent.MediumLaser);
-        unitData.LocationEquipment[PartLocation.CenterTorso].Add(MakaMekComponent.MediumLaser);
-        unitData.LocationEquipment[PartLocation.LeftLeg].Add(MakaMekComponent.MediumLaser);
-        unitData.LocationEquipment[PartLocation.RightLeg].Add(MakaMekComponent.MediumLaser);
+            Equipment = [
+                new ComponentData
+                {
+                    Type = MakaMekComponent.LRM5,
+                    Assignments = [new LocationSlotAssignment(PartLocation.LeftTorso, 1, 1)]
+                },
+                new ComponentData
+                {
+                    Type = MakaMekComponent.MediumLaser,
+                    Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 1, 1)]
+                },
+                new ComponentData
+                {
+                    Type = MakaMekComponent.MediumLaser,
+                    Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 1, 1)]
+                },
+                new ComponentData
+                {
+                    Type = MakaMekComponent.MediumLaser,
+                    Assignments = [new LocationSlotAssignment(PartLocation.LeftLeg, 1, 1)]
+                },
+                new ComponentData
+                {
+                    Type = MakaMekComponent.MediumLaser,
+                    Assignments = [new LocationSlotAssignment(PartLocation.RightLeg, 1, 1)]
+                }
+            ]
+        };
 
         var unit = _mechFactory.Create(unitData);
         unit.AssignPilot(_pilot);

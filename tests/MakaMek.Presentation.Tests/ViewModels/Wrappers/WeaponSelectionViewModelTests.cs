@@ -1,6 +1,5 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
@@ -46,7 +45,10 @@ public class WeaponSelectionViewModelTests
             { PartLocation.LeftLeg, 8 },
             { PartLocation.RightLeg, 8 }
         });
-        var mechFactory = new MechFactory(structureValueProvider, Substitute.For<ILocalizationService>());
+        var mechFactory = new MechFactory(
+            structureValueProvider,
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
         var mechData = MechFactoryTests.CreateDummyMechData();
         _target = mechFactory.Create(mechData);
         var attacker = mechFactory.Create(mechData);
