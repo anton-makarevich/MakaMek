@@ -40,12 +40,13 @@ public class MechTests
             Type = MakaMekComponent.Engine,
             Assignments =
             [
-                new LocationSlotAssignment(PartLocation.CenterTorso, 0, 5)
+                new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
+                new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
             ],
             SpecificData = new EngineStateData(EngineType.Fusion, 100)
         };
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
-        centerTorso.TryAddComponent(new Engine(engineData));
+        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]);
         return
         [
             new Head("Head", 9, 3),
@@ -2360,7 +2361,7 @@ public class MechTests
     [Fact]
     public void CalculateCriticalHitsData_ShouldProceed_WhenPartHasStructure()
     {
-        // Arrange - This verifies lines 579-580 pass when part has structure
+        // Arrange 
         var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
 
         // Setup dice roller to return valid critical hit roll
