@@ -32,7 +32,10 @@ public class CriticalHitsCalculatorTests
         var localizationService = Substitute.For<ILocalizationService>();
 
         // Setup mech factory
-        _mechFactory = new MechFactory(rules, localizationService);
+        _mechFactory = new MechFactory(
+            rules,
+            new ClassicBattletechComponentProvider(),
+            localizationService);
     }
     
     // Helper methods for creating test data
@@ -131,7 +134,7 @@ public class CriticalHitsCalculatorTests
         var explosionCrit = result[1];
         explosionCrit.Location.ShouldBe(PartLocation.CenterTorso);
         explosionCrit.Roll.ShouldBe([4, 4]); // Roll of 8 for 1 crit
-        explosionCrit.NumCriticalHits.ShouldBe(1); // One crit from explosion
+        explosionCrit.NumCriticalHits.ShouldBe(1); // One crit from the explosion
         explosionCrit.HitComponents.ShouldNotBeNull();
         explosionCrit.HitComponents!.Length.ShouldBe(1);
         explosionCrit.HitComponents[0].Slot.ShouldBe(1);

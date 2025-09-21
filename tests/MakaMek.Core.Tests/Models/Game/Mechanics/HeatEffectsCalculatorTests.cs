@@ -398,7 +398,10 @@ public class HeatEffectsCalculatorTests
     private static Mech CreateTestMech()
     {
         var mechData = MechFactoryTests.CreateDummyMechData();
-        return new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
+        return new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>()).Create(mechData);
     }
 
     private static void SetMechHeat(Mech mech, int heatLevel)

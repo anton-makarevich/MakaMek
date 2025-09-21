@@ -48,6 +48,7 @@ public class FallProcessorTests
 
         _testMech = new MechFactory(
             rulesProvider,
+            new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData());
     }

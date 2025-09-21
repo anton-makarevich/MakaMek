@@ -33,6 +33,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private readonly Guid _player2Unit1Id;
     private readonly Unit _player2Unit1;
     private readonly IGamePhase _mockNextPhase;
+    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     public WeaponAttackResolutionPhaseTests()
     {
@@ -373,11 +376,16 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = weaponWithoutTarget.Name,
-                    Location = attackingUnit.Parts.Values.Skip(1).First().Location,
-                    Slots = weaponWithoutTarget.MountedAtSlots
+                    Type = weaponWithoutTarget.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(
+                            attackingUnit.Parts.Values.Skip(1).First().Location,
+                            weaponWithoutTarget.MountedAtSlots.First(),
+                            weaponWithoutTarget.MountedAtSlots.Length)
+                    ]
                 },
                 TargetId = targetUnit.Id,
                 IsPrimaryTarget = true
@@ -449,11 +457,15 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = clusterWeapon.Name,
-                    Location = part1.Location,
-                    Slots = clusterWeapon.MountedAtSlots
+                    Type = clusterWeapon.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part1.Location,
+                            clusterWeapon.MountedAtSlots.First(),
+                            clusterWeapon.MountedAtSlots.Length)
+                    ]
                 },
                 TargetId = _player2Unit1.Id,
                 IsPrimaryTarget = true
@@ -511,11 +523,15 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = clusterWeapon.Name,
-                    Location = part1.Location,
-                    Slots = clusterWeapon.MountedAtSlots
+                    Type = clusterWeapon.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part1.Location,
+                            clusterWeapon.MountedAtSlots.First(),
+                            clusterWeapon.MountedAtSlots.Length)
+                    ]
                 },
                 TargetId = _player2Unit1.Id,
                 IsPrimaryTarget = true
@@ -564,11 +580,15 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = clusterWeapon.Name,
-                    Location = part1.Location,
-                    Slots = clusterWeapon.MountedAtSlots
+                    Type = clusterWeapon.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part1.Location,
+                            clusterWeapon.MountedAtSlots.First(),
+                            clusterWeapon.MountedAtSlots.Length)
+                    ]
                 },
                 TargetId = _player2Unit1.Id,
                 IsPrimaryTarget = true
@@ -604,7 +624,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 !cmd.ResolutionData.IsHit &&
                 cmd.ResolutionData.HitLocationsData == null));
     }
-
+    
     [Fact]
     public void Enter_WhenBattleMapIsNull_ShouldThrowException()
     {
@@ -646,7 +666,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
 
-        // Configure the rules provider to return LeftArm as the initial hit location
+        // Configure the rule provider to return LeftArm as the initial hit location
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftArm);
 
         // Configure dice rolls for hit location
@@ -686,7 +706,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
 
         var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
 
-        // Configure the rules provider to return LeftArm as the initial hit location
+        // Configure the rule provider to return LeftArm as the initial hit location
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftArm);
 
         // Configure dice rolls for hit location
@@ -712,7 +732,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         var mechData = MechFactoryTests.CreateDummyMechData();
-        var mech = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
+        var mech = new MechFactory(
+            _rulesProvider,
+            _componentProvider,
+            _localizationService).Create(mechData);
         var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
         mech.Shutdown(shutdownData);
         
@@ -723,11 +746,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         var weaponTargetData = new WeaponTargetData
         {
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
                 Name = "Test Weapon",
-                Location = PartLocation.RightArm,
-                Slots = [1, 2]
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
             },
             TargetId = Guid.NewGuid(),
             IsPrimaryTarget = false,
@@ -754,11 +777,14 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var mockRulesProvider = Substitute.For<IRulesProvider>();
         SetGameWithRulesProvider(mockRulesProvider);
         var mechData = MechFactoryTests.CreateDummyMechData();
-        var mech = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
+        var mech = new MechFactory(
+            _rulesProvider,
+            _componentProvider,
+            _localizationService).Create(mechData);
         var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
         mech.Shutdown(shutdownData);
 
-        // Configure the rules provider to return LeftArm as the initial hit location
+        // Configure the rule provider to return LeftArm as the initial hit location
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.CenterTorso);
 
         // Configure aimed shot success values
@@ -771,11 +797,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         var weaponTargetData = new WeaponTargetData
         {
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
                 Name = "Test Weapon",
-                Location = PartLocation.RightArm,
-                Slots = [1, 2]
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
             },
             TargetId = Guid.NewGuid(),
             IsPrimaryTarget = false,
@@ -1065,11 +1091,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         weaponTargetData ??= new WeaponTargetData
         {
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
                 Name = "Test Weapon",
-                Location = PartLocation.RightArm,
-                Slots = [1, 2]
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
             },
             TargetId = target?.Id ?? Guid.NewGuid(),
             IsPrimaryTarget = false
@@ -1079,8 +1105,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         return (LocationHitData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData])!;
     }
-
-
     
     private void SetupPlayer1WeaponTargets()
     {
@@ -1094,11 +1118,15 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = weapon1.Name,
-                    Location = part1.Location,
-                    Slots = weapon1.MountedAtSlots
+                    Type = weapon1.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part1.Location,
+                            weapon1.MountedAtSlots.First(),
+                            weapon1.MountedAtSlots.Length)
+                    ]
                 },
                 TargetId = _player2Unit1.Id,
                 IsPrimaryTarget = true
@@ -1114,11 +1142,15 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         {
             new()
             {
-                Weapon = new WeaponData
+                Weapon = new ComponentData
                 {
                     Name = weapon2.Name,
-                    Location = part2.Location,
-                    Slots = weapon2.MountedAtSlots
+                    Type = weapon2.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part2.Location,
+                            weapon2.MountedAtSlots.First(),
+                            weapon2.MountedAtSlots.Length)
+                    ]
                 },
                 TargetId = _player1Unit1.Id,
                 IsPrimaryTarget = true
@@ -1466,7 +1498,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.UnitId == _player1Unit1.Id && 
                 cmd.GameOriginId == Game.Id));
         
-        // Verify that critical hits calculator was not called for fall damage
+        // Verify that the critical hits calculator was not called for fall damage
         MockCriticalHitsCalculator.DidNotReceive().CalculateAndApplyCriticalHits(
             Arg.Is<Unit>(u => u.Id == _player1Unit1.Id),
             Arg.Is<List<LocationDamageData>>(list => list.Any(d => d.Location == PartLocation.LeftTorso)));

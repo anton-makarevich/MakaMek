@@ -26,7 +26,10 @@ public class DamageTransferCalculatorTests
         var localizationService = Substitute.For<ILocalizationService>();
         
         // Setup mech factory
-        _mechFactory = new MechFactory(rules, localizationService);
+        _mechFactory = new MechFactory(
+            rules,
+            new ClassicBattletechComponentProvider(),
+            localizationService);
     }
 
     private Unit CreateTestMech()
