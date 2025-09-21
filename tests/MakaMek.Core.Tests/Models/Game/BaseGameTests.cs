@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -29,9 +30,14 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
 public class BaseGameTests : BaseGame
 {
+    private static readonly IRulesProvider RulesProviderInstance = new ClassicBattletechRulesProvider();
+    private static readonly IComponentProvider ComponentProviderInstance = new ClassicBattletechComponentProvider();
     public BaseGameTests() : base(
         new ClassicBattletechRulesProvider(),
-        new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
+        new MechFactory(
+            RulesProviderInstance,
+            ComponentProviderInstance,
+            Substitute.For<ILocalizationService>()),
         Substitute.For<ICommandPublisher>(),
         Substitute.For<IToHitCalculator>(),
         Substitute.For<IPilotingSkillCalculator>(),
@@ -313,11 +319,12 @@ public class BaseGameTests : BaseGame
             [
                 new WeaponTargetData
                 {
-                    Weapon = new WeaponData
+                    Weapon = new ComponentData
                     {
                         Name = weapon.Name,
-                        Location = PartLocation.RightArm,
-                        Slots = weapon.MountedAtSlots
+                        Type = weapon.ComponentType,
+                        Assignments = [
+                            new LocationSlotAssignment(PartLocation.RightArm, weapon.MountedAtSlots.First(), weapon.MountedAtSlots.Length)]
                     },
                     TargetId = targetMech.Id,
                     IsPrimaryTarget = true
@@ -394,22 +401,28 @@ public class BaseGameTests : BaseGame
             [
                 new WeaponTargetData
                 {
-                    Weapon = new WeaponData
+                    Weapon = new ComponentData
                     {
                         Name = rightArmWeapon.Name,
-                        Location = PartLocation.RightArm,
-                        Slots = rightArmWeapon.MountedAtSlots
+                        Type = rightArmWeapon.ComponentType,
+                        Assignments = [
+                            new LocationSlotAssignment(PartLocation.RightArm,
+                                rightArmWeapon.MountedAtSlots.First(),
+                                rightArmWeapon.MountedAtSlots.Length)]
                     },
                     TargetId = targetMech1.Id,
                     IsPrimaryTarget = true
                 },
                 new WeaponTargetData
                 {
-                    Weapon = new WeaponData
+                    Weapon = new ComponentData
                     {
                         Name = leftArmWeapon.Name,
-                        Location = PartLocation.LeftArm,
-                        Slots = leftArmWeapon.MountedAtSlots
+                        Type = leftArmWeapon.ComponentType,
+                        Assignments = [
+                            new LocationSlotAssignment(PartLocation.LeftArm,
+                                leftArmWeapon.MountedAtSlots.First(),
+                                leftArmWeapon.MountedAtSlots.Length)]
                     },
                     TargetId = targetMech2.Id,
                     IsPrimaryTarget = true
@@ -435,11 +448,11 @@ public class BaseGameTests : BaseGame
             PlayerId = Guid.NewGuid(),
             AttackerId = Guid.NewGuid(),
             TargetId = Guid.NewGuid(),
-            WeaponData = new WeaponData
+            WeaponData = new ComponentData
             {
                 Name = "Test Weapon",
-                Location = PartLocation.RightArm,
-                Slots = [0, 1]
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 0, 2)]
             },
             ResolutionData = new AttackResolutionData(
                 10,
@@ -491,11 +504,11 @@ public class BaseGameTests : BaseGame
             PlayerId = Guid.NewGuid(),
             AttackerId = Guid.NewGuid(),
             TargetId = targetMech.Id,
-            WeaponData = new WeaponData
+            WeaponData = new ComponentData
             {
                 Name = "Test Weapon",
-                Location = PartLocation.RightArm,
-                Slots = [0, 1]
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 0, 2)]
             },
             ResolutionData = new AttackResolutionData(
                 10,
@@ -549,11 +562,11 @@ public class BaseGameTests : BaseGame
             PlayerId = Guid.NewGuid(),
             AttackerId = Guid.NewGuid(), // Non-existent attacker
             TargetId = targetMech.Id,
-            WeaponData = new WeaponData
+            WeaponData = new ComponentData
             {
                 Name = "Test Weapon",
-                Location = PartLocation.RightArm,
-                Slots = [0, 1]
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 0, 2)]
             },
             ResolutionData = new AttackResolutionData(
                 10,
@@ -633,11 +646,13 @@ public class BaseGameTests : BaseGame
             PlayerId = attackerPlayerId,
             AttackerId = attackerMech.Id,
             TargetId = targetMech.Id,
-            WeaponData = new WeaponData
+            WeaponData = new ComponentData
             {
                 Name = weapon.Name,
-                Location = PartLocation.RightArm,
-                Slots = weapon.MountedAtSlots
+                Type = weapon.ComponentType,
+                Assignments = [
+                    new LocationSlotAssignment(PartLocation.RightArm, weapon.MountedAtSlots.First(), weapon.MountedAtSlots.Length)
+                ]
             },
             ResolutionData = new AttackResolutionData(
                 10,
@@ -659,7 +674,10 @@ public class BaseGameTests : BaseGame
     [Fact]
     public void AlivePlayers_ShouldReturnOnlyReadyPlayersWithAliveUnits()
     {
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>());
+        var mechFactory = new MechFactory(
+            RulesProviderInstance,
+            ComponentProviderInstance,
+            Substitute.For<ILocalizationService>());
         // Create alive and destroyed mechs
         var aliveMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
         var destroyedMech = mechFactory.Create(MechFactoryTests.CreateDummyMechData());
@@ -909,7 +927,7 @@ public class BaseGameTests : BaseGame
         var mech = Players.SelectMany(p => p.Units).First() as Mech;
         var pilot = mech?.Pilot;
 
-        pilot?.KnockUnconscious(1); // Make sure pilot is unconscious
+        pilot?.KnockUnconscious(1); // Make sure the pilot is unconscious
         pilot?.IsConscious.ShouldBeFalse();
 
         var command = new PilotConsciousnessRollCommand
@@ -961,7 +979,7 @@ public class BaseGameTests : BaseGame
         var mech = Players.SelectMany(p => p.Units).First() as Mech;
         var pilot = mech?.Pilot;
 
-        pilot?.KnockUnconscious(1); // Make sure pilot is unconscious
+        pilot?.KnockUnconscious(1); // Make sure the pilot is unconscious
         pilot?.IsConscious.ShouldBeFalse();
 
         var command = new PilotConsciousnessRollCommand

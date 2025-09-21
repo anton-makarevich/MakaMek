@@ -15,8 +15,11 @@ public class LocationHitDataTests
 
     public LocationHitDataTests()
     {
-        // Create unit using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        // Create a unit using MechFactory
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var unitData = MechFactoryTests.CreateDummyMechData();
         _unit = mechFactory.Create(unitData);
     }
@@ -81,7 +84,7 @@ public class LocationHitDataTests
             PartLocation.Head,
             5,
             [3, 4], // Aimed shot roll: 7 (successful)
-            [] // No location roll since aimed shot was successful
+            [] // No location roll since the aimed shot was successful
         );
 
         // Act

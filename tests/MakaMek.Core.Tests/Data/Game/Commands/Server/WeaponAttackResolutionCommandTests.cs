@@ -32,7 +32,10 @@ public class WeaponAttackResolutionCommandTests
         var player2 = new Player(Guid.NewGuid(), "Player 2");
 
         // Create units using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var attackerData = MechFactoryTests.CreateDummyMechData();
         attackerData.Id = Guid.NewGuid();
         var targetData = MechFactoryTests.CreateDummyMechData();

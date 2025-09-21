@@ -19,7 +19,10 @@ public class WeaponSelectionExtensionsTests
     public WeaponSelectionExtensionsTests()
     {
         var mechData = MechFactoryTests.CreateDummyMechData();
-        _mech = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService).Create(mechData);
+        _mech = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService).Create(mechData);
     }
 
     private Weapon CreateWeapon(PartLocation location, bool isAvailable)
