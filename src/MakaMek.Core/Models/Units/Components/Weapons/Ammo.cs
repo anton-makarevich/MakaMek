@@ -9,14 +9,9 @@ public class Ammo : Component
     public Ammo(WeaponDefinition definition, int initialShots, ComponentData? componentData = null)
         : base(CreateAmmoDefinition(definition), componentData)
     {
-        if (!definition.RequiresAmmo)
-        {
-            throw new ArgumentException($"Cannot create ammo for weapon that doesn't require it: {definition.Name}");
-        }
-
         Definition = definition;
 
-        // Set remaining shots from component data or use initial value
+        // Set remaining shots from component data or use the initial value
         if (componentData?.SpecificData is AmmoStateData ammoState)
         {
             _remainingShots = ammoState.RemainingShots;
@@ -29,6 +24,10 @@ public class Ammo : Component
 
     public static ComponentDefinition CreateAmmoDefinition(WeaponDefinition weaponDefinition)
     {
+        if (!weaponDefinition.RequiresAmmo)
+        {
+            throw new ArgumentException($"Cannot create ammo for weapon that doesn't require it: {weaponDefinition.Name}");
+        }
         return new EquipmentDefinition(
             $"{weaponDefinition.Name} Ammo",
             weaponDefinition.AmmoComponentType ?? throw new InvalidOperationException("Ammo component type not defined"),

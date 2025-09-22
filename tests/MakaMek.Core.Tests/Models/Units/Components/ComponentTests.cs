@@ -91,8 +91,8 @@ public class ComponentTests
         component.IsMounted.ShouldBeTrue();
 
         // Act & Assert
-        var exception = Assert.Throws<ComponentException>(() => component.UnMount());
-        exception.Message.ShouldBe($"Shoulder is not removable");
+        Should.Throw<ComponentException>(() => component.UnMount())
+            .Message.ShouldBe($"Shoulder is not removable");
     }
 
     [Fact]
@@ -168,8 +168,8 @@ public class ComponentTests
 
         
         // Act & Assert
-        var exception = Assert.Throws<ComponentException>(() => component.Mount([2,3,4],unitPart));// Try to mount 
-        exception.Message.ShouldBe("Component Test Component requires 2 slots.");
+        Should.Throw<ComponentException>(() => component.Mount([2,3,4],unitPart)) // Try to mount 
+           .Message.ShouldBe("Component Test Component requires 2 slots.");
         
     }
 

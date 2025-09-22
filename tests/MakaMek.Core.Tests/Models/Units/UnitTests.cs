@@ -26,17 +26,11 @@ public class UnitTests
         0,
         size));
 
-    private class TestWeapon : Weapon
-    {
-        public TestWeapon(string name, int[] slots, WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null) 
-            : base(new WeaponDefinition(
+    private class TestWeapon(string name, int size =1, WeaponType type = WeaponType.Energy, MakaMekComponent? ammoType = null)
+        : Weapon(new WeaponDefinition(
             name, 5, 3,
-            0, 3, 6, 9, 
-            type, 10, 1,1, slots.Length,1,MakaMekComponent.MachineGun,ammoType))
-        {
-            Mount(slots, null!); // Will be properly mounted later
-        }
-    }
+            0, 3, 6, 9,
+            type, 10, 1, 1, size, 1, MakaMekComponent.MachineGun, ammoType));
     
     private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)
         : UnitPart(name, location, maxArmor, maxStructure, slots)
@@ -199,8 +193,8 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var weapon1 = new TestWeapon("Weapon 1", [0, 1]);
-        var weapon2 = new TestWeapon("Weapon 2", [2, 3]);
+        var weapon1 = new TestWeapon("Weapon 1",2);
+        var weapon2 = new TestWeapon("Weapon 2",2);
 
         MountWeaponOnUnit(unit, weapon1, PartLocation.LeftArm, [0, 1]);
         MountWeaponOnUnit(unit, weapon2, PartLocation.LeftArm, [2, 3]);
@@ -225,7 +219,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var weapon = new TestWeapon("Weapon", [0, 1]);
+        var weapon = new TestWeapon("Weapon",2);
         MountWeaponOnUnit(unit, weapon, PartLocation.LeftArm, [0, 1]);
 
         // Act
@@ -240,8 +234,8 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var weapon1 = new TestWeapon("Weapon 1", [0, 1]);
-        var weapon2 = new TestWeapon("Weapon 2", [2, 3]);
+        var weapon1 = new TestWeapon("Weapon 1", 2);
+        var weapon2 = new TestWeapon("Weapon 2", 2);
 
         MountWeaponOnUnit(unit, weapon1, PartLocation.LeftArm, [0, 1]);
         MountWeaponOnUnit(unit, weapon2, PartLocation.LeftArm, [2, 3]);
@@ -266,7 +260,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var weapon = new TestWeapon("Weapon", [0, 1]);
+        var weapon = new TestWeapon("Weapon", 2);
         MountWeaponOnUnit(unit, weapon, PartLocation.LeftArm, [0, 1]);
 
         // Act
@@ -317,7 +311,7 @@ public class UnitTests
         var attacker = CreateTestUnit(attackerId);
         var target = CreateTestUnit(targetId);
         
-        var weapon = new TestWeapon("Test Weapon", [0, 1]);
+        var weapon = new TestWeapon("Test Weapon", 2);
         MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
         
         attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
@@ -363,8 +357,8 @@ public class UnitTests
         var target1 = CreateTestUnit(targetId1);
         var target2 = CreateTestUnit(targetId2);
         
-        var weapon1 = new TestWeapon("Weapon 1", [0, 1]);
-        var weapon2 = new TestWeapon("Weapon 2", [2, 3]);
+        var weapon1 = new TestWeapon("Weapon 1", 2);
+        var weapon2 = new TestWeapon("Weapon 2", 2);
         
         MountWeaponOnUnit(attacker, weapon1, PartLocation.LeftArm, [0, 1]);
         MountWeaponOnUnit(attacker, weapon2, PartLocation.RightArm, [2, 3]);
@@ -430,7 +424,7 @@ public class UnitTests
         var attacker = CreateTestUnit(attackerId);
         var target = CreateTestUnit(targetId);
         
-        var weapon = new TestWeapon("Test Weapon", [0, 1]);
+        var weapon = new TestWeapon("Test Weapon", 2);
         MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
         
         attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
@@ -495,7 +489,7 @@ public class UnitTests
     {
         // Arrange
         var testUnit = CreateTestUnit();
-        var energyWeapon = new TestWeapon("Energy Weapon", [0, 1]);
+        var energyWeapon = new TestWeapon("Energy Weapon", 2);
         
         // Act
         var ammo = testUnit.GetAmmoForWeapon(energyWeapon);
@@ -512,7 +506,7 @@ public class UnitTests
         var leftTorso = new TestUnitPart("Left Torso", PartLocation.LeftTorso, 10, 5, 10);
         var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso, leftTorso]);
         
-        var ac5Weapon = new TestWeapon("AC/5", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        var ac5Weapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         var ac5Ammo1 = new Ammo(Ac5.Definition, 20);
         var ac5Ammo2 = new Ammo(Ac5.Definition, 20);
         var lrm5Ammo = new Ammo(Lrm5.Definition, 24);
@@ -537,10 +531,10 @@ public class UnitTests
     {
         // Arrange
         var testUnit = CreateTestUnit();
-        var energyWeapon = new TestWeapon("Energy Weapon", [0, 1]);
+        var energyWeapon = new TestWeapon("Energy Weapon", 2);
         
         // Act
-        var remainingShots = testUnit.GetRemainingAmmoShots(energyWeapon);
+        var remainingShots = testUnit.GetRemainingAmmoShots(energyWeapon); 
         
         // Assert
         remainingShots.ShouldBe(-1);
@@ -554,7 +548,7 @@ public class UnitTests
         var leftTorso = new TestUnitPart("Left Torso", PartLocation.LeftTorso, 10, 5, 10);
         var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso, leftTorso]);
         
-        var ac5Weapon = new TestWeapon("AC/5", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        var ac5Weapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         var ac5Ammo1 = new Ammo(Ac5.Definition, 20);
         var ac5Ammo2 = new Ammo(Ac5.Definition, 15);
         
@@ -576,7 +570,7 @@ public class UnitTests
         var centerTorso = new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10);
         var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso]);
         
-        var ac5Weapon = new TestWeapon("AC/5", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        var ac5Weapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         centerTorso.TryAddComponent(ac5Weapon);
         
         // Act
@@ -781,7 +775,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var ballisticWeapon = new TestWeapon("Ballistic Weapon", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        var ballisticWeapon = new TestWeapon("Ballistic Weapon", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         MountWeaponOnUnit(unit, ballisticWeapon, PartLocation.LeftArm, [0, 1]);
         
         // Add ammo to the unit
@@ -832,7 +826,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var weapon = new TestWeapon("Test Weapon", [0, 1]);
+        var weapon = new TestWeapon("Test Weapon", 2);
         MountWeaponOnUnit(unit, weapon, PartLocation.LeftArm, [0, 1]);
         
         // Destroy the weapon
@@ -859,7 +853,7 @@ public class UnitTests
     {
         // Arrange
         var unit = CreateTestUnit();
-        var ballisticWeapon = new TestWeapon("Ballistic Weapon", [0, 1], WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
+        var ballisticWeapon = new TestWeapon("Ballistic Weapon", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         MountWeaponOnUnit(unit, ballisticWeapon, PartLocation.LeftArm, [0, 1]);
         
         // Add multiple ammo components with different shot counts
@@ -916,7 +910,7 @@ public class UnitTests
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         unit.Deploy(deployPosition);
         
-        // Move the unit with Run movement type
+        // Move the unit with the Run movement type
         unit.Move(MovementType.Run, [
             new PathSegmentData
             {
@@ -948,7 +942,7 @@ public class UnitTests
         unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
         
         // Add a weapon to the unit
-        var weapon = new TestWeapon("Test Laser", [3]);
+        var weapon = new TestWeapon("Test Laser");
         MountWeaponOnUnit(unit, weapon, PartLocation.RightArm,[3]);
         
         // Set the weapon's target
@@ -991,7 +985,7 @@ public class UnitTests
         unit.Deploy(deployPosition);
         
                 // Add a weapon to the unit
-        var weapon = new TestWeapon("Test Laser", [3]);
+        var weapon = new TestWeapon("Test Laser");
         MountWeaponOnUnit(unit, weapon, PartLocation.RightArm,[3]);
         
         // Set the weapon's target
@@ -1004,7 +998,7 @@ public class UnitTests
             }
         ]);
 
-        // Move the unit with Jump movement type
+        // Move the unit with the Jump movement type
         unit.Move(MovementType.Jump, [
             new PathSegmentData
             {
@@ -1491,7 +1485,7 @@ public class UnitTests
     [Fact]
     public void ApplyCriticalHits_WithNonDestructiveCriticalHits_ShouldNotDestroyUnit()
     {
-        // Arrange - This verifies lines 491-494 are not executed when unit is not destroyed
+        // Arrange - This verifies lines 491-494 are not executed when the unit is not destroyed
         var unit = CreateTestUnit();
         var targetPart = unit.Parts[PartLocation.LeftArm];
         var component = new TestComponent("Test Component", 3);

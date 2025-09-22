@@ -105,24 +105,6 @@ public class UnitPartTests
     }
 
     [Fact]
-    public void TryAddComponent_RespectsSlotLimits()
-    {
-        // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
-        var smallComponent = new TestComponent("Small Component");
-        var largeComponent = new TestComponent("Large Component");
-
-        // Act & Assert
-        part.TryAddComponent(smallComponent).ShouldBeTrue();
-        part.UsedSlots.ShouldBe(2);
-        part.AvailableSlots.ShouldBe(1);
-        
-        part.TryAddComponent(largeComponent).ShouldBeFalse();
-        part.Components.Count.ShouldBe(1);
-        part.UsedSlots.ShouldBe(2);
-    }
-
-    [Fact]
     public void CanAddFixedComponent_WhenSlotsAreAvailable()
     {
         // Arrange
@@ -134,29 +116,16 @@ public class UnitPartTests
     }
     
     [Fact]
-    public void CannotAddFixedComponent_WhenSlotsAreNotAvailable()
-    {
-        // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
-        var largeComponent = new TestComponent("Large Component");
-
-        // Act & Assert
-        sut.TryAddComponent(largeComponent).ShouldBeFalse();
-    }
-    
-    [Fact]
     public void CanAddComponent_ChecksSlotAvailability()
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
-        var smallComponent = new TestComponent("Small Component");
-        var largeComponent = new TestComponent("Large Component");
+        var smallComponent = new TestComponent("Small Component",1);
+        var largeComponent = new TestComponent("Large Component",4);
 
         // Act & Assert
-        sut.TryAddComponent(smallComponent);
-        sut.TryAddComponent(largeComponent).ShouldBeFalse();
-        sut.TryAddComponent(new TestComponent("Not fixed Component")).ShouldBeTrue();
-        sut.TryAddComponent(new TestComponent("Not fixed Component 2")).ShouldBeFalse();
+        sut.TryAddComponent(smallComponent,[0]).ShouldBeTrue();
+        sut.TryAddComponent(largeComponent, [1,2,3,4]).ShouldBeFalse();
     }
 
     [Fact]
@@ -164,11 +133,11 @@ public class UnitPartTests
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 6);
-        var component1 = new TestComponent("Component 1");
-        var component2 = new TestComponent("Component 2");
+        var component1 = new TestComponent("Component 1",2);
+        var component2 = new TestComponent("Component 2",3);
         
-        sut.TryAddComponent(component1).ShouldBeTrue();
-        sut.TryAddComponent(component2).ShouldBeTrue();
+        sut.TryAddComponent(component1,[0,1]).ShouldBeTrue();
+        sut.TryAddComponent(component2,[3,4,5]).ShouldBeTrue();
 
         // Act & Assert
         sut.GetComponentAtSlot(0).ShouldBe(component1);
@@ -184,7 +153,7 @@ public class UnitPartTests
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 8);
-        var fixedComponent = new TestComponent("Fixed Component");
+        var fixedComponent = new TestComponent("Fixed Component",5);
         var component = new TestComponent("TestComponent", 4);
 
         // Act & Assert
@@ -200,7 +169,7 @@ public class UnitPartTests
         var component = new TestComponent("NegSlot");
         
         // Act
-        var result = sut.TryAddComponent(component);
+        var result = sut.TryAddComponent(component,[-1]);
         
         // Assert
         result.ShouldBeFalse();
@@ -263,7 +232,7 @@ public class UnitPartTests
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
         var component = new TestComponent("Test Component");
-        sut.TryAddComponent(component);
+        sut.TryAddComponent(component, [3]);
         
         // Act
         sut.CriticalHit(3);
@@ -279,7 +248,7 @@ public class UnitPartTests
         // Arrange
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
         var component = new TestComponent("Test Component");
-        part.TryAddComponent(component);
+        part.TryAddComponent(component, [3]);
         component.Hit(); // Destroy the component first
         
         // Act
@@ -295,8 +264,8 @@ public class UnitPartTests
     {
         // Arrange
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
-        var component = new TestComponent("Test Component");
-        part.TryAddComponent(component);
+        var component = new TestComponent("Test Component",3);
+        part.TryAddComponent(component,[2,3,4]).ShouldBeTrue();
         
         // Act
         part.CriticalHit(2);
@@ -440,28 +409,12 @@ public class UnitPartTests
     [Fact]
     public void TryAddComponent_ShouldReturnFalse_WhenSlotOutOfBounds()
     {
-        // Arrange - This tests line 73 (slot bounds checking)
+        // Arrange 
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
-        var component = new TestComponent("Test Component"); // Slot 3 is out of bounds
+        var component = new TestComponent("Test Component"); 
 
         // Act
-        var result = part.TryAddComponent(component);
-
-        // Assert
-        result.ShouldBeFalse();
-        part.Components.ShouldBeEmpty();
-        part.UsedSlots.ShouldBe(0);
-    }
-
-    [Fact]
-    public void TryAddComponent_ShouldReturnFalse_WhenMultipleSlotsOutOfBounds()
-    {
-        // Arrange - This tests line 73 (slot bounds checking with multiple slots)
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
-        var component = new TestComponent("Test Component"); // Slots 3 and 4 are out of bounds
-
-        // Act
-        var result = part.TryAddComponent(component);
+        var result = part.TryAddComponent(component, [3]);
 
         // Assert
         result.ShouldBeFalse();
@@ -474,10 +427,10 @@ public class UnitPartTests
     {
         // Arrange - This verifies line 73 passes when slots are valid
         var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 5); // 5 slots (0, 1, 2, 3, 4)
-        var component = new TestComponent("Test Component"); // All slots are in bounds
+        var component = new TestComponent("Test Component",3); // All slots are in bounds
 
         // Act
-        var result = part.TryAddComponent(component);
+        var result = part.TryAddComponent(component,[1,2,3]);
 
         // Assert
         result.ShouldBeTrue();

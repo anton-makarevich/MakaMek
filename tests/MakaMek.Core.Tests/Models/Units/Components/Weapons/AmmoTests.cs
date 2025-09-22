@@ -54,7 +54,9 @@ public class AmmoTests
             WeaponComponentType: MakaMekComponent.MediumLaser);
 
         // Act & Assert
-        Should.Throw<ArgumentException>(() => new Ammo(definition, 200));
+        Should.Throw<ArgumentException>(() => new Ammo(definition, 200))
+            .Message.ShouldBe($"Cannot create ammo for weapon that doesn't require it: Medium Laser");
+        
     }
 
     [Fact]
