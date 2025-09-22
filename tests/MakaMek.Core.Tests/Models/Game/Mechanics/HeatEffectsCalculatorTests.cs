@@ -39,7 +39,7 @@ public class HeatEffectsCalculatorTests
 
         // Add a single ammo component
         var ammo = new Ammo(Lrm5, 24);
-        centerTorso.TryAddComponent(ammo, [0]);
+        centerTorso.TryAddComponent(ammo, [10]);
 
         return mech;
     }
@@ -53,8 +53,8 @@ public class HeatEffectsCalculatorTests
         var ammo1 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
         var ammo2 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
 
-        centerTorso.TryAddComponent(ammo1);
-        centerTorso.TryAddComponent(ammo2);
+        centerTorso.TryAddComponent(ammo1, [10]).ShouldBeTrue();
+        centerTorso.TryAddComponent(ammo2, [11]).ShouldBeTrue();
 
         return mech;
     }
@@ -196,15 +196,17 @@ public class HeatEffectsCalculatorTests
         _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
 
         var mech = CreateTestMechWithMultipleAmmo();
+        mech.Parts[PartLocation.LeftTorso].TryAddComponent(new Ammo(Lrm5, 2)).ShouldBeTrue();
         SetMechHeat(mech, 25);
 
         // Setup dice roll that fails to trigger explosion
         var diceResults = new List<DiceResult> { new(2), new(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
+        _diceRoller.RollD6().Returns(new DiceResult(5));
 
         // Setup critical hits calculator
         var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
-                new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
+                new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }
             ],false);
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
@@ -231,15 +233,12 @@ public class HeatEffectsCalculatorTests
         _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
         
         var mech = CreateTestMechWithMultipleAmmo();
-        var mgAmmo = mech.GetAvailableComponents<Ammo>()
-            .First(a => a.Definition.WeaponComponentType == MakaMekComponent.MachineGun);
-        mgAmmo.UnMount();
         SetMechHeat(mech, 25);
 
         // Setup dice roll that fails to trigger explosion
         var diceResults = new List<DiceResult> { new(2), new(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
-        _diceRoller.RollD6().Returns(diceResults[0]);
+        _diceRoller.RollD6().Returns(new DiceResult(5));
 
         // Setup critical hits calculator
         var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [

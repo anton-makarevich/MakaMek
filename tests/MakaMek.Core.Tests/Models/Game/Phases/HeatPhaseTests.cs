@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Shouldly;
 
@@ -27,7 +28,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
 
     public HeatPhaseTests()
     {
-        // Create mock next phase and configure the phase manager
+        // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.Heat, Game).Returns(_mockNextPhase);
         
@@ -42,10 +43,12 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Get unit IDs and references
         var player1 = Game.Players[0];
         _unit1 = player1.Units[0];
+        _unit1.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _unit1Id = _unit1.Id;
 
         var player2 = Game.Players[1];
         _unit2 = player2.Units[0];
+        _unit2.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         _unit2Id = _unit2.Id;
 
         // Set initiative order

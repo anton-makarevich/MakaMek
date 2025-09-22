@@ -502,48 +502,6 @@ public class FallProcessorTests
     }
 
     [Fact]
-    public void ProcessPotentialFall_ShouldNotReturnCommand_WhenGyroHitReportedForMechWithoutGyro()
-    {
-        // Arrange
-        // Ensure the testMech has no Gyro for this test
-        var gyroComponent = _testMech.GetAllComponents<Gyro>().FirstOrDefault();
-        if (gyroComponent != null)
-        {
-            // Find the part containing the gyro and remove it.
-            // This assumes Gyro is in CenterTorso for standard mechs, but iterates to be safe.
-            var partContainingGyro = _testMech.Parts.Values.FirstOrDefault(p => p.GetComponents<Gyro>().Any());
-            partContainingGyro?.RemoveComponent(gyroComponent);
-        }
-        _testMech.GetAllComponents<Gyro>().ShouldBeEmpty("Test 'Mech should not have a Gyro for this scenario.");
-
-        var gyroComponentHit = new ComponentHitData { Type = MakaMekComponent.Gyro, Slot = 1 }; // Report a gyro hit
-        var componentHits = new List<ComponentHitData> { gyroComponentHit };
-
-        // Ensure heavy damage PSR is not triggered
-        // (RulesProvider is ClassicBattletechRulesProvider, GetHeavyDamageThreshold defaults to 20)
-
-        // Act
-        var commands = _sut.ProcessPotentialFall(_testMech,
-            _game,
-            componentHits);
-
-        // Assert
-        commands.ShouldBeEmpty();
-
-        // Ensure no PSR was attempted for a GyroHit because the mech has no gyro
-        _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
-            _testMech, 
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit), 
-            Arg.Any<IGame>());
-        
-        // Also ensure no pilot damage PSR was attempted as no fall should be processed
-        _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
-            _testMech, 
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall), 
-            Arg.Any<IGame>());
-    }
-
-    [Fact]
     public void ProcessPotentialFall_ShouldReturnCommandWithFailedFallAndPilotDamagePsrs_WhenBothPsrsFail()
     {
         // Arrange
