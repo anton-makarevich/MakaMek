@@ -18,6 +18,7 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
@@ -686,6 +687,7 @@ public class BattleMapViewModelTests
         // Place unit
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _sut.Units.First();
+        unit.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         unit.Deploy(position);
         
         // Select unit
@@ -823,6 +825,7 @@ public class BattleMapViewModelTests
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         attacker.AssignPilot(pilot);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.Deploy(attackerPosition);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
@@ -906,6 +909,7 @@ public class BattleMapViewModelTests
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         attacker.AssignPilot(pilot);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.Deploy(attackerPosition);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
@@ -1083,6 +1087,7 @@ public class BattleMapViewModelTests
         var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var attacker = _sut.Units.First(u => u.Owner!.Id == playerId);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
         attacker.Deploy(attackerPosition);
         target.Deploy(targetPosition);
@@ -1195,7 +1200,9 @@ public class BattleMapViewModelTests
         // Get the units from the game
         var attackers = _sut.Units.Where(u => u.Owner!.Id == playerId).ToList();
         var attacker1 = attackers[0];
+        attacker1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var attacker2 = attackers[1];
+        attacker2.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
         
         // Deploy the units
@@ -1333,6 +1340,8 @@ public class BattleMapViewModelTests
         
         // Get the units from the game
         var attacker = _sut.Units.First(u => u.Owner!.Id == playerId);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
         
         // Deploy the units
@@ -1515,6 +1524,7 @@ public class BattleMapViewModelTests
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
 
         attacker.Deploy(attackerPosition);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         target.Deploy(targetPosition);
 
         // Get a weapon from the attacker
