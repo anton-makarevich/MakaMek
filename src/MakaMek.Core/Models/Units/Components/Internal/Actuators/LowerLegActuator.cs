@@ -11,4 +11,6 @@ public class LowerLegActuator : Component
     public LowerLegActuator(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
+
+    public static readonly int[] DefaultMountSlots = [2];
 }

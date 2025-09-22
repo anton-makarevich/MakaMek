@@ -11,4 +11,6 @@ public class HipActuator : Component
     public HipActuator(ComponentData? componentData = null) : base(Definition, componentData)
     {
     }
+
+    public static readonly int[] DefaultMountSlots = [0];
 }

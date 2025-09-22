@@ -18,4 +18,10 @@ public class UpperLegActuatorTests
         sut.ComponentType.ShouldBe(MakaMekComponent.UpperLegActuator);
         sut.IsRemovable.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        UpperLegActuator.DefaultMountSlots.ShouldBe([1]);
+    }
 }

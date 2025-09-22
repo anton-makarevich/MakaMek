@@ -18,4 +18,10 @@ public class FootActuatorTests
         sut.ComponentType.ShouldBe(MakaMekComponent.FootActuator);
         sut.IsRemovable.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        FootActuator.DefaultMountSlots.ShouldBe([3]);
+    }
 }

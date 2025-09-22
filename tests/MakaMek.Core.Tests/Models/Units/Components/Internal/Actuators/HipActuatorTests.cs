@@ -18,4 +18,10 @@ public class HipActuatorTests
         sut.ComponentType.ShouldBe(MakaMekComponent.Hip);
         sut.IsRemovable.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        HipActuator.DefaultMountSlots.ShouldBe([0]);
+    }
 }

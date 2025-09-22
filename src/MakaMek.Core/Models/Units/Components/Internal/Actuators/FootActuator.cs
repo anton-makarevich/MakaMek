@@ -7,4 +7,6 @@ public class FootActuator(ComponentData? componentData = null) : Component(Defin
     public static readonly ActuatorDefinition Definition = new(
         "Foot Actuator",
         MakaMekComponent.FootActuator);
+
+    public static readonly int[] DefaultMountSlots = [3];
 }

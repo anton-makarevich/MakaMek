@@ -7,4 +7,6 @@ public class ShoulderActuator(ComponentData? componentData = null) : Component(D
     public static readonly ActuatorDefinition Definition = new(
         "Shoulder",
         MakaMekComponent.Shoulder);
+
+    public static readonly int[] DefaultMountSlots = [0];
 }

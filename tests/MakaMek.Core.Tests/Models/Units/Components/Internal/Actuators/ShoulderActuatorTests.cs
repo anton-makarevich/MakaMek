@@ -18,4 +18,10 @@ public class ShoulderActuatorTests
         sut.ComponentType.ShouldBe(MakaMekComponent.Shoulder);
         sut.IsRemovable.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        ShoulderActuator.DefaultMountSlots.ShouldBe([0]);
+    }
 }

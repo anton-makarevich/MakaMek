@@ -18,4 +18,10 @@ public class LowerLegActuatorTests
         sut.ComponentType.ShouldBe(MakaMekComponent.LowerLegActuator);
         sut.IsRemovable.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        LowerLegActuator.DefaultMountSlots.ShouldBe([2]);
+    }
 }
