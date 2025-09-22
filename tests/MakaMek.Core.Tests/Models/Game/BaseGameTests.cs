@@ -17,6 +17,7 @@ using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -283,7 +284,8 @@ public class BaseGameTests : BaseGame
         };
         OnPlayerJoined(attackerJoinCommand);
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
-        var attackerMech = attackerPlayer.Units.First() as Mech;
+        var attackerMech = attackerPlayer.Units[0] as Mech;
+        attackerMech!.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attackerMech!.AssignPilot(new MechWarrior("John", "Doe"));
         attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
@@ -360,6 +362,8 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(attackerJoinCommand);
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
+        attackerMech!.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attackerMech!.Parts[PartLocation.LeftArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attackerMech!.AssignPilot(new MechWarrior("John", "Doe"));
         attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
@@ -603,6 +607,7 @@ public class BaseGameTests : BaseGame
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
         attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        attackerMech.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
 
         // Add a target player and unit
         var targetPlayerId = Guid.NewGuid();

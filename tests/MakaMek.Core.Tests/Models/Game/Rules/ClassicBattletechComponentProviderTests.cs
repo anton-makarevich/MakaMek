@@ -12,14 +12,11 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
         
         [Theory]
         [InlineData(MakaMekComponent.Shoulder)]
-        [InlineData(MakaMekComponent.UpperArmActuator)]
-        [InlineData(MakaMekComponent.LowerArmActuator)]
-        [InlineData(MakaMekComponent.HandActuator)]
         [InlineData(MakaMekComponent.Hip)]
         [InlineData(MakaMekComponent.UpperLegActuator)]
         [InlineData(MakaMekComponent.LowerLegActuator)]
         [InlineData(MakaMekComponent.FootActuator)]
-        public void GetDefinition_ValidActuatorComponent_ShouldReturnCorrectDefinition(MakaMekComponent componentType)
+        public void GetDefinition_ValidFixedActuatorComponent_ShouldReturnCorrectDefinition(MakaMekComponent componentType)
         {
             // Act
             var result = _sut.GetDefinition(componentType);
@@ -32,6 +29,25 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
             result.HealthPoints.ShouldBe(1);
             result.BattleValue.ShouldBe(0);
             result.IsRemovable.ShouldBeFalse();
+        }
+        
+        [Theory]
+        [InlineData(MakaMekComponent.UpperArmActuator)]
+        [InlineData(MakaMekComponent.LowerArmActuator)]
+        [InlineData(MakaMekComponent.HandActuator)]
+        public void GetDefinition_ValidNonFixedActuatorComponent_ShouldReturnCorrectDefinition(MakaMekComponent componentType)
+        {
+            // Act
+            var result = _sut.GetDefinition(componentType);
+
+            // Assert
+            result.ShouldNotBeNull();
+            result.ComponentType.ShouldBe(componentType);
+            result.Name.ShouldNotBeNullOrEmpty();
+            result.Size.ShouldBe(1);
+            result.HealthPoints.ShouldBe(1);
+            result.BattleValue.ShouldBe(0);
+            result.IsRemovable.ShouldBeTrue();
         }
 
         [Theory]
