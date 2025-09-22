@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public class Lrm5 : Weapon
+public sealed class Lrm5 : Weapon
 {
     /// <inheritdoc />
     public override bool IsAimShotCapable => false;

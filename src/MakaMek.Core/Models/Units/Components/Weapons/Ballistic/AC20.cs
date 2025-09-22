@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 
-public class Ac20 : Weapon
+public sealed class Ac20 : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(

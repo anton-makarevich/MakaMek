@@ -1,4 +1,6 @@
-﻿namespace Sanet.MakaMek.Core.Data.Units.Components;
+﻿using System.Text.Json.Serialization;
+
+namespace Sanet.MakaMek.Core.Data.Units.Components;
 
 /// <summary>
 /// Represents a component instance with its slot assignments and mutable state
@@ -13,12 +15,12 @@ public record ComponentData
     /// <summary>
     /// The slot assignments for this component across all locations
     /// </summary>
-    public required List<LocationSlotAssignment> Assignments { get; init; } = new();
+    public required IReadOnlyList<LocationSlotAssignment> Assignments { get; init; } = [];
 
     /// <summary>
     /// Number of hits this component has taken
     /// </summary>
-    public int Hits { get; init; } = 0;
+    public int Hits { get; init; }
 
     /// <summary>
     /// Whether this component is currently active
@@ -28,7 +30,7 @@ public record ComponentData
     /// <summary>
     /// Whether this component has exploded (for explosive components)
     /// </summary>
-    public bool HasExploded { get; init; } = false;
+    public bool HasExploded { get; init; }
 
     /// <summary>
     /// Override name for this specific component instance (optional)

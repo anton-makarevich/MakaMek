@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 
-public class LargeLaser : Weapon
+public sealed class LargeLaser : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(

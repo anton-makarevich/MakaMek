@@ -385,19 +385,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             GameOriginId = Game.Id,
             PlayerId = player.Id,
             AttackerId = attacker.Id,
-            WeaponData = new ComponentData
-            {
-                Type = weapon.ComponentType,
-                Assignments = new List<LocationSlotAssignment>
-                {
-                    new LocationSlotAssignment(
-                        weapon.GetPrimaryMountLocation()!.Location,
-                        weapon.MountedAtSlots.First(),
-                        weapon.MountedAtSlots.Length)
-                },
-                Hits = weapon.Hits,
-                IsActive = !weapon.IsDestroyed
-            },
+            WeaponData = weapon.ToData(),
             TargetId = target.Id,
             ResolutionData = resolution
         };

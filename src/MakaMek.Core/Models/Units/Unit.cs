@@ -214,7 +214,7 @@ public abstract class Unit
             var weapon = primaryAssignment != null ?
                 GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot) :
                 null;
-            if (weapon == null) continue;
+            if (weapon == null) continue; // should it be available also?
 
             if (weapon.Heat <= 0) continue;
             weaponHeatSources.Add(new WeaponHeatData
@@ -395,7 +395,7 @@ public abstract class Unit
             var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
             return primaryAssignment != null &&
                    primaryAssignment.Location == weaponLocation &&
-                   primaryAssignment.Slots.SequenceEqual(weaponSlots);
+                   primaryAssignment.Slots.OrderBy(s => s).SequenceEqual(weaponSlots.OrderBy(s => s));
         });
     }
 
@@ -616,8 +616,7 @@ public abstract class Unit
     }
     
     /// <summary>
-    /// Fires a weapon based on the provided weapon data.
-    /// This applies heat to the unit and consumes ammo if required.
+    /// Fires a weapon based on the provided weapon data and consumes ammo if required.
     /// </summary>
     /// <param name="weaponData">Data identifying the weapon to fire</param>
     public void FireWeapon(ComponentData weaponData)

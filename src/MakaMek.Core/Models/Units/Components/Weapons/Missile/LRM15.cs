@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public class Lrm15 : Weapon
+public sealed class Lrm15 : Weapon
 {
     /// <inheritdoc />
     public override bool IsAimShotCapable => false;

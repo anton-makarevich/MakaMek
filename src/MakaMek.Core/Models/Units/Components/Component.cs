@@ -46,7 +46,8 @@ public abstract class Component : IManufacturedItem
     public IReadOnlyList<CriticalSlotAssignment> SlotAssignments => _slotAssignments;
 
     // Multi-location mounted parts
-    public IReadOnlyList<UnitPart> MountedOn => SlotAssignments.Select(a => a.UnitPart).ToList();
+    public IReadOnlyList<UnitPart> MountedOn => SlotAssignments.Select(a => a.UnitPart)
+        .Distinct().ToList();
 
     // Component type property for mapping to MakaMekComponent enum
     public MakaMekComponent ComponentType => _definition.ComponentType;
@@ -118,7 +119,7 @@ public abstract class Component : IManufacturedItem
 
     public void UnMount()
     {
-        if (!IsMounted) return;
+        if (_slotAssignments.Count == 0) return;
         
         if (!IsRemovable) throw new ComponentException($"{Name} is not removable");
 
@@ -143,7 +144,8 @@ public abstract class Component : IManufacturedItem
     public virtual void Deactivate() => IsActive = false;
 
     // Helper methods for multi-location components
-    public IEnumerable<PartLocation> GetLocations() => SlotAssignments.Select(a => a.Location);
+    public IEnumerable<PartLocation> GetLocations() => SlotAssignments.Select(a => a.Location)
+        .Distinct();
 
     // Backward compatibility methods
     public UnitPart? GetPrimaryMountLocation() => SlotAssignments.FirstOrDefault()?.UnitPart;

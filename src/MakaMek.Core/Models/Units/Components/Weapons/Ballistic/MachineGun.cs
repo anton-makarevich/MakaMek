@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 
-public class MachineGun : Weapon
+public sealed class MachineGun : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(

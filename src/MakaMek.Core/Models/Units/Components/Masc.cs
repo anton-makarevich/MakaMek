@@ -16,9 +16,11 @@ public class Masc : Component
     public Masc(ComponentData? componentData = null)
         : base(Definition, componentData)
     {
-        Deactivate(); // MASC starts deactivated
+        // Default to deactivated only for fresh instances; preserve the persisted state.
+        if (componentData == null)
+            Deactivate();
     }
-    
+
     public override void Hit()
     {
         base.Hit();

@@ -35,7 +35,7 @@ public class GyroTests
         sut.Hit();
         
         sut.IsDestroyed.ShouldBeFalse();
-        sut.Hits.ShouldBe(1);;
+        sut.Hits.ShouldBe(1);
     }
     
     [Fact]

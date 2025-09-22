@@ -58,19 +58,7 @@ public static class UnitExtensions
                 // Mark component as processed to avoid duplicates for multi-location components
                 processedComponents.Add(component);
 
-                // Convert CriticalSlotAssignments to LocationSlotAssignments
-                var assignments = component.SlotAssignments
-                    .Select(assignment => new LocationSlotAssignment(
-                        assignment.Location,
-                        assignment.FirstSlot,
-                        assignment.Length))
-                    .ToList();
-
-                equipment.Add(new ComponentData
-                {
-                    Type = component.ComponentType,
-                    Assignments = assignments
-                });
+                equipment.Add(component.ToData());
             }
         }
         

@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public class Srm6 : Weapon
+public sealed class Srm6 : Weapon
 {
     /// <inheritdoc />
     public override bool IsAimShotCapable => false;

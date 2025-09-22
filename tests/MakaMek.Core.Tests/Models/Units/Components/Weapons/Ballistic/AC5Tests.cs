@@ -13,7 +13,7 @@ public class Ac5Tests
         var sut = new Ac5();
 
         // Assert
-        sut.Name.ShouldBe("AC5");
+        sut.Name.ShouldBe("AC/5");
         sut.Size.ShouldBe(4);
         sut.Heat.ShouldBe(1);
         sut.Damage.ShouldBe(5);

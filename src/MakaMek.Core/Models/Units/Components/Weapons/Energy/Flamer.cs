@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 
-public class Flamer : Weapon
+public sealed class Flamer : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(

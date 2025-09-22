@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public class Lrm10 : Weapon
+public sealed class Lrm10 : Weapon
 {
     // Static definition for this weapon type
     /// <inheritdoc />

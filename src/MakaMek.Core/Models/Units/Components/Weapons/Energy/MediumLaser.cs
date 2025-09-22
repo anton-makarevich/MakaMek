@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 
-public class MediumLaser : Weapon
+public sealed class MediumLaser : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(

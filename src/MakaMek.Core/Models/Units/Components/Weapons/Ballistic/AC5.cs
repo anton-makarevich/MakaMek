@@ -2,11 +2,11 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 
-public class Ac5 : Weapon
+public sealed class Ac5 : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
-        Name: "AC5",
+        Name: "AC/5",
         ElementaryDamage: 5,
         Heat: 1,
         MinimumRange: 3,

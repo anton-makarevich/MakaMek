@@ -2,7 +2,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
-public class Ammo : Component
+public sealed class Ammo : Component
 {
     private int _remainingShots;
 

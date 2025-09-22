@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Melee;
 
-public class Hatchet : Weapon
+public sealed class Hatchet : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
