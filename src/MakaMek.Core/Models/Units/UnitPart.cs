@@ -54,6 +54,8 @@ public abstract class UnitPart
 
     private int FindMountLocation(int size)
     {
+        if (size <= 0 || size > TotalSlots)
+            return -1;
         var occupiedSlots = _components
             .Where(c => c.IsMounted)
             .SelectMany(c => c.MountedAtSlots)
@@ -63,7 +65,7 @@ public abstract class UnitPart
             .FirstOrDefault(i => Enumerable.Range(i, size).All(slot => !occupiedSlots.Contains(slot)), -1);
     }
 
-    private bool CanAddComponent(Component component, int[] slots)
+    private bool CanAddComponent(int[] slots)
     {
         if (slots.Length > AvailableSlots)
             return false;
@@ -101,7 +103,7 @@ public abstract class UnitPart
         }
 
         // Check if the component can be mounted at the specified slots
-        if (!CanAddComponent(component, slotsToUse))
+        if (!CanAddComponent(slotsToUse))
         {
             return false;
         }

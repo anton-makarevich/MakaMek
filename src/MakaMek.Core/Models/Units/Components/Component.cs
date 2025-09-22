@@ -99,24 +99,20 @@ public abstract class Component : IManufacturedItem
             Length = length
         });
     }
-
-    public void Mount(IEnumerable<CriticalSlotAssignment> slotAssignments)
-    {
-        foreach (var slotAssignment in slotAssignments)
-        {
-            Mount(slotAssignment);
-        }
-    }
-
-    public void Mount(CriticalSlotAssignment slotAssignment)
+    
+    private void Mount(CriticalSlotAssignment slotAssignment)
     {
         if (IsMounted) return;
-        var occupiedSlots = _slotAssignments.Sum(a=>a.Length);
+        if (slotAssignment.FirstSlot < 0 || slotAssignment.Length <= 0)
+            throw new ArgumentOutOfRangeException(nameof(slotAssignment));
+        if (slotAssignment.FirstSlot + slotAssignment.Length > slotAssignment.UnitPart.TotalSlots)
+            throw new ComponentException("Slot assignment exceeds available slots of the unit part.");
+        var occupiedSlots = _slotAssignments.Sum(a => a.Length);
         if (occupiedSlots + slotAssignment.Length > Size)
         {
             throw new ComponentException($"Component {Name} requires {Size} slots.");
         }
-        
+
         _slotAssignments.Add(slotAssignment);
     }
 

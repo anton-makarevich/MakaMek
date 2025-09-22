@@ -35,6 +35,16 @@ public class Program
             {
                 await ConvertMtfToJson(inputPath, outputPath);
             }
+            catch (ArgumentException ex)
+            {
+                await Console.Error.WriteLineAsync($"Invalid argument: {ex.Message}");
+                Environment.Exit(2);
+            }
+            catch (FileNotFoundException ex)
+            {
+                await Console.Error.WriteLineAsync($"File not found: {ex.Message}");
+                Environment.Exit(3);
+            }
             catch (Exception ex)
             {
                 await Console.Error.WriteLineAsync($"Error: {ex.Message}");
