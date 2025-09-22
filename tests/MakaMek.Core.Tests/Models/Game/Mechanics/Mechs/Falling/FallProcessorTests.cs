@@ -233,7 +233,7 @@ public class FallProcessorTests
     {
         // Arrange
         var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
-        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+        const int totalDamageDealt = 20; // Damage at/above a heavy damage threshold
         _testMech.ApplyDamage(
             [
                 CreateHitDataForLocation(PartLocation.CenterTorso,
@@ -297,7 +297,7 @@ public class FallProcessorTests
     {
         // Arrange
         var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
-        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+        const int totalDamageDealt = 20; // Damage at/above a heavy damage threshold
         _testMech.ApplyDamage(
             [
                 CreateHitDataForLocation(PartLocation.CenterTorso,
@@ -396,7 +396,7 @@ public class FallProcessorTests
     {
         // Arrange
         var componentHits = new List<ComponentHitData>(); // No critical hits
-        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+        const int totalDamageDealt = 20; // Damage at/above the heavy damage threshold
         _testMech.ApplyDamage(
             [
                 CreateHitDataForLocation(PartLocation.CenterTorso,
@@ -456,7 +456,7 @@ public class FallProcessorTests
     {
         // Arrange
         var componentHits = new List<ComponentHitData>(); // No critical hits
-        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+        const int totalDamageDealt = 20; // Damage at/above a heavy damage threshold
         _testMech.ApplyDamage(
             [
                 CreateHitDataForLocation(PartLocation.CenterTorso,

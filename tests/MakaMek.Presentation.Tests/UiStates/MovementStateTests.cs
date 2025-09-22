@@ -76,7 +76,7 @@ public class MovementStateTests
         _pilot.IsConscious.Returns(true);
         
         var unitData = MechFactoryTests.CreateDummyMechData();
-        var equipment = new List<ComponentData>(_unitData.Equipment)
+        var equipment = new List<ComponentData>(unitData.Equipment)
         {
             new()
             {
