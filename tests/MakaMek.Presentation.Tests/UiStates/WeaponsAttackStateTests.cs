@@ -986,6 +986,7 @@ public class WeaponsAttackStateTests
         // Arrange
         // Set up attacker and target units
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         
         // Position units on the map
@@ -1023,6 +1024,7 @@ public class WeaponsAttackStateTests
         // Arrange
         // Set up attacker and target units
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         
         // Position units on the map - far apart to ensure weapons are out of range
@@ -1116,7 +1118,7 @@ public class WeaponsAttackStateTests
         // Position units on the map
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var primaryTargetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
-        var secondaryTargetPosition = new HexPosition(new HexCoordinates(7, 5), HexDirection.Bottom);
+        var secondaryTargetPosition = new HexPosition(new HexCoordinates(7, 4), HexDirection.Bottom);
         
         attacker.Deploy(attackerPosition);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
@@ -1591,6 +1593,8 @@ public class WeaponsAttackStateTests
     {
         // Arrange
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
 
         // Position units on the map
