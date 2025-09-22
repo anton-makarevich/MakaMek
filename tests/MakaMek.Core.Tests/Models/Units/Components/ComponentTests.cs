@@ -3,6 +3,7 @@ using Shouldly;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components;
 
@@ -84,11 +85,14 @@ public class ComponentTests
     public void UnMount_ThrowsExceptionForFixedComponents()
     {
         // Arrange
-        var component = new TestComponent("Fixed Component");
+        var component = new ShoulderActuator();
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+        unitPart.TryAddComponent(component).ShouldBeTrue();
+        component.IsMounted.ShouldBeTrue();
 
         // Act & Assert
         var exception = Assert.Throws<ComponentException>(() => component.UnMount());
-        exception.Message.ShouldBe("Fixed components cannot be unmounted.");
+        exception.Message.ShouldBe($"Shoulder is not removable");
     }
 
     [Fact]
@@ -164,7 +168,7 @@ public class ComponentTests
 
         
         // Act & Assert
-        var exception = Assert.Throws<ComponentException>(() => component.Mount([2],unitPart));// Try to mount 
+        var exception = Assert.Throws<ComponentException>(() => component.Mount([2,3,4],unitPart));// Try to mount 
         exception.Message.ShouldBe("Component Test Component requires 2 slots.");
         
     }
@@ -255,7 +259,7 @@ public class ComponentTests
         component.UnMount();
         
         // Assert
-        component.MountedOn.ShouldBeNull();
+        component.MountedOn.ShouldBeEmpty();
         component.GetLocation().ShouldBeNull();
     }
     
@@ -281,7 +285,8 @@ public class ComponentTests
         // Arrange
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
         var component = new TestComponent("Test Component", 2);
-        unitPart.TryAddComponent(component);
+        unitPart.TryAddComponent(component).ShouldBeTrue();
+        component.IsMounted.ShouldBeTrue();
         
         // Act
         var result = unitPart.RemoveComponent(component);
@@ -289,7 +294,7 @@ public class ComponentTests
         // Assert
         result.ShouldBeTrue();
         component.IsMounted.ShouldBeFalse();
-        component.MountedOn.ShouldBeNull();
+        component.MountedOn.ShouldBeEmpty();
         unitPart.Components.ShouldNotContain(component);
     }
     

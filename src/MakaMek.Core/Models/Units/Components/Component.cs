@@ -56,6 +56,10 @@ public abstract class Component : IManufacturedItem
 
     public void Mount(int[] slots, UnitPart mountLocation)
     {
+        if (slots.Length > Size)
+        {
+            throw new ComponentException($"Component {Name} requires {Size} slots.");
+        }
         if (slots.Length == 0)
             return;
 
@@ -119,6 +123,8 @@ public abstract class Component : IManufacturedItem
     public void UnMount()
     {
         if (!IsMounted) return;
+        
+        if (!IsRemovable) throw new ComponentException($"{Name} is not removable");
 
         _slotAssignments.Clear();
     }

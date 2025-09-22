@@ -16,8 +16,9 @@ public abstract record ComponentDefinition(
 /// </summary>
 public record ActuatorDefinition(
     string Name,
-    MakaMekComponent ComponentType)
-    : ComponentDefinition(Name, 1, 1, 0, false, ComponentType);
+    MakaMekComponent ComponentType,
+    bool IsRemovable = false)
+    : ComponentDefinition(Name, 1, 1, 0, IsRemovable, ComponentType);
 
 /// <summary>
 /// Definition for internal components (life support, sensors, cockpit, gyro)
