@@ -72,15 +72,15 @@ public class UnitPartTests
     public void ApplyDamage_DoesNotDestroyComponentsWhenStructureIsDestroyed()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 0, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 0, 5, 12);
         var masc = new TestComponent("Test MASC");
-        part.TryAddComponent(masc);
+        sut.TryAddComponent(masc);
 
         // Act
-        part.ApplyDamage(10, HitDirection.Front); // Ensure the structure is destroyed
+        sut.ApplyDamage(10, HitDirection.Front); // Ensure the structure is destroyed
 
         // Assert
-        part.IsDestroyed.ShouldBeTrue();
+        sut.IsDestroyed.ShouldBeTrue();
         masc.IsDestroyed.ShouldBeFalse(); // Component should not be automatically destroyed
         masc.IsAvailable.ShouldBeFalse(); // not destroyed but not available to be used
         masc.IsActive.ShouldBeTrue(); // Components start active by default
@@ -90,13 +90,13 @@ public class UnitPartTests
     public void GetComponents_ReturnsCorrectComponentTypes()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
         var testComponent = new TestComponent("Test Component");
-        part.TryAddComponent(testComponent);
+        sut.TryAddComponent(testComponent);
 
         // Act
-        var testComponents = part.GetComponents<TestComponent>().ToList();
-        var jumpJetComponents = part.GetComponents<JumpJets>();
+        var testComponents = sut.GetComponents<TestComponent>().ToList();
+        var jumpJetComponents = sut.GetComponents<JumpJets>();
 
         // Assert
         testComponents.Count.ShouldBe(1);
@@ -105,14 +105,14 @@ public class UnitPartTests
     }
 
     [Fact]
-    public void CanAddFixedComponent_WhenSlotsAreAvailable()
+    public void CanAddComponent_WhenSlotsAreAvailable()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
         var smallComponent = new TestComponent("Small Component");
 
         // Act & Assert
-        part.TryAddComponent(smallComponent).ShouldBeTrue();
+        sut.TryAddComponent(smallComponent).ShouldBeTrue();
     }
     
     [Fact]
@@ -120,7 +120,7 @@ public class UnitPartTests
     {
         // Arrange
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3);
-        var smallComponent = new TestComponent("Small Component",1);
+        var smallComponent = new TestComponent("Small Component");
         var largeComponent = new TestComponent("Large Component",4);
 
         // Act & Assert
@@ -246,13 +246,13 @@ public class UnitPartTests
     public void CriticalHit_DoesNotDamageAlreadyDestroyedComponent()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
         var component = new TestComponent("Test Component");
-        part.TryAddComponent(component, [3]);
+        sut.TryAddComponent(component, [3]);
         component.Hit(); // Destroy the component first
         
         // Act
-        part.CriticalHit(3);
+        sut.CriticalHit(3);
         
         // Assert
         component.IsDestroyed.ShouldBeTrue();
@@ -263,38 +263,38 @@ public class UnitPartTests
     public void CriticalHit_HandlesMultipleHitsToSameComponent()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
         var component = new TestComponent("Test Component",3);
-        part.TryAddComponent(component,[2,3,4]).ShouldBeTrue();
+        sut.TryAddComponent(component,[2,3,4]).ShouldBeTrue();
         
         // Act
-        part.CriticalHit(2);
-        part.CriticalHit(3);
-        part.CriticalHit(4);
+        sut.CriticalHit(2);
+        sut.CriticalHit(3);
+        sut.CriticalHit(4);
         
         // Assert
         component.IsDestroyed.ShouldBeTrue();
         component.Hits.ShouldBe(1); // Component should only be hit once
-        part.HitSlots.Count.ShouldBe(3); // But all slots should be marked as hit
+        sut.HitSlots.Count.ShouldBe(3); // But all slots should be marked as hit
     }
 
     [Fact]
     public void ApplyDamage_ShouldRaiseArmorDamageEvent_WhenUnitIsSet()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
         var unit = new TestUnit();
-        part.Unit = unit;
+        sut.Unit = unit;
         
         // Act
-        part.ApplyDamage(5, HitDirection.Front);
+        sut.ApplyDamage(5, HitDirection.Front);
         
         // Assert
         var uiEvent = unit.DequeueNotification();
         uiEvent.ShouldNotBeNull();
         uiEvent.Type.ShouldBe(UiEventType.ArmorDamage);
         uiEvent.Parameters.Length.ShouldBe(2);
-        uiEvent.Parameters[0].ShouldBe(part.Name);
+        uiEvent.Parameters[0].ShouldBe(sut.Name);
         uiEvent.Parameters[1].ShouldBe("5");
     }
     
@@ -302,12 +302,12 @@ public class UnitPartTests
     public void ApplyDamage_ShouldRaiseStructureDamageEvent_WhenArmorIsDepletedAndStructureIsDamaged()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 5, 10, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 5, 10, 12);
         var unit = new TestUnit();
-        part.Unit = unit;
+        sut.Unit = unit;
         
         // Act
-        part.ApplyDamage(8, HitDirection.Front); // 5 armor + 3 structure damage
+        sut.ApplyDamage(8, HitDirection.Front); // 5 armor + 3 structure damage
         
         // Assert
         // First event should be armor damage
@@ -320,7 +320,7 @@ public class UnitPartTests
         structureEvent.ShouldNotBeNull();
         structureEvent.Type.ShouldBe(UiEventType.StructureDamage);
         structureEvent.Parameters.Length.ShouldBe(2);
-        structureEvent.Parameters[0].ShouldBe(part.Name);
+        structureEvent.Parameters[0].ShouldBe(sut.Name);
         structureEvent.Parameters[1].ShouldBe("3");
     }
     
@@ -328,12 +328,12 @@ public class UnitPartTests
     public void ApplyDamage_ShouldRaiseLocationDestroyedEvent_WhenStructureIsReducedToZero()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 5, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 5, 5, 12);
         var unit = new TestUnit();
-        part.Unit = unit;
+        sut.Unit = unit;
         
         // Act
-        part.ApplyDamage(15, HitDirection.Front); // 5 armor + 5 structure + 5 excess
+        sut.ApplyDamage(15, HitDirection.Front); // 5 armor + 5 structure + 5 excess
         
         // Assert
         // First event should be armor damage
@@ -349,22 +349,22 @@ public class UnitPartTests
         destroyedEvent.ShouldNotBeNull();
         destroyedEvent.Type.ShouldBe(UiEventType.LocationDestroyed);
         destroyedEvent.Parameters.Length.ShouldBe(1);
-        destroyedEvent.Parameters[0].ShouldBe(part.Name);
+        destroyedEvent.Parameters[0].ShouldBe(sut.Name);
     }
     
     [Fact]
     public void CriticalHit_ShouldRaiseCriticalHitEvent_WhenComponentIsHit()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
         var unit = new TestUnit();
-        part.Unit = unit;
+        sut.Unit = unit;
         
         var component = new TestComponent("Test Component");
-        part.TryAddComponent(component);
+        sut.TryAddComponent(component);
         
         // Act
-        part.CriticalHit(0); // Hit the first slot where our component is
+        sut.CriticalHit(0); // Hit the first slot where our component is
         
         // Assert
         var criticalEvent = unit.DequeueNotification();
@@ -378,15 +378,15 @@ public class UnitPartTests
     public void CriticalHit_ShouldRaiseComponentDestroyedEvent_WhenComponentIsDestroyed()
     {
         // Arrange
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
         var unit = new TestUnit();
-        part.Unit = unit;
+        sut.Unit = unit;
         
         var component = new TestComponent("Test Component");
-        part.TryAddComponent(component);
+        sut.TryAddComponent(component);
         
         // Act
-        part.CriticalHit(0); // Hit the first slot where our component is
+        sut.CriticalHit(0); // Hit the first slot where our component is
         
         // Assert
         // First event should be a critical hit
@@ -410,32 +410,32 @@ public class UnitPartTests
     public void TryAddComponent_ShouldReturnFalse_WhenSlotOutOfBounds()
     {
         // Arrange 
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
         var component = new TestComponent("Test Component"); 
 
         // Act
-        var result = part.TryAddComponent(component, [3]);
+        var result = sut.TryAddComponent(component, [3]);
 
         // Assert
         result.ShouldBeFalse();
-        part.Components.ShouldBeEmpty();
-        part.UsedSlots.ShouldBe(0);
+        sut.Components.ShouldBeEmpty();
+        sut.UsedSlots.ShouldBe(0);
     }
 
     [Fact]
     public void TryAddComponent_ShouldReturnTrue_WhenAllSlotsInBounds()
     {
         // Arrange - This verifies line 73 passes when slots are valid
-        var part = new TestUnitPart(PartLocation.LeftArm, 10, 5, 5); // 5 slots (0, 1, 2, 3, 4)
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 5); // 5 slots (0, 1, 2, 3, 4)
         var component = new TestComponent("Test Component",3); // All slots are in bounds
 
         // Act
-        var result = part.TryAddComponent(component,[1,2,3]);
+        var result = sut.TryAddComponent(component,[1,2,3]);
 
         // Assert
         result.ShouldBeTrue();
-        part.Components.Count.ShouldBe(1);
-        part.UsedSlots.ShouldBe(3);
+        sut.Components.Count.ShouldBe(1);
+        sut.UsedSlots.ShouldBe(3);
     }
 
     public class TestUnit() : Unit("Test", "Unit", 20, 4, [], Guid.NewGuid())
@@ -466,10 +466,10 @@ public class UnitPartTests
         protected override void ApplyHeatEffects()
             => throw new NotImplementedException();
 
-        public void AddPart(UnitPart part)
+        public void AddPart(UnitPart sut)
         {
-            _parts[part.Location] = part;
-            part.Unit = this;
+            _parts[sut.Location] = sut;
+            sut.Unit = this;
         }
     }
 }
