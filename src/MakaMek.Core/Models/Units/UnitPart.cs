@@ -31,7 +31,6 @@ public abstract class UnitPart
     // Slots management
     public int TotalSlots { get; }
     public int UsedSlots => _components
-        .Where(c => c.IsMounted)
         .SelectMany(c => c.GetMountedAtLocationSlots(Location))
         .Distinct()
         .Count();
@@ -61,7 +60,6 @@ public abstract class UnitPart
         if (size <= 0 || size > TotalSlots)
             return -1;
         var occupiedSlots = _components
-            .Where(c => c.IsMounted)
             .SelectMany(c => c.GetMountedAtLocationSlots(Location))
             .ToHashSet();
 
@@ -71,19 +69,23 @@ public abstract class UnitPart
 
     private bool CanAddComponent(int[] slots)
     {
+        // Remove duplicates and ensure ascending order
+        var uniqueSlots = slots
+            .OrderBy(s => s)
+            .Distinct().ToArray();
         if (slots.Length > AvailableSlots)
             return false;
 
         // Check if any required slots would be out of bounds
-        if (slots.Any(s => s >= TotalSlots || s < 0))
+        if (uniqueSlots.Any(s => s >= TotalSlots || s < 0))
             return false;
 
         // Check if any of the required slots are already occupied
         var occupiedSlots = _components.Where(c => c.IsMounted)
             .SelectMany(c => c.GetMountedAtLocationSlots(Location))
             .ToHashSet();
-        
-        return !slots.Intersect(occupiedSlots).Any();
+
+        return !uniqueSlots.Intersect(occupiedSlots).Any();
     }
 
     public bool TryAddComponent(Component component, int[]? slots=null)
@@ -120,8 +122,7 @@ public abstract class UnitPart
 
     public Component? GetComponentAtSlot(int slot)
     {
-        return _components.FirstOrDefault(c => c.IsMounted 
-                                               && c.GetMountedAtLocationSlots(Location).Contains(slot));
+        return _components.FirstOrDefault(c => c.GetMountedAtLocationSlots(Location).Contains(slot));
     }
 
     protected virtual int ReduceArmor(int damage, HitDirection direction)

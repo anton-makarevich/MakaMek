@@ -188,47 +188,6 @@ public class UnitTests
         rightArmComponentPart.ShouldBe(rightArmPart);
         unmountedComponentPart.ShouldBeNull();
     }
-    
-    [Fact]
-    public void GetMountedComponentAtLocation_ShouldReturnComponentAtSpecificFirstSlot()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var weapon1 = new TestWeapon("Weapon 1",2);
-        var weapon2 = new TestWeapon("Weapon 2",2);
-
-        MountWeaponOnUnit(unit, weapon1, PartLocation.LeftArm, [0, 1]);
-        MountWeaponOnUnit(unit, weapon2, PartLocation.LeftArm, [2, 3]);
-
-        // Act
-        var foundWeapon1 = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 0);
-        var foundWeapon2 = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 2);
-        var notFoundWeapon = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 4);
-
-        // Assert
-        foundWeapon1.ShouldNotBeNull();
-        foundWeapon1.ShouldBe(weapon1);
-
-        foundWeapon2.ShouldNotBeNull();
-        foundWeapon2.ShouldBe(weapon2);
-
-        notFoundWeapon.ShouldBeNull();
-    }
-
-    [Fact]
-    public void GetMountedComponentAtLocation_ShouldReturnNull_WhenInvalidFirstSlot()
-    {
-        // Arrange
-        var unit = CreateTestUnit();
-        var weapon = new TestWeapon("Weapon",2);
-        MountWeaponOnUnit(unit, weapon, PartLocation.LeftArm, [0, 1]);
-
-        // Act
-        var result = unit.GetMountedComponentAtLocation<Weapon>(PartLocation.LeftArm, 5);
-
-        // Assert
-        result.ShouldBeNull();
-    }
 
     [Fact]
     public void GetMountedComponentAtLocation_ShouldReturnComponentAtSpecificSlot()
@@ -325,7 +284,7 @@ public class UnitTests
                 Weapon = new ComponentData
                 {
                     Name = "Test Weapon",
-                    Type = MakaMekComponent.ISAmmoMG,
+                    Type = MakaMekComponent.MachineGun,
                     Assignments = [
                         new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)
                     ]

@@ -27,7 +27,8 @@ public class MechFactoryTests
 
     public static UnitData CreateDummyMechData(List<ComponentData>? equipment = null, bool overwriteEquipment = false)
     {
-        var engineRating = 100;
+        var engineStateFromInput = equipment?.FirstOrDefault(c => c.Type == MakaMekComponent.Engine)?.SpecificData as EngineStateData;
+        var engineRating = engineStateFromInput?.Rating ?? 100;
         List<ComponentData> defaultEquipment =
         [
             new()

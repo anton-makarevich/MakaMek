@@ -162,6 +162,19 @@ public class UnitPartTests
     }
     
     [Fact]
+    public void TryAddComponent_ShouldOccupySlots_WhenPartiallyMounted()
+    {
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 6);
+        var comp = new TestComponent("EngineChunk", 3);
+        sut.TryAddComponent(comp, [1, 3]).ShouldBeTrue(); // partial
+
+        sut.UsedSlots.ShouldBe(2); // partial assignments still counted
+        sut.GetComponentAtSlot(1).ShouldBe(comp);
+        sut.GetComponentAtSlot(3).ShouldBe(comp);
+        comp.IsMounted.ShouldBeFalse(); // not fully assigned yet
+    }
+    
+    [Fact]
     public void TryAddComponent_ShouldReturnFalse_WhenSlotIsNegative()
     {
         // Arrange
