@@ -71,6 +71,14 @@ public abstract class Component : IManufacturedItem
 
         Array.Sort(slots); // Ensure slots are ordered
 
+        for (var i = 1; i < slots.Length; i++)
+        {
+            if (slots[i] == slots[i - 1])
+            {
+                throw new ComponentException("Slot assignments cannot contain duplicates.");
+            }
+        }
+
         var start = slots[0];
         var length = 1;
 

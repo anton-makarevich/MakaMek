@@ -68,6 +68,30 @@ public class ComponentTests
     }
 
     [Fact]
+    public void Mount_ShouldThrowWhenSlotsContainDuplicates()
+    {
+        // Arrange
+        var sut = new TestComponent("Test Component", 3);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+
+        // Act & Assert
+        Should.Throw<ComponentException>(() => sut.Mount(unitPart, [2, 2, 3]))
+            .Message.ShouldBe("Slot assignments cannot contain duplicates.");
+    }
+
+    [Fact]
+    public void Mount_ShouldThrowWhenSlotsExceedUnitPartCapacity()
+    {
+        // Arrange
+        var sut = new TestComponent("Test Component", 2);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+
+        // Act & Assert
+        Should.Throw<ComponentException>(() => sut.Mount(unitPart, [9, 10]))
+            .Message.ShouldBe("Slot assignment exceeds available slots of the unit part.");
+    }
+
+    [Fact]
     public void UnMount_ResetsMountedSlots()
     {
         // Arrange
@@ -314,7 +338,7 @@ public class ComponentTests
     }
     
     [Fact]
-    public void FixedComponent_ShouldHaveCorrectLocation()
+    public void Component_ShouldHaveCorrectLocation_WhenAddedToPart()
     {
         // Arrange
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);

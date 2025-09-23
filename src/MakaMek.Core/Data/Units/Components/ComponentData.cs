@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Sanet.MakaMek.Core.Data.Units.Components;
+﻿namespace Sanet.MakaMek.Core.Data.Units.Components;
 
 /// <summary>
 /// Represents a component instance with its slot assignments and mutable state
