@@ -635,7 +635,7 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall"); 
 
         // Dice rolls:
-        // First rol: ULA Hit PSR fails.
+        // First roll: ULA Hit PSR fails.
         // Second roll: PilotDamageFromFall succeeds.
         SetupRollResult(false, PilotingSkillRollType.UpperLegActuatorHit); 
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall); 

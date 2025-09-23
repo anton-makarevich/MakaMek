@@ -34,7 +34,7 @@ public class BaseGameTests : BaseGame
     private static readonly IRulesProvider RulesProviderInstance = new ClassicBattletechRulesProvider();
     private static readonly IComponentProvider ComponentProviderInstance = new ClassicBattletechComponentProvider();
     public BaseGameTests() : base(
-        new ClassicBattletechRulesProvider(),
+        RulesProviderInstance,
         new MechFactory(
             RulesProviderInstance,
             ComponentProviderInstance,
@@ -285,8 +285,8 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(attackerJoinCommand);
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units[0] as Mech;
-        attackerMech!.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        attackerMech!.AssignPilot(new MechWarrior("John", "Doe"));
+        attackerMech!.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
+        attackerMech.AssignPilot(new MechWarrior("John", "Doe"));
         attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Add a target player and unit
@@ -321,13 +321,7 @@ public class BaseGameTests : BaseGame
             [
                 new WeaponTargetData
                 {
-                    Weapon = new ComponentData
-                    {
-                        Name = weapon.Name,
-                        Type = weapon.ComponentType,
-                        Assignments = [
-                            new LocationSlotAssignment(PartLocation.RightArm, weapon.MountedAtFirstLocationSlots.First(), weapon.MountedAtFirstLocationSlots.Length)]
-                    },
+                    Weapon = weapon.ToData(),
                     TargetId = targetMech.Id,
                     IsPrimaryTarget = true
                 }
@@ -362,9 +356,9 @@ public class BaseGameTests : BaseGame
         OnPlayerJoined(attackerJoinCommand);
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
-        attackerMech!.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        attackerMech!.Parts[PartLocation.LeftArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        attackerMech!.AssignPilot(new MechWarrior("John", "Doe"));
+        attackerMech!.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
+        attackerMech.Parts[PartLocation.LeftArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
+        attackerMech.AssignPilot(new MechWarrior("John", "Doe"));
         attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
 
         // Add first target player and unit
@@ -405,29 +399,13 @@ public class BaseGameTests : BaseGame
             [
                 new WeaponTargetData
                 {
-                    Weapon = new ComponentData
-                    {
-                        Name = rightArmWeapon.Name,
-                        Type = rightArmWeapon.ComponentType,
-                        Assignments = [
-                            new LocationSlotAssignment(PartLocation.RightArm,
-                                rightArmWeapon.MountedAtFirstLocationSlots.First(),
-                                rightArmWeapon.MountedAtFirstLocationSlots.Length)]
-                    },
+                    Weapon = rightArmWeapon.ToData(),
                     TargetId = targetMech1.Id,
                     IsPrimaryTarget = true
                 },
                 new WeaponTargetData
                 {
-                    Weapon = new ComponentData
-                    {
-                        Name = leftArmWeapon.Name,
-                        Type = leftArmWeapon.ComponentType,
-                        Assignments = [
-                            new LocationSlotAssignment(PartLocation.LeftArm,
-                                leftArmWeapon.MountedAtFirstLocationSlots.First(),
-                                leftArmWeapon.MountedAtFirstLocationSlots.Length)]
-                    },
+                    Weapon = leftArmWeapon.ToData(),
                     TargetId = targetMech2.Id,
                     IsPrimaryTarget = true
                 }
@@ -607,7 +585,7 @@ public class BaseGameTests : BaseGame
         var attackerPlayer = Players.First(p => p.Id == attackerPlayerId);
         var attackerMech = attackerPlayer.Units.First() as Mech;
         attackerMech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        attackerMech.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attackerMech.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
 
         // Add a target player and unit
         var targetPlayerId = Guid.NewGuid();
@@ -651,14 +629,7 @@ public class BaseGameTests : BaseGame
             PlayerId = attackerPlayerId,
             AttackerId = attackerMech.Id,
             TargetId = targetMech.Id,
-            WeaponData = new ComponentData
-            {
-                Name = weapon.Name,
-                Type = weapon.ComponentType,
-                Assignments = [
-                    new LocationSlotAssignment(PartLocation.RightArm, weapon.MountedAtFirstLocationSlots.First(), weapon.MountedAtFirstLocationSlots.Length)
-                ]
-            },
+            WeaponData =weapon.ToData(),
             ResolutionData = new AttackResolutionData(
                 10,
                 [],

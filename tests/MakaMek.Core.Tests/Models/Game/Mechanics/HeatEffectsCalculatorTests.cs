@@ -40,7 +40,7 @@ public class HeatEffectsCalculatorTests
 
         // Add a single ammo component
         var ammo = AmmoTests.CreateAmmo(Lrm5, 24);
-        centerTorso.TryAddComponent(ammo, [10]);
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
 
         return mech;
     }

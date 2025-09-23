@@ -43,12 +43,12 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Get unit IDs and references
         var player1 = Game.Players[0];
         _unit1 = player1.Units[0];
-        _unit1.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        _unit1.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
         _unit1Id = _unit1.Id;
 
         var player2 = Game.Players[1];
         _unit2 = player2.Units[0];
-        _unit2.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        _unit2.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser()).ShouldBeTrue();
         _unit2Id = _unit2.Id;
 
         // Set initiative order
