@@ -89,7 +89,7 @@ public class MtfDataProvider:IMechDataProvider
         {
             if (string.IsNullOrWhiteSpace(line))
             {
-                if (currentLocation == PartLocation.RightLeg)
+                if (currentLocation == PartLocation.RightLeg) // True for mtf, but maybe should find a better way
                 {
                     break; // End of equipment data
                 }
@@ -143,7 +143,7 @@ public class MtfDataProvider:IMechDataProvider
                 if (TryParseLocation(locationText, out var location))
                 {
                     currentLocation = location;
-                    currentSlotIndex = 0; // Reset slot index for new location
+                    currentSlotIndex = 0; // Reset slot index for a new location
                     if (!locationSlotComponents.ContainsKey(location))
                         locationSlotComponents[location] = new Dictionary<int, MakaMekComponent>();
                 }

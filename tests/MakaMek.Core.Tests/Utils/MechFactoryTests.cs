@@ -25,34 +25,7 @@ public class MechFactoryTests
         _mechFactory = new MechFactory(structureValueProvider, componentProvider,Substitute.For<ILocalizationService>());
     }
 
-    private static UnitData CreateBasicMechData(List<ComponentData>? equipment = null)
-    {
-        return new UnitData
-        {
-            Chassis = "Test",
-            Model = "Mech",
-            Mass = 20,
-            WalkMp = 8,
-            EngineRating = 160,
-            EngineType = "XL",
-            ArmorValues = new Dictionary<PartLocation, ArmorLocation>
-            {
-                { PartLocation.Head, new ArmorLocation { FrontArmor = 9 } },
-                { PartLocation.CenterTorso, new ArmorLocation { FrontArmor = 10, RearArmor = 5 } },
-                { PartLocation.LeftTorso, new ArmorLocation { FrontArmor = 8, RearArmor = 4 } },
-                { PartLocation.RightTorso, new ArmorLocation { FrontArmor = 8, RearArmor = 4 } },
-                { PartLocation.LeftArm, new ArmorLocation { FrontArmor = 4 } },
-                { PartLocation.RightArm, new ArmorLocation { FrontArmor = 4 } },
-                { PartLocation.LeftLeg, new ArmorLocation { FrontArmor = 8 } },
-                { PartLocation.RightLeg, new ArmorLocation { FrontArmor = 8 } }
-            },
-            Equipment = equipment ?? [],
-            AdditionalAttributes = new Dictionary<string, string>(),
-            Quirks = new Dictionary<string, string>()
-        };
-    }
-
-    public static UnitData CreateDummyMechData(List<ComponentData>? equipment = null)
+    public static UnitData CreateDummyMechData(List<ComponentData>? equipment = null, bool overwriteEquipment = false)
     {
         var engineRating = 100;
         List<ComponentData> defaultEquipment =
@@ -69,7 +42,15 @@ public class MechFactoryTests
             }
         ];
         if (equipment != null)
-            defaultEquipment.AddRange(equipment);
+        {
+            if (overwriteEquipment)
+            {
+                defaultEquipment = equipment;
+            }else
+            {
+                defaultEquipment.AddRange(equipment);
+            }
+        }
         
         return new UnitData
         {
@@ -109,7 +90,7 @@ public class MechFactoryTests
                 Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 1)]
             }
         };
-        var unitData = CreateBasicMechData(equipment);
+        var unitData = CreateDummyMechData(equipment);
 
         // Act
         var mech = _mechFactory.Create(unitData);
@@ -140,7 +121,7 @@ public class MechFactoryTests
                 Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 4)]
             }
         };
-        var unitData = CreateBasicMechData(equipment);
+        var unitData = CreateDummyMechData(equipment);
 
         // Act
         var mech = _mechFactory.Create(unitData);
@@ -174,7 +155,7 @@ public class MechFactoryTests
                 ]
             }
         };
-        var unitData = CreateBasicMechData(equipment);
+        var unitData = CreateDummyMechData(equipment);
 
         // Act
         var mech = _mechFactory.Create(unitData);
@@ -217,7 +198,7 @@ public class MechFactoryTests
                 SpecificData = new EngineStateData(EngineType.XLFusion, 160)
             }
         };
-        var unitData = CreateBasicMechData(equipment);
+        var unitData = CreateDummyMechData(equipment, true);
 
         // Act
         var mech = _mechFactory.Create(unitData);
@@ -263,7 +244,7 @@ public class MechFactoryTests
                 Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 1, 1)]
             }
         };
-        var unitData = CreateBasicMechData(equipment);
+        var unitData = CreateDummyMechData(equipment);
 
         // Act
         var mech = _mechFactory.Create(unitData);
@@ -288,14 +269,14 @@ public class MechFactoryTests
     public void Create_WithNoEquipment_CreatesBasicMech()
     {
         // Arrange
-        var unitData = CreateBasicMechData();
+        var unitData = CreateDummyMechData();
 
         // Act
         var mech = _mechFactory.Create(unitData);
 
         // Assert
         mech.ShouldNotBeNull();
-        mech.Name.ShouldBe("Test Mech");
+        mech.Name.ShouldBe("Locust LCT-1V");
         mech.Tonnage.ShouldBe(20);
         
         // Should have basic structure but no additional equipment
@@ -316,7 +297,7 @@ public class MechFactoryTests
                 Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 2, 1)]
             }
         };
-        var unitData = CreateBasicMechData(equipment);
+        var unitData = CreateDummyMechData(equipment);
 
         // Act
         var mech = _mechFactory.Create(unitData);

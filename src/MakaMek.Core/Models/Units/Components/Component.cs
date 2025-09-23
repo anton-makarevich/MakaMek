@@ -43,7 +43,7 @@ public abstract class Component : IManufacturedItem
     public bool IsRemovable => _definition.IsRemovable;
 
     // Multi-location slot assignments
-    public IReadOnlyList<CriticalSlotAssignment> SlotAssignments => _slotAssignments;
+    public IReadOnlyList<CriticalSlotAssignment> SlotAssignments => _slotAssignments.AsReadOnly();
 
     // Multi-location mounted parts
     public IReadOnlyList<UnitPart> MountedOn => SlotAssignments.Select(a => a.UnitPart)
