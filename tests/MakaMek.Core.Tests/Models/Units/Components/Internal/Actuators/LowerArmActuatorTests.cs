@@ -14,7 +14,7 @@ public class LowerArmActuatorTests
         var sut = new LowerArmActuator();
 
         // Assert
-        sut.Name.ShouldBe("Lower Arm");
+        sut.Name.ShouldBe("Lower Arm Actuator");
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.LowerArmActuator);
         sut.IsRemovable.ShouldBeTrue();

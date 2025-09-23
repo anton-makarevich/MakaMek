@@ -13,7 +13,7 @@ public class UpperLegActuatorTests
         var sut = new UpperLegActuator();
 
         // Assert
-        sut.Name.ShouldBe("Upper Leg");
+        sut.Name.ShouldBe("Upper Leg Actuator");
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.UpperLegActuator);
         sut.IsRemovable.ShouldBeFalse();
