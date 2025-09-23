@@ -19,13 +19,13 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
@@ -2354,7 +2354,7 @@ public class ClientGameTests
         
         _sut.HandleCommand(joinCommand);
         var mech = _sut.Players.SelectMany(p => p.Units).First() as Mech;
-        var lrm5 = new Ammo(Lrm5.Definition, 1);
+        var lrm5 = AmmoTests.CreateAmmo(Lrm5.Definition, 1);
         var ct = mech!.Parts[PartLocation.CenterTorso];
         ct.TryAddComponent(lrm5);
         var slot = lrm5.MountedAtSlots[0];

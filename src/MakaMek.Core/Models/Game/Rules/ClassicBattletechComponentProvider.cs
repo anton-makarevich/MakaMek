@@ -147,18 +147,18 @@ public class ClassicBattletechComponentProvider : IComponentProvider
             [MakaMekComponent.Hatchet] = data => new Hatchet(data),
 
             // Ammo
-            [MakaMekComponent.ISAmmoMG] = data => CreateAmmo(MachineGun.Definition, data),
-            [MakaMekComponent.ISAmmoAC2] = data => CreateAmmo(Ac2.Definition, data),
-            [MakaMekComponent.ISAmmoAC5] = data => CreateAmmo(Ac5.Definition, data),
-            [MakaMekComponent.ISAmmoAC10] = data => CreateAmmo(Ac10.Definition, data),
-            [MakaMekComponent.ISAmmoAC20] = data => CreateAmmo(Ac20.Definition, data),
-            [MakaMekComponent.ISAmmoLRM5] = data => CreateAmmo(Lrm5.Definition, data),
-            [MakaMekComponent.ISAmmoLRM10] = data => CreateAmmo(Lrm10.Definition, data),
-            [MakaMekComponent.ISAmmoLRM15] = data => CreateAmmo(Lrm15.Definition, data),
-            [MakaMekComponent.ISAmmoLRM20] = data => CreateAmmo(Lrm20.Definition, data),
-            [MakaMekComponent.ISAmmoSRM2] = data => CreateAmmo(Srm2.Definition, data),
-            [MakaMekComponent.ISAmmoSRM4] = data => CreateAmmo(Srm4.Definition, data),
-            [MakaMekComponent.ISAmmoSRM6] = data => CreateAmmo(Srm6.Definition, data),
+            [MakaMekComponent.ISAmmoMG] = data => new Ammo(MachineGun.Definition, data),
+            [MakaMekComponent.ISAmmoAC2] = data => new Ammo(Ac2.Definition, data),
+            [MakaMekComponent.ISAmmoAC5] = data => new Ammo(Ac5.Definition, data),
+            [MakaMekComponent.ISAmmoAC10] = data => new Ammo(Ac10.Definition, data),
+            [MakaMekComponent.ISAmmoAC20] = data => new Ammo(Ac20.Definition, data),
+            [MakaMekComponent.ISAmmoLRM5] = data => new Ammo(Lrm5.Definition, data),
+            [MakaMekComponent.ISAmmoLRM10] = data => new Ammo(Lrm10.Definition, data),
+            [MakaMekComponent.ISAmmoLRM15] = data => new Ammo(Lrm15.Definition, data),
+            [MakaMekComponent.ISAmmoLRM20] = data => new Ammo(Lrm20.Definition, data),
+            [MakaMekComponent.ISAmmoSRM2] = data => new Ammo(Srm2.Definition, data),
+            [MakaMekComponent.ISAmmoSRM4] = data => new Ammo(Srm4.Definition, data),
+            [MakaMekComponent.ISAmmoSRM6] = data => new Ammo(Srm6.Definition, data),
         };
     }
 
@@ -167,17 +167,5 @@ public class ClassicBattletechComponentProvider : IComponentProvider
         return data?.SpecificData is EngineStateData 
             ? new Engine(data) 
             : null;
-    }
-
-    private static Component CreateAmmo(WeaponDefinition weaponDefinition, ComponentData? data)
-    {
-        var remainingShots = weaponDefinition.FullAmmoRounds;
-
-        if (data?.SpecificData is AmmoStateData ammoState)
-        {
-            remainingShots = ammoState.RemainingShots;
-        }
-
-        return new Ammo(weaponDefinition, remainingShots);
     }
 }

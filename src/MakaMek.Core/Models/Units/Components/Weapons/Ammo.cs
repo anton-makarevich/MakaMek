@@ -6,7 +6,7 @@ public sealed class Ammo : Component
 {
     private int _remainingShots;
 
-    public Ammo(WeaponDefinition definition, int initialShots, ComponentData? componentData = null)
+    public Ammo(WeaponDefinition definition, ComponentData? componentData = null)
         : base(CreateAmmoDefinition(definition), componentData)
     {
         Definition = definition;
@@ -15,11 +15,11 @@ public sealed class Ammo : Component
         var maxRounds = definition.FullAmmoRounds;
         if (componentData?.SpecificData is AmmoStateData ammoState)
         {
-            _remainingShots = Math.Min(Math.Max(ammoState.RemainingShots, 0), maxRounds);
+            _remainingShots = Math.Max(ammoState.RemainingShots, 0);
         }
         else
         {
-            _remainingShots = Math.Min(Math.Max(initialShots, 0), maxRounds);
+            _remainingShots = Math.Max(maxRounds, 0);
         }
     }
 
@@ -31,11 +31,7 @@ public sealed class Ammo : Component
         }
         return new EquipmentDefinition(
             $"{weaponDefinition.Name} Ammo",
-            weaponDefinition.AmmoComponentType ?? throw new InvalidOperationException("Ammo component type not defined"),
-            0, // Ammo has no battle value
-            1, // Ammo takes 1 slot
-            1, // Ammo has 1 health point
-            true); // Ammo is removable
+            weaponDefinition.AmmoComponentType ?? throw new InvalidOperationException("Ammo component type not defined")); 
     }
 
     public WeaponDefinition Definition { get; }
@@ -72,7 +68,7 @@ public sealed class Ammo : Component
         return Definition.TotalDamage * RemainingShots;
     }
 
-    protected override ComponentSpecificData? GetSpecificData()
+    protected override ComponentSpecificData GetSpecificData()
     {
         return new AmmoStateData(RemainingShots);
     }

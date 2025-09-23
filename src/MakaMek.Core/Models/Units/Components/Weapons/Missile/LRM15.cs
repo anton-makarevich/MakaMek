@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public sealed class Lrm15 : Weapon
+public sealed class Lrm15(ComponentData? componentData = null) : Weapon(Definition, componentData)
 {
     /// <inheritdoc />
     public override bool IsAimShotCapable => false;
@@ -24,14 +24,9 @@ public sealed class Lrm15 : Weapon
         FullAmmoRounds: 8,
         WeaponComponentType: MakaMekComponent.LRM15,
         AmmoComponentType: MakaMekComponent.ISAmmoLRM15);
-
-    // Constructor uses the static definition
-    public Lrm15(ComponentData? componentData = null) : base(Definition, componentData)
-    {
-    }
-
+    
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, Definition.FullAmmoRounds);
+        return new Ammo(Definition);
     }
 }

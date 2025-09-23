@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -65,7 +66,7 @@ public class ComponentHitDataTest
     {
         // Arrange
         var part = _unit.Parts[PartLocation.CenterTorso];
-        var ammo = new Ammo(Lrm5.Definition, 1);
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 1);
         part.TryAddComponent(ammo, [10]).ShouldBeTrue();
         
         // Act

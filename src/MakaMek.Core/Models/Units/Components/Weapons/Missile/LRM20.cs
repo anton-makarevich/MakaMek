@@ -27,6 +27,6 @@ public sealed class Lrm20(ComponentData? componentData = null) : Weapon(Definiti
     
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, Definition.FullAmmoRounds);
+        return new Ammo(Definition);
     }
 }

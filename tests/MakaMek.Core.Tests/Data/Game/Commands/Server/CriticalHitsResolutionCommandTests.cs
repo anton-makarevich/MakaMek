@@ -6,9 +6,9 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -194,7 +194,7 @@ public class CriticalHitsResolutionCommandTests
     {
         // Arrange - Multiple locations, some with crits, some blown off, some with explosions
         var rightArm = _target.Parts[PartLocation.RightArm];
-        var ammo = new Ammo(Lrm5.Definition, 20);
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 20);
         rightArm.TryAddComponent(ammo).ShouldBeTrue();
 
         var command = CreateCommand([

@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;
 
@@ -163,7 +164,7 @@ public class AmmoExplosionCommandTests
     {
         // Arrange
         var centerTorso = _testMech.Parts[PartLocation.CenterTorso];
-        var ammo = new Ammo(CreateLrm5Definition(), 24);
+        var ammo = AmmoTests.CreateAmmo(CreateLrm5Definition(), 24);
         centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue(); // Use slot 10, which is available
 
         var command = CreateCommand() with
@@ -230,7 +231,7 @@ public class AmmoExplosionCommandTests
     {
         // Arrange
         var ct = _testMech.Parts[PartLocation.CenterTorso];
-        var ammo = new Ammo(CreateLrm5Definition(), 20);
+        var ammo = AmmoTests.CreateAmmo(CreateLrm5Definition(), 20);
         ct.TryAddComponent(ammo).ShouldBeTrue();
         
         var criticalHitData = new LocationCriticalHitsData(
@@ -338,8 +339,8 @@ public class AmmoExplosionCommandTests
     {
         // Arrange
         var leftArm = _testMech.Parts[PartLocation.LeftArm];
-        var ac5 = new Ammo(Ac5.Definition, 1);
-        var lrm10 = new Ammo(Lrm10.Definition, 1);
+        var ac5 = AmmoTests.CreateAmmo(Ac5.Definition, 1);
+        var lrm10 = AmmoTests.CreateAmmo(Lrm10.Definition, 1);
         leftArm.TryAddComponent(ac5).ShouldBeTrue();
         leftArm.TryAddComponent(lrm10).ShouldBeTrue();
         var criticalHitData = new LocationCriticalHitsData(

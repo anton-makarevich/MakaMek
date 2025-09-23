@@ -4,9 +4,9 @@ using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -59,7 +59,7 @@ public class CriticalHitsCalculatorTests
         var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Add an explodable ammo component
-        var ammo = new Ammo(Lrm5.Definition, 24);
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
 
         // Setup structure damage calculator to return damage from explosion
@@ -97,7 +97,7 @@ public class CriticalHitsCalculatorTests
         var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Add an explodable ammo component
-        var ammo = new Ammo(Lrm5.Definition, 24);
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
 
         // Setup structure damage calculator to return damage from explosion
@@ -148,7 +148,7 @@ public class CriticalHitsCalculatorTests
         var testUnit = CreateTestMech();
 
         // Create an ammo component not mounted to any part (no slots)
-        var ammo = new Ammo(Lrm5.Definition, 24);
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
         // Don't mount it to any part, so MountedAtSlots will be empty
 
         // Act
@@ -169,7 +169,7 @@ public class CriticalHitsCalculatorTests
         var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Ammo with 0 rounds -> zero explosion damage
-        var ammo = new Ammo(Lrm5.Definition, 0);
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 0);
         centerTorso.TryAddComponent(ammo).ShouldBeTrue();
 
         // Act
@@ -294,7 +294,7 @@ public class CriticalHitsCalculatorTests
         var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Add an explodable ammo component
-        var ammo = new Ammo(Lrm5.Definition, 24);
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
 
         List<LocationDamageData> hitLocationsData = [
@@ -340,9 +340,9 @@ public class CriticalHitsCalculatorTests
         var leftTorso = testUnit.Parts[PartLocation.LeftTorso];
 
         // Add explodable ammo components
-        var ammo1 = new Ammo(Lrm5.Definition, 24);
+        var ammo1 = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo1, [10]).ShouldBeTrue();
-        var ammo2 = new Ammo(Lrm5.Definition, 24);
+        var ammo2 = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
         leftTorso.TryAddComponent(ammo2, [8]).ShouldBeTrue();
 
         List<LocationDamageData> hitLocationsData = [
@@ -399,9 +399,9 @@ public class CriticalHitsCalculatorTests
         var centerTorso = testUnit.Parts[PartLocation.CenterTorso];
 
         // Add multiple explodable ammo components
-        var ammo1 = new Ammo(Lrm5.Definition, 24);
+        var ammo1 = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo1, [10]).ShouldBeTrue();
-        var ammo2 = new Ammo(Lrm5.Definition, 24);
+        var ammo2 = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
         centerTorso.TryAddComponent(ammo2, [11]).ShouldBeTrue();
 
         List<LocationDamageData> hitLocationsData = [

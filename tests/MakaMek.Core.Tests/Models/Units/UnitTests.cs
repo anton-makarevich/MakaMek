@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units;
@@ -507,9 +508,9 @@ public class UnitTests
         var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso, leftTorso]);
         
         var ac5Weapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
-        var ac5Ammo1 = new Ammo(Ac5.Definition, 20);
-        var ac5Ammo2 = new Ammo(Ac5.Definition, 20);
-        var lrm5Ammo = new Ammo(Lrm5.Definition, 24);
+        var ac5Ammo1 = AmmoTests.CreateAmmo(Ac5.Definition, 20);
+        var ac5Ammo2 = AmmoTests.CreateAmmo(Ac5.Definition, 20);
+        var lrm5Ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 24);
         
         centerTorso.TryAddComponent(ac5Weapon);
         centerTorso.TryAddComponent(ac5Ammo1);
@@ -549,8 +550,8 @@ public class UnitTests
         var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso, leftTorso]);
         
         var ac5Weapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
-        var ac5Ammo1 = new Ammo(Ac5.Definition, 20);
-        var ac5Ammo2 = new Ammo(Ac5.Definition, 15);
+        var ac5Ammo1 = AmmoTests.CreateAmmo(Ac5.Definition, 20);
+        var ac5Ammo2 = AmmoTests.CreateAmmo(Ac5.Definition, 15);
         
         centerTorso.TryAddComponent(ac5Weapon);
         centerTorso.TryAddComponent(ac5Ammo1);
@@ -779,7 +780,7 @@ public class UnitTests
         MountWeaponOnUnit(unit, ballisticWeapon, PartLocation.LeftArm, [0, 1]);
         
         // Add ammo to the unit
-        var ammo = new Ammo(Ac5.Definition, 10);
+        var ammo = AmmoTests.CreateAmmo(Ac5.Definition, 10);
         var rightArmPart = unit.Parts[PartLocation.RightArm];
         rightArmPart.TryAddComponent(ammo);
         
@@ -857,9 +858,9 @@ public class UnitTests
         MountWeaponOnUnit(unit, ballisticWeapon, PartLocation.LeftArm, [0, 1]);
         
         // Add multiple ammo components with different shot counts
-        var ammo1 = new Ammo(Ac5.Definition, 3);
-        var ammo2 = new Ammo(Ac5.Definition, 8); // This one has more shots
-        var ammo3 = new Ammo(Ac5.Definition, 5);
+        var ammo1 = AmmoTests.CreateAmmo(Ac5.Definition, 3);
+        var ammo2 = AmmoTests.CreateAmmo(Ac5.Definition, 8); // This one has more shots
+        var ammo3 = AmmoTests.CreateAmmo(Ac5.Definition, 5);
         
         var rightArmPart = unit.Parts[PartLocation.RightArm];
         rightArmPart.TryAddComponent(ammo1);

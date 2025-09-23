@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -38,7 +39,7 @@ public class HeatEffectsCalculatorTests
         var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Add a single ammo component
-        var ammo = new Ammo(Lrm5, 24);
+        var ammo = AmmoTests.CreateAmmo(Lrm5, 24);
         centerTorso.TryAddComponent(ammo, [10]);
 
         return mech;
@@ -50,8 +51,8 @@ public class HeatEffectsCalculatorTests
         var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Add multiple ammo components with different damage values
-        var ammo1 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
-        var ammo2 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
+        var ammo1 = AmmoTests.CreateAmmo(Lrm5, 24); // 5 * 24 = 120 damage
+        var ammo2 = AmmoTests.CreateAmmo(Lrm5, 24); // 5 * 24 = 120 damage
 
         centerTorso.TryAddComponent(ammo1, [10]).ShouldBeTrue();
         centerTorso.TryAddComponent(ammo2, [11]).ShouldBeTrue();
@@ -196,7 +197,7 @@ public class HeatEffectsCalculatorTests
         _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
 
         var mech = CreateTestMechWithMultipleAmmo();
-        mech.Parts[PartLocation.LeftTorso].TryAddComponent(new Ammo(Lrm5, 2)).ShouldBeTrue();
+        mech.Parts[PartLocation.LeftTorso].TryAddComponent(AmmoTests.CreateAmmo(Lrm5, 2)).ShouldBeTrue();
         SetMechHeat(mech, 25);
 
         // Setup dice roll that fails to trigger explosion
