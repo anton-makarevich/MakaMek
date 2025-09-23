@@ -1429,7 +1429,7 @@ public class WeaponsAttackStateTests
         var actions = _sut.GetAvailableActions().ToList();
         
         // Assert
-        actions.ShouldNotContain(a => a.Label == "Declare attack");
+        actions.ShouldNotContain(a => a.Label == "Declare Attack");
     }
 
     [Fact]

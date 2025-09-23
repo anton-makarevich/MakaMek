@@ -30,7 +30,11 @@ public abstract class UnitPart
     
     // Slots management
     public int TotalSlots { get; }
-    public int UsedSlots => _components.Sum(c => c.Size);
+    public int UsedSlots => _components
+        .Where(c => c.IsMounted)
+        .SelectMany(c => c.GetMountedAtLocationSlots(Location))
+        .Distinct()
+        .Count();
     public int AvailableSlots => TotalSlots - UsedSlots;
     
     // Track which slots have been hit by critical hits
@@ -58,7 +62,7 @@ public abstract class UnitPart
             return -1;
         var occupiedSlots = _components
             .Where(c => c.IsMounted)
-            .SelectMany(c => c.MountedAtFirstLocationSlots)
+            .SelectMany(c => c.GetMountedAtLocationSlots(Location))
             .ToHashSet();
 
         return Enumerable.Range(0, TotalSlots - size + 1)
@@ -76,7 +80,7 @@ public abstract class UnitPart
 
         // Check if any of the required slots are already occupied
         var occupiedSlots = _components.Where(c => c.IsMounted)
-            .SelectMany(c => c.MountedAtFirstLocationSlots)
+            .SelectMany(c => c.GetMountedAtLocationSlots(Location))
             .ToHashSet();
         
         return !slots.Intersect(occupiedSlots).Any();
@@ -116,7 +120,8 @@ public abstract class UnitPart
 
     public Component? GetComponentAtSlot(int slot)
     {
-        return _components.FirstOrDefault(c => c.IsMounted && c.MountedAtFirstLocationSlots.Contains(slot));
+        return _components.FirstOrDefault(c => c.IsMounted 
+                                               && c.GetMountedAtLocationSlots(Location).Contains(slot));
     }
 
     protected virtual int ReduceArmor(int damage, HitDirection direction)
@@ -213,7 +218,7 @@ public abstract class UnitPart
             return false;
         }
 
-        if (component is { IsMounted: true })
+        if (component.SlotAssignments.Any())
         {
             component.UnMount();
         }
