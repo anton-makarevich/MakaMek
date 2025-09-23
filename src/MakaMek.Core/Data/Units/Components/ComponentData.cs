@@ -15,7 +15,7 @@ public record ComponentData
     /// <summary>
     /// The slot assignments for this component across all locations
     /// </summary>
-    public required IReadOnlyList<LocationSlotAssignment> Assignments { get; init; } = [];
+    public required IReadOnlyList<LocationSlotAssignment> Assignments { get; init; }
 
     /// <summary>
     /// Number of hits this component has taken

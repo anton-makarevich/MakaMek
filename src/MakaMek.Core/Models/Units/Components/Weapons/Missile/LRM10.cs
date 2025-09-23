@@ -20,7 +20,7 @@ public sealed class Lrm10(ComponentData? componentData = null) : Weapon(Definiti
         BattleValue: 90,
         Clusters: 2,
         ClusterSize: 5,
-        FullAmmoRounds:12,
+        FullAmmoRounds: 12,
         WeaponComponentType: MakaMekComponent.LRM10,
         AmmoComponentType: MakaMekComponent.ISAmmoLRM10);
 

@@ -588,7 +588,7 @@ public abstract class Unit
     /// <typeparam name="T">The type of component to find</typeparam>
     /// <param name="location">The location to check</param>
     /// <param name="slot">Any slot where the component is mounted</param>
-    /// <returns>Components of the specified type at the specified location starting at the given slot</returns>
+    /// <returns>Components of the specified type at the specified location containing the given slot</returns>
     public T? GetMountedComponentAtLocation<T>(PartLocation? location, int slot) where T : Component
     {
         if (location == null)
