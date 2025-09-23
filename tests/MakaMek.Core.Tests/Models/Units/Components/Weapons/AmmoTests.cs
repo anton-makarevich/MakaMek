@@ -38,7 +38,7 @@ public class AmmoTests
         // Assert
         sut.Name.ShouldBe($"{weaponName} Ammo");
         sut.RemainingShots.ShouldBe(initialShots);
-        sut.MountedAtSlots.ToList().Count.ShouldBe(0);
+        sut.MountedAtFirstLocationSlots.ToList().Count.ShouldBe(0);
         sut.Size.ShouldBe(1);
         sut.IsRemovable.ShouldBeTrue();
         sut.ComponentType.ShouldBe(ammoComponentType);

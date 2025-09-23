@@ -383,8 +383,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     Assignments = [
                         new LocationSlotAssignment(
                             attackingUnit.Parts.Values.Skip(1).First().Location,
-                            weaponWithoutTarget.MountedAtSlots.First(),
-                            weaponWithoutTarget.MountedAtSlots.Length)
+                            weaponWithoutTarget.MountedAtFirstLocationSlots.First(),
+                            weaponWithoutTarget.MountedAtFirstLocationSlots.Length)
                     ]
                 },
                 TargetId = targetUnit.Id,
@@ -463,8 +463,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     Type = clusterWeapon.ComponentType,
                     Assignments = [
                         new LocationSlotAssignment(part1.Location,
-                            clusterWeapon.MountedAtSlots.First(),
-                            clusterWeapon.MountedAtSlots.Length)
+                            clusterWeapon.MountedAtFirstLocationSlots.First(),
+                            clusterWeapon.MountedAtFirstLocationSlots.Length)
                     ]
                 },
                 TargetId = _player2Unit1.Id,
@@ -529,8 +529,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     Type = clusterWeapon.ComponentType,
                     Assignments = [
                         new LocationSlotAssignment(part1.Location,
-                            clusterWeapon.MountedAtSlots.First(),
-                            clusterWeapon.MountedAtSlots.Length)
+                            clusterWeapon.MountedAtFirstLocationSlots.First(),
+                            clusterWeapon.MountedAtFirstLocationSlots.Length)
                     ]
                 },
                 TargetId = _player2Unit1.Id,
@@ -586,8 +586,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     Type = clusterWeapon.ComponentType,
                     Assignments = [
                         new LocationSlotAssignment(part1.Location,
-                            clusterWeapon.MountedAtSlots.First(),
-                            clusterWeapon.MountedAtSlots.Length)
+                            clusterWeapon.MountedAtFirstLocationSlots.First(),
+                            clusterWeapon.MountedAtFirstLocationSlots.Length)
                     ]
                 },
                 TargetId = _player2Unit1.Id,
@@ -1124,8 +1124,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     Type = weapon1.ComponentType,
                     Assignments = [
                         new LocationSlotAssignment(part1.Location,
-                            weapon1.MountedAtSlots.First(),
-                            weapon1.MountedAtSlots.Length)
+                            weapon1.MountedAtFirstLocationSlots.First(),
+                            weapon1.MountedAtFirstLocationSlots.Length)
                     ]
                 },
                 TargetId = _player2Unit1.Id,
@@ -1148,8 +1148,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     Type = weapon2.ComponentType,
                     Assignments = [
                         new LocationSlotAssignment(part2.Location,
-                            weapon2.MountedAtSlots.First(),
-                            weapon2.MountedAtSlots.Length)
+                            weapon2.MountedAtFirstLocationSlots.First(),
+                            weapon2.MountedAtFirstLocationSlots.Length)
                     ]
                 },
                 TargetId = _player1Unit1.Id,

@@ -33,7 +33,7 @@
                                                            Classes="bodySmall"
                                                            VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="1"
-                                                           Text="{Binding MountedAtSlots, Converter={StaticResource SlotsRangeConverter}}"
+                                                           Text="{Binding MountedAtFirstLocationSlots, Converter={StaticResource SlotsRangeConverter}}"
                                                            Classes="bodySmall" Margin="5,0" 
                                                            VerticalAlignment="Center"
                                                            HorizontalAlignment="Center"

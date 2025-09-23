@@ -1103,7 +1103,7 @@ public class BattleMapViewModelTests
             {
                 Name = weapon.Name,
                 Type = weapon.ComponentType,
-                Assignments = [new LocationSlotAssignment(weapon.MountedOn[0].Location, weapon.MountedAtSlots.First(), weapon.MountedAtSlots.Length)]
+                Assignments = [new LocationSlotAssignment(weapon.MountedOn[0].Location, weapon.MountedAtFirstLocationSlots.First(), weapon.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1222,7 +1222,7 @@ public class BattleMapViewModelTests
             {
                 Name = weapon1.Name,
                 Type = weapon1.ComponentType,
-                Assignments = [new LocationSlotAssignment(weapon1.MountedOn[0].Location, weapon1.MountedAtSlots.First(), weapon1.MountedAtSlots.Length)]
+                Assignments = [new LocationSlotAssignment(weapon1.MountedOn[0].Location, weapon1.MountedAtFirstLocationSlots.First(), weapon1.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1234,7 +1234,7 @@ public class BattleMapViewModelTests
             {
                 Name = weapon2.Name,
                 Type = weapon2.ComponentType,
-                Assignments = [new LocationSlotAssignment(weapon2.MountedOn[0].Location, weapon2.MountedAtSlots.First(), weapon2.MountedAtSlots.Length)]
+                Assignments = [new LocationSlotAssignment(weapon2.MountedOn[0].Location, weapon2.MountedAtFirstLocationSlots.First(), weapon2.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1361,7 +1361,7 @@ public class BattleMapViewModelTests
             {
                 Name = weapon1.Name,
                 Type = weapon1.ComponentType,
-                Assignments = [new LocationSlotAssignment(weapon1.MountedOn[0].Location, weapon1.MountedAtSlots.First(), weapon1.MountedAtSlots.Length)]
+                Assignments = [new LocationSlotAssignment(weapon1.MountedOn[0].Location, weapon1.MountedAtFirstLocationSlots.First(), weapon1.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1373,7 +1373,7 @@ public class BattleMapViewModelTests
             {
                 Name = weapon2.Name,
                 Type = weapon2.ComponentType,
-                Assignments = [new LocationSlotAssignment(weapon2.MountedOn[0].Location, weapon2.MountedAtSlots.First(), weapon2.MountedAtSlots.Length)]
+                Assignments = [new LocationSlotAssignment(weapon2.MountedOn[0].Location, weapon2.MountedAtFirstLocationSlots.First(), weapon2.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1538,7 +1538,7 @@ public class BattleMapViewModelTests
             {
                 Name = weapon.Name,
                 Type = weapon.ComponentType,
-                Assignments = [new LocationSlotAssignment(weapon.MountedOn[0].Location, weapon.MountedAtSlots.First(), weapon.MountedAtSlots.Length)]
+                Assignments = [new LocationSlotAssignment(weapon.MountedOn[0].Location, weapon.MountedAtFirstLocationSlots.First(), weapon.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };

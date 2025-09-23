@@ -25,10 +25,15 @@ public abstract class Component : IManufacturedItem
 
     public string Name { get; protected set; }
     
-    public int[] MountedAtSlots =>SlotAssignments
+    public int[] MountedAtFirstLocationSlots => FirstMountPartLocation.HasValue 
+        ? GetMountedAtLocationSlots(FirstMountPartLocation.Value)
+        : [];
+    
+    public int[] GetMountedAtLocationSlots(PartLocation location) => SlotAssignments
+        .Where(a => a.Location == location)
         .SelectMany(a => a.Slots)
         .OrderBy(slot => slot)
-        .ToArray();
+        .ToArray(); 
 
     public bool IsActive { get; private set; } = true;
 
@@ -132,7 +137,7 @@ public abstract class Component : IManufacturedItem
         if (CanExplode && !HasExploded)
         {
             HasExploded = true;
-            GetFirstMountPart()?.Unit?.Pilot?.ExplosionHit();
+            FirstMountPart?.Unit?.Pilot?.ExplosionHit();
         }
     }
 
@@ -148,8 +153,8 @@ public abstract class Component : IManufacturedItem
         .Distinct();
 
     // Backward compatibility methods
-    public UnitPart? GetFirstMountPart() => SlotAssignments.FirstOrDefault()?.UnitPart;
-    public PartLocation? GetFirstMountPartLocation() => GetFirstMountPart()?.Location;
+    public UnitPart? FirstMountPart => SlotAssignments.FirstOrDefault()?.UnitPart;
+    public PartLocation? FirstMountPartLocation => FirstMountPart?.Location;
 
     public ComponentStatus Status
     {

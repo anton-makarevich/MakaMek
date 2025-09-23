@@ -241,7 +241,7 @@ public class AmmoExplosionCommandTests
             [new ComponentHitData
             {
                 Type = ammo.ComponentType,
-                Slot = ammo.MountedAtSlots[0],
+                Slot = ammo.MountedAtFirstLocationSlots[0],
                 ExplosionDamage = 100
             }],
             false);
@@ -351,13 +351,13 @@ public class AmmoExplosionCommandTests
                 new ComponentHitData
                 {
                     Type = ac5.ComponentType,
-                    Slot = ac5.MountedAtSlots[0],
+                    Slot = ac5.MountedAtFirstLocationSlots[0],
                     ExplosionDamage = 5
                 },
                 new ComponentHitData
                 {
                     Type = lrm10.ComponentType,
-                    Slot = lrm10.MountedAtSlots[0],
+                    Slot = lrm10.MountedAtFirstLocationSlots[0],
                     ExplosionDamage = 10
                 }
             ],

@@ -14,7 +14,7 @@ public class HeatSinkTests
 
         // Assert
         sut.Name.ShouldBe("Heat Sink");
-        sut.MountedAtSlots.ShouldBeEmpty();
+        sut.MountedAtFirstLocationSlots.ShouldBeEmpty();
         sut.HeatDissipation.ShouldBe(1);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.HeatSink);
@@ -29,7 +29,7 @@ public class HeatSinkTests
 
         // Assert
         sut.Name.ShouldBe("Double Heat Sink");
-        sut.MountedAtSlots.ShouldBeEmpty();
+        sut.MountedAtFirstLocationSlots.ShouldBeEmpty();
         sut.HeatDissipation.ShouldBe(2);
         sut.IsDestroyed.ShouldBeFalse();
     }

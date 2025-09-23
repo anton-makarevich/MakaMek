@@ -520,7 +520,7 @@ public abstract class Unit
     public IEnumerable<T> GetAllComponents<T>() where T : Component
     {
         return Parts.Values
-            .SelectMany(p => p.GetComponents<T>())
+            .SelectMany(p => p.GetComponents<T>().Where(c => c.IsMounted))
             .Distinct();
     }
     
@@ -596,7 +596,7 @@ public abstract class Unit
         var components = GetComponentsAtLocation<T>(location.Value);
 
         return components.FirstOrDefault(c =>
-           c.MountedAtSlots.Contains(slot));
+           c.MountedAtFirstLocationSlots.Contains(slot));
     }
 
     public void Move(MovementType movementType, List<PathSegmentData> movementPath)

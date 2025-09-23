@@ -17,7 +17,7 @@ public sealed class Cockpit(ComponentData? componentData = null) : Component(Def
         base.Hit();
         if (!wasDestroyed && IsDestroyed)
         {
-            GetFirstMountPart()?.Unit?.Pilot?.Kill();
+            FirstMountPart?.Unit?.Pilot?.Kill();
         }
     }
 }

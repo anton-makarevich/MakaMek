@@ -326,7 +326,7 @@ public class BaseGameTests : BaseGame
                         Name = weapon.Name,
                         Type = weapon.ComponentType,
                         Assignments = [
-                            new LocationSlotAssignment(PartLocation.RightArm, weapon.MountedAtSlots.First(), weapon.MountedAtSlots.Length)]
+                            new LocationSlotAssignment(PartLocation.RightArm, weapon.MountedAtFirstLocationSlots.First(), weapon.MountedAtFirstLocationSlots.Length)]
                     },
                     TargetId = targetMech.Id,
                     IsPrimaryTarget = true
@@ -411,8 +411,8 @@ public class BaseGameTests : BaseGame
                         Type = rightArmWeapon.ComponentType,
                         Assignments = [
                             new LocationSlotAssignment(PartLocation.RightArm,
-                                rightArmWeapon.MountedAtSlots.First(),
-                                rightArmWeapon.MountedAtSlots.Length)]
+                                rightArmWeapon.MountedAtFirstLocationSlots.First(),
+                                rightArmWeapon.MountedAtFirstLocationSlots.Length)]
                     },
                     TargetId = targetMech1.Id,
                     IsPrimaryTarget = true
@@ -425,8 +425,8 @@ public class BaseGameTests : BaseGame
                         Type = leftArmWeapon.ComponentType,
                         Assignments = [
                             new LocationSlotAssignment(PartLocation.LeftArm,
-                                leftArmWeapon.MountedAtSlots.First(),
-                                leftArmWeapon.MountedAtSlots.Length)]
+                                leftArmWeapon.MountedAtFirstLocationSlots.First(),
+                                leftArmWeapon.MountedAtFirstLocationSlots.Length)]
                     },
                     TargetId = targetMech2.Id,
                     IsPrimaryTarget = true
@@ -656,7 +656,7 @@ public class BaseGameTests : BaseGame
                 Name = weapon.Name,
                 Type = weapon.ComponentType,
                 Assignments = [
-                    new LocationSlotAssignment(PartLocation.RightArm, weapon.MountedAtSlots.First(), weapon.MountedAtSlots.Length)
+                    new LocationSlotAssignment(PartLocation.RightArm, weapon.MountedAtFirstLocationSlots.First(), weapon.MountedAtFirstLocationSlots.Length)
                 ]
             },
             ResolutionData = new AttackResolutionData(

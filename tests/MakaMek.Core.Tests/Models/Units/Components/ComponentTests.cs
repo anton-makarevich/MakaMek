@@ -48,7 +48,7 @@ public class ComponentTests
 
         // Assert
         sut.IsMounted.ShouldBeTrue();
-        sut.MountedAtSlots.ShouldBe([0]);
+        sut.MountedAtFirstLocationSlots.ShouldBe([0]);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class ComponentTests
 
         // Assert
         sut.IsMounted.ShouldBeTrue();
-        sut.MountedAtSlots.ShouldBe([2, 4, 5]);
+        sut.MountedAtFirstLocationSlots.ShouldBe([2, 4, 5]);
     }
 
     [Fact]
@@ -152,13 +152,13 @@ public class ComponentTests
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
 
         sut.Mount(unitPart,[0, 1]);
-        var initialSlots = sut.MountedAtSlots;
+        var initialSlots = sut.MountedAtFirstLocationSlots;
 
         // Act
         sut.Mount(unitPart,[2, 3]); // Try to mount again with different slots
 
         // Assert
-        sut.MountedAtSlots.ShouldBeEquivalentTo(initialSlots); // Should keep original slots
+        sut.MountedAtFirstLocationSlots.ShouldBeEquivalentTo(initialSlots); // Should keep original slots
     }
     
     [Fact]
@@ -243,8 +243,8 @@ public class ComponentTests
         sut.Mount(unitPart, [0, 1]);
         
         // Assert
-        sut.GetFirstMountPart().ShouldBe(unitPart);
-        sut.GetFirstMountPartLocation().ShouldBe(PartLocation.LeftArm);
+        sut.FirstMountPart.ShouldBe(unitPart);
+        sut.FirstMountPartLocation.ShouldBe(PartLocation.LeftArm);
         sut.MountedOn.ShouldContain(unitPart);
     }
     
@@ -261,7 +261,7 @@ public class ComponentTests
         
         // Assert
         sut.MountedOn.ShouldBeEmpty();
-        sut.GetFirstMountPartLocation().ShouldBeNull();
+        sut.FirstMountPartLocation.ShouldBeNull();
     }
     
     [Fact]
@@ -277,7 +277,7 @@ public class ComponentTests
         // Assert
         result.ShouldBeTrue();
         sut.MountedOn.ShouldContain(unitPart);
-        sut.GetFirstMountPartLocation().ShouldBe(PartLocation.LeftArm);
+        sut.FirstMountPartLocation.ShouldBe(PartLocation.LeftArm);
     }
     
     [Fact]
@@ -325,8 +325,8 @@ public class ComponentTests
         
         // Assert
         result.ShouldBeTrue();
-        sut.GetFirstMountPart().ShouldBe(unitPart);
-        sut.GetFirstMountPartLocation().ShouldBe(PartLocation.LeftArm);
+        sut.FirstMountPart.ShouldBe(unitPart);
+        sut.FirstMountPartLocation.ShouldBe(PartLocation.LeftArm);
     }
     
     [Fact]

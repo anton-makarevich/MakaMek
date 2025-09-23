@@ -2357,7 +2357,7 @@ public class ClientGameTests
         var lrm5 = AmmoTests.CreateAmmo(Lrm5.Definition, 1);
         var ct = mech!.Parts[PartLocation.CenterTorso];
         ct.TryAddComponent(lrm5);
-        var slot = lrm5.MountedAtSlots[0];
+        var slot = lrm5.MountedAtFirstLocationSlots[0];
 
         var explosionCommand = new AmmoExplosionCommand
         {

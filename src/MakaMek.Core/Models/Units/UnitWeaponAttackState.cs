@@ -99,7 +99,7 @@ public class UnitWeaponAttackState
 
         // Find all selected arm weapons
         var selectedArmWeapons = _weaponTargets.Keys
-            .Where(w => w.GetFirstMountPart()?.Location is { } loc && loc.IsArm())
+            .Where(w => w.FirstMountPartLocation is { } loc && loc.IsArm())
             .ToList();
 
         if (selectedArmWeapons.Count == 0)
@@ -109,7 +109,7 @@ public class UnitWeaponAttackState
         }
 
         // Get the arm location from the first selected arm weapon
-        CommittedArmLocation = selectedArmWeapons.First().GetFirstMountPart()?.Location;
+        CommittedArmLocation = selectedArmWeapons.First().FirstMountPartLocation;
     }
 
     /// <summary>

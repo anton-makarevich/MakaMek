@@ -102,7 +102,7 @@ public class MechFactoryTests
 
         var laser = mediumLasers[0];
         laser.IsMounted.ShouldBeTrue();
-        laser.MountedAtSlots.ShouldBe([1]);
+        laser.MountedAtFirstLocationSlots.ShouldBe([1]);
         laser.SlotAssignments.Count.ShouldBe(1);
         laser.SlotAssignments[0].Location.ShouldBe(PartLocation.RightArm);
         laser.SlotAssignments[0].Slots.ShouldBe([1]);
@@ -133,7 +133,7 @@ public class MechFactoryTests
 
         var ac5 = autocannons[0];
         ac5.IsMounted.ShouldBeTrue();
-        ac5.MountedAtSlots.ShouldBe([1, 2, 3, 4]);
+        ac5.MountedAtFirstLocationSlots.ShouldBe([1, 2, 3, 4]);
         ac5.SlotAssignments.Count.ShouldBe(1);
         ac5.SlotAssignments[0].Location.ShouldBe(PartLocation.RightArm);
         ac5.SlotAssignments[0].Slots.ShouldBe([1, 2, 3, 4]);
@@ -167,7 +167,7 @@ public class MechFactoryTests
 
         var sensor = sensors[0];
         sensor.IsMounted.ShouldBeTrue();
-        sensor.MountedAtSlots.ShouldBe([2, 4]);
+        sensor.MountedAtFirstLocationSlots.ShouldBe([2, 4]);
         sensor.SlotAssignments.Count.ShouldBe(2);
 
         // Check the first assignment
@@ -183,7 +183,7 @@ public class MechFactoryTests
     public void Create_WithMultiLocationComponent_MountsCorrectly()
     {
         // Arrange - XL Engine spanning multiple locations
-        // Note: Gyro occupies slots 3-6 in CenterTorso, so we use slots 7-11 for engine
+        // Note: Gyro occupies slots 3-6 in CenterTorso, so we use slots 7-10 for engine
         var equipment = new List<ComponentData>
         {
             new()
@@ -306,7 +306,7 @@ public class MechFactoryTests
         var rightArm = mech.Parts[PartLocation.RightArm];
         var laser = rightArm.GetComponents<MediumLaser>().First();
 
-        laser.MountedAtSlots.ShouldBe([2]);
+        laser.MountedAtFirstLocationSlots.ShouldBe([2]);
         rightArm.GetComponentAtSlot(0).ShouldNotBeNull(); // ShoulderActuator is at slot 0
         rightArm.GetComponentAtSlot(1).ShouldBeNull();
         rightArm.GetComponentAtSlot(2).ShouldBe(laser);

@@ -206,7 +206,7 @@ public class CriticalHitsResolutionCommandTests
             new LocationCriticalHitsData(PartLocation.RightArm, [3, 3], 2,
                 [
                     new ComponentHitData { Slot = 1, Type = MakaMekComponent.MediumLaser },
-                    new ComponentHitData { Slot = ammo.MountedAtSlots[0], Type = ammo.ComponentType, ExplosionDamage = 100 }
+                    new ComponentHitData { Slot = ammo.MountedAtFirstLocationSlots[0], Type = ammo.ComponentType, ExplosionDamage = 100 }
                 ],
                 false)
         ]);

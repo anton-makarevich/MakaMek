@@ -764,7 +764,7 @@ public class MechTests
 
         foreach (var component in part.Components)
         {
-            if (component.MountedAtSlots[0] != 1)
+            if (component.MountedAtFirstLocationSlots[0] != 1)
                 component.Hit(); // destroy all components but first
         }
 

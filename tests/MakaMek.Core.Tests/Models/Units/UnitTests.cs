@@ -179,9 +179,9 @@ public class UnitTests
         rightArmPart.TryAddComponent(rightArmComponent);
         
         // Act
-        var leftArmComponentPart = leftArmComponent.GetFirstMountPart();
-        var rightArmComponentPart = rightArmComponent.GetFirstMountPart();
-        var unmountedComponentPart = unmountedComponent.GetFirstMountPart();
+        var leftArmComponentPart = leftArmComponent.FirstMountPart;
+        var rightArmComponentPart = rightArmComponent.FirstMountPart;
+        var unmountedComponentPart = unmountedComponent.FirstMountPart;
         
         // Assert
         leftArmComponentPart.ShouldBe(leftArmPart);
@@ -1153,7 +1153,7 @@ public class UnitTests
                     [
                         new ComponentHitData
                         {
-                            Slot = cockpit.MountedAtSlots[0],
+                            Slot = cockpit.MountedAtFirstLocationSlots[0],
                             Type = MakaMekComponent.Cockpit
                         }
                     ],
@@ -1205,7 +1205,7 @@ public class UnitTests
                 [
                     new ComponentHitData
                     {
-                        Slot = component.MountedAtSlots[0],
+                        Slot = component.MountedAtFirstLocationSlots[0],
                         Type = MakaMekComponent.MachineGun
                     }
                 ],
@@ -1263,7 +1263,7 @@ public class UnitTests
                 [
                     new ComponentHitData
                     {
-                        Slot = explodableComponent.MountedAtSlots[0],
+                        Slot = explodableComponent.MountedAtFirstLocationSlots[0],
                         Type = MakaMekComponent.MachineGun,
                         ExplosionDamage = 3,
                         ExplosionDamageDistribution = [
@@ -1321,7 +1321,7 @@ public class UnitTests
                 [
                     new ComponentHitData
                     {
-                        Slot = explodableComponent1.MountedAtSlots[0],
+                        Slot = explodableComponent1.MountedAtFirstLocationSlots[0],
                         Type = MakaMekComponent.MachineGun,
                         ExplosionDamage = 3,
                         ExplosionDamageDistribution = [
@@ -1330,7 +1330,7 @@ public class UnitTests
                     },
                     new ComponentHitData
                     {
-                        Slot = explodableComponent2.MountedAtSlots[0],
+                        Slot = explodableComponent2.MountedAtFirstLocationSlots[0],
                         Type = MakaMekComponent.MachineGun,
                         ExplosionDamage = 1,
                         ExplosionDamageDistribution = [
@@ -1374,7 +1374,7 @@ public class UnitTests
                 [
                     new ComponentHitData
                     {
-                        Slot = explodableComponent.MountedAtSlots[0],
+                        Slot = explodableComponent.MountedAtFirstLocationSlots[0],
                         Type = MakaMekComponent.MachineGun
                     }
                 ],
@@ -1407,7 +1407,7 @@ public class UnitTests
                 [
                     new ComponentHitData
                     {
-                        Slot = component.MountedAtSlots[0],
+                        Slot = component.MountedAtFirstLocationSlots[0],
                         Type = MakaMekComponent.MachineGun
                     }
                 ],
@@ -1501,7 +1501,7 @@ public class UnitTests
                 [
                     new ComponentHitData
                     {
-                        Slot = component.MountedAtSlots[0],
+                        Slot = component.MountedAtFirstLocationSlots[0],
                         Type = MakaMekComponent.MachineGun
                     }
                 ],
@@ -1775,7 +1775,7 @@ public class UnitTests
                 [
                     new ComponentHitData
                     {
-                        Slot = explodableComponent.MountedAtSlots[0],
+                        Slot = explodableComponent.MountedAtFirstLocationSlots[0],
                         Type = MakaMekComponent.MachineGun,
                         ExplosionDamage = 3,
                         ExplosionDamageDistribution = [
