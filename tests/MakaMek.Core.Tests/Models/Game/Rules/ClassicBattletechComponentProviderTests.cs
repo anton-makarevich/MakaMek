@@ -485,6 +485,36 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
             var ammo = (Ammo)result;
             ammo.RemainingShots.ShouldBe(ammoStateData.RemainingShots);
         }
+        
+        [Fact]
+        public void CreateComponent_AmmoWithFullComponentData_ShouldRestoreAllState()
+        {
+            // Arrange  
+            var componentData = new ComponentData
+            {
+                Type = MakaMekComponent.ISAmmoLRM5,
+                Name = "Custom Ammo Name",
+                Manufacturer = "Custom Manufacturer",
+                Hits = 1,
+                IsActive = false,
+                HasExploded = false,
+                SpecificData = new AmmoStateData(RemainingShots: 10),
+                Assignments = []
+            };
+    
+            // Act
+            var result = _sut.CreateComponent(MakaMekComponent.ISAmmoLRM5, componentData);
+    
+            // Assert
+            result.ShouldNotBeNull();
+            var ammo = result.ShouldBeOfType<Ammo>();
+            ammo.Name.ShouldBe("Custom Ammo Name");
+            ammo.Manufacturer.ShouldBe("Custom Manufacturer");
+            ammo.Hits.ShouldBe(1);
+            ammo.IsActive.ShouldBe(false);
+            ammo.HasExploded.ShouldBe(false);
+            ammo.RemainingShots.ShouldBe(10);
+        }
 
         [Fact]
         public void CreateComponent_EngineWithoutStateData_ShouldReturnNull()
