@@ -366,7 +366,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
             result.ShouldNotBeNull();
             result.ShouldBeOfType<Engine>();
             result.ComponentType.ShouldBe(MakaMekComponent.Engine);
-            result.Name.ShouldNotBeNullOrEmpty();
+            result.Name.ShouldBe("Fusion Engine 200");
             result.Size.ShouldBeGreaterThan(0);
             result.HealthPoints.ShouldBeGreaterThan(0);
             result.IsActive.ShouldBe(true);

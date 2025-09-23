@@ -29,7 +29,7 @@ public class ClassicBattletechComponentProvider : IComponentProvider
     {
         if (componentType == MakaMekComponent.Engine && specificData is EngineStateData engineState)
         {
-            return Engine.CreateEngineDefinition(engineState.Type, engineState.Rating);
+            return Engine.CreateEngineDefinition(engineState);
         }
         return _definitions.GetValueOrDefault(componentType);
     }

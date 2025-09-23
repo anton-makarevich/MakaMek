@@ -55,7 +55,7 @@ public abstract class Component : IManufacturedItem
     // component is mounted when all required slots are assigned
     public bool IsMounted => SlotAssignments.Sum(a => a.Length) == Size && SlotAssignments.Count > 0;
 
-    public void Mount(int[] slots, UnitPart mountLocation)
+    public void Mount(UnitPart mountLocation, int[] slots)
     {
         if (slots.Length > Size)
         {

@@ -9,19 +9,18 @@ public class Engine : Component
     public EngineType Type { get; }
 
     public Engine(ComponentData componentData)
-        : base(CreateEngineDefinition(
-            ((EngineStateData)componentData.SpecificData!).Type,
-            ((EngineStateData)componentData.SpecificData!).Rating), componentData)
+        : base(CreateEngineDefinition(componentData.SpecificData), componentData)
     {
         if (componentData.SpecificData is not EngineStateData engineState)
         {
             throw new ArgumentException("Invalid component data for engine");
         }
+
         Name = $"{Type} Engine {engineState.Rating}";
         Rating = engineState.Rating;
         Type = engineState.Type;
     }
-    
+
     /// <summary>
     /// Gets the current heat penalty caused by engine damage.
     /// First hit: +5 heat per turn
@@ -36,15 +35,17 @@ public class Engine : Component
             _ => null
         };
 
-    public int NumberOfHeatSinks => 10;
+    public int NumberOfHeatSinks => ((EngineDefinition)_definition).NumberOfHeatSinks;
 
     protected override ComponentSpecificData GetSpecificData()
     {
         return new EngineStateData(Type, Rating);
     }
-    
-    public static EngineDefinition CreateEngineDefinition(EngineType type, int engineRating)
+
+    public static EngineDefinition CreateEngineDefinition(ComponentSpecificData? engineState)
     {
-        return new EngineDefinition(type, engineRating);
+        return engineState is not EngineStateData engineStateData 
+            ? throw new ArgumentException("Invalid component data for engine") 
+            : new EngineDefinition(engineStateData.Type, engineStateData.Rating);
     }
 }

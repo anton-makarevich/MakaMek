@@ -12,13 +12,14 @@ public sealed class Ammo : Component
         Definition = definition;
 
         // Set remaining shots from component data or use the initial value
+        var maxRounds = definition.FullAmmoRounds;
         if (componentData?.SpecificData is AmmoStateData ammoState)
         {
-            _remainingShots = ammoState.RemainingShots;
+            _remainingShots = Math.Min(Math.Max(ammoState.RemainingShots, 0), maxRounds);
         }
         else
         {
-            _remainingShots = initialShots;
+            _remainingShots = Math.Min(Math.Max(initialShots, 0), maxRounds);
         }
     }
 
@@ -43,7 +44,7 @@ public sealed class Ammo : Component
 
     public bool UseShot()
     {
-        if (_remainingShots <= 0)
+        if (_remainingShots <= 0 || !IsActive || HasExploded)
             return false;
 
         _remainingShots--;

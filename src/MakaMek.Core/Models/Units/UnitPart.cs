@@ -109,7 +109,7 @@ public abstract class UnitPart
         }
 
         // Mount the component at the specified slots
-        component.Mount(slotsToUse, this);
+        component.Mount(this, slotsToUse);
         _components.Add(component);
         return true;
     }

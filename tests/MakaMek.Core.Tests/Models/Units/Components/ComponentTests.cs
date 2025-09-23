@@ -44,10 +44,11 @@ public class ComponentTests
 
 
         // Act
-        sut.Mount([0], unitPart);
+        sut.Mount(unitPart,[0]);
 
         // Assert
         sut.IsMounted.ShouldBeTrue();
+        sut.MountedAtSlots.ShouldBe([0]);
     }
 
     [Fact]
@@ -59,10 +60,11 @@ public class ComponentTests
 
 
         // Act
-        sut.Mount([2,4,5], unitPart);
+        sut.Mount( unitPart,[2,4,5]);
 
         // Assert
         sut.IsMounted.ShouldBeTrue();
+        sut.MountedAtSlots.ShouldBe([2, 4, 5]);
     }
 
     [Fact]
@@ -72,7 +74,7 @@ public class ComponentTests
         var sut = new TestComponent("Test Component");
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
 
-        sut.Mount([0],unitPart);
+        sut.Mount(unitPart,[0]);
 
         // Act
         sut.UnMount();
@@ -135,7 +137,7 @@ public class ComponentTests
         // Act & Assert
         sut.IsMounted.ShouldBeFalse(); // Initially not mounted
         
-        sut.Mount([0, 1],unitPart);
+        sut.Mount(unitPart,[0, 1]);
         sut.IsMounted.ShouldBeTrue(); // Mounted with slots
         
         sut.UnMount();
@@ -149,28 +151,26 @@ public class ComponentTests
         var sut = new TestComponent("Test Component",2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
 
-        sut.Mount([0, 1],unitPart);
+        sut.Mount(unitPart,[0, 1]);
         var initialSlots = sut.MountedAtSlots;
 
         // Act
-        sut.Mount([2, 3],unitPart); // Try to mount again with different slots
+        sut.Mount(unitPart,[2, 3]); // Try to mount again with different slots
 
         // Assert
         sut.MountedAtSlots.ShouldBeEquivalentTo(initialSlots); // Should keep original slots
     }
     
     [Fact]
-    public void Mount_ComponentWithWrongSize_Throws()
+    public void Mount_ComponentWithLargerSize_Throws()
     {
         // Arrange
         var sut = new TestComponent("Test Component",2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-
         
         // Act & Assert
-        Should.Throw<ComponentException>(() => sut.Mount([2,3,4],unitPart)) // Try to mount 
+        Should.Throw<ComponentException>(() => sut.Mount(unitPart,[2,3,4])) // Try to mount 
            .Message.ShouldBe("Component Test Component requires 2 slots.");
-        
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class ComponentTests
     {
         var sut = new TestComponent("Test", healthPoints:2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        sut.Mount([0], unitPart);
+        sut.Mount(unitPart,[0]);
         
         sut.Hit();
         
@@ -209,7 +209,7 @@ public class ComponentTests
         var sut = new TestComponent("Test");
         sut.Deactivate();
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        sut.Mount([0], unitPart);
+        sut.Mount(unitPart,[0]);
         sut.Status.ShouldBe(ComponentStatus.Deactivated);
     }
 
@@ -218,7 +218,7 @@ public class ComponentTests
     {
         var sut = new TestComponent("Test");
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        sut.Mount([0], unitPart);
+        sut.Mount(unitPart,[0]);
         unitPart.ApplyDamage(20, HitDirection.Front, true);
         sut.Status.ShouldBe(ComponentStatus.Lost);
     }
@@ -228,7 +228,7 @@ public class ComponentTests
     {
         var sut = new TestComponent("Test");
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        sut.Mount([0], unitPart);
+        sut.Mount(unitPart, [0]);
         sut.Status.ShouldBe(ComponentStatus.Active);
     }
     
@@ -240,7 +240,7 @@ public class ComponentTests
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
         
         // Act
-        sut.Mount([0, 1], unitPart);
+        sut.Mount(unitPart, [0, 1]);
         
         // Assert
         sut.GetPrimaryMountLocation().ShouldBe(unitPart);
@@ -253,7 +253,7 @@ public class ComponentTests
         // Arrange
         var sut = new TestComponent("Test Component", 2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        sut.Mount([0, 1], unitPart);
+        sut.Mount(unitPart,[0, 1]);
         
         // Act
         sut.UnMount();
