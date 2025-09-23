@@ -14,7 +14,7 @@ public static class WeaponSelectionExtensions
         if (!weapon.IsAvailable)
             return false;
             
-        var attacker = weapon.GetPrimaryMountLocation()?.Unit;
+        var attacker = weapon.GetFirstMountPart()?.Unit;
 
         // Check prone-specific restrictions
         return attacker is not Mech { IsProne: true } 
@@ -26,10 +26,10 @@ public static class WeaponSelectionExtensions
         if (!weapon.IsAvailable)
             return localizationService.GetString("WeaponRestriction_NotAvailable");
         
-        var attacker = weapon.GetPrimaryMountLocation()?.Unit;
+        var attacker = weapon.GetFirstMountPart()?.Unit;
 
         if (attacker is not Mech { IsProne: true }) return string.Empty; // No restriction
-        var location = weapon.GetPrimaryMountLocation()?.Location;
+        var location = weapon.GetFirstMountPart()?.Location;
                 
         // Check leg weapon restriction
         if (location?.IsLeg() == true)
@@ -46,7 +46,7 @@ public static class WeaponSelectionExtensions
 
     private static bool IsWeaponAvailableWhenProne(Weapon weapon, Unit attacker)
     {
-        var location = weapon.GetPrimaryMountLocation()?.Location;
+        var location = weapon.GetFirstMountPart()?.Location;
         if (location == null)
             return false;
             

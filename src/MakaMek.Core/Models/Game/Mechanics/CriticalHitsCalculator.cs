@@ -44,7 +44,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         var explosionDamage = explodingComponent.GetExplosionDamage();
         if (explosionDamage <= 0) return []; //no possible damage, no explosion
         
-        var location = explodingComponent.GetLocation();
+        var location = explodingComponent.GetFirstMountPartLocation();
         if (!location.HasValue) return [];
 
         // Ensure the component has a resolvable slot

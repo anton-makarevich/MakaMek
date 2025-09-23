@@ -1643,7 +1643,7 @@ public class WeaponsAttackStateTests
         var weapons = unitWithNoWeapons.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).ToList();
         foreach (var weapon in weapons)
         {
-            weapon.GetPrimaryMountLocation()?.RemoveComponent(weapon);
+            weapon.GetFirstMountPart()?.RemoveComponent(weapon);
         }
         
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);

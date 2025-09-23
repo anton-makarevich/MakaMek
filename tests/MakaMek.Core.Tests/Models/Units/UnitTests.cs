@@ -179,9 +179,9 @@ public class UnitTests
         rightArmPart.TryAddComponent(rightArmComponent);
         
         // Act
-        var leftArmComponentPart = leftArmComponent.GetPrimaryMountLocation();
-        var rightArmComponentPart = rightArmComponent.GetPrimaryMountLocation();
-        var unmountedComponentPart = unmountedComponent.GetPrimaryMountLocation();
+        var leftArmComponentPart = leftArmComponent.GetFirstMountPart();
+        var rightArmComponentPart = rightArmComponent.GetFirstMountPart();
+        var unmountedComponentPart = unmountedComponent.GetFirstMountPart();
         
         // Assert
         leftArmComponentPart.ShouldBe(leftArmPart);

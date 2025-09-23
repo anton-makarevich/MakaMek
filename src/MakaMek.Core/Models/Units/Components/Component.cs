@@ -132,7 +132,7 @@ public abstract class Component : IManufacturedItem
         if (CanExplode && !HasExploded)
         {
             HasExploded = true;
-            GetPrimaryMountLocation()?.Unit?.Pilot?.ExplosionHit();
+            GetFirstMountPart()?.Unit?.Pilot?.ExplosionHit();
         }
     }
 
@@ -148,8 +148,8 @@ public abstract class Component : IManufacturedItem
         .Distinct();
 
     // Backward compatibility methods
-    public UnitPart? GetPrimaryMountLocation() => SlotAssignments.FirstOrDefault()?.UnitPart;
-    public PartLocation? GetLocation() => GetPrimaryMountLocation()?.Location;
+    public UnitPart? GetFirstMountPart() => SlotAssignments.FirstOrDefault()?.UnitPart;
+    public PartLocation? GetFirstMountPartLocation() => GetFirstMountPart()?.Location;
 
     public ComponentStatus Status
     {
