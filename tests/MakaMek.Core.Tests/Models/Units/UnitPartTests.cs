@@ -1,3 +1,4 @@
+using System.Reflection;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
@@ -449,6 +450,42 @@ public class UnitPartTests
         result.ShouldBeTrue();
         sut.Components.Count.ShouldBe(1);
         sut.UsedSlots.ShouldBe(3);
+    }
+
+    [Fact]
+    public void FindComponentSlot_ShouldReturnNegative_WhenSizeIsNegative()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
+        
+        var method = typeof(UnitPart).GetMethod(
+            "FindMountLocation",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        method.ShouldNotBeNull();
+        
+        // Act
+        var result = (int)method.Invoke(sut, [-1])!; 
+        
+        // Assert
+        result.ShouldBe(-1);
+    }
+    
+    [Fact]
+    public void FindComponentSlot_ShouldReturnNegative_WhenSizeIsTooLarge()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 3); // Only 3 slots (0, 1, 2)
+        
+        var method = typeof(UnitPart).GetMethod(
+            "FindMountLocation",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        method.ShouldNotBeNull();
+        
+        // Act
+        var result = (int)method.Invoke(sut, [sut.TotalSlots + 1])!; 
+        
+        // Assert
+        result.ShouldBe(-1);
     }
 
     public class TestUnit() : Unit("Test", "Unit", 20, 4, [], Guid.NewGuid())
