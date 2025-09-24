@@ -1,73 +1,131 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using System.Collections.Immutable;
 using System.Text;
 
 namespace Sanet.MakaMek.SourceGenerators;
 
 [Generator]
-public class RollModifierTypeResolverGenerator : ISourceGenerator
+public class RollModifierTypeResolverGenerator : IIncrementalGenerator
 {
-    public void Initialize(GeneratorInitializationContext context)
+    public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        // Find all record declarations that could be RollModifier derived types
+        var typeDeclarations = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: static (s, _) => IsCandidateType(s),
+                transform: static (ctx, _) => GetTypeInfo(ctx))
+            .Where(static m => m is not null)
+            .Select(static (m, _) => m!);
+
+        // Combine with compilation to get semantic information
+        var compilationAndTypes = context.CompilationProvider.Combine(typeDeclarations.Collect());
+
+        // Generate the source
+        context.RegisterSourceOutput(compilationAndTypes,
+            static (spc, source) => Execute(source.Left, source.Right, spc));
     }
 
-    public void Execute(GeneratorExecutionContext context)
+    private static bool IsCandidateType(SyntaxNode node)
     {
-        // Get the compilation
-        var compilation = context.Compilation;
+        // Look for record declarations that might inherit from RollModifier
+        return node is RecordDeclarationSyntax { BaseList: not null };
+    }
 
-        // Find the RollModifier type
-        var rollModifierSymbol =
-            compilation.GetTypeByMetadataName("Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.RollModifier");
-        if (rollModifierSymbol == null)
+    private static TypeInfo? GetTypeInfo(GeneratorSyntaxContext context)
+    {
+        var recordDeclaration = (RecordDeclarationSyntax)context.Node;
+
+        // Get the semantic model to check inheritance
+        var semanticModel = context.SemanticModel;
+        var typeSymbol = semanticModel.GetDeclaredSymbol(recordDeclaration);
+
+        if (typeSymbol is null || typeSymbol.IsAbstract)
+            return null;
+
+        // Only consider records that might be related to RollModifier
+        var fullName = typeSymbol.ToDisplayString();
+        if (fullName.Contains("RollModifier") || fullName.Contains("Modifier"))
         {
-            throw new Exception("RollModifier type not found");
+            return new TypeInfo(
+                typeSymbol.Name,
+                typeSymbol.ContainingNamespace.ToDisplayString(),
+                typeSymbol.ToDisplayString(),
+                typeSymbol);
         }
 
-        // Now that we have the RollModifier type, find all derived classes
-        var derivedClasses = new List<INamedTypeSymbol>();
+        return null;
+    }
 
-        // Get all types from the compilation more efficiently
-        var allTypes = compilation.GlobalNamespace.GetNamespaceMembers()
-            .SelectMany(GetAllTypesRecursively)
-            .Concat(compilation.GlobalNamespace.GetTypeMembers());
-
-        foreach (var typeSymbol in allTypes)
+    private static void Execute(Compilation compilation, ImmutableArray<TypeInfo> types, SourceProductionContext context)
+    {
+        try
         {
-            // Skip abstract types and check inheritance
-            if (typeSymbol.IsAbstract || typeSymbol.TypeKind != TypeKind.Class)
-                continue;
-            if (InheritsFrom(typeSymbol, rollModifierSymbol))
+            // Find the RollModifier base type
+            var rollModifierSymbol = compilation.GetTypeByMetadataName("Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.RollModifier");
+
+            if (rollModifierSymbol is null)
             {
-                derivedClasses.Add(typeSymbol);
+                // Generate empty implementation
+                var emptySource = GenerateEmptyTypeResolverExtension("Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers");
+                context.AddSource("RollModifierTypeResolverExtension.g.cs", SourceText.From(emptySource, Encoding.UTF8));
+                return;
             }
+
+            // Filter records that inherit from RollModifier
+            var derivedTypes = new List<TypeInfo>();
+
+            foreach (var typeInfo in types)
+            {
+                if (InheritsFrom(typeInfo.Symbol, rollModifierSymbol))
+                {
+                    derivedTypes.Add(typeInfo);
+                }
+            }
+
+            if (derivedTypes.Count == 0)
+            {
+                // Generate empty implementation
+                var emptySource = GenerateEmptyTypeResolverExtension(rollModifierSymbol.ContainingNamespace.ToDisplayString());
+                context.AddSource("RollModifierTypeResolverExtension.g.cs", SourceText.From(emptySource, Encoding.UTF8));
+                return;
+            }
+
+            // Generate the source code
+            var source = GenerateTypeResolverExtension(rollModifierSymbol.ContainingNamespace.ToDisplayString(), derivedTypes);
+            context.AddSource("RollModifierTypeResolverExtension.g.cs", SourceText.From(source, Encoding.UTF8));
         }
-        
-        // Add diagnostic to help debugging
-        if (derivedClasses.Count == 0)
+        catch (Exception ex)
         {
-            throw new Exception("No derived classes found");
+            context.ReportDiagnostic(Diagnostic.Create(
+                new DiagnosticDescriptor("RMTRG001", "Source generator error",
+                    $"Error in RollModifierTypeResolverGenerator: {ex.Message}\nStack trace: {ex.StackTrace}", "SourceGenerator",
+                    DiagnosticSeverity.Error, true),
+                Location.None));
         }
-
-        // Generate the source code
-        var source =
-            GenerateTypeResolverExtension(rollModifierSymbol.ContainingNamespace.ToDisplayString(), derivedClasses);
-
-        // Add the source code to the compilation
-        context.AddSource("RollModifierTypeResolverExtension.g.cs", SourceText.From(source, Encoding.UTF8));
     }
 
-    private bool InheritsFrom(INamedTypeSymbol classSymbol, INamedTypeSymbol baseTypeSymbol)
+    private class TypeInfo(string name, string ns, string fullName, INamedTypeSymbol symbol)
     {
-        // Check if the class directly inherits from the base type
-        if (classSymbol.BaseType != null &&
-            SymbolEqualityComparer.Default.Equals(classSymbol.BaseType, baseTypeSymbol))
+        public string Name { get; } = name;
+        public string Namespace { get; } = ns;
+        public string FullName { get; } = fullName;
+        public INamedTypeSymbol Symbol { get; } = symbol;
+    }
+
+    private static bool InheritsFrom(INamedTypeSymbol typeSymbol, INamedTypeSymbol baseTypeSymbol)
+    {
+        // Check if the type directly inherits from the base type
+        if (typeSymbol.BaseType != null &&
+            SymbolEqualityComparer.Default.Equals(typeSymbol.BaseType, baseTypeSymbol))
         {
             return true;
         }
 
         // Check inheritance chain
-        var currentSymbol = classSymbol.BaseType;
+        var currentSymbol = typeSymbol.BaseType;
         while (currentSymbol != null)
         {
             if (SymbolEqualityComparer.Default.Equals(currentSymbol, baseTypeSymbol))
@@ -83,8 +141,8 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
             currentSymbol = currentSymbol.BaseType;
         }
 
-        // Check if the class implements the base type as an interface
-        foreach (var interfaceSymbol in classSymbol.AllInterfaces)
+        // Check if the type implements the base type as an interface
+        foreach (var interfaceSymbol in typeSymbol.AllInterfaces)
         {
             if (SymbolEqualityComparer.Default.Equals(interfaceSymbol, baseTypeSymbol))
                 return true;
@@ -93,7 +151,7 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
         return false;
     }
 
-    private string GenerateTypeResolverExtension(string rollModifierNamespace, List<INamedTypeSymbol> derivedClasses)
+    private static string GenerateTypeResolverExtension(string rollModifierNamespace, List<TypeInfo> derivedTypes)
     {
         var sb = new StringBuilder();
 
@@ -104,9 +162,9 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
         sb.AppendLine("using System.Text.Json.Serialization.Metadata;");
         sb.AppendLine($"using {rollModifierNamespace};");
 
-        // Add imports for all namespaces containing derived classes
-        var namespaces = derivedClasses
-            .Select(c => c.ContainingNamespace.ToDisplayString())
+        // Add imports for all namespaces containing derived types
+        var namespaces = derivedTypes
+            .Select(t => t.Namespace)
             .Distinct()
             .Where(ns => ns != rollModifierNamespace)
             .OrderBy(ns => ns);
@@ -117,29 +175,27 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
         }
 
         sb.AppendLine();
-        sb.AppendLine("namespace Sanet.MakaMek.Core.Services.Transport");
+        sb.AppendLine("namespace Sanet.MakaMek.Core.Data.Serialization");
         sb.AppendLine("{");
         sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Extension for RollModifierTypeResolver with auto-generated derived types");
+        sb.AppendLine("    /// Extension for RollModifierTypeResolver with auto-generated derived records");
         sb.AppendLine("    /// Generated automatically by RollModifierTypeResolverGenerator");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    public partial class RollModifierTypeResolver");
         sb.AppendLine("    {");
         sb.AppendLine("        /// <summary>");
-        sb.AppendLine("        /// Registers all known RollModifier derived types");
+        sb.AppendLine("        /// Registers all known RollModifier derived records");
         sb.AppendLine("        /// Generated automatically by RollModifierTypeResolverGenerator");
         sb.AppendLine("        /// </summary>");
         sb.AppendLine("        static partial void RegisterGeneratedTypes(JsonTypeInfo jsonTypeInfo)");
         sb.AppendLine("        {");
-        sb.AppendLine("            // Add all known derived types generated by the source generator");
+        sb.AppendLine("            // Add all known derived records generated by the source generator");
 
-        // Add a line for each derived class
-        foreach (var derivedClass in derivedClasses.OrderBy(c => c.Name))
+        // Add a line for each derived record
+        foreach (var derivedType in derivedTypes.OrderBy(t => t.Name))
         {
-            string fullClassName = derivedClass.ToDisplayString();
-            string className = derivedClass.Name;
             sb.AppendLine(
-                $"            jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new(typeof({fullClassName}), \"{className}\"));");
+                $"            jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new(typeof({derivedType.FullName}), \"{derivedType.Name}\"));");
         }
 
         sb.AppendLine("        }");
@@ -149,15 +205,33 @@ public class RollModifierTypeResolverGenerator : ISourceGenerator
         return sb.ToString();
     }
 
-    private static IEnumerable<INamedTypeSymbol> GetAllTypesRecursively(INamespaceSymbol namespaceSymbol)
+    private static string GenerateEmptyTypeResolverExtension(string rollModifierNamespace)
     {
-        foreach (var type in namespaceSymbol.GetTypeMembers())
-            yield return type;
+        var sb = new StringBuilder();
 
-        foreach (var nestedNamespace in namespaceSymbol.GetNamespaceMembers())
-        {
-            foreach (var type in GetAllTypesRecursively(nestedNamespace))
-                yield return type;
-        }
+        sb.AppendLine("// <auto-generated/>");
+        sb.AppendLine("using System.Text.Json.Serialization.Metadata;");
+        sb.AppendLine($"using {rollModifierNamespace};");
+        sb.AppendLine();
+        sb.AppendLine("namespace Sanet.MakaMek.Core.Data.Serialization");
+        sb.AppendLine("{");
+        sb.AppendLine("    /// <summary>");
+        sb.AppendLine("    /// Extension for RollModifierTypeResolver with auto-generated derived records");
+        sb.AppendLine("    /// Generated automatically by RollModifierTypeResolverGenerator");
+        sb.AppendLine("    /// </summary>");
+        sb.AppendLine("    public partial class RollModifierTypeResolver");
+        sb.AppendLine("    {");
+        sb.AppendLine("        /// <summary>");
+        sb.AppendLine("        /// Registers all known RollModifier derived records");
+        sb.AppendLine("        /// Generated automatically by RollModifierTypeResolverGenerator");
+        sb.AppendLine("        /// </summary>");
+        sb.AppendLine("        static partial void RegisterGeneratedTypes(JsonTypeInfo jsonTypeInfo)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            // No derived records found by the source generator");
+        sb.AppendLine("        }");
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+
+        return sb.ToString();
     }
 }

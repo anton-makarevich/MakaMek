@@ -18,7 +18,7 @@ public class CommandTransportAdapter
     private bool _isInitialized;
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
-        TypeInfoResolver = new RollModifierTypeResolver(),
+        TypeInfoResolver = new Data.Serialization.RollModifierTypeResolver(),
         WriteIndented = true
     };
     private readonly Lock _initLock = new();

@@ -3,10 +3,10 @@ using System.Text.Json.Serialization;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
-using Sanet.MakaMek.Core.Services.Transport;
 using Shouldly;
+using RollModifierTypeResolver = Sanet.MakaMek.Core.Data.Serialization.RollModifierTypeResolver;
 
-namespace Sanet.MakaMek.Core.Tests.Services.Transport;
+namespace Sanet.MakaMek.Core.Tests.Data.Serialization;
 
 public class RollModifierTypeResolverTests
 {
@@ -20,10 +20,10 @@ public class RollModifierTypeResolverTests
     public void Should_Have_Polymorphism_Options_Configured()
     {
         // Arrange
-        var resolver = new RollModifierTypeResolver();
+        var sut = new RollModifierTypeResolver();
         
         // Act
-        var typeInfo = resolver.GetTypeInfo(typeof(RollModifier), _options);
+        var typeInfo = sut.GetTypeInfo(typeof(RollModifier), _options);
         
         // Assert
         typeInfo.ShouldNotBeNull();
@@ -37,10 +37,10 @@ public class RollModifierTypeResolverTests
     public void Should_Register_Known_RollModifier_Types()
     {
         // Arrange
-        var resolver = new RollModifierTypeResolver();
+        var sut = new RollModifierTypeResolver();
         
         // Act
-        var typeInfo = resolver.GetTypeInfo(typeof(RollModifier), _options);
+        var typeInfo = sut.GetTypeInfo(typeof(RollModifier), _options);
         
         // Assert
         typeInfo.PolymorphismOptions.ShouldNotBeNull();
@@ -61,15 +61,15 @@ public class RollModifierTypeResolverTests
     public void Should_Register_All_RollModifier_Derived_Types_In_Assembly()
     {
         // Arrange
-        var resolver = new RollModifierTypeResolver();
+        var sut = new RollModifierTypeResolver();
         
         // Act
-        var typeInfo = resolver.GetTypeInfo(typeof(RollModifier), _options);
+        var typeInfo = sut.GetTypeInfo(typeof(RollModifier), _options);
         
         // Find all RollModifier derived types in the assembly
         var assembly = typeof(RollModifier).Assembly;
         var derivedTypes = assembly.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(RollModifier)))
+            .Where(t => t is { IsClass: true, IsAbstract: false } && t.IsSubclassOf(typeof(RollModifier)))
             .ToList();
         
         // Assert
