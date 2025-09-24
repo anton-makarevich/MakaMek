@@ -300,13 +300,13 @@ public class MtfDataProviderTests
     public void Parse_CustomMtf_WithInsufficientSlotsForMultiSlotComponent_ReturnsPartialAssignment()
     {
         // Arrange
-        var customMtfData = _shadowHawkMtfData;
+        var customMtfData = _shadowHawkMtfData.ToArray();
         customMtfData[84] = "-Empty-";
 
         var sut = new MtfDataProvider(_componentProvider);
 
         // Act
-        var mechData = sut.LoadMechFromTextData(_shadowHawkMtfData);
+        var mechData = sut.LoadMechFromTextData(customMtfData);
 
         // Assert
         var ac5 = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.AC5);
