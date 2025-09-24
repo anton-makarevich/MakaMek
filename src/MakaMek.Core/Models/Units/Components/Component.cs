@@ -117,8 +117,6 @@ public abstract class Component : IManufacturedItem
     private void Mount(CriticalSlotAssignment slotAssignment)
     {
         if (IsMounted) return;
-        if (slotAssignment.FirstSlot < 0 || slotAssignment.Length <= 0)
-            throw new ArgumentOutOfRangeException(nameof(slotAssignment));
         if (slotAssignment.FirstSlot + slotAssignment.Length > slotAssignment.UnitPart.TotalSlots)
             throw new ComponentException("Slot assignment exceeds available slots of the unit part.");
         var occupiedSlots = _slotAssignments.Sum(a => a.Length);
