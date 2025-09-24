@@ -3,10 +3,10 @@ using System.Text.Json.Serialization;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
-using Sanet.MakaMek.Core.Services.Transport;
 using Shouldly;
+using RollModifierTypeResolver = Sanet.MakaMek.Core.Data.Serialization.RollModifierTypeResolver;
 
-namespace Sanet.MakaMek.Core.Tests.Services.Transport;
+namespace Sanet.MakaMek.Core.Tests.Data.Serialization;
 
 public class RollModifierTypeResolverTests
 {

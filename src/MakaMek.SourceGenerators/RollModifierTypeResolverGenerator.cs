@@ -175,7 +175,7 @@ public class RollModifierTypeResolverGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine();
-        sb.AppendLine("namespace Sanet.MakaMek.Core.Services.Transport");
+        sb.AppendLine("namespace Sanet.MakaMek.Core.Data.Serialization");
         sb.AppendLine("{");
         sb.AppendLine("    /// <summary>");
         sb.AppendLine("    /// Extension for RollModifierTypeResolver with auto-generated derived records");
@@ -213,7 +213,7 @@ public class RollModifierTypeResolverGenerator : IIncrementalGenerator
         sb.AppendLine("using System.Text.Json.Serialization.Metadata;");
         sb.AppendLine($"using {rollModifierNamespace};");
         sb.AppendLine();
-        sb.AppendLine("namespace Sanet.MakaMek.Core.Services.Transport");
+        sb.AppendLine("namespace Sanet.MakaMek.Core.Data.Serialization");
         sb.AppendLine("{");
         sb.AppendLine("    /// <summary>");
         sb.AppendLine("    /// Extension for RollModifierTypeResolver with auto-generated derived records");

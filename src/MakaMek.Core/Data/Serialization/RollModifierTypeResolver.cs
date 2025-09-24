@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 
-namespace Sanet.MakaMek.Core.Services.Transport;
+namespace Sanet.MakaMek.Core.Data.Serialization;
 
 /// <summary>
 /// Custom type resolver for RollModifier and its derived types
