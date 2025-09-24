@@ -11,11 +11,7 @@ public class Engine : Component
     public Engine(ComponentData componentData)
         : base(CreateEngineDefinition(componentData.SpecificData), componentData)
     {
-        if (componentData.SpecificData is not EngineStateData engineState)
-        {
-            throw new ArgumentException("Invalid component data for engine");
-        }
-
+        var engineState = (EngineStateData)componentData.SpecificData!; // Should be safe since there is a check in CreateEngineDefinition
         Name = $"{Type} Engine {engineState.Rating}";
         Rating = engineState.Rating;
         Type = engineState.Type;

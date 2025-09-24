@@ -121,4 +121,31 @@ public class EngineTests
         };
         Should.Throw<ArgumentException>(() => new Engine(data));
     }
+    
+    [Fact]
+    public void Manufacturer_ShouldBeOverridable_WhenProvided()
+    {
+        var data = new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            SpecificData = new EngineStateData(EngineType.Fusion, 100),
+            Assignments = [],
+            Manufacturer = "Test Manufacturer"
+        };
+        var sut = new Engine(data);
+        sut.Manufacturer.ShouldBe("Test Manufacturer");
+    }
+    
+    [Fact]
+    public void Manufacturer_ShouldFallBackToDefault_WhenNotProvided()
+    {
+        var data = new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            SpecificData = new EngineStateData(EngineType.Fusion, 100),
+            Assignments = []
+        };
+        var sut = new Engine(data);
+        sut.Manufacturer.ShouldBe("Unknown");
+    }
 }
