@@ -1,3 +1,4 @@
+using System.Reflection;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Units;
@@ -293,5 +294,62 @@ public class MtfDataProviderTests
         // Heat sinks should be in slots 0, 1, 2
         var slots = rightTorsoHeatSinks.Select(hs => hs.Assignments[0].FirstSlot).OrderBy(s => s).ToArray();
         slots.ShouldBe([0, 1, 2]);
+    }
+
+    [Fact]
+    public void Parse_CustomMtf_WithInsufficientSlotsForMultiSlotComponent_ReturnsPartialAssignment()
+    {
+        // Arrange
+        var customMtfData = _shadowHawkMtfData;
+        customMtfData[84] = "-Empty-";
+
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_shadowHawkMtfData);
+
+        // Assert
+        var ac5 = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.AC5);
+        ac5.ShouldNotBeNull();
+        ac5.Assignments.Count.ShouldBe(1);
+        ac5.Assignments[0].Location.ShouldBe(PartLocation.LeftTorso);
+        ac5.Assignments[0].Length.ShouldBe(3);
+    }
+
+    [Fact]
+    public void FindConsecutiveSlotsInLocation_WhenSlotAlreadyProcessed_ReturnsEmptyAssignments()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, MakaMekComponent>>
+        {
+            [PartLocation.LeftArm] = new()
+            {
+                [0] = MakaMekComponent.MachineGun
+            }
+        };
+        var processedSlots = new HashSet<(PartLocation, int)>
+        {
+            (PartLocation.LeftArm, 0)
+        };
+
+        var method = typeof(MtfDataProvider).GetMethod(
+            "FindConsecutiveSlotsInLocation",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        method.ShouldNotBeNull();
+
+        // Act
+        var result = method.Invoke(sut, [
+            MakaMekComponent.MachineGun,
+            PartLocation.LeftArm,
+            0,
+            locationSlotComponents,
+            processedSlots,
+            1
+        ]) as List<LocationSlotAssignment>;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
     }
 }

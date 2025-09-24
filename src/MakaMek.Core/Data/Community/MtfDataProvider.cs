@@ -273,7 +273,8 @@ public class MtfDataProvider:IMechDataProvider
                     totalAssignedSlots += additionalAssignments.Sum(a => a.Length);
                     foundAdditional = true;
 
-                    if (totalAssignedSlots >= expectedSize) break;
+                    if (totalAssignedSlots >= expectedSize) 
+                        break;
                 }
 
                 if (totalAssignedSlots >= expectedSize) break;
