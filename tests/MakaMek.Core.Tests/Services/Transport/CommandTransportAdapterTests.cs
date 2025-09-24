@@ -7,6 +7,10 @@ using System.Text.Json;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
 namespace Sanet.MakaMek.Core.Tests.Services.Transport;
 
@@ -73,6 +77,87 @@ public class CommandTransportAdapterTests
 
         capturedMessage2.ShouldNotBeNull();
         capturedMessage2.ShouldBeEquivalentTo(capturedMessage1); // Messages should be identical
+    }
+
+    [Fact]
+    public void PublishAndDeserializeCommand_WithComponentSpecificData_RoundTripsEngineState()
+    {
+        // Arrange
+        SetupAdapter();
+        TransportMessage? capturedMessage = null;
+        _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
+            .Do(ci => capturedMessage = ci.Arg<TransportMessage>());
+
+        var unitId = Guid.NewGuid();
+        var componentSpecificData = new EngineStateData(EngineType.Fusion, 300);
+        var component = new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            Assignments = new List<LocationSlotAssignment>
+            {
+                new(PartLocation.CenterTorso, 0, 1)
+            },
+            Hits = 0,
+            IsActive = true,
+            HasExploded = false,
+            SpecificData = componentSpecificData
+        };
+
+        var unitData = new UnitData
+        {
+            Id = unitId,
+            Chassis = "Atlas",
+            Model = "AS7-D",
+            Mass = 100,
+            WalkMp = 3,
+            EngineRating = 300,
+            EngineType = "Fusion",
+            ArmorValues = new Dictionary<PartLocation, ArmorLocation>
+            {
+                { PartLocation.CenterTorso, new ArmorLocation { FrontArmor = 30, RearArmor = 10 } }
+            },
+            Equipment = new List<ComponentData> { component },
+            AdditionalAttributes = new Dictionary<string, string>(),
+            Quirks = new Dictionary<string, string>()
+        };
+
+        var joinCommand = new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "TestPlayer",
+            Units = [unitData],
+            PilotAssignments =
+            [
+                new PilotAssignmentData
+                {
+                    UnitId = unitId,
+                    PilotData = PilotData.CreateDefaultPilot("Test", "Pilot")
+                }
+            ],
+            Tint = "#FFFFFF",
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.PublishCommand(joinCommand);
+
+        // Assert serialization captured the message
+        capturedMessage.ShouldNotBeNull();
+        //capturedMessage!.Payload.ShouldContain("\"$type\"");
+
+        // Act - attempt round-trip deserialization
+        var roundTripped = (JoinGameCommand)_sut.DeserializeCommand(capturedMessage!);
+
+        // Assert
+        roundTripped.Units.ShouldNotBeEmpty();
+        var roundTrippedComponent = roundTripped.Units[0].Equipment[0];
+        roundTrippedComponent.SpecificData.ShouldNotBeNull();
+        roundTrippedComponent.SpecificData.ShouldBeOfType<EngineStateData>();
+
+        var engineState = (EngineStateData)roundTrippedComponent.SpecificData!;
+        engineState.Type.ShouldBe(EngineType.Fusion);
+        engineState.Rating.ShouldBe(300);
     }
     
     [Fact]
