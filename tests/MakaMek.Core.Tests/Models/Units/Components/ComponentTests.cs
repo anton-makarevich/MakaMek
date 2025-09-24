@@ -271,6 +271,20 @@ public class ComponentTests
         sut.FirstMountPartLocation.ShouldBe(PartLocation.LeftArm);
         sut.MountedOn.ShouldContain(unitPart);
     }
+
+    [Fact]
+    public void Mount_ShouldNotMountComponent_WhenSlotsAreEmpty()
+    {
+        // Arrange
+        var sut = new TestComponent("Test Component", 1);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+        
+        // Act
+        sut.Mount(unitPart, []);
+        
+        // Assert
+        sut.IsMounted.ShouldBeFalse();
+    }
     
     [Fact]
     public void UnMount_ShouldClearMountedOnProperty()
