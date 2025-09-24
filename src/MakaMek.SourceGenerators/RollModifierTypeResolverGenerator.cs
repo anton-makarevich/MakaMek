@@ -63,35 +63,16 @@ public class RollModifierTypeResolverGenerator : IIncrementalGenerator
     {
         try
         {
-            // Add diagnostic to confirm the generator is running
-            context.ReportDiagnostic(Diagnostic.Create(
-                new DiagnosticDescriptor("RMTRG100", "Source generator started",
-                    $"RollModifierTypeResolverGenerator started execution with {types.Length} candidate records", "SourceGenerator",
-                    DiagnosticSeverity.Info, true),
-                Location.None));
-
             // Find the RollModifier base type
             var rollModifierSymbol = compilation.GetTypeByMetadataName("Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.RollModifier");
 
             if (rollModifierSymbol is null)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor("RMTRG101", "RollModifier base type not found",
-                        "Could not find RollModifier base type in compilation", "SourceGenerator",
-                        DiagnosticSeverity.Warning, true),
-                    Location.None));
-
                 // Generate empty implementation
                 var emptySource = GenerateEmptyTypeResolverExtension("Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers");
                 context.AddSource("RollModifierTypeResolverExtension.g.cs", SourceText.From(emptySource, Encoding.UTF8));
                 return;
             }
-
-            context.ReportDiagnostic(Diagnostic.Create(
-                new DiagnosticDescriptor("RMTRG102", "RollModifier base type found",
-                    $"Found RollModifier base type: {rollModifierSymbol.ToDisplayString()}", "SourceGenerator",
-                    DiagnosticSeverity.Info, true),
-                Location.None));
 
             // Filter records that inherit from RollModifier
             var derivedTypes = new List<TypeInfo>();
@@ -101,43 +82,20 @@ public class RollModifierTypeResolverGenerator : IIncrementalGenerator
                 if (InheritsFrom(typeInfo.Symbol, rollModifierSymbol))
                 {
                     derivedTypes.Add(typeInfo);
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        new DiagnosticDescriptor("RMTRG103", "Found derived record",
-                            $"Found RollModifier derived record: {typeInfo.FullName}", "SourceGenerator",
-                            DiagnosticSeverity.Info, true),
-                        Location.None));
                 }
             }
 
             if (derivedTypes.Count == 0)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor("RMTRG104", "No derived records found",
-                        "No records found that inherit from RollModifier", "SourceGenerator",
-                        DiagnosticSeverity.Warning, true),
-                    Location.None));
-
                 // Generate empty implementation
                 var emptySource = GenerateEmptyTypeResolverExtension(rollModifierSymbol.ContainingNamespace.ToDisplayString());
                 context.AddSource("RollModifierTypeResolverExtension.g.cs", SourceText.From(emptySource, Encoding.UTF8));
                 return;
             }
 
-            context.ReportDiagnostic(Diagnostic.Create(
-                new DiagnosticDescriptor("RMTRG105", "Generating source",
-                    $"Generating source code for {derivedTypes.Count} derived records", "SourceGenerator",
-                    DiagnosticSeverity.Info, true),
-                Location.None));
-
             // Generate the source code
             var source = GenerateTypeResolverExtension(rollModifierSymbol.ContainingNamespace.ToDisplayString(), derivedTypes);
             context.AddSource("RollModifierTypeResolverExtension.g.cs", SourceText.From(source, Encoding.UTF8));
-
-            context.ReportDiagnostic(Diagnostic.Create(
-                new DiagnosticDescriptor("RMTRG106", "Source generation completed",
-                    "Successfully generated RollModifierTypeResolverExtension.g.cs", "SourceGenerator",
-                    DiagnosticSeverity.Info, true),
-                Location.None));
         }
         catch (Exception ex)
         {
