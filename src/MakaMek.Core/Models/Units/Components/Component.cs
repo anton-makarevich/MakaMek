@@ -140,11 +140,9 @@ public abstract class Component : IManufacturedItem
     public virtual void Hit()
     {
         Hits++;
-        if (CanExplode && !HasExploded)
-        {
-            HasExploded = true;
-            FirstMountPart?.Unit?.Pilot?.ExplosionHit();
-        }
+        if (!CanExplode || HasExploded) return;
+        HasExploded = true;
+        FirstMountPart?.Unit?.Pilot?.ExplosionHit();
     }
 
     public int HealthPoints => _definition.HealthPoints;

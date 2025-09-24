@@ -439,7 +439,7 @@ public class UnitPartTests
     [Fact]
     public void TryAddComponent_ShouldReturnTrue_WhenAllSlotsInBounds()
     {
-        // Arrange - This verifies line 73 passes when slots are valid
+        // Arrange 
         var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 5); // 5 slots (0, 1, 2, 3, 4)
         var component = new TestComponent("Test Component",3); // All slots are in bounds
 
