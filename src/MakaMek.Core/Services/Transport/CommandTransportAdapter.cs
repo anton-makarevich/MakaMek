@@ -1,7 +1,9 @@
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Serialization;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.Transport;
 
@@ -18,7 +20,10 @@ public class CommandTransportAdapter
     private bool _isInitialized;
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
-        TypeInfoResolver = new Data.Serialization.RollModifierTypeResolver(),
+        TypeInfoResolver = JsonTypeInfoResolver.Combine(
+            new RollModifierTypeResolver(),
+            new ComponentSpecificDataTypeResolver(),
+            new DefaultJsonTypeInfoResolver()),
         WriteIndented = true
     };
     private readonly Lock _initLock = new();
