@@ -461,4 +461,111 @@ public class CommandTransportAdapterTests
         // Assert
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
     }
+
+    [Fact]
+    public void JoinGameCommand_WithMultipleComponentSpecificDataTypes_SerializesAndDeserializesCorrectly()
+    {
+        // Arrange
+        SetupAdapter();
+        TransportMessage? capturedMessage = null;
+        _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
+            .Do(ci => capturedMessage = ci.Arg<TransportMessage>());
+
+        var unitId = Guid.NewGuid();
+
+        // Create components with different types of SpecificData to test polymorphism
+        var engineComponent = new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            Assignments = new List<LocationSlotAssignment>
+            {
+                new(PartLocation.CenterTorso, 0, 6)
+            },
+            Hits = 0,
+            IsActive = true,
+            HasExploded = false,
+            SpecificData = new EngineStateData(EngineType.Fusion, 300)
+        };
+
+        var ammoComponent = new ComponentData
+        {
+            Type = MakaMekComponent.ISAmmoAC20,
+            Assignments = new List<LocationSlotAssignment>
+            {
+                new(PartLocation.RightTorso, 0, 1)
+            },
+            Hits = 0,
+            IsActive = true,
+            HasExploded = false,
+            SpecificData = new AmmoStateData(15)
+        };
+
+        var regularComponent = new ComponentData
+        {
+            Type = MakaMekComponent.MediumLaser,
+            Assignments = new List<LocationSlotAssignment>
+            {
+                new(PartLocation.RightArm, 0, 1)
+            },
+            Hits = 0,
+            IsActive = true,
+            HasExploded = false,
+            SpecificData = null // No specific data
+        };
+
+        var unitData = new UnitData
+        {
+            Id = unitId,
+            Chassis = "TestMech",
+            Model = "TM-1",
+            Mass = 50,
+            WalkMp = 4,
+            EngineRating = 300,
+            EngineType = "Fusion",
+            ArmorValues = new Dictionary<PartLocation, ArmorLocation>(),
+            Equipment = new List<ComponentData> { engineComponent, ammoComponent, regularComponent },
+            AdditionalAttributes = new Dictionary<string, string>(),
+            Quirks = new Dictionary<string, string>()
+        };
+
+        var joinCommand = new JoinGameCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            PlayerName = "TestPlayer",
+            Units = new List<UnitData> { unitData },
+            Tint = "#FF0000",
+            PilotAssignments = new List<PilotAssignmentData>(),
+            PlayerId = Guid.NewGuid()
+        };
+
+        // Act - Publish and deserialize the command
+        _sut.PublishCommand(joinCommand);
+        capturedMessage.ShouldNotBeNull();
+        var deserializedCommand = (JoinGameCommand)_sut.DeserializeCommand(capturedMessage!);
+
+        // Assert - Verify all component types were preserved correctly
+        deserializedCommand.Units.ShouldNotBeEmpty();
+        var deserializedEquipment = deserializedCommand.Units[0].Equipment;
+        deserializedEquipment.Count.ShouldBe(3);
+
+        // Verify engine component
+        var deserializedEngine = deserializedEquipment[0];
+        deserializedEngine.SpecificData.ShouldNotBeNull();
+        deserializedEngine.SpecificData.ShouldBeOfType<EngineStateData>();
+        var engineState = (EngineStateData)deserializedEngine.SpecificData!;
+        engineState.Type.ShouldBe(EngineType.Fusion);
+        engineState.Rating.ShouldBe(300);
+
+        // Verify ammo component
+        var deserializedAmmo = deserializedEquipment[1];
+        deserializedAmmo.SpecificData.ShouldNotBeNull();
+        deserializedAmmo.SpecificData.ShouldBeOfType<AmmoStateData>();
+        var ammoState = (AmmoStateData)deserializedAmmo.SpecificData!;
+        ammoState.RemainingShots.ShouldBe(15);
+
+        // Verify regular component (no specific data)
+        var deserializedRegular = deserializedEquipment[2];
+        deserializedRegular.SpecificData.ShouldBeNull();
+    }
 }
