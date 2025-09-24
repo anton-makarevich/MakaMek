@@ -88,4 +88,24 @@ public class EngineTests
         // Assert
         sut.HeatPenalty?.Value.ShouldBe(expectedPenalty);
     }
+
+    [Theory]
+    [InlineData(EngineType.Fusion, 6)]
+    [InlineData(EngineType.XLFusion, 10)]
+    [InlineData(EngineType.Light, 4)]
+    [InlineData(EngineType.Compact, 3)]
+    [InlineData(EngineType.ICE, 6)]
+    [InlineData((EngineType)999, 6)]
+    public void Size_ShouldBeCorrect_BasedOnEngineType(EngineType engineType, int expectedSize)
+    {
+        var sut = new Engine(new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            SpecificData = new EngineStateData(engineType,
+                100),
+            Assignments = []
+        });
+        
+        sut.Size.ShouldBe(expectedSize);
+    }
 }
