@@ -1,4 +1,5 @@
 using System.Reflection;
+using NSubstitute;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Units;
@@ -314,6 +315,19 @@ public class MtfDataProviderTests
         ac5.Assignments.Count.ShouldBe(1);
         ac5.Assignments[0].Location.ShouldBe(PartLocation.LeftTorso);
         ac5.Assignments[0].Length.ShouldBe(3);
+    }
+
+    [Fact]
+    public void LoadMechFromTextData_ShouldThrow_WhenComponentIsUnknown()
+    {
+        // Arrange
+        var componentProvider = Substitute.For<IComponentProvider>();
+        componentProvider.GetDefinition(Arg.Any<MakaMekComponent>()).Returns((ComponentDefinition?)null);
+        var sut = new MtfDataProvider(componentProvider);
+
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => sut.LoadMechFromTextData(_shadowHawkMtfData))
+            .Message.ShouldContain("No definition found for component");
     }
 
     [Fact]

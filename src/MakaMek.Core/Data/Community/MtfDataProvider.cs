@@ -223,7 +223,9 @@ public class MtfDataProvider:IMechDataProvider
         }
 
         var definition = _componentProvider.GetDefinition(component, specificData);
-        return (definition?.Size ?? 1, specificData);
+        return definition == null 
+            ? throw new ArgumentException($"No definition found for component: {component}") 
+            : (definition.Size, specificData);
     }
 
     /// <summary>
@@ -329,7 +331,7 @@ public class MtfDataProvider:IMechDataProvider
         return assignments;
     }
 
-    private MakaMekComponent MapMtfStringToComponent(string mtfString)
+    private static MakaMekComponent MapMtfStringToComponent(string mtfString)
     {
         return mtfString switch
         {
