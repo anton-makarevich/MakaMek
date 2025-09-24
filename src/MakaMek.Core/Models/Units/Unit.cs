@@ -1,5 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -210,10 +210,11 @@ public abstract class Unit
 
         foreach (var weaponTarget in weaponTargets)
         {
-            var weapon = GetMountedComponentAtLocation<Weapon>(
-                weaponTarget.Weapon.Location,
-                weaponTarget.Weapon.Slots);
-            if (weapon == null) continue;
+            var primaryAssignment = weaponTarget.Weapon.Assignments.FirstOrDefault();
+            var weapon = primaryAssignment != null ?
+                GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot) :
+                null;
+            if (weapon == null) continue; // should it be available also?
 
             if (weapon.Heat <= 0) continue;
             weaponHeatSources.Add(new WeaponHeatData
@@ -390,8 +391,12 @@ public abstract class Unit
     public WeaponTargetData? GetWeaponTargetData(PartLocation weaponLocation, int[] weaponSlots)
     {
         return _weaponTargets.FirstOrDefault(wt =>
-            wt.Weapon.Location == weaponLocation &&
-            wt.Weapon.Slots.SequenceEqual(weaponSlots));
+        {
+            var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
+            return primaryAssignment != null &&
+                   primaryAssignment.Location == weaponLocation &&
+                   primaryAssignment.Slots.OrderBy(s => s).SequenceEqual(weaponSlots.OrderBy(s => s));
+        });
     }
 
     // Methods
@@ -514,7 +519,9 @@ public abstract class Unit
 
     public IEnumerable<T> GetAllComponents<T>() where T : Component
     {
-        return Parts.Values.SelectMany(p => p.GetComponents<T>());
+        return Parts.Values
+            .SelectMany(p => p.GetComponents<T>().Where(c => c.IsMounted))
+            .Distinct();
     }
     
     public IEnumerable<T> GetAvailableComponents<T>() where T : Component
@@ -576,37 +583,20 @@ public abstract class Unit
     }
     
     /// <summary>
-    /// Gets components of a specific type at a specific location and slots
+    /// Gets components of a specific type at a specific location and slot
     /// </summary>
     /// <typeparam name="T">The type of component to find</typeparam>
     /// <param name="location">The location to check</param>
-    /// <param name="slots">The slots where the component is mounted</param>
-    /// <returns>Components of the specified type at the specified location and slots</returns>
-    public T? GetMountedComponentAtLocation<T>(PartLocation? location, int[] slots) where T : Component
+    /// <param name="slot">Any slot where the component is mounted</param>
+    /// <returns>Components of the specified type at the specified location containing the given slot</returns>
+    public T? GetMountedComponentAtLocation<T>(PartLocation? location, int slot) where T : Component
     {
-        if (location == null || slots.Length == 0)
+        if (location == null)
             return null;
         var components = GetComponentsAtLocation<T>(location.Value);
-  
-        return components.FirstOrDefault(c => 
-           c.MountedAtSlots.SequenceEqual(slots));
-    }
 
-    /// <summary>
-    /// Finds the part that contains a specific component
-    /// </summary>
-    /// <param name="component">The component to find</param>
-    /// <returns>The part containing the component, or null if not found</returns>
-    public UnitPart? FindComponentPart(Component component)
-    {
-        // First check the component's MountedOn property
-        if (component.MountedOn != null && _parts.ContainsValue(component.MountedOn))
-        {
-            return component.MountedOn;
-        }
-
-        // Fallback to searching all parts
-        return _parts.Values.FirstOrDefault(p => p.Components.Contains(component));
+        return components.FirstOrDefault(c =>
+           c.MountedAtFirstLocationSlots.Contains(slot));
     }
 
     public void Move(MovementType movementType, List<PathSegmentData> movementPath)
@@ -626,17 +616,19 @@ public abstract class Unit
     }
     
     /// <summary>
-    /// Fires a weapon based on the provided weapon data.
-    /// This applies heat to the unit and consumes ammo if required.
+    /// Fires a weapon based on the provided weapon data and consumes ammo if required.
     /// </summary>
     /// <param name="weaponData">Data identifying the weapon to fire</param>
-    public void FireWeapon(WeaponData weaponData)
+    public void FireWeapon(ComponentData weaponData)
     {
         // Find the weapon using the location and slots from weaponData
+        var primaryAssignment = weaponData.Assignments.FirstOrDefault();
+        if (primaryAssignment == null) return;
+
         var weapon = GetMountedComponentAtLocation<Weapon>(
-            weaponData.Location, 
-            weaponData.Slots);
-            
+            primaryAssignment.Location,
+            primaryAssignment.FirstSlot);
+
         if (weapon is not { IsAvailable: true })
             return;
         

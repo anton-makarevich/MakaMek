@@ -1,6 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -9,7 +9,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -39,8 +39,8 @@ public class HeatEffectsCalculatorTests
         var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Add a single ammo component
-        var ammo = new Ammo(Lrm5, 24);
-        centerTorso.TryAddComponent(ammo, [0]);
+        var ammo = AmmoTests.CreateAmmo(Lrm5, 24);
+        centerTorso.TryAddComponent(ammo, [10]).ShouldBeTrue();
 
         return mech;
     }
@@ -51,11 +51,11 @@ public class HeatEffectsCalculatorTests
         var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Add multiple ammo components with different damage values
-        var ammo1 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
-        var ammo2 = new Ammo(Lrm5, 24); // 5 * 24 = 120 damage
+        var ammo1 = AmmoTests.CreateAmmo(Lrm5, 24); // 5 * 24 = 120 damage
+        var ammo2 = AmmoTests.CreateAmmo(Lrm5, 24); // 5 * 24 = 120 damage
 
-        centerTorso.TryAddComponent(ammo1);
-        centerTorso.TryAddComponent(ammo2);
+        centerTorso.TryAddComponent(ammo1, [10]).ShouldBeTrue();
+        centerTorso.TryAddComponent(ammo2, [11]).ShouldBeTrue();
 
         return mech;
     }
@@ -197,15 +197,17 @@ public class HeatEffectsCalculatorTests
         _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
 
         var mech = CreateTestMechWithMultipleAmmo();
+        mech.Parts[PartLocation.LeftTorso].TryAddComponent(AmmoTests.CreateAmmo(Lrm5, 2)).ShouldBeTrue();
         SetMechHeat(mech, 25);
 
         // Setup dice roll that fails to trigger explosion
         var diceResults = new List<DiceResult> { new(2), new(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
+        _diceRoller.RollD6().Returns(new DiceResult(5));
 
         // Setup critical hits calculator
         var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
-                new ComponentHitData { Slot = 0, Type = MakaMekComponent.ISAmmoLRM5 }
+                new ComponentHitData { Slot = 10, Type = MakaMekComponent.ISAmmoLRM5 }
             ],false);
         
         _criticalHitsCalculator.CalculateCriticalHitsForHeatExplosion(
@@ -232,15 +234,12 @@ public class HeatEffectsCalculatorTests
         _rulesProvider.GetHeatAmmoExplosionAvoidNumber(Arg.Any<int>()).Returns(avoidNumber);
         
         var mech = CreateTestMechWithMultipleAmmo();
-        var mgAmmo = mech.GetAvailableComponents<Ammo>()
-            .First(a => a.Definition.WeaponComponentType == MakaMekComponent.MachineGun);
-        mgAmmo.UnMount();
         SetMechHeat(mech, 25);
 
         // Setup dice roll that fails to trigger explosion
         var diceResults = new List<DiceResult> { new(2), new(3) };
         _diceRoller.Roll2D6().Returns(diceResults);
-        _diceRoller.RollD6().Returns(diceResults[0]);
+        _diceRoller.RollD6().Returns(new DiceResult(5));
 
         // Setup critical hits calculator
         var criticalHits = new LocationCriticalHitsData(PartLocation.CenterTorso, [4, 4], 1, [
@@ -399,7 +398,10 @@ public class HeatEffectsCalculatorTests
     private static Mech CreateTestMech()
     {
         var mechData = MechFactoryTests.CreateDummyMechData();
-        return new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(mechData);
+        return new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>()).Create(mechData);
     }
 
     private static void SetMechHeat(Mech mech, int heatLevel)

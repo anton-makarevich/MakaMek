@@ -1,55 +1,42 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 public abstract class Weapon : Component
 {
-    private readonly WeaponDefinition _definition;
-
-    protected Weapon(WeaponDefinition definition) 
-        : base(definition.Name, [], definition.Size)
+    protected Weapon(WeaponDefinition definition, ComponentData? componentData = null)
+        : base(definition, componentData)
     {
-        _definition = definition;
-        BattleValue = definition.BattleValue;
     }
 
-    public int Damage => _definition.TotalDamage;
-    public int Heat => _definition.Heat;
-    public int MinimumRange => _definition.MinimumRange;
-    public int ShortRange => _definition.ShortRange;
-    public int MediumRange => _definition.MediumRange;
-    public int LongRange => _definition.LongRange;
-    public WeaponType Type => _definition.Type;
-    public int Clusters => _definition.Clusters;
-    public int ClusterSize => _definition.ClusterSize;
-    public int WeaponSize => _definition.WeaponSize;
-    
-    public MakaMekComponent? AmmoType => _definition.AmmoComponentType; 
+    // Cast the base definition to WeaponDefinition for weapon-specific properties
+    private WeaponDefinition WeaponDefinition => (WeaponDefinition)_definition;
+
+    public int Damage => WeaponDefinition.TotalDamage;
+    public int Heat => WeaponDefinition.Heat;
+    public int MinimumRange => WeaponDefinition.MinimumRange;
+    public int ShortRange => WeaponDefinition.ShortRange;
+    public int MediumRange => WeaponDefinition.MediumRange;
+    public int LongRange => WeaponDefinition.LongRange;
+    public WeaponType Type => WeaponDefinition.Type;
+    public int Clusters => WeaponDefinition.Clusters;
+    public int ClusterSize => WeaponDefinition.ClusterSize;
+    public int WeaponSize => WeaponDefinition.WeaponSize;
+
+    public MakaMekComponent? AmmoType => WeaponDefinition.AmmoComponentType;
         
     /// <summary>
     /// Indicates whether this weapon requires ammunition to fire
     /// </summary>
-    public bool RequiresAmmo => _definition.RequiresAmmo;
+    public bool RequiresAmmo => WeaponDefinition.RequiresAmmo;
 
     /// <summary>
     /// Gets the range bracket for a given distance
     /// </summary>
-    public WeaponRange GetRangeBracket(int distance) => _definition.GetRangeBracket(distance);
-    
-    public override MakaMekComponent ComponentType => _definition.WeaponComponentType;
+    public WeaponRange GetRangeBracket(int distance) => WeaponDefinition.GetRangeBracket(distance);
     
     /// <summary>
     /// Indicates whether this weapon is capable of making aimed shots
     /// </summary>
     public virtual bool IsAimShotCapable => true;
-    
-    public WeaponData ToData()
-    {
-        return new WeaponData
-        {
-            Name = Name,
-            Location = MountedOn?.Location,
-            Slots = MountedAtSlots
-        };
-    }
 }

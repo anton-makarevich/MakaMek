@@ -4,7 +4,6 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -35,7 +34,10 @@ public class StartupUnitCommandTests
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = _unitId;
 
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var unit = mechFactory.Create(mechData);
         player.AddUnit(unit);
 

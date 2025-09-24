@@ -3,7 +3,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -18,12 +18,12 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -61,7 +61,10 @@ public class BattleMapViewModelTests
         _localizationService.GetString("Action_MovementPoints").Returns("{0} | MP: {1}");
         _localizationService.GetString("MovementType_Walk").Returns("Walk");
         _localizationService.GetString("MovementType_Run").Returns("Run");
-        _mechFactory = new MechFactory(rules, _localizationService);
+        _mechFactory = new MechFactory(
+            rules,
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         _game = CreateClientGame();
         _sut.Game = _game;
     }
@@ -684,6 +687,7 @@ public class BattleMapViewModelTests
         // Place unit
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _sut.Units.First();
+        unit.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         unit.Deploy(position);
         
         // Select unit
@@ -821,6 +825,7 @@ public class BattleMapViewModelTests
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         attacker.AssignPilot(pilot);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.Deploy(attackerPosition);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
@@ -904,6 +909,7 @@ public class BattleMapViewModelTests
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         attacker.AssignPilot(pilot);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.Deploy(attackerPosition);
         
         var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
@@ -1081,6 +1087,7 @@ public class BattleMapViewModelTests
         var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var attacker = _sut.Units.First(u => u.Owner!.Id == playerId);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
         attacker.Deploy(attackerPosition);
         target.Deploy(targetPosition);
@@ -1092,11 +1099,11 @@ public class BattleMapViewModelTests
         var weaponTargetData = new WeaponTargetData
         {
             TargetId = target.Id,
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
-                Location = weapon.MountedOn!.Location,
-                Slots = weapon.MountedAtSlots,
-                Name = weapon.Name
+                Name = weapon.Name,
+                Type = weapon.ComponentType,
+                Assignments = [new LocationSlotAssignment(weapon.MountedOn[0].Location, weapon.MountedAtFirstLocationSlots.First(), weapon.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1193,7 +1200,9 @@ public class BattleMapViewModelTests
         // Get the units from the game
         var attackers = _sut.Units.Where(u => u.Owner!.Id == playerId).ToList();
         var attacker1 = attackers[0];
+        attacker1.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var attacker2 = attackers[1];
+        attacker2.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
         
         // Deploy the units
@@ -1209,11 +1218,11 @@ public class BattleMapViewModelTests
         var weaponTargetData1 = new WeaponTargetData
         {
             TargetId = target.Id,
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
-                Location = weapon1.MountedOn!.Location,
-                Slots = weapon1.MountedAtSlots,
-                Name = weapon1.Name
+                Name = weapon1.Name,
+                Type = weapon1.ComponentType,
+                Assignments = [new LocationSlotAssignment(weapon1.MountedOn[0].Location, weapon1.MountedAtFirstLocationSlots.First(), weapon1.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1221,11 +1230,11 @@ public class BattleMapViewModelTests
         var weaponTargetData2 = new WeaponTargetData
         {
             TargetId = target.Id,
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
-                Location = weapon2.MountedOn!.Location,
-                Slots = weapon2.MountedAtSlots,
-                Name = weapon2.Name
+                Name = weapon2.Name,
+                Type = weapon2.ComponentType,
+                Assignments = [new LocationSlotAssignment(weapon2.MountedOn[0].Location, weapon2.MountedAtFirstLocationSlots.First(), weapon2.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1331,6 +1340,8 @@ public class BattleMapViewModelTests
         
         // Get the units from the game
         var attacker = _sut.Units.First(u => u.Owner!.Id == playerId);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
         
         // Deploy the units
@@ -1346,11 +1357,11 @@ public class BattleMapViewModelTests
         var weaponTargetData1 = new WeaponTargetData
         {
             TargetId = target.Id,
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
-                Location = weapon1.MountedOn!.Location,
-                Slots = weapon1.MountedAtSlots,
-                Name = weapon1.Name
+                Name = weapon1.Name,
+                Type = weapon1.ComponentType,
+                Assignments = [new LocationSlotAssignment(weapon1.MountedOn[0].Location, weapon1.MountedAtFirstLocationSlots.First(), weapon1.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1358,11 +1369,11 @@ public class BattleMapViewModelTests
         var weaponTargetData2 = new WeaponTargetData
         {
             TargetId = target.Id,
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
-                Location = weapon2.MountedOn!.Location,
-                Slots = weapon2.MountedAtSlots,
-                Name = weapon2.Name
+                Name = weapon2.Name,
+                Type = weapon2.ComponentType,
+                Assignments = [new LocationSlotAssignment(weapon2.MountedOn[0].Location, weapon2.MountedAtFirstLocationSlots.First(), weapon2.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
@@ -1513,6 +1524,7 @@ public class BattleMapViewModelTests
         var target = _sut.Units.First(u => u.Owner!.Id == targetPlayerId);
 
         attacker.Deploy(attackerPosition);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         target.Deploy(targetPosition);
 
         // Get a weapon from the attacker
@@ -1522,16 +1534,16 @@ public class BattleMapViewModelTests
         var weaponTargetData = new WeaponTargetData
         {
             TargetId = target.Id,
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
-                Location = weapon.MountedOn!.Location,
-                Slots = weapon.MountedAtSlots,
-                Name = weapon.Name
+                Name = weapon.Name,
+                Type = weapon.ComponentType,
+                Assignments = [new LocationSlotAssignment(weapon.MountedOn[0].Location, weapon.MountedAtFirstLocationSlots.First(), weapon.MountedAtFirstLocationSlots.Length)]
             },
             IsPrimaryTarget = true
         };
 
-        // Start in WeaponsAttack phase and declare an attack
+        // Start in the WeaponsAttack phase and declare an attack
         game.HandleCommand(new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -1559,7 +1571,7 @@ public class BattleMapViewModelTests
             Phase = PhaseNames.WeaponAttackResolution
         });
 
-        // Assert - Weapon attacks should persist during resolution phase
+        // Assert - Weapon attacks should persist during the resolution phase
         _sut.WeaponAttacks.ShouldNotBeNull();
         _sut.WeaponAttacks.Count.ShouldBe(1, "Weapon attacks should persist between WeaponsAttack and WeaponAttackResolution phases");
 
@@ -1570,7 +1582,7 @@ public class BattleMapViewModelTests
             Phase = PhaseNames.End
         });
 
-        // Assert - Weapon attacks should be cleared when transitioning to End phase
+        // Assert - Weapon attacks should be cleared when transitioning to the End phase
         _sut.WeaponAttacks.ShouldBeEmpty("Weapon attacks should be cleared when transitioning to End phase");
     }
 

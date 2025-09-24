@@ -5,7 +5,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -20,7 +19,10 @@ public class WeaponSelectionExtensionsTests
     public WeaponSelectionExtensionsTests()
     {
         var mechData = MechFactoryTests.CreateDummyMechData();
-        _mech = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService).Create(mechData);
+        _mech = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService).Create(mechData);
     }
 
     private Weapon CreateWeapon(PartLocation location, bool isAvailable)

@@ -2,7 +2,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -16,8 +15,11 @@ public class LocationHitDataTests
 
     public LocationHitDataTests()
     {
-        // Create unit using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        // Create a unit using MechFactory
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var unitData = MechFactoryTests.CreateDummyMechData();
         _unit = mechFactory.Create(unitData);
     }
@@ -82,7 +84,7 @@ public class LocationHitDataTests
             PartLocation.Head,
             5,
             [3, 4], // Aimed shot roll: 7 (successful)
-            [] // No location roll since aimed shot was successful
+            [] // No location roll since the aimed shot was successful
         );
 
         // Act

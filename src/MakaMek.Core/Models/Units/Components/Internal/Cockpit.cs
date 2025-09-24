@@ -1,16 +1,23 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
-public class Cockpit() : Component("Cockpit", [2])
+public sealed class Cockpit(ComponentData? componentData = null) : Component(Definition, componentData)
 {
-    public override MakaMekComponent ComponentType => MakaMekComponent.Cockpit;
-    public override bool IsRemovable => false;
+    public static readonly InternalDefinition Definition = new(
+        "Cockpit",
+        1, // 1 health point
+        MakaMekComponent.Cockpit);
+
+    public static readonly int[] DefaultMountSlots = [2];
 
     public override void Hit()
     {
+        var wasDestroyed = IsDestroyed;
         base.Hit();
-        // Kill the pilot
-        MountedOn?.Unit?.Pilot?.Kill();
+        if (!wasDestroyed && IsDestroyed)
+        {
+            FirstMountPart?.Unit?.Pilot?.Kill();
+        }
     }
 }

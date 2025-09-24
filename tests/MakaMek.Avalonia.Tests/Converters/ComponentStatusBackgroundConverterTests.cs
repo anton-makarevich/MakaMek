@@ -29,7 +29,7 @@ public class ComponentStatusBackgroundConverterTests:IDisposable
         // Arrange
         var weapon = new TestWeapon();
         var unitPart = new Arm("Left Arm",PartLocation.LeftArm,1,1);
-        weapon.Mount([1], unitPart);
+        unitPart.TryAddComponent(weapon,[1]).ShouldBeTrue(); 
         
         // Act
         var result = _sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
@@ -46,7 +46,7 @@ public class ComponentStatusBackgroundConverterTests:IDisposable
         var weapon = new TestWeapon();
         var unitPart = new Arm("Left Arm",PartLocation.LeftArm,1,1);
         unitPart.ApplyDamage(5, HitDirection.Front);
-        weapon.Mount([1], unitPart);
+        unitPart.TryAddComponent(weapon,[1]).ShouldBeTrue();
         
         // Act
         var result = _sut.Convert(weapon, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;

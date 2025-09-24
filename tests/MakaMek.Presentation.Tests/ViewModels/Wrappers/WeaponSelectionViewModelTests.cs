@@ -1,6 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -9,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -46,7 +45,10 @@ public class WeaponSelectionViewModelTests
             { PartLocation.LeftLeg, 8 },
             { PartLocation.RightLeg, 8 }
         });
-        var mechFactory = new MechFactory(structureValueProvider, Substitute.For<ILocalizationService>());
+        var mechFactory = new MechFactory(
+            structureValueProvider,
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
         var mechData = MechFactoryTests.CreateDummyMechData();
         _target = mechFactory.Create(mechData);
         var attacker = mechFactory.Create(mechData);
@@ -596,7 +598,7 @@ public class WeaponSelectionViewModelTests
     {
         // Arrange
         CreateSut();
-        var part = _weapon.MountedOn;
+        var part = _weapon.FirstMountPart;
         if (part == null) throw new Exception("Weapon must be mounted on a part for this test.");
         part.ApplyDamage(1000, HitDirection.Front);
         _localizationService.GetString("Attack_LocationDestroyed").Returns("Location is destroyed");

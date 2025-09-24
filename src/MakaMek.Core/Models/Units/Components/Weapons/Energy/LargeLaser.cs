@@ -1,8 +1,8 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
+﻿using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 
-public class LargeLaser() : Weapon(Definition)
+public sealed class LargeLaser : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
@@ -17,4 +17,9 @@ public class LargeLaser() : Weapon(Definition)
         BattleValue: 123,
         Size: 2,
         WeaponComponentType: MakaMekComponent.LargeLaser);
+
+    // Constructor uses the static definition
+    public LargeLaser(ComponentData? componentData = null) : base(Definition, componentData)
+    {
+    }
 }

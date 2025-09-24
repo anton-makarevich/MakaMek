@@ -1,7 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -12,7 +12,6 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -49,6 +48,7 @@ public class FallProcessorTests
 
         _testMech = new MechFactory(
             rulesProvider,
+            new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData());
     }
@@ -233,7 +233,7 @@ public class FallProcessorTests
     {
         // Arrange
         var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
-        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+        const int totalDamageDealt = 20; // Damage at/above a heavy damage threshold
         _testMech.ApplyDamage(
             [
                 CreateHitDataForLocation(PartLocation.CenterTorso,
@@ -297,7 +297,7 @@ public class FallProcessorTests
     {
         // Arrange
         var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 1); // Gyro hit
-        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+        const int totalDamageDealt = 20; // Damage at/above a heavy damage threshold
         _testMech.ApplyDamage(
             [
                 CreateHitDataForLocation(PartLocation.CenterTorso,
@@ -396,7 +396,7 @@ public class FallProcessorTests
     {
         // Arrange
         var componentHits = new List<ComponentHitData>(); // No critical hits
-        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+        const int totalDamageDealt = 20; // Damage at/above the heavy damage threshold
         _testMech.ApplyDamage(
             [
                 CreateHitDataForLocation(PartLocation.CenterTorso,
@@ -456,7 +456,7 @@ public class FallProcessorTests
     {
         // Arrange
         var componentHits = new List<ComponentHitData>(); // No critical hits
-        const int totalDamageDealt = 20; // Damage at/above heavy damage threshold
+        const int totalDamageDealt = 20; // Damage at/above a heavy damage threshold
         _testMech.ApplyDamage(
             [
                 CreateHitDataForLocation(PartLocation.CenterTorso,
@@ -499,48 +499,6 @@ public class FallProcessorTests
             _game);
 
         _mockFallingDamageCalculator.DidNotReceive().CalculateFallingDamage(Arg.Any<Unit>(), Arg.Any<int>(), Arg.Any<bool>());
-    }
-
-    [Fact]
-    public void ProcessPotentialFall_ShouldNotReturnCommand_WhenGyroHitReportedForMechWithoutGyro()
-    {
-        // Arrange
-        // Ensure the testMech has no Gyro for this test
-        var gyroComponent = _testMech.GetAllComponents<Gyro>().FirstOrDefault();
-        if (gyroComponent != null)
-        {
-            // Find the part containing the gyro and remove it.
-            // This assumes Gyro is in CenterTorso for standard mechs, but iterates to be safe.
-            var partContainingGyro = _testMech.Parts.Values.FirstOrDefault(p => p.GetComponents<Gyro>().Any());
-            partContainingGyro?.RemoveComponent(gyroComponent);
-        }
-        _testMech.GetAllComponents<Gyro>().ShouldBeEmpty("Test 'Mech should not have a Gyro for this scenario.");
-
-        var gyroComponentHit = new ComponentHitData { Type = MakaMekComponent.Gyro, Slot = 1 }; // Report a gyro hit
-        var componentHits = new List<ComponentHitData> { gyroComponentHit };
-
-        // Ensure heavy damage PSR is not triggered
-        // (RulesProvider is ClassicBattletechRulesProvider, GetHeavyDamageThreshold defaults to 20)
-
-        // Act
-        var commands = _sut.ProcessPotentialFall(_testMech,
-            _game,
-            componentHits);
-
-        // Assert
-        commands.ShouldBeEmpty();
-
-        // Ensure no PSR was attempted for a GyroHit because the mech has no gyro
-        _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
-            _testMech, 
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.GyroHit), 
-            Arg.Any<IGame>());
-        
-        // Also ensure no pilot damage PSR was attempted as no fall should be processed
-        _mockPilotingSkillCalculator.DidNotReceive().GetPsrBreakdown(
-            _testMech, 
-            Arg.Is<PilotingSkillRollType>(type => type == PilotingSkillRollType.PilotDamageFromFall), 
-            Arg.Any<IGame>());
     }
 
     [Fact]
@@ -677,7 +635,7 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall"); 
 
         // Dice rolls:
-        // First rol: ULA Hit PSR fails.
+        // First roll: ULA Hit PSR fails.
         // Second roll: PilotDamageFromFall succeeds.
         SetupRollResult(false, PilotingSkillRollType.UpperLegActuatorHit); 
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall); 

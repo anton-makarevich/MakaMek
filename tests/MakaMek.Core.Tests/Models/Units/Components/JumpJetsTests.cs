@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -19,19 +19,6 @@ public class JumpJetsFacts
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.JumpJet);
         sut.IsRemovable.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void Constructor_WithCustomJumpMp_SetsCorrectValues()
-    {
-        // Arrange & Act
-        var sut = new JumpJets(2);
-
-        // Assert
-        sut.Name.ShouldBe("Jump Jets");
-        sut.Size.ShouldBe(1);
-        sut.JumpMp.ShouldBe(2);
-        sut.IsDestroyed.ShouldBeFalse();
     }
 
     [Fact]

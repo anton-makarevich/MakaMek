@@ -1,17 +1,20 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components;
 
 public class ComponentTests
 {
-    private class TestComponent(string name, int[] slots, int size = 1, int healthPoints = 1) : Component(name, slots, size, healthPoints:healthPoints)
-    {
-        public override MakaMekComponent ComponentType => throw new NotImplementedException();
-    }
+    private class TestComponent(string name, int size = 1, int healthPoints = 1) : Component(new EquipmentDefinition(
+        name,
+        MakaMekComponent.Masc,
+        0,
+        size,
+        healthPoints));
     
     private class TestUnitPart(string name, PartLocation location, int maxArmor, int maxStructure, int slots)
         : UnitPart(name, location, maxArmor, maxStructure, slots)
@@ -23,223 +26,280 @@ public class ComponentTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var component = new TestComponent("Test Component",[]);
+        var sut = new TestComponent("Test Component");
 
         // Assert
-        component.Name.ShouldBe("Test Component");
-        component.IsDestroyed.ShouldBeFalse();
-        component.IsActive.ShouldBeTrue();
-        component.IsMounted.ShouldBeFalse();
+        sut.Name.ShouldBe("Test Component");
+        sut.IsDestroyed.ShouldBeFalse();
+        sut.IsActive.ShouldBeTrue();
+        sut.IsMounted.ShouldBeFalse();
     }
 
     [Fact]
     public void Mount_SetsIsMountedToTrue()
     {
         // Arrange
-        var component = new TestComponent("Test Component",[]);
+        var sut = new TestComponent("Test Component");
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
 
 
         // Act
-        component.Mount([0], unitPart);
+        sut.Mount(unitPart,[0]);
 
         // Assert
-        component.IsMounted.ShouldBeTrue();
+        sut.IsMounted.ShouldBeTrue();
+        sut.MountedAtFirstLocationSlots.ShouldBe([0]);
+    }
+
+    [Fact]
+    public void Mount_ShouldHandleNonConsecutiveSlots()
+    {
+        // Arrange
+        var sut = new TestComponent("Test Component", 3);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+
+
+        // Act
+        sut.Mount( unitPart,[2,4,5]);
+
+        // Assert
+        sut.IsMounted.ShouldBeTrue();
+        sut.MountedAtFirstLocationSlots.ShouldBe([2, 4, 5]);
+    }
+
+    [Fact]
+    public void Mount_ShouldThrowWhenSlotsContainDuplicates()
+    {
+        // Arrange
+        var sut = new TestComponent("Test Component", 3);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+
+        // Act & Assert
+        Should.Throw<ComponentException>(() => sut.Mount(unitPart, [2, 2, 3]))
+            .Message.ShouldBe("Slot assignments cannot contain duplicates.");
+    }
+
+    [Fact]
+    public void Mount_ShouldThrowWhenSlotsExceedUnitPartCapacity()
+    {
+        // Arrange
+        var sut = new TestComponent("Test Component", 2);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+
+        // Act & Assert
+        Should.Throw<ComponentException>(() => sut.Mount(unitPart, [9, 10]))
+            .Message.ShouldBe("Slot assignment exceeds available slots of the unit part.");
     }
 
     [Fact]
     public void UnMount_ResetsMountedSlots()
     {
         // Arrange
-        var component = new TestComponent("Test Component",[]);
+        var sut = new TestComponent("Test Component");
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
 
-        component.Mount([0],unitPart);
+        sut.Mount(unitPart,[0]);
 
         // Act
-        component.UnMount();
+        sut.UnMount();
 
         // Assert
-        component.IsMounted.ShouldBeFalse();
+        sut.IsMounted.ShouldBeFalse();
     }
 
     [Fact]
     public void UnMount_ThrowsExceptionForFixedComponents()
     {
         // Arrange
-        var component = new TestComponent("Fixed Component", [0]);
+        var sut = new ShoulderActuator();
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+        unitPart.TryAddComponent(sut).ShouldBeTrue();
+        sut.IsMounted.ShouldBeTrue();
 
         // Act & Assert
-        var exception = Assert.Throws<ComponentException>(() => component.UnMount());
-        exception.Message.ShouldBe("Fixed components cannot be unmounted.");
+        Should.Throw<ComponentException>(() => sut.UnMount())
+            .Message.ShouldBe($"Shoulder is not removable");
     }
 
     [Fact]
     public void Hit_SetsIsDestroyedToTrue()
     {
         // Arrange
-        var component = new TestComponent("Test Component",[]);
+        var sut = new TestComponent("Test Component");
 
         // Act
-        component.Hit();
+        sut.Hit();
 
         // Assert
-        component.IsDestroyed.ShouldBeTrue();
-        component.Hits.ShouldBe(1);
+        sut.IsDestroyed.ShouldBeTrue();
+        sut.Hits.ShouldBe(1);
     }
 
     [Fact]
     public void Activate_DeactivateTogglesIsActive()
     {
         // Arrange
-        var component = new TestComponent("Test Component",[]);
+        var sut = new TestComponent("Test Component");
         
         // Act & Assert
-        component.IsActive.ShouldBeTrue(); // Default state
+        sut.IsActive.ShouldBeTrue(); // Default state
         
-        component.Deactivate();
-        component.IsActive.ShouldBeFalse();
+        sut.Deactivate();
+        sut.IsActive.ShouldBeFalse();
         
-        component.Activate();
-        component.IsActive.ShouldBeTrue();
+        sut.Activate();
+        sut.IsActive.ShouldBeTrue();
     }
 
     [Fact]
     public void IsMounted_ReturnsTrueWhenMountedAtSlotsNotEmpty()
     {
         // Arrange
-        var component = new TestComponent("Test Component", [],2);
+        var sut = new TestComponent("Test Component",2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
         
         // Act & Assert
-        component.IsMounted.ShouldBeFalse(); // Initially not mounted
+        sut.IsMounted.ShouldBeFalse(); // Initially not mounted
         
-        component.Mount([0, 1],unitPart);
-        component.IsMounted.ShouldBeTrue(); // Mounted with slots
+        sut.Mount(unitPart,[0, 1]);
+        sut.IsMounted.ShouldBeTrue(); // Mounted with slots
         
-        component.UnMount();
-        component.IsMounted.ShouldBeFalse(); // Unmounted
+        sut.UnMount();
+        sut.IsMounted.ShouldBeFalse(); // Unmounted
     }
 
     [Fact]
     public void Mount_IgnoresIfAlreadyMounted()
     {
         // Arrange
-        var component = new TestComponent("Test Component", [],2);
+        var sut = new TestComponent("Test Component",2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
 
-        component.Mount([0, 1],unitPart);
-        var initialSlots = component.MountedAtSlots;
+        sut.Mount(unitPart,[0, 1]);
+        var initialSlots = sut.MountedAtFirstLocationSlots;
 
         // Act
-        component.Mount([2, 3],unitPart); // Try to mount again with different slots
+        sut.Mount(unitPart,[2, 3]); // Try to mount again with different slots
 
         // Assert
-        component.MountedAtSlots.ShouldBeEquivalentTo(initialSlots); // Should keep original slots
+        sut.MountedAtFirstLocationSlots.ShouldBeEquivalentTo(initialSlots); // Should keep original slots
     }
     
     [Fact]
-    public void Mount_ComponentWithWrongSize_Throws()
+    public void Mount_ComponentWithLargerSize_Throws()
     {
         // Arrange
-        var component = new TestComponent("Test Component", [],2);
+        var sut = new TestComponent("Test Component",2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-
         
         // Act & Assert
-        var exception = Assert.Throws<ComponentException>(() => component.Mount([2],unitPart));// Try to mount 
-        exception.Message.ShouldBe("Component Test Component requires 2 slots.");
-        
+        Should.Throw<ComponentException>(() => sut.Mount(unitPart,[2,3,4])) // Try to mount 
+           .Message.ShouldBe("Component Test Component requires 2 slots.");
     }
 
     [Fact]
     public void UnMount_IgnoresIfNotMounted()
     {
         // Arrange
-        var component = new TestComponent("Test Component", []);
+        var sut = new TestComponent("Test Component");
 
         // Act & Assert - should not throw
-        component.UnMount();
-        component.IsMounted.ShouldBeFalse();
+        sut.UnMount();
+        sut.IsMounted.ShouldBeFalse();
     }
 
     [Fact]
     public void Status_ReturnsRemoved_WhenNotMounted()
     {
-        var component = new TestComponent("Test", []);
-        component.Status.ShouldBe(ComponentStatus.Removed);
+        var sut = new TestComponent("Test");
+        sut.Status.ShouldBe(ComponentStatus.Removed);
     }
     
     [Fact]
     public void Status_ReturnsDamaged_WhenHitsLessThanHP()
     {
-        var component = new TestComponent("Test", [], healthPoints:2);
+        var sut = new TestComponent("Test", healthPoints:2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        component.Mount([0], unitPart);
+        sut.Mount(unitPart,[0]);
         
-        component.Hit();
+        sut.Hit();
         
-        component.Status.ShouldBe(ComponentStatus.Damaged);
+        sut.Status.ShouldBe(ComponentStatus.Damaged);
     }
 
     [Fact]
     public void Status_ReturnsDeactivated_WhenNotActive()
     {
-        var component = new TestComponent("Test", []);
-        typeof(Component).GetProperty("IsActive")!.SetValue(component, false);
+        var sut = new TestComponent("Test");
+        sut.Deactivate();
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        component.Mount([0], unitPart);
-        component.Status.ShouldBe(ComponentStatus.Deactivated);
+        sut.Mount(unitPart,[0]);
+        sut.Status.ShouldBe(ComponentStatus.Deactivated);
     }
 
     [Fact]
     public void Status_ReturnsLost_WhenMountedOnDestroyed()
     {
-        var component = new TestComponent("Test", []);
+        var sut = new TestComponent("Test");
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        component.Mount([0], unitPart);
+        sut.Mount(unitPart,[0]);
         unitPart.ApplyDamage(20, HitDirection.Front, true);
-        component.Status.ShouldBe(ComponentStatus.Lost);
+        sut.Status.ShouldBe(ComponentStatus.Lost);
     }
 
     [Fact]
     public void Status_ReturnsActive_WhenAllOk()
     {
-        var component = new TestComponent("Test", []);
+        var sut = new TestComponent("Test");
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        component.Mount([0], unitPart);
-        component.Status.ShouldBe(ComponentStatus.Active);
+        sut.Mount(unitPart, [0]);
+        sut.Status.ShouldBe(ComponentStatus.Active);
     }
     
     [Fact]
     public void Mount_WithUnitPart_ShouldSetMountedOnProperty()
     {
         // Arrange
-        var component = new TestComponent("Test Component", [], 2);
+        var sut = new TestComponent("Test Component", 2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
         
         // Act
-        component.Mount([0, 1], unitPart);
+        sut.Mount(unitPart, [0, 1]);
         
         // Assert
-        component.MountedOn.ShouldBe(unitPart);
-        component.GetLocation().ShouldBe(PartLocation.LeftArm);
+        sut.FirstMountPart.ShouldBe(unitPart);
+        sut.FirstMountPartLocation.ShouldBe(PartLocation.LeftArm);
+        sut.MountedOn.ShouldContain(unitPart);
+    }
+
+    [Fact]
+    public void Mount_ShouldNotMountComponent_WhenSlotsAreEmpty()
+    {
+        // Arrange
+        var sut = new TestComponent("Test Component", 1);
+        var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
+        
+        // Act
+        sut.Mount(unitPart, []);
+        
+        // Assert
+        sut.IsMounted.ShouldBeFalse();
     }
     
     [Fact]
     public void UnMount_ShouldClearMountedOnProperty()
     {
         // Arrange
-        var component = new TestComponent("Test Component", [], 2);
+        var sut = new TestComponent("Test Component", 2);
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        component.Mount([0, 1], unitPart);
+        sut.Mount(unitPart,[0, 1]);
         
         // Act
-        component.UnMount();
+        sut.UnMount();
         
         // Assert
-        component.MountedOn.ShouldBeNull();
-        component.GetLocation().ShouldBeNull();
+        sut.MountedOn.ShouldBeEmpty();
+        sut.FirstMountPartLocation.ShouldBeNull();
     }
     
     [Fact]
@@ -247,15 +307,15 @@ public class ComponentTests
     {
         // Arrange
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        var component = new TestComponent("Test Component", [], 2);
+        var sut = new TestComponent("Test Component", 2);
         
         // Act
-        var result = unitPart.TryAddComponent(component);
+        var result = unitPart.TryAddComponent(sut);
         
         // Assert
         result.ShouldBeTrue();
-        component.MountedOn.ShouldBe(unitPart);
-        component.GetLocation().ShouldBe(PartLocation.LeftArm);
+        sut.MountedOn.ShouldContain(unitPart);
+        sut.FirstMountPartLocation.ShouldBe(PartLocation.LeftArm);
     }
     
     [Fact]
@@ -263,17 +323,18 @@ public class ComponentTests
     {
         // Arrange
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        var component = new TestComponent("Test Component", [], 2);
-        unitPart.TryAddComponent(component);
+        var sut = new TestComponent("Test Component", 2);
+        unitPart.TryAddComponent(sut).ShouldBeTrue();
+        sut.IsMounted.ShouldBeTrue();
         
         // Act
-        var result = unitPart.RemoveComponent(component);
+        var result = unitPart.RemoveComponent(sut);
         
         // Assert
         result.ShouldBeTrue();
-        component.IsMounted.ShouldBeFalse();
-        component.MountedOn.ShouldBeNull();
-        unitPart.Components.ShouldNotContain(component);
+        sut.IsMounted.ShouldBeFalse();
+        sut.MountedOn.ShouldBeEmpty();
+        unitPart.Components.ShouldNotContain(sut);
     }
     
     [Fact]
@@ -281,49 +342,49 @@ public class ComponentTests
     {
         // Arrange
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        var component = new TestComponent("Test Component", [], 2);
+        var sut = new TestComponent("Test Component", 2);
         
         // Act
-        var result = unitPart.RemoveComponent(component);
+        var result = unitPart.RemoveComponent(sut);
         
         // Assert
         result.ShouldBeFalse();
     }
     
     [Fact]
-    public void FixedComponent_ShouldHaveCorrectLocation()
+    public void Component_ShouldHaveCorrectLocation_WhenAddedToPart()
     {
         // Arrange
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
-        var fixedComponent = new TestComponent("Fixed Component", [0, 1], 2);
+        var sut = new TestComponent("Fixed Component", 2);
         
         // Act
-        var result = unitPart.TryAddComponent(fixedComponent);
+        var result = unitPart.TryAddComponent(sut);
         
         // Assert
         result.ShouldBeTrue();
-        fixedComponent.MountedOn.ShouldBe(unitPart);
-        fixedComponent.GetLocation().ShouldBe(PartLocation.LeftArm);
+        sut.FirstMountPart.ShouldBe(unitPart);
+        sut.FirstMountPartLocation.ShouldBe(PartLocation.LeftArm);
     }
     
     [Fact]
     public void CanExplode_DefaultIsFalse()
     {
         // Arrange
-        var component = new TestComponent("Test Component", []);
+        var sut = new TestComponent("Test Component");
         
         // Act & Assert
-        component.CanExplode.ShouldBeFalse();
+        sut.CanExplode.ShouldBeFalse();
     }
     
     [Fact]
     public void GetExplosionDamage_DefaultReturnsZero()
     {
         // Arrange
-        var component = new TestComponent("Test Component", []);
+        var sut = new TestComponent("Test Component");
         
         // Act
-        var damage = component.GetExplosionDamage();
+        var damage = sut.GetExplosionDamage();
         
         // Assert
         damage.ShouldBe(0);
@@ -333,23 +394,23 @@ public class ComponentTests
     public void HasExploded_DefaultIsFalse()
     {
         // Arrange
-        var component = new TestComponent("Test Component", []);
+        var sut = new TestComponent("Test Component");
         
         // Act & Assert
-        component.HasExploded.ShouldBeFalse();
+        sut.HasExploded.ShouldBeFalse();
     }
     
     [Fact]
     public void Hit_DoesNotChangeHasExploded()
     {
         // Arrange
-        var component = new TestComponent("Test Component", []);
+        var sut = new TestComponent("Test Component");
         
         // Act
-        component.Hit();
+        sut.Hit();
         
         // Assert
-        component.HasExploded.ShouldBeFalse();
-        component.IsDestroyed.ShouldBeTrue();
+        sut.HasExploded.ShouldBeFalse();
+        sut.IsDestroyed.ShouldBeTrue();
     }
 }

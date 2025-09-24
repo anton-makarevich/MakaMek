@@ -1,8 +1,8 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
+﻿using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Melee;
 
-public class Hatchet() : Weapon(Definition)
+public sealed class Hatchet : Weapon
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
@@ -16,8 +16,11 @@ public class Hatchet() : Weapon(Definition)
         Type: WeaponType.Melee,
         BattleValue: 5,
         WeaponComponentType: MakaMekComponent.Hatchet);
-        
+
     // Constructor uses the static definition
+    public Hatchet(ComponentData? componentData = null) : base(Definition, componentData)
+    {
+    }
 
     /// <summary>
     /// Hatchets cannot make aimed shots

@@ -14,7 +14,6 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.UiStates;
@@ -31,15 +30,19 @@ public class DeploymentStateTests
     private readonly Hex _hex1;
     private readonly Hex _hex2;
     private readonly BattleMapViewModel _battleMapViewModel;
+    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
+    private readonly ILocalizationService _localizationService = new FakeLocalizationService();
 
     public DeploymentStateTests()
     {
         var imageService = Substitute.For<IImageService>();
-        var localizationService = Substitute.For<ILocalizationService>();
         
-        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
+        _battleMapViewModel = new BattleMapViewModel(
+            imageService,
+            _localizationService,
+            Substitute.For<IDispatcherService>());
 
-        var rules = new ClassicBattletechRulesProvider();
         var unitData = MechFactoryTests.CreateDummyMechData();
         
         // Create two adjacent hexes
@@ -49,8 +52,11 @@ public class DeploymentStateTests
         var battleMap = new BattleMap(1, 1);
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = new ClientGame(
-            rules,
-            new MechFactory(rules,localizationService),
+            _rulesProvider,
+            new MechFactory(
+                _rulesProvider,
+                _componentProvider,
+                _localizationService),
             Substitute.For<ICommandPublisher>(),
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
@@ -64,10 +70,6 @@ public class DeploymentStateTests
         SetActivePlayer(player, unitData);
         _unit = _battleMapViewModel.Units.First();
         _sut = new DeploymentState(_battleMapViewModel);
-
-        localizationService.GetString("Action_SelectUnitToDeploy").Returns("Select Unit");
-        localizationService.GetString("Action_SelectDeploymentHex").Returns("Select Hex");
-        localizationService.GetString("Action_SelectFacingDirection").Returns("Select facing direction");
     }
     
     private void SetActivePlayer(Player player, UnitData unitData)
@@ -256,7 +258,10 @@ public class DeploymentStateTests
         _unit.Deploy(new HexPosition(_hex1.Coordinates,HexDirection.Top));
         
         // Try to deploy the second unit to the same hex
-        var secondUnit = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()).Create(MechFactoryTests.CreateDummyMechData());
+        var secondUnit = new MechFactory(
+            _rulesProvider,
+            _componentProvider,
+            _localizationService).Create(MechFactoryTests.CreateDummyMechData());
         _sut = new DeploymentState(_battleMapViewModel);
         _sut.HandleUnitSelection(secondUnit);
         

@@ -97,19 +97,11 @@ public class UnitWeaponAttackState
             return;
         }
 
-        // Find all selected arm weapons
-        var selectedArmWeapons = _weaponTargets.Keys
-            .Where(w => w.MountedOn?.Location is { } loc && loc.IsArm())
-            .ToList();
-
-        if (selectedArmWeapons.Count == 0)
-        {
-            CommittedArmLocation = null;
-            return;
-        }
-
-        // Get the arm location from the first selected arm weapon
-        CommittedArmLocation = selectedArmWeapons.First().MountedOn?.Location;
+        // Find the first arm location among selected weapons
+        var firstArmLoc = _weaponTargets.Keys
+            .Select(w => w.FirstMountPartLocation)
+            .FirstOrDefault(loc => loc.HasValue && loc.Value.IsArm());
+        CommittedArmLocation = firstArmLoc;
     }
 
     /// <summary>

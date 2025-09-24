@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -10,7 +10,7 @@ public class MascTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var sut = new Masc("MASC");
+        var sut = new Masc();
 
         // Assert
         sut.Name.ShouldBe("MASC");
@@ -25,7 +25,7 @@ public class MascTests
     public void Hit_DestroysAndDeactivatesComponent()
     {
         // Arrange
-        var sut = new Masc("MASC");
+        var sut = new Masc();
         sut.Activate();
 
         // Act

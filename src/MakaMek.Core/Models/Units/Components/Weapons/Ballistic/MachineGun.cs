@@ -1,8 +1,8 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 
-public class MachineGun : Weapon
+public sealed class MachineGun(ComponentData? componentData = null) : Weapon(Definition, componentData)
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
@@ -18,14 +18,9 @@ public class MachineGun : Weapon
         FullAmmoRounds:200,
         WeaponComponentType: MakaMekComponent.MachineGun,
         AmmoComponentType: MakaMekComponent.ISAmmoMG);
-        
-    // Constructor uses the static definition
-    public MachineGun() : base(Definition)
-    {
-    }
 
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, Definition.FullAmmoRounds);
+        return new Ammo(Definition);
     }
 }

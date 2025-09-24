@@ -33,6 +33,7 @@ public class ServerGameTests
             new SingleTerrainGenerator(5,5, new ClearTerrain()));
         
         var rulesProvider = Substitute.For<IRulesProvider>();
+        var componentProvider = Substitute.For<IComponentProvider>();
         rulesProvider.GetStructureValues(20).Returns(new Dictionary<PartLocation, int>
         {
             { PartLocation.Head, 8 },
@@ -45,7 +46,10 @@ public class ServerGameTests
             { PartLocation.RightLeg, 8 }
         });
         _sut = new ServerGame(rulesProvider,
-            new MechFactory(rulesProvider, Substitute.For<ILocalizationService>()),
+            new MechFactory(
+                rulesProvider,
+                componentProvider,
+                Substitute.For<ILocalizationService>()),
             _commandPublisher, _diceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IDamageTransferCalculator>(),
@@ -383,7 +387,7 @@ public class ServerGameTests
         // Verify damage was accumulated
         unit.TotalPhaseDamage.ShouldBe(5);
 
-        // Act - Transition to next phase (from Deployment to Initiative)
+        // Act - Transition to the next phase (from Deployment to Initiative)
         _sut.TransitionToNextPhase(PhaseNames.Deployment);
 
         // Assert - TotalPhaseDamage should be reset to 0

@@ -12,7 +12,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -52,7 +51,9 @@ public class ToHitCalculatorTests
         _rules.GetAimedShotModifier(PartLocation.Head).Returns(3);
         _rules.GetAimedShotModifier(Arg.Is<PartLocation>(loc => loc != PartLocation.Head)).Returns(-4);
 
-        _mechFactory = new MechFactory(_rules, Substitute.For<ILocalizationService>());
+        _mechFactory = new MechFactory(_rules,
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
 
         // Setup weapon
         _weapon = new MediumLaser();

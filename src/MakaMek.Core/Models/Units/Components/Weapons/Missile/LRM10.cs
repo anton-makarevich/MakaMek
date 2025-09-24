@@ -1,8 +1,8 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public class Lrm10() : Weapon(Definition)
+public sealed class Lrm10(ComponentData? componentData = null) : Weapon(Definition, componentData)
 {
     // Static definition for this weapon type
     /// <inheritdoc />
@@ -20,14 +20,12 @@ public class Lrm10() : Weapon(Definition)
         BattleValue: 90,
         Clusters: 2,
         ClusterSize: 5,
-        FullAmmoRounds:12,
+        FullAmmoRounds: 12,
         WeaponComponentType: MakaMekComponent.LRM10,
         AmmoComponentType: MakaMekComponent.ISAmmoLRM10);
-        
-    // Constructor uses the static definition
 
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, Definition.FullAmmoRounds);
+        return new Ammo(Definition);
     }
 }

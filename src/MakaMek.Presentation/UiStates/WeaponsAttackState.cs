@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -532,12 +531,7 @@ public class WeaponsAttackState : IUiState
 
                 weaponTargetsData.Add(new WeaponTargetData
                 {
-                    Weapon = new WeaponData
-                    {
-                        Name = weapon.Name,
-                        Location = weapon.MountedOn?.Location ?? throw new Exception("Weapon is not mounted"),
-                        Slots = weapon.MountedAtSlots
-                    },
+                    Weapon = weapon.ToData(),
                     TargetId = target.Id,
                     IsPrimaryTarget = isPrimaryTarget,
                     AimedShotTarget = aimedShotTarget

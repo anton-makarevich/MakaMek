@@ -42,10 +42,10 @@ public partial class UnitComponentsPanel : UserControl
             .ToList();
 
         var grouped = components
-            .GroupBy(c => c.MountedOn)
+            .GroupBy(c => c.MountedOn[0])
             .Select(g => new ComponentGroup
             {
-                MountedOn = g.Key?.Name ?? "NA",
+                MountedOn = g.Key.Name,
                 Components = g.ToList()
             })
             .ToList();

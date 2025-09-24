@@ -1,4 +1,6 @@
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -40,29 +42,23 @@ public static class UnitExtensions
         var engineRating = engine?.Rating ?? 0;
         var engineType = engine?.Type.ToString() ?? "Fusion";
         
-        // Create equipment dictionary
-        var locationEquipment = new Dictionary<PartLocation, List<MakaMekComponent>>();
-        
+        // Create component-centric equipment list
+        var equipment = new List<ComponentData>();
+        var processedComponents = new HashSet<Component>();
+
         foreach (var part in unit.Parts.Values)
         {
-            var equipment = new List<MakaMekComponent>();
-            
             // Filter out automatically added components
             var filteredComponents = part.Components
-                .Where(c => c.IsRemovable)
+                .Where(c => c.IsRemovable && !processedComponents.Contains(c))
                 .ToList();
-                
+
             foreach (var component in filteredComponents)
             {
-                // Use the ComponentType property directly
-                    // Add each component exactly once, regardless of how many slots it occupies
-                equipment.Add(component.ComponentType);
-            }
-            
-            // Only add the location if it has equipment
-            if (equipment.Count > 0)
-            {
-                locationEquipment[part.Location] = equipment;
+                // Mark component as processed to avoid duplicates for multi-location components
+                processedComponents.Add(component);
+
+                equipment.Add(component.ToData());
             }
         }
         
@@ -76,7 +72,7 @@ public static class UnitExtensions
             EngineRating = engineRating,
             EngineType = engineType,
             ArmorValues = armorValues,
-            LocationEquipment = locationEquipment,
+            Equipment = equipment,
             AdditionalAttributes = new Dictionary<string, string>(),
             Quirks = new Dictionary<string, string>()
         };

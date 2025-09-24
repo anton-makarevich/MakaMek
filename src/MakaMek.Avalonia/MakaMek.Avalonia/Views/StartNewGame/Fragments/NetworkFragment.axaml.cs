@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace Sanet.MakaMek.Avalonia.Views.NewGame.Fragments;
+namespace Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments;
 
 public partial class NetworkFragment : UserControl
 {

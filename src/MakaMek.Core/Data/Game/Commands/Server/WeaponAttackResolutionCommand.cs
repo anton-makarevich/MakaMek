@@ -1,7 +1,6 @@
 using System.Text;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -10,7 +9,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid AttackerId { get; init; }
-    public required WeaponData WeaponData { get; init; }
+    public required ComponentData WeaponData { get; init; }
     public required Guid TargetId { get; init; }
     public required AttackResolutionData ResolutionData { get; init; }
 
@@ -22,13 +21,13 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
         var command = this;
         var player = game.Players.FirstOrDefault(p => p.Id == command.PlayerId);
         var attacker = player?.Units.FirstOrDefault(u => u.Id == command.AttackerId);
-        var weapon = attacker?.GetMountedComponentAtLocation<Weapon>(WeaponData.Location, WeaponData.Slots);
+        
         var target = game.Players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == command.TargetId);
         var targetPlayer = target?.Owner;
 
-        if (player == null || attacker == null || weapon == null || target == null || targetPlayer == null)
+        if (player == null || attacker == null || target == null || targetPlayer == null)
         {
             return string.Empty;
         }
@@ -42,7 +41,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             stringBuilder.AppendFormat(hitTemplate,
                 player.Name,
                 attacker.Model,
-                weapon.Name,
+                WeaponData.Name,
                 targetPlayer.Name,
                 target.Model,
                 ResolutionData.ToHitNumber,
@@ -126,7 +125,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             stringBuilder.AppendFormat(missTemplate,
                 player.Name,
                 attacker.Model,
-                weapon.Name,
+                WeaponData.Name,
                 targetPlayer.Name,
                 target.Model,
                 ResolutionData.ToHitNumber,

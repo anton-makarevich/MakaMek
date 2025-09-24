@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -18,14 +19,13 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
@@ -38,15 +38,19 @@ public class ClientGameTests
     private readonly ClientGame _sut;
     private readonly ICommandPublisher _commandPublisher;
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
+    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     public ClientGameTests()
     {
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
-        var rulesProvider = new ClassicBattletechRulesProvider();
-        var mechFactory = new MechFactory(rulesProvider,Substitute.For<ILocalizationService>());
+        var mechFactory = new MechFactory(
+            _rulesProvider,
+            _componentProvider,
+            Substitute.For<ILocalizationService>());
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(battleMap); 
         _sut = new ClientGame(
-            rulesProvider,
+            _rulesProvider,
             mechFactory,
             _commandPublisher,
             Substitute.For<IToHitCalculator>(),
@@ -815,11 +819,11 @@ public class ClientGameTests
             [
                 new WeaponTargetData()
                 {
-                    Weapon = new WeaponData
+                    Weapon = new ComponentData
                     {
                         Name = "Medium Laser",
-                        Location = PartLocation.RightArm,
-                        Slots = [1, 2]
+                        Type = MakaMekComponent.MediumLaser,
+                        Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
                     },
                     TargetId = targetUnitData.Id.Value,
                     IsPrimaryTarget = true
@@ -854,11 +858,11 @@ public class ClientGameTests
             [
                 new WeaponTargetData
                 {
-                    Weapon = new WeaponData
+                    Weapon = new ComponentData
                     {
                         Name = "Medium Laser",
-                        Location = PartLocation.RightArm,
-                        Slots = [1, 2]
+                        Type = MakaMekComponent.MediumLaser,
+                        Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
                     },
                     TargetId = Guid.NewGuid(),
                     IsPrimaryTarget = true
@@ -936,11 +940,11 @@ public class ClientGameTests
             [
                 new WeaponTargetData
                 {
-                    Weapon = new WeaponData
+                    Weapon = new ComponentData
                     {
                         Name = "Medium Laser",
-                        Location = PartLocation.RightArm,
-                        Slots = [1, 2]
+                        Type = MakaMekComponent.MediumLaser,
+                        Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
                     },
                     TargetId = targetUnitData.Id.Value,
                     IsPrimaryTarget = true
@@ -994,11 +998,11 @@ public class ClientGameTests
             PlayerId = Guid.NewGuid(),
             AttackerId = targetMech.Id,
             TargetId = targetMech.Id,
-            WeaponData = new WeaponData
+            WeaponData = new ComponentData
             {
                 Name = "Test Weapon",
-                Location = PartLocation.RightArm,
-                Slots = [0, 1]
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 0, 2)]
             },
             ResolutionData = new AttackResolutionData(
                 10,
@@ -1474,10 +1478,12 @@ public class ClientGameTests
         // Create a new client game with local players
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
-        var rulesProvider = new ClassicBattletechRulesProvider();
         var clientGame = new ClientGame(
-            rulesProvider, 
-            new MechFactory(rulesProvider,Substitute.For<ILocalizationService>()),
+            _rulesProvider, 
+            new MechFactory(
+                _rulesProvider,
+                _componentProvider,
+                Substitute.For<ILocalizationService>()),
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
@@ -2348,10 +2354,10 @@ public class ClientGameTests
         
         _sut.HandleCommand(joinCommand);
         var mech = _sut.Players.SelectMany(p => p.Units).First() as Mech;
-        var lrm5 = new Ammo(Lrm5.Definition, 1);
+        var lrm5 = AmmoTests.CreateAmmo(Lrm5.Definition, 1);
         var ct = mech!.Parts[PartLocation.CenterTorso];
         ct.TryAddComponent(lrm5);
-        var slot = lrm5.MountedAtSlots[0];
+        var slot = lrm5.MountedAtFirstLocationSlots[0];
 
         var explosionCommand = new AmmoExplosionCommand
         {

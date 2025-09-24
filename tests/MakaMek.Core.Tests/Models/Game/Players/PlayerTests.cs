@@ -5,7 +5,6 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 
@@ -13,7 +12,9 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Players;
 
 public class PlayerTests
 {
-    private readonly MechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),
+    private readonly MechFactory _mechFactory = new MechFactory(
+        new ClassicBattletechRulesProvider(),
+        new ClassicBattletechComponentProvider(),
         Substitute.For<ILocalizationService>());
     
     private Unit CreateMech()

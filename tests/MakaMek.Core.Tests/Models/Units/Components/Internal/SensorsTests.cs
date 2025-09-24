@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
+﻿using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
@@ -14,12 +14,16 @@ public class SensorsTests
 
         // Assert
         sut.Name.ShouldBe("Sensors");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(2);
-        sut.MountedAtSlots.ShouldBe([1,4]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.Sensors);
         sut.IsRemovable.ShouldBeFalse();
         sut.HealthPoints.ShouldBe(2);
+    }
+    
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        Sensors.DefaultMountSlots.ShouldBe([1, 4]);
     }
     
     [Fact]

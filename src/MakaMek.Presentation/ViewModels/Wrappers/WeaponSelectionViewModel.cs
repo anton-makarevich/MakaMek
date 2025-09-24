@@ -149,7 +149,7 @@ public class WeaponSelectionViewModel : BindableBase
             if (Weapon.IsDestroyed)
                 return _localizationService.GetString("Attack_WeaponDestroyed");
             // Check if weapon's location is destroyed
-            if (Weapon.MountedOn?.IsDestroyed == true)
+            if (Weapon.FirstMountPart?.IsDestroyed == true)
                 return _localizationService.GetString("Attack_LocationDestroyed");
             // Check if weapon is out of ammo
             if (RequiresAmmo && RemainingAmmoShots <= 0)
@@ -252,7 +252,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// </summary>
     public void ShowAimedShotSelector()
     {
-        if (Target == null || Weapon.MountedOn?.Unit == null )
+        if (Target == null || Weapon.FirstMountPart?.Unit == null )
             return;
 
         if (!IsAimedShotAvailable || AimedHeadModifiersBreakdown == null || AimedOtherModifiersBreakdown == null)

@@ -1,13 +1,11 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
-public class LowerArmActuator : Component
+public sealed class LowerArmActuator(ComponentData? componentData = null) : Component(Definition, componentData)
 {
-    private static readonly int[] LowerArmSlots = [2];
-    public LowerArmActuator() : base("Lower Arm", LowerArmSlots)
-    {
-    }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.LowerArmActuator;
+    public static readonly ActuatorDefinition Definition = new(
+        "Lower Arm Actuator",
+        MakaMekComponent.LowerArmActuator,
+        true);
 }

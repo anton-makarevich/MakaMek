@@ -1,8 +1,8 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
+﻿using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 
-public class Ac20() : Weapon(Definition)
+public sealed class Ac20(ComponentData? componentData = null) : Weapon(Definition, componentData)
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
@@ -19,10 +19,9 @@ public class Ac20() : Weapon(Definition)
         FullAmmoRounds: 5,
         WeaponComponentType: MakaMekComponent.AC20,
         AmmoComponentType: MakaMekComponent.ISAmmoAC20);
-        
-    // Constructor uses the static definition
+
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, Definition.FullAmmoRounds);
+        return new Ammo(Definition);
     }
 }

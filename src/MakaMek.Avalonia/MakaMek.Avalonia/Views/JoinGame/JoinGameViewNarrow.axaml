@@ -7,7 +7,8 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewNarrow"
              x:DataType="viewModels:JoinGameViewModel"
-             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation">
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:fragments2="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments">
 
   <DockPanel Classes="pageContainer">
     <TextBlock Text="Join Game" 
@@ -24,7 +25,7 @@
 
         <!-- Players Fragment (Reused) -->
         <Border Classes="card">
-            <fragments1:PlayersFragment DataContext="{Binding}"/>
+            <fragments2:PlayersFragment DataContext="{Binding}"/>
         </Border>
       </StackPanel>
     </ScrollViewer>

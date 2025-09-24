@@ -1,90 +1,164 @@
 using Sanet.MakaMek.Core.Exceptions;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components;
 
 public abstract class Component : IManufacturedItem
 {
-    protected Component(string name, int[] slots, int size = 1, string manufacturer = "Unknown", int healthPoints = 1)
+    private readonly List<CriticalSlotAssignment> _slotAssignments = [];
+    protected readonly ComponentDefinition _definition;
+    private readonly string? _manufacturerOverride;
+
+    protected Component(ComponentDefinition definition, ComponentData? componentData = null)
     {
-        Name = name;
-        MountedAtSlots = slots;
-        IsFixed = slots.Length > 0;
-        Size = IsFixed
-        ? slots.Length
-        : size;
-        Manufacturer = manufacturer;
-        HealthPoints = healthPoints;
+        _definition = definition;
+        Name = definition.Name;
+
+        // Restore mutable state if provided
+        if (componentData == null) return;
+        if (!string.IsNullOrEmpty(componentData.Name)) Name = componentData.Name;
+        _manufacturerOverride = componentData.Manufacturer;
+        Hits = componentData.Hits;
+        IsActive = componentData.IsActive;
+        HasExploded = componentData.HasExploded;
     }
 
-    public string Name { get; }
-    public int[] MountedAtSlots { get; private set; }
-    public bool IsActive { get; protected set; } = true;
+    public string Name { get; protected set; }
     
-    public bool IsAvailable => IsActive 
-                               && !IsDestroyed 
-                               && IsMounted 
-                               && !MountedOn!.IsDestroyed;
+    public int[] MountedAtFirstLocationSlots => FirstMountPartLocation.HasValue 
+        ? GetMountedAtLocationSlots(FirstMountPartLocation.Value)
+        : [];
     
-    public int Size { get; }
-    public string Manufacturer { get; }
-    public bool IsFixed { get; }
-    public int BattleValue { get; protected set; }
+    public int[] GetMountedAtLocationSlots(PartLocation location) => SlotAssignments
+        .Where(a => a.Location == location)
+        .SelectMany(a => a.Slots)
+        .OrderBy(slot => slot)
+        .ToArray(); 
 
-    // Reference to the part this component is mounted on
-    public UnitPart? MountedOn { get; private set; }
+    public bool IsActive { get; private set; } = true;
+
+    public bool IsAvailable => IsActive
+                               && !IsDestroyed
+                               && IsMounted
+                               && !SlotAssignments.Any(a => a.UnitPart.IsDestroyed);
+
+    public int Size => _definition.Size;
+    public string Manufacturer => _manufacturerOverride ?? "Unknown";
+    public int BattleValue => _definition.BattleValue;
+    public bool IsRemovable => _definition.IsRemovable;
+
+    // Multi-location slot assignments
+    public IReadOnlyList<CriticalSlotAssignment> SlotAssignments => _slotAssignments.AsReadOnly();
+
+    // Multi-location mounted parts
+    public IReadOnlyList<UnitPart> MountedOn => SlotAssignments.Select(a => a.UnitPart)
+        .Distinct().ToList();
 
     // Component type property for mapping to MakaMekComponent enum
-    public abstract MakaMekComponent ComponentType { get; }
+    public MakaMekComponent ComponentType => _definition.ComponentType;
 
-    // Slot positioning
-    public bool IsMounted => MountedAtSlots.Length > 0 && MountedOn != null;
+    // component is mounted when all required slots are assigned
+    public bool IsMounted => SlotAssignments.Sum(a => a.Length) == Size && SlotAssignments.Count > 0;
 
-    public void Mount(int[] slots, UnitPart mountLocation)
+    public void Mount(UnitPart mountLocation, int[] slots)
     {
-        if (IsMounted) return;
-        if (slots.Length != Size)
+        if (slots.Length > Size)
         {
             throw new ComponentException($"Component {Name} requires {Size} slots.");
         }
-        
-        MountedAtSlots = slots;
-        MountedOn = mountLocation;
+        if (slots.Length == 0)
+            return;
+
+        Array.Sort(slots); // Ensure slots are ordered
+
+        for (var i = 1; i < slots.Length; i++)
+        {
+            if (slots[i] == slots[i - 1])
+            {
+                throw new ComponentException("Slot assignments cannot contain duplicates.");
+            }
+        }
+
+        var start = slots[0];
+        var length = 1;
+
+        for (var i = 1; i < slots.Length; i++)
+        {
+            if (slots[i] == slots[i - 1] + 1)
+            {
+                // Still consecutive
+                length++;
+            }
+            else
+            {
+                // Break in sequence → commit current range
+                Mount(new CriticalSlotAssignment
+                {
+                    UnitPart = mountLocation,
+                    FirstSlot = start,
+                    Length = length
+                });
+
+                // Start a new range
+                start = slots[i];
+                length = 1;
+            }
+        }
+
+        // Commit the last range
+        Mount(new CriticalSlotAssignment
+        {
+            UnitPart = mountLocation,
+            FirstSlot = start,
+            Length = length
+        });
+    }
+    
+    private void Mount(CriticalSlotAssignment slotAssignment)
+    {
+        if (IsMounted) return;
+        if (slotAssignment.FirstSlot + slotAssignment.Length > slotAssignment.UnitPart.TotalSlots)
+            throw new ComponentException("Slot assignment exceeds available slots of the unit part.");
+        var occupiedSlots = _slotAssignments.Sum(a => a.Length);
+        if (occupiedSlots + slotAssignment.Length > Size)
+        {
+            throw new ComponentException($"Component {Name} requires {Size} slots.");
+        }
+
+        _slotAssignments.Add(slotAssignment);
     }
 
     public void UnMount()
     {
-        if (IsFixed)
-        {
-            throw new ComponentException("Fixed components cannot be unmounted.");
-        }
-        if (!IsMounted) return;
+        if (_slotAssignments.Count == 0) return;
         
-        MountedAtSlots = [];
-        MountedOn = null;
+        if (!IsRemovable) throw new ComponentException($"{Name} is not removable");
+
+        _slotAssignments.Clear();
     }
 
     public virtual void Hit()
     {
         Hits++;
-        if (CanExplode && !HasExploded)
-        {
-            HasExploded = true;
-            MountedOn?.Unit?.Pilot?.ExplosionHit();
-        }
+        if (!CanExplode || HasExploded) return;
+        HasExploded = true;
+        FirstMountPart?.Unit?.Pilot?.ExplosionHit();
     }
 
-    public int HealthPoints { get; }
+    public int HealthPoints => _definition.HealthPoints;
     public int Hits { get; private set; }
     public bool IsDestroyed => Hits >= HealthPoints;
 
     public virtual void Activate() => IsActive = true;
     public virtual void Deactivate() => IsActive = false;
-    
-    // Helper method to get the location of this component
-    public PartLocation? GetLocation() => MountedOn?.Location;
-    
-    public virtual bool IsRemovable => true;
+
+    // Helper methods for multi-location components
+    public IEnumerable<PartLocation> GetLocations() => SlotAssignments.Select(a => a.Location)
+        .Distinct();
+
+    // Backward compatibility methods
+    public UnitPart? FirstMountPart => SlotAssignments.FirstOrDefault()?.UnitPart;
+    public PartLocation? FirstMountPartLocation => FirstMountPart?.Location;
 
     public ComponentStatus Status
     {
@@ -96,7 +170,8 @@ public abstract class Component : IManufacturedItem
                 return ComponentStatus.Removed;
             if (!IsActive)
                 return ComponentStatus.Deactivated;
-            if (MountedOn is { IsDestroyed: true })
+            // Component is lost if ANY location is destroyed (as per user's note)
+            if (SlotAssignments.Any(a => a.UnitPart.IsDestroyed))
                 return ComponentStatus.Lost;
             if (Hits>0 && Hits<HealthPoints)
                 return ComponentStatus.Damaged;
@@ -108,4 +183,32 @@ public abstract class Component : IManufacturedItem
     public virtual bool CanExplode => false;
     public virtual int GetExplosionDamage() => 0;
     public bool HasExploded { get; protected set; }
+
+    /// <summary>
+    /// Converts this component to ComponentData for state persistence
+    /// </summary>
+    public virtual ComponentData ToData()
+    {
+        return new ComponentData
+        {
+            Type = ComponentType,
+            Name = Name,
+            Manufacturer = Manufacturer,
+            Assignments = SlotAssignments
+                .Select(assignment => new LocationSlotAssignment(
+                    assignment.Location,
+                    assignment.FirstSlot,
+                    assignment.Length))
+                .ToList(),
+            Hits = Hits,
+            IsActive = IsActive,
+            HasExploded = HasExploded,
+            SpecificData = GetSpecificData()
+        };
+    }
+
+    /// <summary>
+    /// Override this method to provide component-specific state data
+    /// </summary>
+    protected virtual ComponentSpecificData? GetSpecificData() => null;
 }

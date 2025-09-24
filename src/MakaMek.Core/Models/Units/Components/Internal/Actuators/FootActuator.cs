@@ -1,14 +1,12 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
-public class FootActuator : Component
+public sealed class FootActuator(ComponentData? componentData = null) : Component(Definition, componentData)
 {
-    private static readonly int[] FootSlots = [3];
-    public FootActuator() : base("Foot Actuator", FootSlots)
-    {
-    }
+    public static readonly ActuatorDefinition Definition = new(
+        "Foot Actuator",
+        MakaMekComponent.FootActuator);
 
-    public override MakaMekComponent ComponentType => MakaMekComponent.FootActuator;
-    public override bool IsRemovable => false;
+    public static readonly int[] DefaultMountSlots = [3];
 }

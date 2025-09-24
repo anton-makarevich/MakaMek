@@ -1,16 +1,21 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
-public class Engine(int rating, EngineType type = EngineType.Fusion)
-    : Component($"{type} Engine {rating}", EngineSlots, healthPoints: 3)
+public class Engine : Component
 {
-    public int Rating { get; } = rating;
-    public EngineType Type { get; } = type;
+    public int Rating { get; }
+    public EngineType Type { get; }
 
-    // Engine takes slots 1-3 and 8-10 in CT
-    private static readonly int[] EngineSlots = [0, 1, 2, 7, 8, 9];
+    public Engine(ComponentData componentData)
+        : base(CreateEngineDefinition(componentData.SpecificData), componentData)
+    {
+        var engineState = (EngineStateData)componentData.SpecificData!; // Should be safe since there is a check in CreateEngineDefinition
+        Name = $"{Type} Engine {engineState.Rating}";
+        Rating = engineState.Rating;
+        Type = engineState.Type;
+    }
 
     /// <summary>
     /// Gets the current heat penalty caused by engine damage.
@@ -26,7 +31,17 @@ public class Engine(int rating, EngineType type = EngineType.Fusion)
             _ => null
         };
 
-    public int NumberOfHeatSinks => 10;
-    
-    public override MakaMekComponent ComponentType => MakaMekComponent.Engine;
+    public int NumberOfHeatSinks => ((EngineDefinition)_definition).NumberOfHeatSinks;
+
+    protected override ComponentSpecificData GetSpecificData()
+    {
+        return new EngineStateData(Type, Rating);
+    }
+
+    public static EngineDefinition CreateEngineDefinition(ComponentSpecificData? engineState)
+    {
+        return engineState is not EngineStateData engineStateData 
+            ? throw new ArgumentException("Invalid component data for engine") 
+            : new EngineDefinition(engineStateData.Type, engineStateData.Rating);
+    }
 }

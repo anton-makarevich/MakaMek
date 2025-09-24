@@ -30,7 +30,10 @@ public abstract class UnitPart
     
     // Slots management
     public int TotalSlots { get; }
-    public int UsedSlots => _components.Sum(c => c.Size);
+    public int UsedSlots => _components
+        .SelectMany(c => c.GetMountedAtLocationSlots(Location))
+        .Distinct()
+        .Count();
     public int AvailableSlots => TotalSlots - UsedSlots;
     
     // Track which slots have been hit by critical hits
@@ -54,72 +57,72 @@ public abstract class UnitPart
 
     private int FindMountLocation(int size)
     {
+        if (size <= 0 || size > TotalSlots)
+            return -1;
         var occupiedSlots = _components
-            .Where(c => c.IsMounted)
-            .SelectMany(c => c.MountedAtSlots)
+            .SelectMany(c => c.GetMountedAtLocationSlots(Location))
             .ToHashSet();
 
         return Enumerable.Range(0, TotalSlots - size + 1)
             .FirstOrDefault(i => Enumerable.Range(i, size).All(slot => !occupiedSlots.Contains(slot)), -1);
     }
 
-    private bool CanAddComponent(Component component, int[] slots)
+    private bool CanAddComponent(int[] slots)
     {
-        if (component.Size > AvailableSlots)
+        // Remove duplicates and ensure ascending order
+        var uniqueSlots = slots
+            .OrderBy(s => s)
+            .Distinct().ToArray();
+        if (slots.Length > AvailableSlots)
             return false;
 
         // Check if any required slots would be out of bounds
-        if (slots.Any(s => s >= TotalSlots || s < 0))
+        if (uniqueSlots.Any(s => s >= TotalSlots || s < 0))
             return false;
 
         // Check if any of the required slots are already occupied
         var occupiedSlots = _components.Where(c => c.IsMounted)
-            .SelectMany(c => c.MountedAtSlots)
+            .SelectMany(c => c.GetMountedAtLocationSlots(Location))
             .ToHashSet();
-        
-        return !slots.Intersect(occupiedSlots).Any();
+
+        return !uniqueSlots.Intersect(occupiedSlots).Any();
     }
 
     public bool TryAddComponent(Component component, int[]? slots=null)
     {
-        if (component.IsFixed)
+        int[] slotsToUse;
+
+        if (slots != null)
         {
-            if (!CanAddComponent(component, component.MountedAtSlots))
+            // Use the provided specific slots
+            slotsToUse = slots;
+        }
+        else
+        {
+            // Find available slots automatically
+            var slotToMount = FindMountLocation(component.Size);
+            if (slotToMount == -1)
             {
                 return false;
             }
-
-            _components.Add(component);
-            // Update the component with its mount location
-            component.Mount(component.MountedAtSlots, this);
-            return true;
+            slotsToUse = Enumerable.Range(slotToMount, component.Size).ToArray();
         }
-        
-        
 
-        var slotToMount = slots!=null
-            ? slots[0]
-            : FindMountLocation(component.Size);
-        if (slotToMount == -1)
-        {
-            return false;
-        }
-        
-        // Check if the component can be mounted at the found slot
-        if (!CanAddComponent(component, slots??[slotToMount]))
+        // Check if the component can be mounted at the specified slots
+        if (!CanAddComponent(slotsToUse))
         {
             return false;
         }
 
-        // Use the new Mount method that includes UnitPart reference
-        component.Mount(Enumerable.Range(slotToMount, component.Size).ToArray(), this);
+        // Mount the component at the specified slots
+        component.Mount(this, slotsToUse);
         _components.Add(component);
         return true;
     }
 
     public Component? GetComponentAtSlot(int slot)
     {
-        return _components.FirstOrDefault(c => c.IsMounted && c.MountedAtSlots.Contains(slot));
+        return _components.FirstOrDefault(c => c.GetMountedAtLocationSlots(Location).Contains(slot));
     }
 
     protected virtual int ReduceArmor(int damage, HitDirection direction)
@@ -216,7 +219,7 @@ public abstract class UnitPart
             return false;
         }
 
-        if (component is { IsMounted: true, IsFixed: false })
+        if (component.SlotAssignments.Any())
         {
             component.UnMount();
         }

@@ -13,7 +13,6 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -35,7 +34,10 @@ public abstract class GamePhaseTestsBase
     protected readonly IHeatEffectsCalculator MockHeatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     protected readonly IPilotingSkillCalculator MockPilotingSkillCalculator= Substitute.For<IPilotingSkillCalculator>();
     
-    private readonly IMechFactory _mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),Substitute.For<ILocalizationService>());
+    private readonly IMechFactory _mechFactory = new MechFactory(
+        new ClassicBattletechRulesProvider(),
+        new ClassicBattletechComponentProvider(),
+        Substitute.For<ILocalizationService>());
 
     protected GamePhaseTestsBase()
     {

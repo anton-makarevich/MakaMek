@@ -1,14 +1,13 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -32,7 +31,10 @@ public class WeaponAttackDeclarationCommandTests
         // Create an attacker unit
         var attackerData = MechFactoryTests.CreateDummyMechData();
         attackerData.Id=Guid.NewGuid();
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(),_localizationService);
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         _attacker = mechFactory.Create(attackerData);
         _player1.AddUnit(_attacker);
         
@@ -54,11 +56,11 @@ public class WeaponAttackDeclarationCommandTests
             [
                 new WeaponTargetData
                 {
-                    Weapon = new WeaponData
+                    Weapon = new ComponentData
                     {
                         Name = "Medium Laser",
-                        Location = PartLocation.RightArm,
-                        Slots = [1, 2]
+                        Type = MakaMekComponent.MediumLaser,
+                        Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 2)]
                     },
                     TargetId = _target.Id,
                     IsPrimaryTarget = true
@@ -114,11 +116,11 @@ public class WeaponAttackDeclarationCommandTests
         var command = CreateCommand();
         command.WeaponTargets.Add(new WeaponTargetData
         {
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
                 Name = "Large Laser",
-                Location = PartLocation.LeftArm,
-                Slots = [1, 2, 3]
+                Type = MakaMekComponent.LargeLaser,
+                Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 1, 3)]
             },
             TargetId = Guid.NewGuid(), // Invalid target ID
             IsPrimaryTarget = false
@@ -182,11 +184,11 @@ public class WeaponAttackDeclarationCommandTests
         // Add a second weapon targeting the same unit
         command.WeaponTargets.Add(new WeaponTargetData
         {
-            Weapon = new WeaponData
+            Weapon = new ComponentData
             {
                 Name = "Large Laser",
-                Location = PartLocation.LeftArm,
-                Slots = [1, 2, 3]
+                Type = MakaMekComponent.LargeLaser,
+                Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 1, 3)]
             },
             TargetId = _target.Id,
             IsPrimaryTarget = false

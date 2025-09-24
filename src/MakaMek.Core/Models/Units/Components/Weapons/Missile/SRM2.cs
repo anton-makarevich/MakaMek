@@ -1,8 +1,8 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
-public class Srm2 : Weapon
+public sealed class Srm2(ComponentData? componentData = null) : Weapon(Definition, componentData)
 {
     /// <inheritdoc />
     public override bool IsAimShotCapable => false;
@@ -23,15 +23,9 @@ public class Srm2 : Weapon
         FullAmmoRounds: 50,
         WeaponComponentType: MakaMekComponent.SRM2,
         AmmoComponentType: MakaMekComponent.ISAmmoSRM2);
-            
-    // Constructor uses the static definition
-    public Srm2() : base(Definition)
-    {
-        // 2 damage per missile, 2 missiles
-    }
-        
+    
     public static Ammo CreateAmmo()
     {
-        return new Ammo(Definition, Definition.FullAmmoRounds);
+        return new Ammo(Definition);
     }
 }

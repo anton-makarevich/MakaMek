@@ -1,13 +1,11 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
-public class UpperArmActuator : Component
+public sealed class UpperArmActuator(ComponentData? componentData = null) : Component(Definition, componentData)
 {
-    private static readonly int[] UpperArmActuatorSlots = [1];
-    public UpperArmActuator() : base("Upper Arm Actuator", UpperArmActuatorSlots)
-    {
-    }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.UpperArmActuator;
+    public static readonly ActuatorDefinition Definition = new(
+        "Upper Arm Actuator",
+        MakaMekComponent.UpperArmActuator,
+        true);
 }

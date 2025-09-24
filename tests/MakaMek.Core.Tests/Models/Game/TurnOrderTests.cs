@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 
@@ -19,7 +18,9 @@ public class TurnOrderTests
     private readonly IPlayer _player2;
     private readonly IPlayer _player3;
     private readonly UnitData _unitData = MechFactoryTests.CreateDummyMechData();
-    private readonly MechFactory _mechFactory = new(new ClassicBattletechRulesProvider(), 
+    private readonly MechFactory _mechFactory = new(
+        new ClassicBattletechRulesProvider(),
+        new ClassicBattletechComponentProvider(),
         new FakeLocalizationService());
     
     public TurnOrderTests()
@@ -153,7 +154,7 @@ public class TurnOrderTests
         _player1.AliveUnits.Returns(player1Units);
         _player2.AliveUnits.Returns(player2Units);
 
-        // Player 1 wins initiative (first in list)
+        // Player 1 wins initiative (first in the list)
         var initiativeOrder = new List<IPlayer> { _player1, _player2 };
 
         // Act
@@ -199,7 +200,7 @@ public class TurnOrderTests
         _player1.AliveUnits.Returns(player1Units);
         _player2.AliveUnits.Returns(player2Units);
 
-        // Player 1 wins initiative (first in list)
+        // Player 1 wins initiative (first in the list)
         var initiativeOrder = new List<IPlayer> { _player1, _player2 };
 
         // Act
@@ -237,7 +238,7 @@ public class TurnOrderTests
         _player1.AliveUnits.Returns(player1Units);
         _player2.AliveUnits.Returns(player2Units);
 
-        // Player 1 wins initiative (first in list)
+        // Player 1 wins initiative (first in the list)
         var initiativeOrder = new List<IPlayer> { _player1, _player2 };
 
         // Act
@@ -305,7 +306,6 @@ public class TurnOrderTests
     public void CalculateOrder_WithZeroUnitsPlayer_ShouldSkipPlayer()
     {
         // Arrange - Player 1 has 0 units, Player 2 has 3 units
-        var player1Units = new List<Unit>();
         var player2Units = new List<Unit>
         {
             _mechFactory.Create(_unitData),
@@ -313,7 +313,7 @@ public class TurnOrderTests
             _mechFactory.Create(_unitData)
         };
 
-        _player1.AliveUnits.Returns(player1Units);
+        _player1.AliveUnits.Returns([]);
         _player2.AliveUnits.Returns(player2Units);
 
         var initiativeOrder = new List<IPlayer> { _player1, _player2 };

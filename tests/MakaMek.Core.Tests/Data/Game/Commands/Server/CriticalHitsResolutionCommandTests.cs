@@ -1,15 +1,14 @@
 ﻿using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
+using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -30,7 +29,10 @@ public class CriticalHitsResolutionCommandTests
             new Player(Guid.NewGuid(), "Player 1");
 
         // Create a target unit using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var targetData = MechFactoryTests.CreateDummyMechData();
         targetData.Id = Guid.NewGuid();
         
@@ -192,7 +194,7 @@ public class CriticalHitsResolutionCommandTests
     {
         // Arrange - Multiple locations, some with crits, some blown off, some with explosions
         var rightArm = _target.Parts[PartLocation.RightArm];
-        var ammo = new Ammo(Lrm5.Definition, 20);
+        var ammo = AmmoTests.CreateAmmo(Lrm5.Definition, 20);
         rightArm.TryAddComponent(ammo).ShouldBeTrue();
 
         var command = CreateCommand([
@@ -204,7 +206,7 @@ public class CriticalHitsResolutionCommandTests
             new LocationCriticalHitsData(PartLocation.RightArm, [3, 3], 2,
                 [
                     new ComponentHitData { Slot = 1, Type = MakaMekComponent.MediumLaser },
-                    new ComponentHitData { Slot = ammo.MountedAtSlots[0], Type = ammo.ComponentType, ExplosionDamage = 100 }
+                    new ComponentHitData { Slot = ammo.MountedAtFirstLocationSlots[0], Type = ammo.ComponentType, ExplosionDamage = 100 }
                 ],
                 false)
         ]);

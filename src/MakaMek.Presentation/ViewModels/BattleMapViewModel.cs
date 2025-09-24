@@ -218,8 +218,8 @@ public class BattleMapViewModel : BaseViewModel
                 // Initial offset for new target
                 // Get the actual weapon from the attacker
                 var weapon = attacker.GetMountedComponentAtLocation<Weapon>(
-                    wt.Weapon.Location,
-                    wt.Weapon.Slots);
+                    wt.Weapon.Assignments.First().Location,
+                    wt.Weapon.Assignments.First().FirstSlot);
                 
                 if (weapon == null) throw new Exception("The weapon is not found");
 
@@ -251,8 +251,9 @@ public class BattleMapViewModel : BaseViewModel
         // Find and remove the attack that matches the weapon name and target ID
         var attacksToRemove = WeaponAttacks
             .Where(attack => 
-                attack.Weapon.Name == command.WeaponData.Name &&
-                attack.TargetId == command.TargetId)
+                attack.Weapon.SlotAssignments[0].Location == command.WeaponData.Assignments[0].Location 
+                && attack.Weapon.SlotAssignments[0].FirstSlot == command.WeaponData.Assignments[0].FirstSlot
+                && attack.TargetId == command.TargetId)
             .ToList();
             
         if (attacksToRemove.Any())

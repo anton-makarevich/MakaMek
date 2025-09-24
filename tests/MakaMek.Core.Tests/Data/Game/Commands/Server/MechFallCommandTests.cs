@@ -9,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -64,7 +63,10 @@ public class MechFallCommandTests
             new Player(Guid.NewGuid(), "Player 1");
 
         // Create a unit using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         

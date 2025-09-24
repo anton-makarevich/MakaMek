@@ -1,9 +1,12 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
-public class HipActuator() : Component("Hip",[0])
+public sealed class HipActuator(ComponentData? componentData = null) : Component(Definition, componentData)
 {
-    public override MakaMekComponent ComponentType => MakaMekComponent.Hip;
-    public override bool IsRemovable => false;
+    public static readonly ActuatorDefinition Definition = new(
+        "Hip",
+        MakaMekComponent.Hip);
+
+    public static readonly int[] DefaultMountSlots = [0];
 }

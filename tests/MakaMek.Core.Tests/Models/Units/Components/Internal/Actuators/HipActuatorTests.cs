@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
@@ -14,10 +14,14 @@ public class HipActuatorTests
 
         // Assert
         sut.Name.ShouldBe("Hip");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(1);
-        sut.MountedAtSlots.ShouldBe([0]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.Hip);
         sut.IsRemovable.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        HipActuator.DefaultMountSlots.ShouldBe([0]);
     }
 }

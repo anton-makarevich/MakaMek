@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Core.Data.Units;
+namespace Sanet.MakaMek.Core.Data.Units.Components;
 
 public enum MakaMekComponent
 {

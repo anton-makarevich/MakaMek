@@ -230,7 +230,8 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
     private List<Ammo> GetExplodableAmmoComponents(Mech mech)
     {
         return mech.GetAvailableComponents<Ammo>()
-            .Where(ammo => ammo is { CanExplode: true, HasExploded: false })
+            // Only consider ammo with a resolvable mount location
+            .Where(ammo => ammo is { CanExplode: true, HasExploded: false, MountedOn: not [] })
             .ToList();
     }
 
@@ -253,14 +254,10 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         return mostDestructiveAmmo[randomIndex % mostDestructiveAmmo.Count];
     }
 
-    private  List<LocationCriticalHitsData> ProcessAmmoExplosion(Mech mech, Ammo ammoComponent)
+    private List<LocationCriticalHitsData> ProcessAmmoExplosion(Mech mech, Ammo ammoComponent)
     {
-        var location = ammoComponent.GetLocation();
-        if (!location.HasValue) return [];
-
-        // Use the critical hits calculator to process the explosion
-        var criticalHitsData = _criticalHitsCalculator
-            .CalculateCriticalHitsForHeatExplosion(mech,ammoComponent);
-        return criticalHitsData;
+        // Location eligibility is ensured in GetExplodableAmmoComponents
+        return _criticalHitsCalculator
+            .CalculateCriticalHitsForHeatExplosion(mech, ammoComponent);
     }
 }

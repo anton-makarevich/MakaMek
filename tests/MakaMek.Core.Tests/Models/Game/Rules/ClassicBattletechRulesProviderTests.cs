@@ -30,7 +30,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(90, 3, 29, 19, 19, 15, 15, 19, 19)]
         [InlineData(95, 3, 30, 20, 20, 16, 16, 20, 20)]
         [InlineData(100, 3, 31, 21, 21, 17, 17, 21, 21)]
-        public void GetStructureValues_ValidTonnage_ReturnsExpectedValues(int tonnage, int head, int centerTorso,
+        public void GetStructureValues_ValidTonnage_ShouldReturnExpectedValues(int tonnage, int head, int centerTorso,
             int leftTorso, int rightTorso, int leftArm, int rightArm, int leftLeg, int rightLeg)
         {
             // Act
@@ -48,7 +48,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         }
 
         [Fact]
-        public void GetStructureValues_InvalidTonnage_ThrowsException()
+        public void GetStructureValues_ShouldThrowException_WhenInvalidTonnage()
         {
             // Act & Assert
             Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetStructureValues(150));
@@ -60,7 +60,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(MovementType.Run, 2)]
         [InlineData(MovementType.Jump, 3)]
         [InlineData(MovementType.Prone, 2)]
-        public void GetAttackerMovementModifier_ReturnsExpectedValues(MovementType movementType, int expectedModifier)
+        public void GetAttackerMovementModifier_ShouldReturnExpectedValues(MovementType movementType, int expectedModifier)
         {
             _sut.GetAttackerMovementModifier(movementType).ShouldBe(expectedModifier);
         }
@@ -80,7 +80,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(24, 5)]
         [InlineData(25, 6)] // 25+ hexes: +6
         [InlineData(30, 6)]
-        public void GetTargetMovementModifier_ReturnsExpectedValues(int hexesMoved, int expectedModifier)
+        public void GetTargetMovementModifier_ShouldReturnExpectedValues(int hexesMoved, int expectedModifier)
         {
             _sut.GetTargetMovementModifier(hexesMoved).ShouldBe(expectedModifier);
         }
@@ -92,7 +92,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(WeaponRange.Medium, 1, 1, 2)]
         [InlineData(WeaponRange.Long, 1, 1, 4)]
         [InlineData(WeaponRange.OutOfRange, 1, 1, ToHitBreakdown.ImpossibleRoll)]
-        public void GetRangeModifier_ReturnsExpectedValues(WeaponRange range, int rangeValue, int distance,
+        public void GetRangeModifier_ShouldReturnExpectedValues(WeaponRange range, int rangeValue, int distance,
             int expectedModifier)
         {
             _sut.GetRangeModifier(range, rangeValue, distance).ShouldBe(expectedModifier);
@@ -102,7 +102,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(MakaMekTerrains.LightWoods, 1)]
         [InlineData(MakaMekTerrains.HeavyWoods, 2)]
         [InlineData(MakaMekTerrains.Clear, 0)]
-        public void GetTerrainToHitModifier_ReturnsExpectedValues(MakaMekTerrains terrainId, int expectedModifier)
+        public void GetTerrainToHitModifier_ShouldReturnExpectedValues(MakaMekTerrains terrainId, int expectedModifier)
         {
             _sut.GetTerrainToHitModifier(terrainId).ShouldBe(expectedModifier);
         }
@@ -115,7 +115,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         }
 
         [Fact]
-        public void GetRangeModifier_InvalidRange_ThrowsArgumentException()
+        public void GetRangeModifier_ShouldThrowArgumentException_WhenInvalidRange()
         {
             var invalidRange = (WeaponRange)999;
             Should.Throw<ArgumentException>(() => _sut.GetRangeModifier(invalidRange, 999, 999));
@@ -124,7 +124,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [Theory]
         [InlineData(true, 1)] // Front arc: +1 modifier
         [InlineData(false, 2)] // Other arc: +2 modifier
-        public void GetSecondaryTargetModifier_ReturnsExpectedValues(bool isFrontArc, int expectedModifier)
+        public void GetSecondaryTargetModifier_ShouldReturnExpectedValues(bool isFrontArc, int expectedModifier)
         {
             _sut.GetSecondaryTargetModifier(isFrontArc).ShouldBe(expectedModifier);
         }
@@ -143,7 +143,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, PartLocation.LeftArm)]
         [InlineData(11, PartLocation.LeftArm)]
         [InlineData(12, PartLocation.Head)]
-        public void GetHitLocation_FrontAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
+        public void GetHitLocation_FrontAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
             var result = _sut.GetHitLocation(diceResult, HitDirection.Front);
@@ -164,7 +164,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, PartLocation.LeftArm)]
         [InlineData(11, PartLocation.LeftArm)]
         [InlineData(12, PartLocation.Head)]
-        public void GetHitLocation_RearAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
+        public void GetHitLocation_RearAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
             var result = _sut.GetHitLocation(diceResult, HitDirection.Rear);
@@ -185,7 +185,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, PartLocation.RightArm)]
         [InlineData(11, PartLocation.RightLeg)]
         [InlineData(12, PartLocation.Head)]
-        public void GetHitLocation_LeftAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
+        public void GetHitLocation_LeftAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
             var result = _sut.GetHitLocation(diceResult, HitDirection.Left);
@@ -206,7 +206,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, PartLocation.LeftArm)]
         [InlineData(11, PartLocation.LeftLeg)]
         [InlineData(12, PartLocation.Head)]
-        public void GetHitLocation_RightAttack_ReturnsCorrectLocation(int diceResult, PartLocation expectedLocation)
+        public void GetHitLocation_RightAttack_ShouldReturnCorrectLocation(int diceResult, PartLocation expectedLocation)
         {
             // Act
             var result = _sut.GetHitLocation(diceResult, HitDirection.Right);
@@ -220,7 +220,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(1)]
         [InlineData(13)]
         [InlineData(20)]
-        public void GetHitLocation_InvalidDiceResult_ThrowsArgumentOutOfRangeException(int invalidDiceResult)
+        public void GetHitLocation_ShouldThrowArgumentOutOfRangeException_WhenInvalidDiceResult(int invalidDiceResult)
         {
             // Act & Assert
             Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(invalidDiceResult, HitDirection.Front));
@@ -230,7 +230,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         }
 
         [Fact]
-        public void GetHitLocation_InvalidAttackDirection_ThrowsArgumentOutOfRangeException()
+        public void GetHitLocation_ShouldThrowArgumentOutOfRangeException_WhenInvalidAttackDirection()
         {
             // Act & Assert
             Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetHitLocation(7, (HitDirection)999));
@@ -253,7 +253,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, 2, 2)] // Roll 10 -> 2 hits
         [InlineData(11, 2, 2)] // Roll 11 -> 2 hits
         [InlineData(12, 2, 2)] // Roll 12 -> 2 hits
-        public void GetClusterHits_SRM2_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
+        public void GetClusterHits_SRM2_ShouldReturnCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
             var result = _sut.GetClusterHits(diceResult, weaponSize);
@@ -275,7 +275,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, 4, 3)] // Roll 10 -> 3 hits
         [InlineData(11, 4, 4)] // Roll 11 -> 4 hits
         [InlineData(12, 4, 4)] // Roll 12 -> 4 hits
-        public void GetClusterHits_SRM4_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
+        public void GetClusterHits_SRM4_ShouldReturnCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
             var result = _sut.GetClusterHits(diceResult, weaponSize);
@@ -297,7 +297,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, 5, 4)] // Roll 10 -> 4 hits
         [InlineData(11, 5, 5)] // Roll 11 -> 5 hits
         [InlineData(12, 5, 5)] // Roll 12 -> 5 hits
-        public void GetClusterHits_LRM5_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
+        public void GetClusterHits_LRM5_ShouldReturnCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
             var result = _sut.GetClusterHits(diceResult, weaponSize);
@@ -319,7 +319,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, 6, 5)] // Roll 10 -> 5 hits
         [InlineData(11, 6, 6)] // Roll 11 -> 6 hits
         [InlineData(12, 6, 6)] // Roll 12 -> 6 hits
-        public void GetClusterHits_SRM6_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
+        public void GetClusterHits_SRM6_ShouldReturnCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
             var result = _sut.GetClusterHits(diceResult, weaponSize);
@@ -341,7 +341,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, 10, 8)] // Roll 10 -> 8 hits
         [InlineData(11, 10, 10)] // Roll 11 -> 10 hits
         [InlineData(12, 10, 10)] // Roll 12 -> 10 hits
-        public void GetClusterHits_LRM10_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
+        public void GetClusterHits_LRM10_ShouldReturnCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
             var result = _sut.GetClusterHits(diceResult, weaponSize);
@@ -363,7 +363,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, 15, 12)] // Roll 10 -> 12 hits
         [InlineData(11, 15, 15)] // Roll 11 -> 15 hits
         [InlineData(12, 15, 15)] // Roll 12 -> 15 hits
-        public void GetClusterHits_LRM15_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
+        public void GetClusterHits_LRM15_ShouldReturnCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
             var result = _sut.GetClusterHits(diceResult, weaponSize);
@@ -385,7 +385,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(10, 20, 16)] // Roll 10 -> 16 hits
         [InlineData(11, 20, 20)] // Roll 11 -> 20 hits
         [InlineData(12, 20, 20)] // Roll 12 -> 20 hits
-        public void GetClusterHits_LRM20_ReturnsCorrectHits(int diceResult, int weaponSize, int expectedHits)
+        public void GetClusterHits_LRM20_ShouldReturnCorrectHits(int diceResult, int weaponSize, int expectedHits)
         {
             // Act
             var result = _sut.GetClusterHits(diceResult, weaponSize);
@@ -418,7 +418,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(7, 18)] // Unsupported weapon size
         [InlineData(7, 19)] // Unsupported weapon size
         [InlineData(7, 21)] // Unsupported weapon size
-        public void GetClusterHits_UnsupportedWeaponSize_ReturnsWeaponSize(int diceResult, int weaponSize)
+        public void GetClusterHits_UnsupportedWeaponSize_ShouldReturnWeaponSize(int diceResult, int weaponSize)
         {
             // For unsupported weapon sizes, we should still get a valid result
             // The implementation should default to the weapon size itself
@@ -440,7 +440,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         }
 
         [Fact]
-        public void GetClusterHits_WeaponSizeOne_ReturnsOne()
+        public void GetClusterHits_WeaponSizeOne_ShouldReturnOne()
         {
             // For a weapon with size 1 (non-cluster weapon), should always return 1
 
@@ -463,7 +463,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(MovementType.Jump, 3, 3)]
         [InlineData(MovementType.Jump, 4, 4)]
         [InlineData(MovementType.Jump, 5, 5)]
-        public void GetMovementHeatPoints_ReturnsExpectedHeatPoints(MovementType movementType, int movementPointsSpent,
+        public void GetMovementHeatPoints_ShouldReturnExpectedHeatPoints(MovementType movementType, int movementPointsSpent,
             int expectedHeatPoints)
         {
             // Act
@@ -482,7 +482,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(PilotingSkillRollType.FootActuatorHit, 1)]
         [InlineData(PilotingSkillRollType.UpperLegActuatorHit, 1)]
         [InlineData(PilotingSkillRollType.LegDestroyed, 5)]
-        public void GetPilotingSkillRollModifier_ValidTypes_ReturnsExpectedValues(PilotingSkillRollType rollType,
+        public void GetPilotingSkillRollModifier_ValidTypes_ShouldReturnExpectedValues(PilotingSkillRollType rollType,
             int expectedModifier)
         {
             _sut.GetPilotingSkillRollModifier(rollType).ShouldBe(expectedModifier);
@@ -503,7 +503,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(4, HexDirection.Top, HexDirection.Bottom)] // Opposite direction
         [InlineData(5, HexDirection.Top, HexDirection.BottomLeft)] // 2 hexsides left
         [InlineData(6, HexDirection.Top, HexDirection.TopLeft)] // 1 hexside left
-        public void GetFacingAfterFall_FromTop_ReturnsCorrectFacing(int roll, HexDirection currentFacing,
+        public void GetFacingAfterFall_FromTop_ShouldReturnCorrectFacing(int roll, HexDirection currentFacing,
             HexDirection expectedFacing)
         {
             // Act
@@ -530,7 +530,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(4, HitDirection.Rear)] // Rear
         [InlineData(5, HitDirection.Left)] // Left Side
         [InlineData(6, HitDirection.Left)] // Left Side
-        public void GetAttackDirectionAfterFall_ReturnsCorrectHitLocation(int roll, HitDirection expectedDirection)
+        public void GetAttackDirectionAfterFall_ShouldReturnCorrectHitLocation(int roll, HitDirection expectedDirection)
         {
             // Act
             var result = _sut.GetAttackDirectionAfterFall(roll);
@@ -549,7 +549,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         }
 
         [Fact]
-        public void GetHeavyDamageThreshold_ReturnsExpectedValue()
+        public void GetHeavyDamageThreshold_ShouldReturnExpectedValue()
         {
             // Act
             var result = _sut.GetHeavyDamageThreshold();
@@ -567,7 +567,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(PartLocation.RightArm, -4)]
         [InlineData(PartLocation.LeftLeg, -4)]
         [InlineData(PartLocation.RightLeg, -4)]
-        public void GetAimedShotModifier_ReturnsExpectedValues(PartLocation targetLocation, int expectedModifier)
+        public void GetAimedShotModifier_ShouldReturnExpectedValues(PartLocation targetLocation, int expectedModifier)
         {
             // Act
             var result = _sut.GetAimedShotModifier(targetLocation);
@@ -577,7 +577,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         }
 
         [Fact]
-        public void GetAimedShotSuccessValues_ReturnsExpectedValues()
+        public void GetAimedShotSuccessValues_ShouldReturnExpectedValues()
         {
             // Act
             var result = _sut.GetAimedShotSuccessValues();
@@ -587,7 +587,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         }
 
         [Fact]
-        public void GetProneFiringModifier_ReturnsExpectedValue()
+        public void GetProneFiringModifier_ShouldReturnExpectedValue()
         {
             // Act
             var result = _sut.GetProneFiringModifier();
@@ -619,7 +619,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(30, 13)] // 30+ heat: automatic shutdown (impossible roll)
         [InlineData(50, 13)]
         [InlineData(100, 13)]
-        public void GetHeatShutdownAvoidNumber_ReturnsExpectedValue(int heatLevel, int expectedAvoidNumber)
+        public void GetHeatShutdownAvoidNumber_ShouldReturnExpectedValue(int heatLevel, int expectedAvoidNumber)
         {
             // Act
             var result = _sut.GetHeatShutdownAvoidNumber(heatLevel);
@@ -646,7 +646,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
         [InlineData(30, 8)]
         [InlineData(50, 8)]
         [InlineData(100, 8)]
-        public void GetHeatAmmoExplosionAvoidNumber_ReturnsExpectedValue(int heatLevel, int expectedAvoidNumber)
+        public void GetHeatAmmoExplosionAvoidNumber_ShouldReturnExpectedValue(int heatLevel, int expectedAvoidNumber)
         {
             // Act
             var result = _sut.GetHeatAmmoExplosionAvoidNumber(heatLevel);

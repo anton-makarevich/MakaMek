@@ -1,7 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -9,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -24,7 +23,7 @@ public class WeaponAttackResolutionCommandTests
     private readonly Player _player1;
     private readonly Unit _attacker;
     private readonly Unit _target;
-    private readonly WeaponData _weaponData;
+    private readonly ComponentData _weaponData;
 
     public WeaponAttackResolutionCommandTests()
     {
@@ -33,8 +32,19 @@ public class WeaponAttackResolutionCommandTests
         var player2 = new Player(Guid.NewGuid(), "Player 2");
 
         // Create units using MechFactory
-        var mechFactory = new MechFactory(new ClassicBattletechRulesProvider(), _localizationService);
-        var attackerData = MechFactoryTests.CreateDummyMechData();
+        var mechFactory = new MechFactory(
+            new ClassicBattletechRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService);
+        var attackerData = MechFactoryTests.CreateDummyMechData(
+        [
+            new ComponentData
+            {
+                Name = "Machine Gun",
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 1)]
+            }
+        ]);
         attackerData.Id = Guid.NewGuid();
         var targetData = MechFactoryTests.CreateDummyMechData();
         targetData.Id = Guid.NewGuid();
@@ -49,14 +59,9 @@ public class WeaponAttackResolutionCommandTests
         // Setup game to return players
         _game.Players.Returns(new List<IPlayer> { _player1, player2 });
         
-        // Setup weapon data - using the Medium Laser in the right arm
+        // Setup weapon data - using the MachineGun in the right arm
         var weapon = _attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
-        _weaponData = new WeaponData
-        {
-            Name = weapon.Name, // Added Name property
-            Location = weapon.MountedOn!.Location,
-            Slots = weapon.MountedAtSlots  // This might need adjustment based on the actual slot position
-        };
+        _weaponData = weapon.ToData();
     }
     
     private LocationHitData CreateHitDataForLocation(PartLocation partLocation,

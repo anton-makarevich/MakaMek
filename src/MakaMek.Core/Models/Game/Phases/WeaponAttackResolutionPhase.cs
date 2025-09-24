@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -106,9 +106,10 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var currentWeaponTarget = weaponTargets[_currentWeaponIndex];
         
         // Find the weapon and target unit
-        var currentWeapon = currentUnit.GetMountedComponentAtLocation<Weapon>(
-            currentWeaponTarget.Weapon.Location,
-            currentWeaponTarget.Weapon.Slots);
+        var primaryAssignment = currentWeaponTarget.Weapon.Assignments.FirstOrDefault();
+        var currentWeapon = primaryAssignment != null ?
+            currentUnit.GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot) :
+            null;
         
         // Take all units not just alive as we should resolve attack even if the unit is already destroyed
         var allUnits = Game.Players.SelectMany(p => p.Units); 
@@ -384,12 +385,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             GameOriginId = Game.Id,
             PlayerId = player.Id,
             AttackerId = attacker.Id,
-            WeaponData = new WeaponData
-            {
-                Location = weapon.MountedOn!.Location,
-                Name = weapon.Name,
-                Slots = weapon.MountedAtSlots
-            },
+            WeaponData = weapon.ToData(),
             TargetId = target.Id,
             ResolutionData = resolution
         };

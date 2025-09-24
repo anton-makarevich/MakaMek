@@ -312,7 +312,10 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         mockPhaseManager.GetNextPhase(PhaseNames.Initiative, Arg.Any<ServerGame>()).Returns(mockNextPhase);
         
         var game = new ServerGame(new ClassicBattletechRulesProvider(),
-            new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>()),
+            new MechFactory(
+                new ClassicBattletechRulesProvider(),
+                new ClassicBattletechComponentProvider(),
+                Substitute.For<ILocalizationService>()),
             CommandPublisher, DiceRoller,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IDamageTransferCalculator>(),

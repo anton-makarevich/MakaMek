@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -20,7 +21,6 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -47,37 +47,53 @@ public class MovementStateTests
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IPilot _pilot = Substitute.For<IPilot>();
+    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     public MovementStateTests()
     {
         var imageService = Substitute.For<IImageService>();
-        var localizationService = Substitute.For<ILocalizationService>();
         
         // Mock localization service responses
-        localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
-        localizationService.GetString("Action_SelectMovementType").Returns("Select movement type");
-        localizationService.GetString("Action_SelectTargetHex").Returns("Select target hex");
-        localizationService.GetString("Action_SelectFacingDirection").Returns("Select facing direction");
-        localizationService.GetString("Action_MoveUnit").Returns("Move Unit");
-        localizationService.GetString("Action_StandStill").Returns("Stand Still");
-        localizationService.GetString("Action_StayProne").Returns("Stay Prone");
-        localizationService.GetString("Action_MovementPoints").Returns("{0} | MP: {1}");
-        localizationService.GetString("MovementType_Walk").Returns("Walk");
-        localizationService.GetString("MovementType_Run").Returns("Run");
-        localizationService.GetString("MovementType_Jump").Returns("Jump");
-        localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
-        localizationService.GetString("Action_ChangeFacing").Returns("Change Facing | MP: {0}");
+        _localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
+        _localizationService.GetString("Action_SelectMovementType").Returns("Select movement type");
+        _localizationService.GetString("Action_SelectTargetHex").Returns("Select target hex");
+        _localizationService.GetString("Action_SelectFacingDirection").Returns("Select facing direction");
+        _localizationService.GetString("Action_MoveUnit").Returns("Move Unit");
+        _localizationService.GetString("Action_StandStill").Returns("Stand Still");
+        _localizationService.GetString("Action_StayProne").Returns("Stay Prone");
+        _localizationService.GetString("Action_MovementPoints").Returns("{0} | MP: {1}");
+        _localizationService.GetString("MovementType_Walk").Returns("Walk");
+        _localizationService.GetString("MovementType_Run").Returns("Run");
+        _localizationService.GetString("MovementType_Jump").Returns("Jump");
+        _localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
+        _localizationService.GetString("Action_ChangeFacing").Returns("Change Facing | MP: {0}");
         
-        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
+         _battleMapViewModel = new BattleMapViewModel(imageService, _localizationService,Substitute.For<IDispatcherService>());
         var playerId = Guid.NewGuid();
         
         _pilot.IsConscious.Returns(true);
         
-        var rules = new ClassicBattletechRulesProvider();
-        _unitData = MechFactoryTests.CreateDummyMechData();
-        var ct = _unitData.LocationEquipment[PartLocation.CenterTorso];
-        ct.AddRange(MakaMekComponent.JumpJet,MakaMekComponent.JumpJet);
-        var mechFactory = new MechFactory(rules,localizationService);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var equipment = new List<ComponentData>(unitData.Equipment)
+        {
+            new()
+            {
+                Type = MakaMekComponent.JumpJet,
+                Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 10, 1)]
+            },
+            new()
+            {
+                Type = MakaMekComponent.JumpJet,
+                Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 11, 1)]
+            }
+        };
+        _unitData = unitData with { Equipment = equipment };
+        var mechFactory = new MechFactory(
+            _rulesProvider,
+            _componentProvider,
+            _localizationService);
         _unit1 = mechFactory.Create(_unitData);
         _unit2 = mechFactory.Create(_unitData);
         _unit1.AssignPilot(_pilot);
@@ -90,7 +106,7 @@ public class MovementStateTests
             new SingleTerrainGenerator(2,11, new ClearTerrain()));
          _player = new Player(playerId, "Player1");
         _game = new ClientGame(
-            rules,
+            _rulesProvider,
             mechFactory,
             _commandPublisher,
             _toHitCalculator,
@@ -815,8 +831,10 @@ public class MovementStateTests
     {
         // Arrange
         var unitData = MechFactoryTests.CreateDummyMechData();
-        var rules = new ClassicBattletechRulesProvider();
-        var unitWithoutJumpJets = new MechFactory(rules, Substitute.For<ILocalizationService>())
+        var unitWithoutJumpJets = new MechFactory(
+                _rulesProvider,
+                _componentProvider,
+                _localizationService)
             .Create(unitData);
         _sut.HandleUnitSelection(unitWithoutJumpJets);
         unitWithoutJumpJets.AssignPilot(_pilot);
@@ -1150,12 +1168,27 @@ public class MovementStateTests
     public void GetAvailableActions_MechJustStoodUp_ExcludesJumpAction()
     {
         // Arrange
-        var unitData = MechFactoryTests.CreateDummyMechData();
-        var ct = unitData.LocationEquipment[PartLocation.CenterTorso];
-        ct.AddRange(MakaMekComponent.JumpJet, MakaMekComponent.JumpJet); // Add jump jets
-
-        var rules = new ClassicBattletechRulesProvider();
-        var mechThatStoodUp = new MechFactory(rules, Substitute.For<ILocalizationService>())
+        var unitData = MechFactoryTests.CreateDummyMechData() with
+        {
+            Equipment =
+            [
+                new ComponentData
+                {
+                    Type = MakaMekComponent.LRM5,
+                    Assignments = [new LocationSlotAssignment(PartLocation.LeftTorso, 1, 1)]
+                },
+                new ComponentData
+                {
+                    Type = MakaMekComponent.MediumLaser,
+                    Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 1, 1)]
+                }
+            ]
+        };
+        
+        var mechThatStoodUp = new MechFactory(
+                _rulesProvider,
+                _componentProvider,
+                _localizationService)
             .Create(unitData);
         mechThatStoodUp.AssignPilot(_pilot);
 
@@ -1205,7 +1238,7 @@ public class MovementStateTests
         var jumpAction = actions.FirstOrDefault(a => a.Label.Contains("Jump"));
         jumpAction.ShouldNotBeNull();
         jumpAction.Label.ShouldContain("("); // Should contain probability percentage
-        jumpAction.Label.ShouldContain("%)"); // Should contain percentage symbol
+        jumpAction.Label.ShouldContain("%)"); // Should contain a percentage symbol
 
     }
 
@@ -1270,7 +1303,7 @@ public class MovementStateTests
         var availableDirections = _battleMapViewModel.AvailableDirections.ToList();
         availableDirections.ShouldNotBeEmpty("Should have available directions");
 
-        // Should not include current facing direction
+        // Should not include the current facing direction
         availableDirections.ShouldNotContain(HexDirection.Bottom, "Should not include current facing direction");
 
         // With 4 MP, should be able to rotate up to 3 hexsides in either direction

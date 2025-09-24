@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -22,7 +21,10 @@ public class AimedShotLocationSelectorViewModelTests
     public AimedShotLocationSelectorViewModelTests()
     {
         var unitData = MechFactoryTests.CreateDummyMechData();
-        _target = new MechFactory(new ClassicBattletechRulesProvider(), Substitute.For<ILocalizationService>())
+        _target = new MechFactory(
+                new ClassicBattletechRulesProvider(),
+                new ClassicBattletechComponentProvider(),
+                Substitute.For<ILocalizationService>())
             .Create(unitData);
     }
 

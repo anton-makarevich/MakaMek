@@ -15,7 +15,6 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -58,7 +57,10 @@ public class EndStateTests
         
         _game = new ClientGame(
             rules,
-            new MechFactory(rules,localizationService),
+            new MechFactory(
+                rules,
+                new ClassicBattletechComponentProvider(),
+                localizationService),
             _commandPublisher, 
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
@@ -529,7 +531,7 @@ public class EndStateTests
         // Shutdown the unit in a previous turn
         _unit1.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = _game.Turn - 1 });
 
-        // Mock heat effects calculator to return impossible startup
+        // Mock heat effects calculator to return an impossible startup
         _heatEffectsCalculator.GetShutdownAvoidNumber(Arg.Any<int>()).Returns(13); // Impossible
 
         // Act

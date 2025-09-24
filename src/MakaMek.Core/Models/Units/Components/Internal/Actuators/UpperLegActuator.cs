@@ -1,14 +1,12 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
-public class UpperLegActuator : Component
+public sealed class UpperLegActuator(ComponentData? componentData = null) : Component(Definition, componentData)
 {
-    private static readonly int[] UpperLegSlots = [1];
-    public UpperLegActuator() : base("Upper Leg", UpperLegSlots)
-    {
-    }
+    public static readonly ActuatorDefinition Definition = new(
+        "Upper Leg Actuator",
+        MakaMekComponent.UpperLegActuator);
 
-    public override MakaMekComponent ComponentType => MakaMekComponent.UpperLegActuator;
-    public override bool IsRemovable => false;
+    public static readonly int[] DefaultMountSlots = [1];
 }

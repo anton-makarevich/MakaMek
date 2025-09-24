@@ -1,16 +1,14 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
-public class LifeSupport : Component
+public sealed class LifeSupport(ComponentData? componentData = null) : Component(Definition, componentData)
 {
-    // Life Support takes slots 1 and 6 in head
-    private static readonly int[] LifeSupportSlots = [0, 5];
+    public static readonly InternalDefinition Definition = new(
+        "Life Support",
+        1, // 1 health point
+        MakaMekComponent.LifeSupport,
+        2);
 
-    public LifeSupport() : base("Life Support", LifeSupportSlots)
-    {
-    }
-
-    public override MakaMekComponent ComponentType => MakaMekComponent.LifeSupport;
-    public override bool IsRemovable => false;
+    public static readonly int[] DefaultMountSlots = [0, 5];
 }

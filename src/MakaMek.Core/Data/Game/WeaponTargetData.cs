@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Data.Game;
@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Core.Data.Game;
 /// </summary>
 public record WeaponTargetData
 {
-    public required WeaponData Weapon { get; init; }
+    public required ComponentData Weapon { get; init; }
     public required Guid TargetId { get; init; }
     public required bool IsPrimaryTarget { get; init; }
 

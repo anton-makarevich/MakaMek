@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
+﻿using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
@@ -15,12 +15,16 @@ public class GyroTests
 
         // Assert
         sut.Name.ShouldBe("Gyro");
-        sut.MountedAtSlots.ToList().Count.ShouldBe(4);
-        sut.MountedAtSlots.ShouldBe([3, 4, 5, 6]);
         sut.IsDestroyed.ShouldBeFalse();
         sut.ComponentType.ShouldBe(MakaMekComponent.Gyro);
         sut.IsRemovable.ShouldBeFalse();
         sut.HealthPoints.ShouldBe(2);
+    }
+
+    [Fact]
+    public void DefaultMountSlots_ShouldBeCorrect()
+    {
+        Gyro.DefaultMountSlots.ShouldBe([3, 4, 5, 6]);
     }
 
     [Fact]
@@ -31,7 +35,7 @@ public class GyroTests
         sut.Hit();
         
         sut.IsDestroyed.ShouldBeFalse();
-        sut.Hits.ShouldBe(1);;
+        sut.Hits.ShouldBe(1);
     }
     
     [Fact]
