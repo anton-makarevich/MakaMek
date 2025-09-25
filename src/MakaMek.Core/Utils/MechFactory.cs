@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -86,7 +87,7 @@ public class MechFactory : IMechFactory
                 var part = mech.Parts[group.Key];
 
                 // Merge all slots from assignments for this location
-                var slots = group.SelectMany(a => a.Slots)
+                var slots = group.SelectMany(a => a.GetSlots())
                     .Distinct()
                     .ToArray();
 
