@@ -23,7 +23,7 @@ MakaMek is an open-source tactical combat game featuring giant walking war machi
 - Hex map generator with the simplest terrain types (clear, light, and heavy wood) ([MegaMek](https://megamek.org/)'s assets)
 - Cross-platform support (Windows, Linux, macOS, Web, Android, iOS)
 - Prototype UI built with AvaloniaUI
-- Importing mechs defined in MTF format 
+- Importing mechs defined in MTF format (Level 1 equipment ~3025 only)
 
 ### Planned
 - Single-player combat against AI opponents
@@ -45,7 +45,8 @@ MakaMek/
 ├── src/
 │   ├── MakaMek.Core/         # Core game engine and logic
 │   ├── MakaMek.Presentation/ # Presentation layer (ViewModels and UI states)
-│   └── MakaMek.Avalonia/     # UI implementation with AvaloniaUI
+│   ├── MakaMek.Avalonia/     # UI implementation with AvaloniaUI
+│   └── MakaMek.Tools/        # Tools and utilities
 ├── tests/                    # Unit tests
 └── docs/                     # Documentation (also synced to GitHub Wiki)
 ```
@@ -94,9 +95,9 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 ## Name Origin
 
-The name MakaMek contains references to MegaMek, but also to my surname and the very first battlemech ever created - the Mackie.
+The name MakaMek contains references to MegaMek, but also to my surname and the very first 'Mech ever created—the Mackie.
 
 ## Disclaimer
 
-This is a fan-made game and is not affiliated with or endorsed by any commercial mech combat game properties. All trademarks belong to their respective owners.
-This project is primarily a learning experience and a labor of love - developed for the enjoyment of the development process itself.
+This is a fan-made project and is not affiliated with or endorsed by any commercial mech combat game properties. All trademarks belong to their respective owners.
+This project is primarily a learning experience and a labor of love—developed for the enjoyment of the development process itself.
