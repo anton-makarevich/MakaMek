@@ -395,7 +395,7 @@ public abstract class Unit
             var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
             return primaryAssignment != null &&
                    primaryAssignment.Location == weaponLocation &&
-                   primaryAssignment.Slots.OrderBy(s => s).SequenceEqual(weaponSlots.OrderBy(s => s));
+                   primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(weaponSlots.OrderBy(s => s));
         });
     }
 

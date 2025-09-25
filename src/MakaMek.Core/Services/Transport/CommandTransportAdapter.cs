@@ -1,10 +1,12 @@
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Serialization;
+using Sanet.MakaMek.Core.Data.Serialization.Converters;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Exceptions;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.Transport;
 
 namespace Sanet.MakaMek.Core.Services.Transport;
@@ -21,7 +23,14 @@ public class CommandTransportAdapter
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         TypeInfoResolver = new RollModifierTypeResolver(),
-        WriteIndented = true
+        WriteIndented = true,
+        Converters = {
+            new EnumConverter<MakaMekComponent>(),
+            new EnumConverter<PartLocation>(),
+            new EnumConverter<MovementType>(),
+            new EnumConverter<UnitStatus>(),
+            new EnumConverter<WeightClass>()
+        }
     };
     private readonly Lock _initLock = new();
     

@@ -9,10 +9,12 @@ public record LocationSlotAssignment(
     PartLocation Location,
     int FirstSlot,
     int Length
-)
+);
+
+public static class LocationSlotAssignmentExtensions
 {
-    /// <summary>
-    /// Gets all slot indices covered by this assignment
-    /// </summary>
-    public IEnumerable<int> Slots => Enumerable.Range(FirstSlot, Length);
+    public static int[] GetSlots(this LocationSlotAssignment assignment)
+    {
+        return Enumerable.Range(assignment.FirstSlot, assignment.Length).ToArray();
+    }
 }

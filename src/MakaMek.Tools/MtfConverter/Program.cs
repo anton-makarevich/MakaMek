@@ -1,7 +1,10 @@
-﻿using System.CommandLine;
+using System.CommandLine;
 using System.Text.Json;
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Data.Serialization.Converters;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace MakaMek.Tools.MtfConverter;
 
@@ -66,7 +69,6 @@ public class Program
         // Validate/create output directory
         if (!Directory.Exists(outputPath))
         {
-            Directory.CreateDirectory(outputPath);
             Console.WriteLine($"Created output directory: {outputPath}");
         }
 
@@ -76,7 +78,14 @@ public class Program
         {
             WriteIndented = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new ComponentEnumConverter() }
+            Converters =
+            {
+                new EnumConverter<MakaMekComponent>(),
+                new EnumConverter<PartLocation>(),
+                new EnumConverter<MovementType>(),
+                new EnumConverter<UnitStatus>(),
+                new EnumConverter<WeightClass>()
+            }
         };
 
         // Determine if input is a file or directory
