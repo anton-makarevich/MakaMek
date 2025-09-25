@@ -1,4 +1,6 @@
-﻿namespace Sanet.MakaMek.Core.Data.Units.Components;
+using System.Text.Json.Serialization;
+
+namespace Sanet.MakaMek.Core.Data.Units.Components;
 
 /// <summary>
 /// Represents a component instance with its slot assignments and mutable state
@@ -18,30 +20,36 @@ public record ComponentData
     /// <summary>
     /// Number of hits this component has taken
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public int Hits { get; init; }
 
     /// <summary>
     /// Whether this component is currently active
     /// </summary>
-    public bool IsActive { get; init; } = true;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsActive { get; init; } = true; // Default omitted when true
 
     /// <summary>
     /// Whether this component has exploded (for explosive components)
     /// </summary>
-    public bool HasExploded { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool HasExploded { get; init; } // Default omitted when false
 
     /// <summary>
     /// Override name for this specific component instance (optional)
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Name { get; init; }
 
     /// <summary>
     /// Manufacturer of this specific component instance (optional, falls back to definition default)
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Manufacturer { get; init; }
 
     /// <summary>
     /// Component-specific state data using discriminated union pattern
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ComponentSpecificData? SpecificData { get; init; }
 }
