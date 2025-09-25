@@ -26,9 +26,8 @@ public record ComponentData
     /// <summary>
     /// Whether this component is currently active
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool IsActive { get; init; } = true; // Default omitted when true
-
+    public bool IsActive { get; init; } = true; 
+    
     /// <summary>
     /// Whether this component has exploded (for explosive components)
     /// </summary>
