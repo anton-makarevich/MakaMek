@@ -70,10 +70,10 @@ Components can span multiple locations through `CriticalSlotAssignment`.
 Comprehensive status tracking.
 
 ### Status Calculation Logic
-Status is dynamically calculated based on:
-- Component health (hits vs. health points)
-- Mounting state (slot assignments)
-- Location integrity (unit part destruction)
+Status is dynamically calculated based on (with semantics):
+- Destroyed: Component’s own HP reduced to zero (in any location)
+- Lost: Location destroyed causing loss of assigned slots for the component
+- Removed: Explicitly unmounted/detached during refit
 - Activation state (manual control)
 
 ---
@@ -106,7 +106,7 @@ Unit parts manage component mounting and slot allocation:
 ### Engine Components
 Variable-size components with type-specific behavior:
 - **Fusion Engine**: 6 slots in Center Torso
-- **XL Fusion**: 6 CT + 4 side torso slots
+- **XL Fusion**: 6 CT + 2 slots each in side torsos
 - **Light Engine**: 4 slots in Center Torso
 - **Heat Integration**: Built-in heat sink capacity
 

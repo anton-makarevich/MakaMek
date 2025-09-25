@@ -36,13 +36,13 @@ The Units module provides the core abstractions and logic for all controllable u
 ### 3. Components System
 - **Component:** Base class for all installable items (weapons, engines, heat sinks, jump jets, etc.).
 - **Responsibilities:**
-    - Encapsulates size, mounting logic, and type-specific properties (e.g., heat, damage for weapons).
-    - **Component Status:** `ComponentStatus` enum tracks component state (Active, Destroyed, Removed, Lost, Deactivated, Damaged).
-    - **Multi-Location Support:** Components can span multiple unit locations with complex slot assignments (XL Engines).
-    - **State Management:** Comprehensive serialization and restoration of component state.
-    - **Provider Pattern:** Centralized component creation and definition management.
-    - Supports extensibility via subdirectories: `Weapons`, `Engines`, `Internal`, etc.
-    - Components can be fixed or movable, and may occupy multiple critical slots.
+  - Encapsulates size, mounting logic, and type-specific properties (e.g., heat, damage for weapons).
+  - **Component Status:** `ComponentStatus` enum tracks component state (Active, Destroyed, Removed, Lost, Deactivated, Damaged).
+  - **Multi-Location Support:** Components can span multiple unit locations with complex slot assignments (XL Engines).
+  - **State Management:** Comprehensive serialization and restoration of component state.
+  - **Provider Pattern:** Centralized component creation and definition management.
+  - Supports extensibility via subdirectories: `Weapons`, `Engines`, `Internal`, etc.
+  - Components can be fixed or movable, and may occupy multiple critical slots.
 
 > **📖 Detailed Documentation:** For comprehensive information about the Components system architecture, component types, multi-location mounting, state management, and extensibility patterns, see [Components System Documentation](Components.md).
 
