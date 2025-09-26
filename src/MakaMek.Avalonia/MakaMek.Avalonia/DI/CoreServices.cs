@@ -1,7 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.Services;
-using Sanet.MakaMek.Core.Data.Community;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -22,18 +20,22 @@ public static class CoreServices
 {
     public static void RegisterServices(this IServiceCollection services)
     {
-        services.AddSingleton<IImageService, AvaloniaAssetImageService>();
+        // Register new MMUX-based unit loading services
+        services.AddSingleton<UnitCachingService>();
+        services.AddSingleton<IImageService, CachedImageService>();
+        services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
+
         services.AddSingleton<ILocalizationService, FakeLocalizationService>();
         services.AddSingleton<IAvaloniaResourcesLocator, AvaloniaResourcesLocator>();
-        
+
         // Register RxTransportPublisher for local players
         services.AddSingleton<RxTransportPublisher>();
 
         // Register CommandTransportAdapter with just the RxTransportPublisher initially
         // The network publisher will be added dynamically when needed
-        services.AddTransient<CommandTransportAdapter>(sp => 
+        services.AddTransient<CommandTransportAdapter>(sp =>
             new CommandTransportAdapter(sp.GetRequiredService<RxTransportPublisher>()));
-            
+
         services.AddTransient<ICommandPublisher, CommandPublisher>();
         services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
         services.AddSingleton<IComponentProvider, ClassicBattletechComponentProvider>();
@@ -47,8 +49,6 @@ public static class CoreServices
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
         services.AddSingleton<IFallProcessor, FallProcessor>();
-        services.AddSingleton<IUnitDataProvider, MtfDataProvider>();
-        services.AddSingleton<IUnitsLoader, EmbeddedResourcesUnitsLoader>();
         services.AddSingleton<IGameFactory, GameFactory>();
         services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
         services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
