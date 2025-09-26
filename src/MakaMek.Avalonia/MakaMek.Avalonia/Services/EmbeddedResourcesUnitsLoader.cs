@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Services;
 

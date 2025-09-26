@@ -22,7 +22,14 @@ public static class CoreServices
     {
         // Register new MMUX-based unit loading services
         services.AddSingleton<UnitCachingService>();
-        services.AddSingleton<IImageService, CachedImageService>();
+
+        // Register both image services
+        services.AddSingleton<AvaloniaAssetImageService>();
+        services.AddSingleton<CachedImageService>();
+
+        // Register hybrid service that routes to appropriate underlying service
+        services.AddSingleton<IImageService, HybridImageService>();
+
         services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
 
         services.AddSingleton<ILocalizationService, FakeLocalizationService>();
