@@ -9,7 +9,7 @@ The MmuxPackager tool creates .mmux packages that combine serialized unit data, 
 ## Package Structure
 
 Each .mmux file contains:
-```
+```text
 Model.mmux (ZIP archive with .mmux extension)
 ├── unit.json          # Serialized UnitData 
 ├── unit.png           # Unit image file
@@ -55,7 +55,7 @@ The tool uses a priority system to find corresponding image files:
 2. **Name match**: `{Name}.png` (e.g., "Atlas.png")  
 3. **Prefix match**: Any PNG file starting with `{Name}` (e.g., "Atlas_variant.png")
 
-Where `{Name}` is derived as `{Chassis} {Model}` from the unit data.
+Where `{Name}` is a unit Chassis from the unit data.
 
 ## Processing Logic
 
