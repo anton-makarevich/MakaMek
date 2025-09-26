@@ -29,6 +29,7 @@ public class UnitCachingServiceTests
     {
         // Arrange
         var service = new UnitCachingService();
+        service.SetHostAssembly(typeof(UnitCachingServiceTests).Assembly);
 
         // Act
         var units = service.GetAllUnits().ToList();
@@ -117,8 +118,8 @@ public class UnitCachingServiceTests
         // Arrange
         var service = new UnitCachingService();
 
-        // Ensure cache is initialized
-        var initialModels = service.GetAvailableModels().ToList();
+        // Ensure the cache is initialized
+        service.GetAvailableModels();
 
         // Act
         service.ClearCache();
@@ -137,7 +138,7 @@ public class UnitCachingServiceTests
             "..", "..", "..", "..", "..",
             "src", "MakaMek.Avalonia", "MakaMek.Avalonia", "Resources", "Units", "Mechs", "LCT-1V.mmux");
 
-        // Skip test if file doesn't exist
+        // Skip test if a file doesn't exist
         if (!File.Exists(mmuxFilePath))
         {
             return;

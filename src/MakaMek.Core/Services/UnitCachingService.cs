@@ -31,7 +31,14 @@ public class UnitCachingService
     };
     private bool _isInitialized;
     private readonly Lock _initLock = new();
+    
+    private Assembly? _hostAssembly;
 
+    public void SetHostAssembly(Assembly hostAssembly)
+    {
+        _hostAssembly = hostAssembly;
+    }
+    
     /// <summary>
     /// Gets unit data by model name
     /// </summary>
@@ -96,42 +103,30 @@ public class UnitCachingService
     private void LoadUnitsFromEmbeddedResources()
     {
         // Look for assemblies that might contain MMUX resources
-        var assemblies = new[]
+        var assembly = _hostAssembly ?? Assembly.GetEntryAssembly();
+
+        var resources = assembly?.GetManifestResourceNames();
+        
+        if (resources == null) return;
+
+        foreach (var resourceName in resources)
         {
-            Assembly.GetEntryAssembly(),
-            Assembly.GetExecutingAssembly(),
-            Assembly.GetCallingAssembly()
-        }.Where(a => a != null).Distinct();
+            if (!resourceName.EndsWith(".mmux", StringComparison.OrdinalIgnoreCase)) continue;
 
-        // Also look for assemblies by name that might contain MMUX files
-        var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-        var avaloniaAssemblies = loadedAssemblies.Where(a =>
-            a.GetName().Name?.Contains("MakaMek.Avalonia", StringComparison.OrdinalIgnoreCase) == true);
-
-        assemblies = assemblies.Concat(avaloniaAssemblies).Distinct();
-
-        foreach (var assembly in assemblies)
-        {
-            var resources = assembly!.GetManifestResourceNames();
-
-            foreach (var resourceName in resources)
+            try
             {
-                if (!resourceName.EndsWith(".mmux", StringComparison.OrdinalIgnoreCase)) continue;
+                using var stream = assembly?.GetManifestResourceStream(resourceName);
+                if (stream == null) continue;
 
-                try
-                {
-                    using var stream = assembly.GetManifestResourceStream(resourceName);
-                    if (stream == null) continue;
-
-                    LoadUnitFromMmuxStream(stream);
-                }
-                catch (Exception ex)
-                {
-                    // Log error but continue processing other packages
-                    Console.WriteLine($"Error loading MMUX package '{resourceName}': {ex.Message}");
-                }
+                LoadUnitFromMmuxStream(stream);
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue processing other packages
+                Console.WriteLine($"Error loading MMUX package '{resourceName}': {ex.Message}");
             }
         }
+
     }
 
     /// <summary>
