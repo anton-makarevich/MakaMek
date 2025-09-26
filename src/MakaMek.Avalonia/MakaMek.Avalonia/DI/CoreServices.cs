@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Data.Community;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -46,7 +47,7 @@ public static class CoreServices
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
         services.AddSingleton<IFallProcessor, FallProcessor>();
-        services.AddSingleton<IMechDataProvider, MtfDataProvider>();
+        services.AddSingleton<IUnitDataProvider, MtfDataProvider>();
         services.AddSingleton<IUnitsLoader, EmbeddedResourcesUnitsLoader>();
         services.AddSingleton<IGameFactory, GameFactory>();
         services.AddSingleton<IBattleMapFactory, BattleMapFactory>();

@@ -10,11 +10,11 @@ namespace Sanet.MakaMek.Avalonia.Services;
 
 public class EmbeddedResourcesUnitsLoader : IUnitsLoader
 {
-    private readonly IMechDataProvider _mtfDataProvider;
+    private readonly IUnitDataProvider _mtfDataProvider;
 
-    public EmbeddedResourcesUnitsLoader(IMechDataProvider mechDataProvider)
+    public EmbeddedResourcesUnitsLoader(IUnitDataProvider unitDataProvider)
     {
-        _mtfDataProvider = mechDataProvider;
+        _mtfDataProvider = unitDataProvider;
     }
 
     public async Task<List<UnitData>> LoadUnits()
