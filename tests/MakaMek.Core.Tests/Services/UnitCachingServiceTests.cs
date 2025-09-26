@@ -16,6 +16,7 @@ public class UnitCachingServiceTests
     {
         // Arrange
         var service = new UnitCachingService();
+        service.SetHostAssembly(typeof(UnitCachingServiceTests).Assembly);
 
         // Act
         var models = service.GetAvailableModels().ToList();

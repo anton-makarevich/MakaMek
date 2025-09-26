@@ -37,11 +37,9 @@
     <ProjectReference Include="..\..\src\MakaMek.Core\MakaMek.Core.csproj" />
     <ProjectReference Include="..\..\src\MakaMek.Presentation\MakaMek.Presentation.csproj" />
   </ItemGroup>
-
   <ItemGroup>
-    <Folder Include="..\..\src\MakaMek.Avalonia\MakaMek.Avalonia\Resources\Units\Mechs\">
-      <Link>Resources\Mechs</Link>
-    </Folder>
+    <None Remove="Resources\SHD-2D.mmux" />
+    <EmbeddedResource Include="Resources\SHD-2D.mmux" />
   </ItemGroup>
 
 </Project>
