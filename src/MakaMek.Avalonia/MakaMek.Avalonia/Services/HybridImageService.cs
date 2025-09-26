@@ -21,7 +21,7 @@ public class HybridImageService : IImageService<Bitmap>
     }
 
     /// <summary>
-    /// Gets an image for the specified asset type and name, routing to appropriate service
+    /// Gets an image for the specified asset type and name, routing to the appropriate service
     /// </summary>
     /// <param name="assetType">Type of asset (e.g., "terrain", "units/mechs")</param>
     /// <param name="assetName">Name of the asset</param>

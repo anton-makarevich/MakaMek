@@ -16,26 +16,21 @@ public class UnitCachingService
 {
     private readonly ConcurrentDictionary<string, UnitData> _unitDataCache = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
-    private readonly JsonSerializerOptions _jsonOptions;
-    private bool _isInitialized = false;
-    private readonly object _initLock = new();
-
-    public UnitCachingService()
+    private readonly JsonSerializerOptions _jsonOptions = new()
     {
-        _jsonOptions = new JsonSerializerOptions
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        Converters =
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true,
-            Converters =
-            {
-                new EnumConverter<MakaMekComponent>(),
-                new EnumConverter<PartLocation>(),
-                new EnumConverter<MovementType>(),
-                new EnumConverter<UnitStatus>(),
-                new EnumConverter<WeightClass>()
-            }
-        };
-    }
+            new EnumConverter<MakaMekComponent>(),
+            new EnumConverter<PartLocation>(),
+            new EnumConverter<MovementType>(),
+            new EnumConverter<UnitStatus>(),
+            new EnumConverter<WeightClass>()
+        }
+    };
+    private bool _isInitialized;
+    private readonly Lock _initLock = new();
 
     /// <summary>
     /// Gets unit data by model name
@@ -56,7 +51,7 @@ public class UnitCachingService
     public byte[]? GetUnitImage(string model)
     {
         EnsureInitialized();
-        return _imageCache.TryGetValue(model, out var imageBytes) ? imageBytes : null;
+        return _imageCache.GetValueOrDefault(model);
     }
 
     /// <summary>
@@ -177,7 +172,7 @@ public class UnitCachingService
             imageBytes = memoryStream.ToArray();
         }
 
-        // Cache both unit data and image using model as key
+        // Cache both unit data and image using model name as a key
         _unitDataCache.TryAdd(unitData.Model, unitData);
         _imageCache.TryAdd(unitData.Model, imageBytes);
     }

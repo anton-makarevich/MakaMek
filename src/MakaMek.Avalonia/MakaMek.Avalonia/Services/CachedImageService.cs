@@ -32,7 +32,7 @@ public class CachedImageService : IImageService<Bitmap>
         if (assetType.Equals("units/mechs", StringComparison.OrdinalIgnoreCase))
         {
             var cacheKey = $"{assetType}/{assetName}";
-            return _bitmapCache.GetOrAdd(cacheKey, _ => LoadUnitImage(assetName));
+            return _bitmapCache.GetOrAdd(cacheKey, LoadUnitImage(assetName));
         }
 
         // For non-unit assets, return null (could be extended to support other asset types)

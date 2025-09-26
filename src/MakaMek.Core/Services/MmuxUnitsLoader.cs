@@ -3,7 +3,7 @@
 namespace Sanet.MakaMek.Core.Services;
 
 /// <summary>
-/// Units loader that retrieves units from the UnitCachingService
+/// Unit loader that retrieves units from the UnitCachingService
 /// This replaces the embedded resources loader for MMUX package support
 /// </summary>
 public class MmuxUnitsLoader : IUnitsLoader
