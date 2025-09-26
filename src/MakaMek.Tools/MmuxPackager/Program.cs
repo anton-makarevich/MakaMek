@@ -219,6 +219,15 @@ public class Program
         {
             return null;
         }
+        
+        // Priority 0: Exact match - {Name}_{Model}.png
+        var modelMatchPattern = $"{model}.png";
+        var modelMatch = pngFiles.FirstOrDefault(file =>
+            Path.GetFileName(file).Equals(modelMatchPattern, StringComparison.OrdinalIgnoreCase));
+        if (modelMatch != null)
+        {
+            return modelMatch;
+        }
 
         // Priority 1: Exact match - {Name}_{Model}.png
         var exactMatchPattern = $"{unitName}_{model}.png";
