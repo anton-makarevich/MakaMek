@@ -235,7 +235,7 @@ public class ServerGameTests
         _sut.IsAutoRoll = false;
         var playerId = Guid.NewGuid();
         var unitId = Guid.NewGuid();
-        var unitData = MechFactoryIntegrationTests.LoadMechFromMtfFile("Resources/Mechs/LCT-1V.mtf");
+        var unitData = MechFactoryIntegrationTests.LoadMechFromMtfFile("Resources/LCT-1V.mtf");
         unitData.Id = unitId;
     
         _sut.HandleCommand(new JoinGameCommand
@@ -352,7 +352,7 @@ public class ServerGameTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var unitData = MechFactoryIntegrationTests.LoadMechFromMtfFile("Resources/Mechs/LCT-1V.mtf");
+        var unitData = MechFactoryIntegrationTests.LoadMechFromMtfFile("Resources/LCT-1V.mtf");
         unitData.Id = Guid.NewGuid();
         _diceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(4)]);
 

@@ -40,6 +40,12 @@
   <ItemGroup>
     <None Remove="Resources\SHD-2D.mmux" />
     <EmbeddedResource Include="Resources\SHD-2D.mmux" />
+    <None Update="Resources\LCT-1V.mtf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\SHD-2D.mtf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
