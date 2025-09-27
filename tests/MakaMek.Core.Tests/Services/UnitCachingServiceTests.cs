@@ -12,6 +12,7 @@ namespace Sanet.MakaMek.Core.Tests.Services;
 
 public class UnitCachingServiceTests
 {
+    private static readonly IResourceStreamProvider ResourceProvider = Substitute.For<IResourceStreamProvider>();
     private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -27,11 +28,11 @@ public class UnitCachingServiceTests
     };
     private static UnitCachingService CreateServiceWithMockProvider(string unitId, Stream mmuxStream)
     {
-        var mockProvider = Substitute.For<IResourceStreamProvider>();
-        mockProvider.GetAvailableResourceIds().Returns([unitId]);
-        mockProvider.GetResourceStream(unitId).Returns(mmuxStream);
+        
+        ResourceProvider.GetAvailableResourceIds().Returns([unitId]);
+        ResourceProvider.GetResourceStream(unitId).Returns(mmuxStream);
 
-        return new UnitCachingService([mockProvider]);
+        return new UnitCachingService([ResourceProvider]);
     }
 
     private static Stream CreateTestMmuxStream(string model, string chassis)
@@ -188,11 +189,14 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
-    public async Task ClearCache_ShouldClearAllData()
+    public async Task ClearCache_ShouldForceReinitialization()
     {
         // Arrange
-        await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
-        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+        await using var mmuxStream1 = CreateTestMmuxStream("LCT-1V", "Locust");
+        await using var mmuxStream2 = CreateTestMmuxStream("LCT-1V", "Locust");
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream1);
+        // Return a fresh stream for the second initialization after ClearCache
+        ResourceProvider.GetResourceStream("LCT-1V").Returns(mmuxStream1, mmuxStream2);
         
         // Ensure the cache is initialized
         var initialModels = (await sut.GetAvailableModels()).ToList();
@@ -203,7 +207,28 @@ public class UnitCachingServiceTests
         var modelsAfterClear = (await sut.GetAvailableModels()).ToList();
 
         // Assert
-        modelsAfterClear.ShouldBeEmpty();
+        modelsAfterClear.ShouldNotBeEmpty();
+        ResourceProvider.Received(2).GetAvailableResourceIds();
+    }
+    
+    [Fact]
+    public async Task GetAvailableModels_ShouldReturnedCachedData_OnSecondInvocation()
+    {
+        // Arrange
+        await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
+        ResourceProvider.GetResourceStream("LCT-1V").Returns(mmuxStream);
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+        
+        // Ensure the cache is initialized
+        var initialModels = (await sut.GetAvailableModels()).ToList();
+        initialModels.ShouldNotBeEmpty();
+
+        // Act
+        var modelsAfterClear = (await sut.GetAvailableModels()).ToList();
+
+        // Assert
+        modelsAfterClear.ShouldNotBeEmpty();
+        ResourceProvider.Received(1).GetAvailableResourceIds();
     }
 
     [Fact]
