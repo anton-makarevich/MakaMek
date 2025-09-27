@@ -30,7 +30,6 @@ public class UnitCachingService : IUnitCachingService
         }
     };
     private bool _isInitialized;
-    private readonly Lock _initLock = new();
 
     /// <summary>
     /// Initializes a new instance of UnitCachingService
@@ -88,39 +87,10 @@ public class UnitCachingService : IUnitCachingService
     /// </summary>
     private async Task EnsureInitialized()
     {
-        if (_isInitialized)
-        {
-            return;
-        }
+        if (_isInitialized) return;
 
-        var shouldInitialize = false;
-        lock (_initLock)
-        {
-            if (!_isInitialized)
-            {
-                _isInitialized = true;
-                shouldInitialize = true;
-            }
-        }
-
-        if (!shouldInitialize)
-        {
-            return;
-        }
-
-        try
-        {
-            await LoadUnitsFromStreamProviders().ConfigureAwait(false);
-        }
-        catch
-        {
-            lock (_initLock)
-            {
-                _isInitialized = false;
-            }
-
-            throw;
-        }
+        await LoadUnitsFromStreamProviders();
+        _isInitialized = true;
     }
 
     /// <summary>
@@ -208,11 +178,10 @@ public class UnitCachingService : IUnitCachingService
     /// </summary>
     public void ClearCache()
     {
-        lock (_initLock)
-        {
-            _unitDataCache.Clear();
-            _imageCache.Clear();
-            _isInitialized = false;
-        }
+
+        _unitDataCache.Clear();
+        _imageCache.Clear();
+        _isInitialized = false;
+
     }
 }
