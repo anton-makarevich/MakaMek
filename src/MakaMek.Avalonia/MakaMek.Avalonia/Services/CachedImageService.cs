@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
@@ -14,7 +13,6 @@ namespace Sanet.MakaMek.Avalonia.Services;
 public class CachedImageService : IImageService<Bitmap>
 {
     private readonly IUnitCachingService _unitCachingService;
-    private readonly ConcurrentDictionary<string, Bitmap?> _bitmapCache = new();
 
     public CachedImageService(IUnitCachingService unitCachingService)
     {
@@ -32,8 +30,7 @@ public class CachedImageService : IImageService<Bitmap>
         // For unit images, we use the asset name as the model identifier
         if (assetType.Equals("units/mechs", StringComparison.OrdinalIgnoreCase))
         {
-            var cacheKey = $"{assetType}/{assetName}";
-            return _bitmapCache.GetOrAdd(cacheKey, await LoadUnitImage(assetName));
+            return  await LoadUnitImage(assetName);
         }
 
         // For non-unit assets, return null (could be extended to support other asset types)
@@ -72,17 +69,5 @@ public class CachedImageService : IImageService<Bitmap>
     async Task<object?> IImageService.GetImage(string assetType, string assetName)
     {
         return await GetImage(assetType, assetName);
-    }
-
-    /// <summary>
-    /// Clears the bitmap cache (useful for memory management)
-    /// </summary>
-    public void ClearCache()
-    {
-        foreach (var bitmap in _bitmapCache.Values)
-        {
-            bitmap?.Dispose();
-        }
-        _bitmapCache.Clear();
     }
 }
