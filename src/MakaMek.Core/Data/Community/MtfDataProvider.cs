@@ -325,7 +325,7 @@ public class MtfDataProvider:IUnitDataProvider
             consecutiveSlots++;
         }
 
-        // Create assignment for this consecutive block
+        // Create an assignment for this consecutive block
         assignments.Add(new LocationSlotAssignment(location, currentSlot, consecutiveSlots));
 
         return assignments;
@@ -335,15 +335,35 @@ public class MtfDataProvider:IUnitDataProvider
     {
         return mtfString switch
         {
+            "IS Ammo AC/2" => MakaMekComponent.ISAmmoAC2,
             "IS Ammo AC/5" => MakaMekComponent.ISAmmoAC5,
+            "IS Ammo AC/10" => MakaMekComponent.ISAmmoAC10,
+            "IS Ammo AC/20" => MakaMekComponent.ISAmmoAC20,
             "IS Ammo SRM-2" => MakaMekComponent.ISAmmoSRM2,
+            "IS Ammo SRM-4" => MakaMekComponent.ISAmmoSRM4,
+            "IS Ammo SRM-6" => MakaMekComponent.ISAmmoSRM6,
             "IS Ammo MG - Full" => MakaMekComponent.ISAmmoMG,
             "IS Ammo LRM-5" => MakaMekComponent.ISAmmoLRM5,
+            "IS Ammo LRM-10" => MakaMekComponent.ISAmmoLRM10,
+            "IS Ammo LRM-15" => MakaMekComponent.ISAmmoLRM15,
+            "IS Ammo LRM-20" => MakaMekComponent.ISAmmoLRM20,
+            "Small Laser" => MakaMekComponent.SmallLaser,
             "Medium Laser" => MakaMekComponent.MediumLaser,
+            "Large Laser" => MakaMekComponent.LargeLaser,
+            "PPC" => MakaMekComponent.PPC,
+            "Flamer" => MakaMekComponent.Flamer,
             "LRM 5" => MakaMekComponent.LRM5,
+            "LRM 10" => MakaMekComponent.LRM10,
+            "LRM 15" => MakaMekComponent.LRM15,
+            "LRM 20" => MakaMekComponent.LRM20,
             "SRM 2" => MakaMekComponent.SRM2,
+            "SRM 4" => MakaMekComponent.SRM4,
+            "SRM 6" => MakaMekComponent.SRM6,
             "Machine Gun" => MakaMekComponent.MachineGun,
+            "Autocannon/2" => MakaMekComponent.AC2,
             "Autocannon/5" => MakaMekComponent.AC5,
+            "Autocannon/10" => MakaMekComponent.AC10,
+            "Autocannon/20" => MakaMekComponent.AC20,
             "Heat Sink" => MakaMekComponent.HeatSink,
             "Shoulder" => MakaMekComponent.Shoulder,
             "Upper Arm Actuator" => MakaMekComponent.UpperArmActuator,
