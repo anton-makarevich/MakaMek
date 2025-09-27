@@ -68,7 +68,6 @@ MakaMek/
 > Users can build and deploy to Apple platforms from the source code.
 
 ## Development Setup
-
 ### Prerequisites
 
 - .NET 9 SDK
@@ -86,7 +85,13 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+The source code for this project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+### Art and Assets
+
+Some art and assets used in this project—specifically unit and terrain images—are taken from the ([MegaMek Data Repository](https://github.com/MegaMek/mm-data/)). These materials are used as-is without any modifications and are distributed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License ([https://creativecommons.org/licenses/by-nc-sa/4.0/](https://creativecommons.org/licenses/by-nc-sa/4.0/)).
+
+If you have any concerns regarding the usage of any of these assets, please reach out to me at: anton.makarevich@gmail.com
 
 ## Acknowledgments
 
