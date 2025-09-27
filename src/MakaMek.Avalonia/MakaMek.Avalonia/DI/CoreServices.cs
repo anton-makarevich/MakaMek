@@ -22,7 +22,7 @@ public static class CoreServices
     public static void RegisterServices(this IServiceCollection services)
     {
         // Register unit caching service with stream providers
-        services.AddSingleton<UnitCachingService>(_ =>
+        services.AddSingleton<IUnitCachingService,UnitCachingService>(_ =>
         {
             var streamProviders = new List<IResourceStreamProvider>
             {

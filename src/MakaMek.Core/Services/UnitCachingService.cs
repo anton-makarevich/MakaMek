@@ -11,7 +11,7 @@ namespace Sanet.MakaMek.Core.Services;
 /// <summary>
 /// Service for caching unit data and images loaded from various sources including MMUX packages
 /// </summary>
-public class UnitCachingService
+public class UnitCachingService : IUnitCachingService
 {
     private readonly ConcurrentDictionary<string, UnitData> _unitDataCache = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();

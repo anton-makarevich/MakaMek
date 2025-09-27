@@ -8,9 +8,9 @@ namespace Sanet.MakaMek.Core.Services;
 /// </summary>
 public class MmuxUnitsLoader : IUnitsLoader
 {
-    private readonly UnitCachingService _unitCachingService;
+    private readonly IUnitCachingService _unitCachingService;
 
-    public MmuxUnitsLoader(UnitCachingService unitCachingService)
+    public MmuxUnitsLoader(IUnitCachingService unitCachingService)
     {
         _unitCachingService = unitCachingService;
     }
