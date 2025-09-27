@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Models.Game;
@@ -20,13 +21,13 @@ public static class CoreServices
 {
     public static void RegisterServices(this IServiceCollection services)
     {
-        // Register unit stream providers
-        services.AddSingleton<IResourceStreamProvider, AssemblyResourceStreamProvider>();
-
         // Register unit caching service with stream providers
-        services.AddSingleton<UnitCachingService>(sp =>
+        services.AddSingleton<UnitCachingService>(_ =>
         {
-            var streamProviders = sp.GetServices<IResourceStreamProvider>();
+            var streamProviders = new List<IResourceStreamProvider>
+            {
+                new AssemblyResourceStreamProvider("mmux")
+            };
             return new UnitCachingService(streamProviders);
         });
 
@@ -34,7 +35,7 @@ public static class CoreServices
         services.AddSingleton<AvaloniaAssetImageService>();
         services.AddSingleton<CachedImageService>();
 
-        // Register hybrid service that routes to appropriate underlying service
+        // Register a hybrid service that routes to the appropriate underlying service
         services.AddSingleton<IImageService, HybridImageService>();
 
         services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
