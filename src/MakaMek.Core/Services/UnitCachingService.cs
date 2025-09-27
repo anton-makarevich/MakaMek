@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.IO.Compression;
-using System.Reflection;
 using System.Text.Json;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
@@ -16,6 +15,7 @@ public class UnitCachingService
 {
     private readonly ConcurrentDictionary<string, UnitData> _unitDataCache = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
+    private readonly IEnumerable<IUnitStreamProvider> _streamProviders;
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -31,12 +31,14 @@ public class UnitCachingService
     };
     private bool _isInitialized;
     private readonly Lock _initLock = new();
-    
-    private Assembly? _hostAssembly;
 
-    public void SetHostAssembly(Assembly hostAssembly)
+    /// <summary>
+    /// Initializes a new instance of UnitCachingService
+    /// </summary>
+    /// <param name="streamProviders">Collection of stream providers to load units from</param>
+    public UnitCachingService(IEnumerable<IUnitStreamProvider> streamProviders)
     {
-        _hostAssembly = hostAssembly;
+        _streamProviders = streamProviders;
     }
     
     /// <summary>
@@ -44,9 +46,9 @@ public class UnitCachingService
     /// </summary>
     /// <param name="model">The unit model identifier</param>
     /// <returns>Unit data if found, null otherwise</returns>
-    public UnitData? GetUnitData(string model)
+    public async Task<UnitData?> GetUnitData(string model)
     {
-        EnsureInitialized();
+        await EnsureInitialized();
         return _unitDataCache.TryGetValue(model, out var unitData) ? unitData : null;
     }
 
@@ -55,9 +57,9 @@ public class UnitCachingService
     /// </summary>
     /// <param name="model">The unit model identifier</param>
     /// <returns>Image bytes if found, null otherwise</returns>
-    public byte[]? GetUnitImage(string model)
+    public async Task<byte[]?> GetUnitImage(string model)
     {
-        EnsureInitialized();
+        await EnsureInitialized();
         return _imageCache.GetValueOrDefault(model);
     }
 
@@ -65,9 +67,9 @@ public class UnitCachingService
     /// Gets all available unit models
     /// </summary>
     /// <returns>Collection of unit model identifiers</returns>
-    public IEnumerable<string> GetAvailableModels()
+    public async Task<IEnumerable<string>> GetAvailableModels()
     {
-        EnsureInitialized();
+        await EnsureInitialized();
         return _unitDataCache.Keys;
     }
 
@@ -75,65 +77,67 @@ public class UnitCachingService
     /// Gets all cached unit data
     /// </summary>
     /// <returns>Collection of all unit data</returns>
-    public IEnumerable<UnitData> GetAllUnits()
+    public async Task<IEnumerable<UnitData>> GetAllUnits()
     {
-        EnsureInitialized();
+        await EnsureInitialized();
         return _unitDataCache.Values;
     }
 
     /// <summary>
     /// Ensures the cache is initialized by loading units from all available sources
     /// </summary>
-    private void EnsureInitialized()
+    private async Task EnsureInitialized()
     {
         if (_isInitialized) return;
 
-        lock (_initLock)
-        {
-            if (_isInitialized) return;
+        if (_isInitialized) return;
 
-            LoadUnitsFromEmbeddedResources();
-            _isInitialized = true;
-        }
+        await LoadUnitsFromStreamProviders();
+        _isInitialized = true;
     }
 
     /// <summary>
-    /// Loads units from embedded MMUX packages in the assembly
+    /// Loads units from all configured stream providers
     /// </summary>
-    private void LoadUnitsFromEmbeddedResources()
+    private async Task LoadUnitsFromStreamProviders()
     {
-        // Look for assemblies that might contain MMUX resources
-        var assembly = _hostAssembly ?? Assembly.GetEntryAssembly();
-
-        var resources = assembly?.GetManifestResourceNames();
-        
-        if (resources == null) return;
-
-        foreach (var resourceName in resources)
+        foreach (var provider in _streamProviders)
         {
-            if (!resourceName.EndsWith(".mmux", StringComparison.OrdinalIgnoreCase)) continue;
-
             try
             {
-                using var stream = assembly?.GetManifestResourceStream(resourceName);
-                if (stream == null) continue;
+                var unitIds = provider.GetAvailableUnitIds();
 
-                LoadUnitFromMmuxStream(stream);
+                foreach (var unitId in unitIds)
+                {
+                    try
+                    {
+                        await using var stream =await provider.GetUnitStream(unitId);
+                        if (stream != null)
+                        {
+                            LoadUnitFromMmuxStreamAsync(stream).Wait();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error but continue processing other units
+                        Console.WriteLine($"Error loading unit '{unitId}' from provider: {ex.Message}");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                // Log error but continue processing other packages
-                Console.WriteLine($"Error loading MMUX package '{resourceName}': {ex.Message}");
+                // Log error but continue with other providers
+                Console.WriteLine($"Error loading units from provider {provider.GetType().Name}: {ex.Message}");
             }
         }
-
     }
 
     /// <summary>
-    /// Loads a unit from an MMUX package stream
+    /// Loads a unit from an MMUX package stream asynchronously
     /// </summary>
     /// <param name="mmuxStream">Stream containing the MMUX package data</param>
-    private void LoadUnitFromMmuxStream(Stream mmuxStream)
+    /// <returns>Task representing the async operation</returns>
+    private async Task LoadUnitFromMmuxStreamAsync(Stream mmuxStream)
     {
         using var archive = new ZipArchive(mmuxStream, ZipArchiveMode.Read);
 
@@ -145,10 +149,10 @@ public class UnitCachingService
         }
 
         UnitData unitData;
-        using (var unitJsonStream = unitJsonEntry.Open())
+        await using (var unitJsonStream = unitJsonEntry.Open())
         using (var reader = new StreamReader(unitJsonStream))
         {
-            var jsonContent = reader.ReadToEnd();
+            var jsonContent = await reader.ReadToEndAsync();
             unitData = JsonSerializer.Deserialize<UnitData>(jsonContent, _jsonOptions);
         }
 
@@ -160,10 +164,10 @@ public class UnitCachingService
         }
 
         byte[] imageBytes;
-        using (var imageStream = unitImageEntry.Open())
+        await using (var imageStream = unitImageEntry.Open())
         using (var memoryStream = new MemoryStream())
         {
-            imageStream.CopyTo(memoryStream);
+            await imageStream.CopyToAsync(memoryStream);
             imageBytes = memoryStream.ToArray();
         }
 

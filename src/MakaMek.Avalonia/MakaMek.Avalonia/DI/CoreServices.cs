@@ -20,8 +20,15 @@ public static class CoreServices
 {
     public static void RegisterServices(this IServiceCollection services)
     {
-        // Register new MMUX-based unit loading services
-        services.AddSingleton<UnitCachingService>();
+        // Register unit stream providers
+        services.AddSingleton<IUnitStreamProvider, AssemblyUnitStreamProvider>();
+
+        // Register unit caching service with stream providers
+        services.AddSingleton<UnitCachingService>(sp =>
+        {
+            var streamProviders = sp.GetServices<IUnitStreamProvider>();
+            return new UnitCachingService(streamProviders);
+        });
 
         // Register both image services
         services.AddSingleton<AvaloniaAssetImageService>();
