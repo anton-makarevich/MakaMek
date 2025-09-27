@@ -31,6 +31,7 @@ public class UnitCachingServiceTests
         
         ResourceProvider.GetAvailableResourceIds().Returns([unitId]);
         ResourceProvider.GetResourceStream(unitId).Returns(mmuxStream);
+        ResourceProvider.ClearReceivedCalls();
 
         return new UnitCachingService([ResourceProvider]);
     }
