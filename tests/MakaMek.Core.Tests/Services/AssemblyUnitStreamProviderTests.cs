@@ -17,7 +17,7 @@ public class AssemblyUnitStreamProviderTests
 
         // Assert
         unitIds.ShouldNotBeNull();
-        unitIds.ShouldContain("LCT-1V");
+        unitIds.ShouldContain("SHD-2D");
     }
 
     [Fact]

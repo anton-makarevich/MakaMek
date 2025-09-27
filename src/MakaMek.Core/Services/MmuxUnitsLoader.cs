@@ -19,9 +19,9 @@ public class MmuxUnitsLoader : IUnitsLoader
     /// Loads all available units from the caching service
     /// </summary>
     /// <returns>List of all available unit data</returns>
-    public Task<List<UnitData>> LoadUnits()
+    public async Task<List<UnitData>> LoadUnits()
     {
-        var units = _unitCachingService.GetAllUnits().ToList();
-        return Task.FromResult(units);
+        var units = await _unitCachingService.GetAllUnits();
+        return units.ToList();
     }
 }

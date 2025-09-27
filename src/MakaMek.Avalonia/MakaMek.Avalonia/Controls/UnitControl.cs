@@ -526,7 +526,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
         private void UpdateImage()
         {
-            var image = _imageService.GetImage("units/mechs", _unit.Model.ToUpper());
+            var image = _imageService.GetImage("units/mechs", _unit.Model.ToUpper()).Result;
             if (image != null)
             {
                 _unitImage.Source = image;

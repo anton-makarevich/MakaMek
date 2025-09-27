@@ -11,10 +11,10 @@ public interface IImageService
     /// <param name="assetType">Type of asset (e.g., "terrain", "unit")</param>
     /// <param name="assetName">Name of the asset (e.g., "clear", "woods")</param>
     /// <returns>Image object (platform specific)</returns>
-    object? GetImage(string assetType, string assetName);
+    Task<object?> GetImage(string assetType, string assetName);
 }
 
 public interface IImageService<T>:IImageService
 {
-    new T? GetImage(string assetType, string assetName);
+    new Task<T?> GetImage(string assetType, string assetName);
 }

@@ -118,7 +118,8 @@ public class HexControl : Panel
         var terrain = _hex.GetTerrains().FirstOrDefault();
         if (terrain == null) return;
 
-        var image = _imageService.GetImage("terrain", terrain.Id.ToString().ToLower());
+        var image = _imageService.GetImage("terrain", terrain.Id.ToString().ToLower())
+            .Result; 
         if (image != null)
         {
             _terrainImage.Source = image;

@@ -12,18 +12,32 @@ namespace Sanet.MakaMek.Core.Tests.Services;
 
 public class UnitCachingServiceTests
 {
+    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        Converters =
+        {
+            new EnumConverter<MakaMekComponent>(),
+            new EnumConverter<PartLocation>(),
+            new EnumConverter<MovementType>(),
+            new EnumConverter<UnitStatus>(),
+            new EnumConverter<WeightClass>()
+        }
+    };
     private static UnitCachingService CreateServiceWithMockProvider(string unitId, Stream mmuxStream)
     {
         var mockProvider = Substitute.For<IUnitStreamProvider>();
-        mockProvider.GetAvailableUnitIds().Returns(new[] { unitId });
+        mockProvider.GetAvailableUnitIds().Returns([unitId]);
         mockProvider.GetUnitStream(unitId).Returns(mmuxStream);
 
-        return new UnitCachingService(new[] { mockProvider });
+        return new UnitCachingService([mockProvider]);
     }
 
     private static Stream CreateTestMmuxStream(string model, string chassis)
     {
         var memoryStream = new MemoryStream();
+        
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
         {
             // Create unit.json
@@ -41,25 +55,11 @@ public class UnitCachingServiceTests
                 Quirks = new Dictionary<string, string>()
             };
 
-            var jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = true,
-                Converters =
-                {
-                    new EnumConverter<MakaMekComponent>(),
-                    new EnumConverter<PartLocation>(),
-                    new EnumConverter<MovementType>(),
-                    new EnumConverter<UnitStatus>(),
-                    new EnumConverter<WeightClass>()
-                }
-            };
-
             var unitJsonEntry = archive.CreateEntry("unit.json");
             using (var entryStream = unitJsonEntry.Open())
             using (var writer = new StreamWriter(entryStream))
             {
-                var json = JsonSerializer.Serialize(unitData, jsonOptions);
+                var json = JsonSerializer.Serialize(unitData, JsonOptions);
                 writer.Write(json);
             }
 
@@ -67,7 +67,7 @@ public class UnitCachingServiceTests
             var unitImageEntry = archive.CreateEntry("unit.png");
             using (var entryStream = unitImageEntry.Open())
             {
-                // Write minimal PNG header (not a valid image, but sufficient for testing)
+                // Write a minimal PNG header (not a valid image, but sufficient for testing)
                 var pngHeader = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
                 entryStream.Write(pngHeader, 0, pngHeader.Length);
             }
@@ -78,14 +78,14 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
-    public void GetAvailableModels_ShouldReturnModels_WhenInitialized()
+    public async Task GetAvailableModels_ShouldReturnModels_WhenInitialized()
     {
         // Arrange
-        using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
+        await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
         var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
 
         // Act
-        var models = service.GetAvailableModels().ToList();
+        var models =(await service.GetAvailableModels()).ToList();
 
         // Assert
         models.ShouldNotBeNull();
@@ -93,14 +93,14 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
-    public void GetUnitData_ShouldReturnUnitData_WhenModelExists()
+    public async Task GetUnitData_ShouldReturnUnitData_WhenModelExists()
     {
         // Arrange
-        using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
+        await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
         var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
 
         // Act
-        var unitData = service.GetUnitData("LCT-1V");
+        var unitData = await service.GetUnitData("LCT-1V");
 
         // Assert
         unitData.ShouldNotBeNull();
@@ -109,14 +109,14 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
-    public void GetUnitImage_ShouldReturnImageBytes_WhenModelExists()
+    public async Task GetUnitImage_ShouldReturnImageBytes_WhenModelExists()
     {
         // Arrange
-        using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
+        await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
         var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
 
         // Act
-        var imageBytes = service.GetUnitImage("LCT-1V");
+        var imageBytes = await service.GetUnitImage("LCT-1V");
 
         // Assert
         imageBytes.ShouldNotBeNull();
@@ -124,14 +124,14 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
-    public void GetAllUnits_ShouldReturnAllUnits_WhenInitialized()
+    public async Task GetAllUnits_ShouldReturnAllUnits_WhenInitialized()
     {
         // Arrange
-        using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
+        await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
         var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
 
         // Act
-        var units = service.GetAllUnits().ToList();
+        var units = (await service.GetAllUnits()).ToList();
 
         // Assert
         units.ShouldNotBeEmpty();
@@ -139,42 +139,42 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
-    public void ClearCache_ShouldClearAllData()
+    public async Task ClearCache_ShouldClearAllData()
     {
         // Arrange
-        using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
+        await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
         var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
         
-        // Ensure cache is initialized
-        var initialModels = service.GetAvailableModels().ToList();
+        // Ensure the cache is initialized
+        var initialModels = (await service.GetAvailableModels()).ToList();
         initialModels.ShouldNotBeEmpty();
 
         // Act
         service.ClearCache();
-        var modelsAfterClear = service.GetAvailableModels().ToList();
+        var modelsAfterClear = (await service.GetAvailableModels()).ToList();
 
         // Assert
         modelsAfterClear.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Service_ShouldHandleMultipleProviders()
+    public async Task Service_ShouldHandleMultipleProviders()
     {
         // Arrange
         var mockProvider1 = Substitute.For<IUnitStreamProvider>();
-        mockProvider1.GetAvailableUnitIds().Returns(new[] { "LCT-1V" });
-        using var mmuxStream1 = CreateTestMmuxStream("LCT-1V", "Locust");
+        mockProvider1.GetAvailableUnitIds().Returns(["LCT-1V"]);
+        await using var mmuxStream1 = CreateTestMmuxStream("LCT-1V", "Locust");
         mockProvider1.GetUnitStream("LCT-1V").Returns(mmuxStream1);
 
         var mockProvider2 = Substitute.For<IUnitStreamProvider>();
-        mockProvider2.GetAvailableUnitIds().Returns(new[] { "SHD-2D" });
-        using var mmuxStream2 = CreateTestMmuxStream("SHD-2D", "Shadowhawk");
+        mockProvider2.GetAvailableUnitIds().Returns(["SHD-2D"]);
+        await using var mmuxStream2 = CreateTestMmuxStream("SHD-2D", "Shadowhawk");
         mockProvider2.GetUnitStream("SHD-2D").Returns(mmuxStream2);
 
-        var service = new UnitCachingService(new[] { mockProvider1, mockProvider2 });
+        var service = new UnitCachingService([mockProvider1, mockProvider2]);
 
         // Act
-        var models = service.GetAvailableModels().ToList();
+        var models = (await service.GetAvailableModels()).ToList();
 
         // Assert
         models.ShouldContain("LCT-1V");
@@ -183,13 +183,13 @@ public class UnitCachingServiceTests
     }
 
     [Fact]
-    public void Service_ShouldHandleEmptyProviders()
+    public async Task Service_ShouldHandleEmptyProviders()
     {
         // Arrange
-        var service = new UnitCachingService(Array.Empty<IUnitStreamProvider>());
+        var service = new UnitCachingService([]);
 
         // Act
-        var models = service.GetAvailableModels().ToList();
+        var models = await service.GetAvailableModels();
 
         // Assert
         models.ShouldBeEmpty();

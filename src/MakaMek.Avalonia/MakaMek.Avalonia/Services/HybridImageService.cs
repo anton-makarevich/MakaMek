@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Core.Services;
 
@@ -26,7 +27,7 @@ public class HybridImageService : IImageService<Bitmap>
     /// <param name="assetType">Type of asset (e.g., "terrain", "units/mechs")</param>
     /// <param name="assetName">Name of the asset</param>
     /// <returns>Bitmap if found, null otherwise</returns>
-    public Bitmap? GetImage(string assetType, string assetName)
+    public Task<Bitmap?> GetImage(string assetType, string assetName)
     {
         // Route unit images to cached service (MMUX packages)
         if (assetType.Equals("units/mechs", StringComparison.OrdinalIgnoreCase))
@@ -44,8 +45,8 @@ public class HybridImageService : IImageService<Bitmap>
     /// <param name="assetType">Type of asset</param>
     /// <param name="assetName">Name of the asset</param>
     /// <returns>Image object (Bitmap) if found, null otherwise</returns>
-    object? IImageService.GetImage(string assetType, string assetName)
+    async Task<object?> IImageService.GetImage(string assetType, string assetName)
     {
-        return GetImage(assetType, assetName);
+        return await GetImage(assetType, assetName);
     }
 }

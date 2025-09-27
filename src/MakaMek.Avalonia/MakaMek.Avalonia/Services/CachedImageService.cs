@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Core.Services;
 
@@ -26,13 +27,13 @@ public class CachedImageService : IImageService<Bitmap>
     /// <param name="assetType">Type of asset (e.g., "units/mechs")</param>
     /// <param name="assetName">Name of the asset (unit model)</param>
     /// <returns>Bitmap if found, null otherwise</returns>
-    public Bitmap? GetImage(string assetType, string assetName)
+    public async Task<Bitmap?> GetImage(string assetType, string assetName)
     {
         // For unit images, we use the asset name as the model identifier
         if (assetType.Equals("units/mechs", StringComparison.OrdinalIgnoreCase))
         {
             var cacheKey = $"{assetType}/{assetName}";
-            return _bitmapCache.GetOrAdd(cacheKey, LoadUnitImage(assetName));
+            return _bitmapCache.GetOrAdd(cacheKey, await LoadUnitImage(assetName));
         }
 
         // For non-unit assets, return null (could be extended to support other asset types)
@@ -44,11 +45,11 @@ public class CachedImageService : IImageService<Bitmap>
     /// </summary>
     /// <param name="model">The unit model identifier</param>
     /// <returns>Bitmap if found, null otherwise</returns>
-    private Bitmap? LoadUnitImage(string model)
+    private async Task<Bitmap?> LoadUnitImage(string model)
     {
         try
         {
-            var imageBytes = _unitCachingService.GetUnitImage(model);
+            var imageBytes = await _unitCachingService.GetUnitImage(model);
             if (imageBytes == null) return null;
 
             using var stream = new MemoryStream(imageBytes);
@@ -68,9 +69,9 @@ public class CachedImageService : IImageService<Bitmap>
     /// <param name="assetType">Type of asset</param>
     /// <param name="assetName">Name of the asset</param>
     /// <returns>Image object (Bitmap) if found, null otherwise</returns>
-    object? IImageService.GetImage(string assetType, string assetName)
+    async Task<object?> IImageService.GetImage(string assetType, string assetName)
     {
-        return GetImage(assetType, assetName);
+        return await GetImage(assetType, assetName);
     }
 
     /// <summary>
