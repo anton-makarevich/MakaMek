@@ -37,16 +37,15 @@
     <ProjectReference Include="..\..\src\MakaMek.Core\MakaMek.Core.csproj" />
     <ProjectReference Include="..\..\src\MakaMek.Presentation\MakaMek.Presentation.csproj" />
   </ItemGroup>
-
   <ItemGroup>
-    <Content Include="..\..\src\MakaMek.Avalonia\MakaMek.Avalonia\Resources\Units\Mechs\LCT-1V.mtf">
-      <Link>Resources\Mechs\LCT-1V.mtf</Link>
+    <None Remove="Resources\SHD-2D.mmux" />
+    <EmbeddedResource Include="Resources\SHD-2D.mmux" />
+    <None Update="Resources\LCT-1V.mtf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\..\src\MakaMek.Avalonia\MakaMek.Avalonia\Resources\Units\Mechs\SHD-2D.mtf">
-      <Link>Resources\Mechs\SHD-2D.mtf</Link>
+    </None>
+    <None Update="Resources\SHD-2D.mtf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
   </ItemGroup>
 
 </Project>

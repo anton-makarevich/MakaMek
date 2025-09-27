@@ -1,5 +1,6 @@
 using Shouldly;
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -15,7 +16,6 @@ using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Data.Community;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
@@ -27,6 +27,7 @@ public class ServerGameTests
     private readonly ServerGame _sut;
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();
+    private readonly MtfDataProvider _mtfDataProvider = new MtfDataProvider(new ClassicBattletechComponentProvider());
     public ServerGameTests()
     {
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5,
@@ -235,7 +236,7 @@ public class ServerGameTests
         _sut.IsAutoRoll = false;
         var playerId = Guid.NewGuid();
         var unitId = Guid.NewGuid();
-        var unitData = MechFactoryIntegrationTests.LoadMechFromMtfFile("Resources/Mechs/LCT-1V.mtf");
+        var unitData = _mtfDataProvider.LoadMechFromTextData(File.ReadAllLines("Resources/LCT-1V.mtf"));
         unitData.Id = unitId;
     
         _sut.HandleCommand(new JoinGameCommand
@@ -352,7 +353,7 @@ public class ServerGameTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var unitData = MechFactoryIntegrationTests.LoadMechFromMtfFile("Resources/Mechs/LCT-1V.mtf");
+        var unitData = _mtfDataProvider.LoadMechFromTextData(File.ReadAllLines("Resources/LCT-1V.mtf"));
         unitData.Id = Guid.NewGuid();
         _diceRoller.Roll2D6().Returns([new DiceResult(3), new DiceResult(4)]);
 

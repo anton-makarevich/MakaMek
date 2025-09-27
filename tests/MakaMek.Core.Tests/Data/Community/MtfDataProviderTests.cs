@@ -12,8 +12,8 @@ namespace Sanet.MakaMek.Core.Tests.Data.Community;
 
 public class MtfDataProviderTests
 {
-    private readonly string[] _locustMtfData = File.ReadAllLines("Resources/Mechs/LCT-1V.mtf");
-    private readonly string[] _shadowHawkMtfData = File.ReadAllLines("Resources/Mechs/SHD-2D.mtf");
+    private readonly string[] _locustMtfData = File.ReadAllLines("Resources/LCT-1V.mtf");
+    private readonly string[] _shadowHawkMtfData = File.ReadAllLines("Resources/SHD-2D.mtf");
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
 
     [Fact]

@@ -7,7 +7,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
 namespace Sanet.MakaMek.Core.Data.Community;
 
-public class MtfDataProvider:IMechDataProvider
+public class MtfDataProvider:IUnitDataProvider
 {
     private readonly IComponentProvider _componentProvider;
 
