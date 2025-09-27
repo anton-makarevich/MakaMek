@@ -32,8 +32,8 @@ public class AvaloniaAssetImageService : IImageService<Bitmap>
         }
     }
 
-    Task <object?> IImageService.GetImage(string assetType, string assetName)
+    async Task<object?> IImageService.GetImage(string assetType, string assetName)
     {
-        return Task.FromResult<object?>(GetImage(assetType, assetName));
+        return await GetImage(assetType, assetName);
     }
 }

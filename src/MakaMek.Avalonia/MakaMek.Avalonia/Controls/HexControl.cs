@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
@@ -91,7 +92,7 @@ public class HexControl : Panel
         SetValue(Canvas.LeftProperty, hex.Coordinates.H);
         SetValue(Canvas.TopProperty, hex.Coordinates.V);
 
-        UpdateTerrainImage();
+        _ = UpdateTerrainImage();
     }
     public Hex Hex => _hex;
     
@@ -113,13 +114,12 @@ public class HexControl : Panel
         }
     }
 
-    private void UpdateTerrainImage()
+    private async Task UpdateTerrainImage()
     {
         var terrain = _hex.GetTerrains().FirstOrDefault();
         if (terrain == null) return;
 
-        var image = _imageService.GetImage("terrain", terrain.Id.ToString().ToLower())
-            .Result; 
+        var image = await _imageService.GetImage("terrain", terrain.Id.ToString().ToLower()); 
         if (image != null)
         {
             _terrainImage.Source = image;

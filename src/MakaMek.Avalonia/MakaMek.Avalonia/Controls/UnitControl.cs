@@ -350,7 +350,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
             // Initial update
             Render();
-            UpdateImage();
+            _ = UpdateImage();
             UpdateHealthBars(_unit.TotalCurrentArmor, _unit.TotalMaxArmor, _unit.TotalCurrentStructure,
                 _unit.TotalMaxStructure);
         }
@@ -524,9 +524,9 @@ namespace Sanet.MakaMek.Avalonia.Controls
             _eventsPanel.Children.Remove(label);
         }
 
-        private void UpdateImage()
+        private async Task UpdateImage()
         {
-            var image = _imageService.GetImage("units/mechs", _unit.Model.ToUpper()).Result;
+            var image = await _imageService.GetImage("units/mechs", _unit.Model.ToUpper());
             if (image != null)
             {
                 _unitImage.Source = image;

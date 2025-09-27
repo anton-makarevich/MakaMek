@@ -114,7 +114,7 @@ public class UnitCachingService
                         await using var stream =await provider.GetResourceStream(unitId);
                         if (stream != null)
                         {
-                            LoadUnitFromMmuxStreamAsync(stream).Wait();
+                            await LoadUnitFromMmuxStreamAsync(stream);
                         }
                     }
                     catch (Exception ex)
