@@ -69,6 +69,7 @@ public class Program
         // Validate/create output directory
         if (!Directory.Exists(outputPath))
         {
+            Directory.CreateDirectory(outputPath);
             Console.WriteLine($"Created output directory: {outputPath}");
         }
 
@@ -104,11 +105,6 @@ public class Program
         if (!Path.GetExtension(filePath).Equals(".mtf", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException($"File '{filePath}' is not an MTF file.");
-        }
-        
-        if (!Directory.Exists(outputPath))
-        {
-            Directory.CreateDirectory(outputPath);
         }
 
         Console.WriteLine($"Converting: {filePath}");

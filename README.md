@@ -96,7 +96,7 @@ If you have any concerns regarding the usage of any of these assets, please reac
 
 ## Acknowledgments
 
-- Inspired by MegaMek (https://megamek.org/)
+- Inspired by [MegaMek](https://megamek.org/)
 - Thanks to the BattleTech community for their continued passion.
 
 ## Name Origin
