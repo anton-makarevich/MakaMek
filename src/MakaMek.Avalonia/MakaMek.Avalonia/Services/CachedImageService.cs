@@ -13,10 +13,10 @@ namespace Sanet.MakaMek.Avalonia.Services;
 /// </summary>
 public class CachedImageService : IImageService<Bitmap>
 {
-    private readonly UnitCachingService _unitCachingService;
+    private readonly IUnitCachingService _unitCachingService;
     private readonly ConcurrentDictionary<string, Bitmap?> _bitmapCache = new();
 
-    public CachedImageService(UnitCachingService unitCachingService)
+    public CachedImageService(IUnitCachingService unitCachingService)
     {
         _unitCachingService = unitCachingService;
     }

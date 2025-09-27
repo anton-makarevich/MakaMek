@@ -88,12 +88,39 @@ public class UnitCachingService : IUnitCachingService
     /// </summary>
     private async Task EnsureInitialized()
     {
-        if (_isInitialized) return;
+        if (_isInitialized)
+        {
+            return;
+        }
 
-        if (_isInitialized) return;
+        var shouldInitialize = false;
+        lock (_initLock)
+        {
+            if (!_isInitialized)
+            {
+                _isInitialized = true;
+                shouldInitialize = true;
+            }
+        }
 
-        await LoadUnitsFromStreamProviders();
-        _isInitialized = true;
+        if (!shouldInitialize)
+        {
+            return;
+        }
+
+        try
+        {
+            await LoadUnitsFromStreamProviders().ConfigureAwait(false);
+        }
+        catch
+        {
+            lock (_initLock)
+            {
+                _isInitialized = false;
+            }
+
+            throw;
+        }
     }
 
     /// <summary>
