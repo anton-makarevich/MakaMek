@@ -105,6 +105,11 @@ public class Program
         {
             throw new ArgumentException($"File '{filePath}' is not an MTF file.");
         }
+        
+        if (!Directory.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
 
         Console.WriteLine($"Converting: {filePath}");
 
@@ -123,6 +128,7 @@ public class Program
         }
         catch (Exception ex)
         {
+            await Console.Error.WriteLineAsync($"Error converting '{filePath}': {ex.Message}");
             throw new InvalidOperationException($"Failed to convert '{filePath}': {ex.Message}", ex);
         }
     }
