@@ -9,7 +9,7 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
 {
     private readonly Assembly? _hostAssembly;
     private readonly string _resourceType;
-    private readonly Lazy<Dictionary<string, string>> _unitIdToResourceMap;
+    private readonly Lazy<List<string>> _unitIdToResourceMap;
 
     /// <summary>
     /// Initializes a new instance of AssemblyUnitStreamProvider
@@ -20,7 +20,7 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
     {
         _resourceType = resourceType ?? throw new ArgumentNullException(nameof(resourceType));
         _hostAssembly = hostAssembly;
-        _unitIdToResourceMap = new Lazy<Dictionary<string, string>>(BuildUnitIdToResourceMap);
+        _unitIdToResourceMap = new Lazy<List<string>>(BuildUnitIdToResourceList);
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
     /// <returns>Collection of unit identifiers</returns>
     public IEnumerable<string> GetAvailableResourceIds()
     {
-        return _unitIdToResourceMap.Value.Keys;
+        return _unitIdToResourceMap.Value;
     }
 
     /// <summary>
@@ -39,7 +39,7 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
     /// <returns>Stream containing unit package data, or null if not found</returns>
     public Task<Stream?> GetResourceStream(string resourceId)
     {
-        if (string.IsNullOrEmpty(resourceId) || !_unitIdToResourceMap.Value.TryGetValue(resourceId, out var resourceName))
+        if (string.IsNullOrEmpty(resourceId) || !_unitIdToResourceMap.Value.Contains(resourceId))
         {
             return Task.FromResult<Stream?>(null);
         }
@@ -52,7 +52,7 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
 
         try
         {
-            var stream = assembly.GetManifestResourceStream(resourceName);
+            var stream = assembly.GetManifestResourceStream(resourceId);
             return Task.FromResult(stream);
         }
         catch
@@ -66,14 +66,14 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
     /// Builds a mapping from unit IDs to resource names by scanning assembly resources
     /// </summary>
     /// <returns>Dictionary mapping unit IDs to resource names</returns>
-    private Dictionary<string, string> BuildUnitIdToResourceMap()
+    private List<string> BuildUnitIdToResourceList()
     {
-        var map = new Dictionary<string, string>();
+        var list = new List<string>();
         var assembly = GetTargetAssembly();
 
         if (assembly == null)
         {
-            return map;
+            return list;
         }
 
         var resources = assembly.GetManifestResourceNames();
@@ -84,41 +84,11 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
             {
                 continue;
             }
-
-            // Extract unit ID from resource name
-            // Resource names typically follow pattern: "Namespace.Path.UnitModel.suffix"
-            var unitId = ExtractUnitIdFromResourceName(resourceName);
-            if (!string.IsNullOrEmpty(unitId))
-            {
-                map[unitId] = resourceName;
-            }
+            
+            list.Add(resourceName);
         }
 
-        return map;
-    }
-
-    /// <summary>
-    /// Extracts unit ID from a resource name
-    /// </summary>
-    /// <param name="resourceName">Full resource name</param>
-    /// <returns>Unit ID extracted from a resource name</returns>
-    private static string ExtractUnitIdFromResourceName(string resourceName)
-    {
-        // Extract filename without extension from the resource name
-        // Example: "Sanet.MakaMek.Avalonia.Resources.Units.Mechs.LCT-1V.mmux" -> "LCT-1V"
-        var lastDotIndex = resourceName.LastIndexOf('.');
-        if (lastDotIndex <= 0)
-        {
-            return string.Empty;
-        }
-
-        var secondLastDotIndex = resourceName.LastIndexOf('.', lastDotIndex - 1);
-        if (secondLastDotIndex < 0)
-        {
-            return string.Empty;
-        }
-
-        return resourceName.Substring(secondLastDotIndex + 1, lastDotIndex - secondLastDotIndex - 1);
+        return list;
     }
 
     /// <summary>

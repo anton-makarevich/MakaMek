@@ -17,11 +17,24 @@ public class AssemblyResourceStreamProviderTests
 
         // Assert
         unitIds.ShouldNotBeNull();
-        unitIds.ShouldContain("SHD-2D");
+        unitIds.ShouldHaveSingleItem();
+        unitIds[0].ShouldContain("SHD-2D");
+    }
+    
+    [Fact]
+    public async Task GetResourceStream_ShouldReturnData_WhenMmuxResourcesExist()
+    {
+        // Arrange
+        var sut = new AssemblyResourceStreamProvider("mmux", typeof(AssemblyResourceStreamProviderTests).Assembly);
+        var unitId = sut.GetAvailableResourceIds().ToList().First();
+        unitId.ShouldNotBeNullOrEmpty();
+        
+        var stream = await sut.GetResourceStream(unitId);
+        stream.ShouldNotBeNull();
     }
 
     [Fact]
-    public async Task GetUnitStream_ShouldReturnNull_WhenUnitNotFound()
+    public async Task GetResourceStream_ShouldReturnNull_WhenUnitNotFound()
     {
         // Arrange
         var sut = new AssemblyResourceStreamProvider("mmux", Assembly.GetExecutingAssembly());
@@ -81,7 +94,7 @@ public class AssemblyResourceStreamProviderTests
     }
 
     [Fact]
-    public async Task GetUnitStream_ShouldHandleExceptions_Gracefully()
+    public async Task GetResourceStream_ShouldHandleExceptions_Gracefully()
     {
         // Arrange
         var sut = new AssemblyResourceStreamProvider("mmux", Assembly.GetExecutingAssembly());
@@ -94,22 +107,6 @@ public class AssemblyResourceStreamProviderTests
         stream1.ShouldBeNull();
         stream2.ShouldBeNull();
         stream3.ShouldBeNull();
-    }
-
-    [Fact]
-    public void GetAvailableUnitIds_ShouldFilterByResourceType()
-    {
-        // Arrange
-        var sut = new AssemblyResourceStreamProvider("mmux", typeof(AssemblyResourceStreamProviderTests).Assembly);
-
-        // Act
-        var unitIds = sut.GetAvailableResourceIds().ToList();
-
-        // Assert - Should only contain MMUX resources, not other types
-        unitIds.ShouldNotBeNull();
-        unitIds.ShouldContain("SHD-2D");
-        // Should not contain any non-MMUX resources
-        unitIds.ShouldNotContain(id => id.Contains(".") || id.Contains("/") || id.Contains("\\"));
     }
 
     [Fact]
