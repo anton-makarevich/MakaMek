@@ -26,7 +26,7 @@ public static class CoreServices
         {
             var streamProviders = new List<IResourceStreamProvider>
             {
-                new AssemblyResourceStreamProvider("mmux")
+                new AssemblyResourceStreamProvider("mmux", typeof(CoreServices).Assembly)
             };
             return new UnitCachingService(streamProviders);
         });
