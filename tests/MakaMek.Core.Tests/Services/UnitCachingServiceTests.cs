@@ -27,9 +27,9 @@ public class UnitCachingServiceTests
     };
     private static UnitCachingService CreateServiceWithMockProvider(string unitId, Stream mmuxStream)
     {
-        var mockProvider = Substitute.For<IUnitStreamProvider>();
-        mockProvider.GetAvailableUnitIds().Returns([unitId]);
-        mockProvider.GetUnitStream(unitId).Returns(mmuxStream);
+        var mockProvider = Substitute.For<IResourceStreamProvider>();
+        mockProvider.GetAvailableResourceIds().Returns([unitId]);
+        mockProvider.GetResourceStream(unitId).Returns(mmuxStream);
 
         return new UnitCachingService([mockProvider]);
     }
@@ -161,15 +161,15 @@ public class UnitCachingServiceTests
     public async Task Service_ShouldHandleMultipleProviders()
     {
         // Arrange
-        var mockProvider1 = Substitute.For<IUnitStreamProvider>();
-        mockProvider1.GetAvailableUnitIds().Returns(["LCT-1V"]);
+        var mockProvider1 = Substitute.For<IResourceStreamProvider>();
+        mockProvider1.GetAvailableResourceIds().Returns(["LCT-1V"]);
         await using var mmuxStream1 = CreateTestMmuxStream("LCT-1V", "Locust");
-        mockProvider1.GetUnitStream("LCT-1V").Returns(mmuxStream1);
+        mockProvider1.GetResourceStream("LCT-1V").Returns(mmuxStream1);
 
-        var mockProvider2 = Substitute.For<IUnitStreamProvider>();
-        mockProvider2.GetAvailableUnitIds().Returns(["SHD-2D"]);
+        var mockProvider2 = Substitute.For<IResourceStreamProvider>();
+        mockProvider2.GetAvailableResourceIds().Returns(["SHD-2D"]);
         await using var mmuxStream2 = CreateTestMmuxStream("SHD-2D", "Shadowhawk");
-        mockProvider2.GetUnitStream("SHD-2D").Returns(mmuxStream2);
+        mockProvider2.GetResourceStream("SHD-2D").Returns(mmuxStream2);
 
         var service = new UnitCachingService([mockProvider1, mockProvider2]);
 

@@ -15,7 +15,7 @@ public class UnitCachingService
 {
     private readonly ConcurrentDictionary<string, UnitData> _unitDataCache = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
-    private readonly IEnumerable<IUnitStreamProvider> _streamProviders;
+    private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -36,7 +36,7 @@ public class UnitCachingService
     /// Initializes a new instance of UnitCachingService
     /// </summary>
     /// <param name="streamProviders">Collection of stream providers to load units from</param>
-    public UnitCachingService(IEnumerable<IUnitStreamProvider> streamProviders)
+    public UnitCachingService(IEnumerable<IResourceStreamProvider> streamProviders)
     {
         _streamProviders = streamProviders;
     }
@@ -105,13 +105,13 @@ public class UnitCachingService
         {
             try
             {
-                var unitIds = provider.GetAvailableUnitIds();
+                var unitIds = provider.GetAvailableResourceIds();
 
                 foreach (var unitId in unitIds)
                 {
                     try
                     {
-                        await using var stream =await provider.GetUnitStream(unitId);
+                        await using var stream =await provider.GetResourceStream(unitId);
                         if (stream != null)
                         {
                             LoadUnitFromMmuxStreamAsync(stream).Wait();

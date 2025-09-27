@@ -21,12 +21,12 @@ public static class CoreServices
     public static void RegisterServices(this IServiceCollection services)
     {
         // Register unit stream providers
-        services.AddSingleton<IUnitStreamProvider, AssemblyUnitStreamProvider>();
+        services.AddSingleton<IResourceStreamProvider, AssemblyResourceStreamProvider>();
 
         // Register unit caching service with stream providers
         services.AddSingleton<UnitCachingService>(sp =>
         {
-            var streamProviders = sp.GetServices<IUnitStreamProvider>();
+            var streamProviders = sp.GetServices<IResourceStreamProvider>();
             return new UnitCachingService(streamProviders);
         });
 

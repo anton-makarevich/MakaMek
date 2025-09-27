@@ -1,21 +1,24 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace Sanet.MakaMek.Core.Services;
 
 /// <summary>
-/// Unit stream provider that loads MMUX packages from embedded assembly resources
+/// Unit stream provider that loads unit packages from embedded assembly resources
 /// </summary>
-public class AssemblyUnitStreamProvider : IUnitStreamProvider
+public class AssemblyResourceStreamProvider : IResourceStreamProvider
 {
     private readonly Assembly? _hostAssembly;
+    private readonly string _resourceType;
     private readonly Lazy<Dictionary<string, string>> _unitIdToResourceMap;
 
     /// <summary>
     /// Initializes a new instance of AssemblyUnitStreamProvider
     /// </summary>
-    /// <param name="hostAssembly">Assembly to scan for MMUX resources. If null, use entry assembly.</param>
-    public AssemblyUnitStreamProvider(Assembly? hostAssembly = null)
+    /// <param name="resourceType">The type of resources to load (e.g., "mmux", "json", "xml")</param>
+    /// <param name="hostAssembly">Assembly to scan for resources. If null, use entry assembly.</param>
+    public AssemblyResourceStreamProvider(string resourceType, Assembly? hostAssembly = null)
     {
+        _resourceType = resourceType ?? throw new ArgumentNullException(nameof(resourceType));
         _hostAssembly = hostAssembly;
         _unitIdToResourceMap = new Lazy<Dictionary<string, string>>(BuildUnitIdToResourceMap);
     }
@@ -24,19 +27,19 @@ public class AssemblyUnitStreamProvider : IUnitStreamProvider
     /// Gets all available unit identifiers from embedded assembly resources
     /// </summary>
     /// <returns>Collection of unit identifiers</returns>
-    public IEnumerable<string> GetAvailableUnitIds()
+    public IEnumerable<string> GetAvailableResourceIds()
     {
         return _unitIdToResourceMap.Value.Keys;
     }
 
     /// <summary>
-    /// Gets a MMUX stream for the specified unit identifier
+    /// Gets a stream for the specified unit identifier
     /// </summary>
-    /// <param name="unitId">The unit identifier</param>
-    /// <returns>Stream containing MMUX package data, or null if not found</returns>
-    public Task<Stream?> GetUnitStream(string unitId)
+    /// <param name="resourceId">The unit identifier</param>
+    /// <returns>Stream containing unit package data, or null if not found</returns>
+    public Task<Stream?> GetResourceStream(string resourceId)
     {
-        if (string.IsNullOrEmpty(unitId) || !_unitIdToResourceMap.Value.TryGetValue(unitId, out var resourceName))
+        if (string.IsNullOrEmpty(resourceId) || !_unitIdToResourceMap.Value.TryGetValue(resourceId, out var resourceName))
         {
             return Task.FromResult<Stream?>(null);
         }
@@ -67,23 +70,23 @@ public class AssemblyUnitStreamProvider : IUnitStreamProvider
     {
         var map = new Dictionary<string, string>();
         var assembly = GetTargetAssembly();
-        
+
         if (assembly == null)
         {
             return map;
         }
 
         var resources = assembly.GetManifestResourceNames();
-        
+
         foreach (var resourceName in resources)
         {
-            if (!resourceName.EndsWith(".mmux", StringComparison.OrdinalIgnoreCase))
+            if (!resourceName.EndsWith($".{_resourceType}", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
             // Extract unit ID from resource name
-            // Resource names typically follow pattern: "Namespace.Path.UnitModel.mmux"
+            // Resource names typically follow pattern: "Namespace.Path.UnitModel.suffix"
             var unitId = ExtractUnitIdFromResourceName(resourceName);
             if (!string.IsNullOrEmpty(unitId))
             {
