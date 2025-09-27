@@ -82,10 +82,10 @@ public class UnitCachingServiceTests
     {
         // Arrange
         await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
-        var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
 
         // Act
-        var models =(await service.GetAvailableModels()).ToList();
+        var models =(await sut.GetAvailableModels()).ToList();
 
         // Assert
         models.ShouldNotBeNull();
@@ -97,10 +97,10 @@ public class UnitCachingServiceTests
     {
         // Arrange
         await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
-        var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
 
         // Act
-        var unitData = await service.GetUnitData("LCT-1V");
+        var unitData = await sut.GetUnitData("LCT-1V");
 
         // Assert
         unitData.ShouldNotBeNull();
@@ -113,10 +113,10 @@ public class UnitCachingServiceTests
     {
         // Arrange
         await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
-        var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
 
         // Act
-        var imageBytes = await service.GetUnitImage("LCT-1V");
+        var imageBytes = await sut.GetUnitImage("LCT-1V");
 
         // Assert
         imageBytes.ShouldNotBeNull();
@@ -128,10 +128,10 @@ public class UnitCachingServiceTests
     {
         // Arrange
         await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
-        var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
 
         // Act
-        var units = (await service.GetAllUnits()).ToList();
+        var units = (await sut.GetAllUnits()).ToList();
 
         // Assert
         units.ShouldNotBeEmpty();
@@ -143,15 +143,15 @@ public class UnitCachingServiceTests
     {
         // Arrange
         await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
-        var service = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
+        var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
         
         // Ensure the cache is initialized
-        var initialModels = (await service.GetAvailableModels()).ToList();
+        var initialModels = (await sut.GetAvailableModels()).ToList();
         initialModels.ShouldNotBeEmpty();
 
         // Act
-        service.ClearCache();
-        var modelsAfterClear = (await service.GetAvailableModels()).ToList();
+        sut.ClearCache();
+        var modelsAfterClear = (await sut.GetAvailableModels()).ToList();
 
         // Assert
         modelsAfterClear.ShouldBeEmpty();
@@ -171,10 +171,10 @@ public class UnitCachingServiceTests
         await using var mmuxStream2 = CreateTestMmuxStream("SHD-2D", "Shadowhawk");
         mockProvider2.GetResourceStream("SHD-2D").Returns(mmuxStream2);
 
-        var service = new UnitCachingService([mockProvider1, mockProvider2]);
+        var sut = new UnitCachingService([mockProvider1, mockProvider2]);
 
         // Act
-        var models = (await service.GetAvailableModels()).ToList();
+        var models = (await sut.GetAvailableModels()).ToList();
 
         // Assert
         models.ShouldContain("LCT-1V");
@@ -186,10 +186,10 @@ public class UnitCachingServiceTests
     public async Task Service_ShouldHandleEmptyProviders()
     {
         // Arrange
-        var service = new UnitCachingService([]);
+        var sut = new UnitCachingService([]);
 
         // Act
-        var models = await service.GetAvailableModels();
+        var models = await sut.GetAvailableModels();
 
         // Assert
         models.ShouldBeEmpty();

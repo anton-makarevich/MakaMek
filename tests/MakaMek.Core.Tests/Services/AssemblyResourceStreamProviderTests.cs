@@ -10,10 +10,10 @@ public class AssemblyResourceStreamProviderTests
     public void GetAvailableUnitIds_ShouldReturnUnitIds_WhenMmuxResourcesExist()
     {
         // Arrange
-        var provider = new AssemblyResourceStreamProvider("mmux", typeof(AssemblyResourceStreamProviderTests).Assembly);
+        var sut = new AssemblyResourceStreamProvider("mmux", typeof(AssemblyResourceStreamProviderTests).Assembly);
 
         // Act
-        var unitIds = provider.GetAvailableResourceIds().ToList();
+        var unitIds = sut.GetAvailableResourceIds().ToList();
 
         // Assert
         unitIds.ShouldNotBeNull();
@@ -24,10 +24,10 @@ public class AssemblyResourceStreamProviderTests
     public async Task GetUnitStream_ShouldReturnNull_WhenUnitNotFound()
     {
         // Arrange
-        var provider = new AssemblyResourceStreamProvider("mmux", Assembly.GetExecutingAssembly());
+        var sut = new AssemblyResourceStreamProvider("mmux", Assembly.GetExecutingAssembly());
 
         // Act
-        var stream = await provider.GetResourceStream("NonExistentUnit");
+        var stream = await sut.GetResourceStream("NonExistentUnit");
 
         // Assert
         stream.ShouldBeNull();
@@ -37,11 +37,11 @@ public class AssemblyResourceStreamProviderTests
     public void Constructor_ShouldUseEntryAssembly_WhenHostAssemblyIsNull()
     {
         // Arrange & Act
-        var provider = new AssemblyResourceStreamProvider("mmux");
+        var sut = new AssemblyResourceStreamProvider("mmux");
 
         // Assert
         // Should not throw and should be able to get unit IDs (even if empty)
-        var unitIds = provider.GetAvailableResourceIds();
+        var unitIds = sut.GetAvailableResourceIds();
         unitIds.ShouldNotBeNull();
     }
 
@@ -49,13 +49,13 @@ public class AssemblyResourceStreamProviderTests
     public void Constructor_ShouldInitializeCorrectly()
     {
         // Arrange & Act
-        var provider = new AssemblyResourceStreamProvider("mmux");
+        var sut = new AssemblyResourceStreamProvider("mmux");
 
         // Assert
-        provider.ShouldNotBeNull();
+        sut.ShouldNotBeNull();
 
         // Verify it can get unit IDs without throwing
-        var unitIds = provider.GetAvailableResourceIds();
+        var unitIds = sut.GetAvailableResourceIds();
         unitIds.ShouldNotBeNull();
     }
 
@@ -70,11 +70,11 @@ public class AssemblyResourceStreamProviderTests
     public void GetAvailableUnitIds_ShouldBeLazy_AndCacheResults()
     {
         // Arrange
-        var provider = new AssemblyResourceStreamProvider("mmux", Assembly.GetExecutingAssembly());
+        var sut = new AssemblyResourceStreamProvider("mmux", Assembly.GetExecutingAssembly());
 
         // Act - Call multiple times
-        var unitIds1 = provider.GetAvailableResourceIds().ToList();
-        var unitIds2 = provider.GetAvailableResourceIds().ToList();
+        var unitIds1 = sut.GetAvailableResourceIds().ToList();
+        var unitIds2 = sut.GetAvailableResourceIds().ToList();
 
         // Assert - Should return same results (testing lazy initialization)
         unitIds1.ShouldBe(unitIds2);
@@ -84,12 +84,12 @@ public class AssemblyResourceStreamProviderTests
     public async Task GetUnitStream_ShouldHandleExceptions_Gracefully()
     {
         // Arrange
-        var provider = new AssemblyResourceStreamProvider("mmux", Assembly.GetExecutingAssembly());
+        var sut = new AssemblyResourceStreamProvider("mmux", Assembly.GetExecutingAssembly());
 
         // Act & Assert - Should not throw even for invalid unit IDs
-        var stream1 = await provider.GetResourceStream("");
-        var stream2 = await provider.GetResourceStream("Invalid/Unit/Id");
-        var stream3 = await provider.GetResourceStream(null!);
+        var stream1 = await sut.GetResourceStream("");
+        var stream2 = await sut.GetResourceStream("Invalid/Unit/Id");
+        var stream3 = await sut.GetResourceStream(null!);
 
         stream1.ShouldBeNull();
         stream2.ShouldBeNull();
@@ -100,10 +100,10 @@ public class AssemblyResourceStreamProviderTests
     public void GetAvailableUnitIds_ShouldFilterByResourceType()
     {
         // Arrange
-        var provider = new AssemblyResourceStreamProvider("mmux", typeof(AssemblyResourceStreamProviderTests).Assembly);
+        var sut = new AssemblyResourceStreamProvider("mmux", typeof(AssemblyResourceStreamProviderTests).Assembly);
 
         // Act
-        var unitIds = provider.GetAvailableResourceIds().ToList();
+        var unitIds = sut.GetAvailableResourceIds().ToList();
 
         // Assert - Should only contain MMUX resources, not other types
         unitIds.ShouldNotBeNull();
@@ -116,11 +116,11 @@ public class AssemblyResourceStreamProviderTests
     public void Constructor_WithDifferentResourceType_ShouldWork()
     {
         // Arrange & Act
-        var provider = new AssemblyResourceStreamProvider("json", typeof(AssemblyResourceStreamProviderTests).Assembly);
+        var sut = new AssemblyResourceStreamProvider("json", typeof(AssemblyResourceStreamProviderTests).Assembly);
 
         // Assert
-        provider.ShouldNotBeNull();
-        var unitIds = provider.GetAvailableResourceIds();
+        sut.ShouldNotBeNull();
+        var unitIds = sut.GetAvailableResourceIds();
         unitIds.ShouldNotBeNull();
         // Should not throw even if no JSON resources exist
     }
