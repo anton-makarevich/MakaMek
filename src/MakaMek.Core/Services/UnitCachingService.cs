@@ -20,6 +20,7 @@ public class UnitCachingService : IUnitCachingService
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
         Converters =
         {
             new EnumConverter<MakaMekComponent>(),
@@ -151,6 +152,10 @@ public class UnitCachingService : IUnitCachingService
         {
             var jsonContent = await reader.ReadToEndAsync();
             unitData = JsonSerializer.Deserialize<UnitData>(jsonContent, _jsonOptions);
+            if (string.IsNullOrEmpty(unitData.Model) )
+            {
+                throw new InvalidOperationException("Failed to deserialize unit.json");
+            }
         }
 
         // Find and load unit.png

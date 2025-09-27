@@ -127,6 +127,36 @@ public class UnitCachingServiceTests
         return memoryStream;
     }
 
+    private static Stream CreateMmuxStreamWithInvalidUnitJson()
+    {
+        var memoryStream = new MemoryStream();
+        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+        {
+            // Create unit.json with missing Model property (deserializes to UnitData with null Model)
+            var unitData = new UnitData
+            {
+                Model = "",
+                Chassis = "Test",
+                Mass = 20,
+                WalkMp = 8,
+                EngineRating = 160,
+                EngineType = "Standard",
+                ArmorValues = new Dictionary<PartLocation, ArmorLocation>(),
+                Equipment = new List<ComponentData>(),
+                AdditionalAttributes = new Dictionary<string, string>(),
+                Quirks = new Dictionary<string, string>()
+            };
+            var unitJsonEntry = archive.CreateEntry("unit.json");
+            using (var entryStream = unitJsonEntry.Open())
+            using (var writer = new StreamWriter(entryStream))
+            {
+                writer.Write(JsonSerializer.Serialize(unitData, JsonOptions));
+            }
+        }
+        memoryStream.Position = 0;
+        return memoryStream;
+    }
+
     [Fact]
     public async Task GetAvailableModels_ShouldReturnModels_WhenInitialized()
     {
@@ -373,6 +403,39 @@ public class UnitCachingServiceTests
             var log = consoleCapture.ToString();
             log.ShouldContain("Error loading unit 'MISSING_PNG' from provider");
             log.ShouldContain("missing unit.png");
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
+    public async Task LoadUnitsFromStreamProviders_ShouldLogAndSkip_WhenUnitJsonInvalidModel()
+    {
+        // Arrange
+        var mockProvider = Substitute.For<IResourceStreamProvider>();
+        mockProvider.GetAvailableResourceIds().Returns(["INVALID_UNIT_JSON"]);
+        await using var badStream = CreateMmuxStreamWithInvalidUnitJson();
+        mockProvider.GetResourceStream("INVALID_UNIT_JSON").Returns(badStream);
+
+        var sut = new UnitCachingService([mockProvider]);
+
+        var originalOut = Console.Out;
+        await using var consoleCapture = new StringWriter();
+        Console.SetOut(consoleCapture);
+        try
+        {
+            // Act
+            var models = (await sut.GetAvailableModels()).ToList();
+
+            // Assert: no models added due to invalid unit.json (missing/empty Model)
+            models.ShouldBeEmpty();
+
+            var log = consoleCapture.ToString();
+            // We only assert the provider-level error prefix, since the exact exception message
+            // may vary depending on whether deserialization throws or returns an object with null Model
+            log.ShouldContain("Failed to deserialize unit.json");
         }
         finally
         {
