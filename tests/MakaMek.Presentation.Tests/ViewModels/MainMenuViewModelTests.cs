@@ -1,6 +1,7 @@
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
@@ -12,15 +13,22 @@ public class MainMenuViewModelTests
     private readonly MainMenuViewModel _sut;
     private readonly INavigationService _navigationService;
     private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
 
     public MainMenuViewModelTests()
     {
         _navigationService = Substitute.For<INavigationService>();
-        
+
         // Setup default behavior for unit caching service
         _unitCachingService.GetAvailableModels().Returns(["LCT-1V", "SHD-2D"]);
 
-        _sut = new MainMenuViewModel(_unitCachingService, 0);
+        // Setup default behavior for localization service
+        _localizationService.GetString("MainMenu_Loading_Content").Returns("Loading content...");
+        _localizationService.GetString("MainMenu_Loading_NoItemsFound").Returns("No items found");
+        _localizationService.GetString("MainMenu_Loading_ItemsLoaded").Returns("Loaded {0} items");
+        _localizationService.GetString("MainMenu_Loading_Error").Returns("Error loading units: {0}");
+
+        _sut = new MainMenuViewModel(_unitCachingService, _localizationService, 0);
         _sut.SetNavigationService(_navigationService);
     }
 
@@ -68,15 +76,16 @@ public class MainMenuViewModelTests
         const string errorMessage = "Test error message";
         _unitCachingService.When(x => x.GetAvailableModels())
             .Throw(new Exception(errorMessage));
-            
-        _sut.SetNavigationService(_navigationService);
+        
+        var sut = new MainMenuViewModel(_unitCachingService, _localizationService, 0);
+        sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
         await Task.Delay(10);
         
         // Assert
-        _sut.LoadingText.ShouldContain(errorMessage);
-        _sut.IsLoading.ShouldBeTrue();
+        sut.LoadingText.ShouldContain(errorMessage);
+        sut.IsLoading.ShouldBeTrue();
     }
     
     [Fact]

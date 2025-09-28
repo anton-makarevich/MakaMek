@@ -335,4 +335,21 @@ public class FakeLocalizationServiceTests
         // Assert
         result.ShouldBe(expected);
     }
+
+    [Theory]
+    [InlineData("MainMenu_Loading_Content", "Loading content...")]
+    [InlineData("MainMenu_Loading_NoItemsFound", "No items found")]
+    [InlineData("MainMenu_Loading_ItemsLoaded", "Loaded {0} items")]
+    [InlineData("MainMenu_Loading_Error", "Error loading content: {0}")]
+    public void GetString_MainMenuLoadingMessages_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
 }

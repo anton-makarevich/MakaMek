@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -9,13 +10,15 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public class MainMenuViewModel : BaseViewModel
 {
     private readonly IUnitCachingService _unitCachingService;
+    private readonly ILocalizationService _localizationService;
     private readonly int _messageDelay;
     private bool _isLoading;
-    private string _loadingText;
+    private string _loadingText = string.Empty;
 
-    public MainMenuViewModel(IUnitCachingService unitCachingService, int messageDelay = 1000)
+    public MainMenuViewModel(IUnitCachingService unitCachingService, ILocalizationService localizationService, int messageDelay = 1000)
     {
-        _unitCachingService = unitCachingService;
+        _unitCachingService = unitCachingService ?? throw new ArgumentNullException(nameof(unitCachingService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _messageDelay = messageDelay;
 
         // Get version from entry assembly
@@ -69,7 +72,7 @@ public class MainMenuViewModel : BaseViewModel
         IsLoading = true;
         try
         {
-            LoadingText = "Loading content...";
+            LoadingText = _localizationService.GetString("MainMenu_Loading_Content");
 
             // Trigger initialization of the unit caching service
             // This will load units from all providers including the GitHub provider
@@ -77,11 +80,11 @@ public class MainMenuViewModel : BaseViewModel
             var modelCount = models.Count();
 
             LoadingText = modelCount == 0
-                ? "No items found"
-                : $"Loaded {modelCount} items";
-            
+                ? _localizationService.GetString("MainMenu_Loading_NoItemsFound")
+                : string.Format(_localizationService.GetString("MainMenu_Loading_ItemsLoaded"), modelCount);
+
             if (modelCount == 0)
-                throw new Exception("No items found");
+                throw new Exception(_localizationService.GetString("MainMenu_Loading_NoItemsFound"));
 
             // Small delay to show the completion message
             await Task.Delay(_messageDelay);
@@ -89,7 +92,7 @@ public class MainMenuViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            LoadingText = $"Error loading units: {ex.Message}";
+            LoadingText = string.Format(_localizationService.GetString("MainMenu_Loading_Error"), ex.Message);
         }
     }
 }

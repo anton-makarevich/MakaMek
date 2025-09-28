@@ -273,6 +273,12 @@ public class FakeLocalizationService: ILocalizationService
             "Command_AmmoExplosion_Failed" => "{0} suffered ammo explosion due to heat",
             "Command_AmmoExplosion_RollDetails" => "Heat level: {0}, Roll: {1} vs {2}",
             "Command_AmmoExplosion_CriticalHits" => "Explosion caused critical hits:",
+
+            // Main Menu loading messages
+            "MainMenu_Loading_Content" => "Loading content...",
+            "MainMenu_Loading_NoItemsFound" => "No items found",
+            "MainMenu_Loading_ItemsLoaded" => "Loaded {0} items",
+            "MainMenu_Loading_Error" => "Error loading content: {0}",
             _ => key
         };
     }
