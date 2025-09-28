@@ -9,7 +9,7 @@ public interface IResourceStreamProvider
     /// Gets all available resource identifiers from this provider
     /// </summary>
     /// <returns>Collection of resource identifiers</returns>
-    IEnumerable<string> GetAvailableResourceIds();
+    Task<IEnumerable<string>> GetAvailableResourceIds();
 
     /// <summary>
     /// Gets a stream for the specified resource identifier

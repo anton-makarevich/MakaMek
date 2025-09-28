@@ -103,7 +103,7 @@ public class UnitCachingService : IUnitCachingService
         {
             try
             {
-                var unitIds = provider.GetAvailableResourceIds();
+                var unitIds = await provider.GetAvailableResourceIds();
 
                 foreach (var unitId in unitIds)
                 {

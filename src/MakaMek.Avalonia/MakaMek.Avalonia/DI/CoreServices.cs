@@ -26,7 +26,10 @@ public static class CoreServices
         {
             var streamProviders = new List<IResourceStreamProvider>
             {
-                new AssemblyResourceStreamProvider("mmux", typeof(CoreServices).Assembly)
+                new AssemblyResourceStreamProvider("mmux", typeof(CoreServices).Assembly),
+                new GitHubResourceStreamProvider(
+                    "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
+                    "mmux")
             };
             return new UnitCachingService(streamProviders);
         });

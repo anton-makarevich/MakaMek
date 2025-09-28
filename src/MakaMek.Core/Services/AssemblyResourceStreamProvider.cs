@@ -27,9 +27,9 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
     /// Gets all available unit identifiers from embedded assembly resources
     /// </summary>
     /// <returns>Collection of unit identifiers</returns>
-    public IEnumerable<string> GetAvailableResourceIds()
+    public Task<IEnumerable<string>> GetAvailableResourceIds()
     {
-        return _unitIdToResourceMap.Value;
+        return Task.FromResult<IEnumerable<string>>(_unitIdToResourceMap.Value);
     }
 
     /// <summary>
