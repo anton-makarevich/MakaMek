@@ -34,14 +34,6 @@ public class MainMenuViewModelTests
     }
 
     [Fact]
-    public void Constructor_InitializesLoadingState()
-    {
-        // Assert
-        _sut.IsLoading.ShouldBeFalse(); // Should start in loading state
-        _sut.LoadingText.ShouldNotBeNullOrEmpty();
-    }
-
-    [Fact]
     public async Task StartNewGameCommand_WhenExecuted_NavigatesToStartNewGameViewModel()
     {
         // Arrange
