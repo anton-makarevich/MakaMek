@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Sanet.MakaMek.Core.Services;
@@ -11,6 +11,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     private readonly HttpClient _httpClient;
     private readonly string _apiUrl;
     private readonly string _fileExtension;
+    private readonly bool _disposeHttpClient;
     private readonly Lazy<Task<List<string>>> _availableResourceIds;
 
     /// <summary>
@@ -26,6 +27,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     {
         _apiUrl = apiUrl;
         _fileExtension = fileExtension;
+        _disposeHttpClient = httpClient == null;
         _httpClient = httpClient ?? new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "MakaMek-Game");
 
@@ -78,16 +80,6 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             }
 
             return await response.Content.ReadAsStreamAsync();
-        }
-        catch (HttpRequestException ex)
-        {
-            Console.WriteLine($"Network error downloading file from {resourceId}: {ex.Message}");
-            return null;
-        }
-        catch (TaskCanceledException ex)
-        {
-            Console.WriteLine($"Timeout downloading file from {resourceId}: {ex.Message}");
-            return null;
         }
         catch (Exception ex)
         {
@@ -156,7 +148,10 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     /// </summary>
     public void Dispose()
     {
-        _httpClient.Dispose();
+        if (_disposeHttpClient)
+        {
+            _httpClient.Dispose();
+        }
     }
 
     private class GitHubContentItem
