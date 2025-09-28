@@ -60,4 +60,24 @@ public class MainMenuViewModelTests
         // Assert
         await _navigationService.Received(1).NavigateToViewModelAsync<JoinGameViewModel>();
     }
+    
+    [Fact]
+    public async Task PreloadUnits_WhenExceptionThrown_SetsErrorTextAndKeepsLoadingTrue()
+    {
+        // Arrange
+        var unitCachingService = Substitute.For<IUnitCachingService>();
+        const string errorMessage = "Test error message";
+        unitCachingService.When(x => x.GetAvailableModels())
+            .Throw(new Exception(errorMessage));
+            
+        var sut = new MainMenuViewModel(unitCachingService, 0);
+        sut.SetNavigationService(_navigationService);
+        
+        // Small delay to allow the background task to complete
+        await Task.Delay(10);
+        
+        // Assert
+        sut.LoadingText.ShouldContain(errorMessage);
+        sut.IsLoading.ShouldBeTrue();
+    }
 }

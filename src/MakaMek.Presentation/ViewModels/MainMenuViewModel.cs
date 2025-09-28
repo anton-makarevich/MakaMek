@@ -76,7 +76,12 @@ public class MainMenuViewModel : BaseViewModel
             var models = await _unitCachingService.GetAvailableModels();
             var modelCount = models.Count();
 
-            LoadingText = $"Loaded {modelCount} items";
+            LoadingText = modelCount == 0
+                ? "No items found"
+                : $"Loaded {modelCount} items";
+            
+            if (modelCount == 0)
+                throw new Exception("No items found");
 
             // Small delay to show the completion message
             await Task.Delay(_messageDelay);
