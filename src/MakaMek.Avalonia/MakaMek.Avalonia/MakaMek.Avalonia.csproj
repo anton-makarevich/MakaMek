@@ -18,11 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="Resources\**\*.mtf" />
-        <None Remove="Resources\Units\Mechs\LCT-1V.mmux" />
-        <EmbeddedResource Include="Resources\Units\Mechs\LCT-1V.mmux" />
-        <None Remove="Resources\Units\Mechs\SHD-2D.mmux" />
-        <EmbeddedResource Include="Resources\Units\Mechs\SHD-2D.mmux" />
+        <EmbeddedResource Include="Resources\Units\Mechs\**\*.mmux" />
     </ItemGroup>
 
     <ItemGroup>

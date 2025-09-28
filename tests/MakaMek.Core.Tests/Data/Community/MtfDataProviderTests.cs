@@ -366,4 +366,64 @@ public class MtfDataProviderTests
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
     }
+
+    private string[] ReplaceShadowHawkAc5With(string mtfLabel, int expectedSize)
+    {
+        // Create a modifiable copy
+        var modified = _shadowHawkMtfData.ToArray();
+
+        // Lines 82-85 in the file (1-based) are indices 81..84 (0-based)
+        int[] indices = [81, 82, 83, 84, 85, 86, 87, 88, 89, 90];
+
+        for (var i = 0; i < indices.Length; i++)
+        {
+            modified[indices[i]] = i < expectedSize ? mtfLabel : "-Empty-";
+        }
+
+        return modified;
+    }
+
+    [Theory]
+    [InlineData("IS Ammo AC/2", MakaMekComponent.ISAmmoAC2)]
+    [InlineData("IS Ammo AC/10", MakaMekComponent.ISAmmoAC10)]
+    [InlineData("IS Ammo AC/20", MakaMekComponent.ISAmmoAC20)]
+    [InlineData("IS Ammo SRM-4", MakaMekComponent.ISAmmoSRM4)]
+    [InlineData("IS Ammo SRM-6", MakaMekComponent.ISAmmoSRM6)]
+    [InlineData("IS Ammo LRM-10", MakaMekComponent.ISAmmoLRM10)]
+    [InlineData("IS Ammo LRM-15", MakaMekComponent.ISAmmoLRM15)]
+    [InlineData("IS Ammo LRM-20", MakaMekComponent.ISAmmoLRM20)]
+    [InlineData("Small Laser", MakaMekComponent.SmallLaser)]
+    [InlineData("Large Laser", MakaMekComponent.LargeLaser)]
+    [InlineData("PPC", MakaMekComponent.PPC)]
+    [InlineData("Flamer", MakaMekComponent.Flamer)]
+    [InlineData("LRM 10", MakaMekComponent.LRM10)]
+    [InlineData("LRM 15", MakaMekComponent.LRM15)]
+    [InlineData("LRM 20", MakaMekComponent.LRM20)]
+    [InlineData("SRM 4", MakaMekComponent.SRM4)]
+    [InlineData("SRM 6", MakaMekComponent.SRM6)]
+    [InlineData("Autocannon/2", MakaMekComponent.AC2)]
+    [InlineData("Autocannon/10", MakaMekComponent.AC10)]
+    [InlineData("Autocannon/20", MakaMekComponent.AC20)]
+    public void Parse_ShadowHawkMtf_Maps_New_MtfLabels_To_Components(string mtfLabel, MakaMekComponent expected)
+    {
+        // Arrange
+        // replace AC/5 block with the provided label
+        // The block length in LT should be the contiguous count we replaced
+        var expectedSize = _componentProvider.GetDefinition(expected)!.Size;
+        var customMtfData = ReplaceShadowHawkAc5With(mtfLabel, expectedSize);
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(customMtfData);
+
+        // Assert: expected component should exist with an assignment in Left Torso starting at slot 1
+        var comp = mechData.Equipment
+            .FirstOrDefault(cd => cd.Type == expected 
+            && cd.Assignments[0].Location == PartLocation.LeftTorso);
+        comp.ShouldNotBeNull();
+        var ltAssign = comp.Assignments[0];
+        ltAssign.ShouldNotBeNull();
+        ltAssign.FirstSlot.ShouldBe(1); // Immediately after Jump Jet at slot 0
+        ltAssign.Length.ShouldBe(expectedSize);
+    }
 }

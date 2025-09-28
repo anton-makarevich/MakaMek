@@ -69,6 +69,7 @@ public class Program
         // Validate/create output directory
         if (!Directory.Exists(outputPath))
         {
+            Directory.CreateDirectory(outputPath);
             Console.WriteLine($"Created output directory: {outputPath}");
         }
 
@@ -123,6 +124,7 @@ public class Program
         }
         catch (Exception ex)
         {
+            await Console.Error.WriteLineAsync($"Error converting '{filePath}': {ex.Message}");
             throw new InvalidOperationException($"Failed to convert '{filePath}': {ex.Message}", ex);
         }
     }
