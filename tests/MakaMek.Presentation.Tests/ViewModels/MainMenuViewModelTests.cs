@@ -94,13 +94,14 @@ public class MainMenuViewModelTests
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
         
-        _sut.SetNavigationService(_navigationService);
+        var sut = new MainMenuViewModel(_unitCachingService, _localizationService, 0);
+        sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
         await Task.Delay(10);
         
         // Assert
-        _sut.LoadingText.ShouldContain("No items found");
-        _sut.IsLoading.ShouldBeTrue();
+        sut.LoadingText.ShouldContain("No items found");
+        sut.IsLoading.ShouldBeTrue();
     }   
 }

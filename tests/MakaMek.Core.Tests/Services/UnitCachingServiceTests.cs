@@ -239,7 +239,7 @@ public class UnitCachingServiceTests
 
         // Assert
         modelsAfterClear.ShouldNotBeEmpty();
-        ResourceProvider.Received(2).GetAvailableResourceIds();
+        await ResourceProvider.Received(2).GetAvailableResourceIds();
     }
     
     [Fact]
@@ -259,7 +259,7 @@ public class UnitCachingServiceTests
 
         // Assert
         modelsAfterClear.ShouldNotBeEmpty();
-        ResourceProvider.Received(1).GetAvailableResourceIds();
+        await ResourceProvider.Received(1).GetAvailableResourceIds();
     }
 
     [Fact]
