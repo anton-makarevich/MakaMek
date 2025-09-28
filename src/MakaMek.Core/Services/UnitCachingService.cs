@@ -16,6 +16,12 @@ public class UnitCachingService : IUnitCachingService
     private readonly ConcurrentDictionary<string, UnitData> _unitDataCache = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
+    
+    /// <summary>
+    /// The maximum number of units to load in parallel
+    /// </summary>
+    private const int MaxDegreeOfParallelism = 10;
+    
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -103,23 +109,16 @@ public class UnitCachingService : IUnitCachingService
         {
             try
             {
-                var unitIds = provider.GetAvailableResourceIds();
-
-                foreach (var unitId in unitIds)
+                var unitIds = await provider.GetAvailableResourceIds();
+                var unitIdList = unitIds.ToList();
+                
+                // Process units in parallel batches
+                var batches = unitIdList.Chunk(MaxDegreeOfParallelism);
+                
+                foreach (var batch in batches)
                 {
-                    try
-                    {
-                        await using var stream =await provider.GetResourceStream(unitId);
-                        if (stream != null)
-                        {
-                            await LoadUnitFromMmuxStreamAsync(stream);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log error but continue processing other units
-                        Console.WriteLine($"Error loading unit '{unitId}' from provider: {ex.Message}");
-                    }
+                    var batchTasks = batch.Select(unitId => ProcessUnitAsync(provider, unitId));
+                    await Task.WhenAll(batchTasks);
                 }
             }
             catch (Exception ex)
@@ -127,6 +126,23 @@ public class UnitCachingService : IUnitCachingService
                 // Log error but continue with other providers
                 Console.WriteLine($"Error loading units from provider {provider.GetType().Name}: {ex.Message}");
             }
+        }
+    }
+    
+    private async Task ProcessUnitAsync(IResourceStreamProvider provider, string unitId)
+    {
+        try
+        {
+            await using var stream = await provider.GetResourceStream(unitId);
+            if (stream != null)
+            {
+                await LoadUnitFromMmuxStreamAsync(stream);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but continue processing other units
+            Console.WriteLine($"Error loading unit '{unitId}' from provider: {ex.Message}");
         }
     }
 

@@ -25,6 +25,10 @@
     <ItemGroup>
       <ProjectReference Include="..\MakaMek.SourceGenerators\MakaMek.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="Services\GitHub\" />
+    </ItemGroup>
 
     <!-- Debug target to print properties -->
     <Target Name="PrintProperties" BeforeTargets="Build">

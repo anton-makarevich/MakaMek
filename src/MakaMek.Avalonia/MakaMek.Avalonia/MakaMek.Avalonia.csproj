@@ -18,10 +18,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="Resources\Units\Mechs\**\*.mmux" />
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="Avalonia" Version="11.3.5" />
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.5" />
         <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.5" />
@@ -48,6 +44,10 @@
       <Compile Update="Views\NewGame\NewGameViewWide.axaml.cs">
         <SubType>Code</SubType>
       </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Resources\" />
     </ItemGroup>
 
     <!-- Debug target to print properties -->

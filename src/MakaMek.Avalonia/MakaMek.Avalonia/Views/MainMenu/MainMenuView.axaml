@@ -8,26 +8,43 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.MainMenu.MainMenuView">
  
     <Grid>
+        <!-- Loading Panel -->
+        <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="20"
+                    IsVisible="{Binding IsLoading}">
+            <ProgressBar IsIndeterminate="True"
+                         Width="300"
+                         Height="6"/>
+            <TextBlock Text="{Binding LoadingText}"
+                       Classes="body"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+
         <!-- Centered Button Panel -->
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
-            <Button Content="Start New Game" 
-                    Classes="main-menu" 
-                    Command="{Binding StartNewGameCommand}" 
-                    HorizontalAlignment="Stretch" 
+        <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="20"
+                    IsVisible="{Binding !IsLoading}">
+            <Button Content="Start New Game"
+                    Classes="main-menu"
+                    Command="{Binding StartNewGameCommand}"
+                    HorizontalAlignment="Stretch"
                     MinWidth="200"/>
-            <Button Content="Join Game" 
-                    Classes="main-menu" 
-                    Command="{Binding JoinGameCommand}" 
-                    HorizontalAlignment="Stretch" 
+            <Button Content="Join Game"
+                    Classes="main-menu"
+                    Command="{Binding JoinGameCommand}"
+                    HorizontalAlignment="Stretch"
                     MinWidth="200"/>
         </StackPanel>
+
         <!-- Version TextBlock -->
-        <TextBlock Classes="body" 
-                   HorizontalAlignment="Right" 
-                   VerticalAlignment="Bottom" 
+        <TextBlock Classes="body"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Bottom"
                    Margin="10"
                    Text="{Binding Version}"/>
-        
+
     </Grid>
 </UserControl>
 

@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Sanet.MakaMek.Core.Services;
+namespace Sanet.MakaMek.Core.Services.ResourceProviders;
 
 /// <summary>
 /// Unit stream provider that loads unit packages from embedded assembly resources
@@ -27,9 +27,9 @@ public class AssemblyResourceStreamProvider : IResourceStreamProvider
     /// Gets all available unit identifiers from embedded assembly resources
     /// </summary>
     /// <returns>Collection of unit identifiers</returns>
-    public IEnumerable<string> GetAvailableResourceIds()
+    public Task<IEnumerable<string>> GetAvailableResourceIds()
     {
-        return _unitIdToResourceMap.Value;
+        return Task.FromResult<IEnumerable<string>>(_unitIdToResourceMap.Value);
     }
 
     /// <summary>

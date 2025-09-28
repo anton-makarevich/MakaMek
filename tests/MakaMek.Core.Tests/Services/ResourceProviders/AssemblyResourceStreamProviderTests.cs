@@ -1,19 +1,20 @@
 using System.Reflection;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.ResourceProviders;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Services;
+namespace Sanet.MakaMek.Core.Tests.Services.ResourceProviders;
 
 public class AssemblyResourceStreamProviderTests
 {
     [Fact]
-    public void GetAvailableUnitIds_ShouldReturnUnitIds_WhenMmuxResourcesExist()
+    public async Task GetAvailableUnitIds_ShouldReturnUnitIds_WhenMmuxResourcesExist()
     {
         // Arrange
         var sut = new AssemblyResourceStreamProvider("mmux", typeof(AssemblyResourceStreamProviderTests).Assembly);
 
         // Act
-        var unitIds = sut.GetAvailableResourceIds().ToList();
+        var unitIds = (await sut.GetAvailableResourceIds()).ToList();
 
         // Assert
         unitIds.ShouldNotBeNull();
@@ -26,7 +27,7 @@ public class AssemblyResourceStreamProviderTests
     {
         // Arrange
         var sut = new AssemblyResourceStreamProvider("mmux", typeof(AssemblyResourceStreamProviderTests).Assembly);
-        var unitId = sut.GetAvailableResourceIds().ToList().First();
+        var unitId = (await sut.GetAvailableResourceIds()).ToList().First();
         unitId.ShouldNotBeNullOrEmpty();
         
         var stream = await sut.GetResourceStream(unitId);
@@ -80,14 +81,14 @@ public class AssemblyResourceStreamProviderTests
     }
 
     [Fact]
-    public void GetAvailableUnitIds_ShouldBeLazy_AndCacheResults()
+    public async Task GetAvailableUnitIds_ShouldBeLazy_AndCacheResults()
     {
         // Arrange
         var sut = new AssemblyResourceStreamProvider("mmux", Assembly.GetExecutingAssembly());
 
         // Act - Call multiple times
-        var unitIds1 = sut.GetAvailableResourceIds().ToList();
-        var unitIds2 = sut.GetAvailableResourceIds().ToList();
+        var unitIds1 = (await sut.GetAvailableResourceIds()).ToList();
+        var unitIds2 = (await sut.GetAvailableResourceIds()).ToList();
 
         // Assert - Should return same results (testing lazy initialization)
         unitIds1.ShouldBe(unitIds2);
