@@ -29,6 +29,8 @@ public class MainMenuViewModel : BaseViewModel
         JoinGameCommand = new AsyncCommand(NavigateToJoinGame);
 
         // Start preloading units
+        IsLoading = true;
+        LoadingText = _localizationService.GetString("MainMenu_Loading_Content");
         _ = Task.Run(PreloadUnits);
     }
 
@@ -69,11 +71,8 @@ public class MainMenuViewModel : BaseViewModel
     /// </summary>
     private async Task PreloadUnits()
     {
-        IsLoading = true;
         try
         {
-            LoadingText = _localizationService.GetString("MainMenu_Loading_Content");
-
             // Trigger initialization of the unit caching service
             // This will load units from all providers including the GitHub provider
             var models = await _unitCachingService.GetAvailableModels();
