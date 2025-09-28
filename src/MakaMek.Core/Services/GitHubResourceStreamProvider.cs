@@ -12,7 +12,6 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     private readonly string _apiUrl;
     private readonly string _fileExtension;
     private readonly Lazy<Task<List<string>>> _availableResourceIds;
-    private readonly JsonSerializerOptions _jsonOptions;
 
     /// <summary>
     /// Initializes a new instance of GitHubResourceStreamProvider
@@ -29,12 +28,6 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         _fileExtension = fileExtension;
         _httpClient = httpClient ?? new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "MakaMek-Game");
-
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            PropertyNameCaseInsensitive = true
-        };
 
         _availableResourceIds = new Lazy<Task<List<string>>>(LoadAvailableResourceIds);
     }
@@ -121,7 +114,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             }
 
             var jsonContent = await response.Content.ReadAsStringAsync();
-            var contentItems = JsonSerializer.Deserialize<GitHubContentItem[]>(jsonContent, _jsonOptions);
+            var contentItems = JsonSerializer.Deserialize<GitHubContentItem[]>(jsonContent);
 
             if (contentItems == null)
             {
@@ -172,18 +165,18 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         /// The name of the file or directory
         /// </summary>
         [JsonPropertyName("name")]
-        public string Name { get; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// The download URL for the raw content (only available for files)
         /// </summary>
         [JsonPropertyName("download_url")]
-        public string? DownloadUrl { get; }
+        public string? DownloadUrl { get; set; }
 
         /// <summary>
         /// The type of content (file, dir, symlink, submodule)
         /// </summary>
         [JsonPropertyName("type")]
-        public string Type { get; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
     }
 }
