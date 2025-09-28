@@ -1,8 +1,9 @@
 using System.Reflection;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.ResourceProviders;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Services;
+namespace Sanet.MakaMek.Core.Tests.Services.ResourceProviders;
 
 public class AssemblyResourceStreamProviderTests
 {

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Sanet.MakaMek.Core.Services;
+namespace Sanet.MakaMek.Core.Services.ResourceProviders;
 
 /// <summary>
 /// Resource stream provider that downloads unit files from a GitHub repository

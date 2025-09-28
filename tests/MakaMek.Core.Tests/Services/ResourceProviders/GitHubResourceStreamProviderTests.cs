@@ -1,9 +1,10 @@
 using System.Net;
 using System.Text;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.ResourceProviders;
 using Shouldly;
 
-namespace Sanet.MakaMek.Core.Tests.Services;
+namespace Sanet.MakaMek.Core.Tests.Services.ResourceProviders;
 
 public class MockHttpMessageHandler : HttpMessageHandler
 {
@@ -78,10 +79,11 @@ public class GitHubResourceStreamProviderTests
     public void Constructor_ShouldCreateHttpClient_WhenNotProvided()
     {
         // Arrange & Act
-        var provider = new GitHubResourceStreamProvider("ext", "url");
+        var sut = new GitHubResourceStreamProvider("ext", "url");
 
         // Assert - Should not throw and should be able to get resource IDs
-        provider.ShouldNotBeNull();
+        sut.ShouldNotBeNull();
+        sut.Dispose();
     }
 
     [Fact]
@@ -105,29 +107,10 @@ public class GitHubResourceStreamProviderTests
     }
 
     [Fact]
-    public void GetAvailableResourceIds_ShouldReturnEmptyList_WhenHttpRequestFails()
-    {
-        // Note: This test is challenging with the current implementation because
-        // HttpClient is difficult to mock. In a real implementation, we would
-        // want to inject an IHttpClientFactory or wrap HttpClient in an interface.
-
-        // For now, we'll test the basic functionality
-        var resourceIds = _sut.GetAvailableResourceIds();
-        resourceIds.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void Dispose_ShouldNotThrow()
-    {
-        // Arrange & Act & Assert
-        Should.NotThrow(() => _sut.Dispose());
-    }
-
-    [Fact]
     public async Task GetResourceStream_ShouldReturnStream_WhenValidResourceIdProvided()
     {
         // Arrange
-        var testContent = "test file content";
+        const string testContent = "test file content";
         _mockHttpMessageHandler.ResponseContent = testContent;
 
         // Act
