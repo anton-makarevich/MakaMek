@@ -74,14 +74,16 @@ public class MainMenuViewModelTests
     {
         // Arrange
         const string errorMessage = "Test error message";
-        _unitCachingService.When(x => x.GetAvailableModels())
-            .Throw(new Exception(errorMessage));
+        _unitCachingService
+            .GetAvailableModels()
+            .Returns(Task.FromException<IEnumerable<string>>(new Exception(errorMessage)));
         
         var sut = new MainMenuViewModel(_unitCachingService, _localizationService, 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
-        await Task.Delay(10);
+        for (var i = 0; i < 100 && sut.LoadingText == "Loading content..."; i++)
+            await Task.Delay(10);
         
         // Assert
         sut.LoadingText.ShouldContain(errorMessage);
@@ -98,7 +100,8 @@ public class MainMenuViewModelTests
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
-        await Task.Delay(10);
+        for (var i = 0; i < 100 && sut.LoadingText == "Loading content..."; i++)
+            await Task.Delay(10);
         
         // Assert
         sut.LoadingText.ShouldContain("No items found");
