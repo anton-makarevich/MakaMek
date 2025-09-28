@@ -9,12 +9,14 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public class MainMenuViewModel : BaseViewModel
 {
     private readonly IUnitCachingService _unitCachingService;
+    private readonly int _messageDelay;
     private bool _isLoading;
     private string _loadingText;
 
-    public MainMenuViewModel(IUnitCachingService unitCachingService)
+    public MainMenuViewModel(IUnitCachingService unitCachingService, int messageDelay = 1000)
     {
         _unitCachingService = unitCachingService;
+        _messageDelay = messageDelay;
 
         // Get version from entry assembly
         var assembly = Assembly.GetEntryAssembly();
@@ -77,17 +79,12 @@ public class MainMenuViewModel : BaseViewModel
             LoadingText = $"Loaded {modelCount} items";
 
             // Small delay to show the completion message
-            await Task.Delay(1000);
+            await Task.Delay(_messageDelay);
+            IsLoading = false;
         }
         catch (Exception ex)
         {
             LoadingText = $"Error loading units: {ex.Message}";
-            // Wait a bit to show the error message
-            await Task.Delay(3000);
-        }
-        finally
-        {
-            IsLoading = false;
         }
     }
 }

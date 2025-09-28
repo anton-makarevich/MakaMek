@@ -19,11 +19,15 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     /// </summary>
     /// <param name="apiUrl">GitHub API URL pointing to the folder with resources.</param>
     /// <param name="fileExtension">Files with this extension will be included</param>
-    public GitHubResourceStreamProvider(string apiUrl, string fileExtension)
+    /// <param name="httpClient">HTTP client to use for requests. If null, create a new one.</param>
+    public GitHubResourceStreamProvider(
+        string fileExtension,
+        string apiUrl,
+        HttpClient? httpClient = null)
     {
         _apiUrl = apiUrl;
         _fileExtension = fileExtension;
-        _httpClient = new HttpClient();
+        _httpClient = httpClient ?? new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "MakaMek-Game");
 
         _jsonOptions = new JsonSerializerOptions

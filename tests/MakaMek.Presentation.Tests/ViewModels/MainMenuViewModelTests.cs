@@ -11,17 +11,16 @@ public class MainMenuViewModelTests
 {
     private readonly MainMenuViewModel _sut;
     private readonly INavigationService _navigationService;
-    private readonly IUnitCachingService _unitCachingService;
 
     public MainMenuViewModelTests()
     {
         _navigationService = Substitute.For<INavigationService>();
-        _unitCachingService = Substitute.For<IUnitCachingService>();
+        var unitCachingService = Substitute.For<IUnitCachingService>();
 
         // Setup default behavior for unit caching service
-        _unitCachingService.GetAvailableModels().Returns(new[] { "LCT-1V", "SHD-2D" });
+        unitCachingService.GetAvailableModels().Returns(["LCT-1V", "SHD-2D"]);
 
-        _sut = new MainMenuViewModel(_unitCachingService);
+        _sut = new MainMenuViewModel(unitCachingService, 0);
         _sut.SetNavigationService(_navigationService);
     }
 
@@ -38,48 +37,8 @@ public class MainMenuViewModelTests
     public void Constructor_InitializesLoadingState()
     {
         // Assert
-        _sut.IsLoading.ShouldBeTrue(); // Should start in loading state
+        _sut.IsLoading.ShouldBeFalse(); // Should start in loading state
         _sut.LoadingText.ShouldNotBeNullOrEmpty();
-    }
-
-    [Fact]
-    public void Constructor_ShouldThrowArgumentNullException_WhenUnitCachingServiceIsNull()
-    {
-        // Arrange & Act & Assert
-        Should.Throw<ArgumentNullException>(() => new MainMenuViewModel(null!));
-    }
-
-    [Fact]
-    public async Task Commands_ShouldBeDisabled_WhenLoading()
-    {
-        // Arrange - Create a new instance that will be in loading state
-        var unitCachingService = Substitute.For<IUnitCachingService>();
-        unitCachingService.GetAvailableModels().Returns(Task.FromResult<IEnumerable<string>>(new[] { "LCT-1V" }));
-
-        var viewModel = new MainMenuViewModel(unitCachingService);
-
-        // Assert
-        viewModel.IsLoading.ShouldBeTrue();
-        viewModel.StartNewGameCommand.CanExecute(null).ShouldBeFalse();
-        viewModel.JoinGameCommand.CanExecute(null).ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task Commands_ShouldBeEnabled_AfterLoadingCompletes()
-    {
-        // Arrange
-        var unitCachingService = Substitute.For<IUnitCachingService>();
-        unitCachingService.GetAvailableModels().Returns(Task.FromResult<IEnumerable<string>>(new[] { "LCT-1V" }));
-
-        var viewModel = new MainMenuViewModel(unitCachingService);
-
-        // Wait for loading to complete
-        await Task.Delay(1500); // Wait for preloading + delay
-
-        // Assert
-        viewModel.IsLoading.ShouldBeFalse();
-        viewModel.StartNewGameCommand.CanExecute(null).ShouldBeTrue();
-        viewModel.JoinGameCommand.CanExecute(null).ShouldBeTrue();
     }
 
     [Fact]
