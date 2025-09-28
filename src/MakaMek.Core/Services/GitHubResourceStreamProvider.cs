@@ -49,12 +49,12 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             // Unwrap the aggregate exception and log the inner exception
             var innerException = ex.InnerException ?? ex;
             Console.WriteLine($"Error loading resource IDs from GitHub: {innerException.Message}");
-            return new List<string>();
+            return [];
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading resource IDs from GitHub: {ex.Message}");
-            return new List<string>();
+            return [];
         }
     }
 

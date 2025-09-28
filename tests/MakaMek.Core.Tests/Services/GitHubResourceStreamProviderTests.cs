@@ -38,6 +38,22 @@ public class MockHttpMessageHandler : HttpMessageHandler
     }
 }
 
+public class ThrowingHttpMessageHandler : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        throw new HttpRequestException("Network error");
+    }
+}
+
+public class ExceptionThrowingHttpMessageHandler : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        throw new InvalidOperationException("Some other error");
+    }
+}
+
 public class GitHubResourceStreamProviderTests
 {
     private readonly MockHttpMessageHandler _mockHttpMessageHandler;
@@ -153,5 +169,175 @@ public class GitHubResourceStreamProviderTests
 
         // Assert - External HttpClient should not be disposed
         mockHttpMessageHandler.IsDisposed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task GetAvailableResourceIds_ShouldReturnFiles_WhenValidGitHubResponseProvided()
+    {
+        // Arrange
+        const string jsonResponse = """
+                                    [
+                                        {
+                                            "name": "file1.mmux",
+                                            "type": "file",
+                                            "download_url": "https://raw.githubusercontent.com/test/file1.mmux"
+                                        },
+                                        {
+                                            "name": "file2.mmux",
+                                            "type": "file",
+                                            "download_url": "https://raw.githubusercontent.com/test/file2.mmux"
+                                        },
+                                        {
+                                            "name": "directory",
+                                            "type": "dir",
+                                            "download_url": null
+                                        },
+                                        {
+                                            "name": "file.txt",
+                                            "type": "file",
+                                            "download_url": "https://raw.githubusercontent.com/test/file.txt"
+                                        }
+                                    ]
+                                    """;
+
+        _mockHttpMessageHandler.ResponseContent = jsonResponse;
+
+        // Act
+        var result = (await _sut.GetAvailableResourceIds()).ToList();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(2);
+        result.ShouldContain("https://raw.githubusercontent.com/test/file1.mmux");
+        result.ShouldContain("https://raw.githubusercontent.com/test/file2.mmux");
+    }
+
+    [Fact]
+    public async Task GetAvailableResourceIds_ShouldReturnEmptyList_WhenGitHubResponseIsEmpty()
+    {
+        // Arrange
+        _mockHttpMessageHandler.ResponseContent = "[]";
+
+        // Act
+        var result = (await _sut.GetAvailableResourceIds()).ToList();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableResourceIds_ShouldReturnEmptyList_WhenFilesHaveNoDownloadUrl()
+    {
+        // Arrange
+        const string jsonResponse = """
+                                    [
+                                        {
+                                            "name": "file1.mmux",
+                                            "type": "file",
+                                            "download_url": null
+                                        },
+                                        {
+                                            "name": "file2.mmux",
+                                            "type": "file",
+                                            "download_url": null
+                                        }
+                                    ]
+                                    """;
+
+        _mockHttpMessageHandler.ResponseContent = jsonResponse;
+
+        // Act
+        var result = (await _sut.GetAvailableResourceIds()).ToList();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableResourceIds_ShouldReturnEmptyList_WhenHttpStatusCodeIsError()
+    {
+        // Arrange
+        _mockHttpMessageHandler.StatusCode = HttpStatusCode.InternalServerError;
+
+        // Act
+        var result = (await _sut.GetAvailableResourceIds()).ToList();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableResourceIds_ShouldReturnEmptyList_WhenJsonParsingFails()
+    {
+        // Arrange
+        _mockHttpMessageHandler.ResponseContent = "invalid json content";
+
+        // Act
+        var result = (await _sut.GetAvailableResourceIds()).ToList();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableResourceIds_ShouldReturnEmptyList_WhenHttpRequestExceptionThrown()
+    {
+        // Arrange - Create a mock handler that throws HttpRequestException
+        var exceptionHandler = new ThrowingHttpMessageHandler();
+        var httpClient = new HttpClient(exceptionHandler)
+        {
+            BaseAddress = new Uri("https://api.github.com/")
+        };
+
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test", httpClient);
+
+        // Act
+        var result = (await sut.GetAvailableResourceIds()).ToList();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GetResourceStream_ShouldReturnNull_WhenHttpRequestExceptionThrown()
+    {
+        // Arrange - Create a mock handler that throws HttpRequestException
+        var exceptionHandler = new ThrowingHttpMessageHandler();
+        var httpClient = new HttpClient(exceptionHandler)
+        {
+            BaseAddress = new Uri("https://api.github.com/")
+        };
+
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test", httpClient);
+
+        // Act
+        var result = await sut.GetResourceStream("https://api.github.com/test/file.mmux");
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetResourceStream_ShouldReturnNull_WhenOtherExceptionThrown()
+    {
+        // Arrange - Create a mock handler that throws a general exception
+        var exceptionHandler = new ExceptionThrowingHttpMessageHandler();
+        var httpClient = new HttpClient(exceptionHandler)
+        {
+            BaseAddress = new Uri("https://api.github.com/")
+        };
+
+        var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test", httpClient);
+
+        // Act
+        var result = await sut.GetResourceStream("https://api.github.com/test/file.mmux");
+
+        // Assert
+        result.ShouldBeNull();
     }
 }
