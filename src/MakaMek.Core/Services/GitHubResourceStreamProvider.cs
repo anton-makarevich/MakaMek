@@ -40,22 +40,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     /// <returns>Collection of download URLs that serve as resource identifiers</returns>
     public async Task<IEnumerable<string>> GetAvailableResourceIds()
     {
-        try
-        {
-            return await _availableResourceIds.Value;
-        }
-        catch (AggregateException ex)
-        {
-            // Unwrap the aggregate exception and log the inner exception
-            var innerException = ex.InnerException ?? ex;
-            Console.WriteLine($"Error loading resource IDs from GitHub: {innerException.Message}");
-            return [];
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading resource IDs from GitHub: {ex.Message}");
-            return [];
-        }
+        return await _availableResourceIds.Value;
     }
 
     /// <summary>
@@ -126,14 +111,6 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             }
 
             Console.WriteLine($"Found {resourceIds.Count} {_fileExtension} files in GitHub repository");
-        }
-        catch (HttpRequestException ex)
-        {
-            Console.WriteLine($"Network error fetching GitHub contents: {ex.Message}");
-        }
-        catch (JsonException ex)
-        {
-            Console.WriteLine($"Error parsing GitHub contents response: {ex.Message}");
         }
         catch (Exception ex)
         {

@@ -18,9 +18,9 @@ public class UnitCachingService : IUnitCachingService
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
     
     /// <summary>
-    /// Gets or sets the maximum number of units to load in parallel
+    /// The maximum number of units to load in parallel
     /// </summary>
-    public int MaxDegreeOfParallelism { get; set; } = 10;
+    private const int MaxDegreeOfParallelism = 10;
     
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
