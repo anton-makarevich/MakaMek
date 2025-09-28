@@ -11,16 +11,16 @@ public class MainMenuViewModelTests
 {
     private readonly MainMenuViewModel _sut;
     private readonly INavigationService _navigationService;
+    private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
 
     public MainMenuViewModelTests()
     {
         _navigationService = Substitute.For<INavigationService>();
-        var unitCachingService = Substitute.For<IUnitCachingService>();
-
+        
         // Setup default behavior for unit caching service
-        unitCachingService.GetAvailableModels().Returns(["LCT-1V", "SHD-2D"]);
+        _unitCachingService.GetAvailableModels().Returns(["LCT-1V", "SHD-2D"]);
 
-        _sut = new MainMenuViewModel(unitCachingService, 0);
+        _sut = new MainMenuViewModel(_unitCachingService, 0);
         _sut.SetNavigationService(_navigationService);
     }
 
@@ -65,19 +65,33 @@ public class MainMenuViewModelTests
     public async Task PreloadUnits_WhenExceptionThrown_SetsErrorTextAndKeepsLoadingTrue()
     {
         // Arrange
-        var unitCachingService = Substitute.For<IUnitCachingService>();
         const string errorMessage = "Test error message";
-        unitCachingService.When(x => x.GetAvailableModels())
+        _unitCachingService.When(x => x.GetAvailableModels())
             .Throw(new Exception(errorMessage));
             
-        var sut = new MainMenuViewModel(unitCachingService, 0);
-        sut.SetNavigationService(_navigationService);
+        _sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
         await Task.Delay(10);
         
         // Assert
-        sut.LoadingText.ShouldContain(errorMessage);
-        sut.IsLoading.ShouldBeTrue();
+        _sut.LoadingText.ShouldContain(errorMessage);
+        _sut.IsLoading.ShouldBeTrue();
     }
+    
+    [Fact]
+    public async Task PreloadUnits_WhenNoUnitsFound_SetsNoItemsFoundTextAndKeepsLoadingTrue()
+    {
+        // Arrange
+        _unitCachingService.GetAvailableModels().Returns([]);
+        
+        _sut.SetNavigationService(_navigationService);
+        
+        // Small delay to allow the background task to complete
+        await Task.Delay(10);
+        
+        // Assert
+        _sut.LoadingText.ShouldContain("No items found");
+        _sut.IsLoading.ShouldBeTrue();
+    }   
 }
