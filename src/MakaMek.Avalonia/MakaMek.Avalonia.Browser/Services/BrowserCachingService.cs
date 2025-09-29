@@ -1,51 +1,66 @@
-﻿using System.Collections.Concurrent;
-using Sanet.MakaMek.Core.Services;
 using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices.JavaScript;
+using System.Runtime.Versioning;
+using Sanet.MakaMek.Core.Services;
 
 namespace Sanet.MakaMek.Avalonia.Browser.Services;
 
 /// <summary>
-/// Browser-based caching service using in-memory storage for WASM applications
-/// Note: This implementation uses in-memory storage as a fallback since browser APIs
-/// may not be directly accessible. In a production environment, this could be enhanced
-/// with proper browser storage APIs through JavaScript interop.
+/// Browser-based caching service using IndexedDB for persistent storage in WASM applications
+/// This implementation uses JavaScript interop to store cached files in IndexedDB,
+/// ensuring data persists across browser sessions.
 /// </summary>
-public class BrowserCachingService : IFileCachingService
+[SupportedOSPlatform("browser")]
+public partial class BrowserCachingService : IFileCachingService
 {
-    private readonly ConcurrentDictionary<string, byte[]> _cache = new();
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private static bool _isInitialized;
+    private static readonly SemaphoreSlim InitLock = new(1, 1);
+
+    /// <summary>
+    /// Initializes the JavaScript module for IndexedDB operations
+    /// </summary>
+    private static async Task EnsureInitialized()
+    {
+        if (_isInitialized) return;
+
+        await InitLock.WaitAsync();
+        try
+        {
+            if (!_isInitialized)
+            {
+                await JSHost.ImportAsync("cacheStorage", "/cacheStorage.js");
+                _isInitialized = true;
+            }
+        }
+        finally
+        {
+            InitLock.Release();
+        }
+    }
 
     /// <summary>
     /// Checks if a cached file exists and returns its content if available
     /// </summary>
     /// <param name="cacheKey">Unique identifier for the cached file</param>
-    /// <returns>Cached file content as stream if found, null otherwise</returns>
-    public async Task<Stream?> TryGetCachedFile(string cacheKey)
+    /// <returns>Cached file content as byte array if found, null otherwise</returns>
+    public async Task<byte[]?> TryGetCachedFile(string cacheKey)
     {
         if (string.IsNullOrEmpty(cacheKey))
             return null;
 
-        await _semaphore.WaitAsync();
         try
         {
-            if (_cache.TryGetValue(cacheKey, out var cachedData))
-            {
-                return new MemoryStream(cachedData);
-            }
-            return null;
+            await EnsureInitialized();
+            var result = await GetFromCacheJs(cacheKey);
+            // JS returns empty array when not found, treat as null
+            return result.Length == 0 ? null : result;
         }
         catch (Exception ex)
         {
-            // Log error but return null to gracefully handle cache misses
             Console.WriteLine($"Error reading cached file '{cacheKey}': {ex.Message}");
             return null;
-        }
-        finally
-        {
-            _semaphore.Release();
         }
     }
 
@@ -53,32 +68,21 @@ public class BrowserCachingService : IFileCachingService
     /// Saves a file to the cache with the specified key
     /// </summary>
     /// <param name="cacheKey">Unique identifier for the cached file</param>
-    /// <param name="content">File content to cache</param>
+    /// <param name="content">File content to cache as byte array</param>
     /// <returns>Task representing the async operation</returns>
-    public async Task SaveToCache(string cacheKey, Stream content)
+    public async Task SaveToCache(string cacheKey, byte[] content)
     {
-        if (string.IsNullOrEmpty(cacheKey) || content == null)
+        if (string.IsNullOrEmpty(cacheKey) || content == null || content.Length == 0)
             return;
 
-        await _semaphore.WaitAsync();
         try
         {
-            // Read stream content
-            content.Position = 0;
-            using var memoryStream = new MemoryStream();
-            await content.CopyToAsync(memoryStream);
-            var bytes = memoryStream.ToArray();
-
-            // Store in memory cache
-            _cache.AddOrUpdate(cacheKey, bytes, (key, oldValue) => bytes);
+            await EnsureInitialized();
+            await SaveToCacheJs(cacheKey, content);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error saving file to cache '{cacheKey}': {ex.Message}");
-        }
-        finally
-        {
-            _semaphore.Release();
         }
     }
 
@@ -88,18 +92,14 @@ public class BrowserCachingService : IFileCachingService
     /// <returns>Task representing the async operation</returns>
     public async Task ClearCache()
     {
-        await _semaphore.WaitAsync();
         try
         {
-            _cache.Clear();
+            await EnsureInitialized();
+            await ClearCacheJs();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error clearing cache: {ex.Message}");
-        }
-        finally
-        {
-            _semaphore.Release();
         }
     }
 
@@ -113,14 +113,15 @@ public class BrowserCachingService : IFileCachingService
         if (string.IsNullOrEmpty(cacheKey))
             return false;
 
-        await _semaphore.WaitAsync();
         try
         {
-            return _cache.ContainsKey(cacheKey);
+            await EnsureInitialized();
+            return await IsCachedJs(cacheKey);
         }
-        finally
+        catch (Exception ex)
         {
-            _semaphore.Release();
+            Console.WriteLine($"Error checking cache for '{cacheKey}': {ex.Message}");
+            return false;
         }
     }
 
@@ -134,26 +135,30 @@ public class BrowserCachingService : IFileCachingService
         if (string.IsNullOrEmpty(cacheKey))
             return;
 
-        await _semaphore.WaitAsync();
         try
         {
-            _cache.TryRemove(cacheKey, out _);
+            await EnsureInitialized();
+            await RemoveFromCacheJs(cacheKey);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error removing file from cache '{cacheKey}': {ex.Message}");
         }
-        finally
-        {
-            _semaphore.Release();
-        }
     }
 
-    /// <summary>
-    /// Disposes the semaphore
-    /// </summary>
-    public void Dispose()
-    {
-        _semaphore?.Dispose();
-    }
+    // JavaScript interop methods
+    [JSImport("getFromCache", "cacheStorage")]
+    private static partial Task<byte[]> GetFromCacheJs(string cacheKey);
+
+    [JSImport("saveToCache", "cacheStorage")]
+    private static partial Task SaveToCacheJs(string cacheKey, byte[] data);
+
+    [JSImport("isCached", "cacheStorage")]
+    private static partial Task<bool> IsCachedJs(string cacheKey);
+
+    [JSImport("removeFromCache", "cacheStorage")]
+    private static partial Task RemoveFromCacheJs(string cacheKey);
+
+    [JSImport("clearCache", "cacheStorage")]
+    private static partial Task ClearCacheJs();
 }

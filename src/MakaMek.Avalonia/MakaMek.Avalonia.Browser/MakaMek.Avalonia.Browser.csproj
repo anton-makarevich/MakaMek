@@ -6,6 +6,7 @@
         <AssemblyName>Sanet.MakaMek.Avalonia.Browser</AssemblyName>
         <RootNamespace>Sanet.MakaMek.Avalonia.Browser</RootNamespace>
         <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <PropertyGroup>

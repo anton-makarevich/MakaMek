@@ -94,8 +94,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
                     Console.WriteLine($"Error caching file from {resourceId}: {ex.Message}");
                 }
             }); 
-            contentStream.Position = 0;
-            return contentStream;
+            return new MemoryStream(contentBytes);
         }
         catch (Exception ex)
         {

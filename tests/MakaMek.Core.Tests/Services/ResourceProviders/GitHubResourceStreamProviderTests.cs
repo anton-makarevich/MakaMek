@@ -365,7 +365,7 @@ public class GitHubResourceStreamProviderTests
         await _cachingService.Received(1).TryGetCachedFile(testUrl);
 
         // Give some time for the background caching task to complete
-        await Task.Delay(10);
+        await Task.Delay(20);
         await _cachingService.Received(1).SaveToCache(testUrl, Arg.Any<byte[]>());
     }
 
@@ -400,7 +400,7 @@ public class GitHubResourceStreamProviderTests
 
         // Verify caching service was called
         await _cachingService.Received(1).TryGetCachedFile(testUrl);
-        await Task.Delay(10);
+        await Task.Delay(20);
         await _cachingService.DidNotReceive().SaveToCache(Arg.Any<string>(), Arg.Any<byte[]>());
     }
 
