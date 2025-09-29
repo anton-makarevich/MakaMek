@@ -42,6 +42,7 @@ export async function saveToCache(cacheKey, dataArray) {
         const db = await initDB();
         
         return new Promise((resolve, reject) => {
+            console.log('Saving data for ' + cacheKey);
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
             
@@ -67,6 +68,7 @@ export async function getFromCache(cacheKey) {
         const db = await initDB();
         
         return new Promise((resolve, reject) => {
+            console.log('Getting data for ' + cacheKey);
             const transaction = db.transaction([STORE_NAME], 'readonly');
             const store = transaction.objectStore(STORE_NAME);
             const request = store.get(cacheKey);
@@ -186,4 +188,13 @@ export async function getCacheStats() {
         console.error('Error in getCacheStats:', error);
         return { itemCount: 0 };
     }
+}
+
+// Unwrap JSObject back to byte array for .NET interop
+// This is needed because Task<byte[]> is not supported in JS interop
+export function unwrapByteArray(jsObject) {
+    if (jsObject && Array.isArray(jsObject)) {
+        return jsObject;
+    }
+    return [];
 }

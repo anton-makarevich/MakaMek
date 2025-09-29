@@ -53,9 +53,16 @@ public partial class BrowserCachingService : IFileCachingService
         try
         {
             await EnsureInitialized();
-            var result = await GetFromCacheJs(cacheKey);
+            var jsObject = await GetFromCacheAsObjectJs(cacheKey);
+            var result = UnwrapByteArrayJs(jsObject);
             // JS returns empty array when not found, treat as null
-            return result.Length == 0 ? null : result;
+            if (result.Length == 0)
+            {
+                Console.WriteLine($"Found empty data for {cacheKey}");
+                return null;
+            }
+            Console.WriteLine($"Found data for {cacheKey}");
+            return result;
         }
         catch (Exception ex)
         {
@@ -72,12 +79,13 @@ public partial class BrowserCachingService : IFileCachingService
     /// <returns>Task representing the async operation</returns>
     public async Task SaveToCache(string cacheKey, byte[] content)
     {
-        if (string.IsNullOrEmpty(cacheKey) || content == null || content.Length == 0)
+        if (string.IsNullOrEmpty(cacheKey) || content.Length == 0)
             return;
 
         try
         {
             await EnsureInitialized();
+            Console.WriteLine($"Saving data for {cacheKey}");
             await SaveToCacheJs(cacheKey, content);
         }
         catch (Exception ex)
@@ -145,20 +153,34 @@ public partial class BrowserCachingService : IFileCachingService
             Console.WriteLine($"Error removing file from cache '{cacheKey}': {ex.Message}");
         }
     }
+}
 
-    // JavaScript interop methods
+// JavaScript interop methods using JSObject workaround for byte arrays
+public partial class BrowserCachingService
+{
+    // Get byte array as JSObject reference (workaround for Task<byte[]> limitation)
     [JSImport("getFromCache", "cacheStorage")]
-    private static partial Task<byte[]> GetFromCacheJs(string cacheKey);
+    [return: JSMarshalAs<JSType.Promise<JSType.Object>>()]
+    private static partial Task<JSObject> GetFromCacheAsObjectJs(string cacheKey);
 
+    // Unwrap JSObject back to byte array
+    [JSImport("unwrapByteArray", "cacheStorage")]
+    [return: JSMarshalAs<JSType.Array<JSType.Number>>()]
+    private static partial byte[] UnwrapByteArrayJs(JSObject byteArrayObject);
+
+    // Save byte array to cache
     [JSImport("saveToCache", "cacheStorage")]
     private static partial Task SaveToCacheJs(string cacheKey, byte[] data);
 
+    // Check if cached
     [JSImport("isCached", "cacheStorage")]
     private static partial Task<bool> IsCachedJs(string cacheKey);
 
+    // Remove from cache
     [JSImport("removeFromCache", "cacheStorage")]
     private static partial Task RemoveFromCacheJs(string cacheKey);
 
+    // Clear all cache
     [JSImport("clearCache", "cacheStorage")]
     private static partial Task ClearCacheJs();
 }
