@@ -39,7 +39,7 @@ public partial class BrowserCachingService : IFileCachingService
         {
             if (!_isInitialized)
             {
-                await JSHost.ImportAsync("cacheStorage", "./cacheStorage.js");
+                await JSHost.ImportAsync("cacheStorage", "../cacheStorage.js");
                 _isInitialized = true;
             }
         }
