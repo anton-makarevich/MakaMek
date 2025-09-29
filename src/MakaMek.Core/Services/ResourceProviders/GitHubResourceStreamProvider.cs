@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Sanet.MakaMek.Core.Services.ResourceProviders;
 
 /// <summary>
-/// Resource stream provider that downloads unit files from a GitHub repository
+/// Resource stream provider that downloads unit files from a GitHub repository with caching support
 /// </summary>
 public class GitHubResourceStreamProvider : IResourceStreamProvider
 {
@@ -13,6 +13,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     private readonly string _fileExtension;
     private readonly bool _disposeHttpClient;
     private readonly Lazy<Task<List<string>>> _availableResourceIds;
+    private readonly IFileCachingService _cachingService;
 
     /// <summary>
     /// Initializes a new instance of GitHubResourceStreamProvider
@@ -20,9 +21,11 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     /// <param name="apiUrl">GitHub API URL pointing to the folder with resources.</param>
     /// <param name="fileExtension">Files with this extension will be included</param>
     /// <param name="httpClient">HTTP client to use for requests. If null, create a new one.</param>
+    /// <param name="cachingService">Caching service to cache downloaded files</param>
     public GitHubResourceStreamProvider(
         string fileExtension,
         string apiUrl,
+        IFileCachingService cachingService,
         HttpClient? httpClient = null)
     {
         _apiUrl = apiUrl;
@@ -30,6 +33,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         _disposeHttpClient = httpClient == null;
         _httpClient = httpClient ?? new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "MakaMek-Game");
+        _cachingService = cachingService;
 
         _availableResourceIds = new Lazy<Task<List<string>>>(LoadAvailableResourceIds);
     }
@@ -55,6 +59,13 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             return null;
         }
 
+        // Try to get from cache first
+        var cachedBytes = await _cachingService.TryGetCachedFile(resourceId);
+        if (cachedBytes != null)
+        {
+            return new MemoryStream(cachedBytes);
+        }
+
         try
         {
             var response = await _httpClient.GetAsync(resourceId);
@@ -64,7 +75,26 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
                 return null;
             }
 
-            return await response.Content.ReadAsStreamAsync();
+            await using var contentStream = await response.Content.ReadAsStreamAsync();
+
+            // Read the content into memory so we can cache it
+            using var memoryStream = new MemoryStream();
+            await contentStream.CopyToAsync(memoryStream);
+            var contentBytes = memoryStream.ToArray();
+
+            // Cache the content (fire and forget)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _cachingService.SaveToCache(resourceId, contentBytes);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error caching file from {resourceId}: {ex.Message}");
+                }
+            }); 
+            return new MemoryStream(contentBytes);
         }
         catch (Exception ex)
         {

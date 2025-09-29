@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.Desktop.Services;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
 
@@ -14,5 +15,8 @@ public static class DesktopServices
 
         // Register file-based command logger for desktop platform
         services.AddSingleton<ICommandLoggerFactory, FileCommandLoggerFactory>();
+
+        // Register file system caching service for desktop platform
+        services.AddSingleton<IFileCachingService, FileSystemCachingService>();
     }
 }

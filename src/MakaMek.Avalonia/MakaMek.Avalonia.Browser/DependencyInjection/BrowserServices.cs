@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Sanet.MakaMek.Avalonia.Browser.Services;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
 
@@ -13,5 +15,8 @@ public static class BrowserServices
 
         // Register console-based command logger for WASM platform
         services.AddSingleton<ICommandLoggerFactory, ConsoleCommandLoggerFactory>();
+
+        // Register browser caching service for WASM platform
+        services.AddSingleton<IFileCachingService, BrowserCachingService>();
     }
 }
