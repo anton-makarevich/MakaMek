@@ -21,7 +21,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     /// <param name="apiUrl">GitHub API URL pointing to the folder with resources.</param>
     /// <param name="fileExtension">Files with this extension will be included</param>
     /// <param name="httpClient">HTTP client to use for requests. If null, create a new one.</param>
-    /// <param name="cachingService">Optional caching service to cache downloaded files</param>
+    /// <param name="cachingService">Caching service to cache downloaded files</param>
     public GitHubResourceStreamProvider(
         string fileExtension,
         string apiUrl,
@@ -75,7 +75,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
                 return null;
             }
 
-            var contentStream = await response.Content.ReadAsStreamAsync();
+            await using var contentStream = await response.Content.ReadAsStreamAsync();
 
             // Read the content into memory so we can cache it
             using var memoryStream = new MemoryStream();

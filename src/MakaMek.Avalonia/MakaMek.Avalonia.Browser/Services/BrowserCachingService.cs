@@ -88,7 +88,6 @@ public partial class BrowserCachingService : IFileCachingService
         try
         {
             await EnsureInitialized();
-            Console.WriteLine($"Saving data for {cacheKey}");
             await SaveToCacheJs(GetHashedCacheKey(cacheKey), content);
         }
         catch (Exception ex)

@@ -350,7 +350,7 @@ public class GitHubResourceStreamProviderTests
             ResponseContent = testContent
         };
         var httpClient = new HttpClient(mockHandler);
-        
+
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
             httpClient);
@@ -361,11 +361,14 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
 
-        // Verify caching service was called
+        // Verify caching service was called for cache lookup
         await _cachingService.Received(1).TryGetCachedFile(testUrl);
 
-        // Give some time for the background caching task to complete
-        await Task.Delay(20);
+        // Wait for the background caching task to complete
+        // The caching happens asynchronously in a fire-and-forget task
+        await Task.Delay(100); // Increased delay for CI environments
+
+        // Verify that SaveToCache was called (the background task should have completed)
         await _cachingService.Received(1).SaveToCache(testUrl, Arg.Any<byte[]>());
     }
 
@@ -400,7 +403,6 @@ public class GitHubResourceStreamProviderTests
 
         // Verify caching service was called
         await _cachingService.Received(1).TryGetCachedFile(testUrl);
-        await Task.Delay(20);
         await _cachingService.DidNotReceive().SaveToCache(Arg.Any<string>(), Arg.Any<byte[]>());
     }
 
