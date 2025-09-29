@@ -30,13 +30,6 @@ jobs:
       - name: Install wasm-tools
         run: dotnet workload install wasm-tools
 
-      - name: Fix asset paths for GitHub Pages
-        run: |
-          # Update HTML file to use absolute paths for GitHub Pages deployment
-          # sed -i 's|href="./app.css"|href="/MakaMek/app.css"|g' src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/bin/Release/net9.0-browser/publish/wwwroot/index.html
-          sed -i 's|src="./cacheStorage.js"|src="/MakaMek/cacheStorage.js"|g' src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/wwwroot/index.html
-          # sed -i 's|src="./main.js"|src="/MakaMek/main.js"|g' src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/bin/Release/net9.0-browser/publish/wwwroot/index.html
-
       - name: Publish WASM
         run: |
           dotnet publish src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/MakaMek.Avalonia.Browser.csproj -c Release --self-contained true
