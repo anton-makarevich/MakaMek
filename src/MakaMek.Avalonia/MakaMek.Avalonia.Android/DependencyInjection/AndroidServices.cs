@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
 
@@ -13,5 +14,8 @@ public static class AndroidServices
 
         // Register console-based command logger for Android platform
         services.AddSingleton<ICommandLoggerFactory, ConsoleCommandLoggerFactory>();
+
+        // Register file system caching service for Android platform
+        services.AddSingleton<IFileCachingService, FileSystemCachingService>();
     }
 }
