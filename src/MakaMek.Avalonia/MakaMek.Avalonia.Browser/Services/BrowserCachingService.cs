@@ -1,4 +1,6 @@
 using System;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices.JavaScript;
@@ -15,12 +17,19 @@ namespace Sanet.MakaMek.Avalonia.Browser.Services;
 [SupportedOSPlatform("browser")]
 public partial class BrowserCachingService : IFileCachingService
 {
+    /// <summary>
+    /// Generates a safe cache key using SHA256 hash (same as FileSystemCachingService)
+    /// </summary>
+    /// <param name="originalKey">The original cache key (usually a URL)</param>
+    /// <returns>SHA256 hash of the original key</returns>
+    private static string GetHashedCacheKey(string originalKey)
+    {
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(originalKey));
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+    }
+
     private static bool _isInitialized;
     private static readonly SemaphoreSlim InitLock = new(1, 1);
-
-    /// <summary>
-    /// Initializes the JavaScript module for IndexedDB operations
-    /// </summary>
     private static async Task EnsureInitialized()
     {
         if (_isInitialized) return;
@@ -53,16 +62,10 @@ public partial class BrowserCachingService : IFileCachingService
         try
         {
             await EnsureInitialized();
-            var jsObject = await GetFromCacheAsObjectJs(cacheKey);
+            var jsObject = await GetFromCacheAsObjectJs(GetHashedCacheKey(cacheKey));
             var result = UnwrapByteArrayJs(jsObject);
             // JS returns empty array when not found, treat as null
-            if (result.Length == 0)
-            {
-                Console.WriteLine($"Found empty data for {cacheKey}");
-                return null;
-            }
-            Console.WriteLine($"Found data for {cacheKey}");
-            return result;
+            return result.Length == 0 ? null : result;
         }
         catch (Exception ex)
         {
@@ -86,7 +89,7 @@ public partial class BrowserCachingService : IFileCachingService
         {
             await EnsureInitialized();
             Console.WriteLine($"Saving data for {cacheKey}");
-            await SaveToCacheJs(cacheKey, content);
+            await SaveToCacheJs(GetHashedCacheKey(cacheKey), content);
         }
         catch (Exception ex)
         {
@@ -124,7 +127,7 @@ public partial class BrowserCachingService : IFileCachingService
         try
         {
             await EnsureInitialized();
-            return await IsCachedJs(cacheKey);
+            return await IsCachedJs(GetHashedCacheKey(cacheKey));
         }
         catch (Exception ex)
         {
@@ -146,7 +149,7 @@ public partial class BrowserCachingService : IFileCachingService
         try
         {
             await EnsureInitialized();
-            await RemoveFromCacheJs(cacheKey);
+            await RemoveFromCacheJs(GetHashedCacheKey(cacheKey));
         }
         catch (Exception ex)
         {
