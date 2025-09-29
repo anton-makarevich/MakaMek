@@ -74,7 +74,7 @@ public class GitHubResourceStreamProviderTests
             BaseAddress = new Uri("https://api.github.com/")
         };
         
-        _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns((Stream?)null);
+        _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns((byte[]?)null);
 
         _sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
@@ -366,21 +366,21 @@ public class GitHubResourceStreamProviderTests
 
         // Give some time for the background caching task to complete
         await Task.Delay(10);
-        await _cachingService.Received(1).SaveToCache(testUrl, Arg.Any<Stream>());
+        await _cachingService.Received(1).SaveToCache(testUrl, Arg.Any<byte[]>());
     }
 
     [Fact]
     public async Task GetResourceStream_ShouldReturnCachedContent_WhenFileIsCached()
     {
         // Arrange
-        var testContent = "Cached file content";
-        var testUrl = "https://api.github.com/test/cached-file.mmux";
-        var cachedStream = new MemoryStream(Encoding.UTF8.GetBytes(testContent));
+        const string testContent = "Cached file content";
+        const string testUrl = "https://api.github.com/test/cached-file.mmux";
+        var cachedData = Encoding.UTF8.GetBytes(testContent);
 
         var mockHandler = new MockHttpMessageHandler(); // Should not be called
         var httpClient = new HttpClient(mockHandler);
 
-        _cachingService.TryGetCachedFile(testUrl).Returns(cachedStream);
+        _cachingService.TryGetCachedFile(testUrl).Returns(cachedData);
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
@@ -391,7 +391,9 @@ public class GitHubResourceStreamProviderTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.ShouldBe(cachedStream);
+        using var reader = new StreamReader(result);
+        var content = await reader.ReadToEndAsync();
+        content.ShouldBe(testContent);
 
         // Verify HTTP client was not used
         mockHandler.ResponseContent.ShouldBeNull();
@@ -399,7 +401,7 @@ public class GitHubResourceStreamProviderTests
         // Verify caching service was called
         await _cachingService.Received(1).TryGetCachedFile(testUrl);
         await Task.Delay(10);
-        await _cachingService.DidNotReceive().SaveToCache(Arg.Any<string>(), Arg.Any<Stream>());
+        await _cachingService.DidNotReceive().SaveToCache(Arg.Any<string>(), Arg.Any<byte[]>());
     }
 
     [Fact]
@@ -415,8 +417,8 @@ public class GitHubResourceStreamProviderTests
         };
         var httpClient = new HttpClient(mockHandler);
 
-        _cachingService.TryGetCachedFile(testUrl).Returns((Stream?)null);
-        _cachingService.When(x => x.SaveToCache(Arg.Any<string>(), Arg.Any<Stream>()))
+        _cachingService.TryGetCachedFile(testUrl).Returns((byte[]?)null);
+        _cachingService.When(x => x.SaveToCache(Arg.Any<string>(), Arg.Any<byte[]>()))
                          .Do(_ => throw new InvalidOperationException("Cache error"));
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",

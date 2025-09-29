@@ -43,11 +43,8 @@ public class FileSystemCachingServiceTests : IDisposable
     [Fact]
     public async Task SaveToCache_ShouldCacheFile_WhenValidInput()
     {
-        // Arrange
-        using var contentStream = new MemoryStream(_testContent);
-
         // Act
-        await _sut.SaveToCache(TestCacheKey, contentStream);
+        await _sut.SaveToCache(TestCacheKey, _testContent);
 
         // Assert
         var isCached = await _sut.IsCached(TestCacheKey);
@@ -57,11 +54,8 @@ public class FileSystemCachingServiceTests : IDisposable
     [Fact]
     public async Task SaveToCache_ShouldNotThrow_WhenCacheKeyIsEmpty()
     {
-        // Arrange
-        using var contentStream = new MemoryStream(_testContent);
-
         // Act & Assert
-        await Should.NotThrowAsync(async () => await _sut.SaveToCache("", contentStream));
+        await Should.NotThrowAsync(async () => await _sut.SaveToCache("", _testContent));
     }
 
     [Fact]
@@ -75,18 +69,15 @@ public class FileSystemCachingServiceTests : IDisposable
     public async Task TryGetCachedFile_ShouldReturnCorrectContent_WhenFileCached()
     {
         // Arrange
-        using var contentStream = new MemoryStream(_testContent);
-        await _sut.SaveToCache(TestCacheKey, contentStream);
+        await _sut.SaveToCache(TestCacheKey, _testContent);
 
         // Act
-        await using var result = await _sut.TryGetCachedFile(TestCacheKey);
+        var result = await _sut.TryGetCachedFile(TestCacheKey);
 
         // Assert
         result.ShouldNotBeNull();
         using var memoryStream = new MemoryStream();
-        await result.CopyToAsync(memoryStream);
-        var retrievedContent = memoryStream.ToArray();
-        retrievedContent.ShouldBe(_testContent);
+        result.ShouldBe(_testContent);
     }
 
     [Fact]
@@ -113,8 +104,7 @@ public class FileSystemCachingServiceTests : IDisposable
     public async Task IsCached_ShouldReturnTrue_WhenFileCached()
     {
         // Arrange
-        using var contentStream = new MemoryStream(_testContent);
-        await _sut.SaveToCache(TestCacheKey, contentStream);
+        await _sut.SaveToCache(TestCacheKey, _testContent);
 
         // Act
         var result = await _sut.IsCached(TestCacheKey);
@@ -127,8 +117,7 @@ public class FileSystemCachingServiceTests : IDisposable
     public async Task RemoveFromCache_ShouldRemoveFile_WhenFileCached()
     {
         // Arrange
-        using var contentStream = new MemoryStream(_testContent);
-        await _sut.SaveToCache(TestCacheKey, contentStream);
+        await _sut.SaveToCache(TestCacheKey, _testContent);
         var isInitiallyCached = await _sut.IsCached(TestCacheKey);
         isInitiallyCached.ShouldBeTrue();
 
@@ -158,10 +147,10 @@ public class FileSystemCachingServiceTests : IDisposable
     public async Task ClearCache_ShouldRemoveAllFiles()
     {
         // Arrange
-        var key1 = "test-key-1";
-        var key2 = "test-key-2";
-        using var content1 = new MemoryStream(Encoding.UTF8.GetBytes("Content 1"));
-        using var content2 = new MemoryStream(Encoding.UTF8.GetBytes("Content 2"));
+        const string key1 = "test-key-1";
+        const string key2 = "test-key-2";
+        var content1 = "Content 1"u8.ToArray();
+        var content2 = "Content 2"u8.ToArray();
         
         await _sut.SaveToCache(key1, content1);
         await _sut.SaveToCache(key2, content2);
@@ -195,20 +184,15 @@ public class FileSystemCachingServiceTests : IDisposable
         var originalContent = Encoding.UTF8.GetBytes("Original content");
         var newContent = Encoding.UTF8.GetBytes("New content");
         
-        using var originalStream = new MemoryStream(originalContent);
-        await _sut.SaveToCache(TestCacheKey, originalStream);
+        await _sut.SaveToCache(TestCacheKey, originalContent);
 
         // Act
-        using var newStream = new MemoryStream(newContent);
-        await _sut.SaveToCache(TestCacheKey, newStream);
+        await _sut.SaveToCache(TestCacheKey, newContent);
 
         // Assert
-        await using var result = await _sut.TryGetCachedFile(TestCacheKey);
+        var result = await _sut.TryGetCachedFile(TestCacheKey);
         result.ShouldNotBeNull();
-        using var memoryStream = new MemoryStream();
-        await result.CopyToAsync(memoryStream);
-        var retrievedContent = memoryStream.ToArray();
-        retrievedContent.ShouldBe(newContent);
+        result.ShouldBe(newContent);
     }
 
     [Fact]
@@ -224,8 +208,7 @@ public class FileSystemCachingServiceTests : IDisposable
             var content = Encoding.UTF8.GetBytes($"Content for {key}");
             tasks.Add(Task.Run(async () =>
             {
-                using var stream = new MemoryStream(content);
-                await _sut.SaveToCache(key, stream);
+                await _sut.SaveToCache(key, content);
             }));
         }
 
