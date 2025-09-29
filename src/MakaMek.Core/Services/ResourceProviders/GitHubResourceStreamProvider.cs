@@ -60,10 +60,10 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         }
 
         // Try to get from cache first
-        var cachedStream = await _cachingService.TryGetCachedFile(resourceId);
-        if (cachedStream != null)
+        var cachedBytes = await _cachingService.TryGetCachedFile(resourceId);
+        if (cachedBytes != null)
         {
-            return cachedStream;
+            return new MemoryStream(cachedBytes);
         }
 
         try
@@ -77,8 +77,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
 
             var contentStream = await response.Content.ReadAsStreamAsync();
 
-            // Cache the downloaded content 
-            // Read the content into memory so we can cache it and return a copy
+            // Read the content into memory so we can cache it
             using var memoryStream = new MemoryStream();
             await contentStream.CopyToAsync(memoryStream);
             var contentBytes = memoryStream.ToArray();
@@ -88,8 +87,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             {
                 try
                 {
-                    using var cacheStream = new MemoryStream(contentBytes);
-                    await _cachingService.SaveToCache(resourceId, cacheStream);
+                    await _cachingService.SaveToCache(resourceId, contentBytes);
                 }
                 catch (Exception ex)
                 {

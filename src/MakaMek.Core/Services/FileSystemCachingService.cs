@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Sanet.MakaMek.Core.Services;
@@ -28,8 +28,8 @@ public class FileSystemCachingService : IFileCachingService
     /// Checks if a cached file exists and returns its content if available
     /// </summary>
     /// <param name="cacheKey">Unique identifier for the cached file</param>
-    /// <returns>Cached file content as stream if found, null otherwise</returns>
-    public async Task<Stream?> TryGetCachedFile(string cacheKey)
+    /// <returns>Cached file content as byte array if found, null otherwise</returns>
+    public async Task<byte[]?> TryGetCachedFile(string cacheKey)
     {
         if (string.IsNullOrEmpty(cacheKey))
             return null;
@@ -41,9 +41,8 @@ public class FileSystemCachingService : IFileCachingService
             if (!File.Exists(filePath))
                 return null;
 
-            // Read file content into memory stream to avoid file locking issues
-            var fileBytes = await File.ReadAllBytesAsync(filePath);
-            return new MemoryStream(fileBytes);
+            // Read file content as byte array
+            return await File.ReadAllBytesAsync(filePath);
         }
         catch (Exception ex)
         {
@@ -57,9 +56,9 @@ public class FileSystemCachingService : IFileCachingService
     /// Saves a file to the cache with the specified key
     /// </summary>
     /// <param name="cacheKey">Unique identifier for the cached file</param>
-    /// <param name="content">File content to cache</param>
+    /// <param name="content">File content to cache as byte array</param>
     /// <returns>Task representing the async operation</returns>
-    public async Task SaveToCache(string cacheKey, Stream content)
+    public async Task SaveToCache(string cacheKey, byte[] content)
     {
         if (string.IsNullOrEmpty(cacheKey))
             return;
@@ -76,8 +75,7 @@ public class FileSystemCachingService : IFileCachingService
             
             await using (var fileStream = File.Create(tempFilePath))
             {
-                content.Position = 0; // Reset stream position
-                await content.CopyToAsync(fileStream);
+                await fileStream.WriteAsync(content);
                 await fileStream.FlushAsync();
             }
             
