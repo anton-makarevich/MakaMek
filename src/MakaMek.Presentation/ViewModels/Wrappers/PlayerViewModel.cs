@@ -16,20 +16,11 @@ public class PlayerViewModel : BindableBase
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
     private bool _isEditingName;
     private string _editableName;
-    private Player _player;
     private readonly Func<Player, Task>? _onPlayerNameChanged;
 
     public Player Player
     {
-        get => _player;
-        private set
-        {
-            _player = value;
-            _editableName = value.Name;
-            NotifyPropertyChanged();
-            NotifyPropertyChanged(nameof(Name));
-            NotifyPropertyChanged(nameof(EditableName));
-        }
+        get;
     }
 
     public bool IsLocalPlayer { get; }
@@ -93,7 +84,7 @@ public class PlayerViewModel : BindableBase
         Action? onUnitChanged = null,
         Func<Player, Task>? onPlayerNameChanged = null)
     {
-        _player = player;
+        Player = player;
         _editableName = player.Name;
         IsLocalPlayer = isLocalPlayer;
         _joinGameAction = joinGameAction;
@@ -172,17 +163,14 @@ public class PlayerViewModel : BindableBase
             return;
         }
 
-        // Create a new Player instance with the updated name
-        var updatedPlayer = new Player(Player.Id, EditableName.Trim(), Player.Tint)
-        {
-            Status = Player.Status
-        };
-
-        Player = updatedPlayer;
+        Player.Name = EditableName.Trim();
         IsEditingName = false;
+        
+        NotifyPropertyChanged(nameof(Name));
+        NotifyPropertyChanged(nameof(EditableName));
 
         // Notify parent that the player name changed
-        _onPlayerNameChanged?.Invoke(updatedPlayer);
+        _onPlayerNameChanged?.Invoke(Player);
     }
 
     private void CancelEditName()

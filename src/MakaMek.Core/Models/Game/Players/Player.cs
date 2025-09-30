@@ -12,7 +12,7 @@ public class Player(Guid id, string name, string tint = "#ffffff") : IPlayer
     private readonly List<Unit> _units = [];
     
     public Guid Id { get; } = id;
-    public string Name { get; } = name;
+    public string Name { get; set; } = name;
     public string Tint { get; } = tint;
     public IReadOnlyList<Unit> Units => _units;
     public IReadOnlyList<Unit> AliveUnits => Units.Where(u => u.Status != UnitStatus.Destroyed).ToList();
