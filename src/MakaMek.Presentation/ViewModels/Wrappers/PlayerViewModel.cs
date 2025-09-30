@@ -69,9 +69,6 @@ public class PlayerViewModel : BindableBase
     public ICommand AddUnitCommand { get; }
     public ICommand JoinGameCommand { get; }
     public ICommand SetReadyCommand { get; }
-    public ICommand EditNameCommand { get; }
-    public ICommand SaveNameCommand { get; }
-    public ICommand CancelEditNameCommand { get; }
 
     public string Name => Player.Name;
     
@@ -97,9 +94,6 @@ public class PlayerViewModel : BindableBase
         AddUnitCommand = new AsyncCommand(AddUnit);
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
         SetReadyCommand = new AsyncCommand(ExecuteSetReady);
-        EditNameCommand = new AsyncCommand(()=>Task.Run(StartEditingName));
-        SaveNameCommand = new AsyncCommand(() => Task.Run(SaveName));
-        CancelEditNameCommand = new AsyncCommand(() => Task.Run(CancelEditName));
     }
 
     private Task ExecuteJoinGame()
@@ -145,7 +139,7 @@ public class PlayerViewModel : BindableBase
         return Task.CompletedTask;
     }
 
-    private void StartEditingName()
+    public void StartEditingName()
     {
         if (!CanEditName) return;
 
@@ -153,7 +147,7 @@ public class PlayerViewModel : BindableBase
         EditableName = Player.Name;
     }
 
-    private void SaveName()
+    public void SaveName()
     {
         if (string.IsNullOrWhiteSpace(EditableName))
         {
@@ -173,7 +167,7 @@ public class PlayerViewModel : BindableBase
         _onPlayerNameChanged?.Invoke(Player);
     }
 
-    private void CancelEditName()
+    public void CancelEditName()
     {
         EditableName = Player.Name;
         IsEditingName = false;

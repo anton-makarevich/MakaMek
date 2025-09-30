@@ -268,17 +268,12 @@ public class PlayerViewModelTests
         // Arrange
         var setReadyActionCalled = false;
         PlayerViewModel? passedViewModel = null;
-        
-        Action<PlayerViewModel> setReadyAction = (playerVm) => {
-            setReadyActionCalled = true;
-            passedViewModel = playerVm;
-        };
-        
+
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
             isLocalPlayer: true, 
             availableUnits: [],
-            setReadyAction: setReadyAction)
+            setReadyAction: SetReadyAction)
         {
             Player =
             {
@@ -292,6 +287,13 @@ public class PlayerViewModelTests
         // Assert
         setReadyActionCalled.ShouldBeTrue();
         passedViewModel.ShouldBe(sut);
+        return;
+
+        void SetReadyAction(PlayerViewModel playerVm)
+        {
+            setReadyActionCalled = true;
+            passedViewModel = playerVm;
+        }
     }
     
     [Fact]
@@ -299,16 +301,12 @@ public class PlayerViewModelTests
     {
         // Arrange
         var setReadyActionCalled = false;
-        
-        Action<PlayerViewModel> setReadyAction = _ => {
-            setReadyActionCalled = true;
-        };
-        
+
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
             isLocalPlayer: true, 
             availableUnits: [],
-            setReadyAction: setReadyAction)
+            setReadyAction: SetReadyAction)
         {
             Player =
             {
@@ -321,6 +319,12 @@ public class PlayerViewModelTests
     
         // Assert
         setReadyActionCalled.ShouldBeFalse();
+        return;
+
+        void SetReadyAction(PlayerViewModel _)
+        {
+            setReadyActionCalled = true;
+        }
     }
     
     [Fact]
@@ -526,7 +530,7 @@ public class PlayerViewModelTests
         var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
         
         // Act
-        sut.EditNameCommand.Execute(null);
+        sut.StartEditingName();
         
         // Assert
         sut.IsEditingName.ShouldBeTrue();
@@ -540,7 +544,7 @@ public class PlayerViewModelTests
         var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), false, []);
         
         // Act
-        sut.EditNameCommand.Execute(null);
+        sut.StartEditingName();
         
         // Assert
         sut.IsEditingName.ShouldBeFalse();
@@ -552,11 +556,11 @@ public class PlayerViewModelTests
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
         var sut = new PlayerViewModel(player, true, []);
-        sut.EditNameCommand.Execute(null);
+        sut.StartEditingName();
         sut.EditableName = "New Player Name";
         
         // Act
-        sut.SaveNameCommand.Execute(null);
+        sut.SaveName();
         
         // Assert
         sut.Name.ShouldBe("New Player Name");
@@ -570,11 +574,11 @@ public class PlayerViewModelTests
         // Arrange
         var player = new Player(Guid.NewGuid(), "Original Name");
         var sut = new PlayerViewModel(player, true, []);
-        sut.EditNameCommand.Execute(null);
+        sut.StartEditingName();
         sut.EditableName = "  "; // Whitespace name
         
         // Act
-        sut.SaveNameCommand.Execute(null);
+        sut.SaveName();
         
         // Assert
         player.Name.ShouldBe("Original Name");
@@ -589,25 +593,26 @@ public class PlayerViewModelTests
         var player = new Player(Guid.NewGuid(), "Player1");
         var nameChangedCalled = false;
         Player? playerPassed = null;
-        
-        Func<Player, Task> onNameChanged = p => 
-        {
-            nameChangedCalled = true;
-            playerPassed = p;
-            return Task.CompletedTask;
-        };
-        
-        var sut = new PlayerViewModel(player, true, [], onPlayerNameChanged: onNameChanged);
-        sut.EditNameCommand.Execute(null);
+
+        var sut = new PlayerViewModel(player, true, [], onPlayerNameChanged: OnNameChanged);
+        sut.StartEditingName();
         sut.EditableName = "New Name";
         
         // Act
-        sut.SaveNameCommand.Execute(null);
+        sut.SaveName();
         
         // Assert
         nameChangedCalled.ShouldBeTrue();
         playerPassed.ShouldBe(player);
         playerPassed?.Name.ShouldBe("New Name");
+        return;
+
+        Task OnNameChanged(Player p)
+        {
+            nameChangedCalled = true;
+            playerPassed = p;
+            return Task.CompletedTask;
+        }
     }
     
     [Fact]
@@ -615,11 +620,11 @@ public class PlayerViewModelTests
     {
         // Arrange
         var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Original Name"), true, []);
-        sut.EditNameCommand.Execute(null);
+        sut.StartEditingName();
         sut.EditableName = "Modified Name";
         
         // Act
-        sut.CancelEditNameCommand.Execute(null);
+        sut.CancelEditName();
         
         // Assert
         sut.IsEditingName.ShouldBeFalse();
