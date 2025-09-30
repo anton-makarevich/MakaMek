@@ -106,9 +106,9 @@ public class PlayerViewModel : BindableBase
         AddUnitCommand = new AsyncCommand(AddUnit);
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
         SetReadyCommand = new AsyncCommand(ExecuteSetReady);
-        EditNameCommand = new AsyncCommand(StartEditingName);
-        SaveNameCommand = new AsyncCommand(SaveName);
-        CancelEditNameCommand = new AsyncCommand(CancelEditName);
+        EditNameCommand = new AsyncCommand(()=>Task.Run(StartEditingName));
+        SaveNameCommand = new AsyncCommand(() => Task.Run(SaveName));
+        CancelEditNameCommand = new AsyncCommand(() => Task.Run(CancelEditName));
     }
 
     private Task ExecuteJoinGame()
@@ -154,23 +154,22 @@ public class PlayerViewModel : BindableBase
         return Task.CompletedTask;
     }
 
-    private Task StartEditingName()
+    private void StartEditingName()
     {
-        if (!CanEditName) return Task.CompletedTask;
+        if (!CanEditName) return;
 
         IsEditingName = true;
         EditableName = Player.Name;
-        return Task.CompletedTask;
     }
 
-    private Task SaveName()
+    private void SaveName()
     {
         if (string.IsNullOrWhiteSpace(EditableName))
         {
             // Don't allow empty names
             EditableName = Player.Name;
             IsEditingName = false;
-            return Task.CompletedTask;
+            return;
         }
 
         // Create a new Player instance with the updated name
@@ -184,15 +183,12 @@ public class PlayerViewModel : BindableBase
 
         // Notify parent that the player name changed
         _onPlayerNameChanged?.Invoke(updatedPlayer);
-
-        return Task.CompletedTask;
     }
 
-    private Task CancelEditName()
+    private void CancelEditName()
     {
         EditableName = Player.Name;
         IsEditingName = false;
-        return Task.CompletedTask;
     }
 
     public void AddUnits(IEnumerable<UnitData> unitsToAdd, List<PilotAssignmentData> pilotAssignments)
