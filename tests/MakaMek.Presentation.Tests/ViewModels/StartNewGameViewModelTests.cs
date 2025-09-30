@@ -1,6 +1,9 @@
+using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
@@ -30,77 +33,77 @@ public class StartNewGameViewModelTests
     private readonly StartNewGameViewModel _sut;
     private readonly INavigationService _navigationService;
     private readonly BattleMapViewModel _battleMapViewModel;
-    private readonly IGameManager _gameManager;
-    private readonly ICommandPublisher _commandPublisher;
-    private readonly ClientGame _clientGame; 
+    private readonly IGameManager _gameManager = Substitute.For<IGameManager>();
+    private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
+    private readonly ClientGame _clientGame;
     private readonly Guid _serverGameId = Guid.NewGuid();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
     private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
+    private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
+    private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
+    private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
+    private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
+    private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
+    private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
+    private readonly IGameFactory _gameFactory = Substitute.For<IGameFactory>();
+    private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
 
     public StartNewGameViewModelTests()
     {
         _navigationService = Substitute.For<INavigationService>();
         var localizationService = Substitute.For<ILocalizationService>();
         var imageService = Substitute.For<IImageService>();
-        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
+        _battleMapViewModel =
+            new BattleMapViewModel(imageService, localizationService, Substitute.For<IDispatcherService>());
         _navigationService.GetViewModel<BattleMapViewModel>().Returns(_battleMapViewModel);
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
-        
-        var rulesProvider = new ClassicBattletechRulesProvider(); 
-        _gameManager = Substitute.For<IGameManager>();
-        _commandPublisher = Substitute.For<ICommandPublisher>(); 
-        var toHitCalculator = Substitute.For<IToHitCalculator>(); 
-        var pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>(); 
-        var consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
-        var heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
-        var dispatcherService = Substitute.For<IDispatcherService>(); 
-        var gameFactory = Substitute.For<IGameFactory>(); 
-        var mapFactory = Substitute.For<IBattleMapFactory>();
 
-        _clientGame = new ClientGame(rulesProvider,
+
+
+        _clientGame = new ClientGame(_rulesProvider,
             _mechFactory,
             _commandPublisher,
-            toHitCalculator,
-            pilotingSkillCalculator,
-            consciousnessCalculator,
-            heatEffectsCalculator,
-            mapFactory); 
-        gameFactory.CreateClientGame(rulesProvider,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _mapFactory);
+        _gameFactory.CreateClientGame(_rulesProvider,
                 _mechFactory,
                 _commandPublisher,
-                toHitCalculator,
-                pilotingSkillCalculator,
-                consciousnessCalculator,
-                heatEffectsCalculator,
-                mapFactory)
-                    .Returns(_clientGame);
-        
+                _toHitCalculator,
+                _pilotingSkillCalculator,
+                _consciousnessCalculator,
+                _heatEffectsCalculator,
+                _mapFactory)
+            .Returns(_clientGame);
+
         // Set up server game ID
         _gameManager.ServerGameId.Returns(_serverGameId);
 
         var map = BattleMapTests.BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
-        mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>()).Returns(map);
-        mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+        _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>()).Returns(map);
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
 
-        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
-        
+        _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
+
         _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
 
         _sut = new StartNewGameViewModel(
             _gameManager,
             _unitsLoader,
-            rulesProvider,
+            _rulesProvider,
             _mechFactory,
             _commandPublisher,
-            toHitCalculator,
-            pilotingSkillCalculator,
-            consciousnessCalculator,
-            heatEffectsCalculator,
-            dispatcherService,
-            gameFactory,
-            mapFactory,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _dispatcherService,
+            _gameFactory,
+            _mapFactory,
             _cachingService);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
@@ -114,8 +117,8 @@ public class StartNewGameViewModelTests
         _sut.ForestCoverage.ShouldBe(20);
         _sut.LightWoodsPercentage.ShouldBe(30);
         _sut.IsLightWoodsEnabled.ShouldBeTrue();
-        _sut.ServerIpAddress.ShouldBe("LAN Disabled..."); 
-        _sut.CanPublishCommands.ShouldBeTrue(); 
+        _sut.ServerIpAddress.ShouldBe("LAN Disabled...");
+        _sut.CanPublishCommands.ShouldBeTrue();
     }
 
     [Theory]
@@ -132,11 +135,11 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_NavigatesToBattleMap()
     {
-        await _sut.InitializeLobbyAndSubscribe(); 
+        await _sut.InitializeLobbyAndSubscribe();
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
-        _battleMapViewModel.Game.ShouldBe(_clientGame); 
+        _battleMapViewModel.Game.ShouldBe(_clientGame);
     }
 
     [Fact]
@@ -152,14 +155,14 @@ public class StartNewGameViewModelTests
     [Fact]
     public async Task StartGameCommand_ShouldSetBattleMap()
     {
-        await _sut.InitializeLobbyAndSubscribe(); 
- 
+        await _sut.InitializeLobbyAndSubscribe();
+
         await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
         _gameManager.Received(1).SetBattleMap(Arg.Any<BattleMap>());
     }
-    
+
     [Fact]
     public void AddPlayer_ShouldAddPlayer_WhenLessThanFourPlayers()
     {
@@ -178,14 +181,15 @@ public class StartNewGameViewModelTests
         {
             _sut.AddPlayerCommand!.Execute(null);
         }
+
         var initialPlayerCount = _sut.Players.Count;
 
         _sut.AddPlayerCommand!.Execute(null);
 
-        _sut.Players.Count.ShouldBe(initialPlayerCount); 
+        _sut.Players.Count.ShouldBe(initialPlayerCount);
         _sut.CanAddPlayer.ShouldBeFalse();
     }
-    
+
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenNoPlayers()
     {
@@ -197,7 +201,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenPlayersHaveNoUnits()
     {
-        _sut.AddPlayerCommand!.Execute(null); 
+        _sut.AddPlayerCommand!.Execute(null);
 
         var result = _sut.CanStartGame;
 
@@ -211,12 +215,12 @@ public class StartNewGameViewModelTests
         _sut.AddPlayerCommand!.Execute(null);
         _sut.Players.First().SelectedUnit = units.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
-    
+
         var result = _sut.CanStartGame;
-    
+
         result.ShouldBeFalse();
     }
-    
+
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenPlayersHaveUnits_AndPlayerHasJoined()
     {
@@ -224,53 +228,53 @@ public class StartNewGameViewModelTests
         _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
         _sut.Players.First().Player.Status = PlayerStatus.Joined;
-    
+
         var result = _sut.CanStartGame;
-    
+
         result.ShouldBeFalse();
     }
-    
+
     [Fact]
     public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits_AndPlayerIsReady()
     {
         _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
         _sut.Players.First().Player.Status = PlayerStatus.Ready;
-    
+
         var result = _sut.CanStartGame;
 
         result.ShouldBeTrue();
     }
-    
+
     [Fact]
     public void CanStartGame_ShouldBeFalse_WhenOnePlayerHasNoUnits()
     {
-        _sut.AddPlayerCommand!.Execute(null); 
-        _sut.AddPlayerCommand!.Execute(null); 
+        _sut.AddPlayerCommand!.Execute(null);
+        _sut.AddPlayerCommand!.Execute(null);
         _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
-    
+
         var result = _sut.CanStartGame;
-    
+
         result.ShouldBeFalse();
     }
-    
+
     [Fact]
     public void CanStartLanServer_Getter_ReturnsValueFromGameManager()
     {
         _gameManager.CanStartLanServer.Returns(true);
-        
+
         _sut.CanStartLanServer.ShouldBeTrue();
-        
+
         _gameManager.CanStartLanServer.Returns(false);
-        
+
         _sut.CanStartLanServer.ShouldBeFalse();
     }
-    
+
     [Fact]
     public async Task HandleServerCommand_JoinGameCommand_AddsRemotePlayer()
     {
-        await _sut.InitializeLobbyAndSubscribe(); 
+        await _sut.InitializeLobbyAndSubscribe();
         var playerId = Guid.NewGuid();
         const string playerName = "RemotePlayer";
         const string playerTint = "#00FF00";
@@ -285,7 +289,7 @@ public class StartNewGameViewModelTests
             PilotAssignments = []
         };
 
-        _sut.HandleServerCommand(joinCommand); 
+        _sut.HandleServerCommand(joinCommand);
 
         var addedPlayerVm = _sut.Players.FirstOrDefault(p => p.Player.Id == playerId);
         addedPlayerVm.ShouldNotBeNull();
@@ -295,23 +299,23 @@ public class StartNewGameViewModelTests
         addedPlayerVm.Units.Count.ShouldBe(units.Count);
         addedPlayerVm.Units.First().Id.ShouldBe(units.First().Id);
     }
-    
+
     [Fact]
     public async Task PublishJoinCommand_ForLocalPlayer_CallsJoinGameWithUnitsOnClientGame()
     {
-        await _sut.InitializeLobbyAndSubscribe(); 
+        await _sut.InitializeLobbyAndSubscribe();
 
-        _sut.AddPlayerCommand!.Execute(null); 
+        _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
-        localPlayerVm.AddUnitCommand.Execute(null); 
+        localPlayerVm.AddUnitCommand.Execute(null);
         localPlayerVm.JoinGameCommand.Execute(null);
-        
+
         _commandPublisher.Received().PublishCommand(Arg.Any<JoinGameCommand>());
         localPlayerVm.Player.Status = PlayerStatus.Joined;
-        _sut.CanStartGame.ShouldBeFalse(); 
+        _sut.CanStartGame.ShouldBeFalse();
     }
-    
+
     [Theory]
     [InlineData("http://192.168.1.100:5000", "192.168.1.100")]
     [InlineData(null, "LAN Disabled...")]
@@ -333,26 +337,26 @@ public class StartNewGameViewModelTests
 
         _gameManager.Received(1).Dispose();
     }
-    
+
     [Fact]
     public async Task HandleServerCommand_JoinGameCommand_ShouldUpdateLocalPlayerStatus_WhenReceivedFromServer()
     {
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
-        
+
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
-        
+
         // Set player status to JoinRequested
         localPlayerVm.Player.Status = PlayerStatus.Joining;
-        
+
         // Create a join command that appears to come from the server
         var serverGameId = Guid.NewGuid();
         _gameManager.ServerGameId.Returns(serverGameId);
-        
+
         var joinCommand = new JoinGameCommand
         {
             PlayerId = localPlayerVm.Player.Id,
@@ -362,34 +366,34 @@ public class StartNewGameViewModelTests
             GameOriginId = serverGameId, // This makes it look like it came from the server
             PilotAssignments = []
         };
-        
+
         // Act
         _sut.HandleServerCommand(joinCommand);
-        
+
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Joined);
     }
-    
+
     [Fact]
     public async Task HandleServerCommand_JoinGameCommand_ShouldNotUpdateLocalPlayerStatus_WhenNotFromServer()
     {
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
-        
+
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
-        
+
         // Set player status to JoinRequested
         localPlayerVm.Player.Status = PlayerStatus.Joining;
-        
+
         // Create a join command that appears to come from a client (not the server)
         var serverGameId = Guid.NewGuid();
         var clientGameId = Guid.NewGuid();
         _gameManager.ServerGameId.Returns(serverGameId);
-        
+
         var joinCommand = new JoinGameCommand
         {
             PlayerId = localPlayerVm.Player.Id,
@@ -399,48 +403,48 @@ public class StartNewGameViewModelTests
             GameOriginId = clientGameId, // Different from server ID
             PilotAssignments = []
         };
-        
+
         // Act
         _sut.HandleServerCommand(joinCommand);
-        
+
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Joining); // Status should not change
     }
-    
+
     [Fact]
     public async Task ExecuteJoinGame_ShouldSetPlayerStatusToJoinRequested()
     {
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
-        
+
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
-        
+
         // Initial status should be NotJoined
         localPlayerVm.Status.ShouldBe(PlayerStatus.NotJoined);
-        
+
         // Act
         localPlayerVm.JoinGameCommand.Execute(null);
-        
+
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Joining);
     }
-    
+
     [Fact]
     public async Task ExecuteSetReady_ShouldCallSetPlayerReadyOnClientGame()
     {
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
-        
+
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
-        
+
         // Set player status to Joined so they can set ready
         localPlayerVm.Player.Status = PlayerStatus.Joined;
         localPlayerVm.RefreshStatus();
@@ -455,23 +459,24 @@ public class StartNewGameViewModelTests
             GameOriginId = Guid.NewGuid(),
             PilotAssignments = []
         });
-        
+
         // Act
         localPlayerVm.SetReadyCommand.Execute(null);
-        
+
         // Assert - verify the command was published with correct parameters
-        _commandPublisher.Received().PublishCommand(Arg.Is<UpdatePlayerStatusCommand>(cmd => 
-            cmd.PlayerId == localPlayerVm.Player.Id && 
-            cmd.PlayerStatus == PlayerStatus.Ready && 
+        _commandPublisher.Received().PublishCommand(Arg.Is<UpdatePlayerStatusCommand>(cmd =>
+            cmd.PlayerId == localPlayerVm.Player.Id &&
+            cmd.PlayerStatus == PlayerStatus.Ready &&
             cmd.GameOriginId == _clientGame.Id));
     }
-    
+
     [Fact]
-    public async Task HandleServerCommand_UpdatePlayerStatusCommand_ShouldUpdateLocalPlayerStatus_WhenReceivedFromServer()
+    public async Task
+        HandleServerCommand_UpdatePlayerStatusCommand_ShouldUpdateLocalPlayerStatus_WhenReceivedFromServer()
     {
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
-        
+
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
@@ -479,7 +484,7 @@ public class StartNewGameViewModelTests
         // Set player status to Joined
         localPlayerVm.Player.Status = PlayerStatus.Joined;
         localPlayerVm.RefreshStatus();
-        
+
         // Create a status update command that appears to come from the server
         var statusCommand = new UpdatePlayerStatusCommand
         {
@@ -487,31 +492,31 @@ public class StartNewGameViewModelTests
             PlayerStatus = PlayerStatus.Ready,
             GameOriginId = _serverGameId // This makes it look like it came from the server
         };
-        
+
         // Act
         _sut.HandleServerCommand(statusCommand);
-        
+
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Ready);
         _sut.CanStartGame.ShouldBeTrue(); // With one ready player, the game should be able to start
     }
-    
+
     [Fact]
     public async Task HandleServerCommand_UpdatePlayerStatusCommand_ShouldNotUpdateLocalPlayerStatus_WhenNotFromServer()
     {
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
-        
+
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
-        
+
         // Set player status to Joined
         localPlayerVm.Player.Status = PlayerStatus.Joined;
         localPlayerVm.RefreshStatus();
-        
+
         // Create a status update command that appears to come from a client (not the server)
         var clientGameId = Guid.NewGuid();
         var statusCommand = new UpdatePlayerStatusCommand
@@ -520,21 +525,21 @@ public class StartNewGameViewModelTests
             PlayerStatus = PlayerStatus.Ready,
             GameOriginId = clientGameId // Different from server ID
         };
-        
+
         // Act
         _sut.HandleServerCommand(statusCommand);
-        
+
         // Assert
         localPlayerVm.Status.ShouldBe(PlayerStatus.Joined); // Status should not change
         _sut.CanStartGame.ShouldBeFalse(); // Game should not be able to start
     }
-    
+
     [Fact]
     public async Task CanStartGame_ShouldBeTrue_WhenAllPlayersAreReady()
     {
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
-        
+
         // two players
         // first player is already added
         var player1 = _sut.Players.First();
@@ -546,43 +551,193 @@ public class StartNewGameViewModelTests
         var player2 = _sut.Players.Last();
         player2.SelectedUnit = _sut.AvailableUnits.First();
         player2.AddUnitCommand.Execute(null);
-        
+
         // Set both players to Ready
         player1.Player.Status = PlayerStatus.Ready;
         player1.RefreshStatus();
         player2.Player.Status = PlayerStatus.Ready;
         player2.RefreshStatus();
-        
+
         // Assert
         _sut.CanStartGame.ShouldBeTrue();
     }
-    
+
     [Fact]
     public async Task CanStartGame_ShouldBeFalse_WhenSomePlayersAreNotReady()
     {
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
-        
+
         // Add two players
         // Add first player
         _sut.AddPlayerCommand!.Execute(null);
         var player1 = _sut.Players.First();
         player1.SelectedUnit = _sut.AvailableUnits.First();
         player1.AddUnitCommand.Execute(null);
-        
+
         // Add a second player
         _sut.AddPlayerCommand!.Execute(null);
         var player2 = _sut.Players.Last();
         player2.SelectedUnit = _sut.AvailableUnits.First();
         player2.AddUnitCommand.Execute(null);
-        
+
         // Set only one player to Ready
         player1.Player.Status = PlayerStatus.Ready;
         player1.RefreshStatus();
         player2.Player.Status = PlayerStatus.Joined; // Not ready
         player2.RefreshStatus();
-        
+
         // Assert
         _sut.CanStartGame.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AddDefaultPlayer_ShouldAddDefaultPlayer()
+    {
+        // Assert
+        _sut.Players.Count.ShouldBe(1);
+        _sut.Players.First().Player.Name.ShouldStartWith("Player");
+        _sut.Players.First().Player.Tint.ShouldBe("#FFFFFF");
+    }
+
+    [Fact]
+    public void AddDefaultPlayer_ShouldLoadCachedPlayer_WhenAvailable()
+    {
+        // Arrange
+        var defaultPlayerData = PlayerData.CreateDefault() with { Name = "Cached Player" };
+        _cachingService.TryGetCachedFile("DefaultPlayer")
+            .Returns(JsonSerializer.SerializeToUtf8Bytes(defaultPlayerData));
+        var sut = new StartNewGameViewModel(
+            _gameManager,
+            _unitsLoader,
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _dispatcherService,
+            _gameFactory,
+            _mapFactory,
+            _cachingService); 
+        sut.AttachHandlers();
+
+        // Assert
+        sut.Players.Count.ShouldBe(1);
+        sut.Players.First().Player.Name.ShouldBe("Cached Player");
+    }
+
+    [Fact]
+    public void AddDefaultPlayer_ShouldSavePlayerToCache()
+    {
+        // Assert
+        _cachingService.Received().SaveToCache("DefaultPlayer", Arg.Any<byte[]>());
+    }
+    
+    [Fact]
+    public void OnDefaultPlayerNameChanged_ShouldSavePlayerToCache()
+    {
+        // Arrange
+        var defaultPlayerData = PlayerData.CreateDefault() with { Name = "Cached Player" };
+        _cachingService.TryGetCachedFile("DefaultPlayer")
+            .Returns(JsonSerializer.SerializeToUtf8Bytes(defaultPlayerData));
+        var sut = new StartNewGameViewModel(
+            _gameManager,
+            _unitsLoader,
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _dispatcherService,
+            _gameFactory,
+            _mapFactory,
+            _cachingService); 
+        sut.AttachHandlers();
+
+        // Act
+        sut.Players.First().SaveName();
+
+        // Assert
+        _cachingService.Received(2).SaveToCache("DefaultPlayer", Arg.Any<byte[]>());
+    }
+
+    [Fact]
+    public void AddDefaultPlayer_ShouldPrintLogError_WhenCacheLoadFails()
+    {
+        // Arrange
+        _cachingService.TryGetCachedFile("DefaultPlayer").Throws(new Exception("Cache load failed"));
+        var originalOut = Console.Out;
+        using var stringWriter = new StringWriter();
+        Console.SetOut(stringWriter);
+        try
+        {
+            // Act
+            var sut = new StartNewGameViewModel(
+                _gameManager,
+                _unitsLoader,
+                _rulesProvider,
+                _mechFactory,
+                _commandPublisher,
+                _toHitCalculator,
+                _pilotingSkillCalculator,
+                _consciousnessCalculator,
+                _heatEffectsCalculator,
+                _dispatcherService,
+                _gameFactory,
+                _mapFactory,
+                _cachingService); 
+            sut.AttachHandlers();
+
+            // Assert
+            var output = stringWriter.ToString();
+            output.ShouldContain("Error loading default player from cache: Cache load failed");
+        }
+        finally
+        {
+            // Restore original console output
+            Console.SetOut(originalOut);
+        }
+    }
+    
+    [Fact]
+    public void AddDefaultPlayer_ShouldPrintLogError_WhenCacheSaveFails()
+    {
+        // Arrange
+        _cachingService.SaveToCache("DefaultPlayer", Arg.Any<byte[]>()).Throws(new Exception("Cache save failed"));
+        var originalOut = Console.Out;
+        using var stringWriter = new StringWriter();
+        Console.SetOut(stringWriter);
+        try
+        {
+            // Act
+            var sut = new StartNewGameViewModel(
+                _gameManager,
+                _unitsLoader,
+                _rulesProvider,
+                _mechFactory,
+                _commandPublisher,
+                _toHitCalculator,
+                _pilotingSkillCalculator,
+                _consciousnessCalculator,
+                _heatEffectsCalculator,
+                _dispatcherService,
+                _gameFactory,
+                _mapFactory,
+                _cachingService); 
+            sut.AttachHandlers();
+
+            // Assert
+            var output = stringWriter.ToString();
+            output.ShouldContain("Error saving default player to cache: Cache save failed");
+        }
+        finally
+        {
+            // Restore original console output
+            Console.SetOut(originalOut);
+        }
     }
 }
