@@ -41,12 +41,13 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IHeatEffectsCalculator heatEffectsCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
-        IBattleMapFactory mapFactory)
+        IBattleMapFactory mapFactory,
+        IFileCachingService cachingService)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
            pilotingSkillCalculator,
            consciousnessCalculator,
            heatEffectsCalculator,
-            dispatcherService, gameFactory)
+            dispatcherService, gameFactory, cachingService)
     {
         _gameManager = gameManager;
         _mechFactory = mechFactory;
@@ -220,7 +221,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _availableUnits,
             PublishJoinCommand,
             PublishSetReadyCommand,
-            () => NotifyPropertyChanged(nameof(CanStartGame)));
+            () => NotifyPropertyChanged(nameof(CanStartGame)),
+            OnDefaultPlayerNameChanged);
     }
     
     // Override the base AddPlayer to add additional notification

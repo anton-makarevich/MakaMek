@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using System.Windows.Input;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -30,10 +32,13 @@ public abstract class NewGameViewModel : BaseViewModel
     protected readonly IHeatEffectsCalculator _heatEffectsCalculator;
     private readonly IDispatcherService _dispatcherService;
     protected readonly IGameFactory _gameFactory;
-    
+    private readonly IFileCachingService _cachingService;
+
     protected ClientGame? _localGame;
-    
+
     public ICommand? AddPlayerCommand { get; protected set; }
+
+    private const string DefaultPlayerCacheKey = "DefaultPlayer";
 
     protected NewGameViewModel(IRulesProvider rulesProvider,
         IUnitsLoader unitsLoader,
@@ -43,7 +48,8 @@ public abstract class NewGameViewModel : BaseViewModel
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
         IDispatcherService dispatcherService,
-        IGameFactory gameFactory)
+        IGameFactory gameFactory,
+        IFileCachingService cachingService)
     {
         _rulesProvider = rulesProvider;
         _unitsLoader = unitsLoader;
@@ -54,6 +60,7 @@ public abstract class NewGameViewModel : BaseViewModel
         _heatEffectsCalculator = heatEffectsCalculator;
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
+        _cachingService = cachingService;
     }
 
     // Common command handlers with template method pattern
@@ -124,27 +131,111 @@ public abstract class NewGameViewModel : BaseViewModel
     {
         if (!CanAddPlayer) return Task.CompletedTask;
 
+        // Generate random 4-digit number for player name
+        var random = new Random();
+        var randomDigits = random.Next(0, 10000).ToString("D4");
+
         // Create Local Player Object
-        var newPlayer = new Player(Guid.NewGuid(), $"Player {_players.Count + 1}", GetNextTilt());
-        
+        var newPlayer = new Player(Guid.NewGuid(), $"Player {randomDigits}", GetNextTilt());
+
         // Create Local ViewModel Wrapper with customizable callbacks
         var playerViewModel = CreatePlayerViewModel(newPlayer);
-        
+
         // Add to Local UI Collection
         _players.Add(playerViewModel);
         NotifyPropertyChanged(nameof(CanAddPlayer));
-        
+
         return Task.CompletedTask;
     }
 
     // Template method for creating player view models with appropriate callbacks
     protected abstract PlayerViewModel CreatePlayerViewModel(Player player);
 
-    public override async void AttachHandlers()
+    /// <summary>
+    /// Loads or creates the default player from cache
+    /// </summary>
+    private async Task<Player> LoadOrCreateDefaultPlayer()
+    {
+        try
+        {
+            var cachedData = await _cachingService.TryGetCachedFile(DefaultPlayerCacheKey);
+            if (cachedData != null)
+            {
+                var json = System.Text.Encoding.UTF8.GetString(cachedData);
+                var playerData = JsonSerializer.Deserialize<PlayerData>(json);
+                return new Player(playerData);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading default player from cache: {ex.Message}");
+        }
+
+        // Create new default player if cache load failed
+        var defaultPlayerData = PlayerData.CreateDefault();
+        var defaultPlayer = new Player(defaultPlayerData);
+        await SaveDefaultPlayer(defaultPlayer);
+        return defaultPlayer;
+    }
+
+    /// <summary>
+    /// Saves the default player to cache
+    /// </summary>
+    private async Task SaveDefaultPlayer(Player player)
+    {
+        try
+        {
+            var playerData = player.ToData();
+            var json = JsonSerializer.Serialize(playerData);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            await _cachingService.SaveToCache(DefaultPlayerCacheKey, bytes);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving default player to cache: {ex.Message}");
+        }
+    }
+
+    public override void AttachHandlers()
     {
         base.AttachHandlers();
-        _availableUnits = await _unitsLoader.LoadUnits();
+        _ = LoadAvailableUnits();
+
+        // Auto-add default player
+        _ = AddDefaultPlayer();
     }
     
+    private async Task LoadAvailableUnits()
+    {
+        _availableUnits = await _unitsLoader.LoadUnits();
+    }
+
+    /// <summary>
+    /// Adds the default player automatically when the view loads
+    /// </summary>
+    private async Task AddDefaultPlayer()
+    {
+        if (!CanAddPlayer) return;
+
+        // Load or create default player
+        var defaultPlayer = await LoadOrCreateDefaultPlayer();
+
+        // Create ViewModel - derived classes will handle the name change callback
+        var playerViewModel = CreatePlayerViewModel(defaultPlayer);
+
+        // Add to collection
+        _players.Add(playerViewModel);
+        NotifyPropertyChanged(nameof(CanAddPlayer));
+    }
+
+    /// <summary>
+    /// Handles player name changes for the default player
+    /// </summary>
+    protected async Task OnDefaultPlayerNameChanged(Player updatedPlayer)
+    {
+        // Save the updated player to cache
+        await SaveDefaultPlayer(updatedPlayer);
+    }
+
     public List<UnitData> AvailableUnits => _availableUnits.ToList();
 }

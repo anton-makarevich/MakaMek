@@ -14,23 +14,55 @@ public class PlayerViewModel : BindableBase
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
+    private bool _isEditingName;
+    private string _editableName;
+    private Player _player;
+    private readonly Func<Player, Task>? _onPlayerNameChanged;
 
-    public Player Player { get; }
+    public Player Player
+    {
+        get => _player;
+        private set
+        {
+            _player = value;
+            _editableName = value.Name;
+            NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(Name));
+            NotifyPropertyChanged(nameof(EditableName));
+        }
+    }
+
     public bool IsLocalPlayer { get; }
-    
+
     public PlayerStatus Status => Player.Status;
 
     public ObservableCollection<UnitData> Units { get; }
     public ObservableCollection<UnitData> AvailableUnits { get; }
-    
+
     public UnitData? SelectedUnit
     {
         get => _selectedUnit;
         set
         {
-            SetProperty(ref _selectedUnit, value); 
+            SetProperty(ref _selectedUnit, value);
             NotifyPropertyChanged(nameof(CanAddUnit));
         }
+    }
+
+    public bool IsEditingName
+    {
+        get => _isEditingName;
+        set
+        {
+            SetProperty(ref _isEditingName, value);
+            NotifyPropertyChanged(nameof(CanEditName));
+        }
+    }
+
+    public string EditableName
+    {
+        get => _editableName;
+        set => SetProperty(ref _editableName, value);
     }
 
     public void RefreshStatus()
@@ -40,33 +72,43 @@ public class PlayerViewModel : BindableBase
         NotifyPropertyChanged(nameof(CanJoin));
         NotifyPropertyChanged(nameof(CanSetReady));
         NotifyPropertyChanged(nameof(CanSelectUnit));
+        NotifyPropertyChanged(nameof(CanEditName));
     }
 
     public ICommand AddUnitCommand { get; }
     public ICommand JoinGameCommand { get; }
     public ICommand SetReadyCommand { get; }
+    public ICommand EditNameCommand { get; }
+    public ICommand SaveNameCommand { get; }
+    public ICommand CancelEditNameCommand { get; }
 
     public string Name => Player.Name;
     
     public PlayerViewModel(
-        Player player, 
-        bool isLocalPlayer, 
-        IEnumerable<UnitData> availableUnits, 
-        Action<PlayerViewModel>? joinGameAction = null, 
+        Player player,
+        bool isLocalPlayer,
+        IEnumerable<UnitData> availableUnits,
+        Action<PlayerViewModel>? joinGameAction = null,
         Action<PlayerViewModel>? setReadyAction = null,
-        Action? onUnitChanged = null) 
+        Action? onUnitChanged = null,
+        Func<Player, Task>? onPlayerNameChanged = null)
     {
-        Player = player;
+        _player = player;
+        _editableName = player.Name;
         IsLocalPlayer = isLocalPlayer;
         _joinGameAction = joinGameAction;
         _setReadyAction = setReadyAction;
         _onUnitChanged = onUnitChanged;
-        
+        _onPlayerNameChanged = onPlayerNameChanged;
+
         Units = [];
         AvailableUnits = new ObservableCollection<UnitData>(availableUnits);
         AddUnitCommand = new AsyncCommand(AddUnit);
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
         SetReadyCommand = new AsyncCommand(ExecuteSetReady);
+        EditNameCommand = new AsyncCommand(StartEditingName);
+        SaveNameCommand = new AsyncCommand(SaveName);
+        CancelEditNameCommand = new AsyncCommand(CancelEditName);
     }
 
     private Task ExecuteJoinGame()
@@ -88,8 +130,10 @@ public class PlayerViewModel : BindableBase
     }
     
     public bool CanAddUnit => IsLocalPlayer && SelectedUnit != null && Status == PlayerStatus.NotJoined;
-    
+
     public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
+
+    public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     private Task AddUnit()
     {
@@ -107,6 +151,47 @@ public class PlayerViewModel : BindableBase
         _onUnitChanged?.Invoke();
         SelectedUnit = null;
         (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task StartEditingName()
+    {
+        if (!CanEditName) return Task.CompletedTask;
+
+        IsEditingName = true;
+        EditableName = Player.Name;
+        return Task.CompletedTask;
+    }
+
+    private Task SaveName()
+    {
+        if (string.IsNullOrWhiteSpace(EditableName))
+        {
+            // Don't allow empty names
+            EditableName = Player.Name;
+            IsEditingName = false;
+            return Task.CompletedTask;
+        }
+
+        // Create a new Player instance with the updated name
+        var updatedPlayer = new Player(Player.Id, EditableName.Trim(), Player.Tint)
+        {
+            Status = Player.Status
+        };
+
+        Player = updatedPlayer;
+        IsEditingName = false;
+
+        // Notify parent that the player name changed
+        _onPlayerNameChanged?.Invoke(updatedPlayer);
+
+        return Task.CompletedTask;
+    }
+
+    private Task CancelEditName()
+    {
+        EditableName = Player.Name;
+        IsEditingName = false;
         return Task.CompletedTask;
     }
 

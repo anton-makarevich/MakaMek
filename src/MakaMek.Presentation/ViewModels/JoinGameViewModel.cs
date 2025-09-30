@@ -36,12 +36,13 @@ public class JoinGameViewModel : NewGameViewModel
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         ITransportFactory transportFactory,
-        IBattleMapFactory mapFactory)
+        IBattleMapFactory mapFactory,
+        IFileCachingService cachingService)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
-            dispatcherService, gameFactory)
+            dispatcherService, gameFactory, cachingService)
     {
         _mechFactory = mechFactory;
         _transportFactory = transportFactory;
@@ -180,7 +181,9 @@ public class JoinGameViewModel : NewGameViewModel
             isLocalPlayer: true,
             _availableUnits,
             PublishJoinCommand,
-            PublishSetReadyCommand);
+            PublishSetReadyCommand,
+            null,
+            OnDefaultPlayerNameChanged);
     }
 
     // Implementation of abstract property from base class

@@ -15,10 +15,37 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border Classes="card" Margin="0,5">
-                        <Grid ColumnDefinitions="*,*" 
+                        <Grid ColumnDefinitions="*,*"
                               RowDefinitions="Auto,*">
                             <StackPanel Grid.Row="0" Grid.Column="0" Classes="verticalSpaced" Margin="10,5">
-                                <TextBlock Text="{Binding Name}" Classes="h3" />
+                                <!-- Player Name with Edit Functionality -->
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock Text="{Binding Name}"
+                                               Classes="h3"
+                                               IsVisible="{Binding !IsEditingName}"/>
+                                    <TextBox Text="{Binding EditableName, Mode=TwoWay}"
+                                             IsVisible="{Binding IsEditingName}"
+                                             MinWidth="150"/>
+                                    <Button Content="✏️"
+                                            Command="{Binding EditNameCommand}"
+                                            IsVisible="{Binding !IsEditingName}"
+                                            IsEnabled="{Binding CanEditName}"
+                                            ToolTip.Tip="Edit player name"
+                                            Classes="secondary"
+                                            Padding="5,2"/>
+                                    <Button Content="✓"
+                                            Command="{Binding SaveNameCommand}"
+                                            IsVisible="{Binding IsEditingName}"
+                                            ToolTip.Tip="Save name"
+                                            Classes="primary"
+                                            Padding="5,2"/>
+                                    <Button Content="✗"
+                                            Command="{Binding CancelEditNameCommand}"
+                                            IsVisible="{Binding IsEditingName}"
+                                            ToolTip.Tip="Cancel"
+                                            Classes="secondary"
+                                            Padding="5,2"/>
+                                </StackPanel>
                                 <TextBlock Text="Available Units:" Classes="label" Margin="5"/>
                                 <ComboBox 
                                     IsVisible="{Binding IsLocalPlayer}"

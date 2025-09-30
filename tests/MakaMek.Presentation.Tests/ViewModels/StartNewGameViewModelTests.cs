@@ -36,6 +36,7 @@ public class StartNewGameViewModelTests
     private readonly Guid _serverGameId = Guid.NewGuid();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
+    private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
 
     public StartNewGameViewModelTests()
     {
@@ -84,20 +85,23 @@ public class StartNewGameViewModelTests
         mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
 
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
+        
+        _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
 
         _sut = new StartNewGameViewModel(
             _gameManager,
             _unitsLoader,
-            rulesProvider, 
+            rulesProvider,
             _mechFactory,
-            _commandPublisher, 
-            toHitCalculator, 
+            _commandPublisher,
+            toHitCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
-            dispatcherService, 
+            dispatcherService,
             gameFactory,
-            mapFactory); 
+            mapFactory,
+            _cachingService);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -235,7 +239,7 @@ public class StartNewGameViewModelTests
         _sut.Players.First().Player.Status = PlayerStatus.Ready;
     
         var result = _sut.CanStartGame;
-    
+
         result.ShouldBeTrue();
     }
     
@@ -474,7 +478,7 @@ public class StartNewGameViewModelTests
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
-        
+
         // Set player status to Joined
         localPlayerVm.Player.Status = PlayerStatus.Joined;
         localPlayerVm.RefreshStatus();
@@ -540,7 +544,7 @@ public class StartNewGameViewModelTests
         var player1 = _sut.Players.First();
         player1.SelectedUnit = _sut.AvailableUnits.First();
         player1.AddUnitCommand.Execute(null);
-        
+
         // Add a second player
         _sut.AddPlayerCommand!.Execute(null);
         var player2 = _sut.Players.Last();
