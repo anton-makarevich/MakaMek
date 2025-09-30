@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Players;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -73,6 +74,29 @@ public class PlayerTests
     }
     
     [Fact]
+    public void Constructor_WithPlayerData_ShouldInitializeProperties()
+    {
+        // Arrange
+        var playerData = new PlayerData
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Player From Data",
+            Tint = "#00FF00"
+        };
+        
+        // Act
+        var player = new Player(playerData);
+        
+        // Assert
+        player.Id.ShouldBe(playerData.Id);
+        player.Name.ShouldBe(playerData.Name);
+        player.Tint.ShouldBe(playerData.Tint);
+        player.Status.ShouldBe(PlayerStatus.NotJoined);
+        player.Units.ShouldBeEmpty();
+        player.CanAct.ShouldBeFalse();
+    }
+
+    [Fact]
     public void AddUnit_ShouldAddUnitToCollection()
     {
         // Arrange
@@ -119,16 +143,29 @@ public class PlayerTests
     public void Status_ShouldBeSettable()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Test Player")
-        {
-            // Act
-            Status = PlayerStatus.Joined
-        };
-
+        var player = new Player(Guid.NewGuid(), "Test Player");
+        
+        // Act
+        player.Status = PlayerStatus.Joined;
+        
         // Assert
         player.Status.ShouldBe(PlayerStatus.Joined);
     }
     
+    [Fact]
+    public void Name_ShouldBeSettable()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Original Name");
+        const string newName = "Updated Name";
+        
+        // Act
+        player.Name = newName;
+        
+        // Assert
+        player.Name.ShouldBe(newName);
+    }
+
     [Fact]
     public void Units_ShouldBeReadOnly()
     {

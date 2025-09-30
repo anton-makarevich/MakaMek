@@ -38,6 +38,7 @@ public class JoinGameViewModelTests
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
+    private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
 
     public JoinGameViewModelTests()
     {
@@ -71,7 +72,9 @@ public class JoinGameViewModelTests
         
         // Configure dispatcher to execute actions immediately
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
-        
+
+        _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
+
         // Create the view model with our mocks
         _sut = new JoinGameViewModel(
             _rulesProvider,
@@ -85,7 +88,8 @@ public class JoinGameViewModelTests
             _dispatcherService,
             _gameFactory,
             _transportFactory,
-            _mapFactory);
+            _mapFactory,
+            _cachingService);
         _sut.AttachHandlers();
     }
 

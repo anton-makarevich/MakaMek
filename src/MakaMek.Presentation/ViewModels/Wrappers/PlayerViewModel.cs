@@ -14,23 +14,46 @@ public class PlayerViewModel : BindableBase
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
+    private bool _isEditingName;
+    private string _editableName;
+    private readonly Func<Player, Task>? _onPlayerNameChanged;
 
-    public Player Player { get; }
+    public Player Player
+    {
+        get;
+    }
+
     public bool IsLocalPlayer { get; }
-    
+
     public PlayerStatus Status => Player.Status;
 
     public ObservableCollection<UnitData> Units { get; }
     public ObservableCollection<UnitData> AvailableUnits { get; }
-    
+
     public UnitData? SelectedUnit
     {
         get => _selectedUnit;
         set
         {
-            SetProperty(ref _selectedUnit, value); 
+            SetProperty(ref _selectedUnit, value);
             NotifyPropertyChanged(nameof(CanAddUnit));
         }
+    }
+
+    public bool IsEditingName
+    {
+        get => _isEditingName;
+        set
+        {
+            SetProperty(ref _isEditingName, value);
+            NotifyPropertyChanged(nameof(CanEditName));
+        }
+    }
+
+    public string EditableName
+    {
+        get => _editableName;
+        set => SetProperty(ref _editableName, value);
     }
 
     public void RefreshStatus()
@@ -40,6 +63,7 @@ public class PlayerViewModel : BindableBase
         NotifyPropertyChanged(nameof(CanJoin));
         NotifyPropertyChanged(nameof(CanSetReady));
         NotifyPropertyChanged(nameof(CanSelectUnit));
+        NotifyPropertyChanged(nameof(CanEditName));
     }
 
     public ICommand AddUnitCommand { get; }
@@ -49,19 +73,22 @@ public class PlayerViewModel : BindableBase
     public string Name => Player.Name;
     
     public PlayerViewModel(
-        Player player, 
-        bool isLocalPlayer, 
-        IEnumerable<UnitData> availableUnits, 
-        Action<PlayerViewModel>? joinGameAction = null, 
+        Player player,
+        bool isLocalPlayer,
+        IEnumerable<UnitData> availableUnits,
+        Action<PlayerViewModel>? joinGameAction = null,
         Action<PlayerViewModel>? setReadyAction = null,
-        Action? onUnitChanged = null) 
+        Action? onUnitChanged = null,
+        Func<Player, Task>? onPlayerNameChanged = null)
     {
         Player = player;
+        _editableName = player.Name;
         IsLocalPlayer = isLocalPlayer;
         _joinGameAction = joinGameAction;
         _setReadyAction = setReadyAction;
         _onUnitChanged = onUnitChanged;
-        
+        _onPlayerNameChanged = onPlayerNameChanged;
+
         Units = [];
         AvailableUnits = new ObservableCollection<UnitData>(availableUnits);
         AddUnitCommand = new AsyncCommand(AddUnit);
@@ -88,8 +115,10 @@ public class PlayerViewModel : BindableBase
     }
     
     public bool CanAddUnit => IsLocalPlayer && SelectedUnit != null && Status == PlayerStatus.NotJoined;
-    
+
     public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
+
+    public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     private Task AddUnit()
     {
@@ -108,6 +137,40 @@ public class PlayerViewModel : BindableBase
         SelectedUnit = null;
         (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         return Task.CompletedTask;
+    }
+
+    public void StartEditingName()
+    {
+        if (!CanEditName) return;
+
+        IsEditingName = true;
+        EditableName = Player.Name;
+    }
+
+    public void SaveName()
+    {
+        if (string.IsNullOrWhiteSpace(EditableName))
+        {
+            // Don't allow empty names
+            EditableName = Player.Name;
+            IsEditingName = false;
+            return;
+        }
+
+        Player.Name = EditableName.Trim();
+        IsEditingName = false;
+        
+        NotifyPropertyChanged(nameof(Name));
+        NotifyPropertyChanged(nameof(EditableName));
+
+        // Notify parent that the player name changed
+        _onPlayerNameChanged?.Invoke(Player);
+    }
+
+    public void CancelEditName()
+    {
+        EditableName = Player.Name;
+        IsEditingName = false;
     }
 
     public void AddUnits(IEnumerable<UnitData> unitsToAdd, List<PilotAssignmentData> pilotAssignments)

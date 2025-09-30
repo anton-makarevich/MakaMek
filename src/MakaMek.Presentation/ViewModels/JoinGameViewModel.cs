@@ -36,18 +36,19 @@ public class JoinGameViewModel : NewGameViewModel
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         ITransportFactory transportFactory,
-        IBattleMapFactory mapFactory)
+        IBattleMapFactory mapFactory,
+        IFileCachingService cachingService)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
-            dispatcherService, gameFactory)
+            dispatcherService, gameFactory, cachingService)
     {
         _mechFactory = mechFactory;
         _transportFactory = transportFactory;
         _mapFactory = mapFactory;
 
-        AddPlayerCommand = new AsyncCommand(AddPlayer);
+        AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
     }
 
@@ -173,14 +174,18 @@ public class JoinGameViewModel : NewGameViewModel
     }
 
     // Implementation of template method from base class
-    protected override PlayerViewModel CreatePlayerViewModel(Player player)
+    protected override PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false)
     {
         return new PlayerViewModel(
             player,
             isLocalPlayer: true,
             _availableUnits,
             PublishJoinCommand,
-            PublishSetReadyCommand);
+            PublishSetReadyCommand,
+            null,
+            isDefaultPlayer 
+                ? OnDefaultPlayerNameChanged
+                : null);
     }
 
     // Implementation of abstract property from base class

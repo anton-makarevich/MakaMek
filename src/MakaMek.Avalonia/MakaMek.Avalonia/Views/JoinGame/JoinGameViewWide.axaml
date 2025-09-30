@@ -6,7 +6,6 @@
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewWide"
              x:DataType="viewModels:JoinGameViewModel"
-             xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.NewGame.Fragments"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments2="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments">
 

@@ -31,19 +31,23 @@ namespace MakaMek.Avalonia.Tests.Views
         {
             // Arrange
             var view = new StartNewGameViewNarrow();
+            var cachingService = Substitute.For<IFileCachingService>();
+            cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
+
             var viewModel = new StartNewGameViewModel(
-                Substitute.For<IGameManager>(), 
+                Substitute.For<IGameManager>(),
                 Substitute.For<IUnitsLoader>(),
                 Substitute.For<IRulesProvider>(),
                 Substitute.For<IMechFactory>(),
                 Substitute.For<ICommandPublisher>(),
                 Substitute.For<IToHitCalculator>(),
-                Substitute.For<IPilotingSkillCalculator>(), 
+                Substitute.For<IPilotingSkillCalculator>(),
                 Substitute.For<IConsciousnessCalculator>(),
                 Substitute.For<IHeatEffectsCalculator>(),
                 Substitute.For<IDispatcherService>(),
                 Substitute.For<IGameFactory>(),
-                Substitute.For<IBattleMapFactory>());
+                Substitute.For<IBattleMapFactory>(),
+                cachingService);
 
             // Act
             view.DataContext = viewModel;
