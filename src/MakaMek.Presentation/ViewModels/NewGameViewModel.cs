@@ -127,19 +127,19 @@ public abstract class NewGameViewModel : BaseViewModel
     }
 
     // Common player creation logic with template method pattern
-    protected virtual Task AddPlayer()
+    protected virtual Task AddPlayer(PlayerData? playerData = null)
     {
         if (!CanAddPlayer) return Task.CompletedTask;
+        var isDefaultPlayer = playerData != null;
 
         // Generate random 4-digit number for player name
-        var random = new Random();
-        var randomDigits = random.Next(0, 10000).ToString("D4");
+        playerData ??= PlayerData.CreateDefault() with { Tint = GetNextTilt() };
 
         // Create Local Player Object
-        var newPlayer = new Player(Guid.NewGuid(), $"Player {randomDigits}", GetNextTilt());
+        var newPlayer = new Player(playerData.Value);
 
         // Create Local ViewModel Wrapper with customizable callbacks
-        var playerViewModel = CreatePlayerViewModel(newPlayer);
+        var playerViewModel = CreatePlayerViewModel(newPlayer, isDefaultPlayer);
 
         // Add to Local UI Collection
         _players.Add(playerViewModel);
@@ -149,12 +149,12 @@ public abstract class NewGameViewModel : BaseViewModel
     }
 
     // Template method for creating player view models with appropriate callbacks
-    protected abstract PlayerViewModel CreatePlayerViewModel(Player player);
+    protected abstract PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false);
 
     /// <summary>
     /// Loads or creates the default player from cache
     /// </summary>
-    private async Task<Player> LoadOrCreateDefaultPlayer()
+    private async Task<PlayerData> LoadOrCreateDefaultPlayer()
     {
         try
         {
@@ -162,8 +162,7 @@ public abstract class NewGameViewModel : BaseViewModel
             if (cachedData != null)
             {
                 var json = System.Text.Encoding.UTF8.GetString(cachedData);
-                var playerData = JsonSerializer.Deserialize<PlayerData>(json);
-                return new Player(playerData);
+                return JsonSerializer.Deserialize<PlayerData>(json);
             }
         }
         catch (Exception ex)
@@ -173,19 +172,17 @@ public abstract class NewGameViewModel : BaseViewModel
 
         // Create new default player if cache load failed
         var defaultPlayerData = PlayerData.CreateDefault();
-        var defaultPlayer = new Player(defaultPlayerData);
-        await SaveDefaultPlayer(defaultPlayer);
-        return defaultPlayer;
+        await SaveDefaultPlayer(defaultPlayerData);
+        return defaultPlayerData;
     }
 
     /// <summary>
     /// Saves the default player to cache
     /// </summary>
-    private async Task SaveDefaultPlayer(Player player)
+    private async Task SaveDefaultPlayer(PlayerData playerData)
     {
         try
         {
-            var playerData = player.ToData();
             var json = JsonSerializer.Serialize(playerData);
             var bytes = System.Text.Encoding.UTF8.GetBytes(json);
             await _cachingService.SaveToCache(DefaultPlayerCacheKey, bytes);
@@ -220,12 +217,7 @@ public abstract class NewGameViewModel : BaseViewModel
         // Load or create default player
         var defaultPlayer = await LoadOrCreateDefaultPlayer();
 
-        // Create ViewModel - derived classes will handle the name change callback
-        var playerViewModel = CreatePlayerViewModel(defaultPlayer);
-
-        // Add to collection
-        _players.Add(playerViewModel);
-        NotifyPropertyChanged(nameof(CanAddPlayer));
+        await AddPlayer(defaultPlayer);
     }
 
     /// <summary>
@@ -234,7 +226,7 @@ public abstract class NewGameViewModel : BaseViewModel
     protected async Task OnDefaultPlayerNameChanged(Player updatedPlayer)
     {
         // Save the updated player to cache
-        await SaveDefaultPlayer(updatedPlayer);
+        await SaveDefaultPlayer(updatedPlayer.ToData());
     }
 
     public List<UnitData> AvailableUnits => _availableUnits.ToList();

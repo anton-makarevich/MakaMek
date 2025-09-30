@@ -48,7 +48,7 @@ public class JoinGameViewModel : NewGameViewModel
         _transportFactory = transportFactory;
         _mapFactory = mapFactory;
 
-        AddPlayerCommand = new AsyncCommand(AddPlayer);
+        AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
     }
 
@@ -174,7 +174,7 @@ public class JoinGameViewModel : NewGameViewModel
     }
 
     // Implementation of template method from base class
-    protected override PlayerViewModel CreatePlayerViewModel(Player player)
+    protected override PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false)
     {
         return new PlayerViewModel(
             player,
@@ -183,7 +183,9 @@ public class JoinGameViewModel : NewGameViewModel
             PublishJoinCommand,
             PublishSetReadyCommand,
             null,
-            OnDefaultPlayerNameChanged);
+            isDefaultPlayer 
+                ? OnDefaultPlayerNameChanged
+                : null);
     }
 
     // Implementation of abstract property from base class

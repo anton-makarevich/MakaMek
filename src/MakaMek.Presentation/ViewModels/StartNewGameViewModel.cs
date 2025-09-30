@@ -2,6 +2,7 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -52,7 +53,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager = gameManager;
         _mechFactory = mechFactory;
         _mapFactory = mapFactory;
-        AddPlayerCommand = new AsyncCommand(AddPlayer);
+        AddPlayerCommand = new AsyncCommand(() => AddPlayer());
     }
 
     public async Task InitializeLobbyAndSubscribe()
@@ -213,7 +214,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     });
     
     // Implementation of template method from base class
-    protected override PlayerViewModel CreatePlayerViewModel(Player player)
+    protected override PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false)
     {
         return new PlayerViewModel(
             player,
@@ -222,13 +223,15 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             PublishJoinCommand,
             PublishSetReadyCommand,
             () => NotifyPropertyChanged(nameof(CanStartGame)),
-            OnDefaultPlayerNameChanged);
+            isDefaultPlayer 
+                ? OnDefaultPlayerNameChanged
+                : null);
     }
     
     // Override the base AddPlayer to add additional notification
-    protected override Task AddPlayer()
+    protected override Task AddPlayer(PlayerData? playerData = null)
     {
-        var result = base.AddPlayer();
+        var result = base.AddPlayer(playerData);
         NotifyPropertyChanged(nameof(CanStartGame)); // CanStartGame might be false until units are added
         return result;
     }
@@ -246,9 +249,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public override async void AttachHandlers()
+    public override void AttachHandlers()
     {
         base.AttachHandlers();
-        await InitializeLobbyAndSubscribe();
+        _ = InitializeLobbyAndSubscribe();
     }
 }
