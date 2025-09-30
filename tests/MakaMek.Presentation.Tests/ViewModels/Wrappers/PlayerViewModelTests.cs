@@ -522,6 +522,20 @@ public class PlayerViewModelTests
         // Assert
         canEdit.ShouldBe(expected);
     }
+
+    [Fact]
+    public void CanEditName_ShouldBeFalse_WhenEditingName()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
+        sut.StartEditingName();
+        
+        // Act
+        var canEdit = sut.CanEditName;
+        
+        // Assert
+        canEdit.ShouldBeFalse();
+    }
     
     [Fact]
     public void StartEditingName_ShouldSetIsEditingToTrue_WhenCanEditIsTrue()

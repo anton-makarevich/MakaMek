@@ -118,7 +118,7 @@ public class PlayerViewModel : BindableBase
 
     public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
-    public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined;
+    public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined && !IsEditingName;
 
     private Task AddUnit()
     {

@@ -26,8 +26,7 @@ public record struct PlayerData
     /// <returns>A new PlayerData with default values</returns>
     public static PlayerData CreateDefault()
     {
-        var random = new Random();
-        var randomDigits = random.Next(0, 10000).ToString("D4");
+        var randomDigits = Random.Shared.Next(0, 10000).ToString("D4");
         
         return new PlayerData
         {
