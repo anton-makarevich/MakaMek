@@ -233,7 +233,6 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits_AndPlayerIsReady()
     {
-        _sut.AddPlayerCommand!.Execute(null);
         _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
         _sut.Players.First().AddUnitCommand.Execute(null);
         _sut.Players.First().Player.Status = PlayerStatus.Ready;
@@ -473,8 +472,6 @@ public class StartNewGameViewModelTests
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
         
-        // Add a local player
-        _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
         localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
         localPlayerVm.AddUnitCommand.Execute(null);
@@ -538,9 +535,8 @@ public class StartNewGameViewModelTests
         // Arrange
         await _sut.InitializeLobbyAndSubscribe();
         
-        // Add two players
-        // Add first player
-        _sut.AddPlayerCommand!.Execute(null);
+        // two players
+        // first player is already added
         var player1 = _sut.Players.First();
         player1.SelectedUnit = _sut.AvailableUnits.First();
         player1.AddUnitCommand.Execute(null);
