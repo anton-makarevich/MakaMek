@@ -494,4 +494,158 @@ public class PlayerViewModelTests
         pilot.ShouldNotBeNull();
         pilot.Value.FirstName.ShouldBe("MechWarrior");
     }
+    
+    [Theory]
+    [InlineData(true, PlayerStatus.NotJoined, true)]
+    [InlineData(true, PlayerStatus.Joined, false)]
+    [InlineData(true, PlayerStatus.Ready, false)]
+    [InlineData(false, PlayerStatus.NotJoined, false)]
+    public void CanEditName_ShouldReturnCorrectValue_ForDifferentStates(
+        bool isLocalPlayer, 
+        PlayerStatus status, 
+        bool expected)
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1")
+        {
+            Status = status
+        };
+        var sut = new PlayerViewModel(player, isLocalPlayer, []);
+    
+        // Act
+        var canEdit = sut.CanEditName;
+    
+        // Assert
+        canEdit.ShouldBe(expected);
+    }
+    
+    [Fact]
+    public void StartEditingName_ShouldSetIsEditingToTrue_WhenCanEditIsTrue()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
+        
+        // Act
+        sut.EditNameCommand.Execute(null);
+        
+        // Assert
+        sut.IsEditingName.ShouldBeTrue();
+        sut.EditableName.ShouldBe("Player1");
+    }
+    
+    [Fact]
+    public void StartEditingName_ShouldNotSetIsEditing_WhenCanEditIsFalse()
+    {
+        // Arrange - Player is not local
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), false, []);
+        
+        // Act
+        sut.EditNameCommand.Execute(null);
+        
+        // Assert
+        sut.IsEditingName.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void SaveName_ShouldUpdatePlayerName_WhenNameIsValid()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var sut = new PlayerViewModel(player, true, []);
+        sut.EditNameCommand.Execute(null);
+        sut.EditableName = "New Player Name";
+        
+        // Act
+        sut.SaveNameCommand.Execute(null);
+        
+        // Assert
+        sut.Name.ShouldBe("New Player Name");
+        player.Name.ShouldBe("New Player Name");
+        sut.IsEditingName.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void SaveName_ShouldNotUpdateName_WhenNameIsEmpty()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Original Name");
+        var sut = new PlayerViewModel(player, true, []);
+        sut.EditNameCommand.Execute(null);
+        sut.EditableName = "  "; // Whitespace name
+        
+        // Act
+        sut.SaveNameCommand.Execute(null);
+        
+        // Assert
+        player.Name.ShouldBe("Original Name");
+        sut.Name.ShouldBe("Original Name");
+        sut.IsEditingName.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void SaveName_ShouldInvokeOnPlayerNameChanged_WhenNameIsUpdated()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var nameChangedCalled = false;
+        Player? playerPassed = null;
+        
+        Func<Player, Task> onNameChanged = p => 
+        {
+            nameChangedCalled = true;
+            playerPassed = p;
+            return Task.CompletedTask;
+        };
+        
+        var sut = new PlayerViewModel(player, true, [], onPlayerNameChanged: onNameChanged);
+        sut.EditNameCommand.Execute(null);
+        sut.EditableName = "New Name";
+        
+        // Act
+        sut.SaveNameCommand.Execute(null);
+        
+        // Assert
+        nameChangedCalled.ShouldBeTrue();
+        playerPassed.ShouldBe(player);
+        playerPassed?.Name.ShouldBe("New Name");
+    }
+    
+    [Fact]
+    public void CancelEditName_ShouldDiscardChangesAndStopEditing()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Original Name"), true, []);
+        sut.EditNameCommand.Execute(null);
+        sut.EditableName = "Modified Name";
+        
+        // Act
+        sut.CancelEditNameCommand.Execute(null);
+        
+        // Assert
+        sut.IsEditingName.ShouldBeFalse();
+        sut.Name.ShouldBe("Original Name");
+        sut.EditableName.ShouldBe("Original Name");
+    }
+    
+    [Fact]
+    public void RefreshStatus_ShouldNotifyCanEditNamePropertyChanged()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true, 
+            availableUnits: []);
+        
+        var propertyChanged = false;
+        sut.PropertyChanged += (_, args) => {
+            if (args.PropertyName == nameof(PlayerViewModel.CanEditName))
+                propertyChanged = true;
+        };
+    
+        // Act
+        sut.RefreshStatus();
+    
+        // Assert
+        propertyChanged.ShouldBeTrue();
+    }
 }
