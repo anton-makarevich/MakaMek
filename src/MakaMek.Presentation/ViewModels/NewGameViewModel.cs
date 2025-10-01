@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Windows.Input;
+using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -61,6 +62,14 @@ public abstract class NewGameViewModel : BaseViewModel
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
         _cachingService = cachingService;
+        
+        
+        
+        // Initialize the AvailableUnitsTableViewModel
+        AvailableUnitsTableViewModel = new AvailableUnitsTableViewModel(
+            AvailableUnits,
+            AddUnitCommand,
+            HideTableCommand);
     }
 
     // Common command handlers with template method pattern
@@ -230,4 +239,36 @@ public abstract class NewGameViewModel : BaseViewModel
     }
 
     public List<UnitData> AvailableUnits => _availableUnits.ToList();
+    
+        
+    public ICommand HideTableCommand { get; }
+    public ICommand AddUnitCommand { get; }
+    
+    protected void ShowTable(PlayerViewModel playerVm)
+    {
+        // Show the table
+    }
+
+    private Task HideTable()
+    {
+        // Hide the table
+        return Task.CompletedTask;
+    }
+    
+    private void AddUnit(PlayerViewModel playerVm)
+    {
+        // Get the selected unit from the table ViewModel
+        var selectedUnit = AvailableUnitsTableViewModel.SelectedUnit;
+        if (!selectedUnit.HasValue) return;
+
+        var unit = selectedUnit.Value;
+        var unitId = Guid.NewGuid();
+        unit.Id = unitId;
+        playerVm.Units.Add(unit);
+    }
+    
+    /// <summary>
+    /// Gets the ViewModel for the available units table
+    /// </summary>
+    public AvailableUnitsTableViewModel AvailableUnitsTableViewModel { get; }
 }

@@ -13,11 +13,11 @@ public class PlayerViewModel : BindableBase
     private readonly Action? _onUnitChanged;
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
+    private readonly Action<PlayerViewModel>? _showAvailableUnits;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
     private bool _isEditingName;
     private string _editableName;
     private readonly Func<Player, Task>? _onPlayerNameChanged;
-    private bool _isTableVisible;
 
     public Player Player
     {
@@ -29,12 +29,6 @@ public class PlayerViewModel : BindableBase
     public PlayerStatus Status => Player.Status;
 
     public ObservableCollection<UnitData> Units { get; }
-    public ObservableCollection<UnitData> AvailableUnits { get; }
-
-    /// <summary>
-    /// Gets the ViewModel for the available units table
-    /// </summary>
-    public AvailableUnitsTableViewModel AvailableUnitsTableViewModel { get; }
 
     public UnitData? SelectedUnit
     {
@@ -62,15 +56,6 @@ public class PlayerViewModel : BindableBase
         set => SetProperty(ref _editableName, value);
     }
 
-    /// <summary>
-    /// Gets or sets whether the available units table is visible
-    /// </summary>
-    public bool IsTableVisible
-    {
-        get => _isTableVisible;
-        set => SetProperty(ref _isTableVisible, value);
-    }
-
     public void RefreshStatus()
     {
         NotifyPropertyChanged(nameof(Status));
@@ -81,20 +66,18 @@ public class PlayerViewModel : BindableBase
         NotifyPropertyChanged(nameof(CanEditName));
     }
 
-    public ICommand AddUnitCommand { get; }
+    public ICommand ShowAvailableUnitsCommand { get; }
     public ICommand JoinGameCommand { get; }
     public ICommand SetReadyCommand { get; }
-    public ICommand ShowTableCommand { get; }
-    public ICommand HideTableCommand { get; }
 
     public string Name => Player.Name;
     
     public PlayerViewModel(
         Player player,
         bool isLocalPlayer,
-        IEnumerable<UnitData> availableUnits,
         Action<PlayerViewModel>? joinGameAction = null,
         Action<PlayerViewModel>? setReadyAction = null,
+        Action<PlayerViewModel>? showAvailableUnits = null,
         Action? onUnitChanged = null,
         Func<Player, Task>? onPlayerNameChanged = null)
     {
@@ -103,23 +86,15 @@ public class PlayerViewModel : BindableBase
         IsLocalPlayer = isLocalPlayer;
         _joinGameAction = joinGameAction;
         _setReadyAction = setReadyAction;
+        _showAvailableUnits = showAvailableUnits;
         _onUnitChanged = onUnitChanged;
         _onPlayerNameChanged = onPlayerNameChanged;
 
         Units = [];
-        AvailableUnits = new ObservableCollection<UnitData>(availableUnits);
-        AddUnitCommand = new AsyncCommand(AddUnit);
+        //AddUnitCommand = new AsyncCommand();
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
         SetReadyCommand = new AsyncCommand(ExecuteSetReady);
-        ShowTableCommand = new AsyncCommand(ShowTable);
-        HideTableCommand = new AsyncCommand(HideTable);
-
-        // Initialize the AvailableUnitsTableViewModel
-        AvailableUnitsTableViewModel = new AvailableUnitsTableViewModel(
-            AvailableUnits,
-            AddUnitCommand,
-            () => CanAddUnit,
-            HideTableCommand);
+        ShowAvailableUnitsCommand = new AsyncCommand(ExecuteShowUnits);
     }
 
     private Task ExecuteJoinGame()
@@ -140,33 +115,25 @@ public class PlayerViewModel : BindableBase
         return Task.CompletedTask;
     }
     
+    private Task ExecuteShowUnits()
+    {
+        if (!CanAddUnit) return Task.CompletedTask;
+        
+        _showAvailableUnits?.Invoke(this);
+        
+        return Task.CompletedTask;
+    }
+    
     public bool CanAddUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined && !IsEditingName;
 
-    private Task ShowTable()
-    {
-        IsTableVisible = true;
-        return Task.CompletedTask;
-    }
-
-    private Task HideTable()
-    {
-        IsTableVisible = false;
-        return Task.CompletedTask;
-    }
-
-    private Task AddUnit()
+    public Task AddUnit(UnitData unit)
     {
         if (!CanAddUnit) return Task.CompletedTask;
-
-        // Get the selected unit from the table ViewModel
-        var selectedUnit = AvailableUnitsTableViewModel.SelectedUnit;
-        if (!selectedUnit.HasValue) return Task.CompletedTask;
-
-        var unit = selectedUnit.Value;
+        
         var unitId = Guid.NewGuid();
         unit.Id = unitId;
         Units.Add(unit);
@@ -176,15 +143,9 @@ public class PlayerViewModel : BindableBase
 
         NotifyPropertyChanged(nameof(CanJoin));
         _onUnitChanged?.Invoke();
-
-        // Clear selection in the table ViewModel
-        AvailableUnitsTableViewModel.ClearSelection();
-
-        // Hide the table after adding a unit
-        IsTableVisible = false;
-
+        
         SelectedUnit = null;
-        (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+        (ShowAvailableUnitsCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         return Task.CompletedTask;
     }
 

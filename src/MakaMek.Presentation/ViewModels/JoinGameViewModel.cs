@@ -75,7 +75,6 @@ public class JoinGameViewModel : NewGameViewModel
                      var remotePlayerViewModel = new PlayerViewModel(
                         newRemotePlayer,
                         isLocalPlayer: false,
-                        _availableUnits,
                         _ => {}, // Remote players don't publish join
                         _ => {}); // No callback for ready state
                      remotePlayerViewModel.AddUnits(joinCmd.Units, joinCmd.PilotAssignments); // Add units received from command
@@ -179,9 +178,9 @@ public class JoinGameViewModel : NewGameViewModel
         return new PlayerViewModel(
             player,
             isLocalPlayer: true,
-            _availableUnits,
             PublishJoinCommand,
             PublishSetReadyCommand,
+            ShowTable,
             null,
             isDefaultPlayer 
                 ? OnDefaultPlayerNameChanged

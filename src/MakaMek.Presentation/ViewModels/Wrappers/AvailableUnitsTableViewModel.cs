@@ -17,14 +17,12 @@ public class AvailableUnitsTableViewModel : BindableBase
     private bool _showAllClasses;
 
     public AvailableUnitsTableViewModel(
-        ObservableCollection<UnitData> availableUnits,
+        IList<UnitData> availableUnits,
         ICommand addUnitCommand,
-        Func<bool> canAddUnit,
         ICommand closeTableCommand)
     {
-        _availableUnits = availableUnits;
+        _availableUnits = new ObservableCollection<UnitData>(availableUnits);
         AddUnitCommand = addUnitCommand;
-        CanAddUnit = canAddUnit;
         CloseTableCommand = closeTableCommand;
 
         // Initialize with "All" filter selected

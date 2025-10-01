@@ -112,9 +112,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                     var remotePlayerVm = new PlayerViewModel(
                         remotePlayer, 
                         isLocalPlayer: false, // Mark as remote
-                        _availableUnits, 
                         _ => {}, // No join action needed for remote
                         _ => {}, // No set ready action needed for remote
+                        _ => {}, // No show units action needed for remote
                         () => NotifyPropertyChanged(nameof(CanStartGame))); 
                     
                     remotePlayerVm.AddUnits(joinCmd.Units, joinCmd.PilotAssignments); // Add units received from command
@@ -219,9 +219,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         return new PlayerViewModel(
             player,
             isLocalPlayer: true,
-            _availableUnits,
             PublishJoinCommand,
             PublishSetReadyCommand,
+            ShowTable,
             () => NotifyPropertyChanged(nameof(CanStartGame)),
             isDefaultPlayer 
                 ? OnDefaultPlayerNameChanged
