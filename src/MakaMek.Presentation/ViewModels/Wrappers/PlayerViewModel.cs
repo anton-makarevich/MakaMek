@@ -140,7 +140,7 @@ public class PlayerViewModel : BindableBase
         return Task.CompletedTask;
     }
     
-    public bool CanAddUnit => IsLocalPlayer && AvailableUnitsTableViewModel.SelectedUnit != null && Status == PlayerStatus.NotJoined;
+    public bool CanAddUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 

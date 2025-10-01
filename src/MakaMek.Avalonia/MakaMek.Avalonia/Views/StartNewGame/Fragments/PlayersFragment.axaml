@@ -75,7 +75,7 @@
                                                 Height="140"
                                                 Classes="card"
                                                 Background="{DynamicResource SurfaceBrush}"
-                                                IsVisible="{Binding IsLocalPlayer}">
+                                                IsVisible="{Binding CanAddUnit}">
                                             <Button Content="+"
                                                     FontSize="48"
                                                     FontWeight="Bold"
