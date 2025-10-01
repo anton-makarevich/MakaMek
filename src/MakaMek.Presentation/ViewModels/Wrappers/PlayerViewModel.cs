@@ -3,6 +3,7 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -17,6 +18,7 @@ public class PlayerViewModel : BindableBase
     private bool _isEditingName;
     private string _editableName;
     private readonly Func<Player, Task>? _onPlayerNameChanged;
+    private string _selectedWeightClassFilter = "All";
 
     public Player Player
     {
@@ -30,6 +32,50 @@ public class PlayerViewModel : BindableBase
     public ObservableCollection<UnitData> Units { get; }
     public ObservableCollection<UnitData> AvailableUnits { get; }
 
+    /// <summary>
+    /// Gets the filtered list of available units based on the selected weight class filter
+    /// </summary>
+    public IEnumerable<UnitData> FilteredAvailableUnits
+    {
+        get
+        {
+            if (_selectedWeightClassFilter == "All")
+                return AvailableUnits;
+
+            if (Enum.TryParse<WeightClass>(_selectedWeightClassFilter, out var weightClass))
+            {
+                return AvailableUnits.Where(u => GetWeightClass(u.Mass) == weightClass);
+            }
+
+            return AvailableUnits;
+        }
+    }
+
+    /// <summary>
+    /// Gets the list of weight class filter options
+    /// </summary>
+    public List<string> WeightClassFilters { get; } = new()
+    {
+        "All",
+        "Light",
+        "Medium",
+        "Heavy",
+        "Assault"
+    };
+
+    /// <summary>
+    /// Gets or sets the selected weight class filter
+    /// </summary>
+    public string SelectedWeightClassFilter
+    {
+        get => _selectedWeightClassFilter;
+        set
+        {
+            SetProperty(ref _selectedWeightClassFilter, value);
+            NotifyPropertyChanged(nameof(FilteredAvailableUnits));
+        }
+    }
+
     public UnitData? SelectedUnit
     {
         get => _selectedUnit;
@@ -38,6 +84,21 @@ public class PlayerViewModel : BindableBase
             SetProperty(ref _selectedUnit, value);
             NotifyPropertyChanged(nameof(CanAddUnit));
         }
+    }
+
+    /// <summary>
+    /// Calculates the weight class based on tonnage
+    /// </summary>
+    private static WeightClass GetWeightClass(int tonnage)
+    {
+        return tonnage switch
+        {
+            <= 35 => WeightClass.Light,
+            <= 55 => WeightClass.Medium,
+            <= 75 => WeightClass.Heavy,
+            <= 100 => WeightClass.Assault,
+            _ => WeightClass.Unknown
+        };
     }
 
     public bool IsEditingName
