@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.PlayersFragment"
              x:DataType="viewModels1:NewGameViewModel">
@@ -70,7 +71,7 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
 
-                                        <!-- Add Unit Button (always visible for local players) -->
+                                        <!-- Add Unit Button -->
                                         <Border Width="120"
                                                 Height="140"
                                                 Classes="card"
@@ -113,62 +114,19 @@
                             </StackPanel>
 
                             <!-- Available Units Table Popup Overlay -->
-                            <Border Grid.Row="0"
-                                    Grid.RowSpan="4"
-                                    Background="#CC000000"
-                                    IsVisible="{Binding IsTableVisible}"
-                                    Margin="-10">
-                                <Grid VerticalAlignment="Stretch"
-                                      HorizontalAlignment="Stretch"
-                                      Margin="20">
-                                    <Border Background="{DynamicResource SurfaceBrush}"
-                                            BorderBrush="{DynamicResource PrimaryBrush}"
-                                            BorderThickness="2"
-                                            CornerRadius="8"
-                                            MaxWidth="800"
-                                            MaxHeight="600"
-                                            VerticalAlignment="Center"
-                                            HorizontalAlignment="Center">
-                                        <Grid RowDefinitions="Auto,*">
-                                            <!-- Header with Close Button -->
-                                            <Grid Grid.Row="0"
-                                                  ColumnDefinitions="*,Auto"
-                                                  Background="{DynamicResource PrimaryBrush}"
-                                                  Height="40">
-                                                <TextBlock Grid.Column="0"
-                                                           Text="Select Unit to Add"
-                                                           FontSize="16"
-                                                           FontWeight="Bold"
-                                                           Foreground="White"
-                                                           VerticalAlignment="Center"
-                                                           Margin="15,0"/>
-                                                <Button Grid.Column="1"
-                                                        Content="✕"
-                                                        FontSize="20"
-                                                        Command="{Binding HideTableCommand}"
-                                                        Background="Transparent"
-                                                        BorderThickness="0"
-                                                        Foreground="White"
-                                                        Width="40"
-                                                        Height="40"
-                                                        ToolTip.Tip="Close"
-                                                        Cursor="Hand">
-                                                    <Button.Styles>
-                                                        <Style Selector="Button:pointerover">
-                                                            <Setter Property="Opacity" Value="0.7"/>
-                                                        </Style>
-                                                    </Button.Styles>
-                                                </Button>
-                                            </Grid>
-
+                            
+                                            
                                             <!-- Table Content -->
-                                            <Border Grid.Row="1" Margin="15">
+                                            <templatedControls:GamePanel
+                                                Grid.Row="1"
+                                                IsVisible="{Binding IsTableVisible}"
+                                                Title="Select Target Location"
+                                                CloseCommand="{Binding HideTableCommand}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center">
                                                 <controls:AvailableUnitsTable DataContext="{Binding AvailableUnitsTableViewModel}"/>
-                                            </Border>
-                                        </Grid>
-                                    </Border>
-                                </Grid>
-                            </Border>
+                                            </templatedControls:GamePanel>
+                                       
                         </Grid>
                     </Border>
                 </DataTemplate>
