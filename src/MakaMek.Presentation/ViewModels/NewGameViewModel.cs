@@ -22,7 +22,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public abstract class NewGameViewModel : BaseViewModel
 {
     protected readonly ObservableCollection<PlayerViewModel> _players = [];
-    protected IEnumerable<UnitData> _availableUnits = [];
+    private IEnumerable<UnitData> _availableUnits = [];
 
     protected readonly IRulesProvider _rulesProvider;
     private readonly IUnitsLoader _unitsLoader;
@@ -215,8 +215,7 @@ public abstract class NewGameViewModel : BaseViewModel
         // Initialize the AvailableUnitsTableViewModel
         AvailableUnitsTableViewModel = new AvailableUnitsTableViewModel(
             AvailableUnits,
-            AddUnitCommand,
-            HideTableCommand);
+            AddUnitCommand);
     }
 
     /// <summary>
@@ -245,7 +244,7 @@ public abstract class NewGameViewModel : BaseViewModel
     
         
     public ICommand HideTableCommand { get; }
-    public ICommand AddUnitCommand { get; }
+    private ICommand AddUnitCommand { get; }
     
     protected void ShowTable(PlayerViewModel playerVm)
     {

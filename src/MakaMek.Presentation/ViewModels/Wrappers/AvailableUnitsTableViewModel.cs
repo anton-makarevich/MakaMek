@@ -18,12 +18,10 @@ public class AvailableUnitsTableViewModel : BindableBase
 
     public AvailableUnitsTableViewModel(
         IList<UnitData> availableUnits,
-        ICommand addUnitCommand,
-        ICommand closeTableCommand)
+        ICommand addUnitCommand)
     {
         _availableUnits = new ObservableCollection<UnitData>(availableUnits);
         AddUnitCommand = addUnitCommand;
-        CloseTableCommand = closeTableCommand;
 
         // Initialize with "All" filter selected
         _showAllClasses = true;
@@ -74,7 +72,7 @@ public class AvailableUnitsTableViewModel : BindableBase
                 _selectedWeightClassFilter = weightClass;
             }
             
-            NotifyPropertyChanged(nameof(SelectedWeightClassFilterString));
+            NotifyPropertyChanged();
             NotifyPropertyChanged(nameof(FilteredAvailableUnits));
         }
     }
@@ -103,11 +101,6 @@ public class AvailableUnitsTableViewModel : BindableBase
     public ICommand AddUnitCommand { get; }
 
     /// <summary>
-    /// Command to close/hide the table
-    /// </summary>
-    public ICommand CloseTableCommand { get; }
-
-    /// <summary>
     /// Calculates the weight class based on tonnage (matches Unit.cs logic)
     /// </summary>
     private static WeightClass GetWeightClass(int tonnage)
@@ -120,14 +113,6 @@ public class AvailableUnitsTableViewModel : BindableBase
             <= 100 => WeightClass.Assault,
             _ => WeightClass.Unknown
         };
-    }
-
-    /// <summary>
-    /// Clears the selected unit (called after adding)
-    /// </summary>
-    public void ClearSelection()
-    {
-        SelectedUnit = null;
     }
 }
 
