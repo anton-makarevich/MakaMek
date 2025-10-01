@@ -9,7 +9,6 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 public class PlayerViewModel : BindableBase
 {
-    private UnitData? _selectedUnit;
     private readonly Action? _onUnitChanged;
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
@@ -29,16 +28,6 @@ public class PlayerViewModel : BindableBase
     public PlayerStatus Status => Player.Status;
 
     public ObservableCollection<UnitData> Units { get; }
-
-    public UnitData? SelectedUnit
-    {
-        get => _selectedUnit;
-        set
-        {
-            SetProperty(ref _selectedUnit, value);
-            NotifyPropertyChanged(nameof(CanAddUnit));
-        }
-    }
 
     public bool IsEditingName
     {
@@ -144,7 +133,6 @@ public class PlayerViewModel : BindableBase
         NotifyPropertyChanged(nameof(CanJoin));
         _onUnitChanged?.Invoke();
         
-        SelectedUnit = null;
         (ShowAvailableUnitsCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         return Task.CompletedTask;
     }

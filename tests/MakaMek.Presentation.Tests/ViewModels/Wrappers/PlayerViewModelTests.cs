@@ -9,86 +9,30 @@ namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
 public class PlayerViewModelTests
 {
     [Fact]
-    public void AddUnit_ShouldAddUnitToPlayer_IfSelectedUnitIsNotNull()
+    public void AddUnit_ShouldAddUnitToPlayer()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true);
         var unit = MechFactoryTests.CreateDummyMechData(); // Create a new unit
-        sut.SelectedUnit = unit;
     
         // Act
-        sut.AddUnitCommand.Execute(null);
+        sut.AddUnit(unit);
     
         // Assert
         sut.Units.First().Chassis.ShouldBe(unit.Chassis);
-    }
-
-    [Fact]
-    public void AddUnit_ShouldNotAddUnitToPlayer_IfSelectedUnitIsNull()
-    {
-        // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
-    
-        // Act
-        sut.AddUnitCommand.Execute(null);
-    
-        // Assert
-        sut.Units.Count.ShouldBe(0);
     }
     
     [Fact]
     public void Name_ShouldReturnPlayerName()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true);
     
         // Act
         var name = sut.Name;
     
         // Assert
         name.ShouldBe("Player1");
-    }
-    
-    [Fact]
-    public void CanAddUnit_ShouldReturnTrue_IfSelectedUnitIsNotNull()
-    {
-        // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
-        var unit = MechFactoryTests.CreateDummyMechData(); // Create a new unit
-        sut.SelectedUnit = unit;
-    
-        // Act
-        var canAddUnit = sut.CanAddUnit;
-    
-        // Assert
-        canAddUnit.ShouldBeTrue();
-    }
-    
-    [Fact]
-    public void CanAddUnit_ShouldReturnFalse_IfSelectedUnitIsNull()
-    {
-        // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
-    
-        // Act
-        var canAddUnit = sut.CanAddUnit;
-    
-        // Assert
-        canAddUnit.ShouldBeFalse();
-    } 
-    
-    [Fact]
-    public void AvailableUnits_ShouldHaveCorrectValue()
-    {
-        // Arrange
-        var unit = MechFactoryTests.CreateDummyMechData(); // Create a new unit
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[unit]);
-    
-        // Act
-        var availableUnits = sut.AvailableUnits.ToList();
-    
-        // Assert
-        availableUnits.Contains(unit).ShouldBeTrue();
     }
 
     [Theory]
@@ -97,10 +41,9 @@ public class PlayerViewModelTests
     public void ShowJoinButton_ShouldReflectLocalPlayerStatus(bool isLocal, bool expected)
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), isLocal, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), isLocal);
         var unit = MechFactoryTests.CreateDummyMechData();
-        sut.SelectedUnit = unit;
-        sut.AddUnitCommand.Execute(null); // Add a unit
+        sut.AddUnit(unit); // Add a unit
 
         // Act & Assert
         sut.CanJoin.ShouldBe(expected);
@@ -110,10 +53,9 @@ public class PlayerViewModelTests
     public void CanJoin_ShouldBeTrue_WhenUnitsAreAdded()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true);
         var unit = MechFactoryTests.CreateDummyMechData();
-        sut.SelectedUnit = unit;
-        sut.AddUnitCommand.Execute(null); // Add a unit
+        sut.AddUnit(unit); // Add a unit
 
         // Act & Assert
         sut.CanJoin.ShouldBeTrue();
@@ -123,7 +65,7 @@ public class PlayerViewModelTests
     public void CanJoin_ShouldBeFalse_WhenNoUnitsAreAdded()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true);
         // No units added
 
         // Act & Assert
@@ -134,10 +76,9 @@ public class PlayerViewModelTests
     public void CanJoin_ShouldBeFalse_WhenPlayerIsReady()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true);
         var unit = MechFactoryTests.CreateDummyMechData();
-        sut.SelectedUnit = unit;
-        sut.AddUnitCommand.Execute(null); // Add a unit
+        sut.AddUnit(unit); // Add a unit
         sut.Player.Status = PlayerStatus.Ready;
 
         // Act & Assert
@@ -148,10 +89,9 @@ public class PlayerViewModelTests
     public void CanJoin_ShouldBeFalse_WhenAlreadyJoined()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player"), true);
         var unit = MechFactoryTests.CreateDummyMechData();
-        sut.SelectedUnit = unit;
-        sut.AddUnitCommand.Execute(null); // Add a unit
+        sut.AddUnit(unit); // Add a unit
         sut.Player.Status = PlayerStatus.Joined;
 
         // Act & Assert
@@ -162,9 +102,9 @@ public class PlayerViewModelTests
     public void CanAddUnit_ShouldReturnFalse_IfPlayerHasJoined()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true);
         var unit = MechFactoryTests.CreateDummyMechData(); // Create a new unit
-        sut.SelectedUnit = unit;
+        sut.AddUnit(unit);
         sut.Player.Status = PlayerStatus.Joined;
     
         // Act
@@ -180,8 +120,7 @@ public class PlayerViewModelTests
         // Arrange
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
-            isLocalPlayer: true, 
-            availableUnits: [])
+            isLocalPlayer: true)
         {
             Player =
             {
@@ -202,8 +141,7 @@ public class PlayerViewModelTests
         // Arrange
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
-            isLocalPlayer: true, 
-            availableUnits: [])
+            isLocalPlayer: true)
         {
             Player =
             {
@@ -224,8 +162,7 @@ public class PlayerViewModelTests
         // Arrange
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
-            isLocalPlayer: true, 
-            availableUnits: [])
+            isLocalPlayer: true)
         {
             Player =
             {
@@ -246,8 +183,7 @@ public class PlayerViewModelTests
         // Arrange
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
-            isLocalPlayer: false, 
-            availableUnits: [])
+            isLocalPlayer: false)
         {
             Player =
             {
@@ -271,8 +207,7 @@ public class PlayerViewModelTests
 
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
-            isLocalPlayer: true, 
-            availableUnits: [],
+            isLocalPlayer: true,
             setReadyAction: SetReadyAction)
         {
             Player =
@@ -304,8 +239,7 @@ public class PlayerViewModelTests
 
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
-            isLocalPlayer: true, 
-            availableUnits: [],
+            isLocalPlayer: true,
             setReadyAction: SetReadyAction)
         {
             Player =
@@ -333,8 +267,7 @@ public class PlayerViewModelTests
         // Arrange
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
-            isLocalPlayer: true, 
-            availableUnits: []);
+            isLocalPlayer: true);
         
         var propertyChanged = false;
         sut.PropertyChanged += (_, args) => {
@@ -353,7 +286,7 @@ public class PlayerViewModelTests
     public void CanSelectUnit_ShouldReturnFalse_IfPlayerHasJoined()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[])
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true)
         {
             Player =
             {
@@ -372,7 +305,7 @@ public class PlayerViewModelTests
     public void CanSelectUnit_ShouldReturnFalse_IfPlayerIsNotLocal()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),false,[]);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),false);
 
         // Act
         var canSelectUnit = sut.CanSelectUnit;
@@ -385,7 +318,7 @@ public class PlayerViewModelTests
     public void CanSelectUnit_ShouldReturnTrue_IfPlayerIsLocal()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true,[]);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"),true);
 
         // Act
         var canSelectUnit = sut.CanSelectUnit;
@@ -398,7 +331,7 @@ public class PlayerViewModelTests
     public void AddUnits_ShouldAddUnitsWithPilotAssignments_WhenProvided()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
         var unit1 = MechFactoryTests.CreateDummyMechData();
         var unit2 = MechFactoryTests.CreateDummyMechData();
         unit1.Id = Guid.NewGuid();
@@ -426,7 +359,7 @@ public class PlayerViewModelTests
     public void AddUnits_ShouldCreateDefaultPilot_WhenNoAssignmentProvided()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
         var unit = MechFactoryTests.CreateDummyMechData();
         unit.Id = Guid.NewGuid();
 
@@ -445,7 +378,7 @@ public class PlayerViewModelTests
     public void GetPilotDataForUnit_ShouldReturnNull_ForUnknownUnit()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
         var unknownUnitId = Guid.NewGuid();
 
         // Act
@@ -459,7 +392,7 @@ public class PlayerViewModelTests
     public void UpdatePilotForUnit_ShouldUpdatePilotData()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
         var unit = MechFactoryTests.CreateDummyMechData();
         unit.Id = Guid.NewGuid();
         sut.AddUnits([unit], []);
@@ -485,12 +418,11 @@ public class PlayerViewModelTests
     public void AddUnit_ShouldCreateDefaultPilotForUnit()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
         var unit = MechFactoryTests.CreateDummyMechData();
-        sut.SelectedUnit = unit;
     
         // Act
-        sut.AddUnitCommand.Execute(null);
+        sut.AddUnit(unit);
     
         // Assert
         var addedUnit = sut.Units.First();
@@ -514,7 +446,7 @@ public class PlayerViewModelTests
         {
             Status = status
         };
-        var sut = new PlayerViewModel(player, isLocalPlayer, []);
+        var sut = new PlayerViewModel(player, isLocalPlayer);
     
         // Act
         var canEdit = sut.CanEditName;
@@ -527,7 +459,7 @@ public class PlayerViewModelTests
     public void CanEditName_ShouldBeFalse_WhenEditingName()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
         sut.StartEditingName();
         
         // Act
@@ -541,7 +473,7 @@ public class PlayerViewModelTests
     public void StartEditingName_ShouldSetIsEditingToTrue_WhenCanEditIsTrue()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
         
         // Act
         sut.StartEditingName();
@@ -555,7 +487,7 @@ public class PlayerViewModelTests
     public void StartEditingName_ShouldNotSetIsEditing_WhenCanEditIsFalse()
     {
         // Arrange - Player is not local
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), false, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), false);
         
         // Act
         sut.StartEditingName();
@@ -569,7 +501,7 @@ public class PlayerViewModelTests
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
-        var sut = new PlayerViewModel(player, true, []);
+        var sut = new PlayerViewModel(player, true);
         sut.StartEditingName();
         sut.EditableName = "New Player Name";
         
@@ -587,7 +519,7 @@ public class PlayerViewModelTests
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Original Name");
-        var sut = new PlayerViewModel(player, true, []);
+        var sut = new PlayerViewModel(player, true);
         sut.StartEditingName();
         sut.EditableName = "  "; // Whitespace name
         
@@ -608,7 +540,7 @@ public class PlayerViewModelTests
         var nameChangedCalled = false;
         Player? playerPassed = null;
 
-        var sut = new PlayerViewModel(player, true, [], onPlayerNameChanged: OnNameChanged);
+        var sut = new PlayerViewModel(player, true, onPlayerNameChanged: OnNameChanged);
         sut.StartEditingName();
         sut.EditableName = "New Name";
         
@@ -633,7 +565,7 @@ public class PlayerViewModelTests
     public void CancelEditName_ShouldDiscardChangesAndStopEditing()
     {
         // Arrange
-        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Original Name"), true, []);
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Original Name"), true);
         sut.StartEditingName();
         sut.EditableName = "Modified Name";
         
@@ -652,8 +584,7 @@ public class PlayerViewModelTests
         // Arrange
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
-            isLocalPlayer: true, 
-            availableUnits: []);
+            isLocalPlayer: true);
         
         var propertyChanged = false;
         sut.PropertyChanged += (_, args) => {
