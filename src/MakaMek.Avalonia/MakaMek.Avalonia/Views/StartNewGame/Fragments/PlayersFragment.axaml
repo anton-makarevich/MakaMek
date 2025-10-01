@@ -112,26 +112,24 @@
                                         Classes="primary"
                                         IsVisible="{Binding CanSetReady}"/>
                             </StackPanel>
-
-                            <!-- Available Units Table Popup Overlay -->
-                            
-                                            
-                                            <!-- Table Content -->
-                                            <templatedControls:GamePanel
-                                                Grid.Row="1"
-                                                IsVisible="{Binding IsTableVisible}"
-                                                Title="Select Target Location"
-                                                CloseCommand="{Binding HideTableCommand}"
-                                                HorizontalAlignment="Right"
-                                                VerticalAlignment="Center">
-                                                <controls:AvailableUnitsTable DataContext="{Binding AvailableUnitsTableViewModel}"/>
-                                            </templatedControls:GamePanel>
-                                       
                         </Grid>
                     </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
     </StackPanel>
+    <FlyoutBase.AttachedFlyout>
+        <Flyout>
+            <templatedControls:GamePanel
+                Grid.Row="1"
+                IsVisible="{Binding IsTableVisible}"
+                Title="Select Target Location"
+                CloseCommand="{Binding HideTableCommand}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center">
+                <controls:AvailableUnitsTable DataContext="{Binding AvailableUnitsTableViewModel}"/>
+            </templatedControls:GamePanel>
+        </Flyout>
+    </FlyoutBase.AttachedFlyout>
 </UserControl>
 
