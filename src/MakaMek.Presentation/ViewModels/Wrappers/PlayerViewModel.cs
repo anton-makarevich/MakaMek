@@ -3,7 +3,6 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -18,7 +17,7 @@ public class PlayerViewModel : BindableBase
     private bool _isEditingName;
     private string _editableName;
     private readonly Func<Player, Task>? _onPlayerNameChanged;
-    private string _selectedWeightClassFilter = "All";
+    private bool _isTableVisible;
 
     public Player Player
     {
@@ -33,48 +32,9 @@ public class PlayerViewModel : BindableBase
     public ObservableCollection<UnitData> AvailableUnits { get; }
 
     /// <summary>
-    /// Gets the filtered list of available units based on the selected weight class filter
+    /// Gets the ViewModel for the available units table
     /// </summary>
-    public IEnumerable<UnitData> FilteredAvailableUnits
-    {
-        get
-        {
-            if (_selectedWeightClassFilter == "All")
-                return AvailableUnits;
-
-            if (Enum.TryParse<WeightClass>(_selectedWeightClassFilter, out var weightClass))
-            {
-                return AvailableUnits.Where(u => GetWeightClass(u.Mass) == weightClass);
-            }
-
-            return AvailableUnits;
-        }
-    }
-
-    /// <summary>
-    /// Gets the list of weight class filter options
-    /// </summary>
-    public List<string> WeightClassFilters { get; } = new()
-    {
-        "All",
-        "Light",
-        "Medium",
-        "Heavy",
-        "Assault"
-    };
-
-    /// <summary>
-    /// Gets or sets the selected weight class filter
-    /// </summary>
-    public string SelectedWeightClassFilter
-    {
-        get => _selectedWeightClassFilter;
-        set
-        {
-            SetProperty(ref _selectedWeightClassFilter, value);
-            NotifyPropertyChanged(nameof(FilteredAvailableUnits));
-        }
-    }
+    public AvailableUnitsTableViewModel AvailableUnitsTableViewModel { get; }
 
     public UnitData? SelectedUnit
     {
@@ -84,21 +44,6 @@ public class PlayerViewModel : BindableBase
             SetProperty(ref _selectedUnit, value);
             NotifyPropertyChanged(nameof(CanAddUnit));
         }
-    }
-
-    /// <summary>
-    /// Calculates the weight class based on tonnage
-    /// </summary>
-    private static WeightClass GetWeightClass(int tonnage)
-    {
-        return tonnage switch
-        {
-            <= 35 => WeightClass.Light,
-            <= 55 => WeightClass.Medium,
-            <= 75 => WeightClass.Heavy,
-            <= 100 => WeightClass.Assault,
-            _ => WeightClass.Unknown
-        };
     }
 
     public bool IsEditingName
@@ -117,6 +62,15 @@ public class PlayerViewModel : BindableBase
         set => SetProperty(ref _editableName, value);
     }
 
+    /// <summary>
+    /// Gets or sets whether the available units table is visible
+    /// </summary>
+    public bool IsTableVisible
+    {
+        get => _isTableVisible;
+        set => SetProperty(ref _isTableVisible, value);
+    }
+
     public void RefreshStatus()
     {
         NotifyPropertyChanged(nameof(Status));
@@ -130,6 +84,8 @@ public class PlayerViewModel : BindableBase
     public ICommand AddUnitCommand { get; }
     public ICommand JoinGameCommand { get; }
     public ICommand SetReadyCommand { get; }
+    public ICommand ShowTableCommand { get; }
+    public ICommand HideTableCommand { get; }
 
     public string Name => Player.Name;
     
@@ -155,6 +111,15 @@ public class PlayerViewModel : BindableBase
         AddUnitCommand = new AsyncCommand(AddUnit);
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
         SetReadyCommand = new AsyncCommand(ExecuteSetReady);
+        ShowTableCommand = new AsyncCommand(ShowTable);
+        HideTableCommand = new AsyncCommand(HideTable);
+
+        // Initialize the AvailableUnitsTableViewModel
+        AvailableUnitsTableViewModel = new AvailableUnitsTableViewModel(
+            AvailableUnits,
+            AddUnitCommand,
+            () => CanAddUnit,
+            HideTableCommand);
     }
 
     private Task ExecuteJoinGame()
@@ -175,17 +140,33 @@ public class PlayerViewModel : BindableBase
         return Task.CompletedTask;
     }
     
-    public bool CanAddUnit => IsLocalPlayer && SelectedUnit != null && Status == PlayerStatus.NotJoined;
+    public bool CanAddUnit => IsLocalPlayer && AvailableUnitsTableViewModel.SelectedUnit != null && Status == PlayerStatus.NotJoined;
 
     public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined && !IsEditingName;
 
+    private Task ShowTable()
+    {
+        IsTableVisible = true;
+        return Task.CompletedTask;
+    }
+
+    private Task HideTable()
+    {
+        IsTableVisible = false;
+        return Task.CompletedTask;
+    }
+
     private Task AddUnit()
     {
         if (!CanAddUnit) return Task.CompletedTask;
 
-        var unit = SelectedUnit!.Value;
+        // Get the selected unit from the table ViewModel
+        var selectedUnit = AvailableUnitsTableViewModel.SelectedUnit;
+        if (!selectedUnit.HasValue) return Task.CompletedTask;
+
+        var unit = selectedUnit.Value;
         var unitId = Guid.NewGuid();
         unit.Id = unitId;
         Units.Add(unit);
@@ -195,6 +176,13 @@ public class PlayerViewModel : BindableBase
 
         NotifyPropertyChanged(nameof(CanJoin));
         _onUnitChanged?.Invoke();
+
+        // Clear selection in the table ViewModel
+        AvailableUnitsTableViewModel.ClearSelection();
+
+        // Hide the table after adding a unit
+        IsTableVisible = false;
+
         SelectedUnit = null;
         (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         return Task.CompletedTask;

@@ -49,15 +49,14 @@
                                         Padding="5,2"/>
                             </StackPanel>
 
-                            <!-- Assigned Units - Horizontal Scrollable View -->
+                            <!-- Assigned Units - Horizontal Scrollable View with + Button -->
                             <Border Grid.Row="1"
                                     MinHeight="150"
                                     Margin="10,5">
-                                <Grid>
-                                    <!-- Show units when there are any -->
-                                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                                  VerticalScrollBarVisibility="Disabled"
-                                                  IsVisible="{Binding Units.Count}">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <!-- Existing Units -->
                                         <ItemsControl ItemsSource="{Binding Units}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
@@ -70,38 +69,32 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                    </ScrollViewer>
 
-                                    <!-- Show "Add Unit" button when no units -->
-                                    <Border Width="120"
-                                            Height="140"
-                                            Classes="card"
-                                            Background="{DynamicResource SurfaceBrush}"
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center">
-                                        <Border.IsVisible>
-                                            <MultiBinding Converter="{x:Static BoolConverters.And}">
-                                                <Binding Path="IsLocalPlayer"/>
-                                                <Binding Path="!Units.Count"/>
-                                            </MultiBinding>
-                                        </Border.IsVisible>
-                                        <Button Content="+"
-                                                FontSize="48"
-                                                FontWeight="Bold"
-                                                Background="Transparent"
-                                                BorderThickness="0"
-                                                HorizontalAlignment="Stretch"
-                                                VerticalAlignment="Stretch"
-                                                ToolTip.Tip="Add Unit"
-                                                Cursor="Hand">
-                                            <Button.Styles>
-                                                <Style Selector="Button:pointerover">
-                                                    <Setter Property="Opacity" Value="0.7"/>
-                                                </Style>
-                                            </Button.Styles>
-                                        </Button>
-                                    </Border>
-                                </Grid>
+                                        <!-- Add Unit Button (always visible for local players) -->
+                                        <Border Width="120"
+                                                Height="140"
+                                                Classes="card"
+                                                Background="{DynamicResource SurfaceBrush}"
+                                                IsVisible="{Binding IsLocalPlayer}">
+                                            <Button Content="+"
+                                                    FontSize="48"
+                                                    FontWeight="Bold"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    HorizontalAlignment="Stretch"
+                                                    VerticalAlignment="Stretch"
+                                                    Command="{Binding ShowTableCommand}"
+                                                    ToolTip.Tip="Add Unit"
+                                                    Cursor="Hand">
+                                                <Button.Styles>
+                                                    <Style Selector="Button:pointerover">
+                                                        <Setter Property="Opacity" Value="0.7"/>
+                                                    </Style>
+                                                </Button.Styles>
+                                            </Button>
+                                        </Border>
+                                    </StackPanel>
+                                </ScrollViewer>
                             </Border>
 
                             <!-- Action Buttons -->
@@ -119,11 +112,62 @@
                                         IsVisible="{Binding CanSetReady}"/>
                             </StackPanel>
 
-                            <!-- Available Units Table -->
-                            <Border Grid.Row="3"
-                                    Margin="10"
-                                    IsVisible="{Binding IsLocalPlayer}">
-                                <controls:AvailableUnitsTable DataContext="{Binding}"/>
+                            <!-- Available Units Table Popup Overlay -->
+                            <Border Grid.Row="0"
+                                    Grid.RowSpan="4"
+                                    Background="#CC000000"
+                                    IsVisible="{Binding IsTableVisible}"
+                                    Margin="-10">
+                                <Grid VerticalAlignment="Stretch"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="20">
+                                    <Border Background="{DynamicResource SurfaceBrush}"
+                                            BorderBrush="{DynamicResource PrimaryBrush}"
+                                            BorderThickness="2"
+                                            CornerRadius="8"
+                                            MaxWidth="800"
+                                            MaxHeight="600"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center">
+                                        <Grid RowDefinitions="Auto,*">
+                                            <!-- Header with Close Button -->
+                                            <Grid Grid.Row="0"
+                                                  ColumnDefinitions="*,Auto"
+                                                  Background="{DynamicResource PrimaryBrush}"
+                                                  Height="40">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="Select Unit to Add"
+                                                           FontSize="16"
+                                                           FontWeight="Bold"
+                                                           Foreground="White"
+                                                           VerticalAlignment="Center"
+                                                           Margin="15,0"/>
+                                                <Button Grid.Column="1"
+                                                        Content="✕"
+                                                        FontSize="20"
+                                                        Command="{Binding HideTableCommand}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Foreground="White"
+                                                        Width="40"
+                                                        Height="40"
+                                                        ToolTip.Tip="Close"
+                                                        Cursor="Hand">
+                                                    <Button.Styles>
+                                                        <Style Selector="Button:pointerover">
+                                                            <Setter Property="Opacity" Value="0.7"/>
+                                                        </Style>
+                                                    </Button.Styles>
+                                                </Button>
+                                            </Grid>
+
+                                            <!-- Table Content -->
+                                            <Border Grid.Row="1" Margin="15">
+                                                <controls:AvailableUnitsTable DataContext="{Binding AvailableUnitsTableViewModel}"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
                             </Border>
                         </Grid>
                     </Border>
