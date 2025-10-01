@@ -40,6 +40,8 @@ public abstract class NewGameViewModel : BaseViewModel
     public ICommand? AddPlayerCommand { get; protected set; }
 
     private const string DefaultPlayerCacheKey = "DefaultPlayer";
+    
+    private PlayerViewModel? _activePlayer;
 
     protected NewGameViewModel(IRulesProvider rulesProvider,
         IUnitsLoader unitsLoader,
@@ -62,6 +64,9 @@ public abstract class NewGameViewModel : BaseViewModel
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
         _cachingService = cachingService;
+        
+        HideTableCommand = new AsyncCommand(HideTable);
+        AddUnitCommand = new AsyncCommand(() => AddUnit(_activePlayer));
     }
 
     // Common command handlers with template method pattern
@@ -244,25 +249,30 @@ public abstract class NewGameViewModel : BaseViewModel
     
     protected void ShowTable(PlayerViewModel playerVm)
     {
+        _activePlayer = playerVm;
         IsTableVisible = true;
     }
 
     private Task HideTable()
     {
+        _activePlayer = null;
         // Hide the table
+        IsTableVisible = false;
         return Task.CompletedTask;
     }
     
-    private void AddUnit(PlayerViewModel playerVm)
+    private Task AddUnit(PlayerViewModel? playerVm)
     {
+        if (playerVm == null) return Task.CompletedTask;
         // Get the selected unit from the table ViewModel
-        var selectedUnit = AvailableUnitsTableViewModel.SelectedUnit;
-        if (!selectedUnit.HasValue) return;
+        var selectedUnit = AvailableUnitsTableViewModel?.SelectedUnit;
+        if (!selectedUnit.HasValue) return Task.CompletedTask;
 
         var unit = selectedUnit.Value;
         var unitId = Guid.NewGuid();
         unit.Id = unitId;
         playerVm.Units.Add(unit);
+        return HideTable();
     }
     
     private bool _isTableVisible;

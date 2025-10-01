@@ -88,14 +88,14 @@ public class AvailableUnitsTableViewModel : BindableBase
         set
         {
             SetProperty(ref _selectedUnit, value);
-            NotifyPropertyChanged(nameof(CanAddUnitNow));
+            NotifyPropertyChanged(nameof(CanAddUnit));
         }
     }
 
     /// <summary>
     /// Gets whether a unit can be added right now (unit is selected and player can add units)
     /// </summary>
-    public bool CanAddUnitNow => _selectedUnit.HasValue && CanAddUnit();
+    public bool CanAddUnit => _selectedUnit.HasValue;
 
     /// <summary>
     /// Command to add the selected unit
@@ -106,11 +106,6 @@ public class AvailableUnitsTableViewModel : BindableBase
     /// Command to close/hide the table
     /// </summary>
     public ICommand CloseTableCommand { get; }
-
-    /// <summary>
-    /// Function to check if units can be added (from PlayerViewModel)
-    /// </summary>
-    private Func<bool> CanAddUnit { get; }
 
     /// <summary>
     /// Calculates the weight class based on tonnage (matches Unit.cs logic)
