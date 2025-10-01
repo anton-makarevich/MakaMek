@@ -271,7 +271,7 @@ public abstract class NewGameViewModel : BaseViewModel
         var unit = selectedUnit.Value;
         var unitId = Guid.NewGuid();
         unit.Id = unitId;
-        playerVm.Units.Add(unit);
+        playerVm.AddUnit(unit);
         return HideTable();
     }
     
