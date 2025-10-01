@@ -62,14 +62,6 @@ public abstract class NewGameViewModel : BaseViewModel
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
         _cachingService = cachingService;
-        
-        
-        
-        // Initialize the AvailableUnitsTableViewModel
-        AvailableUnitsTableViewModel = new AvailableUnitsTableViewModel(
-            AvailableUnits,
-            AddUnitCommand,
-            HideTableCommand);
     }
 
     // Common command handlers with template method pattern
@@ -214,6 +206,12 @@ public abstract class NewGameViewModel : BaseViewModel
     private async Task LoadAvailableUnits()
     {
         _availableUnits = await _unitsLoader.LoadUnits();
+        
+        // Initialize the AvailableUnitsTableViewModel
+        AvailableUnitsTableViewModel = new AvailableUnitsTableViewModel(
+            AvailableUnits,
+            AddUnitCommand,
+            HideTableCommand);
     }
 
     /// <summary>
@@ -246,7 +244,7 @@ public abstract class NewGameViewModel : BaseViewModel
     
     protected void ShowTable(PlayerViewModel playerVm)
     {
-        // Show the table
+        IsTableVisible = true;
     }
 
     private Task HideTable()
@@ -267,8 +265,15 @@ public abstract class NewGameViewModel : BaseViewModel
         playerVm.Units.Add(unit);
     }
     
+    private bool _isTableVisible;
+    public bool IsTableVisible
+    {
+        get => _isTableVisible;
+        set => SetProperty(ref _isTableVisible, value);
+    }
+    
     /// <summary>
     /// Gets the ViewModel for the available units table
     /// </summary>
-    public AvailableUnitsTableViewModel AvailableUnitsTableViewModel { get; }
+    public AvailableUnitsTableViewModel? AvailableUnitsTableViewModel { get; private set; }
 }

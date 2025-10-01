@@ -8,7 +8,10 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.PlayersFragment"
              x:DataType="viewModels1:NewGameViewModel">
-    <StackPanel Classes="verticalSpaced">
+    <Panel>
+    <StackPanel Classes="verticalSpaced"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
         <Button Content="Add Player" Command="{Binding AddPlayerCommand}"
                 Classes="secondary"
                 HorizontalAlignment="Center"
@@ -84,7 +87,7 @@
                                                     BorderThickness="0"
                                                     HorizontalAlignment="Stretch"
                                                     VerticalAlignment="Stretch"
-                                                    Command="{Binding ShowTableCommand}"
+                                                    Command="{Binding ShowAvailableUnitsCommand}"
                                                     ToolTip.Tip="Add Unit"
                                                     Cursor="Hand">
                                                 <Button.Styles>
@@ -118,17 +121,18 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
     </StackPanel>
-    <FlyoutBase.AttachedFlyout>
-        <Flyout>
-            <templatedControls:GamePanel
-                Grid.Row="1"
-                Title="Select Target Location"
-                CloseCommand="{Binding HideTableCommand}"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Center">
-                <controls:AvailableUnitsTable DataContext="{Binding AvailableUnitsTableViewModel}"/>
-            </templatedControls:GamePanel>
-        </Flyout>
-    </FlyoutBase.AttachedFlyout>
+    <Panel HorizontalAlignment="Stretch"
+           VerticalAlignment="Stretch"
+           Background="#11000000"
+           IsVisible="{Binding IsTableVisible}">
+        <templatedControls:GamePanel
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Title="Available Units"
+            CloseCommand="{Binding HideTableCommand}">
+            <controls:AvailableUnitsTable DataContext="{Binding AvailableUnitsTableViewModel}"/>
+        </templatedControls:GamePanel>
+    </Panel>
+    </Panel>
 </UserControl>
 

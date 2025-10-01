@@ -7,19 +7,8 @@
              x:Class="Sanet.MakaMek.Avalonia.Controls.AvailableUnitsTable"
              x:DataType="wrappers:AvailableUnitsTableViewModel">
     
-    <Border Background="{DynamicResource BackgroundBrush}"
-            BorderBrush="{DynamicResource PrimaryBrush}"
-            BorderThickness="1"
-            CornerRadius="8"
-            Padding="10">
+    <Border Padding="5">
         <Grid RowDefinitions="Auto,Auto,*,Auto">
-            <!-- Title -->
-            <TextBlock Grid.Row="0"
-                       Text="Available Units"
-                       Classes="h3"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,10"/>
-            
             <!-- Filter Controls -->
             <Grid Grid.Row="1"
                   ColumnDefinitions="Auto,*"
