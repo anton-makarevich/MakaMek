@@ -12,8 +12,9 @@ public class AvailableUnitsTableViewModel : BindableBase
 {
     private readonly ObservableCollection<UnitData> _availableUnits;
     private UnitData? _selectedUnit;
-    private WeightClass _selectedWeightClassFilter = WeightClass.Light; // Default to first real class
+    private WeightClass? _selectedWeightClassFilter; // Default is `all` so no filtering
     private bool _showAllClasses;
+    private const string FilterAllKey = "All";
 
     public AvailableUnitsTableViewModel(
         IList<UnitData> availableUnits,
@@ -43,24 +44,27 @@ public class AvailableUnitsTableViewModel : BindableBase
     /// <summary>
     /// Gets the list of weight class filter options (including "All")
     /// </summary>
-    public List<string> WeightClassFilters { get; } =
-    [
-        "All",
-        "Light",
-        "Medium",
-        "Heavy",
-        "Assault"
-    ];
+    public List<string> WeightClassFilters { get; } = PrepareFilters();
+
+    private static List<string> PrepareFilters()
+    {
+        var filters = Enum.GetNames<WeightClass>()
+            .Where(c => c != nameof(WeightClass.Unknown))
+            .ToList();
+        
+        filters.Insert(0, FilterAllKey);
+        return filters;
+    }
 
     /// <summary>
     /// Gets or sets the selected weight class filter as a string
     /// </summary>
     public string SelectedWeightClassFilterString
     {
-        get => _showAllClasses ? "All" : _selectedWeightClassFilter.ToString();
+        get => _showAllClasses ? FilterAllKey : _selectedWeightClassFilter?.ToString()??FilterAllKey;
         set
         {
-            if (value == "All")
+            if (value == FilterAllKey)
             {
                 _showAllClasses = true;
                 _selectedWeightClassFilter = WeightClass.Light; // Default value when showing all
