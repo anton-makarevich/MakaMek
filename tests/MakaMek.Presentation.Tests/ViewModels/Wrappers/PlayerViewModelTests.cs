@@ -598,4 +598,52 @@ public class PlayerViewModelTests
         // Assert
         propertyChanged.ShouldBeTrue();
     }
+    
+    [Fact]
+    public void ExecuteShowUnits_ShouldInvokeShowAvailableUnitsAction_WhenCanAddUnitIsTrue()
+    {
+        // Arrange
+        var showAvailableUnitsCalled = false;
+        PlayerViewModel? passedViewModel = null;
+
+        var sut = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true,
+            showAvailableUnits: ShowAvailableUnitsAction);
+
+        // Act
+        sut.ShowAvailableUnitsCommand.Execute(null);
+    
+        // Assert
+        showAvailableUnitsCalled.ShouldBeTrue();
+        passedViewModel.ShouldBe(sut);
+        return;
+
+        void ShowAvailableUnitsAction(PlayerViewModel playerVm)
+        {
+            showAvailableUnitsCalled = true;
+            passedViewModel = playerVm;
+        }
+    }
+    
+    [Fact]
+    public void ExecuteShowUnits_ShouldNotInvokeShowAvailableUnitsAction_WhenCanAddUnitIsFalse()
+    {
+        // Arrange
+        var showAvailableUnitsCalled = false;
+
+        var sut = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true,
+            showAvailableUnits: _ => showAvailableUnitsCalled = true);
+            
+        // Set status to something that makes CanAddUnit false
+        sut.Player.Status = PlayerStatus.Joined;
+
+        // Act
+        sut.ShowAvailableUnitsCommand.Execute(null);
+    
+        // Assert
+        showAvailableUnitsCalled.ShouldBeFalse();
+    }
 }
