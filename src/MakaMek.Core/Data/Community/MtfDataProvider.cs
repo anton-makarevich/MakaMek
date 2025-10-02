@@ -10,6 +10,11 @@ namespace Sanet.MakaMek.Core.Data.Community;
 public class MtfDataProvider:IUnitDataProvider
 {
     private readonly IComponentProvider _componentProvider;
+    private readonly string[] _nicknamePatterns = 
+    [
+        @"^([^']+)'([^']+)'$",
+        @"^([^(]+)\(([^)]+)\)$"
+    ];
 
     public MtfDataProvider(IComponentProvider componentProvider)
     {
@@ -20,11 +25,15 @@ public class MtfDataProvider:IUnitDataProvider
         var listLines = lines.ToList();
         var mechData = ParseBasicData(listLines);
         var (equipment, armorValues) = ParseLocationData(listLines, mechData);
+        
+        var model = mechData["model"];
+        var nickname = mechData.GetValueOrDefault("nickname");
 
         return new UnitData
         {
             Chassis = mechData["chassis"],
-            Model = mechData["model"],
+            Model = model,
+            Nickname = nickname,
             Mass = int.Parse(mechData["Mass"]),
             WalkMp = int.Parse(Regex.Match(mechData["Walk MP"], @"\d+").Value),
             EngineRating = int.Parse(mechData["EngineRating"]),
@@ -70,10 +79,38 @@ public class MtfDataProvider:IUnitDataProvider
                 {
                     key = $"{key}{++systemsCount}";
                 }
+                if (key.StartsWith("model"))
+                {
+                    // Extract model and nickname from model field (format: "MODEL 'NICKNAME'" or "MODEL (NICKNAME)")
+                    var (model, nickname) = ExtractModelAndNickname(value);
+                    mechData["model"] = model;
+                    if (!string.IsNullOrEmpty(nickname))
+                        mechData["nickname"] = nickname;
+                    continue;
+                }
                 mechData[key] = value;
             }
         }
         return mechData;
+    }
+    
+    private (string model, string? nickname) ExtractModelAndNickname(string modelNickname)
+    {
+        var model = modelNickname;
+        string? nickname = null;
+        
+        foreach (var pattern in _nicknamePatterns)
+        {
+            var match = Regex.Match(model, pattern);
+            if (match.Success)
+            {
+                model = match.Groups[1].Value.Trim();
+                nickname = match.Groups[2].Value.Trim();
+                break;
+            }
+        }
+        
+        return (model, nickname);
     }
 
     private (List<ComponentData> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines, Dictionary<string, string> mechData)

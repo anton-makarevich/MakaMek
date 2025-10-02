@@ -14,7 +14,9 @@ public class MtfDataProviderTests
 {
     private readonly string[] _locustMtfData = File.ReadAllLines("Resources/LCT-1V.mtf");
     private readonly string[] _shadowHawkMtfData = File.ReadAllLines("Resources/SHD-2D.mtf");
-    private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
+    private readonly string[] _vindicatorAaMtfData = File.ReadAllLines("Resources/Vindicator VND-1AA Avenging Angel.mtf");
+    private readonly string[] _vindicatorRVongMtfData = File.ReadAllLines("Resources/Vindicator VND-1R Vong.mtf");
+    private readonly ClassicBattletechComponentProvider _componentProvider = new();
 
     [Fact]
     public void Parse_LocustMtf_ReturnsCorrectBasicData()
@@ -32,6 +34,7 @@ public class MtfDataProviderTests
         mechData.WalkMp.ShouldBe(8);
         mechData.EngineRating.ShouldBe(160);
         mechData.EngineType.ShouldBe("Fusion");
+        mechData.Nickname.ShouldBeNull();
     }
 
     [Fact]
@@ -425,5 +428,35 @@ public class MtfDataProviderTests
         ltAssign.ShouldNotBeNull();
         ltAssign.FirstSlot.ShouldBe(1); // Immediately after Jump Jet at slot 0
         ltAssign.Length.ShouldBe(expectedSize);
+    }
+    
+    [Fact]
+    public void Parse_VindicatorVND1AA_ExtractsNicknameCorrectly()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_vindicatorAaMtfData);
+
+        // Assert
+        mechData.Chassis.ShouldBe("Vindicator");
+        mechData.Model.ShouldBe("VND-1AA");
+        mechData.Nickname.ShouldBe("Avenging Angel");
+    }
+
+    [Fact]
+    public void Parse_VindicatorVND1RVong_ExtractsNicknameCorrectly()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_vindicatorRVongMtfData);
+
+        // Assert
+        mechData.Chassis.ShouldBe("Vindicator");
+        mechData.Model.ShouldBe("VND-1R");
+        mechData.Nickname.ShouldBe("Vong");
     }
 }
