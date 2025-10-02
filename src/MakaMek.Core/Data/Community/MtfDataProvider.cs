@@ -10,6 +10,11 @@ namespace Sanet.MakaMek.Core.Data.Community;
 public class MtfDataProvider:IUnitDataProvider
 {
     private readonly IComponentProvider _componentProvider;
+    private readonly string[] _nicknamePatterns = 
+    [
+        @"^([^']+)'([^']+)'$",
+        @"^([^(]+)\(([^)]+)\)$"
+    ];
 
     public MtfDataProvider(IComponentProvider componentProvider)
     {
@@ -88,28 +93,24 @@ public class MtfDataProvider:IUnitDataProvider
         }
         return mechData;
     }
-
+    
     private (string model, string? nickname) ExtractModelAndNickname(string modelNickname)
     {
         var model = modelNickname;
-        var nickname = string.Empty;
+        string? nickname = null;
         // Check for nickname in single quotes (e.g., "VND-1AA 'Avenging Angel'")
-        var singleQuoteMatch = Regex.Match(model, "^([^']+)'([^']+)'$");
-        if (singleQuoteMatch.Success)
+        
+        foreach (var pattern in _nicknamePatterns)
         {
-            model = singleQuoteMatch.Groups[1].Value.Trim();
-            nickname = singleQuoteMatch.Groups[2].Value.Trim();
-        }
-        // Check for nickname in parentheses (e.g., "VND-1R (Vong)")
-        else
-        {
-            var parenMatch = Regex.Match(model, "^([^(]+)\\(([^)]+)\\)$");
-            if (parenMatch.Success)
+            var match = Regex.Match(model, pattern);
+            if (match.Success)
             {
-                model = parenMatch.Groups[1].Value.Trim();
-                nickname = parenMatch.Groups[2].Value.Trim();
+                model = match.Groups[1].Value.Trim();
+                nickname = match.Groups[2].Value.Trim();
+                break;
             }
         }
+        
         return (model, nickname);
     }
 
