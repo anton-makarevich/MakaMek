@@ -1,7 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -37,7 +36,7 @@ public class AvailableUnitsTableViewModel : BindableBase
             if (_showAllClasses)
                 return _availableUnits;
             
-            return _availableUnits.Where(u => GetWeightClass(u.Mass) == _selectedWeightClassFilter);
+            return _availableUnits.Where(u => u.Mass.ToWeightClass() == _selectedWeightClassFilter);
         }
     }
 
@@ -99,20 +98,5 @@ public class AvailableUnitsTableViewModel : BindableBase
     /// Command to add the selected unit
     /// </summary>
     public ICommand AddUnitCommand { get; }
-
-    /// <summary>
-    /// Calculates the weight class based on tonnage (matches Unit.cs logic)
-    /// </summary>
-    private static WeightClass GetWeightClass(int tonnage)
-    {
-        return tonnage switch
-        {
-            <= 35 => WeightClass.Light,
-            <= 55 => WeightClass.Medium,
-            <= 75 => WeightClass.Heavy,
-            <= 100 => WeightClass.Assault,
-            _ => WeightClass.Unknown
-        };
-    }
 }
 

@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -109,14 +110,7 @@ public abstract class Unit
 
     public bool IsOutOfCommission => IsDestroyed || Pilot?.IsDead == true;
 
-    public WeightClass Class => Tonnage switch
-    {
-        <= 35 => WeightClass.Light,
-        <= 55 => WeightClass.Medium,
-        <= 75 => WeightClass.Heavy,
-        <= 100 => WeightClass.Assault,
-        _ => WeightClass.Unknown
-    };
+    public WeightClass Class => Tonnage.ToWeightClass();
 
     // Base movement (walking)
     protected int BaseMovement { get; }

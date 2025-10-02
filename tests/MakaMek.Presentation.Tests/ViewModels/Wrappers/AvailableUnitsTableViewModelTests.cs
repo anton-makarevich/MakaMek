@@ -1,7 +1,6 @@
 using NSubstitute;
 using System.Windows.Input;
 using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
@@ -202,10 +201,11 @@ public class AvailableUnitsTableViewModelTests
         // Arrange
         var units = CreateTestUnits();
         var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
-
-        // Act
-        sut.SelectedWeightClassFilterString = "InvalidClass";
+        var sut = new AvailableUnitsTableViewModel(units, addCommand)
+        {
+            // Act
+            SelectedWeightClassFilterString = "InvalidClass"
+        };
 
         // Assert
         sut.SelectedWeightClassFilterString.ShouldBe("All"); // Should remain as All
