@@ -25,8 +25,7 @@ public class MtfDataProvider:IUnitDataProvider
         var listLines = lines.ToList();
         var mechData = ParseBasicData(listLines);
         var (equipment, armorValues) = ParseLocationData(listLines, mechData);
-
-        // Extract model and nickname from model field (format: "MODEL 'NICKNAME'" or "MODEL (NICKNAME)")
+        
         var model = mechData["model"];
         var nickname = mechData.GetValueOrDefault("nickname");
 
@@ -82,6 +81,7 @@ public class MtfDataProvider:IUnitDataProvider
                 }
                 if (key.StartsWith("model"))
                 {
+                    // Extract model and nickname from model field (format: "MODEL 'NICKNAME'" or "MODEL (NICKNAME)")
                     var (model, nickname) = ExtractModelAndNickname(value);
                     mechData["model"] = model;
                     if (!string.IsNullOrEmpty(nickname))
@@ -98,7 +98,6 @@ public class MtfDataProvider:IUnitDataProvider
     {
         var model = modelNickname;
         string? nickname = null;
-        // Check for nickname in single quotes (e.g., "VND-1AA 'Avenging Angel'")
         
         foreach (var pattern in _nicknamePatterns)
         {
