@@ -8,6 +8,7 @@ public record struct UnitData
     public Guid? Id { get; set; }
     public required string Chassis { get; init; }
     public required string Model { get; init; }
+    public string? Nickname { get; init; }
     public required int Mass { get; init; }
     public required int WalkMp { get; init; }
     public required int EngineRating { get; init; }
