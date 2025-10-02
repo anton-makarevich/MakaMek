@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Windows.Input;
+using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -21,7 +22,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public abstract class NewGameViewModel : BaseViewModel
 {
     protected readonly ObservableCollection<PlayerViewModel> _players = [];
-    protected IEnumerable<UnitData> _availableUnits = [];
+    private IEnumerable<UnitData> _availableUnits = [];
 
     protected readonly IRulesProvider _rulesProvider;
     private readonly IUnitsLoader _unitsLoader;
@@ -39,6 +40,8 @@ public abstract class NewGameViewModel : BaseViewModel
     public ICommand? AddPlayerCommand { get; protected set; }
 
     private const string DefaultPlayerCacheKey = "DefaultPlayer";
+    
+    private PlayerViewModel? _activePlayer;
 
     protected NewGameViewModel(IRulesProvider rulesProvider,
         IUnitsLoader unitsLoader,
@@ -61,6 +64,9 @@ public abstract class NewGameViewModel : BaseViewModel
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
         _cachingService = cachingService;
+        
+        HideTableCommand = new AsyncCommand(HideTable);
+        AddUnitCommand = new AsyncCommand(() => AddUnit(_activePlayer));
     }
 
     // Common command handlers with template method pattern
@@ -205,6 +211,11 @@ public abstract class NewGameViewModel : BaseViewModel
     private async Task LoadAvailableUnits()
     {
         _availableUnits = await _unitsLoader.LoadUnits();
+        
+        // Initialize the AvailableUnitsTableViewModel
+        AvailableUnitsTableViewModel = new AvailableUnitsTableViewModel(
+            AvailableUnits,
+            AddUnitCommand);
     }
 
     /// <summary>
@@ -230,4 +241,48 @@ public abstract class NewGameViewModel : BaseViewModel
     }
 
     public List<UnitData> AvailableUnits => _availableUnits.ToList();
+    
+        
+    public ICommand HideTableCommand { get; }
+    private ICommand AddUnitCommand { get; }
+    
+    protected void ShowTable(PlayerViewModel playerVm)
+    {
+        _activePlayer = playerVm;
+        IsTableVisible = true;
+    }
+
+    private Task HideTable()
+    {
+        _activePlayer = null;
+        // Hide the table
+        IsTableVisible = false;
+        return Task.CompletedTask;
+    }
+    
+    private Task AddUnit(PlayerViewModel? playerVm)
+    {
+        if (playerVm == null) return Task.CompletedTask;
+        // Get the selected unit from the table ViewModel
+        var selectedUnit = AvailableUnitsTableViewModel?.SelectedUnit;
+        if (!selectedUnit.HasValue) return Task.CompletedTask;
+
+        var unit = selectedUnit.Value;
+        var unitId = Guid.NewGuid();
+        unit.Id = unitId;
+        playerVm.AddUnit(unit);
+        return HideTable();
+    }
+    
+    private bool _isTableVisible;
+    public bool IsTableVisible
+    {
+        get => _isTableVisible;
+        set => SetProperty(ref _isTableVisible, value);
+    }
+    
+    /// <summary>
+    /// Gets the ViewModel for the available units table
+    /// </summary>
+    public AvailableUnitsTableViewModel? AvailableUnitsTableViewModel { get; private set; }
 }

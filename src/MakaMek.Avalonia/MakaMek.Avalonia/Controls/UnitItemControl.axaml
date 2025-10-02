@@ -1,0 +1,37 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:units="clr-namespace:Sanet.MakaMek.Core.Data.Units;assembly=Sanet.MakaMek.Core"
+             mc:Ignorable="d" d:DesignWidth="120" d:DesignHeight="140"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.UnitItemControl"
+             x:DataType="units:UnitData">
+    <Border Classes="card" 
+            Padding="5"
+            Width="100"
+            Height="120"
+            Background="{DynamicResource SurfaceBrush}">
+        <StackPanel Spacing="4">
+            <!-- Unit Image -->
+            
+            <Image x:Name="UnitImage"
+                   Width="84"
+                   Height="84"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center">
+                <Image.RenderTransform>
+                    <RotateTransform Angle="180"/>
+                </Image.RenderTransform>
+            </Image>
+            
+            <!-- Model Name -->
+            <TextBlock Text="{Binding Model}" 
+                       Classes="bodySmall"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxLines="2"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Border>
+</UserControl>
+

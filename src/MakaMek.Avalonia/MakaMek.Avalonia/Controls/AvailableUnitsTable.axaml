@@ -1,0 +1,113 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.AvailableUnitsTable"
+             x:DataType="wrappers:AvailableUnitsTableViewModel">
+    
+    <Border Padding="5">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+            <!-- Filter Controls -->
+            <Grid Grid.Row="1"
+                  ColumnDefinitions="Auto,*"
+                  Margin="0,0,0,10">
+                <TextBlock Grid.Column="0"
+                           Text="Class:"
+                           Classes="label"
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0"/>
+                <ComboBox Grid.Column="1"
+                          ItemsSource="{Binding WeightClassFilters}"
+                          SelectedItem="{Binding SelectedWeightClassFilterString, Mode=TwoWay}"
+                          HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" Classes="body"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+            
+            <!-- Units Table -->
+            <Border Grid.Row="2"
+                    BorderBrush="{DynamicResource PrimaryBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Table Header -->
+                    <Grid Grid.Row="0"
+                          ColumnDefinitions="2*,2*,*"
+                          Background="{DynamicResource PrimaryBrush}"
+                          Height="30">
+                        <TextBlock Grid.Column="0"
+                                   Text="Chassis"
+                                   Classes="label"
+                                   Foreground="White"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   Margin="10,0"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="Model"
+                                   Classes="label"
+                                   Foreground="White"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   Margin="10,0"/>
+                        <TextBlock Grid.Column="2"
+                                   Text="Tonnage"
+                                   Classes="label"
+                                   Foreground="White"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   Margin="10,0"/>
+                    </Grid>
+
+                    <!-- Table Content -->
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ListBox ItemsSource="{Binding FilteredAvailableUnits}"
+                                 SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                                 Background="Transparent"
+                                 BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="2*,2*,*"
+                                          MinHeight="30">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Chassis}"
+                                                   Classes="body"
+                                                   VerticalAlignment="Center"
+                                                   Margin="10,5"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Model}"
+                                                   Classes="body"
+                                                   VerticalAlignment="Center"
+                                                   Margin="10,5"/>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding Mass}"
+                                                   Classes="body"
+                                                   VerticalAlignment="Center"
+                                                   Margin="10,5"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Add Unit Button -->
+            <Button Grid.Row="3"
+                    Content="Add Unit"
+                    Command="{Binding AddUnitCommand}"
+                    IsEnabled="{Binding CanAddUnit}"
+                    Classes="primary"
+                    HorizontalAlignment="Stretch"
+                    Margin="0,10,0,0"/>
+        </Grid>
+    </Border>
+</UserControl>
+

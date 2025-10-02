@@ -3,10 +3,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.PlayersFragment"
              x:DataType="viewModels1:NewGameViewModel">
-    <StackPanel Classes="verticalSpaced">
+    <Panel>
+    <StackPanel Classes="verticalSpaced"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
         <Button Content="Add Player" Command="{Binding AddPlayerCommand}"
                 Classes="secondary"
                 HorizontalAlignment="Center"
@@ -15,77 +20,131 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border Classes="card" Margin="0,5">
-                        <Grid ColumnDefinitions="*,*"
-                              RowDefinitions="Auto,*">
-                            <StackPanel Grid.Row="0" Grid.Column="0" Classes="verticalSpaced" Margin="10,5">
-                                <!-- Player Name with Edit Functionality -->
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <TextBlock Text="{Binding Name}"
-                                               Classes="h3"
-                                               IsVisible="{Binding !IsEditingName}"/>
-                                    <TextBox Text="{Binding EditableName, Mode=TwoWay}"
-                                             IsVisible="{Binding IsEditingName}"
-                                             MinWidth="150"/>
-                                    <Button Content="✏️"
-                                            Command="{Binding StartEditingName}"
-                                            IsVisible="{Binding !IsEditingName}"
-                                            IsEnabled="{Binding CanEditName}"
-                                            ToolTip.Tip="Edit player name"
-                                            Classes="secondary"
-                                            Padding="5,2"/>
-                                    <Button Content="✓"
-                                            Command="{Binding SaveName}"
-                                            IsVisible="{Binding IsEditingName}"
-                                            ToolTip.Tip="Save name"
-                                            Classes="primary"
-                                            Padding="5,2"/>
-                                    <Button Content="✗"
-                                            Command="{Binding CancelEditName}"
-                                            IsVisible="{Binding IsEditingName}"
-                                            ToolTip.Tip="Cancel"
-                                            Classes="secondary"
-                                            Padding="5,2"/>
-                                </StackPanel>
-                                <TextBlock Text="Available Units:" Classes="label" Margin="5"/>
-                                <ComboBox 
-                                    IsVisible="{Binding IsLocalPlayer}"
-                                    IsEnabled="{Binding CanSelectUnit}"
-                                    ItemsSource="{Binding AvailableUnits}"
-                                          SelectedItem="{Binding SelectedUnit, Mode=TwoWay}">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Chassis}" Classes="body"/>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                                <Button Content="Add Unit" 
-                                        IsVisible="{Binding IsLocalPlayer}"
-                                        Command="{Binding AddUnitCommand}" 
+                        <Grid RowDefinitions="Auto,Auto,Auto,*">
+                            <!-- Player Name with Edit Functionality -->
+                            <StackPanel Grid.Row="0"
+                                        Orientation="Horizontal"
+                                        Spacing="10"
+                                        Margin="10,10,10,5">
+                                <TextBlock Text="{Binding Name}"
+                                           Classes="h3"
+                                           IsVisible="{Binding !IsEditingName}"/>
+                                <TextBox Text="{Binding EditableName, Mode=TwoWay}"
+                                         IsVisible="{Binding IsEditingName}"
+                                         MinWidth="150"/>
+                                <Button Content="✏️"
+                                        Command="{Binding StartEditingName}"
+                                        IsVisible="{Binding !IsEditingName}"
+                                        IsEnabled="{Binding CanEditName}"
+                                        ToolTip.Tip="Edit player name"
+                                        Classes="secondary"
+                                        Padding="5,2"/>
+                                <Button Content="✓"
+                                        Command="{Binding SaveName}"
+                                        IsVisible="{Binding IsEditingName}"
+                                        ToolTip.Tip="Save name"
                                         Classes="primary"
-                                        IsEnabled="{Binding CanAddUnit}"/>
+                                        Padding="5,2"/>
+                                <Button Content="✗"
+                                        Command="{Binding CancelEditName}"
+                                        IsVisible="{Binding IsEditingName}"
+                                        ToolTip.Tip="Cancel"
+                                        Classes="secondary"
+                                        Padding="5,2"/>
                             </StackPanel>
-                            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
-                                <Button Content="Join Game" Command="{Binding JoinGameCommand}" 
-                                         Classes="primary"
-                                         IsVisible="{Binding CanJoin}"/>
-                                <Button Content="Set Ready" Command="{Binding SetReadyCommand}" 
-                                         Classes="primary"
-                                         IsVisible="{Binding CanSetReady}"/>
-                            </StackPanel>
-                            <Border Grid.Row="0" Grid.Column="1" Classes="card" Background="{DynamicResource SurfaceBrush}">
-                                <ItemsControl ItemsSource="{Binding Units}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Chassis}" Classes="body" Margin="2"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+
+                            <!-- Assigned Units - Horizontal Scrollable View with + Button -->
+                            <Border Grid.Row="1"
+                                    MinHeight="150"
+                                    Margin="10,5">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <!-- Existing Units -->
+                                        <ItemsControl ItemsSource="{Binding Units}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="5"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <controls:UnitItemControl DataContext="{Binding}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        
+                                        <Border Padding="5"
+                                                Width="100"
+                                                Height="120"
+                                                Classes="card"
+                                                Background="{DynamicResource SurfaceBrush}"
+                                                IsVisible="{Binding CanAddUnit}">
+                                            <StackPanel Spacing="4">
+                                                <Button Content="+"
+                                                        FontSize="64"
+                                                        FontWeight="Bold"
+                                                        Height="84"
+                                                        Width="84"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Command="{Binding ShowAvailableUnitsCommand}"
+                                                        ToolTip.Tip="Add Unit"
+                                                        Cursor="Hand">
+                                                    <Button.Styles>
+                                                        <Style Selector="Button:pointerover">
+                                                            <Setter Property="Opacity" Value="0.7"/>
+                                                        </Style>
+                                                    </Button.Styles>
+                                                </Button>
+                                                <TextBlock Text="Add Unit" 
+                                                           Classes="bodySmall"
+                                                           TextAlignment="Center"
+                                                           TextWrapping="Wrap"
+                                                           MaxLines="2"
+                                                           HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </ScrollViewer>
                             </Border>
+
+                            <!-- Action Buttons -->
+                            <StackPanel Grid.Row="2"
+                                        Orientation="Horizontal"
+                                        Spacing="10"
+                                        Margin="10,5">
+                                <Button Content="Join Game"
+                                        Command="{Binding JoinGameCommand}"
+                                        Classes="primary"
+                                        IsVisible="{Binding CanJoin}"/>
+                                <Button Content="Set Ready"
+                                        Command="{Binding SetReadyCommand}"
+                                        Classes="primary"
+                                        IsVisible="{Binding CanSetReady}"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
     </StackPanel>
+    <Panel HorizontalAlignment="Stretch"
+           VerticalAlignment="Stretch"
+           Background="#11000000"
+           IsVisible="{Binding IsTableVisible}">
+        <templatedControls:GamePanel
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Title="Available Units"
+            CloseCommand="{Binding HideTableCommand}">
+            <controls:AvailableUnitsTable DataContext="{Binding AvailableUnitsTableViewModel}"/>
+        </templatedControls:GamePanel>
+    </Panel>
+    </Panel>
 </UserControl>
 

@@ -9,10 +9,10 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 public class PlayerViewModel : BindableBase
 {
-    private UnitData? _selectedUnit;
     private readonly Action? _onUnitChanged;
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
+    private readonly Action<PlayerViewModel>? _showAvailableUnits;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
     private bool _isEditingName;
     private string _editableName;
@@ -28,17 +28,6 @@ public class PlayerViewModel : BindableBase
     public PlayerStatus Status => Player.Status;
 
     public ObservableCollection<UnitData> Units { get; }
-    public ObservableCollection<UnitData> AvailableUnits { get; }
-
-    public UnitData? SelectedUnit
-    {
-        get => _selectedUnit;
-        set
-        {
-            SetProperty(ref _selectedUnit, value);
-            NotifyPropertyChanged(nameof(CanAddUnit));
-        }
-    }
 
     public bool IsEditingName
     {
@@ -66,7 +55,7 @@ public class PlayerViewModel : BindableBase
         NotifyPropertyChanged(nameof(CanEditName));
     }
 
-    public ICommand AddUnitCommand { get; }
+    public ICommand ShowAvailableUnitsCommand { get; }
     public ICommand JoinGameCommand { get; }
     public ICommand SetReadyCommand { get; }
 
@@ -75,9 +64,9 @@ public class PlayerViewModel : BindableBase
     public PlayerViewModel(
         Player player,
         bool isLocalPlayer,
-        IEnumerable<UnitData> availableUnits,
         Action<PlayerViewModel>? joinGameAction = null,
         Action<PlayerViewModel>? setReadyAction = null,
+        Action<PlayerViewModel>? showAvailableUnits = null,
         Action? onUnitChanged = null,
         Func<Player, Task>? onPlayerNameChanged = null)
     {
@@ -86,14 +75,15 @@ public class PlayerViewModel : BindableBase
         IsLocalPlayer = isLocalPlayer;
         _joinGameAction = joinGameAction;
         _setReadyAction = setReadyAction;
+        _showAvailableUnits = showAvailableUnits;
         _onUnitChanged = onUnitChanged;
         _onPlayerNameChanged = onPlayerNameChanged;
 
         Units = [];
-        AvailableUnits = new ObservableCollection<UnitData>(availableUnits);
-        AddUnitCommand = new AsyncCommand(AddUnit);
+        //AddUnitCommand = new AsyncCommand();
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
         SetReadyCommand = new AsyncCommand(ExecuteSetReady);
+        ShowAvailableUnitsCommand = new AsyncCommand(ExecuteShowUnits);
     }
 
     private Task ExecuteJoinGame()
@@ -114,17 +104,25 @@ public class PlayerViewModel : BindableBase
         return Task.CompletedTask;
     }
     
-    public bool CanAddUnit => IsLocalPlayer && SelectedUnit != null && Status == PlayerStatus.NotJoined;
+    private Task ExecuteShowUnits()
+    {
+        if (!CanAddUnit) return Task.CompletedTask;
+        
+        _showAvailableUnits?.Invoke(this);
+        
+        return Task.CompletedTask;
+    }
+    
+    public bool CanAddUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined && !IsEditingName;
 
-    private Task AddUnit()
+    public Task AddUnit(UnitData unit)
     {
         if (!CanAddUnit) return Task.CompletedTask;
-
-        var unit = SelectedUnit!.Value;
+        
         var unitId = Guid.NewGuid();
         unit.Id = unitId;
         Units.Add(unit);
@@ -134,8 +132,8 @@ public class PlayerViewModel : BindableBase
 
         NotifyPropertyChanged(nameof(CanJoin));
         _onUnitChanged?.Invoke();
-        SelectedUnit = null;
-        (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+        
+        (ShowAvailableUnitsCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         return Task.CompletedTask;
     }
 

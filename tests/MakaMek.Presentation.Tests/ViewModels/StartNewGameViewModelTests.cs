@@ -213,8 +213,7 @@ public class StartNewGameViewModelTests
     {
         var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
         _sut.AddPlayerCommand!.Execute(null);
-        _sut.Players.First().SelectedUnit = units.First();
-        _sut.Players.First().AddUnitCommand.Execute(null);
+        _sut.Players.First().AddUnit(units.First());
 
         var result = _sut.CanStartGame;
 
@@ -225,8 +224,7 @@ public class StartNewGameViewModelTests
     public void CanStartGame_ShouldBeFalse_WhenPlayersHaveUnits_AndPlayerHasJoined()
     {
         _sut.AddPlayerCommand!.Execute(null);
-        _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
-        _sut.Players.First().AddUnitCommand.Execute(null);
+        _sut.Players.First().AddUnit(_sut.AvailableUnits.First());
         _sut.Players.First().Player.Status = PlayerStatus.Joined;
 
         var result = _sut.CanStartGame;
@@ -237,8 +235,7 @@ public class StartNewGameViewModelTests
     [Fact]
     public void CanStartGame_ShouldBeTrue_WhenPlayersHaveUnits_AndPlayerIsReady()
     {
-        _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
-        _sut.Players.First().AddUnitCommand.Execute(null);
+        _sut.Players.First().AddUnit(_sut.AvailableUnits.First());
         _sut.Players.First().Player.Status = PlayerStatus.Ready;
 
         var result = _sut.CanStartGame;
@@ -251,8 +248,7 @@ public class StartNewGameViewModelTests
     {
         _sut.AddPlayerCommand!.Execute(null);
         _sut.AddPlayerCommand!.Execute(null);
-        _sut.Players.First().SelectedUnit = _sut.AvailableUnits.First();
-        _sut.Players.First().AddUnitCommand.Execute(null);
+        _sut.Players.First().AddUnit(_sut.AvailableUnits.First());
 
         var result = _sut.CanStartGame;
 
@@ -307,8 +303,7 @@ public class StartNewGameViewModelTests
 
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
-        localPlayerVm.AddUnitCommand.Execute(null);
+        await localPlayerVm.AddUnit(_sut.AvailableUnits.First());
         localPlayerVm.JoinGameCommand.Execute(null);
 
         _commandPublisher.Received().PublishCommand(Arg.Any<JoinGameCommand>());
@@ -347,8 +342,7 @@ public class StartNewGameViewModelTests
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
-        localPlayerVm.AddUnitCommand.Execute(null);
+        await localPlayerVm.AddUnit(_sut.AvailableUnits.First());
 
         // Set player status to JoinRequested
         localPlayerVm.Player.Status = PlayerStatus.Joining;
@@ -383,8 +377,7 @@ public class StartNewGameViewModelTests
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
-        localPlayerVm.AddUnitCommand.Execute(null);
+        await localPlayerVm.AddUnit(_sut.AvailableUnits.First());
 
         // Set player status to JoinRequested
         localPlayerVm.Player.Status = PlayerStatus.Joining;
@@ -420,8 +413,7 @@ public class StartNewGameViewModelTests
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
-        localPlayerVm.AddUnitCommand.Execute(null);
+        await localPlayerVm.AddUnit(_sut.AvailableUnits.First());
 
         // Initial status should be NotJoined
         localPlayerVm.Status.ShouldBe(PlayerStatus.NotJoined);
@@ -442,8 +434,7 @@ public class StartNewGameViewModelTests
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
-        localPlayerVm.AddUnitCommand.Execute(null);
+        await localPlayerVm.AddUnit(_sut.AvailableUnits.First());
 
         // Set player status to Joined so they can set ready
         localPlayerVm.Player.Status = PlayerStatus.Joined;
@@ -478,8 +469,7 @@ public class StartNewGameViewModelTests
         await _sut.InitializeLobbyAndSubscribe();
 
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
-        localPlayerVm.AddUnitCommand.Execute(null);
+        await localPlayerVm.AddUnit(_sut.AvailableUnits.First());
 
         // Set player status to Joined
         localPlayerVm.Player.Status = PlayerStatus.Joined;
@@ -510,8 +500,7 @@ public class StartNewGameViewModelTests
         // Add a local player
         _sut.AddPlayerCommand!.Execute(null);
         var localPlayerVm = _sut.Players.First();
-        localPlayerVm.SelectedUnit = _sut.AvailableUnits.First();
-        localPlayerVm.AddUnitCommand.Execute(null);
+        await localPlayerVm.AddUnit(_sut.AvailableUnits.First());
 
         // Set player status to Joined
         localPlayerVm.Player.Status = PlayerStatus.Joined;
@@ -543,14 +532,12 @@ public class StartNewGameViewModelTests
         // two players
         // first player is already added
         var player1 = _sut.Players.First();
-        player1.SelectedUnit = _sut.AvailableUnits.First();
-        player1.AddUnitCommand.Execute(null);
+        await player1.AddUnit(_sut.AvailableUnits.First());
 
         // Add a second player
         _sut.AddPlayerCommand!.Execute(null);
         var player2 = _sut.Players.Last();
-        player2.SelectedUnit = _sut.AvailableUnits.First();
-        player2.AddUnitCommand.Execute(null);
+        await player2.AddUnit(_sut.AvailableUnits.First());
 
         // Set both players to Ready
         player1.Player.Status = PlayerStatus.Ready;
@@ -572,14 +559,12 @@ public class StartNewGameViewModelTests
         // Add first player
         _sut.AddPlayerCommand!.Execute(null);
         var player1 = _sut.Players.First();
-        player1.SelectedUnit = _sut.AvailableUnits.First();
-        player1.AddUnitCommand.Execute(null);
+        await player1.AddUnit(_sut.AvailableUnits.First());
 
         // Add a second player
         _sut.AddPlayerCommand!.Execute(null);
         var player2 = _sut.Players.Last();
-        player2.SelectedUnit = _sut.AvailableUnits.First();
-        player2.AddUnitCommand.Execute(null);
+        await player2.AddUnit(_sut.AvailableUnits.First());
 
         // Set only one player to Ready
         player1.Player.Status = PlayerStatus.Ready;
@@ -739,5 +724,112 @@ public class StartNewGameViewModelTests
             // Restore original console output
             Console.SetOut(originalOut);
         }
+    }
+    
+    [Fact]
+    public async Task ShowAvailableUnitsCommand_ShouldMakeTableVisible()
+    {
+        // Arrange
+        var playerVm = _sut.Players.First();
+        _sut.IsTableVisible.ShouldBeFalse();
+        playerVm.ShouldNotBeNull();
+
+        // Act
+        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
+
+        // Assert
+        _sut.IsTableVisible.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task HideTableCommand_ShouldHideTable()
+    {
+        // Arrange
+        var playerVm = _sut.Players.First();
+        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
+        _sut.IsTableVisible.ShouldBeTrue();
+
+        // Act
+        await ((AsyncCommand)_sut.HideTableCommand).ExecuteAsync();
+
+        // Assert
+        _sut.IsTableVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AddUnitCommand_WhenNoUnitSelected_ShouldNotAddUnit()
+    {
+        // Arrange
+        var playerVm = _sut.Players.First();
+        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
+        var initialUnitCount = playerVm.Units.Count;
+
+        // Ensure no unit is selected in the table
+        _sut.AvailableUnitsTableViewModel!.SelectedUnit = null;
+
+        // Act
+        await ((AsyncCommand)_sut.AvailableUnitsTableViewModel.AddUnitCommand).ExecuteAsync();
+
+        // Assert
+        playerVm.Units.Count.ShouldBe(initialUnitCount);
+        _sut.IsTableVisible.ShouldBeTrue(); // Table should remain visible
+    }
+
+    [Fact]
+    public async Task AddUnitCommand_WhenUnitSelected_ShouldAddUnitToPlayerAndHideTable()
+    {
+        // Arrange
+        var playerVm = _sut.Players.First();
+        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
+        var initialUnitCount = playerVm.Units.Count;
+        var unitToSelect = _sut.AvailableUnits.First();
+
+        // Select a unit in the table
+        _sut.AvailableUnitsTableViewModel!.SelectedUnit = unitToSelect;
+
+        // Act
+        await ((AsyncCommand)_sut.AvailableUnitsTableViewModel.AddUnitCommand).ExecuteAsync();
+
+        // Assert
+        playerVm.Units.Count.ShouldBe(initialUnitCount + 1);
+        playerVm.Units.Last().Model.ShouldBe(unitToSelect.Model);
+        _sut.IsTableVisible.ShouldBeFalse(); // Table should be hidden
+    }
+
+    [Fact]
+    public async Task AddUnitCommand_WhenPlayerCannotAddUnits_ShouldNotAddUnit()
+    {
+        // Arrange
+        var playerVm = _sut.Players.First();
+        await playerVm.AddUnit(_sut.AvailableUnits.First());
+        playerVm.Player.Status = PlayerStatus.Joined; // Player cannot add units when joined
+        playerVm.RefreshStatus();
+        var initialUnitCount = playerVm.Units.Count;
+        var unitToSelect = _sut.AvailableUnits.Last();
+
+        // Select a unit in the table
+        _sut.AvailableUnitsTableViewModel!.SelectedUnit = unitToSelect;
+
+        // Act
+        await ((AsyncCommand)_sut.AvailableUnitsTableViewModel.AddUnitCommand).ExecuteAsync();
+
+        // Assert
+        playerVm.Units.Count.ShouldBe(initialUnitCount); // No new unit should be added
+    }
+
+    [Fact]
+    public void AvailableUnitsTableViewModel_ShouldHaveCorrectAvailableUnits()
+    {
+        // Arrange
+        var expectedUnits = _sut.AvailableUnits;
+
+        // Act
+        var tableUnits = _sut.AvailableUnitsTableViewModel!.FilteredAvailableUnits.ToList();
+
+        // Assert
+        tableUnits.ShouldNotBeNull();
+        tableUnits.Count.ShouldBe(expectedUnits.Count);
+        // Compare units by their key properties rather than exact equality
+        tableUnits.Select(u => u.Chassis).ShouldBeEquivalentTo(expectedUnits.Select(u => u.Chassis));
     }
 }
