@@ -73,29 +73,41 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-
-                                        <!-- Add Unit Button -->
-                                        <Border Width="120"
-                                                Height="140"
+                                        
+                                        <Border Padding="5"
+                                                Width="100"
+                                                Height="120"
                                                 Classes="card"
                                                 Background="{DynamicResource SurfaceBrush}"
                                                 IsVisible="{Binding CanAddUnit}">
-                                            <Button Content="+"
-                                                    FontSize="48"
-                                                    FontWeight="Bold"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    HorizontalAlignment="Stretch"
-                                                    VerticalAlignment="Stretch"
-                                                    Command="{Binding ShowAvailableUnitsCommand}"
-                                                    ToolTip.Tip="Add Unit"
-                                                    Cursor="Hand">
-                                                <Button.Styles>
-                                                    <Style Selector="Button:pointerover">
-                                                        <Setter Property="Opacity" Value="0.7"/>
-                                                    </Style>
-                                                </Button.Styles>
-                                            </Button>
+                                            <StackPanel Spacing="4">
+                                                <Button Content="+"
+                                                        FontSize="64"
+                                                        FontWeight="Bold"
+                                                        Height="84"
+                                                        Width="84"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Command="{Binding ShowAvailableUnitsCommand}"
+                                                        ToolTip.Tip="Add Unit"
+                                                        Cursor="Hand">
+                                                    <Button.Styles>
+                                                        <Style Selector="Button:pointerover">
+                                                            <Setter Property="Opacity" Value="0.7"/>
+                                                        </Style>
+                                                    </Button.Styles>
+                                                </Button>
+                                                <TextBlock Text="Add Unit" 
+                                                           Classes="bodySmall"
+                                                           TextAlignment="Center"
+                                                           TextWrapping="Wrap"
+                                                           MaxLines="2"
+                                                           HorizontalAlignment="Center"/>
+                                            </StackPanel>
                                         </Border>
                                     </StackPanel>
                                 </ScrollViewer>
