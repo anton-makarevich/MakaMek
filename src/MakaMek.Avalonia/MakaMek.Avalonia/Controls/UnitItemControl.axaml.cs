@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
@@ -17,10 +18,11 @@ public partial class UnitItemControl : UserControl
         InitializeComponent();
 
         // Try to get image service from App resources
-        if (Application.Current?.Resources.TryGetResource("ImageService", null, out var service) == true)
-        {
-            _imageService = service as IImageService<Bitmap>;
-        }
+        var serviceProvider = ((App?)Application.Current)?.ServiceProvider;
+        if (serviceProvider == null) return;
+        var imageService = serviceProvider.GetService<IImageService>();
+        _imageService = imageService as IImageService<Bitmap>;
+        if (_imageService == null) return;
 
         DataContextChanged += OnDataContextChanged;
     }

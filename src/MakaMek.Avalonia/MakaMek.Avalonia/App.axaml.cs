@@ -24,6 +24,8 @@ public partial class App : Application
     {
         AvaloniaXamlLoader.Load(this);
     }
+    
+    public IServiceProvider? ServiceProvider { get; private set; }
 
     public override void OnFrameworkInitializationCompleted()
     {
@@ -36,6 +38,7 @@ public partial class App : Application
         services.RegisterViewModels();
 
         var serviceProvider = services.BuildServiceProvider();
+        ServiceProvider = serviceProvider;
         
         // Initialize converters that need DI
         var localizationService = serviceProvider.GetRequiredService<ILocalizationService>();
