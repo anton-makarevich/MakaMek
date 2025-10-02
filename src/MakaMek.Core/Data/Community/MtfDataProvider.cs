@@ -23,25 +23,7 @@ public class MtfDataProvider:IUnitDataProvider
 
         // Extract model and nickname from model field (format: "MODEL 'NICKNAME'" or "MODEL (NICKNAME)")
         var model = mechData["model"];
-        var nickname = (string?)null;
-        
-        // Check for nickname in single quotes (e.g., "VND-1AA 'Avenging Angel'")
-        var singleQuoteMatch = Regex.Match(model, "^([^']+)'([^']+)'$");
-        if (singleQuoteMatch.Success)
-        {
-            model = singleQuoteMatch.Groups[1].Value.Trim();
-            nickname = singleQuoteMatch.Groups[2].Value.Trim();
-        }
-        // Check for nickname in parentheses (e.g., "VND-1R (Vong)")
-        else
-        {
-            var parenMatch = Regex.Match(model, "^([^(]+)\\(([^)]+)\\)$");
-            if (parenMatch.Success)
-            {
-                model = parenMatch.Groups[1].Value.Trim();
-                nickname = parenMatch.Groups[2].Value.Trim();
-            }
-        }
+        var nickname = mechData.GetValueOrDefault("nickname");
 
         return new UnitData
         {
@@ -93,10 +75,42 @@ public class MtfDataProvider:IUnitDataProvider
                 {
                     key = $"{key}{++systemsCount}";
                 }
+                if (key.StartsWith("model"))
+                {
+                    var (model, nickname) = ExtractModelAndNickname(value);
+                    mechData["model"] = model;
+                    if (!string.IsNullOrEmpty(nickname))
+                        mechData["nickname"] = nickname;
+                    continue;
+                }
                 mechData[key] = value;
             }
         }
         return mechData;
+    }
+
+    private (string model, string? nickname) ExtractModelAndNickname(string modelNickname)
+    {
+        var model = modelNickname;
+        var nickname = string.Empty;
+        // Check for nickname in single quotes (e.g., "VND-1AA 'Avenging Angel'")
+        var singleQuoteMatch = Regex.Match(model, "^([^']+)'([^']+)'$");
+        if (singleQuoteMatch.Success)
+        {
+            model = singleQuoteMatch.Groups[1].Value.Trim();
+            nickname = singleQuoteMatch.Groups[2].Value.Trim();
+        }
+        // Check for nickname in parentheses (e.g., "VND-1R (Vong)")
+        else
+        {
+            var parenMatch = Regex.Match(model, "^([^(]+)\\(([^)]+)\\)$");
+            if (parenMatch.Success)
+            {
+                model = parenMatch.Groups[1].Value.Trim();
+                nickname = parenMatch.Groups[2].Value.Trim();
+            }
+        }
+        return (model, nickname);
     }
 
     private (List<ComponentData> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines, Dictionary<string, string> mechData)
