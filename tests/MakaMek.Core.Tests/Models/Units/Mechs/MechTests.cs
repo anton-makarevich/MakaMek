@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -101,6 +102,8 @@ public class MechTests
         mech.Parts.ShouldContainKey(PartLocation.RightArm);
         mech.Parts.ShouldContainKey(PartLocation.LeftLeg);
         mech.Parts.ShouldContainKey(PartLocation.RightLeg);
+        
+        mech.Class.ShouldBe(WeightClass.Medium);
     }
 
     [Theory]

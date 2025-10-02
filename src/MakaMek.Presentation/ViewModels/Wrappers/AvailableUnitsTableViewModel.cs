@@ -67,7 +67,6 @@ public class AvailableUnitsTableViewModel : BindableBase
             if (value == FilterAllKey)
             {
                 _showAllClasses = true;
-                _selectedWeightClassFilter = WeightClass.Light; // Default value when showing all
             }
             else if (Enum.TryParse<WeightClass>(value, out var weightClass) && weightClass != WeightClass.Unknown)
             {
