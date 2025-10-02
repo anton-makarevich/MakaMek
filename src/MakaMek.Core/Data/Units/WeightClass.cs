@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Core.Models.Units;
+namespace Sanet.MakaMek.Core.Data.Units;
 
 public enum WeightClass
 {
