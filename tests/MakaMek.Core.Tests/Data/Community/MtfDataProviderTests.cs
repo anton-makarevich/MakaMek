@@ -16,6 +16,7 @@ public class MtfDataProviderTests
     private readonly string[] _shadowHawkMtfData = File.ReadAllLines("Resources/SHD-2D.mtf");
     private readonly string[] _vindicatorAaMtfData = File.ReadAllLines("Resources/Vindicator VND-1AA Avenging Angel.mtf");
     private readonly string[] _vindicatorRVongMtfData = File.ReadAllLines("Resources/Vindicator VND-1R Vong.mtf");
+    private readonly string[] _wolfhoundMtfData = File.ReadAllLines("Resources/Wolfhound WLF-1A.mtf");
     private readonly ClassicBattletechComponentProvider _componentProvider = new();
 
     [Fact]
@@ -458,5 +459,31 @@ public class MtfDataProviderTests
         mechData.Chassis.ShouldBe("Vindicator");
         mechData.Model.ShouldBe("VND-1R");
         mechData.Nickname.ShouldBe("Vong");
+    }
+
+    [Fact]
+    public void Parse_Wolfhound_ReturnsCorrectEngineWithSlotPositions()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_wolfhoundMtfData);
+
+        // Assert
+        const PartLocation location = PartLocation.CenterTorso;
+
+        var engine = mechData.Equipment.FirstOrDefault(cd => cd.Type == MakaMekComponent.Engine
+                                                             && cd.Assignments.Any(a => a.Location == location));
+        engine.ShouldNotBeNull();
+        engine.Assignments.Count.ShouldBe(2);
+        engine.Assignments[0].FirstSlot.ShouldBe(0);
+        engine.Assignments[0].Length.ShouldBe(3);
+        engine.Assignments[1].FirstSlot.ShouldBe(7);
+        engine.Assignments[1].Length.ShouldBe(3);
+        engine.SpecificData.ShouldBeOfType<EngineStateData>();
+        var engineData = (EngineStateData)engine.SpecificData!;
+        engineData.Rating.ShouldBe(210);
+        engineData.Type.ShouldBe(EngineType.Fusion);
     }
 }
