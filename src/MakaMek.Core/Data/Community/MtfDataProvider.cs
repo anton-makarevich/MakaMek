@@ -60,9 +60,9 @@ public class MtfDataProvider:IUnitDataProvider
             var key = line[..colonIndex].Trim();
             var value = line[(colonIndex + 1)..].Trim();
 
-            if (key == "Engine")
+            if (key.Equals("engine", StringComparison.CurrentCultureIgnoreCase))
             {
-                var engineData = value.Split(' ');
+                var engineData = value.Replace("Fusion Engine(IS)", "Fusion Engine").Split(' ');
                 if (engineData.Length >= 2)
                 {
                     mechData["EngineRating"] = engineData[0];
@@ -71,15 +71,15 @@ public class MtfDataProvider:IUnitDataProvider
             }
             else
             {
-                if (key.StartsWith("quirk"))
+                if (key.StartsWith("quirk", StringComparison.CurrentCultureIgnoreCase))
                 {
                     key = $"{key}{++quirksCount}";
                 }
-                if (key.StartsWith("system"))
+                if (key.StartsWith("system", StringComparison.CurrentCultureIgnoreCase))
                 {
                     key = $"{key}{++systemsCount}";
                 }
-                if (key.StartsWith("model"))
+                if (key.StartsWith("model", StringComparison.CurrentCultureIgnoreCase))
                 {
                     // Extract model and nickname from model field (format: "MODEL 'NICKNAME'" or "MODEL (NICKNAME)")
                     var (model, nickname) = ExtractModelAndNickname(value);
@@ -88,6 +88,7 @@ public class MtfDataProvider:IUnitDataProvider
                         mechData["nickname"] = nickname;
                     continue;
                 }
+                
                 mechData[key] = value;
             }
         }
