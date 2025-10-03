@@ -481,5 +481,9 @@ public class MtfDataProviderTests
         engine.Assignments[0].Length.ShouldBe(3);
         engine.Assignments[1].FirstSlot.ShouldBe(7);
         engine.Assignments[1].Length.ShouldBe(3);
+        engine.SpecificData.ShouldBeOfType<EngineStateData>();
+        var engineData = (EngineStateData)engine.SpecificData!;
+        engineData.Rating.ShouldBe(210);
+        engineData.Type.ShouldBe(EngineType.Fusion);
     }
 }
