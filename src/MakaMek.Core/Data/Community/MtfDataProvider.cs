@@ -34,10 +34,10 @@ public class MtfDataProvider:IUnitDataProvider
             Chassis = mechData["chassis"],
             Model = model,
             Nickname = nickname,
-            Mass = int.Parse(mechData["Mass"]),
-            WalkMp = int.Parse(Regex.Match(mechData["Walk MP"], @"\d+").Value),
-            EngineRating = int.Parse(mechData["EngineRating"]),
-            EngineType = mechData["EngineType"],
+            Mass = int.Parse(mechData["mass"]),
+            WalkMp = int.Parse(Regex.Match(mechData["walk mp"], @"\d+").Value),
+            EngineRating = int.Parse(mechData["engine-rating"]),
+            EngineType = mechData["engine-type"],
             ArmorValues = armorValues,
             Equipment = equipment,
             Quirks = mechData.Where(pair => pair.Key.StartsWith("quirk")).ToDictionary(),
@@ -57,29 +57,29 @@ public class MtfDataProvider:IUnitDataProvider
 
             var colonIndex = line.IndexOf(':');
             if (colonIndex <= 0) continue;
-            var key = line[..colonIndex].Trim();
+            var key = line[..colonIndex].ToLowerInvariant().Trim();
             var value = line[(colonIndex + 1)..].Trim();
 
-            if (key.Equals("engine", StringComparison.CurrentCultureIgnoreCase))
+            if (key.Equals("engine"))
             {
                 var engineData = value.Replace("Fusion Engine(IS)", "Fusion Engine").Split(' ');
                 if (engineData.Length >= 2)
                 {
-                    mechData["EngineRating"] = engineData[0];
-                    mechData["EngineType"] = engineData[1];
+                    mechData["engine-rating"] = engineData[0];
+                    mechData["engine-type"] = engineData[1];
                 }
             }
             else
             {
-                if (key.StartsWith("quirk", StringComparison.CurrentCultureIgnoreCase))
+                if (key.StartsWith("quirk"))
                 {
                     key = $"{key}{++quirksCount}";
                 }
-                if (key.StartsWith("system", StringComparison.CurrentCultureIgnoreCase))
+                if (key.StartsWith("system"))
                 {
                     key = $"{key}{++systemsCount}";
                 }
-                if (key.StartsWith("model", StringComparison.CurrentCultureIgnoreCase))
+                if (key.StartsWith("model"))
                 {
                     // Extract model and nickname from model field (format: "MODEL 'NICKNAME'" or "MODEL (NICKNAME)")
                     var (model, nickname) = ExtractModelAndNickname(value);
@@ -251,8 +251,8 @@ public class MtfDataProvider:IUnitDataProvider
         // Handle engine special case
         if (component == MakaMekComponent.Engine)
         {
-            if (mechData.TryGetValue("EngineRating", out var ratingStr) &&
-                mechData.TryGetValue("EngineType", out var typeStr) &&
+            if (mechData.TryGetValue("engine-rating", out var ratingStr) &&
+                mechData.TryGetValue("engine-type", out var typeStr) &&
                 int.TryParse(ratingStr, out var rating) &&
                 Enum.TryParse<EngineType>(typeStr, true, out var engineType))
             {
