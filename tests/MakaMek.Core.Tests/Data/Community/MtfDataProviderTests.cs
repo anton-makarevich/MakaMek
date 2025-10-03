@@ -486,4 +486,24 @@ public class MtfDataProviderTests
         engineData.Rating.ShouldBe(210);
         engineData.Type.ShouldBe(EngineType.Fusion);
     }
+    
+    [Fact]
+    public void Parse_Wolfhound_ReturnsCorrectArmorValues()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_wolfhoundMtfData);
+
+        // Assert
+        mechData.ArmorValues[PartLocation.LeftArm].FrontArmor.ShouldBe(12);
+        mechData.ArmorValues[PartLocation.RightArm].FrontArmor.ShouldBe(12);
+        mechData.ArmorValues[PartLocation.LeftTorso].FrontArmor.ShouldBe(11);
+        mechData.ArmorValues[PartLocation.RightTorso].FrontArmor.ShouldBe(11);
+        mechData.ArmorValues[PartLocation.CenterTorso].FrontArmor.ShouldBe(16);
+        mechData.ArmorValues[PartLocation.Head].FrontArmor.ShouldBe(9);
+        mechData.ArmorValues[PartLocation.LeftLeg].FrontArmor.ShouldBe(16);
+        mechData.ArmorValues[PartLocation.RightLeg].FrontArmor.ShouldBe(16);
+    }
 }

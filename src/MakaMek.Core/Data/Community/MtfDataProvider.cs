@@ -135,14 +135,14 @@ public class MtfDataProvider:IUnitDataProvider
             }
 
             // Start of armor section
-            if (line.StartsWith("Armor:"))
+            if (line.StartsWith("Armor:", StringComparison.OrdinalIgnoreCase))
             {
                 parsingArmor = true;
                 continue;
             }
 
             // End of armor section
-            if (line.StartsWith("Weapons:"))
+            if (line.StartsWith("Weapons:", StringComparison.OrdinalIgnoreCase))
             {
                 parsingArmor = false;
                 continue;
@@ -151,7 +151,7 @@ public class MtfDataProvider:IUnitDataProvider
             // Parse armor values
             if (parsingArmor)
             {
-                var match = Regex.Match(line, @"(\w+)\s+Armor:(\d+)");
+                var match = Regex.Match(line, @"(\w+)\s+Armor:(\d+)", RegexOptions.IgnoreCase);
                 if (match.Success && TryParseLocation(match.Groups[1].Value, out var location))
                 {
                     var value = int.Parse(match.Groups[2].Value);
@@ -191,7 +191,7 @@ public class MtfDataProvider:IUnitDataProvider
             // Add equipment to current location with slot tracking
             if (currentLocation.HasValue)
             {
-                if (!line.Contains("-Empty-"))
+                if (!line.Contains("-Empty-", StringComparison.OrdinalIgnoreCase))
                 {
                     var component = MapMtfStringToComponent(line);
                     locationSlotComponents[currentLocation.Value][currentSlotIndex] = component;
