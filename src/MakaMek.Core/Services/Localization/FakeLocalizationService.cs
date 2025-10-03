@@ -110,7 +110,7 @@ public class FakeLocalizationService: ILocalizationService
             "Modifier_AttackerMovement" => "Attacker Movement ({0}): +{1}",
             "Modifier_TargetMovement" => "Target Movement ({0} hexes): +{1}",
             "Modifier_Range" => "{0} at {1} hexes ({2} range): +{3}",
-            "Modifier_Heat" => "Heat Level ({0}): +{1}",
+            "Modifier_Heat" => "Heat ({0}) Attack Modifier: +{1}",
             "Modifier_Terrain" => "{0} at {1}: +{2}",
             "Modifier_DamagedGyro" => "Damaged Gyro ({0} {1}): +{2}",
             "Modifier_HeavyDamage" => "Heavy Damage ({0} points): +{1}",
@@ -240,7 +240,7 @@ public class FakeLocalizationService: ILocalizationService
             
             // Penalty messages
             "Penalty_FootActuatorMovement" => "{0} destroyed foot actuator(s) | -{1} MP",
-            "Penalty_HeatMovement" => "Heat level {0} | -{1} MP",
+            "Penalty_HeatMovement" => "Heat ({0}) MP Penalty | -{1} MP",
             "Penalty_EngineHeat"   => "Engine Heat Penalty ({0} hits): +{1} heat/turn",
             "Penalty_LowerLegActuatorMovement" => "{0} destroyed lower leg actuator(s) | -{1} MP",
             "Penalty_UpperLegActuatorMovement" => "{0} destroyed upper leg actuator(s) | -{1} MP",
