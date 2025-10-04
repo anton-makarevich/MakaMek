@@ -1564,7 +1564,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         weaponAttackIndex.ShouldBeGreaterThanOrEqualTo(0, "WeaponAttackResolutionCommand should be published");
         consciousnessIndex.ShouldBeGreaterThanOrEqualTo(0, "PilotConsciousnessRollCommand should be published");
 
-        // Verify the correct order: WeaponAttackResolution -> CriticalHitsResolution
+        // Verify the correct order: WeaponAttackResolution -> PilotConsciousnessRoll (no CriticalHitsResolution when no structure damage)
         weaponAttackIndex.ShouldBeLessThan(consciousnessIndex,
             "WeaponAttackResolutionCommand should be published before PilotConsciousnessRollCommand");
 
