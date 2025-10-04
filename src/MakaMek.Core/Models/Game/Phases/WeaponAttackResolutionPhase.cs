@@ -1,7 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -394,14 +393,16 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(command);
 
         // Calculate and send critical hits if any location received structure damage
-        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 })
+        if (resolution.HitLocationsData?.HitLocations is not null 
+            && resolution.HitLocationsData.HitLocations
+                .Any(h => h.Damage.Any(d => d.StructureDamage > 0)))
         {
             ProcessConsciousnessRollsForUnit(target);
             return;
         }
 
         var criticalHitsCommand = Game.CriticalHitsCalculator
-            .CalculateAndApplyCriticalHits(target, resolution.HitLocationsData.HitLocations
+            .CalculateAndApplyCriticalHits(target, (resolution.HitLocationsData?.HitLocations!) //nullability is checked above
                 .SelectMany(h => h.Damage).ToList());
         IEnumerable<ComponentHitData> allComponentHits = [];
         List<PartLocation> blownOffParts = [];
