@@ -1543,14 +1543,15 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         MockConsciousnessCalculator.MakeConsciousnessRolls(_player2Unit1.Pilot!)
             .Returns([consciousnessCommand]);
         
-        // Capture all published commands in order
-        var publishedCommands = new List<IGameCommand>();
-        CommandPublisher.PublishCommand(Arg.Do<IGameCommand>(cmd => publishedCommands.Add(cmd)));
-        
         // Act
         _sut.Enter();
 
         // Assert
+        var publishedCommands = CommandPublisher.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "PublishCommand")
+            .Select(call => (IGameCommand)call.GetArguments()[0]!)
+            .ToList();
+        
         publishedCommands.Count.ShouldBeGreaterThanOrEqualTo(2);
 
         // Find the indices of the relevant commands
@@ -1664,14 +1665,15 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         MockConsciousnessCalculator.MakeConsciousnessRolls(_player2Unit1.Pilot!)
             .Returns([consciousnessCommand]);
 
-        // Capture all published commands in order
-        var publishedCommands = new List<IGameCommand>();
-        CommandPublisher.PublishCommand(Arg.Do<IGameCommand>(cmd => publishedCommands.Add(cmd)));
-
         // Act
         _sut.Enter();
 
         // Assert
+        var publishedCommands = CommandPublisher.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "PublishCommand")
+            .Select(call => (IGameCommand)call.GetArguments()[0]!)
+            .ToList();
+        
         // Verify we have at least 3 commands published
         publishedCommands.Count.ShouldBeGreaterThanOrEqualTo(3);
 

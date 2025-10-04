@@ -394,8 +394,8 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         // Calculate and send critical hits if any location received structure damage
         if (resolution.HitLocationsData?.HitLocations == null 
-            || resolution.HitLocationsData.HitLocations
-                .Any(h => !h.Damage.Any(d => d.StructureDamage > 0)))
+            || !resolution.HitLocationsData.HitLocations
+                .Any(h => h.Damage.Any(d => d.StructureDamage > 0)))
         {
             ProcessConsciousnessRollsForUnit(target);
             return;
