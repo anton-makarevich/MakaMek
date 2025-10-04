@@ -47,8 +47,7 @@
                                 Background="Transparent"
                                 BorderThickness="0"
                                 HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Left"
-                                Cursor="Hand">
+                                HorizontalContentAlignment="Left">
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <TextBlock Text="Chassis"
                                            Classes="label"
@@ -75,8 +74,7 @@
                                 Background="Transparent"
                                 BorderThickness="0"
                                 HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Left"
-                                Cursor="Hand">
+                                HorizontalContentAlignment="Left">
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <TextBlock Text="Mass"
                                            Classes="label"
