@@ -1,3 +1,4 @@
+using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using System.Windows.Input;
 using Sanet.MakaMek.Core.Data.Units;
@@ -10,7 +11,7 @@ namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
 public class AvailableUnitsTableViewModelTests
 {
     [Fact]
-    public void Constructor_ShouldInitializeWithAllUnits_WhenShowAllClassesIsTrue()
+    public void Constructor_ShouldInitializeWithAllUnitsSortedByName_WhenShowAllClassesIsTrue()
     {
         // Arrange
         var units = CreateTestUnits();
@@ -28,12 +29,19 @@ public class AvailableUnitsTableViewModelTests
             "Assault"
         ]);
         sut.SelectedWeightClassFilterString.ShouldBe("All");
-        sut.FilteredAvailableUnits.ShouldBe(units);
+        // Units should be sorted by name (Chassis then Model) ascending by default
+        sut.FilteredAvailableUnits.Select(u => u.Chassis).ShouldBe([
+            "Atlas",
+            "Centurion",
+            "Commando",
+            "Locust",
+            "Warhammer"
+        ]);
         sut.CanAddUnit.ShouldBeFalse(); // No unit selected initially
     }
 
     [Theory]
-    [InlineData(WeightClass.Light, new[] { "Locust LCT-1V", "Commando COM-2D" })]
+    [InlineData(WeightClass.Light, new[] { "Commando COM-2D", "Locust LCT-1V" })] // Sorted by name
     [InlineData(WeightClass.Medium, new[] { "Centurion CN9-A" })]
     [InlineData(WeightClass.Heavy, new[] { "Warhammer WHM-6R" })]
     [InlineData(WeightClass.Assault, new[] { "Atlas AS7-D" })]
@@ -73,7 +81,14 @@ public class AvailableUnitsTableViewModelTests
 
         // Assert
         sut.SelectedWeightClassFilterString.ShouldBe("All");
-        sut.FilteredAvailableUnits.ShouldBe(units); // All units should be returned
+        // All units should be returned, sorted by name
+        sut.FilteredAvailableUnits.Select(u => u.Chassis).ShouldBe([
+            "Atlas",
+            "Centurion",
+            "Commando",
+            "Locust",
+            "Warhammer"
+        ]);
     }
 
     [Fact]
@@ -225,6 +240,266 @@ public class AvailableUnitsTableViewModelTests
         sut.AddUnitCommand.ShouldBe(addCommand);
     }
 
+    [Fact]
+    public async Task SortByNameCommand_WhenExecutedOnce_ShouldToggleToDescending()
+    {
+        // Arrange
+        var units = CreateTestUnits();
+        var addCommand = Substitute.For<ICommand>();
+        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+
+        // Act - First click toggles to descending
+        await (sut.SortByNameCommand as IAsyncCommand)!.ExecuteAsync();
+        var result = sut.FilteredAvailableUnits.ToList();
+
+        // Assert
+        sut.NameSortIndicator.ShouldBe("↑"); // Up arrow for descending
+        sut.TonnageSortIndicator.ShouldBe(string.Empty);
+
+        // Verify units are sorted by name descending
+        result.Select(u => $"{u.Chassis} {u.Model}").ShouldBe([
+            "Warhammer WHM-6R",
+            "Locust LCT-1V",
+            "Commando COM-2D",
+            "Centurion CN9-A",
+            "Atlas AS7-D"
+        ]);
+    }
+
+    [Fact]
+    public async Task SortByNameCommand_WhenExecutedTwice_ShouldToggleBackToAscending()
+    {
+        // Arrange
+        var units = CreateTestUnits();
+        var addCommand = Substitute.For<ICommand>();
+        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+
+        // Act - First click to descending, second click back to ascending
+        await (sut.SortByNameCommand as IAsyncCommand)!.ExecuteAsync();
+        await (sut.SortByNameCommand as IAsyncCommand)!.ExecuteAsync();
+        var result = sut.FilteredAvailableUnits.ToList();
+
+        // Assert
+        sut.NameSortIndicator.ShouldBe("↓"); // Down arrow for ascending
+        sut.TonnageSortIndicator.ShouldBe(string.Empty);
+
+        // Verify units are sorted by name ascending
+        result.Select(u => $"{u.Chassis} {u.Model}").ShouldBe([
+            "Atlas AS7-D",
+            "Centurion CN9-A",
+            "Commando COM-2D",
+            "Locust LCT-1V",
+            "Warhammer WHM-6R"
+        ]);
+    }
+
+    [Fact]
+    public async Task SortByTonnageCommand_WhenExecuted_ShouldSortByTonnageAscending()
+    {
+        // Arrange
+        var units = CreateTestUnits();
+        var addCommand = Substitute.For<ICommand>();
+        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+
+        // Act
+        await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
+        var result = sut.FilteredAvailableUnits.ToList();
+
+        // Assert
+        sut.NameSortIndicator.ShouldBe(string.Empty); // No indicator for Name
+        sut.TonnageSortIndicator.ShouldBe("↓"); // Down arrow for ascending
+
+        // Verify units are sorted by tonnage ascending (then by name as secondary sort)
+        result.Select(u => $"{u.Chassis} {u.Model} ({u.Mass})").ShouldBe([
+            "Locust LCT-1V (20)",
+            "Commando COM-2D (25)",
+            "Centurion CN9-A (50)",
+            "Warhammer WHM-6R (70)",
+            "Atlas AS7-D (100)"
+        ]);
+    }
+
+    [Fact]
+    public async Task SortByTonnageCommand_WhenExecutedTwice_ShouldToggleToDescending()
+    {
+        // Arrange
+        var units = CreateTestUnits();
+        var addCommand = Substitute.For<ICommand>();
+        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+
+        // Act - First click to ascending, second click to descending
+        await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
+        await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
+        var result = sut.FilteredAvailableUnits.ToList();
+
+        // Assert
+        sut.NameSortIndicator.ShouldBe(string.Empty);
+        sut.TonnageSortIndicator.ShouldBe("↑"); // Up arrow for descending
+
+        // Verify units are sorted by tonnage descending
+        result.Select(u => $"{u.Chassis} {u.Model} ({u.Mass})").ShouldBe([
+            "Atlas AS7-D (100)",
+            "Warhammer WHM-6R (70)",
+            "Centurion CN9-A (50)",
+            "Commando COM-2D (25)",
+            "Locust LCT-1V (20)"
+        ]);
+    }
+
+    [Fact]
+    public async Task SortByTonnageCommand_ThenSortByName_ShouldSwitchSortColumn()
+    {
+        // Arrange
+        var units = CreateTestUnits();
+        var addCommand = Substitute.For<ICommand>();
+        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+
+        // Act - Sort by tonnage, then switch to name
+        await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
+        await (sut.SortByNameCommand as IAsyncCommand)!.ExecuteAsync();
+        var result = sut.FilteredAvailableUnits.ToList();
+
+        // Assert
+        sut.NameSortIndicator.ShouldBe("↓"); // Name column now active with ascending
+        sut.TonnageSortIndicator.ShouldBe(string.Empty); // Tonnage indicator removed
+
+        // Verify units are sorted by name ascending
+        result.Select(u => $"{u.Chassis} {u.Model}").ShouldBe([
+            "Atlas AS7-D",
+            "Centurion CN9-A",
+            "Commando COM-2D",
+            "Locust LCT-1V",
+            "Warhammer WHM-6R"
+        ]);
+    }
+
+    [Fact]
+    public async Task FilteredAvailableUnits_ShouldMaintainSorting_WhenFilterChanges()
+    {
+        // Arrange
+        var units = CreateTestUnits();
+        var addCommand = Substitute.For<ICommand>();
+        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+
+        // Act - Sort by tonnage descending, then apply filter
+        await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
+        await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync(); // Toggle to descending
+        sut.SelectedWeightClassFilterString = "Light";
+        var result = sut.FilteredAvailableUnits.ToList();
+
+        // Assert
+        sut.TonnageSortIndicator.ShouldBe("↑"); // Still descending
+
+        // Verify filtered units are still sorted by tonnage descending
+        result.Select(u => $"{u.Chassis} {u.Model} ({u.Mass})").ShouldBe([
+            "Commando COM-2D (25)",
+            "Locust LCT-1V (20)"
+        ]);
+    }
+
+    [Fact]
+    public void SortByName_WithUnitsHavingSameChassis_ShouldSortByModel()
+    {
+        // Arrange
+        var units = new List<UnitData>
+        {
+            MechFactoryTests.CreateDummyMechData() with
+            {
+                Chassis = "Atlas",
+                Model = "AS7-K",
+                Mass = 100
+            },
+            MechFactoryTests.CreateDummyMechData() with
+            {
+                Chassis = "Atlas",
+                Model = "AS7-D",
+                Mass = 100
+            },
+            MechFactoryTests.CreateDummyMechData() with
+            {
+                Chassis = "Atlas",
+                Model = "AS7-S",
+                Mass = 100
+            }
+        };
+        var addCommand = Substitute.For<ICommand>();
+        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+
+        // Act - Default is ascending by name
+        var result = sut.FilteredAvailableUnits.ToList();
+
+        // Assert
+        result.Select(u => u.Model).ShouldBe(["AS7-D", "AS7-K", "AS7-S"]);
+    }
+
+    [Fact]
+    public async Task SortByTonnage_WithUnitsHavingSameMass_ShouldSortByNameAsSecondary()
+    {
+        // Arrange
+        var units = new List<UnitData>
+        {
+            MechFactoryTests.CreateDummyMechData() with
+            {
+                Chassis = "Warhammer",
+                Model = "WHM-6R",
+                Mass = 70
+            },
+            MechFactoryTests.CreateDummyMechData() with
+            {
+                Chassis = "Archer",
+                Model = "ARC-2R",
+                Mass = 70
+            },
+            MechFactoryTests.CreateDummyMechData() with
+            {
+                Chassis = "Marauder",
+                Model = "MAD-3R",
+                Mass = 70
+            }
+        };
+        var addCommand = Substitute.For<ICommand>();
+        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+
+        // Act - Sort by tonnage
+        await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
+        var result = sut.FilteredAvailableUnits.ToList();
+
+        // Assert
+        // All have same mass, so should be sorted by Chassis
+        result.Select(u => u.Chassis).ShouldBe(["Archer", "Marauder", "Warhammer"]);
+    }
+
+    [Fact]
+    public async Task SortByNameCommand_ShouldNotifyPropertyChanged()
+    {
+        // Arrange
+        var units = CreateTestUnits();
+        var addCommand = Substitute.For<ICommand>();
+        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+
+        var filteredUnitsChanged = false;
+        var nameSortIndicatorChanged = false;
+        var tonnageSortIndicatorChanged = false;
+
+        sut.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(AvailableUnitsTableViewModel.FilteredAvailableUnits))
+                filteredUnitsChanged = true;
+            if (args.PropertyName == nameof(AvailableUnitsTableViewModel.NameSortIndicator))
+                nameSortIndicatorChanged = true;
+            if (args.PropertyName == nameof(AvailableUnitsTableViewModel.TonnageSortIndicator))
+                tonnageSortIndicatorChanged = true;
+        };
+
+        // Act
+        await (sut.SortByNameCommand as IAsyncCommand)!.ExecuteAsync();
+
+        // Assert
+        filteredUnitsChanged.ShouldBeTrue();
+        nameSortIndicatorChanged.ShouldBeTrue();
+        tonnageSortIndicatorChanged.ShouldBeTrue();
+    }
+    
     private static List<UnitData> CreateTestUnits()
     {
         return
