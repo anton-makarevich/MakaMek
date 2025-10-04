@@ -362,7 +362,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null })
         {
             target.ApplyDamage(resolution.HitLocationsData.HitLocations, resolution.AttackDirection);
-            ProcessConsciousnessRollsForUnit(target);
         }
 
         // Check which parts are newly destroyed
@@ -395,7 +394,11 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(command);
 
         // Calculate and send critical hits if any location received structure damage
-        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
+        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 })
+        {
+            ProcessConsciousnessRollsForUnit(target);
+            return;
+        }
 
         var criticalHitsCommand = Game.CriticalHitsCalculator
             .CalculateAndApplyCriticalHits(target, resolution.HitLocationsData.HitLocations
@@ -407,9 +410,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             criticalHitsCommand.GameOriginId = Game.Id;
             Game.CommandPublisher.PublishCommand(criticalHitsCommand);
 
-            // Process consciousness rolls for pilot damage accumulated during critical hits
-            ProcessConsciousnessRollsForUnit(target);
-
             // Check for component hits that can cause a fall
             allComponentHits = criticalHitsCommand.CriticalHits.SelectMany(ch => ch.HitComponents ?? []);
 
@@ -418,7 +418,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 .Where(ch => ch.IsBlownOff)
                 .Select(ch => ch.Location).ToList();
         }
-        
+
+        // Process consciousness rolls for pilot damage from the attack and critical hits
+        // This must happen AFTER both WeaponAttackResolutionCommand and CriticalHitsResolutionCommand are published
+        // to maintain correct chronological order in the game log
+        ProcessConsciousnessRollsForUnit(target);
+
         var allDestroyedParts = (resolution.DestroyedParts ?? [])
             .Concat(blownOffParts).Distinct();
 
