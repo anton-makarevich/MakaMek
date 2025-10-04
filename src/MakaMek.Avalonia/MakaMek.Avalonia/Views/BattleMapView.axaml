@@ -13,16 +13,30 @@
     <UserControl.Resources>
     </UserControl.Resources>
     <Grid>
-        <Canvas x:Name="MapCanvas" 
-                Background="Transparent">
-            <controls:DirectionSelector
-                x:Name="DirectionSelector"
-                IsVisible="{Binding IsDirectionSelectorVisible}"
-                EnabledDirections="{Binding AvailableDirections}"
-                Position="{Binding DirectionSelectorPosition}"
-                DirectionSelectedCommand="{Binding DirectionSelectedCommand}"
-                Foreground="{Binding ActivePlayerTint}"/>
-        </Canvas>
+        <ZoomBorder
+            Stretch="UniformToFill"
+            MinZoomX="0.25"
+            MinZoomY="0.25"
+            MaxZoomX="3"
+            MaxZoomY="3"
+            MaxOffsetX="0"
+            MaxOffsetY="0"
+            EnableConstrains="False"
+            PanButton="Left"
+            EnableGestureRotation="False"
+             >
+            <Canvas x:Name="MapCanvas" 
+                            Background="Transparent">
+                <controls:DirectionSelector
+                    x:Name="DirectionSelector"
+                    IsVisible="{Binding IsDirectionSelectorVisible}"
+                    EnabledDirections="{Binding AvailableDirections}"
+                    Position="{Binding DirectionSelectorPosition}"
+                    DirectionSelectedCommand="{Binding DirectionSelectedCommand}"
+                    Foreground="{Binding ActivePlayerTint}"/>
+            </Canvas>
+        </ZoomBorder>
+        
         
         <Grid x:Name="TurnStatus"
             Height="50"
