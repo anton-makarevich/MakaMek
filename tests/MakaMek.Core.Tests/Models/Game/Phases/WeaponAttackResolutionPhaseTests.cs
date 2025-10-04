@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -1052,9 +1053,11 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         
         // Act
         _sut.Enter();
-        
+
         // Assert
-        CommandPublisher.Received(3).PublishCommand( // From critical hits (2 attacks) + fall damage (1)
+        // Consciousness rolls are published once per attack after both weapon attack and critical hits commands
+        // There are 2 attacks total (player1 and player2), so we expect 2 consciousness roll commands
+        CommandPublisher.Received(2).PublishCommand(
             Arg.Is<PilotConsciousnessRollCommand>(cmd =>
                 cmd.GameOriginId == Game.Id &&
                 cmd.IsRecoveryAttempt == false &&
@@ -1250,42 +1253,6 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             "Test Cluster Weapon", damage, 3,
             0, 3, 6, 9,
             type, 10, clusters, clusterSize, 1, 1, MakaMekComponent.LRM10, ammoType));
-    
-    [Fact]
-    public void Enter_ShouldCallCriticalHitsCalculatorButNotPublishCommand_WhenOnlyArmorDamage()
-    {
-        // Arrange
-        SetMap();
-        SetupPlayer1WeaponTargets();
-        SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
-
-        // Setup structure damage calculator to return only armor damage (no structure damage)
-        MockDamageTransferCalculator.CalculateStructureDamage(
-                Arg.Any<Unit>(),
-                Arg.Any<PartLocation>(),
-                Arg.Any<int>(),
-                Arg.Any<HitDirection>())
-            .Returns([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)]);
-
-        // Setup critical hits calculator to return null (no critical hits for armor-only damage)
-        MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(
-                Arg.Any<Unit>(),
-                Arg.Any<List<LocationDamageData>>())
-            .Returns((CriticalHitsResolutionCommand?)null);
-
-        // Act
-        _sut.Enter();
-
-        // Assert
-        // Critical hits calculator should be called even for armor-only damage (the filter is inside)
-        MockCriticalHitsCalculator.Received().CalculateAndApplyCriticalHits(
-            Arg.Any<Unit>(),
-            Arg.Any<List<LocationDamageData>>());
-
-        // No critical hits command should be published when the calculator returns null
-        CommandPublisher.DidNotReceive().PublishCommand(
-            Arg.Any<CriticalHitsResolutionCommand>());
-    }
 
     [Fact]
     public void Enter_ShouldCallCriticalHitsCalculatorAndPublishCommand_WhenStructureDamageOccurs()
@@ -1508,5 +1475,225 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             Arg.Is<CriticalHitsResolutionCommand>(cmd =>
                 cmd.TargetId == _player1Unit1.Id &&
                 cmd.GameOriginId == Game.Id ));
+    }
+
+    [Fact]
+    public void Enter_ShouldNotPublishCriticalHitsCommand_WhenNoStructureDamage()
+    {
+        // Arrange
+        SetMap();
+
+        // Setup a single weapon attack from player1 to player2
+        var weapon1 = new TestWeapon();
+        var part1 = _player1Unit1.Parts[0];
+        part1.TryAddComponent(weapon1).ShouldBeTrue();
+
+        var weaponTargets1 = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon1.Name,
+                    Type = weapon1.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part1.Location,
+                            weapon1.MountedAtFirstLocationSlots.First(),
+                            weapon1.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(weaponTargets1);
+
+        // Setup ToHitCalculator
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        // Setup dice rolls: attack hits (8), hits head (12), but no structure damage
+        SetupDiceRolls(8, 12);
+
+        // Setup damage calculator to return only armor damage (no structure damage)
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns(callInfo => [new LocationDamageData(callInfo.Arg<PartLocation>(), callInfo.Arg<int>(), 0, false)]);
+        
+        // Setup consciousness calculator to return a consciousness roll command
+        var consciousnessCommand = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = _player2Unit1.Pilot!.Id,
+            UnitId = _player2Unit1.Id,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 3,
+            DiceResults = [5, 4],
+            IsSuccessful = true
+        };
+        MockConsciousnessCalculator.MakeConsciousnessRolls(_player2Unit1.Pilot!)
+            .Returns([consciousnessCommand]);
+        
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var publishedCommands = CommandPublisher.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "PublishCommand")
+            .Select(call => (IGameCommand)call.GetArguments()[0]!)
+            .ToList();
+        
+        publishedCommands.Count.ShouldBeGreaterThanOrEqualTo(2);
+
+        // Find the indices of the relevant commands
+        var weaponAttackIndex = publishedCommands.FindIndex(cmd =>
+            cmd is WeaponAttackResolutionCommand warc && warc.AttackerId == _player1Unit1.Id);
+        var consciousnessIndex = publishedCommands.FindIndex(cmd =>
+            cmd is PilotConsciousnessRollCommand pcrc && pcrc.UnitId == _player2Unit1.Id);
+
+        // Verify all commands were published
+        weaponAttackIndex.ShouldBeGreaterThanOrEqualTo(0, "WeaponAttackResolutionCommand should be published");
+        consciousnessIndex.ShouldBeGreaterThanOrEqualTo(0, "PilotConsciousnessRollCommand should be published");
+
+        // Verify the correct order: WeaponAttackResolution -> PilotConsciousnessRoll (no CriticalHitsResolution when no structure damage)
+        weaponAttackIndex.ShouldBeLessThan(consciousnessIndex,
+            "WeaponAttackResolutionCommand should be published before PilotConsciousnessRollCommand");
+
+        // Verify that no critical hits command was published
+        CommandPublisher.DidNotReceive().PublishCommand(
+            Arg.Is<CriticalHitsResolutionCommand>(cmd => 
+                cmd.TargetId == _player2Unit1.Id &&
+                cmd.GameOriginId == Game.Id));
+    }
+
+    [Fact]
+    public void Enter_ShouldPublishCommandsInCorrectOrder_WhenHeadHitCausesPilotDamage()
+    {
+        // Arrange
+        SetMap();
+
+        // Setup a single weapon attack from player1 to player2
+        var weapon1 = new TestWeapon();
+        var part1 = _player1Unit1.Parts[0];
+        part1.TryAddComponent(weapon1).ShouldBeTrue();
+
+        var weaponTargets1 = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = weapon1.Name,
+                    Type = weapon1.ComponentType,
+                    Assignments = [
+                        new LocationSlotAssignment(part1.Location,
+                            weapon1.MountedAtFirstLocationSlots.First(),
+                            weapon1.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(weaponTargets1);
+
+        // Setup ToHitCalculator
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+
+        // Setup dice rolls: attack hits (8), hits head (12), structure damage causes critical hit
+        SetupDiceRolls(8, 12);
+
+        // Setup damage calculator to return head damage with structure damage
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>())
+            .Returns(callInfo =>
+            {
+                var location = callInfo.Arg<PartLocation>();
+                return location == PartLocation.Head
+                    ? [new LocationDamageData(PartLocation.Head, 3, 1, false)]
+                    : [new LocationDamageData(location, callInfo.Arg<int>(), 0, false)];
+            });
+
+        // Setup critical hits calculator to return a critical hit
+        var criticalHitsCommand = new CriticalHitsResolutionCommand
+        {
+            GameOriginId = Game.Id,
+            TargetId = _player2Unit1.Id,
+            CriticalHits = [new LocationCriticalHitsData(
+                PartLocation.Head,
+                [4, 5],
+                1,
+                [new ComponentHitData { Type = MakaMekComponent.Sensors, Slot = 1 }],
+                false)]
+        };
+
+        MockCriticalHitsCalculator.CalculateAndApplyCriticalHits(
+                Arg.Any<Unit>(),
+                Arg.Any<List<LocationDamageData>>())
+            .Returns(criticalHitsCommand);
+
+        // Setup consciousness calculator to return a consciousness roll command
+        var consciousnessCommand = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = _player2Unit1.Pilot!.Id,
+            UnitId = _player2Unit1.Id,
+            IsRecoveryAttempt = false,
+            ConsciousnessNumber = 3,
+            DiceResults = [5, 4],
+            IsSuccessful = true
+        };
+        MockConsciousnessCalculator.MakeConsciousnessRolls(_player2Unit1.Pilot!)
+            .Returns([consciousnessCommand]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var publishedCommands = CommandPublisher.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "PublishCommand")
+            .Select(call => (IGameCommand)call.GetArguments()[0]!)
+            .ToList();
+        
+        // Verify we have at least 3 commands published
+        publishedCommands.Count.ShouldBeGreaterThanOrEqualTo(3);
+
+        // Find the indices of the relevant commands
+        var weaponAttackIndex = publishedCommands.FindIndex(cmd =>
+            cmd is WeaponAttackResolutionCommand warc && warc.AttackerId == _player1Unit1.Id);
+        var criticalHitsIndex = publishedCommands.FindIndex(cmd =>
+            cmd is CriticalHitsResolutionCommand chrc && chrc.TargetId == _player2Unit1.Id);
+        var consciousnessIndex = publishedCommands.FindIndex(cmd =>
+            cmd is PilotConsciousnessRollCommand pcrc && pcrc.UnitId == _player2Unit1.Id);
+
+        // Verify all commands were published
+        weaponAttackIndex.ShouldBeGreaterThanOrEqualTo(0, "WeaponAttackResolutionCommand should be published");
+        criticalHitsIndex.ShouldBeGreaterThanOrEqualTo(0, "CriticalHitsResolutionCommand should be published");
+        consciousnessIndex.ShouldBeGreaterThanOrEqualTo(0, "PilotConsciousnessRollCommand should be published");
+
+        // Verify the correct order: WeaponAttackResolution -> CriticalHitsResolution -> PilotConsciousnessRoll
+        weaponAttackIndex.ShouldBeLessThan(criticalHitsIndex,
+            "WeaponAttackResolutionCommand should be published before CriticalHitsResolutionCommand");
+        criticalHitsIndex.ShouldBeLessThan(consciousnessIndex,
+            "CriticalHitsResolutionCommand should be published before PilotConsciousnessRollCommand");
     }
 }

@@ -1,7 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -362,7 +361,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null })
         {
             target.ApplyDamage(resolution.HitLocationsData.HitLocations, resolution.AttackDirection);
-            ProcessConsciousnessRollsForUnit(target);
         }
 
         // Check which parts are newly destroyed
@@ -395,10 +393,16 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(command);
 
         // Calculate and send critical hits if any location received structure damage
-        if (resolution is not { IsHit: true, HitLocationsData.HitLocations.Count: > 0 }) return;
+        if (resolution.HitLocationsData?.HitLocations == null 
+            || !resolution.HitLocationsData.HitLocations
+                .Any(h => h.Damage.Any(d => d.StructureDamage > 0)))
+        {
+            ProcessConsciousnessRollsForUnit(target);
+            return;
+        }
 
         var criticalHitsCommand = Game.CriticalHitsCalculator
-            .CalculateAndApplyCriticalHits(target, resolution.HitLocationsData.HitLocations
+            .CalculateAndApplyCriticalHits(target, (resolution.HitLocationsData?.HitLocations!) //nullability is checked above
                 .SelectMany(h => h.Damage).ToList());
         IEnumerable<ComponentHitData> allComponentHits = [];
         List<PartLocation> blownOffParts = [];
@@ -406,9 +410,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         {
             criticalHitsCommand.GameOriginId = Game.Id;
             Game.CommandPublisher.PublishCommand(criticalHitsCommand);
-
-            // Process consciousness rolls for pilot damage accumulated during critical hits
-            ProcessConsciousnessRollsForUnit(target);
 
             // Check for component hits that can cause a fall
             allComponentHits = criticalHitsCommand.CriticalHits.SelectMany(ch => ch.HitComponents ?? []);
@@ -418,7 +419,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 .Where(ch => ch.IsBlownOff)
                 .Select(ch => ch.Location).ToList();
         }
-        
+
+        // Process consciousness rolls for pilot damage from the attack and critical hits
+        // This must happen AFTER both WeaponAttackResolutionCommand and CriticalHitsResolutionCommand are published
+        // to maintain correct chronological order in the game log
+        ProcessConsciousnessRollsForUnit(target);
+
         var allDestroyedParts = (resolution.DestroyedParts ?? [])
             .Concat(blownOffParts).Distinct();
 
