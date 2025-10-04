@@ -41,13 +41,27 @@
                           ColumnDefinitions="2*,2*,*"
                           Background="{DynamicResource PrimaryBrush}"
                           Height="30">
-                        <TextBlock Grid.Column="0"
-                                   Text="Chassis"
-                                   Classes="label"
-                                   Foreground="White"
-                                   FontWeight="Bold"
-                                   VerticalAlignment="Center"
-                                   Margin="10,0"/>
+                        <!-- Chassis -->
+                        <Button Grid.Column="0"
+                                Command="{Binding SortByNameCommand}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="Chassis"
+                                           Classes="label"
+                                           Foreground="White"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding NameSortIndicator}"
+                                           Classes="label"
+                                           Foreground="White"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <TextBlock Grid.Column="1"
                                    Text="Model"
                                    Classes="label"
@@ -55,13 +69,27 @@
                                    FontWeight="Bold"
                                    VerticalAlignment="Center"
                                    Margin="10,0"/>
-                        <TextBlock Grid.Column="2"
-                                   Text="Tonnage"
-                                   Classes="label"
-                                   Foreground="White"
-                                   FontWeight="Bold"
-                                   VerticalAlignment="Center"
-                                   Margin="10,0"/>
+                        <!-- Tonnage Column Header -->
+                        <Button Grid.Column="2"
+                                Command="{Binding SortByTonnageCommand}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="Mass"
+                                           Classes="label"
+                                           Foreground="White"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding TonnageSortIndicator}"
+                                           Classes="label"
+                                           Foreground="White"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </Grid>
 
                     <!-- Table Content -->
