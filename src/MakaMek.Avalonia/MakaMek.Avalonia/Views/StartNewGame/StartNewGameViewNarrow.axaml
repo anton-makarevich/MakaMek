@@ -23,21 +23,19 @@
                    Margin="0,0,0,10"/>
         
         <TabControl>
+            <TabItem Header="Players">
+                            <ScrollViewer Classes="gameScrollViewer">
+                                <fragments1:PlayersFragment/>
+                            </ScrollViewer>
+                        </TabItem>
             <TabItem Header="Map">
                 <ScrollViewer Classes="gameScrollViewer">
                     <fragments1:MapConfigFragment/>
                 </ScrollViewer>
             </TabItem>
-            
             <TabItem Header="Network" IsVisible="{Binding CanStartLanServer}">
                 <ScrollViewer Classes="gameScrollViewer">
                     <fragments1:NetworkFragment/>
-                </ScrollViewer>
-            </TabItem>
-            
-            <TabItem Header="Players">
-                <ScrollViewer Classes="gameScrollViewer">
-                    <fragments1:PlayersFragment/>
                 </ScrollViewer>
             </TabItem>
         </TabControl>
