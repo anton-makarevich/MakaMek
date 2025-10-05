@@ -23,7 +23,7 @@ MakaMek is an open-source tactical combat game featuring giant walking war machi
 - Hex map generator with the simplest terrain types (clear, light, and heavy wood) ([MegaMek](https://megamek.org/)'s assets)
 - Cross-platform support (Windows, Linux, macOS, Web, Android, iOS)
 - Prototype UI built with AvaloniaUI
-- Importing mechs defined in MTF format (Level 1 equipment ~3025 only)
+- Importing mechs defined in MTF format (Level 1 equipment only), 173 mech variants are supported at the moment
 
 ### Planned
 - Single-player combat against AI opponents
@@ -79,10 +79,6 @@ MakaMek/
 1. Clone the repository
 2. Open `MakaMek.sln` in your IDE
 3. Build the solution
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
