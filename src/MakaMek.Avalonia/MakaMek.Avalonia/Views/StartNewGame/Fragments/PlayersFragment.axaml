@@ -10,14 +10,16 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.PlayersFragment"
              x:DataType="viewModels1:NewGameViewModel">
     <Panel>
-    <StackPanel Classes="verticalSpaced"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch">
+        <ScrollViewer>
+        <StackPanel Classes="verticalSpaced"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
         <Button Content="Add Player" Command="{Binding AddPlayerCommand}"
                 Classes="primary"
                 HorizontalAlignment="Center"
                 IsEnabled="{Binding CanAddPlayer}"/>
-        <ItemsControl ItemsSource="{Binding Players}">
+        <ItemsControl
+            ItemsSource="{Binding Players}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border Classes="card" Margin="0,5">
@@ -153,7 +155,7 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-    </StackPanel>
+    </StackPanel></ScrollViewer>
     <Panel HorizontalAlignment="Stretch"
            VerticalAlignment="Stretch"
            Background="{StaticResource OverlayTransparentBrush}"

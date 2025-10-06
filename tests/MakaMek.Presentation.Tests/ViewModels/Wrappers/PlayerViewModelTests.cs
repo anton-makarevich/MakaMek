@@ -369,7 +369,7 @@ public class PlayerViewModelTests
         // Assert
         var pilot = sut.GetPilotDataForUnit(unit.Id.Value);
         pilot.ShouldNotBeNull();
-        pilot!.Value.FirstName.ShouldBe("MechWarrior");
+        pilot.Value.FirstName.ShouldBe("MechWarrior");
         pilot.Value.Gunnery.ShouldBe(4); // Default gunnery value
         pilot.Value.Piloting.ShouldBe(5); // Default piloting value
     }
@@ -635,10 +635,14 @@ public class PlayerViewModelTests
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
             isLocalPlayer: true,
-            showAvailableUnits: _ => showAvailableUnitsCalled = true);
-
-        // Set status to something that makes CanAddUnit false
-        sut.Player.Status = PlayerStatus.Joined;
+            showAvailableUnits: _ => showAvailableUnitsCalled = true)
+        {
+            Player =
+            {
+                // Set status to something that makes CanAddUnit false
+                Status = PlayerStatus.Joined
+            }
+        };
 
         // Act
         sut.ShowAvailableUnitsCommand.Execute(null);
@@ -698,34 +702,6 @@ public class PlayerViewModelTests
 
         // Assert
         sut.GetPilotDataForUnit(unitId).ShouldBeNull();
-    }
-
-    [Fact]
-    public void RemoveUnit_ShouldInvokeRemoveUnitAction_WhenProvided()
-    {
-        // Arrange
-        var removeUnitActionCalled = false;
-        UnitData? removedUnit = null;
-
-        var sut = new PlayerViewModel(
-            new Player(Guid.NewGuid(), "Player1"),
-            isLocalPlayer: true,
-            removeUnitAction: unit =>
-            {
-                removeUnitActionCalled = true;
-                removedUnit = unit;
-            });
-
-        var unit = MechFactoryTests.CreateDummyMechData();
-        sut.AddUnit(unit);
-        var unitToRemove = sut.Units.First();
-
-        // Act
-        sut.RemoveUnitCommand.Execute(unitToRemove.Id);
-
-        // Assert
-        removeUnitActionCalled.ShouldBeTrue();
-        removedUnit.ShouldNotBeNull();
     }
 
     [Theory]

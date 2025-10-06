@@ -226,7 +226,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             isDefaultPlayer
                 ? OnDefaultPlayerNameChanged
                 : null,
-            _ => NotifyPropertyChanged(nameof(CanStartGame)),
             isDefaultPlayer);
     }
     

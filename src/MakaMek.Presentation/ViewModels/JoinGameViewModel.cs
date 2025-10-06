@@ -185,7 +185,6 @@ public class JoinGameViewModel : NewGameViewModel
             isDefaultPlayer
                 ? OnDefaultPlayerNameChanged
                 : null,
-            null,
             isDefaultPlayer);
     }
 

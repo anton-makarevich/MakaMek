@@ -13,7 +13,6 @@ public class PlayerViewModel : BindableBase
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
     private readonly Action<PlayerViewModel>? _showAvailableUnits;
-    private readonly Action<UnitData>? _removeUnitAction;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
     private bool _isEditingName;
     private string _editableName;
@@ -79,7 +78,6 @@ public class PlayerViewModel : BindableBase
         Action<PlayerViewModel>? showAvailableUnits = null,
         Action? onUnitChanged = null,
         Func<Player, Task>? onPlayerNameChanged = null,
-        Action<UnitData>? removeUnitAction = null,
         bool isDefaultPlayer = false)
     {
         Player = player;
@@ -91,7 +89,6 @@ public class PlayerViewModel : BindableBase
         _showAvailableUnits = showAvailableUnits;
         _onUnitChanged = onUnitChanged;
         _onPlayerNameChanged = onPlayerNameChanged;
-        _removeUnitAction = removeUnitAction;
 
         Units = [];
         //AddUnitCommand = new AsyncCommand();
@@ -130,18 +127,18 @@ public class PlayerViewModel : BindableBase
 
     private Task ExecuteRemoveUnit(Guid unitId)
     {
-        if (!CanRemoveUnit) return Task.CompletedTask;
+        if (!CanRemoveUnit || unitId == Guid.Empty) return Task.CompletedTask;
 
         var unit = Units.FirstOrDefault(u => u.Id == unitId);
-        Units.Remove(unit);
-        if (!unit.Id.HasValue || !unit.Id.HasValue) return Task.CompletedTask;
+        var removed = Units.Remove(unit);
+        if (!removed) return Task.CompletedTask;
         
         // Remove pilot data for this unit
         _unitPilots.Remove(unitId);
         
         NotifyPropertyChanged(nameof(CanJoin));
+        NotifyPropertyChanged(nameof(CanSetReady));
         _onUnitChanged?.Invoke();
-        _removeUnitAction?.Invoke(unit);
 
         return Task.CompletedTask;
     }
