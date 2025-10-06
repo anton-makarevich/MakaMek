@@ -3,36 +3,60 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:units="clr-namespace:Sanet.MakaMek.Core.Data.Units;assembly=Sanet.MakaMek.Core"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="120" d:DesignHeight="140"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitItemControl"
-             x:DataType="units:UnitData">
-    <Border Classes="card" 
+             x:DataType="units:UnitData"
+             x:Name="UnitItemUserControl">
+    <Border Classes="card"
             Padding="5"
             Width="100"
             Height="120"
             Background="{StaticResource SurfaceBrush}">
-        <StackPanel Spacing="4">
-            <!-- Unit Image -->
-            
-            <Image x:Name="UnitImage"
-                   Width="84"
-                   Height="84"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center">
-                <Image.RenderTransform>
-                    <RotateTransform Angle="180"/>
-                </Image.RenderTransform>
-            </Image>
-            
-            <!-- Model Name -->
-            <TextBlock Text="{Binding Model}" 
-                       Classes="bodySmall"
-                       Foreground="{StaticResource TextLightBrush}"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"
-                       MaxLines="2"
-                       HorizontalAlignment="Center"/>
-        </StackPanel>
+        <Grid>
+            <StackPanel Spacing="4">
+                <!-- Unit Image -->
+
+                <Image x:Name="UnitImage"
+                       Width="84"
+                       Height="84"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center">
+                    <Image.RenderTransform>
+                        <RotateTransform Angle="180"/>
+                    </Image.RenderTransform>
+                </Image>
+
+                <!-- Model Name -->
+                <TextBlock Text="{Binding Model}"
+                           Classes="bodySmall"
+                           Foreground="{StaticResource TextLightBrush}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           MaxLines="2"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Remove Button in Top Right Corner -->
+            <Button
+                Command="{Binding #UnitItemUserControl.RemoveCommand}"
+                CommandParameter="{Binding #UnitItemUserControl.RemoveCommandParameter}"
+                IsVisible="{Binding #UnitItemUserControl.IsRemoveButtonVisible}"
+                ToolTip.Tip="Remove unit"
+                Classes="icon"
+                Width="24"
+                Height="24"
+                Padding="2"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,-2,-2,0"
+                Background="{StaticResource SecondaryBrush}">
+                <TextBlock FontFamily="{StaticResource AwesomeFontSolid}"
+                           Text="&#xf2ed;"
+                           FontSize="10"
+                           Foreground="{StaticResource HighlightLightBrush}"/>
+            </Button>
+        </Grid>
     </Border>
 </UserControl>
 

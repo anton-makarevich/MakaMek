@@ -38,9 +38,10 @@ public abstract class NewGameViewModel : BaseViewModel
     protected ClientGame? _localGame;
 
     public ICommand? AddPlayerCommand { get; protected set; }
+    public ICommand RemovePlayerCommand { get; }
 
     private const string DefaultPlayerCacheKey = "DefaultPlayer";
-    
+
     private PlayerViewModel? _activePlayer;
 
     protected NewGameViewModel(IRulesProvider rulesProvider,
@@ -64,9 +65,10 @@ public abstract class NewGameViewModel : BaseViewModel
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
         _cachingService = cachingService;
-        
+
         HideTableCommand = new AsyncCommand(HideTable);
         AddUnitCommand = new AsyncCommand(() => AddUnit(_activePlayer));
+        RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
     }
 
     // Common command handlers with template method pattern
@@ -156,6 +158,27 @@ public abstract class NewGameViewModel : BaseViewModel
 
     // Template method for creating player view models with appropriate callbacks
     protected abstract PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false);
+
+    /// <summary>
+    /// Removes a player from the game setup
+    /// </summary>
+    /// <param name="playerVm">The player to remove</param>
+    /// <returns>Task representing the async operation</returns>
+    private Task RemovePlayer(PlayerViewModel? playerVm)
+    {
+        if (!CanRemovePlayer(playerVm)) return Task.CompletedTask;
+
+        _players.Remove(playerVm!);
+        NotifyPropertyChanged(nameof(CanAddPlayer));
+        return ReferenceEquals(_activePlayer, playerVm) 
+            ? HideTable() 
+            : Task.CompletedTask;
+    }
+    
+    private static bool CanRemovePlayer(PlayerViewModel? playerVm)
+    {
+        return playerVm?.IsRemovable ?? false;
+    }
 
     /// <summary>
     /// Loads or creates the default player from cache
@@ -268,8 +291,6 @@ public abstract class NewGameViewModel : BaseViewModel
         if (!selectedUnit.HasValue) return Task.CompletedTask;
 
         var unit = selectedUnit.Value;
-        var unitId = Guid.NewGuid();
-        unit.Id = unitId;
         playerVm.AddUnit(unit);
         return HideTable();
     }

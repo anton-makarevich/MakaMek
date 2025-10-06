@@ -274,7 +274,9 @@ public class StartNewGameViewModelTests
         var playerId = Guid.NewGuid();
         const string playerName = "RemotePlayer";
         const string playerTint = "#00FF00";
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        var unitId = Guid.NewGuid();
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() with { Id = unitId } };
+        
         var joinCommand = new JoinGameCommand
         {
             PlayerId = playerId,
@@ -293,7 +295,7 @@ public class StartNewGameViewModelTests
         addedPlayerVm.Player.Tint.ShouldBe(playerTint);
         addedPlayerVm.IsLocalPlayer.ShouldBeFalse();
         addedPlayerVm.Units.Count.ShouldBe(units.Count);
-        addedPlayerVm.Units.First().Id.ShouldBe(units.First().Id);
+        addedPlayerVm.Units.First().Id.ShouldBe(unitId);
     }
 
     [Fact]
@@ -831,5 +833,92 @@ public class StartNewGameViewModelTests
         tableUnits.Count.ShouldBe(expectedUnits.Count);
         // Compare units by their key properties rather than exact equality
         tableUnits.Select(u => u.Chassis).ShouldBeEquivalentTo(expectedUnits.Select(u => u.Chassis));
+    }
+
+    [Fact]
+    public void RemovePlayer_ShouldRemoveNonDefaultPlayer_WhenNotJoined()
+    {
+        // Arrange
+        _sut.AddPlayerCommand!.Execute(null); // Add a second player
+        var playerToRemove = _sut.Players.Last();
+        var initialCount = _sut.Players.Count;
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(playerToRemove);
+
+        // Assert
+        _sut.Players.Count.ShouldBe(initialCount - 1);
+        _sut.Players.ShouldNotContain(playerToRemove);
+    }
+    
+    [Fact]
+    public async Task RemovePlayer_ShouldHideTable_WhenRemovingActivePlayer()
+    {
+        // Arrange
+        _sut.AddPlayerCommand!.Execute(null); // Add a second player
+        var playerVm = _sut.Players.Last();
+        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
+        _sut.IsTableVisible.ShouldBeTrue();
+        var playerToRemove = _sut.Players.Last();
+        var initialCount = _sut.Players.Count;
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(playerToRemove);
+
+        // Assert
+        _sut.IsTableVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RemovePlayer_ShouldNotRemoveDefaultPlayer()
+    {
+        // Arrange
+        var defaultPlayer = _sut.Players.First(); // First player is the default player
+        var initialCount = _sut.Players.Count;
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(defaultPlayer);
+
+        // Assert
+        _sut.Players.Count.ShouldBe(initialCount); // Count should not change
+        _sut.Players.ShouldContain(defaultPlayer); // Default player should still be there
+    }
+
+    [Fact]
+    public void RemovePlayer_ShouldNotRemovePlayer_WhenPlayerHasJoined()
+    {
+        // Arrange
+        _sut.AddPlayerCommand!.Execute(null); // Add a second player
+        var playerToRemove = _sut.Players.Last();
+        playerToRemove.Player.Status = PlayerStatus.Joined;
+        playerToRemove.RefreshStatus();
+        var initialCount = _sut.Players.Count;
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(playerToRemove);
+
+        // Assert
+        _sut.Players.Count.ShouldBe(initialCount); // Count should not change
+        _sut.Players.ShouldContain(playerToRemove); // Player should still be there
+    }
+
+    [Fact]
+    public void RemovePlayer_ShouldUpdateCanAddPlayer()
+    {
+        // Arrange
+        // Add players until we reach the limit
+        for (var i = 0; i < 3; i++)
+        {
+            _sut.AddPlayerCommand!.Execute(null);
+        }
+        _sut.CanAddPlayer.ShouldBeFalse(); // Should be at limit (4 players)
+
+        var playerToRemove = _sut.Players.Last();
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(playerToRemove);
+
+        // Assert
+        _sut.CanAddPlayer.ShouldBeTrue(); // Should be able to add players again
     }
 }
