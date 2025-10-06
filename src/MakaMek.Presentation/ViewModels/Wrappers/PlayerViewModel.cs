@@ -98,7 +98,7 @@ public class PlayerViewModel : BindableBase
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
         SetReadyCommand = new AsyncCommand(ExecuteSetReady);
         ShowAvailableUnitsCommand = new AsyncCommand(ExecuteShowUnits);
-        RemoveUnitCommand = new AsyncCommand<UnitData>(ExecuteRemoveUnit);
+        RemoveUnitCommand = new AsyncCommand<Guid>(ExecuteRemoveUnit);
     }
 
     private Task ExecuteJoinGame()
@@ -128,18 +128,17 @@ public class PlayerViewModel : BindableBase
         return Task.CompletedTask;
     }
 
-    private Task ExecuteRemoveUnit(UnitData unit)
+    private Task ExecuteRemoveUnit(Guid unitId)
     {
         if (!CanRemoveUnit) return Task.CompletedTask;
 
+        var unit = Units.FirstOrDefault(u => u.Id == unitId);
         Units.Remove(unit);
-
+        if (!unit.Id.HasValue || !unit.Id.HasValue) return Task.CompletedTask;
+        
         // Remove pilot data for this unit
-        if (unit.Id.HasValue)
-        {
-            _unitPilots.Remove(unit.Id.Value);
-        }
-
+        _unitPilots.Remove(unitId);
+        
         NotifyPropertyChanged(nameof(CanJoin));
         _onUnitChanged?.Invoke();
         _removeUnitAction?.Invoke(unit);

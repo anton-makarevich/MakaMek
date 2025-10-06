@@ -369,7 +369,7 @@ public class PlayerViewModelTests
         // Assert
         var pilot = sut.GetPilotDataForUnit(unit.Id.Value);
         pilot.ShouldNotBeNull();
-        pilot.Value.FirstName.ShouldBe("MechWarrior");
+        pilot!.Value.FirstName.ShouldBe("MechWarrior");
         pilot.Value.Gunnery.ShouldBe(4); // Default gunnery value
         pilot.Value.Piloting.ShouldBe(5); // Default piloting value
     }
@@ -657,7 +657,7 @@ public class PlayerViewModelTests
         var initialCount = sut.Units.Count;
 
         // Act
-        sut.RemoveUnitCommand.Execute(sut.Units.First());
+        sut.RemoveUnitCommand.Execute(sut.Units.First().Id);
 
         // Assert
         sut.Units.Count.ShouldBe(initialCount - 1);
@@ -675,7 +675,7 @@ public class PlayerViewModelTests
         var initialCount = sut.Units.Count;
 
         // Act
-        sut.RemoveUnitCommand.Execute(sut.Units.First());
+        sut.RemoveUnitCommand.Execute(sut.Units.First().Id);
 
         // Assert
         sut.Units.Count.ShouldBe(initialCount); // Should not change
@@ -694,7 +694,7 @@ public class PlayerViewModelTests
         sut.GetPilotDataForUnit(unitId).ShouldNotBeNull();
 
         // Act
-        sut.RemoveUnitCommand.Execute(sut.Units.First());
+        sut.RemoveUnitCommand.Execute(sut.Units.First().Id);
 
         // Assert
         sut.GetPilotDataForUnit(unitId).ShouldBeNull();
@@ -721,7 +721,7 @@ public class PlayerViewModelTests
         var unitToRemove = sut.Units.First();
 
         // Act
-        sut.RemoveUnitCommand.Execute(unitToRemove);
+        sut.RemoveUnitCommand.Execute(unitToRemove.Id);
 
         // Assert
         removeUnitActionCalled.ShouldBeTrue();
