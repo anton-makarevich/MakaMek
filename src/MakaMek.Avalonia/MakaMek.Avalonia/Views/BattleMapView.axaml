@@ -101,9 +101,9 @@
         </Grid>
         
         <Grid x:Name="MechList"
-              Background="{DynamicResource PrimaryBrush}"
+              Background="{StaticResource SecondaryBrush}"
               IsVisible="{Binding AreUnitsToDeployVisible}"
-              Grid.RowDefinitions="Auto,*"
+              RowDefinitions="Auto,*"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
               Classes="card">
@@ -114,7 +114,10 @@
                 SelectedItem="{Binding SelectedUnit}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding Name}" Classes="body"/>
+                        <TextBlock 
+                            Text="{Binding Name}"
+                            Classes="body"
+                            Foreground="{StaticResource TextLightBrush}"/>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

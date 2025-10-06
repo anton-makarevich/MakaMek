@@ -1,40 +1,56 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Primary Colors -->
-    <Color x:Key="PrimaryColor">#00AAAA</Color>
-    <Color x:Key="PrimaryLightColor">#33CCCC</Color>
-    <Color x:Key="PrimaryDarkColor">#007777</Color>
-    
-    <!-- Secondary Colors -->
-    <Color x:Key="SecondaryColor">#E65100</Color>
-    <Color x:Key="SecondaryLightColor">#FF8A65</Color>
-    <Color x:Key="SecondaryDarkColor">#BF360C</Color>
-    
+    <!-- Primary Colors - Military Green (from mech body) -->
+    <Color x:Key="PrimaryColor">#6B8E23</Color>
+    <Color x:Key="PrimaryLightColor">#8FA557</Color>
+    <Color x:Key="PrimaryDarkColor">#556B2F</Color>
+
+    <!-- Secondary Colors - Tactical Blue (from cockpit canopy) -->
+    <Color x:Key="SecondaryColor">#2196F3</Color>
+    <Color x:Key="SecondaryLightColor">#4FC3F7</Color>
+    <Color x:Key="SecondaryDarkColor">#1976D2</Color>
+
+    <!-- Accent Colors - Purple (from sensor) -->
+    <Color x:Key="AccentColor">#7E57C2</Color>
+    <Color x:Key="AccentLightColor">#9575CD</Color>
+    <Color x:Key="AccentDarkColor">#5E35B1</Color>
+
+    <!-- Highlight Colors - Gold/Yellow (from lights) -->
+    <Color x:Key="HighlightColor">#FFC107</Color>
+    <Color x:Key="HighlightLightColor">#FFD54F</Color>
+    <Color x:Key="HighlightDarkColor">#FFA000</Color>
+
     <!-- Neutral Colors -->
-    <Color x:Key="BackgroundColor">#FFFFFF</Color>
-    <Color x:Key="SurfaceColor">#F5F5F5</Color>
+    <Color x:Key="BackgroundColor">#E0E0E0</Color>
+    <Color x:Key="SurfaceColor">#3A3A3A</Color>
+    <Color x:Key="SurfaceLightColor">#5A5A5A</Color>
     <Color x:Key="TextColor">#333333</Color>
-    <Color x:Key="TextLightColor">#666666</Color>
-    <Color x:Key="BorderColor">#DDDDDD</Color>
-    
+    <Color x:Key="TextLightColor">#CCCCCC</Color>
+    <Color x:Key="BorderColor">#4A4A4A</Color>
+
     <!-- Semantic Colors -->
-    <Color x:Key="SuccessColor">#43A047</Color>
-    <Color x:Key="WarningColor">#FFB300</Color>
-    <Color x:Key="ErrorColor">#E53935</Color>
-    <Color x:Key="InfoColor">#1E88E5</Color>
-    
+    <Color x:Key="SuccessColor">#6B8E23</Color>
+    <Color x:Key="WarningColor">#FFC107</Color>
+    <Color x:Key="ErrorColor">#D32F2F</Color>
+    <Color x:Key="InfoColor">#2196F3</Color>
+
     <!-- Game-Specific Colors -->
-    <Color x:Key="MechArmorColor">LightBlue</Color>
-    <Color x:Key="MechStructureColor">#FFB74D</Color>
-    <Color x:Key="HeatColor">#F44336</Color>
-    <Color x:Key="DestroyedColor">#80FF0000</Color>
-    <Color x:Key="DamagedColor">#80FFB300</Color>
-    
+    <Color x:Key="MechArmorColor">#4FC3F7</Color>
+    <Color x:Key="MechStructureColor">#FFD54F</Color>
+    <Color x:Key="HeatColor">#D32F2F</Color>
+    <Color x:Key="DestroyedColor">#80D32F2F</Color>
+    <Color x:Key="DamagedColor">#80FFC107</Color>
+
     <!-- Overlay Colors -->
-    <Color x:Key="OverlayBackgroundColor">#333333</Color>
-    <Color x:Key="OverlayTransparentColor">#99333333</Color>
-    <Color x:Key="TargetingColor">#FF5252</Color>
+    <Color x:Key="OverlayBackgroundColor">#E0E0E0</Color>
+    <Color x:Key="OverlayTransparentColor">#CCE0E0E0</Color>
+    <Color x:Key="TargetingColor">#D32F2F</Color>
     <Color x:Key="MovementColor">#4FC3F7</Color>
+
+    <!-- Shadow Colors -->
+    <Color x:Key="ShadowLightColor">#20000000</Color>
+    <Color x:Key="ShadowMediumColor">#40000000</Color>
+    <Color x:Key="ShadowDarkColor">#80000000</Color>
     
     <!-- Brushes -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
@@ -44,9 +60,18 @@
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource SecondaryColor}"/>
     <SolidColorBrush x:Key="SecondaryLightBrush" Color="{StaticResource SecondaryLightColor}"/>
     <SolidColorBrush x:Key="SecondaryDarkBrush" Color="{StaticResource SecondaryDarkColor}"/>
-    
+
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="AccentLightBrush" Color="{StaticResource AccentLightColor}"/>
+    <SolidColorBrush x:Key="AccentDarkBrush" Color="{StaticResource AccentDarkColor}"/>
+
+    <SolidColorBrush x:Key="HighlightBrush" Color="{StaticResource HighlightColor}"/>
+    <SolidColorBrush x:Key="HighlightLightBrush" Color="{StaticResource HighlightLightColor}"/>
+    <SolidColorBrush x:Key="HighlightDarkBrush" Color="{StaticResource HighlightDarkColor}"/>
+
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}"/>
     <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
+    <SolidColorBrush x:Key="SurfaceLightBrush" Color="{StaticResource SurfaceLightColor}"/>
     <SolidColorBrush x:Key="ForegroundBrush" Color="{StaticResource TextColor}"/>
     <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}"/>
     <SolidColorBrush x:Key="TextLightBrush" Color="{StaticResource TextLightColor}"/>

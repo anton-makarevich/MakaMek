@@ -43,7 +43,7 @@
     
     <Style Selector="TextBlock.bodySmall">
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
     </Style>
     
     <!-- Label Styles -->
@@ -72,7 +72,7 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
     </Style>
     
     <!-- Caption Styles -->

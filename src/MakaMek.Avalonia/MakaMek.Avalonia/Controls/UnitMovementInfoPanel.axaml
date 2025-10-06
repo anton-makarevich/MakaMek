@@ -13,7 +13,7 @@
         <converters:ModifierToTextConverter x:Key="ModifierToTextConverter"/>
     </UserControl.Resources>
     <StackPanel Spacing="5" Orientation="Vertical">
-        <Border Background="#20000000"
+        <Border Background="{DynamicResource OverlayTransparentBrush}"
             CornerRadius="4"
             Padding="5"
             >

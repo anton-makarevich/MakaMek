@@ -78,7 +78,6 @@
                                                 Width="100"
                                                 Height="120"
                                                 Classes="card"
-                                                Background="{DynamicResource SurfaceBrush}"
                                                 IsVisible="{Binding CanAddUnit}">
                                             <StackPanel Spacing="4">
                                                 <Button Content="+"
@@ -103,6 +102,7 @@
                                                 </Button>
                                                 <TextBlock Text="Add Unit" 
                                                            Classes="bodySmall"
+                                                           Foreground="{StaticResource TextBrush}"
                                                            TextAlignment="Center"
                                                            TextWrapping="Wrap"
                                                            MaxLines="2"
@@ -135,7 +135,7 @@
     </StackPanel>
     <Panel HorizontalAlignment="Stretch"
            VerticalAlignment="Stretch"
-           Background="#11000000"
+           Background="{DynamicResource OverlayTransparentBrush}"
            IsVisible="{Binding IsTableVisible}">
         <templatedControls:GamePanel
             HorizontalAlignment="Center"
