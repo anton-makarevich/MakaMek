@@ -14,7 +14,7 @@
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch">
         <Button Content="Add Player" Command="{Binding AddPlayerCommand}"
-                Classes="secondary"
+                Classes="primary"
                 HorizontalAlignment="Center"
                 IsEnabled="{Binding CanAddPlayer}"/>
         <ItemsControl ItemsSource="{Binding Players}">
@@ -33,37 +33,41 @@
                                     <TextBox Text="{Binding EditableName, Mode=TwoWay}"
                                              IsVisible="{Binding IsEditingName}"
                                              MinWidth="150"/>
-                                    <Button Content="✏️"
-                                            Command="{Binding StartEditingName}"
+                                    <Button Command="{Binding StartEditingName}"
                                             IsVisible="{Binding !IsEditingName}"
                                             IsEnabled="{Binding CanEditName}"
                                             ToolTip.Tip="Edit player name"
                                             Classes="secondary"
-                                            Padding="5,2"/>
-                                    <Button Content="✓"
-                                            Command="{Binding SaveName}"
+                                            Padding="5,2">
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf304;"/>
+                                    </Button>
+                                    <Button Command="{Binding SaveName}"
                                             IsVisible="{Binding IsEditingName}"
                                             ToolTip.Tip="Save name"
                                             Classes="primary"
-                                            Padding="5,2"/>
-                                    <Button Content="✗"
-                                            Command="{Binding CancelEditName}"
+                                            Padding="5,2">
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf00c;"/>
+                                    </Button>
+                                    <Button Command="{Binding CancelEditName}"
                                             IsVisible="{Binding IsEditingName}"
                                             ToolTip.Tip="Cancel"
                                             Classes="secondary"
-                                            Padding="5,2"/>
+                                            Padding="5,2">
+                                        <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf00d;"/>
+                                    </Button>
                                 </StackPanel>
 
                                 <!-- Delete Player Button -->
                                 <Button Grid.Column="1"
-                                        Content="🗑️"
                                         Command="{Binding $parent[UserControl].((viewModels1:NewGameViewModel)DataContext).RemovePlayerCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding IsRemovable}"
                                         ToolTip.Tip="Remove player"
                                         Classes="secondary"
                                         Padding="5,2"
-                                        VerticalAlignment="Center"/>
+                                        VerticalAlignment="Center">
+                                    <TextBlock FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf2ed;"/>
+                                </Button>
                             </Grid>
 
                             <!-- Assigned Units - Horizontal Scrollable View with + Button -->
@@ -82,22 +86,11 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid RowDefinitions="Auto,Auto">
-                                                        <!-- Unit Display -->
-                                                        <controls:UnitItemControl Grid.Row="0" DataContext="{Binding}"/>
-
-                                                        <!-- Delete Unit Button -->
-                                                        <Button Grid.Row="1"
-                                                                Content="Remove"
-                                                                Command="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).RemoveUnitCommand}"
-                                                                CommandParameter="{Binding Id}"
-                                                                IsVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"
-                                                                Classes="secondary"
-                                                                FontSize="10"
-                                                                Padding="2"
-                                                                HorizontalAlignment="Center"
-                                                                Margin="0,2,0,0"/>
-                                                    </Grid>
+                                                    <controls:UnitItemControl
+                                                        DataContext="{Binding}"
+                                                        RemoveCommand="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).RemoveUnitCommand}"
+                                                        RemoveCommandParameter="{Binding Id}"
+                                                        IsRemoveButtonVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

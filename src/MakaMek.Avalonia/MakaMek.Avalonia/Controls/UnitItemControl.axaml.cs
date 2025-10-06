@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
@@ -12,6 +13,33 @@ namespace Sanet.MakaMek.Avalonia.Controls;
 public partial class UnitItemControl : UserControl
 {
     private readonly IImageService<Bitmap>? _imageService;
+
+    public static readonly StyledProperty<ICommand?> RemoveCommandProperty =
+        AvaloniaProperty.Register<UnitItemControl, ICommand?>(nameof(RemoveCommand));
+
+    public static readonly StyledProperty<object?> RemoveCommandParameterProperty =
+        AvaloniaProperty.Register<UnitItemControl, object?>(nameof(RemoveCommandParameter));
+
+    public static readonly StyledProperty<bool> IsRemoveButtonVisibleProperty =
+        AvaloniaProperty.Register<UnitItemControl, bool>(nameof(IsRemoveButtonVisible), defaultValue: false);
+
+    public ICommand? RemoveCommand
+    {
+        get => GetValue(RemoveCommandProperty);
+        set => SetValue(RemoveCommandProperty, value);
+    }
+
+    public object? RemoveCommandParameter
+    {
+        get => GetValue(RemoveCommandParameterProperty);
+        set => SetValue(RemoveCommandParameterProperty, value);
+    }
+
+    public bool IsRemoveButtonVisible
+    {
+        get => GetValue(IsRemoveButtonVisibleProperty);
+        set => SetValue(IsRemoveButtonVisibleProperty, value);
+    }
 
     public UnitItemControl()
     {
