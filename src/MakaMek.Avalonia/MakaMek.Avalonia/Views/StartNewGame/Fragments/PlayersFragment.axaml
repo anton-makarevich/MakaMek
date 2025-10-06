@@ -99,6 +99,7 @@
                                                 <DataTemplate>
                                                     <controls:UnitItemControl
                                                         DataContext="{Binding}"
+                                                        PlayerTint="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).Tint}"
                                                         RemoveCommand="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).RemoveUnitCommand}"
                                                         RemoveCommandParameter="{Binding Id}"
                                                         IsRemoveButtonVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"/>

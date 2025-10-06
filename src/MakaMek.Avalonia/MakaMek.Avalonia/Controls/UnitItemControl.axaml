@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:units="clr-namespace:Sanet.MakaMek.Core.Data.Units;assembly=Sanet.MakaMek.Core"
-             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="120" d:DesignHeight="140"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitItemControl"
              x:DataType="units:UnitData"
@@ -15,17 +14,26 @@
             Background="{StaticResource SurfaceBrush}">
         <Grid>
             <StackPanel Spacing="4">
-                <!-- Unit Image -->
+                <!-- Unit Image with Tint Overlay -->
+                <Panel Width="84" Height="84">
+                    <Image x:Name="UnitImage"
+                           Width="84"
+                           Height="84"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center">
+                    </Image>
 
-                <Image x:Name="UnitImage"
-                       Width="84"
-                       Height="84"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center">
-                    <Image.RenderTransform>
+                    <!-- Tint Border - uses opacity mask to apply color only to non-transparent pixels -->
+                    <Border x:Name="TintBorder"
+                            Width="84"
+                            Height="84"
+                            Opacity="0.7"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"/>
+                    <Panel.RenderTransform>
                         <RotateTransform Angle="180"/>
-                    </Image.RenderTransform>
-                </Image>
+                    </Panel.RenderTransform>
+                </Panel>
 
                 <!-- Model Name -->
                 <TextBlock Text="{Binding Model}"
