@@ -3,8 +3,8 @@
 
     <!-- Card Panel -->
     <Style Selector="Border.card">
-        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="Padding" Value="16"/>
@@ -14,8 +14,8 @@
     
     <!-- Game Panel -->
     <Style Selector="Border.gamePanel">
-        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="MaxHeight" Value="400"/>
@@ -26,13 +26,13 @@
     
     <!-- Game Panel Header -->
     <Style Selector="Grid.gamePanelHeader">
-        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="Height" Value="40"/>
     </Style>
     
     <!-- Status Panel -->
     <Style Selector="Grid.statusPanel">
-        <Setter Property="Background" Value="{DynamicResource OverlayTransparentBrush}"/>
+        <Setter Property="Background" Value="{StaticResource OverlayTransparentBrush}"/>
         <Setter Property="VerticalAlignment" Value="Top"/>
         <Setter Property="Margin" Value="0,0,0,10"/>
     </Style>
@@ -67,8 +67,8 @@
     
     <!-- Dialog Container -->
     <Style Selector="Border.dialogContainer">
-        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="MaxWidth" Value="500"/>
@@ -79,7 +79,7 @@
     
     <!-- Status Tag -->
     <Style Selector="Border.statusTag">
-        <Setter Property="Background" Value="{DynamicResource HeatBrush}"/>
+        <Setter Property="Background" Value="{StaticResource HeatBrush}"/>
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="Padding" Value="5,2"/>
         <Setter Property="HorizontalAlignment" Value="Left"/>

@@ -3,7 +3,7 @@
 
     <!-- Primary Button -->
     <Style Selector="Button.primary">
-        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="Padding" Value="20,10"/>
         <Setter Property="CornerRadius" Value="4"/>
@@ -12,11 +12,11 @@
     </Style>
     
     <Style Selector="Button.primary:pointerover">
-        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
     </Style>
     
     <Style Selector="Button.primary:pressed">
-        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
         <Setter Property="Opacity" Value="0.8"/>
     </Style>
     
@@ -26,7 +26,7 @@
     
     <!-- Main Menu Button (based on primary) -->
     <Style Selector="Button.main-menu">
-        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="Padding" Value="25,15"/> <!-- Slightly larger padding -->
         <Setter Property="FontSize" Value="18"/> <!-- Larger font size -->
@@ -37,11 +37,11 @@
     </Style>
     
     <Style Selector="Button.main-menu:pointerover">
-        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
     </Style>
     
     <Style Selector="Button.main-menu:pressed">
-        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
         <Setter Property="Opacity" Value="0.8"/>
     </Style>
     
@@ -51,7 +51,7 @@
     
     <!-- Secondary Button -->
     <Style Selector="Button.secondary">
-        <Setter Property="Background" Value="{DynamicResource SecondaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="Padding" Value="20,10"/>
         <Setter Property="CornerRadius" Value="4"/>
@@ -60,11 +60,11 @@
     </Style>
     
     <Style Selector="Button.secondary:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SecondaryDarkBrush}"/>
+        <Setter Property="Background" Value="{StaticResource SecondaryDarkBrush}"/>
     </Style>
     
     <Style Selector="Button.secondary:pressed">
-        <Setter Property="Background" Value="{DynamicResource SecondaryDarkBrush}"/>
+        <Setter Property="Background" Value="{StaticResource SecondaryDarkBrush}"/>
         <Setter Property="Opacity" Value="0.8"/>
     </Style>
     
@@ -75,9 +75,9 @@
     <!-- Outline Button -->
     <Style Selector="Button.outline">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="Padding" Value="20,10"/>
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -85,12 +85,12 @@
     </Style>
     
     <Style Selector="Button.outline:pointerover">
-        <Setter Property="Background" Value="{DynamicResource PrimaryLightBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}"/>
         <Setter Property="Foreground" Value="White"/>
     </Style>
     
     <Style Selector="Button.outline:pressed">
-        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="Foreground" Value="White"/>
     </Style>
     
@@ -105,11 +105,11 @@
     </Style>
     
     <Style Selector="Button.icon:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
     </Style>
     
     <Style Selector="Button.icon:pressed">
-        <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BorderBrush}"/>
     </Style>
     
     <!-- Action Button (Round with icon) -->
@@ -117,18 +117,18 @@
         <Setter Property="Width" Value="40"/>
         <Setter Property="Height" Value="40"/>
         <Setter Property="CornerRadius" Value="20"/>
-        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
     
     <Style Selector="Button.actionButton:pointerover">
-        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
     </Style>
     
     <Style Selector="Button.actionButton:pressed">
-        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryDarkBrush}"/>
         <Setter Property="Opacity" Value="0.8"/>
     </Style>
 </Styles>
