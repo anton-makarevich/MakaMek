@@ -850,6 +850,24 @@ public class StartNewGameViewModelTests
         _sut.Players.Count.ShouldBe(initialCount - 1);
         _sut.Players.ShouldNotContain(playerToRemove);
     }
+    
+    [Fact]
+    public async Task RemovePlayer_ShouldHideTable_WhenRemovingActivePlayer()
+    {
+        // Arrange
+        _sut.AddPlayerCommand!.Execute(null); // Add a second player
+        var playerVm = _sut.Players.Last();
+        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
+        _sut.IsTableVisible.ShouldBeTrue();
+        var playerToRemove = _sut.Players.Last();
+        var initialCount = _sut.Players.Count;
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(playerToRemove);
+
+        // Assert
+        _sut.IsTableVisible.ShouldBeFalse();
+    }
 
     [Fact]
     public void RemovePlayer_ShouldNotRemoveDefaultPlayer()

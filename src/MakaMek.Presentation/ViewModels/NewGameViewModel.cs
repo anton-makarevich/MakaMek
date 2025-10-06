@@ -170,8 +170,9 @@ public abstract class NewGameViewModel : BaseViewModel
 
         _players.Remove(playerVm!);
         NotifyPropertyChanged(nameof(CanAddPlayer));
-
-        return Task.CompletedTask;
+        return ReferenceEquals(_activePlayer, playerVm) 
+            ? HideTable() 
+            : Task.CompletedTask;
     }
     
     private static bool CanRemovePlayer(PlayerViewModel? playerVm)
