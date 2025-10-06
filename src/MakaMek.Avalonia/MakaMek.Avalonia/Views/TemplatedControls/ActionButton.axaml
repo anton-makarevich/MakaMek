@@ -14,7 +14,7 @@
                         CornerRadius="20"
                         Classes="actionButton"
                         Background="{TemplateBinding Background }">
-                    <PathIcon Data="{TemplateBinding IconData}" Foreground="White"/>
+                    <PathIcon Data="{TemplateBinding IconData}" Foreground="{StaticResource HighlightLightBrush}"/>
                 </Button>
             </ControlTemplate>
         </Setter>

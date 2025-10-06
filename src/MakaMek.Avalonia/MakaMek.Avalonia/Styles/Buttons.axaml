@@ -4,7 +4,7 @@
     <!-- Primary Button -->
     <Style Selector="Button.primary">
         <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
         <Setter Property="Padding" Value="20,10"/>
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -27,7 +27,7 @@
     <!-- Main Menu Button (based on primary) -->
     <Style Selector="Button.main-menu">
         <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
         <Setter Property="Padding" Value="25,15"/> <!-- Slightly larger padding -->
         <Setter Property="FontSize" Value="18"/> <!-- Larger font size -->
         <Setter Property="CornerRadius" Value="4"/>
@@ -52,7 +52,7 @@
     <!-- Secondary Button -->
     <Style Selector="Button.secondary">
         <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
         <Setter Property="Padding" Value="20,10"/>
         <Setter Property="CornerRadius" Value="4"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -86,12 +86,12 @@
     
     <Style Selector="Button.outline:pointerover">
         <Setter Property="Background" Value="{StaticResource PrimaryLightBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
     </Style>
     
     <Style Selector="Button.outline:pressed">
         <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
     </Style>
     
     <!-- Icon Button -->
@@ -118,7 +118,7 @@
         <Setter Property="Height" Value="40"/>
         <Setter Property="CornerRadius" Value="20"/>
         <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{StaticResource HighlightLightBrush}"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>

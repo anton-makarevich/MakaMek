@@ -107,7 +107,7 @@
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
               Classes="card">
-            <Label Content="Select a Unit to deploy" Foreground="White"/>
+            <Label Content="Select a Unit to deploy" Foreground="{StaticResource HighlightLightBrush}"/>
             <ListBox Grid.Row="1"
                 Classes="gameList"
                 ItemsSource="{Binding UnitsToDeploy}"

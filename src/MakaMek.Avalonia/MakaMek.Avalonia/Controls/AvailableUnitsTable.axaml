@@ -51,12 +51,12 @@
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <TextBlock Text="Chassis"
                                            Classes="label"
-                                           Foreground="White"
+                                           Foreground="{StaticResource HighlightLightBrush}"
                                            FontWeight="Bold"
                                            VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding NameSortIndicator}"
                                            Classes="label"
-                                           Foreground="White"
+                                           Foreground="{StaticResource HighlightLightBrush}"
                                            FontWeight="Bold"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
@@ -64,7 +64,7 @@
                         <TextBlock Grid.Column="1"
                                    Text="Model"
                                    Classes="label"
-                                   Foreground="White"
+                                   Foreground="{StaticResource HighlightLightBrush}"
                                    FontWeight="Bold"
                                    VerticalAlignment="Center"
                                    Margin="10,0"/>
@@ -78,12 +78,12 @@
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <TextBlock Text="Mass"
                                            Classes="label"
-                                           Foreground="White"
+                                           Foreground="{StaticResource HighlightLightBrush}"
                                            FontWeight="Bold"
                                            VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding TonnageSortIndicator}"
                                            Classes="label"
-                                           Foreground="White"
+                                           Foreground="{StaticResource HighlightLightBrush}"
                                            FontWeight="Bold"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
