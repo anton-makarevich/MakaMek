@@ -121,17 +121,52 @@ public abstract class NewGameViewModel : BaseViewModel
     public abstract bool CanAddPlayer { get; }
 
     // Common utility methods
-    private string GetNextTilt()
+    private string GetNextTint()
     {
-        // Simple color cycling based on player count
-        return _players.Count switch
+        // Generate a vibrant, colorful random color
+        return GenerateVibrantColor();
+    }
+
+    private string GenerateVibrantColor()
+    {
+        // Use HSV color space to ensure vibrant, colorful colors
+        // Hue: 0-360 (full range for variety)
+        // Saturation: 0.6-1.0 (avoid grayish colors)
+        // Value/Brightness: 0.4-1.0 (avoid very dark colors but allow some darker ones for variety)
+        var random = Random.Shared;
+
+        var hue = random.NextDouble() * 360.0;
+        var saturation = 0.6 + (random.NextDouble() * 0.4); // 0.6-1.0
+        var value = 0.4 + (random.NextDouble() * 0.6); // 0.4-1.0
+
+        // Convert HSV to RGB
+        var rgb = HsvToRgb(hue, saturation, value);
+
+        // Convert RGB to hex
+        return $"#{rgb.Red:X2}{rgb.Green:X2}{rgb.Blue:X2}";
+    }
+
+    private static (int Red, int Green, int Blue) HsvToRgb(double hue, double saturation, double value)
+    {
+        var c = value * saturation;
+        var x = c * (1 - Math.Abs((hue / 60) % 2 - 1));
+        var m = value - c;
+
+        var rgbValues = hue switch
         {
-            0 => "#FFFFFF", // White
-            1 => "#FF0000", // Red
-            2 => "#0000FF", // Blue
-            3 => "#FFFF00", // Yellow
-            _ => "#FFFFFF"
+            >= 0 and < 60 => (c, x, 0.0),
+            >= 60 and < 120 => (x, c, 0.0),
+            >= 120 and < 180 => (0.0, c, x),
+            >= 180 and < 240 => (0.0, x, c),
+            >= 240 and < 300 => (x, 0.0, c),
+            _ => (c, 0.0, x)
         };
+
+        return (
+            (int)Math.Round((rgbValues.Item1 + m) * 255),
+            (int)Math.Round((rgbValues.Item2 + m) * 255),
+            (int)Math.Round((rgbValues.Item3 + m) * 255)
+        );
     }
 
     // Common player creation logic with template method pattern
@@ -141,7 +176,7 @@ public abstract class NewGameViewModel : BaseViewModel
         var isDefaultPlayer = playerData != null;
 
         // Generate random 4-digit number for player name
-        playerData ??= PlayerData.CreateDefault() with { Tint = GetNextTilt() };
+        playerData ??= PlayerData.CreateDefault() with { Tint = GetNextTint() };
 
         // Create Local Player Object
         var newPlayer = new Player(playerData.Value);
@@ -200,7 +235,7 @@ public abstract class NewGameViewModel : BaseViewModel
         }
 
         // Create new default player if cache load failed
-        var defaultPlayerData = PlayerData.CreateDefault();
+        var defaultPlayerData = PlayerData.CreateDefault() with { Tint = GetNextTint() };
         await SaveDefaultPlayer(defaultPlayerData);
         return defaultPlayerData;
     }

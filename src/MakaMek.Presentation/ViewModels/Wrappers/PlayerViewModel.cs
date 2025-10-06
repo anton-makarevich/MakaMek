@@ -70,6 +70,8 @@ public class PlayerViewModel : BindableBase
 
     public string Name => Player.Name;
 
+    public string Tint => Player.Tint;
+
     public PlayerViewModel(
         Player player,
         bool isLocalPlayer,
