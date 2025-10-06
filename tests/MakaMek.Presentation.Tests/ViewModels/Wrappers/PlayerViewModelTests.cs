@@ -34,6 +34,19 @@ public class PlayerViewModelTests
         // Assert
         name.ShouldBe("Player1");
     }
+    
+    [Fact]
+    public void Tint_ShouldReturnPlayerTint()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1", "#FF0033"),true);
+    
+        // Act
+        var tint = sut.Tint;
+    
+        // Assert
+        tint.ShouldBe("#FF0033");
+    }
 
     [Theory]
     [InlineData(true, true)]  // Local player shows join button
