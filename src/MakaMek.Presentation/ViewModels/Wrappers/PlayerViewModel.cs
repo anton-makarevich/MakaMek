@@ -151,21 +151,20 @@ public class PlayerViewModel : BindableBase
 
     public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined && !IsEditingName;
 
-    public Task AddUnit(UnitData unit)
+    public Task AddUnit(UnitData unit, PilotData? pilotData = null)
     {
-        if (!CanAddUnit) return Task.CompletedTask;
-        
-        var unitId = Guid.NewGuid();
-        unit.Id = unitId;
+        if (unit.Id == null || unit.Id == Guid.Empty)
+        {
+            unit.Id = Guid.NewGuid();
+        }
         Units.Add(unit);
 
         // Create a default pilot for this unit
-        _unitPilots[unitId] = PilotData.CreateDefaultPilot("MechWarrior","");
+        _unitPilots[unit.Id!.Value] = pilotData ?? PilotData.CreateDefaultPilot("MechWarrior","");
 
         NotifyPropertyChanged(nameof(CanJoin));
         _onUnitChanged?.Invoke();
         
-        (ShowAvailableUnitsCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         return Task.CompletedTask;
     }
 
@@ -209,21 +208,10 @@ public class PlayerViewModel : BindableBase
         _unitPilots.Clear();
         foreach(var unit in unitsToAdd)
         {
-            var unitToAdd = unit;
-            if (unitToAdd.Id == Guid.Empty) unitToAdd.Id = Guid.NewGuid();
-            Units.Add(unitToAdd);
-
             var pilotAssignment = pilotAssignments.FirstOrDefault(pa => pa.UnitId == unit.Id);
-            if (pilotAssignment.UnitId != Guid.Empty)
-            {
-                _unitPilots[unit.Id!.Value] = pilotAssignment.PilotData;
-            }
-            else if (unitToAdd.Id != null)
-            {
-                _unitPilots[unitToAdd.Id.Value] = PilotData.CreateDefaultPilot("MechWarrior","");
-            }
+            
+            AddUnit(unit, pilotAssignment.UnitId != Guid.Empty ? pilotAssignment.PilotData : null );
         }
-        _onUnitChanged?.Invoke();
     }
     public bool CanJoin => IsLocalPlayer && Units.Count > 0 && Status == PlayerStatus.NotJoined;
     public bool CanSetReady => IsLocalPlayer && Status == PlayerStatus.Joined;

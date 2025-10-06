@@ -274,7 +274,9 @@ public class StartNewGameViewModelTests
         var playerId = Guid.NewGuid();
         const string playerName = "RemotePlayer";
         const string playerTint = "#00FF00";
-        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() };
+        var unitId = Guid.NewGuid();
+        var units = new List<UnitData> { MechFactoryTests.CreateDummyMechData() with { Id = unitId } };
+        
         var joinCommand = new JoinGameCommand
         {
             PlayerId = playerId,
@@ -293,7 +295,7 @@ public class StartNewGameViewModelTests
         addedPlayerVm.Player.Tint.ShouldBe(playerTint);
         addedPlayerVm.IsLocalPlayer.ShouldBeFalse();
         addedPlayerVm.Units.Count.ShouldBe(units.Count);
-        addedPlayerVm.Units.First().Id.ShouldBe(units.First().Id);
+        addedPlayerVm.Units.First().Id.ShouldBe(unitId);
     }
 
     [Fact]

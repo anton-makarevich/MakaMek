@@ -303,8 +303,6 @@ public abstract class NewGameViewModel : BaseViewModel
         if (!selectedUnit.HasValue) return Task.CompletedTask;
 
         var unit = selectedUnit.Value;
-        var unitId = Guid.NewGuid();
-        unit.Id = unitId;
         playerVm.AddUnit(unit);
         return HideTable();
     }
