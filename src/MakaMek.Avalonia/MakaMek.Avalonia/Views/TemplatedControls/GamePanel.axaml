@@ -20,7 +20,7 @@
                     <Grid RowDefinitions="Auto,*">
                         <!-- Header -->
                         <Grid Grid.Row="0" 
-                              Background="{DynamicResource PrimaryBrush}" 
+                              Background="{DynamicResource SecondaryBrush}" 
                               Height="40">
                             <TextBlock Text="{TemplateBinding Title}"
                                      VerticalAlignment="Center"

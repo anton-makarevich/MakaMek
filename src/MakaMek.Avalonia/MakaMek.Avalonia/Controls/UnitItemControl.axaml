@@ -27,6 +27,7 @@
             <!-- Model Name -->
             <TextBlock Text="{Binding Model}" 
                        Classes="bodySmall"
+                       Foreground="{DynamicResource TextLightBrush}"
                        TextAlignment="Center"
                        TextWrapping="Wrap"
                        MaxLines="2"
