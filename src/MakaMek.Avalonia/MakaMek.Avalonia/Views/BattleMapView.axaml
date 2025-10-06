@@ -29,7 +29,7 @@
         
         <Grid x:Name="TurnStatus"
             VerticalAlignment="Top"
-            Background="{DynamicResource OverlayTransparentBrush}"
+            Background="{StaticResource OverlayTransparentBrush}"
             Classes="statusPanel"
             Margin="{OnPlatform '0,0,0,0', Android='0,30,0,0'}"
             ColumnDefinitions="*,Auto,Auto,Auto,*">
@@ -101,20 +101,23 @@
         </Grid>
         
         <Grid x:Name="MechList"
-              Background="{DynamicResource PrimaryBrush}"
+              Background="{StaticResource SecondaryBrush}"
               IsVisible="{Binding AreUnitsToDeployVisible}"
-              Grid.RowDefinitions="Auto,*"
+              RowDefinitions="Auto,*"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
               Classes="card">
-            <Label Content="Select a Unit to deploy" Foreground="White"/>
+            <Label Content="Select a Unit to deploy" Foreground="{StaticResource HighlightLightBrush}"/>
             <ListBox Grid.Row="1"
                 Classes="gameList"
                 ItemsSource="{Binding UnitsToDeploy}"
                 SelectedItem="{Binding SelectedUnit}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding Name}" Classes="body"/>
+                        <TextBlock 
+                            Text="{Binding Name}"
+                            Classes="body"
+                            Foreground="{StaticResource TextLightBrush}"/>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

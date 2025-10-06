@@ -7,38 +7,34 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="800"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewNarrow"
              x:DataType="viewModels1:StartNewGameViewModel">
-    <DockPanel Classes="pageContainer">
-        <Button DockPanel.Dock="Bottom"
-                Command="{Binding StartGameCommand}"
-                Content="Start Game"
-                Classes="primary"
-                IsEnabled="{Binding CanStartGame}"
-                HorizontalAlignment="Center"
-                Margin="0,10,0,0"/>
-        
+    <Grid Classes="pageContainer"
+          RowDefinitions="Auto,*,Auto">
         <TextBlock Text="Start New Game" 
                    Classes="h1" 
                    HorizontalAlignment="Center"
                    DockPanel.Dock="Top"
                    Margin="0,0,0,10"/>
         
-        <TabControl>
+        <TabControl Grid.Row="1">
             <TabItem Header="Players">
-                            <ScrollViewer Classes="gameScrollViewer">
-                                <fragments1:PlayersFragment/>
-                            </ScrollViewer>
-                        </TabItem>
+                <fragments1:PlayersFragment/>
+            </TabItem>
             <TabItem Header="Map">
                 <ScrollViewer Classes="gameScrollViewer">
                     <fragments1:MapConfigFragment/>
                 </ScrollViewer>
             </TabItem>
             <TabItem Header="Network" IsVisible="{Binding CanStartLanServer}">
-                <ScrollViewer Classes="gameScrollViewer">
-                    <fragments1:NetworkFragment/>
-                </ScrollViewer>
+                <fragments1:NetworkFragment/>
             </TabItem>
         </TabControl>
-    </DockPanel>
+        <Button Grid.Row="2"
+                Command="{Binding StartGameCommand}"
+                Content="Start Game"
+                Classes="primary"
+                IsEnabled="{Binding CanStartGame}"
+                HorizontalAlignment="Center"
+                Margin="0,10,0,0"/>
+    </Grid>
 </UserControl>
 

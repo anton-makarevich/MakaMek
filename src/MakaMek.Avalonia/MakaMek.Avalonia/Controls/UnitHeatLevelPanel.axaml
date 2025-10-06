@@ -19,9 +19,9 @@
                        Classes="infoPanel">
                 <ProgressBar.Foreground>
                     <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                        <GradientStop Offset="0" Color="#ADD8E6"/>
-                        <GradientStop Offset="0.5" Color="#FFA500"/>
-                        <GradientStop Offset="1" Color="#8B0000"/>
+                        <GradientStop Offset="0" Color="{StaticResource SecondaryLightColor}"/>
+                        <GradientStop Offset="0.5" Color="{StaticResource HighlightColor}"/>
+                        <GradientStop Offset="1" Color="{StaticResource ErrorColor}"/>
                     </LinearGradientBrush>
                 </ProgressBar.Foreground>
             </ProgressBar>

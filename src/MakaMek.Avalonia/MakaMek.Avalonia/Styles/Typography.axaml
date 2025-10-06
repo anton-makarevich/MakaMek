@@ -6,44 +6,44 @@
         <Setter Property="FontSize" Value="24"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Margin" Value="0,0,0,10"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     
     <Style Selector="TextBlock.h2">
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Margin" Value="0,0,0,8"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     
     <Style Selector="TextBlock.h3">
         <Setter Property="FontSize" Value="18"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Margin" Value="0,0,0,6"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     
     <Style Selector="TextBlock.h4">
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Margin" Value="0,0,0,4"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     
     <!-- Body Text Styles -->
     <Style Selector="TextBlock.body">
         <Setter Property="FontSize" Value="14"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     
     <Style Selector="TextBlock.bodyLarge">
         <Setter Property="FontSize" Value="16"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     
     <Style Selector="TextBlock.bodySmall">
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     
     <!-- Label Styles -->
@@ -51,20 +51,20 @@
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     
     <Style Selector="TextBlock.label">
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     
     <Style Selector="TextBlock.labelSmall">
         <Setter Property="FontSize" Value="10"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
     </Style>
     
     <Style Selector="TextBlock.progressBarLabel">
@@ -72,13 +72,13 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
     </Style>
     
     <!-- Caption Styles -->
     <Style Selector="TextBlock.caption">
         <Setter Property="FontSize" Value="10"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
     </Style>
     
     <!-- Game-Specific Text Styles -->

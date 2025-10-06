@@ -10,7 +10,7 @@
             Padding="5"
             Width="100"
             Height="120"
-            Background="{DynamicResource SurfaceBrush}">
+            Background="{StaticResource SurfaceBrush}">
         <StackPanel Spacing="4">
             <!-- Unit Image -->
             
@@ -27,6 +27,7 @@
             <!-- Model Name -->
             <TextBlock Text="{Binding Model}" 
                        Classes="bodySmall"
+                       Foreground="{StaticResource TextLightBrush}"
                        TextAlignment="Center"
                        TextWrapping="Wrap"
                        MaxLines="2"

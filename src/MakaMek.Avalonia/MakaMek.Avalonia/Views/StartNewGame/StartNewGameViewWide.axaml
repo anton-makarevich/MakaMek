@@ -7,27 +7,22 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewWide"
              x:DataType="viewModels1:StartNewGameViewModel">
-    <DockPanel Classes="pageContainer">
-        <Button DockPanel.Dock="Bottom"
-                Command="{Binding StartGameCommand}"
-                Content="Start Game"
-                Classes="primary"
-                IsEnabled="{Binding CanStartGame}"
-                HorizontalAlignment="Center"
-                Margin="0,10,0,0"/>
-        
-        <ScrollViewer Classes="gameScrollViewer">
-            <Grid 
-                ColumnDefinitions="*,*"
-                RowDefinitions="Auto,*,Auto">
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Map" Classes="h2" HorizontalAlignment="Center"/>
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Players" Classes="h2" HorizontalAlignment="Center"/>
-                    <fragments:PlayersFragment Grid.Column="0" Grid.Row="1" Grid.RowSpan="2" Margin="10"/>
-                    <fragments:MapConfigFragment Grid.Column="1" Grid.Row="1" Margin="10"/>
-                    <fragments:NetworkFragment Grid.Column="1" Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10"/>
-                   
-            </Grid>
-        </ScrollViewer>
-    </DockPanel>
+    <Grid 
+        ColumnDefinitions="*,*"
+        RowDefinitions="Auto,*,Auto, Auto">
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="Map" Classes="h2" HorizontalAlignment="Center"/>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Players" Classes="h2" HorizontalAlignment="Center"/>
+            <fragments:PlayersFragment Grid.Column="0" Grid.Row="1" Grid.RowSpan="2" Margin="10"/>
+            <fragments:MapConfigFragment Grid.Column="1" Grid.Row="1" Margin="10"/>
+            <fragments:NetworkFragment Grid.Column="1" Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10"/>
+            <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                    Command="{Binding StartGameCommand}"
+                    Content="Start Game"
+                    Classes="primary"
+                    IsEnabled="{Binding CanStartGame}"
+                    HorizontalAlignment="Center"
+                    Margin="0,10,0,0"/>
+    </Grid>
+
 </UserControl>
 
