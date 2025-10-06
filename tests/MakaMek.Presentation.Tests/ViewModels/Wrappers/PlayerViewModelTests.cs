@@ -684,6 +684,38 @@ public class PlayerViewModelTests
         // Assert
         sut.Units.Count.ShouldBe(initialCount); // Should not change
     }
+    
+    [Fact]
+    public void RemoveUnit_ShouldNotRemoveUnit_WhenIdNotFound()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
+        var unit = MechFactoryTests.CreateDummyMechData();
+        sut.AddUnit(unit);
+        var initialCount = sut.Units.Count;
+
+        // Act
+        sut.RemoveUnitCommand.Execute(Guid.NewGuid());
+
+        // Assert
+        sut.Units.Count.ShouldBe(initialCount); // Should not change
+    }
+    
+    [Fact]
+    public void RemoveUnit_ShouldNotRemoveUnit_WhenIdIsEmpty()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
+        var unit = MechFactoryTests.CreateDummyMechData();
+        sut.AddUnit(unit);
+        var initialCount = sut.Units.Count;
+
+        // Act
+        sut.RemoveUnitCommand.Execute(Guid.Empty);
+
+        // Assert
+        sut.Units.Count.ShouldBe(initialCount); // Should not change
+    }
 
     [Fact]
     public void RemoveUnit_ShouldRemovePilotData_WhenUnitIsRemoved()
