@@ -2,7 +2,7 @@
 
 ## Overview
 
-The MakaMek application uses a military/tactical color scheme inspired by the mech icon.
+The MakaMek application uses a color scheme inspired by the mech icon.
 
 ## Color Palette
 
@@ -24,17 +24,15 @@ Inspired by the bright cyan/blue of the cockpit canopy.
 
 **Usage**: Information displays, mech armor indicators, movement indicators, secondary actions
 
-### Accent Colors - Purple (from sensor)
-Inspired by the purple/lavender sensor/camera on the mech.
+### Accent Colors - Purple.
 
 - **Accent**: `#7E57C2` - Medium purple
 - **Accent Light**: `#9575CD` - Light purple
 - **Accent Dark**: `#5E35B1` - Dark purple
 
-**Usage**: Special highlights, sensor-related UI elements, tertiary actions
+**Usage**: Special highlights
 
-### Highlight Colors - Gold/Yellow (from lights)
-Inspired by the warm yellow lights and details on the mech.
+### Highlight Colors - Gold/Yellow.
 
 - **Highlight**: `#FFC107` - Medium yellow/gold
 - **Highlight Light**: `#FFD54F` - Light yellow
@@ -42,14 +40,14 @@ Inspired by the warm yellow lights and details on the mech.
 
 **Usage**: Warnings, mech structure indicators, important highlights, heat indicators (gradient)
 
-### Neutral Colors - Dark Tactical Theme
+### Neutral Colors 
 Dark backgrounds for a tactical, military feel.
 
-- **Background**: `#1A1A1A` - Very dark gray (main background)
-- **Surface**: `#2A2A2A` - Dark gray (panels, cards)
-- **Surface Light**: `#3A3A3A` - Medium dark gray (elevated surfaces)
-- **Text**: `#E0E0E0` - Light gray (primary text)
-- **Text Light**: `#B0B0B0` - Medium gray (secondary text)
+- **Background**: `#E0E0E0` - Light gray (main background)
+- **Surface**: `#3A3A3A` - Dark gray (panels, cards)
+- **Surface Light**: `#5A5A5A` - Medium dark gray (elevated surfaces)
+- **Text**: `#333333` - Almost black (primary text)
+- **Text Light**: `#CCCCCC` - Medium gray (secondary text)
 - **Border**: `#4A4A4A` - Medium gray (borders, dividers)
 
 ### Semantic Colors
@@ -134,7 +132,7 @@ All colors are defined in `src/MakaMek.Avalonia/MakaMek.Avalonia/Styles/Colors.a
 
 ```xml
 <!-- Using a brush directly -->
-<Button Background="{DynamicResource PrimaryBrush}" />
+<Button Background="{StaticResource PrimaryBrush}" />
 
 <!-- Using a color in a gradient -->
 <LinearGradientBrush>
@@ -145,22 +143,4 @@ All colors are defined in `src/MakaMek.Avalonia/MakaMek.Avalonia/Styles/Colors.a
 
 ### Dynamic vs Static Resources
 
-- **DynamicResource**: Use for brushes that might change (e.g., theme switching)
-- **StaticResource**: Use for colors in gradients and other static contexts
-
-## Files Modified
-
-1. `src/MakaMek.Avalonia/MakaMek.Avalonia/Styles/Colors.axaml` - Main color definitions
-2. `src/MakaMek.Avalonia/MakaMek.Avalonia/Styles/Panels.axaml` - Updated shadow colors
-3. `src/MakaMek.Avalonia/MakaMek.Avalonia/Controls/UnitHeatLevelPanel.axaml` - Updated heat gradient
-4. `src/MakaMek.Avalonia/MakaMek.Avalonia/Controls/UnitMovementInfoPanel.axaml` - Updated overlay color
-5. `src/MakaMek.Avalonia/MakaMek.Avalonia/Views/StartNewGame/Fragments/PlayersFragment.axaml` - Updated overlay color
-
-## Future Enhancements
-
-1. **Theme Switching**: Add support for light theme variant
-2. **Color Customization**: Allow users to customize accent colors
-3. **Faction Colors**: Add faction-specific color schemes
-4. **Accessibility Options**: Add high-contrast mode
-5. **Animation**: Add color transitions for state changes
-
+Prefer using `StaticResource` as we do not plan to support dynamic theme switching.
