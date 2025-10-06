@@ -584,7 +584,7 @@ public class StartNewGameViewModelTests
         // Assert
         _sut.Players.Count.ShouldBe(1);
         _sut.Players.First().Player.Name.ShouldStartWith("Player");
-        _sut.Players.First().Player.Tint.ShouldBe("#FFFFFF");
+        _sut.Players.First().Player.Tint.ShouldNotBeNullOrEmpty();
     }
 
     [Fact]
@@ -860,7 +860,6 @@ public class StartNewGameViewModelTests
         await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
         _sut.IsTableVisible.ShouldBeTrue();
         var playerToRemove = _sut.Players.Last();
-        var initialCount = _sut.Players.Count;
 
         // Act
         _sut.RemovePlayerCommand.Execute(playerToRemove);

@@ -25,12 +25,21 @@
                     <Border Classes="card" Margin="0,5">
                         <Grid RowDefinitions="Auto,Auto,Auto,*">
                             <!-- Player Name with Edit Functionality and Delete Button -->
-                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="10,10,10,5">
+                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" 
+                                  Margin="10,10,10,5">
                                 <StackPanel Grid.Column="0"
                                             Orientation="Horizontal"
-                                            Spacing="10">
+                                            Spacing="5">
+                                    <!-- Color Preview Rectangle -->
+                                    <Border Width="20"
+                                            Height="20"
+                                            Classes = "card"
+                                            Background="{Binding Tint}"
+                                            />
                                     <TextBlock Text="{Binding Name}"
                                                Classes="h3"
+                                               VerticalAlignment="Center"
+                                               TextAlignment="Left"
                                                IsVisible="{Binding !IsEditingName}"/>
                                     <TextBox Text="{Binding EditableName, Mode=TwoWay}"
                                              IsVisible="{Binding IsEditingName}"
@@ -90,6 +99,7 @@
                                                 <DataTemplate>
                                                     <controls:UnitItemControl
                                                         DataContext="{Binding}"
+                                                        PlayerTint="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).Tint}"
                                                         RemoveCommand="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).RemoveUnitCommand}"
                                                         RemoveCommandParameter="{Binding Id}"
                                                         IsRemoveButtonVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"/>

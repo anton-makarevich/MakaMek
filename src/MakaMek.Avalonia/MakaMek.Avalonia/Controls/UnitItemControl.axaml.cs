@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Services;
@@ -23,6 +24,9 @@ public partial class UnitItemControl : UserControl
     public static readonly StyledProperty<bool> IsRemoveButtonVisibleProperty =
         AvaloniaProperty.Register<UnitItemControl, bool>(nameof(IsRemoveButtonVisible), defaultValue: false);
 
+    public static readonly StyledProperty<string?> PlayerTintProperty =
+        AvaloniaProperty.Register<UnitItemControl, string?>(nameof(PlayerTint));
+
     public ICommand? RemoveCommand
     {
         get => GetValue(RemoveCommandProperty);
@@ -41,6 +45,12 @@ public partial class UnitItemControl : UserControl
         set => SetValue(IsRemoveButtonVisibleProperty, value);
     }
 
+    public string? PlayerTint
+    {
+        get => GetValue(PlayerTintProperty);
+        set => SetValue(PlayerTintProperty, value);
+    }
+
     public UnitItemControl()
     {
         InitializeComponent();
@@ -53,6 +63,15 @@ public partial class UnitItemControl : UserControl
         if (_imageService == null) return;
 
         DataContextChanged += OnDataContextChanged;
+
+        // Listen for PlayerTint property changes to update the tint
+        PlayerTintProperty.Changed.AddClassHandler<UnitItemControl>((control, args) =>
+        {
+            if (control.DataContext is UnitData unitData)
+            {
+                _ = control.LoadUnitImage(unitData);
+            }
+        });
     }
     
     private async void OnDataContextChanged(object? sender, EventArgs e)
@@ -66,13 +85,25 @@ public partial class UnitItemControl : UserControl
     private async Task LoadUnitImage(UnitData unitData)
     {
         if (_imageService == null) return;
-        
+
         try
         {
             var image = await _imageService.GetImage("units/mechs", unitData.Model.ToUpper());
             if (image != null && UnitImage != null)
             {
                 UnitImage.Source = image;
+
+                // Apply player's tint color if available
+                if (!string.IsNullOrEmpty(PlayerTint) && TintBorder != null)
+                {
+                    var color = Color.Parse(PlayerTint);
+                    TintBorder.OpacityMask = new ImageBrush
+                    {
+                        Source = image,
+                        Stretch = Stretch.Fill
+                    };
+                    TintBorder.Background = new SolidColorBrush(color);
+                }
             }
         }
         catch (Exception ex)
