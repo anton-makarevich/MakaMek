@@ -38,9 +38,10 @@ public abstract class NewGameViewModel : BaseViewModel
     protected ClientGame? _localGame;
 
     public ICommand? AddPlayerCommand { get; protected set; }
+    public ICommand RemovePlayerCommand { get; }
 
     private const string DefaultPlayerCacheKey = "DefaultPlayer";
-    
+
     private PlayerViewModel? _activePlayer;
 
     protected NewGameViewModel(IRulesProvider rulesProvider,
@@ -64,9 +65,10 @@ public abstract class NewGameViewModel : BaseViewModel
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
         _cachingService = cachingService;
-        
+
         HideTableCommand = new AsyncCommand(HideTable);
         AddUnitCommand = new AsyncCommand(() => AddUnit(_activePlayer));
+        RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
     }
 
     // Common command handlers with template method pattern
@@ -156,6 +158,39 @@ public abstract class NewGameViewModel : BaseViewModel
 
     // Template method for creating player view models with appropriate callbacks
     protected abstract PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false);
+
+    /// <summary>
+    /// Removes a player from the game setup
+    /// </summary>
+    /// <param name="playerVm">The player to remove</param>
+    /// <returns>Task representing the async operation</returns>
+    private Task RemovePlayer(PlayerViewModel? playerVm)
+    {
+        if (!CanRemovePlayer(playerVm)) return Task.CompletedTask;
+
+        _players.Remove(playerVm!);
+        NotifyPropertyChanged(nameof(CanAddPlayer));
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Determines if a player can be removed
+    /// </summary>
+    /// <param name="playerVm">The player to check</param>
+    /// <returns>True if the player can be removed, false otherwise</returns>
+    public bool CanRemovePlayer(PlayerViewModel? playerVm)
+    {
+        if (playerVm == null) return false;
+
+        // Cannot remove the first (default) player
+        if (_players.Count > 0 && _players[0] == playerVm) return false;
+
+        // Cannot remove players who have already joined
+        if (playerVm.Status != PlayerStatus.NotJoined) return false;
+
+        return true;
+    }
 
     /// <summary>
     /// Loads or creates the default player from cache

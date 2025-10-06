@@ -832,4 +832,125 @@ public class StartNewGameViewModelTests
         // Compare units by their key properties rather than exact equality
         tableUnits.Select(u => u.Chassis).ShouldBeEquivalentTo(expectedUnits.Select(u => u.Chassis));
     }
+
+    [Fact]
+    public void RemovePlayer_ShouldRemoveNonDefaultPlayer_WhenNotJoined()
+    {
+        // Arrange
+        _sut.AddPlayerCommand!.Execute(null); // Add a second player
+        var playerToRemove = _sut.Players.Last();
+        var initialCount = _sut.Players.Count;
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(playerToRemove);
+
+        // Assert
+        _sut.Players.Count.ShouldBe(initialCount - 1);
+        _sut.Players.ShouldNotContain(playerToRemove);
+    }
+
+    [Fact]
+    public void RemovePlayer_ShouldNotRemoveDefaultPlayer()
+    {
+        // Arrange
+        var defaultPlayer = _sut.Players.First(); // First player is the default player
+        var initialCount = _sut.Players.Count;
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(defaultPlayer);
+
+        // Assert
+        _sut.Players.Count.ShouldBe(initialCount); // Count should not change
+        _sut.Players.ShouldContain(defaultPlayer); // Default player should still be there
+    }
+
+    [Fact]
+    public void RemovePlayer_ShouldNotRemovePlayer_WhenPlayerHasJoined()
+    {
+        // Arrange
+        _sut.AddPlayerCommand!.Execute(null); // Add a second player
+        var playerToRemove = _sut.Players.Last();
+        playerToRemove.Player.Status = PlayerStatus.Joined;
+        playerToRemove.RefreshStatus();
+        var initialCount = _sut.Players.Count;
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(playerToRemove);
+
+        // Assert
+        _sut.Players.Count.ShouldBe(initialCount); // Count should not change
+        _sut.Players.ShouldContain(playerToRemove); // Player should still be there
+    }
+
+    [Fact]
+    public void RemovePlayer_ShouldUpdateCanAddPlayer()
+    {
+        // Arrange
+        // Add players until we reach the limit
+        for (var i = 0; i < 3; i++)
+        {
+            _sut.AddPlayerCommand!.Execute(null);
+        }
+        _sut.CanAddPlayer.ShouldBeFalse(); // Should be at limit (4 players)
+
+        var playerToRemove = _sut.Players.Last();
+
+        // Act
+        _sut.RemovePlayerCommand.Execute(playerToRemove);
+
+        // Assert
+        _sut.CanAddPlayer.ShouldBeTrue(); // Should be able to add players again
+    }
+
+    [Fact]
+    public void CanRemovePlayer_ShouldReturnFalse_ForDefaultPlayer()
+    {
+        // Arrange
+        var defaultPlayer = _sut.Players.First();
+
+        // Act
+        var canRemove = _sut.CanRemovePlayer(defaultPlayer);
+
+        // Assert
+        canRemove.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanRemovePlayer_ShouldReturnTrue_ForNonDefaultPlayerNotJoined()
+    {
+        // Arrange
+        _sut.AddPlayerCommand!.Execute(null);
+        var nonDefaultPlayer = _sut.Players.Last();
+
+        // Act
+        var canRemove = _sut.CanRemovePlayer(nonDefaultPlayer);
+
+        // Assert
+        canRemove.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanRemovePlayer_ShouldReturnFalse_ForPlayerWhoHasJoined()
+    {
+        // Arrange
+        _sut.AddPlayerCommand!.Execute(null);
+        var player = _sut.Players.Last();
+        player.Player.Status = PlayerStatus.Joined;
+
+        // Act
+        var canRemove = _sut.CanRemovePlayer(player);
+
+        // Assert
+        canRemove.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanRemovePlayer_ShouldReturnFalse_ForNullPlayer()
+    {
+        // Act
+        var canRemove = _sut.CanRemovePlayer(null!);
+
+        // Assert
+        canRemove.ShouldBeFalse();
+    }
 }

@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -21,37 +22,49 @@
                 <DataTemplate>
                     <Border Classes="card" Margin="0,5">
                         <Grid RowDefinitions="Auto,Auto,Auto,*">
-                            <!-- Player Name with Edit Functionality -->
-                            <StackPanel Grid.Row="0"
-                                        Orientation="Horizontal"
-                                        Spacing="10"
-                                        Margin="10,10,10,5">
-                                <TextBlock Text="{Binding Name}"
-                                           Classes="h3"
-                                           IsVisible="{Binding !IsEditingName}"/>
-                                <TextBox Text="{Binding EditableName, Mode=TwoWay}"
-                                         IsVisible="{Binding IsEditingName}"
-                                         MinWidth="150"/>
-                                <Button Content="✏️"
-                                        Command="{Binding StartEditingName}"
-                                        IsVisible="{Binding !IsEditingName}"
-                                        IsEnabled="{Binding CanEditName}"
-                                        ToolTip.Tip="Edit player name"
+                            <!-- Player Name with Edit Functionality and Delete Button -->
+                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="10,10,10,5">
+                                <StackPanel Grid.Column="0"
+                                            Orientation="Horizontal"
+                                            Spacing="10">
+                                    <TextBlock Text="{Binding Name}"
+                                               Classes="h3"
+                                               IsVisible="{Binding !IsEditingName}"/>
+                                    <TextBox Text="{Binding EditableName, Mode=TwoWay}"
+                                             IsVisible="{Binding IsEditingName}"
+                                             MinWidth="150"/>
+                                    <Button Content="✏️"
+                                            Command="{Binding StartEditingName}"
+                                            IsVisible="{Binding !IsEditingName}"
+                                            IsEnabled="{Binding CanEditName}"
+                                            ToolTip.Tip="Edit player name"
+                                            Classes="secondary"
+                                            Padding="5,2"/>
+                                    <Button Content="✓"
+                                            Command="{Binding SaveName}"
+                                            IsVisible="{Binding IsEditingName}"
+                                            ToolTip.Tip="Save name"
+                                            Classes="primary"
+                                            Padding="5,2"/>
+                                    <Button Content="✗"
+                                            Command="{Binding CancelEditName}"
+                                            IsVisible="{Binding IsEditingName}"
+                                            ToolTip.Tip="Cancel"
+                                            Classes="secondary"
+                                            Padding="5,2"/>
+                                </StackPanel>
+
+                                <!-- Delete Player Button -->
+                                <Button Grid.Column="1"
+                                        Content="🗑️"
+                                        Command="{Binding $parent[UserControl].((viewModels1:NewGameViewModel)DataContext).RemovePlayerCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsVisible="{Binding IsRemovable}"
+                                        ToolTip.Tip="Remove player"
                                         Classes="secondary"
-                                        Padding="5,2"/>
-                                <Button Content="✓"
-                                        Command="{Binding SaveName}"
-                                        IsVisible="{Binding IsEditingName}"
-                                        ToolTip.Tip="Save name"
-                                        Classes="primary"
-                                        Padding="5,2"/>
-                                <Button Content="✗"
-                                        Command="{Binding CancelEditName}"
-                                        IsVisible="{Binding IsEditingName}"
-                                        ToolTip.Tip="Cancel"
-                                        Classes="secondary"
-                                        Padding="5,2"/>
-                            </StackPanel>
+                                        Padding="5,2"
+                                        VerticalAlignment="Center"/>
+                            </Grid>
 
                             <!-- Assigned Units - Horizontal Scrollable View with + Button -->
                             <Border Grid.Row="1"
@@ -69,7 +82,22 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <controls:UnitItemControl DataContext="{Binding}"/>
+                                                    <Grid RowDefinitions="Auto,Auto">
+                                                        <!-- Unit Display -->
+                                                        <controls:UnitItemControl Grid.Row="0" DataContext="{Binding}"/>
+
+                                                        <!-- Delete Unit Button -->
+                                                        <Button Grid.Row="1"
+                                                                Content="Remove"
+                                                                Command="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).RemoveUnitCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                IsVisible="{Binding $parent[ItemsControl].((wrappers:PlayerViewModel)DataContext).CanRemoveUnit}"
+                                                                Classes="secondary"
+                                                                FontSize="10"
+                                                                Padding="2"
+                                                                HorizontalAlignment="Center"
+                                                                Margin="0,2,0,0"/>
+                                                    </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

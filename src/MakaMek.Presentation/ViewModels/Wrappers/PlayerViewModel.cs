@@ -13,10 +13,12 @@ public class PlayerViewModel : BindableBase
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
     private readonly Action<PlayerViewModel>? _showAvailableUnits;
+    private readonly Action<UnitData>? _removeUnitAction;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
     private bool _isEditingName;
     private string _editableName;
     private readonly Func<Player, Task>? _onPlayerNameChanged;
+    private readonly bool _isDefaultPlayer;
 
     public Player Player
     {
@@ -24,6 +26,11 @@ public class PlayerViewModel : BindableBase
     }
 
     public bool IsLocalPlayer { get; }
+
+    /// <summary>
+    /// Indicates whether this player can be removed from the game setup
+    /// </summary>
+    public bool IsRemovable => !_isDefaultPlayer && Status == PlayerStatus.NotJoined;
 
     public PlayerStatus Status => Player.Status;
 
@@ -49,18 +56,21 @@ public class PlayerViewModel : BindableBase
     {
         NotifyPropertyChanged(nameof(Status));
         NotifyPropertyChanged(nameof(CanAddUnit));
+        NotifyPropertyChanged(nameof(CanRemoveUnit));
         NotifyPropertyChanged(nameof(CanJoin));
         NotifyPropertyChanged(nameof(CanSetReady));
         NotifyPropertyChanged(nameof(CanSelectUnit));
         NotifyPropertyChanged(nameof(CanEditName));
+        NotifyPropertyChanged(nameof(IsRemovable));
     }
 
     public ICommand ShowAvailableUnitsCommand { get; }
     public ICommand JoinGameCommand { get; }
     public ICommand SetReadyCommand { get; }
+    public ICommand RemoveUnitCommand { get; }
 
     public string Name => Player.Name;
-    
+
     public PlayerViewModel(
         Player player,
         bool isLocalPlayer,
@@ -68,22 +78,27 @@ public class PlayerViewModel : BindableBase
         Action<PlayerViewModel>? setReadyAction = null,
         Action<PlayerViewModel>? showAvailableUnits = null,
         Action? onUnitChanged = null,
-        Func<Player, Task>? onPlayerNameChanged = null)
+        Func<Player, Task>? onPlayerNameChanged = null,
+        Action<UnitData>? removeUnitAction = null,
+        bool isDefaultPlayer = false)
     {
         Player = player;
         _editableName = player.Name;
         IsLocalPlayer = isLocalPlayer;
+        _isDefaultPlayer = isDefaultPlayer;
         _joinGameAction = joinGameAction;
         _setReadyAction = setReadyAction;
         _showAvailableUnits = showAvailableUnits;
         _onUnitChanged = onUnitChanged;
         _onPlayerNameChanged = onPlayerNameChanged;
+        _removeUnitAction = removeUnitAction;
 
         Units = [];
         //AddUnitCommand = new AsyncCommand();
         JoinGameCommand = new AsyncCommand(ExecuteJoinGame);
         SetReadyCommand = new AsyncCommand(ExecuteSetReady);
         ShowAvailableUnitsCommand = new AsyncCommand(ExecuteShowUnits);
+        RemoveUnitCommand = new AsyncCommand<UnitData>(ExecuteRemoveUnit);
     }
 
     private Task ExecuteJoinGame()
@@ -107,13 +122,34 @@ public class PlayerViewModel : BindableBase
     private Task ExecuteShowUnits()
     {
         if (!CanAddUnit) return Task.CompletedTask;
-        
+
         _showAvailableUnits?.Invoke(this);
-        
+
         return Task.CompletedTask;
     }
-    
+
+    private Task ExecuteRemoveUnit(UnitData unit)
+    {
+        if (!CanRemoveUnit) return Task.CompletedTask;
+
+        Units.Remove(unit);
+
+        // Remove pilot data for this unit
+        if (unit.Id.HasValue)
+        {
+            _unitPilots.Remove(unit.Id.Value);
+        }
+
+        NotifyPropertyChanged(nameof(CanJoin));
+        _onUnitChanged?.Invoke();
+        _removeUnitAction?.Invoke(unit);
+
+        return Task.CompletedTask;
+    }
+
     public bool CanAddUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
+
+    public bool CanRemoveUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
 

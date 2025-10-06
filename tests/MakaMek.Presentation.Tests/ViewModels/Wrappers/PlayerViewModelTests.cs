@@ -636,14 +636,185 @@ public class PlayerViewModelTests
             new Player(Guid.NewGuid(), "Player1"),
             isLocalPlayer: true,
             showAvailableUnits: _ => showAvailableUnitsCalled = true);
-            
+
         // Set status to something that makes CanAddUnit false
         sut.Player.Status = PlayerStatus.Joined;
 
         // Act
         sut.ShowAvailableUnitsCommand.Execute(null);
-    
+
         // Assert
         showAvailableUnitsCalled.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RemoveUnit_ShouldRemoveUnitFromPlayer_WhenCanRemoveUnitIsTrue()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
+        var unit = MechFactoryTests.CreateDummyMechData();
+        sut.AddUnit(unit);
+        var initialCount = sut.Units.Count;
+
+        // Act
+        sut.RemoveUnitCommand.Execute(sut.Units.First());
+
+        // Assert
+        sut.Units.Count.ShouldBe(initialCount - 1);
+    }
+
+    [Fact]
+    public void RemoveUnit_ShouldNotRemoveUnit_WhenPlayerHasJoined()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
+        var unit = MechFactoryTests.CreateDummyMechData();
+        sut.AddUnit(unit);
+        sut.Player.Status = PlayerStatus.Joined;
+        sut.RefreshStatus();
+        var initialCount = sut.Units.Count;
+
+        // Act
+        sut.RemoveUnitCommand.Execute(sut.Units.First());
+
+        // Assert
+        sut.Units.Count.ShouldBe(initialCount); // Should not change
+    }
+
+    [Fact]
+    public void RemoveUnit_ShouldRemovePilotData_WhenUnitIsRemoved()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), true);
+        var unit = MechFactoryTests.CreateDummyMechData();
+        sut.AddUnit(unit);
+        var unitId = sut.Units.First().Id!.Value;
+
+        // Verify pilot data exists
+        sut.GetPilotDataForUnit(unitId).ShouldNotBeNull();
+
+        // Act
+        sut.RemoveUnitCommand.Execute(sut.Units.First());
+
+        // Assert
+        sut.GetPilotDataForUnit(unitId).ShouldBeNull();
+    }
+
+    [Fact]
+    public void RemoveUnit_ShouldInvokeRemoveUnitAction_WhenProvided()
+    {
+        // Arrange
+        var removeUnitActionCalled = false;
+        UnitData? removedUnit = null;
+
+        var sut = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true,
+            removeUnitAction: unit =>
+            {
+                removeUnitActionCalled = true;
+                removedUnit = unit;
+            });
+
+        var unit = MechFactoryTests.CreateDummyMechData();
+        sut.AddUnit(unit);
+        var unitToRemove = sut.Units.First();
+
+        // Act
+        sut.RemoveUnitCommand.Execute(unitToRemove);
+
+        // Assert
+        removeUnitActionCalled.ShouldBeTrue();
+        removedUnit.ShouldNotBeNull();
+    }
+
+    [Theory]
+    [InlineData(true, PlayerStatus.NotJoined, true)]
+    [InlineData(true, PlayerStatus.Joined, false)]
+    [InlineData(true, PlayerStatus.Ready, false)]
+    [InlineData(false, PlayerStatus.NotJoined, false)]
+    public void CanRemoveUnit_ShouldReturnCorrectValue_ForDifferentStates(
+        bool isLocalPlayer,
+        PlayerStatus status,
+        bool expected)
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1")
+        {
+            Status = status
+        };
+        var sut = new PlayerViewModel(player, isLocalPlayer);
+
+        // Act
+        var canRemove = sut.CanRemoveUnit;
+
+        // Assert
+        canRemove.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(true, PlayerStatus.NotJoined, false)] // Default player, not joined
+    [InlineData(true, PlayerStatus.Joined, false)]    // Default player, joined
+    [InlineData(false, PlayerStatus.NotJoined, true)]   // Non-default player, not joined
+    [InlineData(false, PlayerStatus.Joined, false)]     // Non-default player, joined
+    public void IsRemovable_ShouldReturnCorrectValue_ForDifferentStates(
+        bool isDefaultPlayer,
+        PlayerStatus status,
+        bool expected)
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1")
+        {
+            Status = status
+        };
+        var sut = new PlayerViewModel(player, true, isDefaultPlayer: isDefaultPlayer);
+
+        // Act
+        var isRemovable = sut.IsRemovable;
+
+        // Assert
+        isRemovable.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void RefreshStatus_ShouldNotifyCanRemoveUnitPropertyChanged()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true);
+
+        var propertyChanged = false;
+        sut.PropertyChanged += (_, args) => {
+            if (args.PropertyName == nameof(PlayerViewModel.CanRemoveUnit))
+                propertyChanged = true;
+        };
+
+        // Act
+        sut.RefreshStatus();
+
+        // Assert
+        propertyChanged.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void RefreshStatus_ShouldNotifyIsRemovablePropertyChanged()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true);
+
+        var propertyChanged = false;
+        sut.PropertyChanged += (_, args) => {
+            if (args.PropertyName == nameof(PlayerViewModel.IsRemovable))
+                propertyChanged = true;
+        };
+
+        // Act
+        sut.RefreshStatus();
+
+        // Assert
+        propertyChanged.ShouldBeTrue();
     }
 }

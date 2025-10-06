@@ -182,9 +182,11 @@ public class JoinGameViewModel : NewGameViewModel
             PublishSetReadyCommand,
             ShowTable,
             null,
-            isDefaultPlayer 
+            isDefaultPlayer
                 ? OnDefaultPlayerNameChanged
-                : null);
+                : null,
+            null,
+            isDefaultPlayer);
     }
 
     // Implementation of abstract property from base class

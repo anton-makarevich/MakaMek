@@ -223,9 +223,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             PublishSetReadyCommand,
             ShowTable,
             () => NotifyPropertyChanged(nameof(CanStartGame)),
-            isDefaultPlayer 
+            isDefaultPlayer
                 ? OnDefaultPlayerNameChanged
-                : null);
+                : null,
+            _ => NotifyPropertyChanged(nameof(CanStartGame)),
+            isDefaultPlayer);
     }
     
     // Override the base AddPlayer to add additional notification
