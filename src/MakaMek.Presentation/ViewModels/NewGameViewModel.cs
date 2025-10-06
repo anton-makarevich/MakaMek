@@ -173,23 +173,10 @@ public abstract class NewGameViewModel : BaseViewModel
 
         return Task.CompletedTask;
     }
-
-    /// <summary>
-    /// Determines if a player can be removed
-    /// </summary>
-    /// <param name="playerVm">The player to check</param>
-    /// <returns>True if the player can be removed, false otherwise</returns>
-    public bool CanRemovePlayer(PlayerViewModel? playerVm)
+    
+    private static bool CanRemovePlayer(PlayerViewModel? playerVm)
     {
-        if (playerVm == null) return false;
-
-        // Cannot remove the first (default) player
-        if (_players.Count > 0 && _players[0] == playerVm) return false;
-
-        // Cannot remove players who have already joined
-        if (playerVm.Status != PlayerStatus.NotJoined) return false;
-
-        return true;
+        return playerVm?.IsRemovable ?? false;
     }
 
     /// <summary>
