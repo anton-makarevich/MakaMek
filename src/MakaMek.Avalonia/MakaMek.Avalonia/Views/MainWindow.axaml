@@ -6,7 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Sanet.MakaMek.Avalonia.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
-        Background="{DynamicResource BackgroundBrush}"
+        Background="{StaticResource BackgroundBrush}"
         Title="MakaMek.Avalonia">
         <views:BattleMapView />
 </Window>

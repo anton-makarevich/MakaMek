@@ -135,7 +135,7 @@
     </StackPanel>
     <Panel HorizontalAlignment="Stretch"
            VerticalAlignment="Stretch"
-           Background="{DynamicResource OverlayTransparentBrush}"
+           Background="{StaticResource OverlayTransparentBrush}"
            IsVisible="{Binding IsTableVisible}">
         <templatedControls:GamePanel
             HorizontalAlignment="Center"

@@ -29,7 +29,7 @@
         
         <Grid x:Name="TurnStatus"
             VerticalAlignment="Top"
-            Background="{DynamicResource OverlayTransparentBrush}"
+            Background="{StaticResource OverlayTransparentBrush}"
             Classes="statusPanel"
             Margin="{OnPlatform '0,0,0,0', Android='0,30,0,0'}"
             ColumnDefinitions="*,Auto,Auto,Auto,*">

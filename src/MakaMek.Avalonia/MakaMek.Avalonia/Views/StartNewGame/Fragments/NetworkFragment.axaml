@@ -16,7 +16,7 @@
         
         <StackPanel Classes="formGroup">
             <TextBlock Text="Server Address" Classes="label"/>
-            <Border Classes="card" Background="{DynamicResource OverlayTransparentBrush}" Padding="8,4" Margin="0">
+            <Border Classes="card" Background="{StaticResource OverlayTransparentBrush}" Padding="8,4" Margin="0">
                 <SelectableTextBlock Text="{Binding ServerIpAddress}"/>
             </Border>
             <TextBlock Text="Share this address with other players to connect" 

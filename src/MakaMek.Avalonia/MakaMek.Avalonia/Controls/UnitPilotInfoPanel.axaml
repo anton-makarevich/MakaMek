@@ -70,7 +70,7 @@
                 <!-- Death Status -->
                 <Border Classes="statusTag" IsVisible="{Binding IsDead}">
                     <Border.Background>
-                        <SolidColorBrush Color="{DynamicResource ErrorColor}"/>
+                        <SolidColorBrush Color="{StaticResource ErrorColor}"/>
                     </Border.Background>
                     <TextBlock Text="DEAD"/>
                 </Border>

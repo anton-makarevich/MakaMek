@@ -12,7 +12,7 @@
     <UserControl.Styles>
         <Style Selector="Button.bodyPartButton">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource SuccessBrush}"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="Margin" Value="1"/>
             <Setter Property="Padding" Value="4"/>
@@ -25,19 +25,19 @@
         </Style>
         
         <Style Selector="Button.bodyPartButton:pointerover">
-            <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+            <Setter Property="Background" Value="{StaticResource SuccessBrush}"/>
             <Setter Property="Opacity" Value="0.8"/>
         </Style>
         
         <Style Selector="Button.bodyPartButton:disabled">
-            <Setter Property="BorderBrush" Value="{DynamicResource TextLightBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextLightBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TextLightBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextLightBrush}"/>
             <Setter Property="Opacity" Value="0.5"/>
         </Style>
         
         <Style Selector="ProgressBar.unitPartArmor">
-            <Setter Property="Foreground" Value="{DynamicResource MechArmorBrush}"/>
-            <Setter Property="Background" Value="{DynamicResource OverlayTransparentBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource MechArmorBrush}"/>
+            <Setter Property="Background" Value="{StaticResource OverlayTransparentBrush}"/>
             <Setter Property="Height" Value="4"/>
             <Setter Property="CornerRadius" Value="2"/>
             <Setter Property="Margin" Value="5,1"/>
@@ -45,8 +45,8 @@
         </Style>
         
         <Style Selector="ProgressBar.unitPartStructure">
-            <Setter Property="Foreground" Value="{DynamicResource MechStructureBrush}"/>
-            <Setter Property="Background" Value="{DynamicResource OverlayTransparentBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource MechStructureBrush}"/>
+            <Setter Property="Background" Value="{StaticResource OverlayTransparentBrush}"/>
             <Setter Property="Height" Value="4"/>
             <Setter Property="CornerRadius" Value="2"/>
             <Setter Property="Margin" Value="5,1"/>

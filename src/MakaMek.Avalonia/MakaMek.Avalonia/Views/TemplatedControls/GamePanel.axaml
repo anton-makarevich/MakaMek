@@ -8,8 +8,8 @@
     <Style Selector="controls|GamePanel">
         <Setter Property="Template">
             <ControlTemplate>
-                <Border Background="{DynamicResource BackgroundBrush}"
-                        BorderBrush="{DynamicResource PrimaryBrush}"
+                <Border Background="{StaticResource BackgroundBrush}"
+                        BorderBrush="{StaticResource PrimaryBrush}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Width="300"
@@ -20,7 +20,7 @@
                     <Grid RowDefinitions="Auto,*">
                         <!-- Header -->
                         <Grid Grid.Row="0" 
-                              Background="{DynamicResource SecondaryBrush}" 
+                              Background="{StaticResource SecondaryBrush}" 
                               Height="40">
                             <TextBlock Text="{TemplateBinding Title}"
                                      VerticalAlignment="Center"
