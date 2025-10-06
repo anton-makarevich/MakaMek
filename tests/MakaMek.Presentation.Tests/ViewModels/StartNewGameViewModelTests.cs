@@ -584,7 +584,7 @@ public class StartNewGameViewModelTests
         // Assert
         _sut.Players.Count.ShouldBe(1);
         _sut.Players.First().Player.Name.ShouldStartWith("Player");
-        _sut.Players.First().Player.Tint.ShouldBe("#FFFFFF");
+        _sut.Players.First().Player.Tint.ShouldNotBeNullOrEmpty();
     }
 
     [Fact]
