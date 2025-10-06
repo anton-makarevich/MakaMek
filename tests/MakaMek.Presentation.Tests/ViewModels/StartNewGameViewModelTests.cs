@@ -860,7 +860,6 @@ public class StartNewGameViewModelTests
         await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
         _sut.IsTableVisible.ShouldBeTrue();
         var playerToRemove = _sut.Players.Last();
-        var initialCount = _sut.Players.Count;
 
         // Act
         _sut.RemovePlayerCommand.Execute(playerToRemove);
