@@ -1,6 +1,8 @@
 ﻿using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
@@ -9,6 +11,12 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 /// </summary>
 public class DamageTransferCalculator : IDamageTransferCalculator
 {
+    private readonly IMechFactory _mechFactory;
+
+    public DamageTransferCalculator(IMechFactory mechFactory)
+    {
+        _mechFactory = mechFactory;
+    }
     public IReadOnlyList<LocationDamageData> CalculateStructureDamage(
         Unit unit,
         PartLocation initialLocation,
@@ -23,7 +31,14 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         PartLocation initialLocation,
         int totalDamage)
     {
-        return CalculateDamageDistribution(unit, initialLocation, totalDamage, HitDirection.Front, true);
+        var clonedUnit = CloneUnit(unit);
+        return CalculateDamageDistribution(clonedUnit, initialLocation, totalDamage, HitDirection.Front, true);
+    }
+    
+    private Unit CloneUnit(Unit unit)
+    {
+        var data = unit.ToData();
+        return _mechFactory.Create(data);
     }
     
     private List<LocationDamageData> CalculateDamageDistribution(Unit unit, PartLocation initialLocation, int totalDamage,

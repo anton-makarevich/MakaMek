@@ -17,19 +17,18 @@ public class DamageTransferCalculatorTests
 
     public DamageTransferCalculatorTests()
     {
-        _sut = new DamageTransferCalculator();
-        
         // Setup rules provider for unit creation
         IRulesProvider rules = new ClassicBattletechRulesProvider();
-        
+
         // Setup localization service for unit creation
         var localizationService = Substitute.For<ILocalizationService>();
-        
+
         // Setup mech factory
         _mechFactory = new MechFactory(
             rules,
             new ClassicBattletechComponentProvider(),
             localizationService);
+        _sut = new DamageTransferCalculator(_mechFactory);
     }
 
     private Unit CreateTestMech()
