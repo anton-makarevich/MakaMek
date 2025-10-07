@@ -123,7 +123,16 @@ public class JoinGameViewModel : NewGameViewModel
     public bool IsConnected
     {
         get => _isConnected;
-        private set => SetProperty(ref _isConnected, value); // Update UI based on connection status
+        private set
+        {
+            SetProperty(ref _isConnected, value);
+            // Update UI based on connection status
+            foreach (var player in _players)
+            {
+                player.RefreshStatus();
+            }
+        }
+        
     }
 
     public ICommand ConnectCommand { get; private set; }
@@ -185,7 +194,8 @@ public class JoinGameViewModel : NewGameViewModel
             isDefaultPlayer
                 ? OnDefaultPlayerNameChanged
                 : null,
-            isDefaultPlayer);
+            isDefaultPlayer,
+            () => IsConnected);
     }
 
     // Implementation of abstract property from base class

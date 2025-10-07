@@ -1,7 +1,6 @@
 using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
-using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -478,5 +477,23 @@ public class JoinGameViewModelTests
         sut.IsConnected.ShouldBeFalse();
         sut.Players.Count.ShouldBe(0);
         sut.CanAddPlayer.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public async Task ConnectCommand_ChangesPlayersCanJoinState_WhenConnected()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        _sut.IsConnected.ShouldBeFalse();
+        var player = _sut.Players[0];
+        await player.AddUnit(MechFactoryTests.CreateDummyMechData());
+        player.CanJoin.ShouldBeFalse();
+        
+        // Act
+        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        
+        // Assert
+        _sut.IsConnected.ShouldBeTrue();
+        _sut.Players.First().CanJoin.ShouldBeTrue();
     }
 }
