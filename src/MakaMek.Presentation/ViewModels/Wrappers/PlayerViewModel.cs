@@ -18,6 +18,7 @@ public class PlayerViewModel : BindableBase
     private string _editableName;
     private readonly Func<Player, Task>? _onPlayerNameChanged;
     private readonly bool _isDefaultPlayer;
+    private readonly Func<bool> _isConnectionAvailable;
 
     public Player Player
     {
@@ -80,12 +81,14 @@ public class PlayerViewModel : BindableBase
         Action<PlayerViewModel>? showAvailableUnits = null,
         Action? onUnitChanged = null,
         Func<Player, Task>? onPlayerNameChanged = null,
-        bool isDefaultPlayer = false)
+        bool isDefaultPlayer = false,
+        Func<bool>? isConnectionAvailable = null)
     {
         Player = player;
         _editableName = player.Name;
         IsLocalPlayer = isLocalPlayer;
         _isDefaultPlayer = isDefaultPlayer;
+        _isConnectionAvailable = isConnectionAvailable ?? (() => true);
         _joinGameAction = joinGameAction;
         _setReadyAction = setReadyAction;
         _showAvailableUnits = showAvailableUnits;
@@ -99,6 +102,17 @@ public class PlayerViewModel : BindableBase
         ShowAvailableUnitsCommand = new AsyncCommand(ExecuteShowUnits);
         RemoveUnitCommand = new AsyncCommand<Guid>(ExecuteRemoveUnit);
     }
+    
+    public bool CanJoin => IsLocalPlayer && Units.Count > 0 && Status == PlayerStatus.NotJoined && _isConnectionAvailable();
+    public bool CanSetReady => IsLocalPlayer && Status == PlayerStatus.Joined;
+
+    public bool CanAddUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
+
+    public bool CanRemoveUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
+
+    public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
+
+    public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined && !IsEditingName;
 
     private Task ExecuteJoinGame()
     {
@@ -144,14 +158,6 @@ public class PlayerViewModel : BindableBase
 
         return Task.CompletedTask;
     }
-
-    public bool CanAddUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
-
-    public bool CanRemoveUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
-
-    public bool CanSelectUnit => IsLocalPlayer && Status == PlayerStatus.NotJoined;
-
-    public bool CanEditName => IsLocalPlayer && Status == PlayerStatus.NotJoined && !IsEditingName;
 
     public Task AddUnit(UnitData unit, PilotData? pilotData = null)
     {
@@ -215,8 +221,6 @@ public class PlayerViewModel : BindableBase
             AddUnit(unit, pilotAssignment.UnitId != Guid.Empty ? pilotAssignment.PilotData : null );
         }
     }
-    public bool CanJoin => IsLocalPlayer && Units.Count > 0 && Status == PlayerStatus.NotJoined;
-    public bool CanSetReady => IsLocalPlayer && Status == PlayerStatus.Joined;
 
     /// <summary>
     /// Gets the pilot data for the specified unit
