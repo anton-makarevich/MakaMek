@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -27,6 +28,17 @@ public abstract class UnitPart
     public int CurrentArmor { get; private set; }
     public int MaxStructure { get; }
     public int CurrentStructure { get; private set; }
+
+    /// <summary>
+    /// Restores the armor and structure state from serialized data.
+    /// Used by MechFactory when creating units from saved data.
+    /// </summary>
+    internal void RestoreState(int currentArmor, int currentStructure, bool isBlownOff)
+    {
+        CurrentArmor = currentArmor;
+        CurrentStructure = currentStructure;
+        IsBlownOff = isBlownOff;
+    }
     
     // Slots management
     public int TotalSlots { get; }
@@ -234,7 +246,11 @@ public abstract class UnitPart
 
     private UnitPart? DamageTransferPart => GetNextTransferLocation() is { } location 
                                             && Unit?.Parts.TryGetValue(location, out var part) == true ? part : null;
-    
+
+    public virtual bool IsPristine => !IsBlownOff 
+                                      && CurrentArmor == MaxArmor 
+                                      && CurrentStructure == MaxStructure;
+
     /// <summary>
     /// Blows off this part as a result of a critical hit
     /// </summary>
@@ -269,5 +285,16 @@ public abstract class UnitPart
         {
             Unit?.AddEvent(new UiEvent(UiEventType.ComponentDestroyed, component.Name));
         }
+    }
+
+    public virtual UnitPartStateData ToData()
+    {
+        return new UnitPartStateData
+        {
+            Location = Location,
+            CurrentFrontArmor = CurrentArmor,
+            CurrentStructure = CurrentStructure,
+            IsBlownOff = IsBlownOff
+        };
     }
 }

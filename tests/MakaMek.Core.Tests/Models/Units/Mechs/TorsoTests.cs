@@ -210,4 +210,31 @@ public class TorsoTests
         uiEvent.Parameters[0].ShouldBe("Test Torso");
         uiEvent.Parameters[1].ShouldBe("10");
     }
+    
+    [Fact]
+    public void ApplyDamage_WithRearArmor_ShouldSetIsPristineToFalse()
+    {
+        // Arrange
+        var torso = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10);
+
+        // Act
+        torso.ApplyDamage(1, HitDirection.Rear);
+
+        // Assert
+        torso.IsPristine.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void ToData_ShouldIncludeRearArmor()
+    {
+        // Arrange
+        var torso = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10);
+        torso.ApplyDamage(5, HitDirection.Rear);
+        
+        // Act
+        var data = torso.ToData();
+        
+        // Assert
+        data.CurrentRearArmor.ShouldBe(5);
+    }
 }

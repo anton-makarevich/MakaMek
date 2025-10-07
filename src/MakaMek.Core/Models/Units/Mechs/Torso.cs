@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Map;
 
@@ -8,6 +9,10 @@ public abstract class Torso : UnitPart
     public int MaxRearArmor { get; }
     public int CurrentRearArmor { get; private set; }
     public HexDirection Facing { get; private set; }
+
+    public override bool IsPristine => base.IsPristine && CurrentRearArmor == MaxRearArmor;
+    
+    internal override bool CanBeBlownOff => false;
 
     protected Torso(string name, PartLocation location, int maxArmor, int maxRearArmor, int maxStructure) 
         : base(name, location, maxArmor, maxStructure, 12)
@@ -46,5 +51,18 @@ public abstract class Torso : UnitPart
         return remainingDamage;
     }
 
-    internal override bool CanBeBlownOff => false;
+    /// <summary>
+    /// Restores the torso state including rear armor from serialized data.
+    /// Used by MechFactory when creating units from saved data.
+    /// </summary>
+    internal void RestoreTorsoState(int currentFrontArmor, int currentRearArmor, int currentStructure, bool isBlownOff)
+    {
+        RestoreState(currentFrontArmor, currentStructure, isBlownOff);
+        CurrentRearArmor = currentRearArmor;
+    }
+    
+    public override UnitPartStateData ToData()
+    {
+        return base.ToData() with { CurrentRearArmor = CurrentRearArmor };
+    }
 }

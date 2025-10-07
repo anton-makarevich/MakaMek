@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -312,5 +313,99 @@ public class MechFactoryTests
         rightArm.GetComponentAtSlot(1).ShouldBeNull();
         rightArm.GetComponentAtSlot(2).ShouldBe(laser);
         rightArm.GetComponentAtSlot(3).ShouldBeNull();
+    }
+    
+    [Fact]
+    public void MechFactory_WithNullPartStates_ShouldCreatePristineMech()
+    {
+        // Arrange
+        var unitData = CreateDummyMechData();
+        // UnitPartStates is null by default
+
+        // Act
+        var mech = _mechFactory.Create(unitData);
+
+        // Assert
+        foreach (var part in mech.Parts.Values)
+        {
+            part.CurrentArmor.ShouldBe(part.MaxArmor);
+            part.CurrentStructure.ShouldBe(part.MaxStructure);
+            part.IsBlownOff.ShouldBeFalse();
+            
+            if (part is Torso torso)
+            {
+                torso.CurrentRearArmor.ShouldBe(torso.MaxRearArmor);
+            }
+        }
+    }
+
+    [Fact]
+    public void MechFactory_WithEmptyPartStates_ShouldCreatePristineMech()
+    {
+        // Arrange
+        var unitData = CreateDummyMechData() with { UnitPartStates = new List<UnitPartStateData>() };
+
+        // Act
+        var mech = _mechFactory.Create(unitData);
+
+        // Assert
+        foreach (var part in mech.Parts.Values)
+        {
+            part.CurrentArmor.ShouldBe(part.MaxArmor);
+            part.CurrentStructure.ShouldBe(part.MaxStructure);
+            part.IsBlownOff.ShouldBeFalse();
+            
+            if (part is Torso torso)
+            {
+                torso.CurrentRearArmor.ShouldBe(torso.MaxRearArmor);
+            }
+        }
+    }
+
+    [Fact]
+    public void RoundTrip_WithDamagedMech_ShouldPreserveAllDamage()
+    {
+        // Arrange - Create and damage a mech
+        var originalData = CreateDummyMechData();
+        var originalMech = _mechFactory.Create(originalData);
+        
+        // Apply various types of damage
+        originalMech.Parts[PartLocation.RightArm].BlowOff();
+        
+        var leftArm = originalMech.Parts[PartLocation.LeftArm];
+        leftArm.ApplyDamage(leftArm.MaxArmor + leftArm.MaxStructure, HitDirection.Front);
+        
+        var leftTorso = (SideTorso)originalMech.Parts[PartLocation.LeftTorso];
+        leftTorso.ApplyDamage(5, HitDirection.Rear);
+        
+        var rightTorso = (SideTorso)originalMech.Parts[PartLocation.RightTorso];
+        rightTorso.ApplyDamage(8, HitDirection.Front);
+        
+        var centerTorso = (CenterTorso)originalMech.Parts[PartLocation.CenterTorso];
+        centerTorso.ApplyDamage(centerTorso.MaxArmor + 5, HitDirection.Front);
+
+        // Act - Serialize and deserialize
+        var serializedData = originalMech.ToData();
+        var restoredMech = _mechFactory.Create(serializedData);
+
+        // Assert - Verify all damage is preserved
+        restoredMech.Parts[PartLocation.RightArm].IsBlownOff.ShouldBeTrue();
+        
+        var restoredLeftArm = restoredMech.Parts[PartLocation.LeftArm];
+        restoredLeftArm.CurrentArmor.ShouldBe(0);
+        restoredLeftArm.CurrentStructure.ShouldBe(0);
+        restoredLeftArm.IsDestroyed.ShouldBeTrue();
+        
+        var restoredLeftTorso = (SideTorso)restoredMech.Parts[PartLocation.LeftTorso];
+        restoredLeftTorso.CurrentRearArmor.ShouldBe(leftTorso.CurrentRearArmor);
+        restoredLeftTorso.CurrentArmor.ShouldBe(leftTorso.MaxArmor);
+        
+        var restoredRightTorso = (SideTorso)restoredMech.Parts[PartLocation.RightTorso];
+        restoredRightTorso.CurrentArmor.ShouldBe(rightTorso.CurrentArmor);
+        restoredRightTorso.CurrentRearArmor.ShouldBe(rightTorso.MaxRearArmor);
+        
+        var restoredCenterTorso = (CenterTorso)restoredMech.Parts[PartLocation.CenterTorso];
+        restoredCenterTorso.CurrentArmor.ShouldBe(0);
+        restoredCenterTorso.CurrentStructure.ShouldBe(centerTorso.CurrentStructure);
     }
 }

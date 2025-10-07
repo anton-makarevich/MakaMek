@@ -33,15 +33,15 @@ public static class UnitExtensions
                 },
                 _ => new ArmorLocation { FrontArmor = part.MaxArmor, RearArmor = 0 }
             };
-            
+
             armorValues[part.Location] = armorLocation;
         }
-        
+
         // Get engine data
         var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
         var engineRating = engine?.Rating ?? 0;
         var engineType = engine?.Type.ToString() ?? "Fusion";
-        
+
         // Create component-centric equipment list
         var equipment = new List<ComponentData>();
         var processedComponents = new HashSet<Component>();
@@ -61,7 +61,18 @@ public static class UnitExtensions
                 equipment.Add(component.ToData());
             }
         }
-        
+
+        // Serialize part states only for damaged/destroyed/blown-off parts
+        var partStates = new List<UnitPartStateData>();
+        foreach (var part in unit.Parts.Values)
+        {
+            if (part.IsPristine) continue;
+            
+            var partState = part.ToData();
+
+            partStates.Add(partState);
+        }
+
         return new UnitData
         {
             Id = unit.Id,
@@ -74,7 +85,8 @@ public static class UnitExtensions
             ArmorValues = armorValues,
             Equipment = equipment,
             AdditionalAttributes = new Dictionary<string, string>(),
-            Quirks = new Dictionary<string, string>()
+            Quirks = new Dictionary<string, string>(),
+            UnitPartStates = partStates.Count > 0 ? partStates : null
         };
     }
 }

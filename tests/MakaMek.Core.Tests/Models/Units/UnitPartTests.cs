@@ -12,7 +12,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units;
 
 public class UnitPartTests
 {
-    private class TestUnitPart(PartLocation location, int maxArmor, int maxStructure, int slots)
+    private class TestUnitPart(PartLocation location, int maxArmor, int maxStructure, int slots =12)
         : UnitPart("Test", location, maxArmor, maxStructure, slots)
     {
         internal override bool CanBeBlownOff =>true;
@@ -22,7 +22,7 @@ public class UnitPartTests
     public void Constructor_InitializesCorrectly()
     {
         // Arrange & Act
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
 
         // Assert
         sut.Location.ShouldBe(PartLocation.LeftArm);
@@ -46,7 +46,7 @@ public class UnitPartTests
     public void ApplyDamage_HandlesArmor(int damage, int maxArmor, int maxStructure, int expectedExcess)
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, maxArmor, maxStructure, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, maxArmor, maxStructure);
 
         // Act
         var excessDamage = sut.ApplyDamage(damage, HitDirection.Front);
@@ -73,7 +73,7 @@ public class UnitPartTests
     public void ApplyDamage_DoesNotDestroyComponentsWhenStructureIsDestroyed()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 0, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 0, 5);
         var masc = new TestComponent("Test MASC");
         sut.TryAddComponent(masc);
 
@@ -91,7 +91,7 @@ public class UnitPartTests
     public void GetComponents_ReturnsCorrectComponentTypes()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
         var testComponent = new TestComponent("Test Component");
         sut.TryAddComponent(testComponent);
 
@@ -204,7 +204,7 @@ public class UnitPartTests
     public void BlowOff_SetsIsBlownOffAndIsDestroyed_WhenCanBeBlownOffIsTrue()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
         
         // Act
         var result = sut.BlowOff();
@@ -230,7 +230,7 @@ public class UnitPartTests
     public void CriticalHit_AddsSlotToHitSlots()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
         
         // Act
         sut.CriticalHit(3);
@@ -244,7 +244,7 @@ public class UnitPartTests
     public void CriticalHit_DamagesComponentInSlot()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
         var component = new TestComponent("Test Component");
         sut.TryAddComponent(component, [3]);
         
@@ -260,7 +260,7 @@ public class UnitPartTests
     public void CriticalHit_DoesNotDamageAlreadyDestroyedComponent()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
         var component = new TestComponent("Test Component");
         sut.TryAddComponent(component, [3]);
         component.Hit(); // Destroy the component first
@@ -277,7 +277,7 @@ public class UnitPartTests
     public void CriticalHit_HandlesMultipleHitsToSameComponent()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
         var component = new TestComponent("Test Component",3);
         sut.TryAddComponent(component,[2,3,4]).ShouldBeTrue();
         
@@ -296,7 +296,7 @@ public class UnitPartTests
     public void ApplyDamage_ShouldRaiseArmorDamageEvent_WhenUnitIsSet()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
         var unit = new TestUnit();
         sut.Unit = unit;
         
@@ -316,7 +316,7 @@ public class UnitPartTests
     public void ApplyDamage_ShouldRaiseStructureDamageEvent_WhenArmorIsDepletedAndStructureIsDamaged()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 5, 10, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 5, 10);
         var unit = new TestUnit();
         sut.Unit = unit;
         
@@ -342,7 +342,7 @@ public class UnitPartTests
     public void ApplyDamage_ShouldRaiseLocationDestroyedEvent_WhenStructureIsReducedToZero()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 5, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 5, 5);
         var unit = new TestUnit();
         sut.Unit = unit;
         
@@ -370,7 +370,7 @@ public class UnitPartTests
     public void CriticalHit_ShouldRaiseCriticalHitEvent_WhenComponentIsHit()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
         var unit = new TestUnit();
         sut.Unit = unit;
         
@@ -392,7 +392,7 @@ public class UnitPartTests
     public void CriticalHit_ShouldRaiseComponentDestroyedEvent_WhenComponentIsDestroyed()
     {
         // Arrange
-        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5, 12);
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
         var unit = new TestUnit();
         sut.Unit = unit;
         
@@ -486,6 +486,71 @@ public class UnitPartTests
         
         // Assert
         result.ShouldBe(-1);
+    }
+    
+    [Fact]
+    public void Constructor_ShouldCreatePristinePart()
+    {
+        // Arrange & Act
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
+
+        // Assert
+        sut.IsPristine.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ApplyArmorDamage_ShouldMakePartNotPristine()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 4, 3);
+        
+        // Act
+        sut.ApplyDamage(1, HitDirection.Front);
+        
+        // Assert
+        sut.IsPristine.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void ApplyStructureDamage_ShouldMakePartNotPristine()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 4, 3);
+        
+        // Act
+        sut.ApplyDamage(5, HitDirection.Front);
+        
+        // Assert
+        sut.IsPristine.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void BlowOff_ShouldMakePartNotPristine()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 4, 3);
+        
+        // Act
+        sut.BlowOff();
+        
+        // Assert
+        sut.IsPristine.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void ToData_ShouldSerializePartState()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
+        sut.ApplyDamage(5, HitDirection.Front);
+        
+        // Act
+        var data = sut.ToData();
+        
+        // Assert
+        data.Location.ShouldBe(PartLocation.LeftArm);
+        data.CurrentFrontArmor.ShouldBe(5);
+        data.CurrentStructure.ShouldBe(5);
     }
 
     public class TestUnit() : Unit("Test", "Unit", 20, 4, [], Guid.NewGuid())
