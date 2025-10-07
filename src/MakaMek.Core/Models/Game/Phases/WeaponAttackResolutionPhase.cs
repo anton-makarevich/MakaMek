@@ -202,39 +202,43 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         
         var hitLocations = new List<LocationHitData>();
         var totalDamage = 0;
-        
+
         // For each complete cluster that hit
         for (var i = 0; i < completeClusterHits; i++)
         {
             // Calculate damage for this cluster
             var clusterDamage = weapon.ClusterSize * damagePerMissile;
-            
+
             // Determine the hit location for this cluster
+            // Pass accumulated hit locations so damage calculation considers previous clusters
             var hitLocationData = DetermineHitLocation(attackDirection,
-                clusterDamage, 
-                target, 
-                weapon, 
-                weaponTargetData);
-            
+                clusterDamage,
+                target,
+                weapon,
+                weaponTargetData,
+                hitLocations);
+
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
             totalDamage += clusterDamage;
         }
-        
+
         // If there are remaining missiles (partial cluster)
         if (remainingMissiles > 0)
         {
             // Calculate damage for the partial cluster
             var partialClusterDamage = remainingMissiles * damagePerMissile;
-            
+
             // Determine the hit location for the partial cluster
+            // Pass accumulated hit locations so damage calculation considers previous clusters
             var hitLocationData = DetermineHitLocation(
                 attackDirection,
                 partialClusterDamage,
-                target, 
+                target,
                 weapon,
-                weaponTargetData);
-            
+                weaponTargetData,
+                hitLocations);
+
             // Add to hit locations and update total damage
             hitLocations.Add(hitLocationData);
             totalDamage += partialClusterDamage;
@@ -251,13 +255,15 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// <param name="target">The target unit</param>
     /// <param name="weapon">The firing weapon</param>
     /// <param name="weaponTargetData">Weapon's target data</param>
+    /// <param name="accumulatedHitLocations">Optional list of previously resolved hit locations from earlier clusters</param>
     /// <returns>Hit location data with location, damage and dice roll</returns>
     private LocationHitData DetermineHitLocation(
         HitDirection attackDirection,
         int damage,
         Unit target,
         Weapon weapon,
-        WeaponTargetData weaponTargetData)
+        WeaponTargetData weaponTargetData,
+        IReadOnlyList<LocationHitData>? accumulatedHitLocations = null)
     {
         // If the weapon target data specifies a specific location, use that
         PartLocation? aimedShotLocation = null;
@@ -291,8 +297,9 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
         
         // Use DamageTransferCalculator to calculate damage distribution
+        // Pass accumulated hit locations so the calculator can apply previous cluster damage
         var damageData = Game.DamageTransferCalculator.CalculateStructureDamage(
-            target, hitLocation, damage, attackDirection);
+            target, hitLocation, damage, attackDirection, accumulatedHitLocations);
 
         return new LocationHitData(
             damageData,

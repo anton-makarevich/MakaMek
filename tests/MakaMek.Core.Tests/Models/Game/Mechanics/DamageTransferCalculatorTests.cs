@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -17,19 +18,18 @@ public class DamageTransferCalculatorTests
 
     public DamageTransferCalculatorTests()
     {
-        _sut = new DamageTransferCalculator();
-        
         // Setup rules provider for unit creation
         IRulesProvider rules = new ClassicBattletechRulesProvider();
-        
+
         // Setup localization service for unit creation
         var localizationService = Substitute.For<ILocalizationService>();
-        
+
         // Setup mech factory
         _mechFactory = new MechFactory(
             rules,
             new ClassicBattletechComponentProvider(),
             localizationService);
+        _sut = new DamageTransferCalculator(_mechFactory);
     }
 
     private Unit CreateTestMech()
@@ -522,5 +522,61 @@ public class DamageTransferCalculatorTests
 
         // Should NOT contain any entry for the destroyed LeftArm location
         result.ShouldNotContain(d => d.Location == PartLocation.LeftArm);
+    }
+    
+    [Fact]
+    public void CalculateStructureDamage_WithAccumulatedDamage_ShouldConsiderPreviousClusterDamage()
+    {
+        // Arrange - Simulate the bug scenario
+        // LRM20 (20 missiles, 1 damage each, ClusterSize = 5)
+        // Cluster roll: 4 → 9 missiles hit
+        // Damage groups: Group 1 (5 missiles = 5 damage), Group 2 (4 missiles = 4 damage)
+        // Both groups hit Center Torso
+        // Target's CT: 2 armor points, 8 internal structure points
+
+        var unit = CreateTestMech();
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
+
+        // Set CT to have only 2 armor points and 8 structure
+        centerTorso.RestoreState(2, 8, false);
+        centerTorso.CurrentArmor.ShouldBe(2);
+        centerTorso.CurrentStructure.ShouldBe(8);
+
+        // Simulate Group 1: 5 damage
+        const int group1Damage = 5;
+        var group1Result = _sut.CalculateStructureDamage(unit, PartLocation.CenterTorso, group1Damage, HitDirection.Front);
+
+        // Group 1 should deplete 2 armor and deal 3 structure damage
+        group1Result.ShouldHaveSingleItem();
+        group1Result[0].ArmorDamage.ShouldBe(2);
+        group1Result[0].StructureDamage.ShouldBe(3);
+
+        // Create accumulated hit locations from Group 1
+        var accumulatedHitLocations = new List<LocationHitData>
+        {
+            new(group1Result, [], [], PartLocation.CenterTorso)
+        };
+
+        // Simulate Group 2: 4 damage
+        // This should see the updated state (0 armor, 5 structure remaining)
+        const int group2Damage = 4;
+        var group2Result = _sut.CalculateStructureDamage(
+            unit,
+            PartLocation.CenterTorso,
+            group2Damage,
+            HitDirection.Front,
+            accumulatedHitLocations);
+
+        // Group 2 should deal 0 armor damage (already depleted) and 4 structure damage
+        group2Result.ShouldHaveSingleItem();
+        group2Result[0].ArmorDamage.ShouldBe(0); // Armor already depleted by Group 1
+        group2Result[0].StructureDamage.ShouldBe(4);
+
+        // Total damage should be: 2 armor + 7 structure (not 4 armor + 5 structure)
+        var totalArmorDamage = group1Result[0].ArmorDamage + group2Result[0].ArmorDamage;
+        var totalStructureDamage = group1Result[0].StructureDamage + group2Result[0].StructureDamage;
+
+        totalArmorDamage.ShouldBe(2); // Should not exceed available armor
+        totalStructureDamage.ShouldBe(7);
     }
 }

@@ -79,7 +79,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
                 Arg.Any<int>(),
-                Arg.Any<HitDirection>())
+                Arg.Any<HitDirection>(),
+                Arg.Any<IReadOnlyList<LocationHitData>?>())
             .Returns(callInfo =>[new LocationDamageData(callInfo.Arg<PartLocation>(),
                 callInfo.Arg<int>(),
                 0,
@@ -1106,7 +1107,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var weapon = new TestWeapon();
         var method = typeof(WeaponAttackResolutionPhase).GetMethod("DetermineHitLocation",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        return (LocationHitData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData])!;
+        return (LocationHitData)method!.Invoke(phase, [hitDirection, dmg, target, weapon, weaponTargetData, null])!;
     }
     
     private void SetupPlayer1WeaponTargets()
