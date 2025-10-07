@@ -88,6 +88,9 @@ public abstract class NewGameViewModel : BaseViewModel
     {
         if (!playerVm.IsLocalPlayer || !CanPublishCommands || _localGame == null) return;
 
+        // ensure every player that joins has a unique id for the game
+        playerVm.Player.Id = Guid.NewGuid();
+        
         // Create pilot assignments for each unit
         var pilotAssignments = playerVm.Units.Select(unit => new PilotAssignmentData
         {

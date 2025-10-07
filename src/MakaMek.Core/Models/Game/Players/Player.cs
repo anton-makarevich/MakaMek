@@ -11,7 +11,7 @@ public class Player(Guid id, string name, string tint = "#ffffff") : IPlayer
     
     private readonly List<Unit> _units = [];
     
-    public Guid Id { get; } = id;
+    public Guid Id { get; set; } = id;
     public string Name { get; set; } = name;
     public string Tint { get; } = tint;
     public IReadOnlyList<Unit> Units => _units;
