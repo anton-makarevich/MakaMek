@@ -30,7 +30,7 @@ public class PlayerViewModel : BindableBase
     /// <summary>
     /// Indicates whether this player can be removed from the game setup
     /// </summary>
-    public bool IsRemovable => !_isDefaultPlayer && Status == PlayerStatus.NotJoined;
+    public bool IsRemovable => !_isDefaultPlayer && IsLocalPlayer && Status == PlayerStatus.NotJoined;
 
     public PlayerStatus Status => Player.Status;
 
