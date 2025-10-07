@@ -24,7 +24,7 @@ public class MechFactory : IMechFactory
     {
         // Create parts with appropriate armor and structure
         var parts = CreateParts(unitData.ArmorValues, _rulesProvider, unitData.Mass);
-        
+
         // Create the mech
         var mech = new Mech(
             unitData.Chassis,
@@ -34,9 +34,12 @@ public class MechFactory : IMechFactory
             parts,
             1,
             unitData.Id);
-        
+
         // Add equipment to parts
         AddEquipmentToParts(mech, unitData);
+
+        // Restore part states if present
+        RestorePartStates(mech, unitData);
 
         return mech;
     }
@@ -93,6 +96,35 @@ public class MechFactory : IMechFactory
 
                 // Mount the component to this location once
                 part.TryAddComponent(component, slots);
+            }
+        }
+    }
+
+    private void RestorePartStates(Mech mech, UnitData unitData)
+    {
+        // If no part states are provided, the unit is pristine (no damage)
+        if (unitData.UnitPartStates == null || unitData.UnitPartStates.Count == 0)
+            return;
+
+        foreach (var partState in unitData.UnitPartStates)
+        {
+            if (!mech.Parts.TryGetValue(partState.Location, out var part))
+                continue;
+
+            // Get current values (use max if not specified in state)
+            var currentFrontArmor = partState.CurrentFrontArmor ?? part.MaxArmor;
+            var currentStructure = partState.CurrentStructure ?? part.MaxStructure;
+            var isBlownOff = partState.IsBlownOff;
+
+            // Restore state based on part type
+            if (part is Torso torso)
+            {
+                var currentRearArmor = partState.CurrentRearArmor ?? torso.MaxRearArmor;
+                torso.RestoreTorsoState(currentFrontArmor, currentRearArmor, currentStructure, isBlownOff);
+            }
+            else
+            {
+                part.RestoreState(currentFrontArmor, currentStructure, isBlownOff);
             }
         }
     }

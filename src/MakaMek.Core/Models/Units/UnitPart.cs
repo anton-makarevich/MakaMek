@@ -27,6 +27,17 @@ public abstract class UnitPart
     public int CurrentArmor { get; private set; }
     public int MaxStructure { get; }
     public int CurrentStructure { get; private set; }
+
+    /// <summary>
+    /// Restores the armor and structure state from serialized data.
+    /// Used by MechFactory when creating units from saved data.
+    /// </summary>
+    internal void RestoreState(int currentArmor, int currentStructure, bool isBlownOff)
+    {
+        CurrentArmor = currentArmor;
+        CurrentStructure = currentStructure;
+        IsBlownOff = isBlownOff;
+    }
     
     // Slots management
     public int TotalSlots { get; }

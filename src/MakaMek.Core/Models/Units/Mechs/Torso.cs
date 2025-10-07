@@ -46,5 +46,15 @@ public abstract class Torso : UnitPart
         return remainingDamage;
     }
 
+    /// <summary>
+    /// Restores the torso state including rear armor from serialized data.
+    /// Used by MechFactory when creating units from saved data.
+    /// </summary>
+    internal void RestoreTorsoState(int currentFrontArmor, int currentRearArmor, int currentStructure, bool isBlownOff)
+    {
+        RestoreState(currentFrontArmor, currentStructure, isBlownOff);
+        CurrentRearArmor = currentRearArmor;
+    }
+
     internal override bool CanBeBlownOff => false;
 }

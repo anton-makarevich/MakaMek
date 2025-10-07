@@ -33,15 +33,15 @@ public static class UnitExtensions
                 },
                 _ => new ArmorLocation { FrontArmor = part.MaxArmor, RearArmor = 0 }
             };
-            
+
             armorValues[part.Location] = armorLocation;
         }
-        
+
         // Get engine data
         var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
         var engineRating = engine?.Rating ?? 0;
         var engineType = engine?.Type.ToString() ?? "Fusion";
-        
+
         // Create component-centric equipment list
         var equipment = new List<ComponentData>();
         var processedComponents = new HashSet<Component>();
@@ -61,7 +61,42 @@ public static class UnitExtensions
                 equipment.Add(component.ToData());
             }
         }
-        
+
+        // Serialize part states only for damaged/destroyed/blown-off parts
+        var partStates = new List<UnitPartStateData>();
+        foreach (var part in unit.Parts.Values)
+        {
+            // Check if part has any damage or is blown off
+            var hasDamage = part.CurrentArmor < part.MaxArmor
+                            || part.CurrentStructure < part.MaxStructure
+                            || part.IsBlownOff;
+
+            // For torso parts, also check rear armor
+            if (part is Torso torso)
+            {
+                hasDamage = hasDamage || torso.CurrentRearArmor < torso.MaxRearArmor;
+            }
+
+            if (!hasDamage) continue;
+
+            // Create part state data
+            var partState = new UnitPartStateData
+            {
+                Location = part.Location,
+                CurrentFrontArmor = part.CurrentArmor,
+                CurrentStructure = part.CurrentStructure,
+                IsBlownOff = part.IsBlownOff
+            };
+
+            // Add rear armor for torso parts
+            if (part is Torso torsoWithRear)
+            {
+                partState = partState with { CurrentRearArmor = torsoWithRear.CurrentRearArmor };
+            }
+
+            partStates.Add(partState);
+        }
+
         return new UnitData
         {
             Id = unit.Id,
@@ -74,7 +109,8 @@ public static class UnitExtensions
             ArmorValues = armorValues,
             Equipment = equipment,
             AdditionalAttributes = new Dictionary<string, string>(),
-            Quirks = new Dictionary<string, string>()
+            Quirks = new Dictionary<string, string>(),
+            UnitPartStates = partStates.Count > 0 ? partStates : null
         };
     }
 }
