@@ -66,33 +66,9 @@ public static class UnitExtensions
         var partStates = new List<UnitPartStateData>();
         foreach (var part in unit.Parts.Values)
         {
-            // Check if part has any damage or is blown off
-            var hasDamage = part.CurrentArmor < part.MaxArmor
-                            || part.CurrentStructure < part.MaxStructure
-                            || part.IsBlownOff;
-
-            // For torso parts, also check rear armor
-            if (part is Torso torso)
-            {
-                hasDamage = hasDamage || torso.CurrentRearArmor < torso.MaxRearArmor;
-            }
-
-            if (!hasDamage) continue;
-
-            // Create part state data
-            var partState = new UnitPartStateData
-            {
-                Location = part.Location,
-                CurrentFrontArmor = part.CurrentArmor,
-                CurrentStructure = part.CurrentStructure,
-                IsBlownOff = part.IsBlownOff
-            };
-
-            // Add rear armor for torso parts
-            if (part is Torso torsoWithRear)
-            {
-                partState = partState with { CurrentRearArmor = torsoWithRear.CurrentRearArmor };
-            }
+            if (part.IsPristine) continue;
+            
+            var partState = part.ToData();
 
             partStates.Add(partState);
         }
