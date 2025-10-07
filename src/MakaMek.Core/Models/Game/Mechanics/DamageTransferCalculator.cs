@@ -21,9 +21,17 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         Unit unit,
         PartLocation initialLocation,
         int totalDamage,
-        HitDirection hitDirection)
+        HitDirection hitDirection,
+        IReadOnlyList<LocationHitData>? accumulatedHitLocations = null)
     {
-        return CalculateDamageDistribution(unit, initialLocation, totalDamage, hitDirection);
+        // If there are accumulated hit locations from previous clusters, clone the unit and apply them first
+        if (accumulatedHitLocations is not { Count: > 0 }) // No accumulated damage, calculate normally
+            return CalculateDamageDistribution(unit, initialLocation, totalDamage, hitDirection);
+        var clonedUnit = CloneUnit(unit);
+        // Apply accumulated damage to the cloned unit
+        clonedUnit.ApplyDamage(accumulatedHitLocations.ToList(), hitDirection);
+        // Calculate damage distribution on the updated clone
+        return CalculateDamageDistribution(clonedUnit, initialLocation, totalDamage, hitDirection);
     }
 
     public IReadOnlyList<LocationDamageData> CalculateExplosionDamage(
