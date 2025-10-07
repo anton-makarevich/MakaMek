@@ -796,6 +796,19 @@ public class PlayerViewModelTests
         // Assert
         isRemovable.ShouldBe(expected);
     }
+    
+    [Fact]
+    public void IsRemovable_ShouldBeFalse_WhenIsRemotePlayer()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(new Player(Guid.NewGuid(), "Player1"), false);
+
+        // Act
+        var isRemovable = sut.IsRemovable;
+
+        // Assert
+        isRemovable.ShouldBeFalse();
+    }
 
     [Fact]
     public void RefreshStatus_ShouldNotifyCanRemoveUnitPropertyChanged()

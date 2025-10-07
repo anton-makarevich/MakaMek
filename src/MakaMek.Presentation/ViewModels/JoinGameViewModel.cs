@@ -71,7 +71,7 @@ public class JoinGameViewModel : NewGameViewModel
                 var existingPlayerVm = _players.FirstOrDefault(p => p.Player.Id == joinCmd.PlayerId);
                 if (existingPlayerVm == null) // Add if it's a new remote player
                 {
-                     var newRemotePlayer = new Player(joinCmd.PlayerId, joinCmd.PlayerName, joinCmd.PlayerId.ToString()); // Use PlayerId as tilt for now
+                     var newRemotePlayer = new Player(joinCmd.PlayerId, joinCmd.PlayerName, joinCmd.Tint); 
                      var remotePlayerViewModel = new PlayerViewModel(
                         newRemotePlayer,
                         isLocalPlayer: false,

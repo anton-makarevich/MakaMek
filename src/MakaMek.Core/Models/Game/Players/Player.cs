@@ -5,7 +5,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Players;
 
 public class Player(Guid id, string name, string tint = "#ffffff") : IPlayer
 {
-    public Player(PlayerData data) : this(data.Id, data.Name, data.Tint)
+    public Player(PlayerData data, Guid? idOverride = null) : this(idOverride ?? data.Id, data.Name, data.Tint)
     {
     }
     

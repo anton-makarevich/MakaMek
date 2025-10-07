@@ -95,6 +95,25 @@ public class PlayerTests
         player.Units.ShouldBeEmpty();
         player.CanAct.ShouldBeFalse();
     }
+    
+    [Fact]
+    public void Constructor_WithPlayerDataAndIdOverride_ShouldUseOverrideForId()
+    {
+        // Arrange
+        var playerData = new PlayerData
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Player From Data",
+            Tint = "#00FF00"
+        };
+        var idOverride = Guid.NewGuid();
+        
+        // Act
+        var player = new Player(playerData, idOverride);
+        
+        // Assert
+        player.Id.ShouldBe(idOverride);
+    }
 
     [Fact]
     public void AddUnit_ShouldAddUnitToCollection()
