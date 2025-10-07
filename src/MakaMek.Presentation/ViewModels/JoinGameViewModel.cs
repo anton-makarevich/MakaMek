@@ -123,7 +123,16 @@ public class JoinGameViewModel : NewGameViewModel
     public bool IsConnected
     {
         get => _isConnected;
-        private set => SetProperty(ref _isConnected, value); // Update UI based on connection status
+        private set
+        {
+            SetProperty(ref _isConnected, value);
+            // Update UI based on connection status
+            foreach (var player in _players)
+            {
+                player.RefreshStatus();
+            }
+        }
+        
     }
 
     public ICommand ConnectCommand { get; private set; }
@@ -185,12 +194,14 @@ public class JoinGameViewModel : NewGameViewModel
             isDefaultPlayer
                 ? OnDefaultPlayerNameChanged
                 : null,
-            isDefaultPlayer);
+            isDefaultPlayer,
+            () => IsConnected);
     }
 
     // Implementation of abstract property from base class
-    public override bool CanAddPlayer => IsConnected && _players.Count < 4;
-    
+    // Allow adding default player before connection, but require connection for additional players
+    public override bool CanAddPlayer => (IsConnected || _players.Count == 0) && _players.Count < 4;
+
     // Implementation of abstract property from base class
-    public override bool CanPublishCommands => IsConnected; 
+    public override bool CanPublishCommands => IsConnected;
 }

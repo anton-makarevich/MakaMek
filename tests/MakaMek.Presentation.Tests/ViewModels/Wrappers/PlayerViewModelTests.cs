@@ -838,4 +838,21 @@ public class PlayerViewModelTests
         // Assert
         propertyChanged.ShouldBeTrue();
     }
+    
+    [Fact]
+    public void CanJoin_ShouldBeFalse_WhenConnectionIsNotAvailable()
+    {
+        // Arrange
+        var sut = new PlayerViewModel(
+            new Player(Guid.NewGuid(), "Player1"),
+            isLocalPlayer: true,
+            isConnectionAvailable: () => false);
+        sut.AddUnit(MechFactoryTests.CreateDummyMechData());
+
+        // Act
+        var canJoin = sut.CanJoin;
+
+        // Assert
+        canJoin.ShouldBeFalse();
+    }
 }
