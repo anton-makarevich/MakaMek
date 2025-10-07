@@ -847,6 +847,7 @@ public class PlayerViewModelTests
             new Player(Guid.NewGuid(), "Player1"),
             isLocalPlayer: true,
             isConnectionAvailable: () => false);
+        sut.AddUnit(MechFactoryTests.CreateDummyMechData());
 
         // Act
         var canJoin = sut.CanJoin;
