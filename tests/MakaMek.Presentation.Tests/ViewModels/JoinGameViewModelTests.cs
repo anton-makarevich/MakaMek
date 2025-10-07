@@ -1,7 +1,10 @@
+using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -320,14 +323,15 @@ public class JoinGameViewModelTests
             Tint = "#FFFFFF",
             PilotAssignments = []
         };
-        
+
         // Act
         _sut.HandleServerCommand(joinCommand);
-        
+
         // Assert
-        _sut.Players.Count.ShouldBe(1);
-        _sut.Players.First().Player.Id.ShouldBe(remotePlayerId);
-        _sut.Players.First().IsLocalPlayer.ShouldBeFalse();
+        _sut.Players.Count.ShouldBe(1 + 1); // default + joined
+        var remotePlayer = _sut.Players.FirstOrDefault(p => p.Player.Id == remotePlayerId);
+        remotePlayer.ShouldNotBeNull();
+        remotePlayer.IsLocalPlayer.ShouldBeFalse();
     }
     
     [Fact]
@@ -336,11 +340,10 @@ public class JoinGameViewModelTests
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
         await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
-        await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         
         var player = _sut.Players.First();
         var playerId = player.Player.Id;
-        
+
         // Create join command for the existing local player
         var joinCommand = new JoinGameCommand
         {
@@ -351,13 +354,13 @@ public class JoinGameViewModelTests
             Tint = "#FFFFFF",
             PilotAssignments = []
         };
-        
+
         // Act
         _sut.HandleServerCommand(joinCommand);
-        
+
         // Assert
         _sut.Players.Count.ShouldBe(1); // No new player added
-        _sut.Players.First().Player.Status.ShouldBe(PlayerStatus.Joined);
+        player.Player.Status.ShouldBe(PlayerStatus.Joined);
     }
 
     [Fact]
@@ -394,9 +397,86 @@ public class JoinGameViewModelTests
         const string ip = "127.0.0.1";
         const int port = 2439;
         const string hub = "makamekhub";
-        
+
         _sut.ServerIp = ip;
-        
+
         _sut.ServerAddress.ShouldBe($"http://{ip}:{port}/{hub}");
+    }
+
+    [Fact]
+    public void AddDefaultPlayer_ShouldAddDefaultPlayer()
+    {
+        // Assert - default player should be added automatically when AttachHandlers is called
+        _sut.Players.Count.ShouldBe(1);
+        _sut.Players.First().Player.Name.ShouldStartWith("Player");
+        _sut.Players.First().Player.Tint.ShouldNotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void AddDefaultPlayer_ShouldSavePlayerToCache()
+    {
+        // Assert - cache should be called when default player is added
+        _cachingService.Received().SaveToCache("DefaultPlayer", Arg.Any<byte[]>());
+    }
+
+    [Fact]
+    public void OnDefaultPlayerNameChanged_ShouldInvokeCallback()
+    {
+        // Arrange
+        var defaultPlayerData = PlayerData.CreateDefault() with { Name = "Cached Player" };
+        var cachingService = Substitute.For<IFileCachingService>();
+        cachingService.TryGetCachedFile("DefaultPlayer")
+            .Returns(JsonSerializer.SerializeToUtf8Bytes(defaultPlayerData));
+
+        var sut = new JoinGameViewModel(
+            _rulesProvider,
+            _mechFactory,
+            _unitsLoader,
+            _commandPublisher,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _dispatcherService,
+            _gameFactory,
+            _transportFactory,
+            _mapFactory,
+            cachingService);
+        sut.AttachHandlers();
+
+        // Act
+        sut.Players.First().SaveName();
+
+        // Assert - callback should be invoked (at least once for the name change)
+        // Note: We can't reliably test the exact number of calls due to async fire-and-forget pattern
+        cachingService.Received().SaveToCache("DefaultPlayer", Arg.Any<byte[]>());
+    }
+
+    [Fact]
+    public void CanAddPlayer_ShouldBeTrue_WhenNotConnectedAndNoPlayers()
+    {
+        // Arrange - create a fresh instance without calling AttachHandlers
+        var cachingService = Substitute.For<IFileCachingService>();
+        cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
+
+        var sut = new JoinGameViewModel(
+            _rulesProvider,
+            _mechFactory,
+            _unitsLoader,
+            _commandPublisher,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _dispatcherService,
+            _gameFactory,
+            _transportFactory,
+            _mapFactory,
+            cachingService);
+
+        // Assert - should be able to add default player even when not connected
+        sut.IsConnected.ShouldBeFalse();
+        sut.Players.Count.ShouldBe(0);
+        sut.CanAddPlayer.ShouldBeTrue();
     }
 }
