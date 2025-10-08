@@ -2,7 +2,6 @@
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Utils.Generators;
 using SkiaSharp;
 using System;
 using System.Linq;
@@ -23,13 +22,10 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
     private static readonly SKColor BackgroundColor = new(0xE0, 0xE0, 0xE0);   // BackgroundColor
 
     /// <summary>
-    /// Generates a preview image of a map based on the given parameters
+    /// Generates a preview image for the provided battle map by drawing dots at hex centers.
     /// </summary>
     public object? GeneratePreview(
-        int width,
-        int height,
-        int forestCoverage,
-        int lightWoodsProbability,
+        BattleMap map,
         int previewWidth = 300,
         int previewHeight = 300)
     {
@@ -41,16 +37,9 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
         // Clear background
         canvas.Clear(BackgroundColor);
 
-        // Generate the map using the same logic as the game
-        ITerrainGenerator generator = forestCoverage == 0
-            ? new SingleTerrainGenerator(width, height, new ClearTerrain())
-            : new ForestPatchesGenerator(
-                width,
-                height,
-                forestCoverage: forestCoverage / 100.0,
-                lightWoodsProbability: lightWoodsProbability / 100.0);
-
         // Calculate scaling to fit the map in the preview area
+        var width = map.Width;
+        var height = map.Height;
         var hexWidth = HexCoordinates.HexWidth;
         var hexHeight = HexCoordinates.HexHeight;
         var hexHorizontalSpacing = HexCoordinates.HexWidth * 0.75;
@@ -75,13 +64,14 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
         var offsetX = (previewWidth - scaledMapWidth) / 2;
         var offsetY = (previewHeight - scaledMapHeight) / 2;
 
-        // Draw hexes as dots
+        // Draw hexes as dots based on map contents
         for (var q = 1; q <= width; q++)
         {
             for (var r = 1; r <= height; r++)
             {
                 var coordinates = new HexCoordinates(q, r);
-                var hex = generator.Generate(coordinates);
+                var hex = map.GetHex(coordinates);
+                if (hex == null) continue;
                 
                 // Get terrain color
                 var terrainColor = GetTerrainColor(hex);

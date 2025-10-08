@@ -1,5 +1,8 @@
 ﻿using NSubstitute;
+using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
 
@@ -9,10 +12,13 @@ public class MapConfigViewModelTests
 {
     private readonly MapConfigViewModel _sut;
     private readonly IMapPreviewRenderer _previewRenderer = Substitute.For<IMapPreviewRenderer>();
+    private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
 
     public MapConfigViewModelTests()
     {
-        _sut = new MapConfigViewModel(_previewRenderer);
+        _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>())
+            .Returns(ci => new BattleMap(ci.ArgAt<int>(0), ci.ArgAt<int>(1)));
+        _sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
     }
 
     [Fact]
@@ -105,10 +111,7 @@ public class MapConfigViewModelTests
     {
         // Assert - initial preview should be generated
         _previewRenderer.Received(1).GeneratePreview(
-            Arg.Any<int>(),
-            Arg.Any<int>(),
-            Arg.Any<int>(),
-            Arg.Any<int>(),
+            Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<int>());
     }
@@ -119,15 +122,12 @@ public class MapConfigViewModelTests
         // Arrange
         var mockImage = new object();
         _previewRenderer.GeneratePreview(
-            Arg.Any<int>(),
-            Arg.Any<int>(),
-            Arg.Any<int>(),
-            Arg.Any<int>(),
+            Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<int>()).Returns(mockImage);
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
 
         // Assert
         sut.PreviewImage.ShouldBe(mockImage);
@@ -137,7 +137,7 @@ public class MapConfigViewModelTests
     public void Constructor_WithoutRenderer_DoesNotGeneratePreview()
     {
         // Act
-        var sut = new MapConfigViewModel(null);
+        var sut = new MapConfigViewModel(null, _mapFactory);
 
         // Assert
         sut.PreviewImage.ShouldBeNull();

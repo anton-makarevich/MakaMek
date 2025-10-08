@@ -47,7 +47,8 @@ namespace MakaMek.Avalonia.Tests.Views
                 Substitute.For<IDispatcherService>(),
                 Substitute.For<IGameFactory>(),
                 Substitute.For<IBattleMapFactory>(),
-                cachingService);
+                cachingService,
+                Substitute.For<IMapPreviewRenderer>());
 
             // Act
             view.DataContext = viewModel;

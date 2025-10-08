@@ -1,6 +1,10 @@
 ﻿using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
+using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -16,21 +20,22 @@ public class MapConfigViewModel : BindableBase, IDisposable
     private int _lightWoodsPercentage = 30;
     private object? _previewImage;
     private readonly IMapPreviewRenderer _previewRenderer;
+    private readonly IBattleMapFactory _mapFactory;
     private readonly IDisposable? _previewSubscription;
     private readonly Subject<MapParameterChange> _mapParametersChanged = new();
 
-    public MapConfigViewModel(IMapPreviewRenderer previewRenderer)
+    public MapConfigViewModel(IMapPreviewRenderer previewRenderer, IBattleMapFactory mapFactory)
     {
         _previewRenderer = previewRenderer;
-
+        _mapFactory = mapFactory;
 
         // Subscribe with 3-second debounce
         _previewSubscription = _mapParametersChanged
             .Throttle(TimeSpan.FromSeconds(3))
-            .Subscribe(_ => UpdatePreview());
+            .Subscribe(_ => UpdateMap());
 
-        // Generate initial preview
-        UpdatePreview();
+        // Generate initial map and preview
+        UpdateMap();
 
     }
 
@@ -82,19 +87,30 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
     public bool IsLightWoodsEnabled => _forestCoverage > 0;
 
+    // Expose the actual map that will be used
+    public BattleMap Map { get; private set; }
+
     public object? PreviewImage
     {
         get => _previewImage;
         private set => SetProperty(ref _previewImage, value);
     }
 
-    private void UpdatePreview()
+    // Renamed and repurposed: now generates the actual BattleMap and optionally updates the preview
+    private void UpdateMap()
     {
-        PreviewImage = _previewRenderer.GeneratePreview(
-            MapWidth,
-            MapHeight,
-            ForestCoverage,
-            LightWoodsPercentage);
+        ITerrainGenerator generator = ForestCoverage == 0
+            ? new SingleTerrainGenerator(MapWidth, MapHeight, new ClearTerrain())
+            : new ForestPatchesGenerator(
+                MapWidth,
+                MapHeight,
+                forestCoverage: ForestCoverage / 100.0,
+                lightWoodsProbability: LightWoodsPercentage / 100.0);
+
+        Map = _mapFactory.GenerateMap(MapWidth, MapHeight, generator);
+
+        // Update preview image based on the generated map
+        PreviewImage = _previewRenderer.GeneratePreview(Map);
     }
 
     public void Dispose()
