@@ -7,8 +7,7 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewWide"
              x:DataType="viewModels:JoinGameViewModel"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
-             xmlns:fragments2="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
-             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters">
+             xmlns:fragments2="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments">
 
     <Grid Margin="10" 
           RowDefinitions="Auto,*">
@@ -23,7 +22,7 @@
             Orientation="Vertical"
             >
             <!-- Connect Fragment -->
-            <Border Classes="card" Grid.Column="0" Grid.Row="1" >
+            <Border Classes="card">
                 <fragments:ConnectFragment DataContext="{Binding}"/>
             </Border>
 
