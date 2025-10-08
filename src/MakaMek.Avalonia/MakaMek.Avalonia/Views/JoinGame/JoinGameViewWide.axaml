@@ -9,21 +9,26 @@
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments2="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments">
 
-    <Grid ColumnDefinitions="*,*" Margin="10" RowDefinitions="Auto, *">
+    <Grid Margin="10" 
+          RowDefinitions="Auto,*">
         <TextBlock Text="Join Game"
                    Grid.ColumnSpan="2"
                    Classes="h1" 
                    HorizontalAlignment="Center"
                    Margin="0,0,0,10"/>
-        <!-- Connect Fragment -->
-        <Border Classes="card" Grid.Column="0" Grid.Row="1" Margin="0,0,5,10">
-            <fragments:ConnectFragment DataContext="{Binding}"/>
-        </Border>
+        <StackPanel Grid.Row="1"
+            VerticalAlignment="Stretch"
+            HorizontalAlignment="Stretch"
+            Orientation="Vertical"
+            >
+            <!-- Connect Fragment -->
+            <Border Classes="card">
+                <fragments:ConnectFragment DataContext="{Binding}"/>
+            </Border>
 
-        <!-- Players Fragment (Reused) -->
-        <Border Classes="card" Grid.Column="1" Grid.Row="1" Margin="5,0,0,0">
+            <!-- Players Fragment (Reused) -->
             <fragments2:PlayersFragment DataContext="{Binding}"/>
-        </Border>
+        </StackPanel>
     </Grid>
 </UserControl>
 

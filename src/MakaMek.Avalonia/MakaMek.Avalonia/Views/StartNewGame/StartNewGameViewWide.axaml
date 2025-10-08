@@ -4,25 +4,44 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewWide"
              x:DataType="viewModels1:StartNewGameViewModel">
     <Grid 
-        ColumnDefinitions="*,*"
-        RowDefinitions="Auto,*,Auto, Auto">
-            <TextBlock Grid.Row="0" Grid.Column="1" Text="Map" Classes="h2" HorizontalAlignment="Center"/>
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Players" Classes="h2" HorizontalAlignment="Center"/>
-            <fragments:PlayersFragment Grid.Column="0" Grid.Row="1" Grid.RowSpan="2" Margin="10"/>
-            <fragments:MapConfigFragment Grid.Column="1" Grid.Row="1" Margin="10"/>
-            <fragments:NetworkFragment Grid.Column="1" Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10"/>
-            <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                    Command="{Binding StartGameCommand}"
-                    Content="Start Game"
-                    Classes="primary"
-                    IsEnabled="{Binding CanStartGame}"
-                    HorizontalAlignment="Center"
-                    Margin="0,10,0,0"/>
+        Margin="10"
+        RowDefinitions="*, Auto">
+        <UniformGrid
+            VerticalAlignment="Stretch"
+            HorizontalAlignment="Stretch"
+            Rows="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Grid}, 
+                        Path=Bounds.Size, 
+                        Converter={StaticResource AdaptiveGridConverter}, 
+                        ConverterParameter={x:Static converters:GridOrientation.Rows}}"
+            Columns="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Grid}, 
+                        Path=Bounds.Size, 
+                        Converter={StaticResource AdaptiveGridConverter}, 
+                        ConverterParameter={x:Static converters:GridOrientation.Columns}}"
+            >
+            <Grid RowDefinitions="Auto,*">
+                <TextBlock Text="Players" Classes="h2" HorizontalAlignment="Center"/>
+                <fragments:PlayersFragment Grid.Row="1" Margin="10"/>
+            </Grid>
+            <Grid RowDefinitions="Auto,*,Auto">      
+                <TextBlock Text="Map" Classes="h2" HorizontalAlignment="Center"/>
+                <ScrollViewer Grid.Row="1" >
+                    <fragments:MapConfigFragment Margin="10"/>
+                </ScrollViewer>
+                <fragments:NetworkFragment Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10"/>
+            </Grid>
+        </UniformGrid>
+        <Button Grid.Row="1" Grid.Column="0"
+                Command="{Binding StartGameCommand}"
+                Content="Start Game"
+                Classes="primary"
+                IsEnabled="{Binding CanStartGame}"
+                HorizontalAlignment="Center"
+                Margin="0,10,0,0"/>
     </Grid>
 
 </UserControl>
-
