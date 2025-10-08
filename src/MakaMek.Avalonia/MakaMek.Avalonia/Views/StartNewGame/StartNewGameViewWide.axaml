@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewWide"
              x:DataType="viewModels1:StartNewGameViewModel">
@@ -14,10 +15,12 @@
             HorizontalAlignment="Stretch"
             Rows="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Grid}, 
                         Path=Bounds.Size, 
-                        Converter={StaticResource AdaptiveRowsConverter}}"
+                        Converter={StaticResource AdaptiveGridConverter}, 
+                        ConverterParameter={x:Static converters:GridOrientation.Rows}}"
             Columns="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Grid}, 
                         Path=Bounds.Size, 
-                        Converter={StaticResource AdaptiveColumnsConverter}}"
+                        Converter={StaticResource AdaptiveGridConverter}, 
+                        ConverterParameter={x:Static converters:GridOrientation.Columns}}"
             >
             <Grid RowDefinitions="Auto,*">
                 <TextBlock Text="Players" Classes="h2" HorizontalAlignment="Center"/>
@@ -41,4 +44,3 @@
     </Grid>
 
 </UserControl>
-
