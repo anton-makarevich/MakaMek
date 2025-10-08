@@ -7,7 +7,7 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 
 public class AdaptiveGridConverter : IValueConverter
 {
-    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is not Size size)
             return parameter is GridOrientation.Rows ? 2 : 1;

@@ -9,6 +9,7 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewWide"
              x:DataType="viewModels1:StartNewGameViewModel">
     <Grid 
+        Margin="10"
         RowDefinitions="*, Auto">
         <UniformGrid
             VerticalAlignment="Stretch"
