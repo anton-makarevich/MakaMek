@@ -15,6 +15,7 @@
             <converters:GreaterThanValueConverter x:Key="GreaterThanValueConverter"/>
             <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
             <converters:HitProbabilityColorConverter x:Key="HitProbabilityColorConverter"/>
+            <converters:AdaptiveOrientationConverter x:Key="AdaptiveOrientationConverter"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Colors.axaml"/>
