@@ -88,7 +88,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public bool IsLightWoodsEnabled => _forestCoverage > 0;
 
     // Expose the actual map that will be used
-    public BattleMap Map { get; private set; }
+    public BattleMap? Map { get; private set; }
 
     public object? PreviewImage
     {

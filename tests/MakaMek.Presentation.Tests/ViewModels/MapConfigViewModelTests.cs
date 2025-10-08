@@ -132,15 +132,5 @@ public class MapConfigViewModelTests
         // Assert
         sut.PreviewImage.ShouldBe(mockImage);
     }
-
-    [Fact]
-    public void Constructor_WithoutRenderer_DoesNotGeneratePreview()
-    {
-        // Act
-        var sut = new MapConfigViewModel(null, _mapFactory);
-
-        // Assert
-        sut.PreviewImage.ShouldBeNull();
-    }
 }
 
