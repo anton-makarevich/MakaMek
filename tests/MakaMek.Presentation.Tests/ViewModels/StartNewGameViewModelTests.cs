@@ -48,6 +48,7 @@ public class StartNewGameViewModelTests
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
     private readonly IGameFactory _gameFactory = Substitute.For<IGameFactory>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
+    private readonly IMapPreviewRenderer _mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
 
     public StartNewGameViewModelTests()
     {
@@ -104,7 +105,8 @@ public class StartNewGameViewModelTests
             _dispatcherService,
             _gameFactory,
             _mapFactory,
-            _cachingService);
+            _cachingService,
+            _mapPreviewRenderer);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -112,24 +114,9 @@ public class StartNewGameViewModelTests
     [Fact]
     public void Constructor_SetsDefaultValues()
     {
-        _sut.MapWidth.ShouldBe(15);
-        _sut.MapHeight.ShouldBe(17);
-        _sut.ForestCoverage.ShouldBe(20);
-        _sut.LightWoodsPercentage.ShouldBe(30);
-        _sut.IsLightWoodsEnabled.ShouldBeTrue();
+        _sut.MapConfig.ShouldNotBeNull();
         _sut.ServerIpAddress.ShouldBe("LAN Disabled...");
         _sut.CanPublishCommands.ShouldBeTrue();
-    }
-
-    [Theory]
-    [InlineData(0, false)]
-    [InlineData(1, true)]
-    [InlineData(50, true)]
-    public void ForestCoverage_WhenChanged_UpdatesLightWoodsEnabled(int coverage, bool expectedEnabled)
-    {
-        _sut.ForestCoverage = coverage;
-
-        _sut.IsLightWoodsEnabled.ShouldBe(expectedEnabled);
     }
 
     [Fact]
@@ -140,16 +127,6 @@ public class StartNewGameViewModelTests
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
         _battleMapViewModel.Game.ShouldBe(_clientGame);
-    }
-
-    [Fact]
-    public void MapWidth_SetAndGet_ShouldUpdateCorrectly()
-    {
-        var newWidth = 20;
-
-        _sut.MapWidth = newWidth;
-
-        _sut.MapWidth.ShouldBe(newWidth);
     }
 
     [Fact]
@@ -607,7 +584,8 @@ public class StartNewGameViewModelTests
             _dispatcherService,
             _gameFactory,
             _mapFactory,
-            _cachingService); 
+            _cachingService,
+            _mapPreviewRenderer);
         sut.AttachHandlers();
 
         // Assert
@@ -642,7 +620,8 @@ public class StartNewGameViewModelTests
             _dispatcherService,
             _gameFactory,
             _mapFactory,
-            _cachingService); 
+            _cachingService,
+            _mapPreviewRenderer);
         sut.AttachHandlers();
 
         // Act
@@ -676,7 +655,8 @@ public class StartNewGameViewModelTests
                 _dispatcherService,
                 _gameFactory,
                 _mapFactory,
-                _cachingService); 
+                _cachingService,
+                _mapPreviewRenderer);
             sut.AttachHandlers();
 
             // Assert
@@ -714,7 +694,8 @@ public class StartNewGameViewModelTests
                 _dispatcherService,
                 _gameFactory,
                 _mapFactory,
-                _cachingService); 
+                _cachingService,
+                _mapPreviewRenderer);
             sut.AttachHandlers();
 
             // Assert

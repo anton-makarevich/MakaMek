@@ -21,11 +21,6 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {
-    private int _mapWidth = 15;
-    private int _mapHeight = 17;
-    private int _forestCoverage = 20;
-    private int _lightWoodsPercentage = 30;
-
     private readonly IGameManager _gameManager;
     private readonly IMechFactory _mechFactory;
     private readonly IBattleMapFactory _mapFactory;
@@ -43,7 +38,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         IBattleMapFactory mapFactory,
-        IFileCachingService cachingService)
+        IFileCachingService cachingService,
+        IMapPreviewRenderer mapPreviewRenderer)
         : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
            pilotingSkillCalculator,
            consciousnessCalculator,
@@ -53,6 +49,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager = gameManager;
         _mechFactory = mechFactory;
         _mapFactory = mapFactory;
+        MapConfig = new MapConfigViewModel(mapPreviewRenderer);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
     }
 
@@ -128,40 +125,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     }
 
 
-    public string MapWidthLabel => "Map Width";
-    public string MapHeightLabel => "Map Height";
-    public string ForestCoverageLabel => "Forest Coverage";
-    public string LightWoodsLabel => "Light Woods Percentage";
-
-    public int MapWidth
-    {
-        get => _mapWidth;
-        set => SetProperty(ref _mapWidth, value);
-    }
-
-    public int MapHeight
-    {
-        get => _mapHeight;
-        set => SetProperty(ref _mapHeight, value);
-    }
-
-    public int ForestCoverage
-    {
-        get => _forestCoverage;
-        set
-        {
-            SetProperty(ref _forestCoverage, value);
-            NotifyPropertyChanged(nameof(IsLightWoodsEnabled));
-        }
-    }
-
-    public int LightWoodsPercentage
-    {
-        get => _lightWoodsPercentage;
-        set => SetProperty(ref _lightWoodsPercentage, value);
-    }
-
-    public bool IsLightWoodsEnabled => _forestCoverage > 0;
+    public MapConfigViewModel MapConfig { get; }
 
     public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Ready);
     
@@ -193,22 +157,22 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public ICommand StartGameCommand => new AsyncCommand(async () =>
     {
         // 1. Generate Map
-        var map = ForestCoverage == 0
-            ? _mapFactory.GenerateMap(MapWidth, MapHeight, new SingleTerrainGenerator(
-                MapWidth, MapHeight, new ClearTerrain()))
-            : _mapFactory.GenerateMap(MapWidth, MapHeight, new ForestPatchesGenerator(
-                MapWidth, MapHeight,
-                forestCoverage: ForestCoverage / 100.0,
-                lightWoodsProbability: LightWoodsPercentage / 100.0));
-        
+        var map = MapConfig.ForestCoverage == 0
+            ? _mapFactory.GenerateMap(MapConfig.MapWidth, MapConfig.MapHeight, new SingleTerrainGenerator(
+                MapConfig.MapWidth, MapConfig.MapHeight, new ClearTerrain()))
+            : _mapFactory.GenerateMap(MapConfig.MapWidth, MapConfig.MapHeight, new ForestPatchesGenerator(
+                MapConfig.MapWidth, MapConfig.MapHeight,
+                forestCoverage: MapConfig.ForestCoverage / 100.0,
+                lightWoodsProbability: MapConfig.LightWoodsPercentage / 100.0));
+
         // 2. Set BattleMap on GameManager/ServerGame
         // This will automatically propagate to clients via the command system
         _gameManager.SetBattleMap(map);
 
-        // 3. Host Client for local player(s) 
+        // 3. Host Client for local player(s)
         var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
         battleMapViewModel.Game = _localGame;
-        
+
         // Navigate to BattleMap view
         await NavigationService.NavigateToViewModelAsync(battleMapViewModel);
     });

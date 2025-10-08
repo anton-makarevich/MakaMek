@@ -5,31 +5,47 @@
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.MapConfigFragment"
-             x:DataType="viewModels1:StartNewGameViewModel">
-    <StackPanel Classes="verticalSpaced">
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{Binding MapWidthLabel}" Classes="label"/>
-            <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-            <TextBlock Text="{Binding MapWidth, StringFormat='Width: {0} hexes'}" Classes="bodySmall"/>
+             x:DataType="viewModels1:MapConfigViewModel">
+    <Grid ColumnDefinitions="*,Auto">
+        <!-- Configuration Sliders -->
+        <StackPanel Grid.Column="0" Classes="verticalSpaced">
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{Binding MapWidthLabel}" Classes="label"/>
+                <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                <TextBlock Text="{Binding MapWidth, StringFormat='Width: {0} hexes'}" Classes="bodySmall"/>
+            </StackPanel>
+
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{Binding MapHeightLabel}" Classes="label"/>
+                <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                <TextBlock Text="{Binding MapHeight, StringFormat='Height: {0} hexes'}" Classes="bodySmall"/>
+            </StackPanel>
+
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{Binding ForestCoverageLabel}" Classes="label"/>
+                <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" Classes="gameSlider"/>
+                <TextBlock Text="{Binding ForestCoverage, StringFormat='Forest Coverage: {0}%'}" Classes="bodySmall"/>
+            </StackPanel>
+
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{Binding LightWoodsLabel}" Classes="label"/>
+                <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
+                <TextBlock Text="{Binding LightWoodsPercentage, StringFormat='Light Woods: {0}%'}" Classes="bodySmall"/>
+            </StackPanel>
         </StackPanel>
-        
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{Binding MapHeightLabel}" Classes="label"/>
-            <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-            <TextBlock Text="{Binding MapHeight, StringFormat='Height: {0} hexes'}" Classes="bodySmall"/>
-        </StackPanel>
-        
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{Binding ForestCoverageLabel}" Classes="label"/>
-            <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" Classes="gameSlider"/>
-            <TextBlock Text="{Binding ForestCoverage, StringFormat='Forest Coverage: {0}%'}" Classes="bodySmall"/>
-        </StackPanel>
-        
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{Binding LightWoodsLabel}" Classes="label"/>
-            <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
-            <TextBlock Text="{Binding LightWoodsPercentage, StringFormat='Light Woods: {0}%'}" Classes="bodySmall"/>
-        </StackPanel>
-    </StackPanel>
+
+        <!-- Map Preview -->
+        <Border Grid.Column="1"
+                Margin="20,0,0,0"
+                BorderThickness="1"
+                BorderBrush="{StaticResource BorderBrush}"
+                CornerRadius="4"
+                Background="{StaticResource SurfaceBrush}">
+            <Image Source="{Binding PreviewImage}"
+                   Width="300"
+                   Height="300"
+                   Stretch="Uniform"/>
+        </Border>
+    </Grid>
 </UserControl>
 
