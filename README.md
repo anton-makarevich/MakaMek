@@ -6,7 +6,7 @@ A cross-platform implementation of turn-based tabletop tactics BattleTech, built
 
 MakaMek is an open-source tactical combat game featuring giant walking war machines. The game is inspired by another computer implementation of BattleTech called [MegaMek](https://megamek.org/) but focusing on simplicity and accessibility for all players. We aim to keep gameplay simple and prioritize a mobile-first and web-first user experience.
 
-![MakaMek](docs/screenshots/win/251006.png)
+![MakaMek](docs/screenshots/win/251009.png)
 
 ## Features
 - [MVP Product Requirements Document (PRD)](docs/MakaMek-MVP-PRD.md) - Detailed requirements and specifications for the Minimum Viable Product
@@ -20,7 +20,7 @@ MakaMek is an open-source tactical combat game featuring giant walking war machi
 - Critical hits, aimed shots, destruction of units, locations, and components
 - Basic pilots implementation, unconsciousness, piloting skill rolls
 - Heat effects, shutdown, ammo explosion, restart, pilot damage and to hit modifiers
-- Hex map generator with the simplest terrain types (clear, light, and heavy wood) ([MegaMek](https://megamek.org/)'s assets)
+- Hex map generator with the simplest terrain types (clear, light, and heavy wood) ([MegaMek](https://megamek.org/)'s assets) and previewer
 - Cross-platform support (Windows, Linux, macOS, Web, Android, iOS)
 - Prototype UI built with AvaloniaUI
 - Importing mechs defined in MTF format (Level 1 equipment only), 173 mech variants are supported at the moment

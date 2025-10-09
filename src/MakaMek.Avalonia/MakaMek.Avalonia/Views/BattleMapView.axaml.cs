@@ -57,7 +57,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         var directionSelector = DirectionSelector;
         MapCanvas.Children.Clear();
 
-        foreach (var hex in game.BattleMap.GetHexes())
+        foreach (var hex in game.BattleMap?.GetHexes()??[])
         {
             var hexControl = new HexControl(hex, imageService);
             MapCanvas.Children.Add(hexControl);

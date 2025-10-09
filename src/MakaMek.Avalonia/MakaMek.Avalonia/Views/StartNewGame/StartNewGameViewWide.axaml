@@ -30,7 +30,7 @@
             <Grid RowDefinitions="Auto,*,Auto">      
                 <TextBlock Text="Map" Classes="h2" HorizontalAlignment="Center"/>
                 <ScrollViewer Grid.Row="1" >
-                    <fragments:MapConfigFragment Margin="10"/>
+                    <fragments:MapConfigFragment Margin="10" DataContext="{Binding MapConfig}"/>
                 </ScrollViewer>
                 <fragments:NetworkFragment Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10"/>
             </Grid>

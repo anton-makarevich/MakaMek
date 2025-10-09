@@ -3,33 +3,64 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.MapConfigFragment"
-             x:DataType="viewModels1:StartNewGameViewModel">
-    <StackPanel Classes="verticalSpaced">
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{Binding MapWidthLabel}" Classes="label"/>
-            <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-            <TextBlock Text="{Binding MapWidth, StringFormat='Width: {0} hexes'}" Classes="bodySmall"/>
+             x:DataType="viewModels1:MapConfigViewModel">
+    <UserControl.Resources>
+        <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
+    </UserControl.Resources>
+    <UniformGrid
+        VerticalAlignment="Stretch"
+        HorizontalAlignment="Stretch"
+        Rows="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
+                        Path=Bounds.Size, 
+                        Converter={StaticResource AdaptiveGridConverter}, 
+                        ConverterParameter={x:Static converters:GridOrientation.Rows}}"
+        Columns="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
+                        Path=Bounds.Size, 
+                        Converter={StaticResource AdaptiveGridConverter}, 
+                        ConverterParameter={x:Static converters:GridOrientation.Columns}}"
+    >
+        <!-- Configuration Sliders -->
+        <StackPanel Classes="verticalSpaced">
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{Binding MapWidthLabel}" Classes="label"/>
+                <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                <TextBlock Text="{Binding MapWidth, StringFormat='Width: {0} hexes'}" Classes="bodySmall"/>
+            </StackPanel>
+
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{Binding MapHeightLabel}" Classes="label"/>
+                <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                <TextBlock Text="{Binding MapHeight, StringFormat='Height: {0} hexes'}" Classes="bodySmall"/>
+            </StackPanel>
+
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{Binding ForestCoverageLabel}" Classes="label"/>
+                <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" Classes="gameSlider"/>
+                <TextBlock Text="{Binding ForestCoverage, StringFormat='Forest Coverage: {0}%'}" Classes="bodySmall"/>
+            </StackPanel>
+
+            <StackPanel Classes="formGroup">
+                <TextBlock Text="{Binding LightWoodsLabel}" Classes="label"/>
+                <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
+                <TextBlock Text="{Binding LightWoodsPercentage, StringFormat='Light Woods: {0}%'}" Classes="bodySmall"/>
+            </StackPanel>
         </StackPanel>
+
+        <!-- Map Preview -->
+        <Panel
+            VerticalAlignment="Top"
+            Margin="5"
+                >
+                <Image VerticalAlignment="Top" MaxWidth="300" Source="{Binding PreviewImage}"
+                       Stretch="Uniform"/>
+                <ProgressBar
+                    IsVisible="{Binding IsGenerating}"
+                    IsIndeterminate="True"/>
+        </Panel>
         
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{Binding MapHeightLabel}" Classes="label"/>
-            <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-            <TextBlock Text="{Binding MapHeight, StringFormat='Height: {0} hexes'}" Classes="bodySmall"/>
-        </StackPanel>
-        
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{Binding ForestCoverageLabel}" Classes="label"/>
-            <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" Classes="gameSlider"/>
-            <TextBlock Text="{Binding ForestCoverage, StringFormat='Forest Coverage: {0}%'}" Classes="bodySmall"/>
-        </StackPanel>
-        
-        <StackPanel Classes="formGroup">
-            <TextBlock Text="{Binding LightWoodsLabel}" Classes="label"/>
-            <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
-            <TextBlock Text="{Binding LightWoodsPercentage, StringFormat='Light Woods: {0}%'}" Classes="bodySmall"/>
-        </StackPanel>
-    </StackPanel>
+    </UniformGrid>
 </UserControl>
 

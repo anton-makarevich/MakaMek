@@ -21,7 +21,7 @@
             </TabItem>
             <TabItem Header="Map">
                 <ScrollViewer Classes="gameScrollViewer">
-                    <fragments1:MapConfigFragment/>
+                    <fragments1:MapConfigFragment DataContext="{Binding MapConfig}"/>
                 </ScrollViewer>
             </TabItem>
             <TabItem Header="Network" IsVisible="{Binding CanStartLanServer}">

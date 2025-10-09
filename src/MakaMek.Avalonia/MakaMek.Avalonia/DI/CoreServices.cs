@@ -43,6 +43,9 @@ public static class CoreServices
         // Register a hybrid service that routes to the appropriate underlying service
         services.AddSingleton<IImageService, HybridImageService>();
 
+        // Register map preview renderer
+        services.AddSingleton<IMapPreviewRenderer, SkiaMapPreviewRenderer>();
+
         services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
 
         services.AddSingleton<ILocalizationService, FakeLocalizationService>();
