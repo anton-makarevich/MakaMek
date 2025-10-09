@@ -47,19 +47,17 @@
         </StackPanel>
 
         <!-- Map Preview -->
-        <Border
+        <Panel
+            VerticalAlignment="Top"
             Margin="5"
-                BorderThickness="1"
-                BorderBrush="{StaticResource BorderBrush}"
-                CornerRadius="4"
-                Background="{StaticResource SurfaceBrush}">
-            
-                <Image MaxWidth="300" Source="{Binding PreviewImage}"
+                >
+                <Image VerticalAlignment="Top" MaxWidth="300" Source="{Binding PreviewImage}"
                        Stretch="Uniform"/>
-        </Border>
-        <ProgressBar
-            IsVisible="{Binding IsGenerating}"
-                     IsIndeterminate="True"/>
+                <ProgressBar
+                    IsVisible="{Binding IsGenerating}"
+                    IsIndeterminate="True"/>
+        </Panel>
+        
     </UniformGrid>
 </UserControl>
 

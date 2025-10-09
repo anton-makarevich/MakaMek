@@ -1,3 +1,4 @@
+using System;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
@@ -25,68 +26,66 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
     /// </summary>
     /// <param name="map">The battle map to generate a preview for</param>
     /// <param name="previewWidth">Width of the preview in pixels</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>A bitmap containing the rendered map preview</returns>
     public async Task<object?> GeneratePreviewAsync(BattleMap map, int previewWidth = 300, CancellationToken cancellationToken = default)
     {
-        // Calculate scaling to fit the map in the preview area
-        var width = map.Width;
-        var height = map.Height;
-        const double hexWidth = HexCoordinates.HexWidth;
-        const double hexHeight = HexCoordinates.HexHeight;
+        if (previewWidth <= 0) throw new ArgumentOutOfRangeException(nameof(previewWidth));
 
-        // Calculate map bounds in hex units
-        var mapUnitWidth = width * 0.75f; // Convert hex width to units
-        var mapUnitHeight = height + 0.5f; // Convert hex height to units
-        
-        // Calculate scale to fit preview
-        var scale = previewWidth / (mapUnitWidth * hexWidth);
-        var previewHeight = (int)(mapUnitHeight * hexHeight * scale);
-
-        // Calculate dot diameter based on hex width and scale
-        var dotDiameter = (float)(HexCoordinates.HexWidth * scale * 0.95);
-        
-        // Create a Skia surface to draw on
-        var imageInfo = new SKImageInfo(previewWidth, previewHeight);
-        using var surface = SKSurface.Create(imageInfo);
-        var canvas = surface.Canvas;
-
-        // Clear background
-        canvas.Clear(BackgroundColor);
-        
-        // Draw hexes as dots based on map contents
-        for (var q = 1; q <= width; q++)
+        return await Task.Run<object?>(() =>
         {
-            for (var r = 1; r <= height; r++)
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var width = map.Width;
+            var height = map.Height;
+            const double hexWidth = HexCoordinates.HexWidth;
+            const double hexHeight = HexCoordinates.HexHeight;
+
+            // Map bounds in hex units
+            var mapUnitWidth = width * 0.75f;
+            var mapUnitHeight = height + 0.5f;
+
+            // Fit-to-width scale
+            var scale = previewWidth / (mapUnitWidth * hexWidth);
+            var previewHeight = Math.Max(1, (int)(mapUnitHeight * hexHeight * scale));
+
+            // Dot diameter
+            var dotDiameter = (float)(HexCoordinates.HexWidth * scale * 0.95);
+
+            var imageInfo = new SKImageInfo(previewWidth, previewHeight);
+            using var surface = SKSurface.Create(imageInfo);
+            if (surface == null) return null;
+            var canvas = surface.Canvas;
+            canvas.Clear(BackgroundColor);
+
+            using var paint = new SKPaint();
+            paint.IsAntialias = true;
+            paint.Style = SKPaintStyle.Fill;
+
+            for (var q = 1; q <= width; q++)
             {
-                var coordinates = new HexCoordinates(q, r);
-                var hex = map.GetHex(coordinates);
-                if (hex == null) continue;
+                for (var r = 1; r <= height; r++)
+                {
+                    if ((q * height + r) % 64 == 0 && cancellationToken.IsCancellationRequested)
+                        return null;
 
-                // Get terrain color
-                var terrainColor = GetTerrainColor(hex);
+                    var coordinates = new HexCoordinates(q, r);
+                    var hex = map.GetHex(coordinates);
+                    if (hex == null) continue;
 
-                // Calculate position
-                var x = (float)((coordinates.H-hexWidth*0.35) * scale);
-                var y = (float)(coordinates.V * scale);
+                    paint.Color = GetTerrainColor(hex);
 
-                // Draw dot
-                using var paint = new SKPaint();
-                paint.Color = terrainColor;
-                paint.IsAntialias = true;
-                paint.Style = SKPaintStyle.Fill;
-
-                canvas.DrawCircle(x, y, dotDiameter / 2, paint);
+                    var x = (float)((coordinates.H - hexWidth * 0.35) * scale);
+                    var y = (float)(coordinates.V * scale);
+                    canvas.DrawCircle(x, y, dotDiameter / 2, paint);
+                }
             }
-        }
 
-        // Create Avalonia bitmap from Skia image
-        using var image = surface.Snapshot();
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        using var stream = data.AsStream();
-
-        // For now, we'll use Task.Run to avoid blocking the UI thread
-        // In the future, we could make the actual rendering async if needed
-        return await Task.Run(() => new Bitmap(stream), cancellationToken);
+            using var image = surface.Snapshot();
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            using var stream = data.AsStream();
+            return new Bitmap(stream);
+        }, cancellationToken);
     }
 
     private static SKColor GetTerrainColor(Hex hex)

@@ -32,7 +32,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
         // Subscribe with debounce
         _previewSubscription = _mapParametersChanged
-            .Throttle(TimeSpan.FromMicroseconds(500))
+            .Throttle(TimeSpan.FromMilliseconds(300))
             .Subscribe( (mapParameterChange) =>
             {
                 _ =UpdateMapAsync();
