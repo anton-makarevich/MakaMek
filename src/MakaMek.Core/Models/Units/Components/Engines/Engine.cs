@@ -20,7 +20,7 @@ public class Engine : Component
 
     private static int GetNumberOfHeatSinks(int rating)
     {
-        return (int)Math.Floor((double) rating / 25);
+        return rating / 25;
     }
 
     /// <summary>
