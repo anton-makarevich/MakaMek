@@ -110,7 +110,9 @@ public class MapConfigViewModel : BindableBase, IDisposable
         Map = _mapFactory.GenerateMap(MapWidth, MapHeight, generator);
 
         // Update preview image based on the generated map
+        var oldPreview = _previewImage as IDisposable;
         PreviewImage = _previewRenderer.GeneratePreview(Map);
+        oldPreview?.Dispose();
     }
 
     public void Dispose()
