@@ -112,7 +112,6 @@ public class MapConfigViewModelTests
         // Assert - initial preview should be generated
         _previewRenderer.Received(1).GeneratePreview(
             Arg.Any<BattleMap>(),
-            Arg.Any<int>(),
             Arg.Any<int>());
     }
 
@@ -123,7 +122,6 @@ public class MapConfigViewModelTests
         var mockImage = new object();
         _previewRenderer.GeneratePreview(
             Arg.Any<BattleMap>(),
-            Arg.Any<int>(),
             Arg.Any<int>()).Returns(mockImage);
 
         // Act
