@@ -7,8 +7,7 @@ namespace Sanet.MakaMek.Core.Data.Units.Components;
 /// </summary>
 public record EngineDefinition(
     EngineType Type,
-    int Rating,
-    int NumberOfHeatSinks = 10)
+    int Rating)
     : ComponentDefinition(
         Name: $"{Type} Engine",
         Size: GetEngineSize(Type),

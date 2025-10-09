@@ -234,7 +234,7 @@ public class MechTests
         var dissipation = mech.HeatDissipation;
 
         // Assert
-        dissipation.ShouldBe(12, "2 heat sinks + 10 engine HS");
+        dissipation.ShouldBe(6, "2 heat sinks + 4 engine HS");
     }
 
     [Fact]
@@ -1265,14 +1265,6 @@ public class MechTests
         // Assert
         result.ShouldBeTrue();
         upperLegActuators.ShouldAllBe(actuator => actuator.IsDestroyed);
-    }
-
-    [Fact]
-    public void EngineHeatSinks_ShouldBeTen()
-    {
-        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
-
-        sut.EngineHeatSinks.ShouldBe(10);
     }
 
     [Fact]
