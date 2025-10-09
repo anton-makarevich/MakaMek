@@ -3,12 +3,24 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.MapConfigFragment"
              x:DataType="viewModels1:MapConfigViewModel">
-    <Grid ColumnDefinitions="2*,1*">
+    <UniformGrid
+        VerticalAlignment="Stretch"
+        HorizontalAlignment="Stretch"
+        Rows="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
+                        Path=Bounds.Size, 
+                        Converter={StaticResource AdaptiveGridConverter}, 
+                        ConverterParameter={x:Static converters:GridOrientation.Rows}}"
+        Columns="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
+                        Path=Bounds.Size, 
+                        Converter={StaticResource AdaptiveGridConverter}, 
+                        ConverterParameter={x:Static converters:GridOrientation.Columns}}"
+        >
         <!-- Configuration Sliders -->
-        <StackPanel Grid.Column="0" Classes="verticalSpaced">
+        <StackPanel Classes="verticalSpaced">
             <StackPanel Classes="formGroup">
                 <TextBlock Text="{Binding MapWidthLabel}" Classes="label"/>
                 <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
@@ -35,19 +47,19 @@
         </StackPanel>
 
         <!-- Map Preview -->
-        <Border Grid.Column="1"
-                Margin="5"
+        <Border
+            Margin="5"
                 BorderThickness="1"
                 BorderBrush="{StaticResource BorderBrush}"
                 CornerRadius="4"
                 Background="{StaticResource SurfaceBrush}">
             
-                <Image Source="{Binding PreviewImage}"
+                <Image MaxWidth="300" Source="{Binding PreviewImage}"
                        Stretch="Uniform"/>
         </Border>
-        <ProgressBar Grid.Column="1"
-                     IsVisible="{Binding IsGenerating}"
+        <ProgressBar
+            IsVisible="{Binding IsGenerating}"
                      IsIndeterminate="True"/>
-    </Grid>
+    </UniformGrid>
 </UserControl>
 
