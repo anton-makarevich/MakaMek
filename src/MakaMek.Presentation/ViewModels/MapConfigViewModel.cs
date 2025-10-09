@@ -1,4 +1,4 @@
-﻿using System.Reactive.Linq;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
@@ -19,6 +19,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     private int _forestCoverage = 20;
     private int _lightWoodsPercentage = 30;
     private object? _previewImage;
+    private bool _isGenerating;
     private readonly IMapPreviewRenderer _previewRenderer;
     private readonly IBattleMapFactory _mapFactory;
     private readonly IDisposable? _previewSubscription;
@@ -31,7 +32,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
         // Subscribe with 3-second debounce
         _previewSubscription = _mapParametersChanged
-            .Throttle(TimeSpan.FromSeconds(3))
+            .Throttle(TimeSpan.FromSeconds(1))
             .Subscribe(_ => UpdateMap());
 
         // Generate initial map and preview
@@ -50,8 +51,14 @@ public class MapConfigViewModel : BindableBase, IDisposable
         set
         {
             SetProperty(ref _mapWidth, value);
-            _mapParametersChanged.OnNext(MapParameterChange.Instance);
+            StartMapUpdate();
         }
+    }
+
+    private void StartMapUpdate()
+    {
+        IsGenerating = true;
+        _mapParametersChanged.OnNext(MapParameterChange.Instance);
     }
 
     public int MapHeight
@@ -60,7 +67,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         set
         {
             SetProperty(ref _mapHeight, value);
-            _mapParametersChanged.OnNext(MapParameterChange.Instance);
+            StartMapUpdate();
         }
     }
 
@@ -71,7 +78,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         {
             SetProperty(ref _forestCoverage, value);
             NotifyPropertyChanged(nameof(IsLightWoodsEnabled));
-            _mapParametersChanged.OnNext(MapParameterChange.Instance);
+            StartMapUpdate();
         }
     }
 
@@ -81,7 +88,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         set
         {
             SetProperty(ref _lightWoodsPercentage, value);
-            _mapParametersChanged.OnNext(MapParameterChange.Instance);
+            StartMapUpdate();
         }
     }
 
@@ -96,23 +103,36 @@ public class MapConfigViewModel : BindableBase, IDisposable
         private set => SetProperty(ref _previewImage, value);
     }
 
+    public bool IsGenerating
+    {
+        get => _isGenerating;
+        private set => SetProperty(ref _isGenerating, value);
+    }
+
     // Renamed and repurposed: now generates the actual BattleMap and optionally updates the preview
     private void UpdateMap()
     {
-        ITerrainGenerator generator = ForestCoverage == 0
-            ? new SingleTerrainGenerator(MapWidth, MapHeight, new ClearTerrain())
-            : new ForestPatchesGenerator(
-                MapWidth,
-                MapHeight,
-                forestCoverage: ForestCoverage / 100.0,
-                lightWoodsProbability: LightWoodsPercentage / 100.0);
+        try
+        {
+            ITerrainGenerator generator = ForestCoverage == 0
+                ? new SingleTerrainGenerator(MapWidth, MapHeight, new ClearTerrain())
+                : new ForestPatchesGenerator(
+                    MapWidth,
+                    MapHeight,
+                    forestCoverage: ForestCoverage / 100.0,
+                    lightWoodsProbability: LightWoodsPercentage / 100.0);
 
-        Map = _mapFactory.GenerateMap(MapWidth, MapHeight, generator);
+            Map = _mapFactory.GenerateMap(MapWidth, MapHeight, generator);
 
-        // Update preview image based on the generated map
-        var oldPreview = _previewImage as IDisposable;
-        PreviewImage = _previewRenderer.GeneratePreview(Map);
-        oldPreview?.Dispose();
+            // Update preview image based on the generated map
+            var oldPreview = _previewImage as IDisposable;
+            PreviewImage = _previewRenderer.GeneratePreview(Map);
+            oldPreview?.Dispose();
+        }
+        finally
+        {
+            IsGenerating = false;
+        }
     }
 
     public void Dispose()
