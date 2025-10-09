@@ -149,5 +149,34 @@ public class MapConfigViewModelTests
         // Assert
         sut.PreviewImage.ShouldBe(mockImage);
     }
+
+    [Fact]
+    public async Task MapHeight_Changed_GeneratesNewPreview()
+    {
+        // Arrange
+        var mockImage1 = new object();
+        var mockImage2 = new object();
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(
+            Task.FromResult<object?>(mockImage1),
+            Task.FromResult<object?>(mockImage2));
+
+        // Act
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
+        await Task.Delay(100);
+        sut.PreviewImage.ShouldBe(mockImage1);
+        sut.MapHeight = 20;
+        sut.IsGenerating.ShouldBeTrue();
+        sut.PreviewImage.ShouldBe(mockImage1);
+
+        // Wait for delay to complete
+        await Task.Delay(400);
+
+        // Assert
+        sut.PreviewImage.ShouldBe(mockImage2);
+        sut.IsGenerating.ShouldBeFalse();
+    }
 }
 
