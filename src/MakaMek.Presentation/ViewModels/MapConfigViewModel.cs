@@ -143,6 +143,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
     public void Dispose()
     {
+        (_previewImage as IDisposable)?.Dispose();
         _previewSubscription?.Dispose();
         _mapParametersChanged.Dispose();
         GC.SuppressFinalize(this);
