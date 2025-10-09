@@ -1,4 +1,4 @@
-﻿namespace Sanet.MakaMek.Core.Services;
+namespace Sanet.MakaMek.Core.Services;
 
 using Models.Map;
 
@@ -13,8 +13,9 @@ public interface IMapPreviewRenderer
     /// <param name="map">The battle map instance to render.</param>
     /// <param name="previewWidth">Width of the preview image in pixels</param>
     /// <returns>Preview image as a platform-specific object (e.g., Bitmap for Avalonia)</returns>
-    object? GeneratePreview(
+    Task<object?> GeneratePreviewAsync(
         BattleMap map,
-        int previewWidth = 300);
+        int previewWidth = 300, 
+        CancellationToken cancellationToken = default);
 }
 

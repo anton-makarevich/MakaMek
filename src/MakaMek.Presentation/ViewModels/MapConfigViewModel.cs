@@ -30,13 +30,16 @@ public class MapConfigViewModel : BindableBase, IDisposable
         _previewRenderer = previewRenderer;
         _mapFactory = mapFactory;
 
-        // Subscribe with 3-second debounce
+        // Subscribe with debounce
         _previewSubscription = _mapParametersChanged
-            .Throttle(TimeSpan.FromSeconds(1))
-            .Subscribe(_ => UpdateMap());
+            .Throttle(TimeSpan.FromMicroseconds(500))
+            .Subscribe( (mapParameterChange) =>
+            {
+                _ =UpdateMapAsync();
+            });
 
         // Generate initial map and preview
-        UpdateMap();
+        _ = UpdateMapAsync();
 
     }
 
@@ -110,7 +113,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     }
 
     // Renamed and repurposed: now generates the actual BattleMap and optionally updates the preview
-    private void UpdateMap()
+    private async Task UpdateMapAsync()
     {
         try
         {
@@ -126,8 +129,11 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
             // Update preview image based on the generated map
             var oldPreview = _previewImage as IDisposable;
-            PreviewImage = _previewRenderer.GeneratePreview(Map);
-            oldPreview?.Dispose();
+            if (Map != null)
+            {
+                PreviewImage = await _previewRenderer.GeneratePreviewAsync(Map);
+                oldPreview?.Dispose();
+            }
         }
         finally
         {

@@ -4,6 +4,8 @@ using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
 using SkiaSharp;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Sanet.MakaMek.Avalonia.Services;
 
@@ -24,7 +26,7 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
     /// <param name="map">The battle map to generate a preview for</param>
     /// <param name="previewWidth">Width of the preview in pixels</param>
     /// <returns>A bitmap containing the rendered map preview</returns>
-    public object GeneratePreview(BattleMap map, int previewWidth = 300)
+    public async Task<object?> GeneratePreviewAsync(BattleMap map, int previewWidth = 300, CancellationToken cancellationToken = default)
     {
         // Calculate scaling to fit the map in the preview area
         var width = map.Width;
@@ -82,7 +84,9 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         using var stream = data.AsStream();
 
-        return new Bitmap(stream);
+        // For now, we'll use Task.Run to avoid blocking the UI thread
+        // In the future, we could make the actual rendering async if needed
+        return await Task.Run(() => new Bitmap(stream), cancellationToken);
     }
 
     private static SKColor GetTerrainColor(Hex hex)

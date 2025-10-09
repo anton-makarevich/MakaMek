@@ -1,4 +1,4 @@
-﻿using NSubstitute;
+using NSubstitute;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
@@ -107,25 +107,44 @@ public class MapConfigViewModelTests
     }
 
     [Fact]
-    public void Constructor_GeneratesInitialPreview()
+    public async Task Constructor_GeneratesInitialPreview()
     {
-        // Assert - initial preview should be generated
-        _previewRenderer.Received(1).GeneratePreview(
+        // Arrange - setup mock to return completed task
+        _previewRenderer.GeneratePreviewAsync(
             Arg.Any<BattleMap>(),
-            Arg.Any<int>());
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
+            
+        // Act - create a new instance
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
+        
+        // Allow any pending async operations to complete
+        await Task.Delay(100);
+
+        // Assert - initial preview should be generated
+        await _previewRenderer.Received().GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>());
+        sut.Map.ShouldNotBeNull();
+        sut.IsGenerating.ShouldBeFalse();
     }
 
     [Fact]
-    public void PreviewImage_IsNotNull_AfterConstruction()
+    public async Task PreviewImage_IsNotNull_AfterConstruction()
     {
         // Arrange
         var mockImage = new object();
-        _previewRenderer.GeneratePreview(
+        _previewRenderer.GeneratePreviewAsync(
             Arg.Any<BattleMap>(),
-            Arg.Any<int>()).Returns(mockImage);
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));
 
         // Act
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
+        
+        // Allow any pending async operations to complete
+        await Task.Delay(100);
 
         // Assert
         sut.PreviewImage.ShouldBe(mockImage);
