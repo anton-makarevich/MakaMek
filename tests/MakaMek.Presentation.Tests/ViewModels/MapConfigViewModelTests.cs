@@ -119,7 +119,13 @@ public class MapConfigViewModelTests
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
         
         // Allow any pending async operations to complete
-        await Task.Delay(100);
+        var i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 10) throw new TimeoutException("Preview generation timed out");
+        }
 
         // Assert - initial preview should be generated
         await _previewRenderer.Received().GeneratePreviewAsync(
@@ -154,8 +160,8 @@ public class MapConfigViewModelTests
     public async Task MapHeight_Changed_GeneratesNewPreview()
     {
         // Arrange
-        var mockImage1 = new object();
-        var mockImage2 = new object();
+        var mockImage1 = Substitute.For<IDisposable>();
+        var mockImage2 = Substitute.For<IDisposable>();
         _previewRenderer.GeneratePreviewAsync(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
@@ -165,17 +171,55 @@ public class MapConfigViewModelTests
 
         // Act
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
-        await Task.Delay(100);
+        var i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 10) throw new TimeoutException("Preview generation timed out");
+        }
         sut.PreviewImage.ShouldBe(mockImage1);
         sut.MapHeight = 20;
         sut.IsGenerating.ShouldBeTrue();
         sut.PreviewImage.ShouldBe(mockImage1);
 
         // Wait for delay to complete
-        await Task.Delay(400);
+        i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 100) throw new TimeoutException("Preview generation timed out");
+        }
 
         // Assert
         sut.PreviewImage.ShouldBe(mockImage2);
+        sut.IsGenerating.ShouldBeFalse();
+        mockImage1.Received().Dispose();
+    }
+
+    [Fact]
+    public async Task PreviewImage_RemainsNull_WhenGeneratePreviewReturnsNull()
+    {
+        // Arrange
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(null));
+
+        // Act
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
+        var i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 100) throw new TimeoutException("Preview generation timed out");
+        }
+
+        // Assert
+        sut.PreviewImage.ShouldBeNull();
+        sut.Map.ShouldNotBeNull();
         sut.IsGenerating.ShouldBeFalse();
     }
 }
