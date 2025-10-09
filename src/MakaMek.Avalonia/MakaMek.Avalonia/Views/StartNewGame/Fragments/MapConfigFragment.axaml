@@ -7,6 +7,9 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments.MapConfigFragment"
              x:DataType="viewModels1:MapConfigViewModel">
+    <UserControl.Resources>
+        <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
+    </UserControl.Resources>
     <UniformGrid
         VerticalAlignment="Stretch"
         HorizontalAlignment="Stretch"
@@ -18,7 +21,7 @@
                         Path=Bounds.Size, 
                         Converter={StaticResource AdaptiveGridConverter}, 
                         ConverterParameter={x:Static converters:GridOrientation.Columns}}"
-        >
+    >
         <!-- Configuration Sliders -->
         <StackPanel Classes="verticalSpaced">
             <StackPanel Classes="formGroup">
