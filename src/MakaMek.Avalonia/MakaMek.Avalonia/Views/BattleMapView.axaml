@@ -152,13 +152,15 @@
             <templatedControls:ActionButton
                 IsVisible="{Binding IsRecordSheetButtonVisible}"
                 Command="{Binding ToggleRecordSheet}"
-                IconData="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1v5h5v10H6V3h7z"/>
+                ToolTip.Tip="Unit Info"
+                IconData="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"/>
 
             <!-- Command Log Button -->
             <templatedControls:ActionButton
                 IsVisible="{Binding !IsCommandLogExpanded}"
                 Command="{Binding ToggleCommandLog}"
-                IconData="M8 14v-4m4 4v-4m4 4v-4M3 21h18V7H3v14zM3 7V5a2 2 0 012-2h14a2 2 0 012 2v2H3z"/>
+                ToolTip.Tip="Commands"
+                IconData="M232 96l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l80 0c13.3 0 24 10.7 24 24s-10.7 24-24 24zm0 48c37.1 0 67.6-28 71.6-64L320 80c8.8 0 16 7.2 16 16l0 352c0 8.8-7.2 16-16 16L64 464c-8.8 0-16-7.2-16-16L48 96c0-8.8 7.2-16 16-16l16.4 0c4 36 34.5 64 71.6 64l80 0zM291.9 32C279 12.7 257 0 232 0L152 0c-25 0-47 12.7-59.9 32L64 32C28.7 32 0 60.7 0 96L0 448c0 35.3 28.7 64 64 64l256 0c35.3 0 64-28.7 64-64l0-352c0-35.3-28.7-64-64-64l-28.1 0z"/>
         </StackPanel>
 
         <!-- Player Action Button -->
