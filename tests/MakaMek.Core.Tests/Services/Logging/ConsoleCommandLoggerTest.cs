@@ -83,7 +83,7 @@ public class ConsoleCommandLoggerTest
         using var stringWriter = new StringWriter();
         Console.SetOut(stringWriter);
         
-        _command.Render(_localizationService, _game).Returns(x => throw new Exception("Render failed"));
+        _command.Render(_localizationService, _game).Returns(_ => throw new Exception("Render failed"));
         _command.GameOriginId.Returns(_gameId);
         
         try

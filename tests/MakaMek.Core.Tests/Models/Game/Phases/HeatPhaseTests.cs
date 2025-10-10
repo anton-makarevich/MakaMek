@@ -515,7 +515,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
             Arg.Is<HeatUpdatedCommand>(cmd => 
                 cmd.UnitId == _unit1Id && 
                 cmd.HeatData.DissipationData.HeatSinks == _unit1.GetAllComponents<HeatSink>().Count() &&
-                cmd.HeatData.DissipationData.EngineHeatSinks == 10 &&
+                cmd.HeatData.DissipationData.EngineHeatSinks == 4 &&
                 cmd.HeatData.DissipationData.DissipationPoints > 0));
     }
 

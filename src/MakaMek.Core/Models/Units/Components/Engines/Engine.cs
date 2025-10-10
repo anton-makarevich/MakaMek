@@ -15,6 +15,12 @@ public class Engine : Component
         Name = $"{Type} Engine {engineState.Rating}";
         Rating = engineState.Rating;
         Type = engineState.Type;
+        NumberOfHeatSinks = GetNumberOfHeatSinks(Rating);
+    }
+
+    private static int GetNumberOfHeatSinks(int rating)
+    {
+        return rating / 25;
     }
 
     /// <summary>
@@ -31,7 +37,7 @@ public class Engine : Component
             _ => null
         };
 
-    public int NumberOfHeatSinks => ((EngineDefinition)_definition).NumberOfHeatSinks;
+    public int NumberOfHeatSinks { get; }
 
     protected override ComponentSpecificData GetSpecificData()
     {

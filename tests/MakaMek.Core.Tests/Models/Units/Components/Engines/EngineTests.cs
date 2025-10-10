@@ -7,7 +7,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Engines;
 
 public class EngineTests
 {
-    private readonly ComponentData _engineData = new ComponentData
+    private readonly ComponentData _engineData = new()
     {
         Type = MakaMekComponent.Engine,
         Assignments =
@@ -31,7 +31,7 @@ public class EngineTests
         sut.ComponentType.ShouldBe(MakaMekComponent.Engine);
         sut.IsRemovable.ShouldBeTrue();
         sut.HealthPoints.ShouldBe(3);
-        sut.NumberOfHeatSinks.ShouldBe(10);
+        sut.NumberOfHeatSinks.ShouldBe(4);
     }
 
     [Fact]
@@ -147,5 +147,24 @@ public class EngineTests
         };
         var sut = new Engine(data);
         sut.Manufacturer.ShouldBe("Unknown");
+    }
+    [Theory]
+    [InlineData(30, 1)]
+    [InlineData(45, 1)]
+    [InlineData(50, 2)]
+    [InlineData(100, 4)]
+    [InlineData(240, 9)]
+    [InlineData(250, 10)]
+    
+    public void NumberOfHeatSinks_ShouldBeCorrect_BasedOnRating(int rating, int expectedNumberOfHeatSinks)
+    {
+        var sut = new Engine(new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            SpecificData = new EngineStateData(EngineType.Fusion, rating),
+            Assignments = []
+        });
+
+        sut.NumberOfHeatSinks.ShouldBe(expectedNumberOfHeatSinks);
     }
 }
