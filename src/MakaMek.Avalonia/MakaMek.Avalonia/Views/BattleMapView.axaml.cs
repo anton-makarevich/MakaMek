@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Avalonia.Controls;
@@ -262,5 +263,14 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             _weaponAttackControls.Add(control);
             MapCanvas.Children.Add(control);
         }
+    }
+
+    private void CenterMap(object? sender, RoutedEventArgs e)
+    {
+        _mapTranslateTransform.X = 0;
+        _mapTranslateTransform.Y = 0;
+        _mapScaleTransform.ScaleX = 1;
+        _mapScaleTransform.ScaleY = 1;
+        MapCanvas.RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
     }
 }
