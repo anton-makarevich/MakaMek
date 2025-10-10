@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Avalonia.Controls;
@@ -26,6 +27,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private const double ScaleStep = 0.1;
     private const int SelectionThresholdMilliseconds = 250; // Time to distinguish selection vs pan
     private bool _isManipulating;
+    private bool _isZooming;
     private bool _isPressed;
     private CancellationTokenSource _manipulationTokenSource;
     private List<UnitControl>? _unitControls;
@@ -51,6 +53,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         var pinchGestureRecognizer = new PinchGestureRecognizer();
         MapCanvas.GestureRecognizers.Add(pinchGestureRecognizer);
         MapCanvas.AddHandler(Gestures.PinchEvent, OnPinchChanged);
+        MapCanvas.AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
     }
 
     private void RenderMap(IGame game, IImageService<Bitmap> imageService)
@@ -89,6 +92,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (_isZooming) return;
         _lastPointerPosition = e.GetPosition(this);
         
         _isManipulating = false; // Reset manipulation flag
@@ -156,6 +160,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
+        if (_isZooming) return;
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         var position = e.GetPosition(this);
         var delta = position - _lastPointerPosition;
@@ -168,18 +173,32 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         var delta = e.Delta.Y * ScaleStep;
-        var newScale = _mapScaleTransform.ScaleX + delta;
-
-        if (!(newScale >= MinScale) || !(newScale <= MaxScale)) return;
-        _mapScaleTransform.ScaleX = newScale;
-        _mapScaleTransform.ScaleY = newScale;
+        ApplyZoom(1 + delta, e.GetPosition(MapCanvas));
     }
     
     private void OnPinchChanged(object? sender, PinchEventArgs e)
     {
-        var newScale = _mapScaleTransform.ScaleX * e.Scale;
-
-        if (!(newScale >= MinScale) || !(newScale <= MaxScale)) return;
+        _isManipulating = true;
+        _isZooming = true;
+        ApplyZoom(e.Scale, e.ScaleOrigin);
+    }
+    
+    private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
+    {
+        _isManipulating = false;
+        _isZooming = false;
+        MapCanvas.RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
+    }
+    
+    private void ApplyZoom(double scaleFactor, Point origin)
+    {
+        if (origin.X < 0 || origin.Y < 0) return;
+        if (origin.X > MapCanvas.Width || origin.Y > MapCanvas.Height) return;
+        
+        var newScale = _mapScaleTransform.ScaleX * scaleFactor;
+        if (newScale < MinScale || newScale > MaxScale) return;
+    
+        MapCanvas.RenderTransformOrigin = new RelativePoint(origin, RelativeUnit.Absolute);
         _mapScaleTransform.ScaleX = newScale;
         _mapScaleTransform.ScaleY = newScale;
     }
@@ -244,5 +263,14 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             _weaponAttackControls.Add(control);
             MapCanvas.Children.Add(control);
         }
+    }
+
+    private void CenterMap(object? sender, RoutedEventArgs e)
+    {
+        _mapTranslateTransform.X = 0;
+        _mapTranslateTransform.Y = 0;
+        _mapScaleTransform.ScaleX = 1;
+        _mapScaleTransform.ScaleY = 1;
+        MapCanvas.RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
     }
 }
