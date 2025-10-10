@@ -51,6 +51,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         var pinchGestureRecognizer = new PinchGestureRecognizer();
         MapCanvas.GestureRecognizers.Add(pinchGestureRecognizer);
         MapCanvas.AddHandler(Gestures.PinchEvent, OnPinchChanged);
+        MapCanvas.AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
     }
 
     private void RenderMap(IGame game, IImageService<Bitmap> imageService)
@@ -171,17 +172,30 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         var newScale = _mapScaleTransform.ScaleX + delta;
 
         if (!(newScale >= MinScale) || !(newScale <= MaxScale)) return;
+
+        var position = e.GetPosition(MapCanvas);
+        MapCanvas.RenderTransformOrigin = new RelativePoint(position, RelativeUnit.Absolute);
+        
         _mapScaleTransform.ScaleX = newScale;
         _mapScaleTransform.ScaleY = newScale;
     }
     
     private void OnPinchChanged(object? sender, PinchEventArgs e)
     {
+        _isManipulating = true;
         var newScale = _mapScaleTransform.ScaleX * e.Scale;
 
         if (!(newScale >= MinScale) || !(newScale <= MaxScale)) return;
+
+        MapCanvas.RenderTransformOrigin = new RelativePoint(e.ScaleOrigin, RelativeUnit.Absolute);
+        
         _mapScaleTransform.ScaleX = newScale;
         _mapScaleTransform.ScaleY = newScale;
+    }
+    
+    private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
+    {
+        _isManipulating = false;
     }
 
     protected override void OnViewModelSet()
