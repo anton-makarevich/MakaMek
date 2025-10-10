@@ -225,8 +225,8 @@
             IsVisible="{Binding IsCommandLogExpanded}"
             Title="Command Log"
             CloseCommand="{Binding ToggleCommandLog}">
-            <ScrollViewer Grid.Row="1" 
-                          MaxHeight="360">
+            <ScrollViewer
+                MaxHeight="360">
                 <Interaction.Behaviors>
                     <behaviors:AutoScrollBehavior />
                 </Interaction.Behaviors>
