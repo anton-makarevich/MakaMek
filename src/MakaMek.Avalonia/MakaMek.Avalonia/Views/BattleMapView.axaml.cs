@@ -26,6 +26,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private const double ScaleStep = 0.1;
     private const int SelectionThresholdMilliseconds = 250; // Time to distinguish selection vs pan
     private bool _isManipulating;
+    private bool _isZooming;
     private bool _isPressed;
     private CancellationTokenSource _manipulationTokenSource;
     private List<UnitControl>? _unitControls;
@@ -90,6 +91,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (_isZooming) return;
         _lastPointerPosition = e.GetPosition(this);
         
         _isManipulating = false; // Reset manipulation flag
@@ -157,6 +159,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
+        if (_isZooming) return;
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         var position = e.GetPosition(this);
         var delta = position - _lastPointerPosition;
@@ -175,18 +178,24 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private void OnPinchChanged(object? sender, PinchEventArgs e)
     {
         _isManipulating = true;
+        _isZooming = true;
         ApplyZoom(e.Scale, e.ScaleOrigin);
     }
     
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
         _isManipulating = false;
+        _isZooming = false;
+        MapCanvas.RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
     }
     
     private void ApplyZoom(double scaleFactor, Point origin)
     {
+        if (origin.X < 0 || origin.Y < 0) return;
+        if (origin.X > MapCanvas.Width || origin.Y > MapCanvas.Height) return;
+        
         var newScale = _mapScaleTransform.ScaleX * scaleFactor;
-        if (!(newScale >= MinScale) || !(newScale <= MaxScale)) return;
+        if (newScale < MinScale || newScale > MaxScale) return;
     
         MapCanvas.RenderTransformOrigin = new RelativePoint(origin, RelativeUnit.Absolute);
         _mapScaleTransform.ScaleX = newScale;
