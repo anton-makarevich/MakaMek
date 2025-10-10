@@ -169,33 +169,28 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         var delta = e.Delta.Y * ScaleStep;
-        var newScale = _mapScaleTransform.ScaleX + delta;
-
-        if (!(newScale >= MinScale) || !(newScale <= MaxScale)) return;
-
-        var position = e.GetPosition(MapCanvas);
-        MapCanvas.RenderTransformOrigin = new RelativePoint(position, RelativeUnit.Absolute);
-        
-        _mapScaleTransform.ScaleX = newScale;
-        _mapScaleTransform.ScaleY = newScale;
+        ApplyZoom(1 + delta, e.GetPosition(MapCanvas));
     }
     
     private void OnPinchChanged(object? sender, PinchEventArgs e)
     {
         _isManipulating = true;
-        var newScale = _mapScaleTransform.ScaleX * e.Scale;
-
-        if (!(newScale >= MinScale) || !(newScale <= MaxScale)) return;
-
-        MapCanvas.RenderTransformOrigin = new RelativePoint(e.ScaleOrigin, RelativeUnit.Absolute);
-        
-        _mapScaleTransform.ScaleX = newScale;
-        _mapScaleTransform.ScaleY = newScale;
+        ApplyZoom(e.Scale, e.ScaleOrigin);
     }
     
     private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
     {
         _isManipulating = false;
+    }
+    
+    private void ApplyZoom(double scaleFactor, Point origin)
+    {
+        var newScale = _mapScaleTransform.ScaleX * scaleFactor;
+        if (!(newScale >= MinScale) || !(newScale <= MaxScale)) return;
+    
+        MapCanvas.RenderTransformOrigin = new RelativePoint(origin, RelativeUnit.Absolute);
+        _mapScaleTransform.ScaleX = newScale;
+        _mapScaleTransform.ScaleY = newScale;
     }
 
     protected override void OnViewModelSet()
