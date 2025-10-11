@@ -477,7 +477,7 @@ public class BattleMapViewModelTests
     public void IsRecordSheetButtonVisible_HasSelectedUnitButExpanded_ReturnsFalse()
     {
         // Arrange
-        var unit = new Mech("Mech", "MK1",20,6,[]);
+        var unit = new Mech("Mech", "MK1",20,[]);
         _sut.SelectedUnit = unit;
         _sut.IsRecordSheetExpanded = true;
 
@@ -489,7 +489,7 @@ public class BattleMapViewModelTests
     public void IsRecordSheetButtonVisible_HasSelectedUnitNotExpanded_ReturnsTrue()
     {
         // Arrange
-        var unit = new Mech("Mech", "MK1",20,6,[]);
+        var unit = new Mech("Mech", "MK1",20, []);
         _sut.SelectedUnit = unit;
         _sut.IsRecordSheetExpanded = false;
 
@@ -501,7 +501,7 @@ public class BattleMapViewModelTests
     public void IsRecordSheetPanelVisible_HasSelectedUnitButExpanded_ReturnsTrue()
     {
         // Arrange
-        var unit = new Mech("Mech", "MK1",20,6,[]);
+        var unit = new Mech("Mech", "MK1",20, []);
         _sut.SelectedUnit = unit;
         _sut.IsRecordSheetExpanded = true;
 
@@ -513,7 +513,7 @@ public class BattleMapViewModelTests
     public void IsRecordSheetPanelVisible_HasSelectedUnitNotExpanded_ReturnsFalse()
     {
         // Arrange
-        var unit = new Mech("Mech", "MK1",20,6,[]);
+        var unit = new Mech("Mech", "MK1",20, []);
         _sut.SelectedUnit = unit;
         _sut.IsRecordSheetExpanded = false;
 
@@ -1837,7 +1837,7 @@ public class BattleMapViewModelTests
     public void ShowAimedShotLocationSelector_SetsUnitPartSelectorAndVisibility()
     {
         // Arrange
-        var target = new Mech("Test Mech", "TM-1", 20, 6, []);
+        var target = new Mech("Test Mech", "TM-1", 20, []);
         var headBreakdown = CreateTestBreakdown(8);
         var otherBreakdown = CreateTestBreakdown(5);
         var aimedShotSelector = new AimedShotLocationSelectorViewModel(
@@ -1855,7 +1855,7 @@ public class BattleMapViewModelTests
     public void HideAimedShotLocationSelector_ClearsUnitPartSelectorAndVisibility()
     {
         // Arrange
-        var target = new Mech("Test Mech", "TM-1", 20, 6, []);
+        var target = new Mech("Test Mech", "TM-1", 20, []);
         var headBreakdown = CreateTestBreakdown(8);
         var otherBreakdown = CreateTestBreakdown(5);
         var aimedShotSelector = new AimedShotLocationSelectorViewModel(
@@ -1874,7 +1874,7 @@ public class BattleMapViewModelTests
     public void HideBodyPartSelectorCommand_ShouldHideAimedShotLocationSelector()
     {
         // Arrange
-        var target = new Mech("Test Mech", "TM-1", 20, 6, []);
+        var target = new Mech("Test Mech", "TM-1", 20, []);
         var headBreakdown = CreateTestBreakdown(8);
         var otherBreakdown = CreateTestBreakdown(5);
         var aimedShotSelector = new AimedShotLocationSelectorViewModel(

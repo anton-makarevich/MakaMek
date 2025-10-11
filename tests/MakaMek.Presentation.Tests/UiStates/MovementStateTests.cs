@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -74,22 +75,30 @@ public class MovementStateTests
         var playerId = Guid.NewGuid();
         
         _pilot.IsConscious.Returns(true);
+        var equipment = new List<ComponentData>
+                {
+                    new()
+                    {
+                        Type = MakaMekComponent.JumpJet,
+                        Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 10, 1)]
+                    },
+                    new()
+                    {
+                        Type = MakaMekComponent.JumpJet,
+                        Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 11, 1)]
+                    },
+                    new()
+                    {
+                        Type = MakaMekComponent.Engine,
+                        Assignments = [
+                            new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
+                            new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
+                        ],
+                        SpecificData = new EngineStateData(EngineType.Fusion, 160)
+                    }
+                };
+        _unitData = MechFactoryTests.CreateDummyMechData(equipment,true);
         
-        var unitData = MechFactoryTests.CreateDummyMechData();
-        var equipment = new List<ComponentData>(unitData.Equipment)
-        {
-            new()
-            {
-                Type = MakaMekComponent.JumpJet,
-                Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 10, 1)]
-            },
-            new()
-            {
-                Type = MakaMekComponent.JumpJet,
-                Assignments = [new LocationSlotAssignment(PartLocation.CenterTorso, 11, 1)]
-            }
-        };
-        _unitData = unitData with { Equipment = equipment };
         var mechFactory = new MechFactory(
             _rulesProvider,
             _componentProvider,
