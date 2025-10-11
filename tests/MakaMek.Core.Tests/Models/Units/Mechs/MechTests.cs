@@ -1275,7 +1275,7 @@ public class MechTests
     public void HeatDissipation_ShouldReduceHeatAndRestoreMovement()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 20, CreateBasicPartsData());
 
         // Set the initial heat to 15 (3 MP penalty)
         sut.ApplyHeat(new HeatData
@@ -1526,7 +1526,7 @@ public class MechTests
     public void AttemptStandup_WhenCalledMultipleTimes_ShouldIncrementCounterCorrectly()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 25, CreateBasicPartsData());
 
         // Act
         mech.AttemptStandup();
@@ -1699,7 +1699,7 @@ public class MechTests
     public void CanChangeFacingWhileProne_WhenMechIsProneButNoMovementPoints_ShouldReturnFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(25));
         sut.SetProne();
 
         // Act & Assert
@@ -1791,7 +1791,7 @@ public class MechTests
     public void GetMovementPoints_WithDestroyedHipActuator_ShouldHalveWalkingMP()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var hipActuator = sut.GetAllComponents<HipActuator>().First();
 
         // Act
@@ -1828,7 +1828,7 @@ public class MechTests
     public void GetMovementPoints_WithDestroyedFootActuator_ShouldReduceWalkingMPByOne()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var footActuator = sut.GetAllComponents<FootActuator>().First();
 
         // Act
@@ -1846,7 +1846,7 @@ public class MechTests
     public void GetMovementPoints_WithDestroyedLowerLegActuator_ShouldReduceWalkingMPByOne()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var lowerLegActuator = sut.GetAllComponents<LowerLegActuator>().First();
 
         // Act
@@ -1864,7 +1864,7 @@ public class MechTests
     public void GetMovementPoints_WithDestroyedUpperLegActuator_ShouldReduceWalkingMPByOne()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var upperLegActuator = sut.GetAllComponents<UpperLegActuator>().First();
 
         // Act
@@ -1882,7 +1882,7 @@ public class MechTests
     public void GetMovementPoints_WithMultipleDestroyedActuators_ShouldStackPenalties()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var footActuator = sut.GetAllComponents<FootActuator>().First();
         var lowerLegActuator = sut.GetAllComponents<LowerLegActuator>().First();
         var upperLegActuator = sut.GetAllComponents<UpperLegActuator>().First();
@@ -1923,7 +1923,7 @@ public class MechTests
         int expectedWalk, int expectedRun)
     {
         // Arrange - Scenario: Destroyed Hip, Destroyed Foot, Heat Level 6 Points
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(baseMp*50));
 
         // Step 1: Apply Hip Actuator Critical Hit (halves walking MP, rounded up)
         var hipActuator = sut.GetAllComponents<HipActuator>().First();
@@ -2295,7 +2295,7 @@ public class MechTests
     public void IsMinimumMovement_ShouldReturnTrue_WhenProneAndOneMovementPointAndNoStandupAttempts()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 100, CreateBasicPartsData());
         sut.SetProne();
         
         // Act

@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
@@ -91,15 +92,29 @@ public class UnitTests
     
     public static TestUnit CreateTestUnit(Guid? id = null, int walkMp = 4)
     {
+        var tonnage = 20;
+        var engineData = new ComponentData
+        {
+            Type = MakaMekComponent.Engine,
+            Assignments =
+            [
+                new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
+                new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
+            ],
+            SpecificData = new EngineStateData(EngineType.Fusion, walkMp*tonnage)
+        };
+        var centerTorso = new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10);
+        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]);
+        
         var parts = new List<UnitPart>
         {
             new TestUnitPart("Head", PartLocation.Head, 9, 3, 6),
-            new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10),
+            centerTorso,
             new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 10),
             new TestUnitPart("Right Arm", PartLocation.RightArm, 10, 5, 10)
         };
 
-        return new TestUnit("Test", "Unit", 20, parts, id);
+        return new TestUnit("Test", "Unit", tonnage, parts, id);
     }
     
     private void MountWeaponOnUnit(TestUnit unit, TestWeapon weapon, PartLocation location, int[] slots)
@@ -1436,7 +1451,7 @@ public class UnitTests
         // Assert
         initialDestroyedStatus.ShouldBeFalse(); // Unit was not destroyed initially
         unit.IsDestroyed.ShouldBeTrue(); // Unit should now be destroyed due to center torso destruction
-        unit.Events.Count.ShouldBe(initialEventCount + 1); // Should have added destruction event
+        unit.Events.Count.ShouldBe(initialEventCount + 2); // Should have added critical hit and destruction events
         unit.Events[^1].Type.ShouldBe(UiEventType.UnitDestroyed);
         unit.Events[^1].Parameters[0].ShouldBe(unit.Name);
     }
