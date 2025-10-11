@@ -2031,6 +2031,16 @@ public class UnitTests
         // Assert
         sut.AvailableWalkingPoints.ShouldBe(0);
     }
+    
+    [Fact]
+    public void BaseMovement_ShouldBeZero_WhenUnitHasNoMass()
+    {
+        // Arrange
+        var sut = new TestUnit("Test", "Unit", 0, []);
+        
+        // Assert
+        sut.AvailableWalkingPoints.ShouldBe(0);
+    }
 
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)

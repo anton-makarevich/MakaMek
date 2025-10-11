@@ -116,6 +116,7 @@ public abstract class Unit
     {
         get
         {
+            if (Tonnage <= 0) return 0;
             var engine = GetComponentsAtLocation<Engine>(PartLocation.CenterTorso).FirstOrDefault();
             if (engine == null) return 0;
             return engine.Rating / Tonnage;
