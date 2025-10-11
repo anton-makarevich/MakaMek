@@ -666,7 +666,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         leftArm.ApplyDamage(10, HitDirection.Front); // Apply enough damage to destroy it
         leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
 
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [leftArm, leftTorso, centerTorso]);
 
         // Configure the rule provider to return LeftArm as the initial hit location
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftArm);
@@ -706,7 +706,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         leftArm.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
         leftTorso.IsDestroyed.ShouldBeTrue(); // Verify it's destroyed
 
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [leftArm, leftTorso, centerTorso]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [leftArm, leftTorso, centerTorso]);
 
         // Configure the rule provider to return LeftArm as the initial hit location
         mockRulesProvider.GetHitLocation(Arg.Any<int>(), HitDirection.Front).Returns(PartLocation.LeftArm);

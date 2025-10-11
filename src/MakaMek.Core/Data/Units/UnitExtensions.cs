@@ -79,7 +79,6 @@ public static class UnitExtensions
             Chassis = unit.Chassis,
             Model = unit.Model,
             Mass = unit.Tonnage,
-            WalkMp = unit.GetMovementPoints(MovementType.Walk),
             EngineRating = engineRating,
             EngineType = engineType,
             ArmorValues = armorValues,

@@ -34,7 +34,7 @@ public class MechTests
             .Returns([]);
     }
 
-    private static List<UnitPart> CreateBasicPartsData()
+    private static List<UnitPart> CreateBasicPartsData(int engineRating = 100)
     {
         var engineData = new ComponentData
         {
@@ -44,10 +44,10 @@ public class MechTests
                 new LocationSlotAssignment(PartLocation.CenterTorso, 0, 3),
                 new LocationSlotAssignment(PartLocation.CenterTorso, 7, 3)
             ],
-            SpecificData = new EngineStateData(EngineType.Fusion, 100)
+            SpecificData = new EngineStateData(EngineType.Fusion, engineRating)
         };
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
-        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]);
+        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]).ShouldBeTrue();
         return
         [
             new Head("Head", 9, 3),
@@ -76,10 +76,10 @@ public class MechTests
     }
 
     [Fact]
-    public void Mech_CanWalkBackwards_BitCannotRun()
+    public void Mech_CanWalkBackwards_ButCannotRun()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Assert
         mech.CanMoveBackward(MovementType.Walk).ShouldBeTrue();
@@ -90,7 +90,7 @@ public class MechTests
     public void Constructor_InitializesAllParts()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Assert
         mech.Parts.Count.ShouldBe(8, "all mech locations should be initialized");
@@ -116,7 +116,7 @@ public class MechTests
     public void GetTransferLocation_ReturnsCorrectLocation(PartLocation from, PartLocation expected)
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act
         var transferLocation = mech.GetTransferLocation(from);
@@ -129,7 +129,7 @@ public class MechTests
     public void Move_ShouldUpdatePosition()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
         mech.Deploy(deployPosition);
@@ -149,7 +149,7 @@ public class MechTests
     public void Move_ShouldNotUpdateDistanceCovered_WhenMovingToSamePosition()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         mech.Deploy(position);
 
@@ -168,7 +168,7 @@ public class MechTests
     public void Move_ShouldKeepPosition_WhenNoPathSegments()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         mech.Deploy(deployPosition);
 
@@ -187,7 +187,7 @@ public class MechTests
     public void Move_ShouldThrowException_WhenNotDeployed()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
     
         // Act
@@ -203,7 +203,7 @@ public class MechTests
     public void ResetTurnState_ShouldResetMovementTracking()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
         mech.Deploy(deployPosition);
@@ -228,7 +228,7 @@ public class MechTests
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
         centerTorso.TryAddComponent(new HeatSink());
         centerTorso.TryAddComponent(new HeatSink());
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
 
         // Act
         var dissipation = mech.HeatDissipation;
@@ -244,7 +244,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
         centerTorso.TryAddComponent(new MediumLaser());
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
 
         // Act
         var bv = mech.CalculateBattleValue();
@@ -257,7 +257,7 @@ public class MechTests
     public void Status_StartsActive()
     {
         // Arrange & Act
-        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         sut.AssignPilot(pilot);
@@ -270,7 +270,7 @@ public class MechTests
     public void Shutdown_ChangesStatusToShutdown()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
 
         // Act
@@ -284,7 +284,7 @@ public class MechTests
     public void Startup_ChangesStatusToActive()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         sut.AssignPilot(pilot);
@@ -302,7 +302,7 @@ public class MechTests
     public void SetProne_AddsProneStatus()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act
         mech.SetProne();
@@ -316,7 +316,7 @@ public class MechTests
     public void StandUp_RemovesProneStatus()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
         mech.SetProne();
 
@@ -344,7 +344,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var torsos = parts.OfType<Torso>().ToList();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts, possibleRotation);
+        var mech = new Mech("Test", "TST-1A", 50, parts, possibleRotation);
         mech.Deploy(new HexPosition(new HexCoordinates(0, 0), unitFacing));
 
         // Act
@@ -362,7 +362,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
         mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
         // Assert
@@ -374,7 +374,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
         mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
         // Act
@@ -392,7 +392,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts, possibleRotation);
+        var mech = new Mech("Test", "TST-1A", 50, parts, possibleRotation);
         mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
         // Act & Assert
@@ -404,7 +404,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
         mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
         // Act
@@ -418,7 +418,7 @@ public class MechTests
     public void Constructor_ShouldSetDefaultPossibleTorsoRotation()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Assert
         mech.PossibleTorsoRotation.ShouldBe(1);
@@ -432,7 +432,7 @@ public class MechTests
     public void Constructor_ShouldSetSpecifiedPossibleTorsoRotation(int rotation)
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData(), rotation);
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(), rotation);
 
         // Assert
         mech.PossibleTorsoRotation.ShouldBe(rotation);
@@ -442,7 +442,7 @@ public class MechTests
     public void Constructor_DoesNotAssignPilot()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Assert
         mech.Pilot.ShouldBeNull();
@@ -452,7 +452,7 @@ public class MechTests
     public void AssignPilot_WithValidPilot_AssignsPilotSuccessfully()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = new MechWarrior("John", "Doe");
 
         // Act
@@ -466,7 +466,7 @@ public class MechTests
     public void AssignPilot_WithValidPilot_SetsBidirectionalRelationship()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = new MechWarrior("John", "Doe");
 
         // Act
@@ -481,8 +481,8 @@ public class MechTests
     public void AssignPilot_WhenPilotAlreadyAssignedToAnotherUnit_ReassignsPilot()
     {
         // Arrange
-        var mech1 = new Mech("Test1", "TST-1A", 50, 4, CreateBasicPartsData());
-        var mech2 = new Mech("Test2", "TST-2A", 60, 4, CreateBasicPartsData());
+        var mech1 = new Mech("Test1", "TST-1A", 50, CreateBasicPartsData());
+        var mech2 = new Mech("Test2", "TST-2A", 60, CreateBasicPartsData());
         var pilot = new MechWarrior("John", "Doe");
 
         // Initially assign pilot to mech1
@@ -501,7 +501,7 @@ public class MechTests
     public void AssignPilot_WhenUnitAlreadyHasPilot_UnassignsPreviousPilot()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot1 = new MechWarrior("John", "Doe");
         var pilot2 = new MechWarrior("Jane", "Smith");
 
@@ -521,7 +521,7 @@ public class MechTests
     public void UnassignPilot_WithAssignedPilot_RemovesBidirectionalRelationship()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = new MechWarrior("John", "Doe");
         mech.AssignPilot(pilot);
 
@@ -537,7 +537,7 @@ public class MechTests
     public void UnassignPilot_WithNoPilot_DoesNotThrow()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act & Assert - should not throw
         mech.UnassignPilot();
@@ -550,7 +550,7 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var torsos = parts.OfType<Torso>().ToList();
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
         mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
 
         // Rotate torsos in a different direction
@@ -576,14 +576,14 @@ public class MechTests
     public void ResetTurnState_ShouldResetWeaponTargets()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var weapon = new MediumLaser();
         // Attach a weapon to a part (e.g., right arm)
         var rightArm = sut.Parts[PartLocation.RightArm];
         rightArm.TryAddComponent(weapon);
         sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight));
         // Set a dummy target
-        var dummyTarget = new Mech("Dummy", "DMY-1A", 50, 4, CreateBasicPartsData());
+        var dummyTarget = new Mech("Dummy", "DMY-1A", 50, CreateBasicPartsData());
         sut.DeclareWeaponAttack([
             new WeaponTargetData
             {
@@ -611,7 +611,7 @@ public class MechTests
     public void GetMovement_ReturnsCorrectMPs(int walkMp, int runMp, int jumpMp)
     {
         // Arrange
-        var parts = CreateBasicPartsData();
+        var parts = CreateBasicPartsData(walkMp*50);
         if (jumpMp > 0)
         {
             var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
@@ -619,7 +619,7 @@ public class MechTests
             centerTorso.TryAddComponent(new JumpJets());
         }
 
-        var mech = new Mech("Test", "TST-1A", 50, walkMp, parts);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
 
         // Act
         var walkingMp = mech.GetMovementPoints(MovementType.Walk);
@@ -648,7 +648,7 @@ public class MechTests
     [InlineData(13, 0)]
     public void GetNumCriticalHits_ReturnsExpected(int roll, int expected)
     {
-        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.GetNumCriticalHits(roll).ShouldBe(expected);
     }
 
@@ -657,7 +657,7 @@ public class MechTests
     {
         // Arrange
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
             part.TryAddComponent(new TestComponent());
         
@@ -690,7 +690,7 @@ public class MechTests
     {
         // Arrange
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
         for (var i = 1; i < 7; i++)
             part.TryAddComponent(new TestComponent());
 
@@ -718,7 +718,7 @@ public class MechTests
     {
         // Arrange
         var part = new Leg("TestLeg", PartLocation.RightLeg, 0, 10);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
 
         _diceRoller.Roll2D6().Returns(
             [new DiceResult(5), new DiceResult(5)] // 10 total for crit roll
@@ -741,7 +741,7 @@ public class MechTests
     {
         // Arrange
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
         for (var i = 1; i < part.TotalSlots; i++)
             part.TryAddComponent(new TestComponent());
 
@@ -775,7 +775,7 @@ public class MechTests
                 component.Hit(); // destroy all components but first
         }
 
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
 
         _diceRoller.Roll2D6().Returns(
             [new(4), new(5)] // 9 total for crit roll
@@ -798,7 +798,7 @@ public class MechTests
         // Arrange
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
         part.CriticalHit(0); // destroy shoulder
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
 
         _diceRoller.Roll2D6().Returns(
             [new(4), new(5)] // 9 total for crit roll
@@ -816,7 +816,7 @@ public class MechTests
     {
         // Arrange
         var part = new Arm("TestArm", PartLocation.RightArm, 0, 10);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
 
         _diceRoller.Roll2D6().Returns(
             [new(6), new(6)] // 12 total for crit roll
@@ -837,7 +837,7 @@ public class MechTests
     {
         // Arrange
         var part = new CenterTorso("TestTorso", 0, 10, 6);
-        var mech = new Mech("TestChassis", "TestModel", 50, 5, [part]);
+        var mech = new Mech("TestChassis", "TestModel", 50, [part]);
 
         _diceRoller.Roll2D6().Returns(
             [new DiceResult(6), new DiceResult(6)] // 12 total for crit roll
@@ -861,7 +861,7 @@ public class MechTests
     public void CalculateCriticalHitsData_ShouldAllowHittingMultiSlotComponent_AfterOneSlotIsHit()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Gyro is in slots 3-6 of center torso
@@ -898,7 +898,7 @@ public class MechTests
     public void HeatShouldAffectMovementPoints(int heat, int baseMovement, int expectedWalkMp, int expectedRunMp)
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, baseMovement, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(baseMovement*50));
 
         // Act
         // Set heat and apply effects
@@ -941,7 +941,7 @@ public class MechTests
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
         leftLeg.TryAddComponent(new JumpJets());
 
-        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.SetProne();
 
         // Act & Assert
@@ -956,7 +956,7 @@ public class MechTests
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
         leftLeg.TryAddComponent(new JumpJets());
 
-        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.AttemptStandup(); // This increments StandupAttempts
 
         // Act & Assert
@@ -968,7 +968,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
 
         // Act & Assert
         sut.CanJump.ShouldBeFalse("Mechs without jump jets should not be able to jump");
@@ -983,7 +983,7 @@ public class MechTests
         var jumpJets = new JumpJets();
         leftLeg.TryAddComponent(jumpJets);
 
-        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
 
         // Destroy the jump jets
         jumpJets.Hit();
@@ -1000,7 +1000,7 @@ public class MechTests
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
         leftLeg.TryAddComponent(new JumpJets());
 
-        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
 
         // Act & Assert
         sut.CanJump.ShouldBeTrue(
@@ -1015,7 +1015,7 @@ public class MechTests
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
         leftLeg.TryAddComponent(new JumpJets());
 
-        var sut = new Mech("Test", "TST-1A", 50, 5, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.AttemptStandup(); // This increments StandupAttempts
         sut.CanJump.ShouldBeFalse("Mech that attempted standup this phase should not be able to jump");
 
@@ -1030,7 +1030,7 @@ public class MechTests
     public void CanRun_ShouldReturnTrue_ForNewMech()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act & Assert
         sut.CanRun.ShouldBeTrue();
@@ -1040,7 +1040,7 @@ public class MechTests
     public void CanRun_WhenMechIsProne_ShouldReturnTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.SetProne();
 
         // Act & Assert
@@ -1051,7 +1051,7 @@ public class MechTests
     public void CanRun_ShouldReturnFalse_WhenLegIsBlownOff()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leg = sut.Parts[PartLocation.LeftLeg];
         leg.BlowOff();
 
@@ -1063,7 +1063,7 @@ public class MechTests
     public void CanRun_ShouldReturnFalse_WhenLegIsDestroyed()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leg = sut.Parts[PartLocation.LeftLeg];
         leg.ApplyDamage(100, HitDirection.Front);
         leg.IsDestroyed.ShouldBeTrue();
@@ -1076,7 +1076,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithUndamagedGyro_ReturnsFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         var gyro = sut.GetAllComponents<Gyro>().First();
 
@@ -1092,7 +1092,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithDamagedGyro_ReturnsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var gyro = sut.GetAllComponents<Gyro>().First();
         gyro.Hit(); // Damage to the gyro (1 hit)
 
@@ -1109,7 +1109,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithDestroyedGyro_ReturnsFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var gyro = sut.GetAllComponents<Gyro>().First();
         gyro.Hit(); // First hit
         gyro.Hit(); // Second hit - destroys the gyro
@@ -1127,7 +1127,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithOneDestroyedFootActuator_ReturnsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var footActuator = sut.GetAllComponents<FootActuator>().First();
         footActuator.Hit(); // Destroy the foot actuator
 
@@ -1143,7 +1143,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithMultipleDestroyedFootActuators_ReturnsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var footActuators = sut.GetAllComponents<FootActuator>().ToList();
 
         // Destroy all foot actuators
@@ -1164,7 +1164,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithOneDestroyedHipActuator_ReturnsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var hipActuator = sut.GetAllComponents<HipActuator>().First();
         hipActuator.Hit(); // Destroy the hip actuator
 
@@ -1180,7 +1180,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithMultipleDestroyedHipActuators_ReturnsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var hipActuators = sut.GetAllComponents<HipActuator>().ToList();
 
         // Destroy all hip actuators
@@ -1201,7 +1201,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithOneDestroyedLowerLegActuator_ReturnsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var lowerLegActuator = sut.GetAllComponents<LowerLegActuator>().First();
         lowerLegActuator.Hit(); // Destroy the lower leg actuator
 
@@ -1217,7 +1217,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithMultipleDestroyedLowerLegActuators_ReturnsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var lowerLegActuators = sut.GetAllComponents<LowerLegActuator>().ToList();
 
         // Destroy all lower leg actuators
@@ -1238,7 +1238,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithOneDestroyedUpperLegActuator_ReturnsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var upperLegActuator = sut.GetAllComponents<UpperLegActuator>().First();
         upperLegActuator.Hit(); // Destroy the upper leg actuator
 
@@ -1254,7 +1254,7 @@ public class MechTests
     public void IsPsrForJumpRequired_WithMultipleDestroyedUpperLegActuators_ReturnsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var upperLegActuators = sut.GetAllComponents<UpperLegActuator>().ToList();
 
         // Destroy all upper leg actuators
@@ -1275,7 +1275,7 @@ public class MechTests
     public void HeatDissipation_ShouldReduceHeatAndRestoreMovement()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 20, CreateBasicPartsData());
 
         // Set the initial heat to 15 (3 MP penalty)
         sut.ApplyHeat(new HeatData
@@ -1328,7 +1328,7 @@ public class MechTests
     public void AttackHeatPenalty_ShouldReturnCorrectPenalty(int heat, int expectedPenalty)
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act
         // Set heat and apply effects
@@ -1358,7 +1358,7 @@ public class MechTests
     public void HeatDissipation_ShouldReduceHeatAndRestoreAttackPenalty()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Set initial heat to 17 (attack penalty +3)
         sut.ApplyHeat(new HeatData
@@ -1403,7 +1403,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
         var engine = centerTorso.GetComponent<Engine>()!;
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
 
         // Apply one hit to the engine
         engine.Hit();
@@ -1426,7 +1426,7 @@ public class MechTests
     public void ApplyHeat_ShouldDamagePilot_WhenHeatIsHigh_AndLifeSupportIsDestroyed(int heatPoints, int injuriesExpected, bool destroyLifeSupport = true)
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.AssignPilot(new MechWarrior("John", "Doe"));
         if (destroyLifeSupport)
         {
@@ -1467,7 +1467,7 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
         var engine = centerTorso.GetComponent<Engine>()!;
-        var mech = new Mech("Test", "TST-1A", 50, 4, parts);
+        var mech = new Mech("Test", "TST-1A", 50, parts);
 
         // Apply one hit to the engine
         engine.Hit();
@@ -1487,7 +1487,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.AssignPilot(new MechWarrior("John", "Doe"));
         sut.SetProne();
 
@@ -1505,14 +1505,14 @@ public class MechTests
     public void CanStandup_ShouldReturnFalse_WhenPilotUnconscious(int walkMp, bool pilotUnconscious)
     {
         // Arrange
-        var parts = CreateBasicPartsData();
-        var sut = new Mech("Test", "TST-1A", 50, walkMp, parts);
+        var parts = CreateBasicPartsData(50*walkMp);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.SetProne();
 
         // Mock pilot with a specified consciousness state
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(!pilotUnconscious);
-        typeof(Mech).GetProperty("Pilot")?.SetValue(sut, pilot);
+        sut.AssignPilot(pilot);
 
         // Act
         var canStandup = sut.CanStandup();
@@ -1526,7 +1526,7 @@ public class MechTests
     public void AttemptStandup_WhenCalledMultipleTimes_ShouldIncrementCounterCorrectly()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 25, CreateBasicPartsData());
 
         // Act
         mech.AttemptStandup();
@@ -1544,7 +1544,7 @@ public class MechTests
     public void AttemptStandup_ShouldSpendCorrectMovementPoints(int initialMovement, int expectedSpent)
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, initialMovement, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(50*initialMovement));
 
         // Act
         mech.AttemptStandup();
@@ -1559,7 +1559,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var sut = new Mech("Test", "TST-1A"  , 50, 4, parts);
+        var sut = new Mech("Test", "TST-1A"  , 50, parts);
         sut.AssignPilot(new MechWarrior("John", "Doe"));
         sut.SetProne();
         var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
@@ -1578,7 +1578,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.SetProne();
 
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
@@ -1600,7 +1600,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.SetProne();
 
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
@@ -1622,7 +1622,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.SetProne();
 
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
@@ -1644,7 +1644,7 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var sut = new Mech("Test", "TST-1A", 50, 4, parts);
+        var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.SetProne();
 
         var gyro = sut.GetAvailableComponents<Gyro>().First();
@@ -1663,7 +1663,7 @@ public class MechTests
     public void CanChangeFacingWhileProne_WhenMechIsNotProne_ShouldReturnFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act & Assert
         sut.CanChangeFacingWhileProne()
@@ -1674,7 +1674,7 @@ public class MechTests
     public void CanChangeFacingWhileProne_WhenMechIsProneAndHasMovementPoints_ShouldReturnTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.SetProne();
 
         // Act & Assert
@@ -1686,7 +1686,7 @@ public class MechTests
     public void CanChangeFacingWhileProne_WhenMechIsProneButShutdown_ShouldReturnFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.SetProne();
         var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
         sut.Shutdown(shutdownData);
@@ -1699,7 +1699,7 @@ public class MechTests
     public void CanChangeFacingWhileProne_WhenMechIsProneButNoMovementPoints_ShouldReturnFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(25));
         sut.SetProne();
 
         // Act & Assert
@@ -1711,7 +1711,7 @@ public class MechTests
     public void CanFireWeapons_ShouldReturnFalse_WhenUnitIsDestroyed()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
 
         // Act
@@ -1725,7 +1725,7 @@ public class MechTests
     public void CanFireWeapons_ShouldReturnFalse_WhenUnitIsImmobile()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.AssignPilot(new MechWarrior("John", "Doe"));
         sut.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 });
 
@@ -1740,7 +1740,7 @@ public class MechTests
     public void CanFireWeapons_ShouldReturnTrue_WhenSensorsAreIntact()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.AssignPilot(new MechWarrior("John", "Doe"));
 
         // Act
@@ -1754,7 +1754,7 @@ public class MechTests
     public void CanFireWeapons_ShouldReturnTrue_WhenSensorsHaveOneHit()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.AssignPilot(new MechWarrior("John", "Doe"));
         var sensors = sut.GetAllComponents<Sensors>().First();
         sensors.Hit();
@@ -1772,7 +1772,7 @@ public class MechTests
     public void CanFireWeapons_ShouldReturnFalse_WhenSensorsAreDestroyed()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 0, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.AssignPilot(new MechWarrior("John", "Doe"));
         var sensors = sut.GetAllComponents<Sensors>().First();
         sensors.Hit(); // First hit
@@ -1791,7 +1791,7 @@ public class MechTests
     public void GetMovementPoints_WithDestroyedHipActuator_ShouldHalveWalkingMP()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var hipActuator = sut.GetAllComponents<HipActuator>().First();
 
         // Act
@@ -1808,7 +1808,7 @@ public class MechTests
     public void GetMovementPoints_WithTwoDestroyedHipActuators_ShouldReduceWalkingMPToZero()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var hipActuators = sut.GetAllComponents<HipActuator>().ToList();
 
         // Act
@@ -1828,7 +1828,7 @@ public class MechTests
     public void GetMovementPoints_WithDestroyedFootActuator_ShouldReduceWalkingMPByOne()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var footActuator = sut.GetAllComponents<FootActuator>().First();
 
         // Act
@@ -1846,7 +1846,7 @@ public class MechTests
     public void GetMovementPoints_WithDestroyedLowerLegActuator_ShouldReduceWalkingMPByOne()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var lowerLegActuator = sut.GetAllComponents<LowerLegActuator>().First();
 
         // Act
@@ -1864,7 +1864,7 @@ public class MechTests
     public void GetMovementPoints_WithDestroyedUpperLegActuator_ShouldReduceWalkingMPByOne()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var upperLegActuator = sut.GetAllComponents<UpperLegActuator>().First();
 
         // Act
@@ -1882,7 +1882,7 @@ public class MechTests
     public void GetMovementPoints_WithMultipleDestroyedActuators_ShouldStackPenalties()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(300));
         var footActuator = sut.GetAllComponents<FootActuator>().First();
         var lowerLegActuator = sut.GetAllComponents<LowerLegActuator>().First();
         var upperLegActuator = sut.GetAllComponents<UpperLegActuator>().First();
@@ -1903,7 +1903,7 @@ public class MechTests
     public void GetMovementPoints_WithBlownOffLeg_ShouldSetWalkingMPToOne()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
 
         // Act
@@ -1923,7 +1923,7 @@ public class MechTests
         int expectedWalk, int expectedRun)
     {
         // Arrange - Scenario: Destroyed Hip, Destroyed Foot, Heat Level 6 Points
-        var sut = new Mech("Test", "TST-1A", 50, baseMp, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(baseMp*50));
 
         // Step 1: Apply Hip Actuator Critical Hit (halves walking MP, rounded up)
         var hipActuator = sut.GetAllComponents<HipActuator>().First();
@@ -1962,7 +1962,7 @@ public class MechTests
     public void GetMovementPoints_ForUnknownMovement_ShouldReturnZero()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act
         var result = sut.GetMovementPoints((MovementType)233);
@@ -1975,7 +1975,7 @@ public class MechTests
     public void IsImmobile_ShouldReturnTrue_WhenPilotIsNotAssigned()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act & Assert
         sut.IsImmobile.ShouldBeTrue("A mech without a pilot should be immobile");
@@ -1985,7 +1985,7 @@ public class MechTests
     public void IsImmobile_ShouldReturnTrue_WhenPilotIsUnconscious()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(false);
         sut.AssignPilot(pilot);
@@ -1998,7 +1998,7 @@ public class MechTests
     public void Status_ShouldBeImmobile_WhenIsImmobileIsTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(false);
         sut.AssignPilot(pilot);
@@ -2011,7 +2011,7 @@ public class MechTests
     public void IsImmobile_WhenPilotIsConscious_ShouldReturnFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         sut.AssignPilot(pilot);
@@ -2024,7 +2024,7 @@ public class MechTests
     public void IsImmobile_WhenMechIsShutdown_ShouldReturnTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var shutdownData = new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 };
         sut.Shutdown(shutdownData);
 
@@ -2036,7 +2036,7 @@ public class MechTests
     public void IsImmobile_WhenBothLegsAndBothArmsDestroyed_ShouldReturnTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Destroy both legs
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
@@ -2058,7 +2058,7 @@ public class MechTests
     public void IsImmobile_WhenBothLegsButOnlyOneArmDestroyed_ShouldReturnFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         sut.AssignPilot(pilot);
@@ -2081,7 +2081,7 @@ public class MechTests
     public void IsImmobile_WhenOnlyLegsDestroyed_ShouldReturnFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         sut.AssignPilot(pilot);
@@ -2100,7 +2100,7 @@ public class MechTests
     public void IsImmobile_WhenOnlyArmsDestroyed_ShouldReturnFalse()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(true);
         sut.AssignPilot(pilot);
@@ -2119,7 +2119,7 @@ public class MechTests
     public void IsImmobile_WithMixOfBlownOffAndDestroyedParts_ShouldReturnTrue()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Destroy one leg, blow off another
         var leftLeg = sut.Parts[PartLocation.LeftLeg];
@@ -2141,7 +2141,7 @@ public class MechTests
     public void MovementModifiers_ShouldIncludeDestroyedLeg()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leg = sut.Parts[PartLocation.LeftLeg];
 
         // Act
@@ -2155,7 +2155,7 @@ public class MechTests
     public void GetAttackModifiers_ReturnsNoModifiers_WhenArmIsDestroyed()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leftArm = sut.Parts[PartLocation.LeftArm];
         leftArm.BlowOff();
 
@@ -2170,7 +2170,7 @@ public class MechTests
     public void GetAttackModifiers_ReturnsOnlyShoulderModifier_WhenShoulderIsDestroyed()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leftArm = sut.Parts[PartLocation.LeftArm];
         var shoulderActuator = leftArm.GetComponent<ShoulderActuator>();
         shoulderActuator!.Hit();
@@ -2189,7 +2189,7 @@ public class MechTests
     public void GetAttackModifiers_ReturnsBothUpperAndLowerArmModifiers_WhenActuatorsAreDestroyed()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leftArm = sut.Parts[PartLocation.LeftArm];
         var upperArmActuator = new UpperArmActuator();
         leftArm.TryAddComponent(upperArmActuator);
@@ -2217,7 +2217,7 @@ public class MechTests
     public void GetAttackModifiers_ReturnsNoModifiers_ForNonArmLocation()
     {
         // Act
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var modifiers = sut.GetAttackModifiers(PartLocation.CenterTorso);
     
         // Assert
@@ -2228,7 +2228,7 @@ public class MechTests
     public void GetAttackModifiers_ReturnsShoulderModifier_WhenAllActuatorsAreDestroyed()
     {
         // Arrange - destroy all actuators, but shoulder should take precedence
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leftArm = sut.Parts[PartLocation.LeftArm];
         var upperArmActuator = new UpperArmActuator();
         leftArm.TryAddComponent(upperArmActuator);
@@ -2252,7 +2252,7 @@ public class MechTests
     public void GetAttackModifiers_WithProneMech_ShouldIncludeProneModifier()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         
         // Make the attacker prone
         sut.SetProne();
@@ -2269,7 +2269,7 @@ public class MechTests
     public void GetAttackModifiers_WithNonProneMech_ShouldNotIncludeProneModifier()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         // Act
         var result = sut.GetAttackModifiers(PartLocation.CenterTorso);
 
@@ -2282,7 +2282,7 @@ public class MechTests
     public void IsMinimumMovement_ShouldReturnFalse_ByDefault()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 6, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         
         // Act
         var result = sut.IsMinimumMovement;
@@ -2295,7 +2295,7 @@ public class MechTests
     public void IsMinimumMovement_ShouldReturnTrue_WhenProneAndOneMovementPointAndNoStandupAttempts()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 1, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 100, CreateBasicPartsData());
         sut.SetProne();
         
         // Act
@@ -2309,7 +2309,7 @@ public class MechTests
     public void IsMinimumMovement_ShouldReturnTrue_WhenProneAndOneLegIsDestroyed()
     {
         // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, 5, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         sut.SetProne();
         var leg = sut.Parts[PartLocation.LeftLeg];
         leg.ApplyDamage(100, HitDirection.Front);
@@ -2325,7 +2325,7 @@ public class MechTests
     public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartHasNoStructure()
     {
         // Arrange - This tests lines 579-580 (null check for part with no structure)
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var leftArm = mech.Parts[PartLocation.LeftArm];
 
         // Destroy the left arm by reducing structure to 0
@@ -2345,7 +2345,7 @@ public class MechTests
     public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartNotFound()
     {
         // Arrange - This tests lines 579-580 (null check when part is not found)
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act
         var result = mech.CalculateCriticalHitsData((PartLocation)999,
@@ -2361,7 +2361,7 @@ public class MechTests
     public void CalculateCriticalHitsData_ShouldProceed_WhenPartHasStructure()
     {
         // Arrange 
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Setup dice roller to return valid critical hit roll
         _diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
@@ -2381,7 +2381,7 @@ public class MechTests
     public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartStructureIsZero()
     {
         // Arrange - This specifically tests the CurrentStructure > 0 condition in lines 579-580
-        var mech = new Mech("Test", "TST-1A", 50, 4, CreateBasicPartsData());
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var centerTorso = mech.Parts[PartLocation.CenterTorso];
 
         // Destroy the center torso by applying enough damage to reduce structure to 0

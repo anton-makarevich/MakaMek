@@ -32,7 +32,6 @@ public class MtfDataProviderTests
         mechData.Chassis.ShouldBe("Locust");
         mechData.Model.ShouldBe("LCT-1V");
         mechData.Mass.ShouldBe(20);
-        mechData.WalkMp.ShouldBe(8);
         mechData.EngineRating.ShouldBe(160);
         mechData.EngineType.ShouldBe("Fusion");
         mechData.Nickname.ShouldBeNull();

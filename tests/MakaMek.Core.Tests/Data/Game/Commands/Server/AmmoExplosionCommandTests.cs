@@ -27,7 +27,7 @@ public class AmmoExplosionCommandTests
     public AmmoExplosionCommandTests()
     {
         var pilot = new MechWarrior("Test", "Pilot");
-        _testMech = new Mech("Test Mech", "TST-1", 50, 4, CreateBasicPartsData(), id: _unitId);
+        _testMech = new Mech("Test Mech", "TST-1", 50, CreateBasicPartsData(), id: _unitId);
         _testMech.AssignPilot(pilot);
 
         var player = Substitute.For<IPlayer>();

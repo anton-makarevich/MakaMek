@@ -107,7 +107,7 @@ public class MechWarriorTests
     {
         // Arrange
         var sut = new MechWarrior("John", "Doe");
-        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, []);
         unit.AssignPilot(sut);
         var initialEventsCount = sut.AssignedTo?.Events.Count ?? 0;
         
@@ -194,7 +194,7 @@ public class MechWarriorTests
     {
         // Arrange
         var sut = new MechWarrior("John", "Doe");
-        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, []);
         unit.AssignPilot(sut);
         var initialEventsCount = sut.AssignedTo?.Events.Count ?? 0;
         
@@ -220,7 +220,7 @@ public class MechWarriorTests
     {
         // Arrange
         var sut = new MechWarrior("John", "Doe");
-        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, []);
 
         // Act
         sut.AssignedTo = unit;
@@ -234,7 +234,7 @@ public class MechWarriorTests
     {
         // Arrange
         var sut = new MechWarrior("John", "Doe");
-        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, []);
         sut.AssignedTo = unit;
 
         // Act
@@ -294,7 +294,7 @@ public class MechWarriorTests
     {
         // Arrange
         var sut = new MechWarrior("John", "Doe");
-        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, []);
         unit.AssignPilot(sut);
         
         // Act
@@ -326,7 +326,7 @@ public class MechWarriorTests
     {
         // Arrange
         var sut = new MechWarrior("John", "Doe");
-        var unit = new UnitTests.TestUnit("Test", "Unit", 50, 4, []);
+        var unit = new UnitTests.TestUnit("Test", "Unit", 50, []);
         unit.AssignPilot(sut);
         sut.KnockUnconscious(3);
         

@@ -553,7 +553,7 @@ public class UnitPartTests
         data.CurrentStructure.ShouldBe(5);
     }
 
-    public class TestUnit() : Unit("Test", "Unit", 20, 4, [], Guid.NewGuid())
+    public class TestUnit() : Unit("Test", "Unit", 20, [], Guid.NewGuid())
     {
         public override int CalculateBattleValue() => 0;
 

@@ -1,8 +1,4 @@
-using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units.Components;
-using Sanet.MakaMek.Core.Models.Game.Dice;
-using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Shouldly;
@@ -71,30 +67,5 @@ public class WeaponTests
             ClusterSize: 1,
             WeaponComponentType: MakaMekComponent.MachineGun,
             AmmoComponentType: ammoComponentType);
-    }
-    
-    private class MockUnit : Unit
-    {
-        public MockUnit() : base("Mock", "Unit", 20, 4, [])
-        {
-        }
-        
-        public override int CalculateBattleValue() => 0;
-        
-        public override bool CanMoveBackward(MovementType type) => true;
-        protected override void ApplyHeatEffects()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void UpdateDestroyedStatus()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override PartLocation? GetTransferLocation(PartLocation location) => null;
-        public override LocationCriticalHitsData? CalculateCriticalHitsData(PartLocation location,
-            IDiceRoller diceRoller,
-            IDamageTransferCalculator damageTransferCalculator) => throw new NotImplementedException();
     }
 }

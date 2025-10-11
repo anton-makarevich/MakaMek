@@ -59,7 +59,6 @@ public class MechFactoryTests
             Chassis = "Locust",
             Model = "LCT-1V",
             Mass = 20,
-            WalkMp = 8,
             EngineRating = engineRating,
             EngineType = "Fusion",
             ArmorValues = new Dictionary<PartLocation, ArmorLocation>

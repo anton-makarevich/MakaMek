@@ -138,7 +138,7 @@ public class TorsoTests
     {
         // Arrange
         var torso = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
-        var mech = new Mech("Test", "TST-1A", 50, 4, new List<UnitPart> { torso });
+        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { torso });
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
         mech.Deploy(position);
         

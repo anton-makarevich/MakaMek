@@ -53,7 +53,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             gyro.Hit(); // Apply 1 hit to the gyro
             
             // Create a mech with the torso
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             
             // Set up the rules provider to return a modifier value for gyro hits
@@ -80,7 +80,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
             
             // Create a mech with the torso
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
 
             // Act
@@ -100,7 +100,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var sideTorso = new SideTorso("Left Torso", PartLocation.LeftTorso, 10, 3, 5);
             
             // Create a mech with only the side torso
-            var mech = new Mech("Test", "TST-1A", 50, 4, [sideTorso]);
+            var mech = new Mech("Test", "TST-1A", 50, [sideTorso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             
             // Set up the rules provider to return a modifier value for gyro hits
@@ -121,7 +121,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             gyro.Hit(); // Apply 1 hit to the gyro
             
             // Create a mech with the torso
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             
             // Set up the rules provider to return a high modifier value
@@ -143,7 +143,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             
             // Act
@@ -166,7 +166,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
             var gyro = torso.GetComponent<Gyro>()!;
             gyro.Hit(); // Apply 1 hit to the gyro
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             
             // Set up the rules provider to return a modifier value for gyro hits
@@ -188,7 +188,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit).Returns(1);
 
@@ -208,7 +208,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
             var gyro = torso.GetComponent<Gyro>()!;
             gyro.Hit(); // Apply 1 hit to the gyro
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
@@ -230,7 +230,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.HeavyDamage).Returns(1);
             _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
@@ -255,7 +255,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
             const int lowDamage = 15;
@@ -278,7 +278,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var actuator = leg.GetComponents<LowerLegActuator>().First();
             actuator.Hit(); // Destroy the actuator (assuming 1 health point)
             
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso,leg]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso,leg]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit).Returns(1);
 
@@ -295,7 +295,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
             var leg = new Leg("Right Leg", PartLocation.RightLeg, 10, 5);
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso,leg]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso,leg]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
 
             // Act
@@ -314,7 +314,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var actuator = leg.GetComponents<UpperLegActuator>().First();
             actuator.Hit(); // Destroy the actuator (assuming 1 health point)
 
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso,leg]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso,leg]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.UpperLegActuatorHit).Returns(1);
 
@@ -329,7 +329,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         public void GetPsrBreakdown_ShouldReturnNoModifiers_ForNonMech()
         {
             // Arrange
-            var notMech = new UnitTests.TestUnit("Test", "TST-1A", 50, 4, []);
+            var notMech = new UnitTests.TestUnit("Test", "TST-1A", 50, []);
             notMech.AssignPilot(new MechWarrior("Test", "Test"));
 
             // Act
@@ -343,7 +343,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         public void GetPsrBreakdown_ShouldThrow_WhenNoPilot()
         {
             // Arrange
-            var notMech = new UnitTests.TestUnit("Test", "TST-1A", 50, 4, []);
+            var notMech = new UnitTests.TestUnit("Test", "TST-1A", 50, []);
 
             // Act & Assert
             Should.Throw<ArgumentException>(() => _sut.GetPsrBreakdown(notMech, PilotingSkillRollType.GyroHit))
@@ -359,7 +359,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var hipActuator = leg.GetComponents<HipActuator>().First();
             hipActuator.Hit(); // Destroy the hip actuator (assuming 1 health point)
 
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso, leg]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso, leg]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.HipActuatorHit).Returns(2);
 
@@ -379,7 +379,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var footActuator = leg.GetComponents<FootActuator>().First();
             footActuator.Hit(); // Destroy the foot actuator (assuming 1 health point)
 
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso, leg]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso, leg]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.FootActuatorHit).Returns(1);
 
@@ -398,7 +398,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var leftLeg = new Leg("Left Leg", PartLocation.LeftLeg, 10, 5);
             leftLeg.BlowOff(); // Blow off the left leg
 
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso, leftLeg]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso, leftLeg]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed).Returns(5);
 
@@ -419,7 +419,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             leftLeg.ApplyDamage(100, HitDirection.Front); // Destroy the left leg
             rightLeg.ApplyDamage(100, HitDirection.Front); // Destroy the right leg
 
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso, leftLeg, rightLeg]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso, leftLeg, rightLeg]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed).Returns(5);
 
@@ -441,7 +441,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             gyro.Hit(); // First hit
             gyro.Hit(); // Second hit - destroys gyro (2 health points)
 
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroDestroyed).Returns(6);
 
@@ -463,7 +463,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var gyro = torso.GetComponents<Gyro>().First();
             gyro.Hit(); // Only one hit - damaged but not destroyed
 
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
             _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit).Returns(3);
 
@@ -482,7 +482,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             var pilot = new MechWarrior("John", "Doe");
             pilot.KnockUnconscious(1); // Make pilot unconscious
             mech.AssignPilot(pilot);
@@ -510,7 +510,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
 
             var psrBreakdown = new PsrBreakdown
@@ -538,7 +538,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             mech.AssignPilot(new MechWarrior("John", "Doe"));
 
             var psrBreakdown = new PsrBreakdown
@@ -566,7 +566,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
-            var mech = new Mech("Test", "TST-1A", 50, 4, [torso]);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
             // No pilot assigned
 
             var psrBreakdown = new PsrBreakdown
