@@ -61,7 +61,7 @@
                                     IsEnabled="{Binding IsEnabled}"
                                     Margin="0,0,10,0"/>
                                 
-                                <TextBlock Grid.Column="2" Text="{Binding Name}"
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Name}"
                                           FontWeight="Bold"/>
                                 <StackPanel
                                     Grid.Column="2"

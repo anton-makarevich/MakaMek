@@ -630,6 +630,10 @@ public class MechTests
         walkingMp.ShouldBe(walkMp, "walking MP should match the base movement");
         runningMp.ShouldBe(runMp, "running MP should be 1.5x walking");
         jumpingMp.ShouldBe(jumpMp, "jumping MP should match the number of jump jets");
+        
+        mech.AvailableWalkingPoints.ShouldBe(walkingMp);
+        mech.AvailableRunningPoints.ShouldBe(runningMp);
+        mech.AvailableJumpingPoints.ShouldBe(jumpingMp);
     }
 
     [Theory]
