@@ -7,34 +7,74 @@
              x:DataType="units:Unit"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitMovementInfoPanel"
              mc:Ignorable="d"
-             IsVisible="{Binding HasMoved}">
+             >
     <UserControl.Resources>
         <converters:CollectionToVisibilityConverter x:Key="CollectionToVisibilityConverter"/>
         <converters:ModifierToTextConverter x:Key="ModifierToTextConverter"/>
     </UserControl.Resources>
-    <StackPanel Spacing="5" Orientation="Vertical">
-        <Border Background="{StaticResource OverlayTransparentBrush}"
-            CornerRadius="4"
-            Padding="5"
-            >
-            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
+    <StackPanel  Spacing="5" Orientation="Vertical">
+        <Border
+            IsVisible="{Binding !HasMoved}"
+            Classes="card"
+        >
+            <Grid
+                ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto">
                 <TextBlock Grid.Row="0" Grid.Column="0"
+                           Classes="labelLarge"
+                           Text="Walk MP"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Grid.Row="0" Grid.Column="1"
+                           Classes="labelLarge"
+                           Text="Run MP"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Grid.Row="0" Grid.Column="2"
+                           Classes="labelLarge"
+                           Text="Jump MP"
+                           HorizontalAlignment="Center"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="{Binding AvailableWalkingPoints}"
+                           Classes="label"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="1"
+                           Classes="label"
+                           Text="{Binding AvailableRunningPoints}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="2"
+                           Classes="label"
+                           Text="{Binding AvailableJumpingPoints}"
+                           HorizontalAlignment="Center"/>
+            </Grid>
+        </Border>
+        <Border
+            IsVisible="{Binding HasMoved}"
+            Classes="card"
+        >
+            <Grid
+                ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Classes="labelLarge"
                          Text="Type"
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="0" Grid.Column="1"
+                           Classes="labelLarge"
                          Text="Points"
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="0" Grid.Column="2"
+                           Classes="labelLarge"
                          Text="Distance"
                          HorizontalAlignment="Center"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0"
+                         Classes="label"
                          Text="{Binding MovementTypeUsed}"
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="1" Grid.Column="1"
+                         Classes="label"
                          Text="{Binding MovementPointsSpent}"
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="1" Grid.Column="2"
+                         Classes="label"
                          Text="{Binding DistanceCovered}"
                          HorizontalAlignment="Center"/>
             </Grid>
