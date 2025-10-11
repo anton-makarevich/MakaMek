@@ -2014,6 +2014,24 @@ public class UnitTests
         result.ShouldBeFalse();
     }
 
+    [Fact]
+    public void BaseMovement_ShouldBeZero_WhenNoEngine()
+    {
+        // Arrange
+        var parts = new List<UnitPart>
+        {
+            new TestUnitPart("Head", PartLocation.Head, 9, 3, 6),
+            new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10),
+            new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 10),
+            new TestUnitPart("Right Arm", PartLocation.RightArm, 10, 5, 10)
+        };
+
+        var sut = new TestUnit("Test", "Unit", 20, parts);
+        
+        // Assert
+        sut.AvailableWalkingPoints.ShouldBe(0);
+    }
+
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)
     {
