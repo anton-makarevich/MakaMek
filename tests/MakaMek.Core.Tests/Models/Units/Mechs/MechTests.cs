@@ -47,7 +47,7 @@ public class MechTests
             SpecificData = new EngineStateData(EngineType.Fusion, engineRating)
         };
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
-        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]);
+        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]).ShouldBeTrue();
         return
         [
             new Head("Head", 9, 3),
@@ -76,7 +76,7 @@ public class MechTests
     }
 
     [Fact]
-    public void Mech_CanWalkBackwards_BitCannotRun()
+    public void Mech_CanWalkBackwards_ButCannotRun()
     {
         // Arrange & Act
         var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
@@ -1512,7 +1512,7 @@ public class MechTests
         // Mock pilot with a specified consciousness state
         var pilot = Substitute.For<IPilot>();
         pilot.IsConscious.Returns(!pilotUnconscious);
-        typeof(Mech).GetProperty("Pilot")?.SetValue(sut, pilot);
+        sut.AssignPilot(pilot);
 
         // Act
         var canStandup = sut.CanStandup();

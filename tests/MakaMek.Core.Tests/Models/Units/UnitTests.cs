@@ -104,7 +104,7 @@ public class UnitTests
             SpecificData = new EngineStateData(EngineType.Fusion, walkMp*tonnage)
         };
         var centerTorso = new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10);
-        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]);
+        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]).ShouldBeTrue();
         
         var parts = new List<UnitPart>
         {
@@ -446,7 +446,7 @@ public class UnitTests
     }
     
     [Fact]
-    public void GetComponentsAtLocation_ReturnsEmptyCollection_WhenLocationNotFound()
+    public void GetComponentsAtLocation_ReturnsEmptyCollection_WhenNoComponentsAtLocation()
     {
         // Arrange
         var testUnit = CreateTestUnit();
