@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 
@@ -24,7 +25,6 @@ public abstract class Unit
     private readonly List<UiEvent> _events = [];
 
     protected Unit(string chassis, string model, int tonnage,
-        int walkMp,
         IEnumerable<UnitPart> parts,
         Guid? id = null)
     {
@@ -32,7 +32,6 @@ public abstract class Unit
         Model = model;
         Name = $"{chassis} {model}";
         Tonnage = tonnage;
-        BaseMovement = walkMp;
         _parts = parts.ToDictionary(p => p.Location, p => p);
         // Set the Unit reference for each part
         foreach (var part in _parts.Values)
@@ -113,7 +112,15 @@ public abstract class Unit
     public WeightClass Class => Tonnage.ToWeightClass();
 
     // Base movement (walking)
-    protected int BaseMovement { get; }
+    protected int BaseMovement
+    {
+        get
+        {
+            var engine = GetComponentsAtLocation<Engine>(PartLocation.CenterTorso).FirstOrDefault();
+            if (engine == null) return 0;
+            return engine.Rating / Tonnage;
+        }
+    }
     
     // Modified movement after applying effects (defaults to base movement)
     protected int ModifiedMovement => Math.Max(0, DamageReducedMovement 
