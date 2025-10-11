@@ -35,10 +35,10 @@ public class CommandTransportAdapterTests
             _mockPublisher2 = Substitute.For<ITransportPublisher>();
             _publishers.Add(_mockPublisher2);
         }
-        
+
         _sut = new CommandTransportAdapter(_publishers.ToArray());
     }
-    
+
     [Fact]
     public void PublishCommand_SendsToAllPublishers()
     {
@@ -49,7 +49,7 @@ public class CommandTransportAdapterTests
             GameOriginId = Guid.NewGuid(),
             TurnNumber = 1
         };
-        
+
         TransportMessage? capturedMessage1 = null;
         TransportMessage? capturedMessage2 = null;
         _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
@@ -63,7 +63,7 @@ public class CommandTransportAdapterTests
         // Assert
         _mockPublisher1.Received(1).PublishMessage(Arg.Any<TransportMessage>());
         _mockPublisher2.Received(1).PublishMessage(Arg.Any<TransportMessage>());
-        
+
         capturedMessage1.ShouldNotBeNull();
         capturedMessage1!.MessageType.ShouldBe(nameof(TurnIncrementedCommand));
         capturedMessage1.SourceId.ShouldBe(command.GameOriginId);
@@ -158,7 +158,7 @@ public class CommandTransportAdapterTests
         engineState.Type.ShouldBe(EngineType.Fusion);
         engineState.Rating.ShouldBe(300);
     }
-    
+
     [Fact]
     public void AddPublisher_AddsNewPublisherAndSubscribes()
     {
@@ -207,7 +207,7 @@ public class CommandTransportAdapterTests
         var initialPublishCount = 0;
         _mockPublisher1.When(x => x.PublishMessage(Arg.Any<TransportMessage>()))
             .Do(_ => initialPublishCount++);
-        
+
         // Act
         _sut.AddPublisher(_mockPublisher1); // Try adding the same publisher again
         _sut.PublishCommand(command);
@@ -233,9 +233,9 @@ public class CommandTransportAdapterTests
             Units = [],
             Tint = "",
             PilotAssignments = []
-        }; 
+        };
         var payload = JsonSerializer.Serialize(originalCommand);
-        
+
         var message = new TransportMessage
         {
             MessageType = nameof(JoinGameCommand),
@@ -252,10 +252,10 @@ public class CommandTransportAdapterTests
             .Do(x => subscribedCallback2 = x.Arg<Action<TransportMessage>>());
 
         IGameCommand? receivedCommand = null;
-        
+
         // Act
         _sut.Initialize((cmd,_) => receivedCommand = cmd); // Call Initialize AFTER setting up When…Do
-        
+
         // Assert Initialization subscribed to both
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
         _mockPublisher2.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
@@ -282,13 +282,13 @@ public class CommandTransportAdapterTests
         Action<TransportMessage>? subscribedCallback = null;
         _mockPublisher1.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
             .Do(x => subscribedCallback = x.Arg<Action<TransportMessage>>());
-        
+
         bool receivedCallbackCalled = false;
         // Act & Assert
         _sut.Initialize((_,_) => receivedCallbackCalled = true); // Initialize first
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
         subscribedCallback.ShouldNotBeNull();
-        
+
         // Trigger the callback manually and assert exception
         receivedCallbackCalled.ShouldBeFalse(); // The final callback should not be called on error
     }
@@ -302,18 +302,18 @@ public class CommandTransportAdapterTests
         Action<TransportMessage>? subscribedCallback = null;
         _mockPublisher1.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
             .Do(x => subscribedCallback = x.Arg<Action<TransportMessage>>());
-        
+
         var receivedCallbackCalled = false;
-        
+
         // Act & Assert
         _sut.Initialize((_,_) => receivedCallbackCalled = true);
         _mockPublisher1.Received(1).Subscribe(Arg.Any<Action<TransportMessage>>());
         subscribedCallback.ShouldNotBeNull();
-        
+
         // Trigger the callback manually
         receivedCallbackCalled.ShouldBeFalse(); // The final callback should not be called on error
     }
-    
+
     [Fact]
     public void DeserializeCommand_WithInvalidJson_ThrowsJsonExceptionDirectly()
     {
@@ -326,7 +326,7 @@ public class CommandTransportAdapterTests
             Timestamp = DateTime.UtcNow,
             Payload = "{ invalid json }" // Invalid JSON payload
         };
-        
+
         // Act & Assert
         // Directly call the internal DeserializeCommand method
         Should.Throw<JsonException>(() => _sut.DeserializeCommand(message));
@@ -344,7 +344,7 @@ public class CommandTransportAdapterTests
             Timestamp = DateTime.UtcNow,
             Payload = "{}" // Payload doesn't matter here
         };
-        
+
         // Act & Assert
         // Directly call the internal DeserializeCommand method
         var exception = Should.Throw<UnknownCommandTypeException>(() => _sut.DeserializeCommand(message));
@@ -366,7 +366,7 @@ public class CommandTransportAdapterTests
             }); // Publish should be safe (no-op)
         });
     }
-    
+
     [Fact]
     public void ClearPublishers_DisposesAndClearsAllPublishers()
     {
@@ -374,19 +374,19 @@ public class CommandTransportAdapterTests
         var disposablePublisher1 = Substitute.For<ITransportPublisher, IDisposable>();
         var disposablePublisher2 = Substitute.For<ITransportPublisher, IDisposable>();
         var nonDisposablePublisher = Substitute.For<ITransportPublisher>();
-        
+
         var sut = new CommandTransportAdapter(disposablePublisher1, disposablePublisher2, nonDisposablePublisher);
         Action<IGameCommand, ITransportPublisher> commandCallback = (_,_) => {};
         sut.Initialize(commandCallback);
-        
+
         // Act
         sut.ClearPublishers();
-        
+
         // Assert
         // Verify Dispose was called on disposable publishers
         ((IDisposable)disposablePublisher1).Received(1).Dispose();
         ((IDisposable)disposablePublisher2).Received(1).Dispose();
-        
+
         // Verify publishers list is empty by publishing a command (should not be received)
         var command = new TurnIncrementedCommand
         {
@@ -394,47 +394,47 @@ public class CommandTransportAdapterTests
             TurnNumber = 1
         };
         sut.PublishCommand(command);
-        
+
         disposablePublisher1.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
         disposablePublisher2.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
         nonDisposablePublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
-        
+
         // Re-add a publisher and verify we need to re-initialize
         sut.AddPublisher(nonDisposablePublisher);
-        
+
         // Verify we need to re-initialize since the callback was cleared
         Action<TransportMessage>? capturedCallback = null;
         nonDisposablePublisher.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
             .Do(x => capturedCallback = x.Arg<Action<TransportMessage>>());
-            
+
         // Re-initialize with a new callback
         sut.Initialize((_,_) => {});
-        
+
         capturedCallback.ShouldNotBeNull();
     }
-    
+
     [Fact]
     public void ClearPublishers_ContinuesDisposingAfterException()
     {
         // Arrange
         var throwingPublisher = Substitute.For<ITransportPublisher, IDisposable>();
         var normalPublisher = Substitute.For<ITransportPublisher, IDisposable>();
-        
+
         // Configure the first publisher to throw an exception when disposed
         ((IDisposable)throwingPublisher).When(x => x.Dispose())
             .Do(_ => throw new InvalidOperationException("Test exception during dispose"));
-        
+
         var sut = new CommandTransportAdapter(throwingPublisher, normalPublisher);
         sut.Initialize((_,_) => {});
-        
+
         // Act - This should not throw despite the exception in Dispose()
         Should.NotThrow(() => sut.ClearPublishers());
-        
+
         // Assert
         // Verify that both publishers had Dispose() called, even though the first one threw
         ((IDisposable)throwingPublisher).Received(1).Dispose();
         ((IDisposable)normalPublisher).Received(1).Dispose();
-        
+
         // Verify that the publishers list was cleared
         var command = new TurnIncrementedCommand
         {
@@ -442,11 +442,11 @@ public class CommandTransportAdapterTests
             TurnNumber = 1
         };
         sut.PublishCommand(command);
-        
+
         throwingPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
         normalPublisher.DidNotReceive().PublishMessage(Arg.Any<TransportMessage>());
     }
-    
+
     [Fact]
     public void Initialize_CalledMultipleTimes_SubscribesOnlyOnce()
     {
@@ -565,5 +565,54 @@ public class CommandTransportAdapterTests
         // Verify regular component (no specific data)
         var deserializedRegular = deserializedEquipment[2];
         deserializedRegular.SpecificData.ShouldBeNull();
+    }
+
+    [Fact]
+    public void InitializeCommandTypeDictionary_RegistersAllKnownCommandTypes()
+    {
+        // Arrange
+        SetupAdapter();
+
+        // Get all command types from the assembly
+        var assembly = typeof(IGameCommand).Assembly;
+        var allCommandTypes = assembly.GetTypes()
+            .Where(t => typeof(IGameCommand).IsAssignableFrom(t)
+                        && t is { IsInterface: false, IsAbstract: false })
+            .ToList();
+
+        // Act - Test each command type by attempting to deserialize it
+        foreach (var commandType in allCommandTypes)
+        {
+            var commandName = commandType.Name;
+            var message = new TransportMessage
+            {
+                MessageType = commandName,
+                SourceId = Guid.NewGuid(),
+                Timestamp = DateTime.UtcNow,
+                Payload = "{}" // Minimal valid JSON
+            };
+
+            // Assert - Should not throw UnknownCommandTypeException
+            // Note: May throw JsonException if the payload is invalid for the specific command,
+            // but that's okay - we're just testing that the type is registered
+            try
+            {
+                var result = _sut.DeserializeCommand(message);
+                result.ShouldNotBeNull();
+            }
+            catch (JsonException)
+            {
+                // Expected for commands with required properties
+                // The important thing is we didn't get UnknownCommandTypeException
+            }
+            catch (UnknownCommandTypeException ex)
+            {
+                // This should never happen - it means the command type wasn't registered
+                throw new Exception($"Command type '{commandName}' was not registered in the dictionary", ex);
+            }
+        }
+
+        // Verify we tested at least some commands
+        allCommandTypes.Count.ShouldBeGreaterThan(0);
     }
 }
