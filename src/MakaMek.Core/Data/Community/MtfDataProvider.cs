@@ -35,7 +35,6 @@ public class MtfDataProvider:IUnitDataProvider
             Model = model,
             Nickname = nickname,
             Mass = int.Parse(mechData["mass"]),
-            WalkMp = int.Parse(Regex.Match(mechData["walk mp"], @"\d+").Value),
             EngineRating = int.Parse(mechData["engine-rating"]),
             EngineType = mechData["engine-type"],
             ArmorValues = armorValues,

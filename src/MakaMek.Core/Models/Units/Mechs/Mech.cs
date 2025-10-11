@@ -38,11 +38,10 @@ public class Mech : Unit
         string chassis,
         string model,
         int tonnage,
-        int walkMp,
         IEnumerable<UnitPart> parts,
         int possibleTorsoRotation = 1,
         Guid? id = null)
-        : base(chassis, model, tonnage, walkMp, parts, id)
+        : base(chassis, model, tonnage, parts, id)
     {
         PossibleTorsoRotation = possibleTorsoRotation;
         Status = UnitStatus.Active;

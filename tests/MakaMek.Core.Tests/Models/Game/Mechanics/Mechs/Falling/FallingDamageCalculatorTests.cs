@@ -58,14 +58,14 @@ public class FallingDamageCalculatorTests
 
     private Unit CreateTestMech(int tonnage)
     {
-       return new Mech("Test", "TST-1A", tonnage, 4, CreateBasicPartsData());
+       return new Mech("Test", "TST-1A", tonnage, CreateBasicPartsData());
     }
 
     [Fact]
     public void CalculateFallingDamage_WhenUnitIsNotMech_ThrowsArgumentException()
     {
         // Arrange
-        var unit = new UnitTests.TestUnit("test", "unit", 20, 4, []);
+        var unit = new UnitTests.TestUnit("test", "unit", 20, []);
 
         // Act & Assert
         Should.Throw<ArgumentException>(() => 

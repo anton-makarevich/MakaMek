@@ -43,10 +43,9 @@ public class UnitTests
         string chassis,
         string model,
         int tonnage,
-        int walkMp,
         IEnumerable<UnitPart> parts,
         Guid? id = null)
-        : Unit(chassis, model, tonnage, walkMp, parts, id)
+        : Unit(chassis, model, tonnage, parts, id)
     {
         public override int CalculateBattleValue() => 0;
 
@@ -100,7 +99,7 @@ public class UnitTests
             new TestUnitPart("Right Arm", PartLocation.RightArm, 10, 5, 10)
         };
 
-        return new TestUnit("Test", "Unit", 20, walkMp, parts, id);
+        return new TestUnit("Test", "Unit", 20, parts, id);
     }
     
     private void MountWeaponOnUnit(TestUnit unit, TestWeapon weapon, PartLocation location, int[] slots)
@@ -115,7 +114,7 @@ public class UnitTests
         // Arrange
         var leftArmPart = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 10);
         var rightArmPart = new TestUnitPart("Right Arm", PartLocation.RightArm, 10, 5, 10);
-        var testUnit = new TestUnit("Test", "Unit", 20, 4, [leftArmPart, rightArmPart]);
+        var testUnit = new TestUnit("Test", "Unit", 20, [leftArmPart, rightArmPart]);
         
         var leftArmComponent1 = new TestComponent("Left Arm Component 1", 2);
         var leftArmComponent2 = new TestComponent("Left Arm Component 2", 2);
@@ -146,7 +145,7 @@ public class UnitTests
     {
         // Arrange
         var leftArmPart = new TestUnitPart("Left Arm", PartLocation.LeftArm, 10, 5, 10);
-        var testUnit = new TestUnit("Test", "Unit", 20, 4, [leftArmPart]);
+        var testUnit = new TestUnit("Test", "Unit", 20, [leftArmPart]);
         
         var component1 = new TestComponent("Component 1", 2);
         var component2 = new TestDerivedComponent("Component 2", 2);
@@ -464,7 +463,7 @@ public class UnitTests
         // Arrange
         var centerTorso = new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10);
         var leftTorso = new TestUnitPart("Left Torso", PartLocation.LeftTorso, 10, 5, 10);
-        var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso, leftTorso]);
+        var testUnit = new TestUnit("Test", "Unit", 20, [centerTorso, leftTorso]);
         
         var ac5Weapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         var ac5Ammo1 = AmmoTests.CreateAmmo(Ac5.Definition, 20);
@@ -506,7 +505,7 @@ public class UnitTests
         // Arrange
         var centerTorso = new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10);
         var leftTorso = new TestUnitPart("Left Torso", PartLocation.LeftTorso, 10, 5, 10);
-        var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso, leftTorso]);
+        var testUnit = new TestUnit("Test", "Unit", 20, [centerTorso, leftTorso]);
         
         var ac5Weapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         var ac5Ammo1 = AmmoTests.CreateAmmo(Ac5.Definition, 20);
@@ -528,7 +527,7 @@ public class UnitTests
     {
         // Arrange
         var centerTorso = new TestUnitPart("Center Torso", PartLocation.CenterTorso, 10, 5, 10);
-        var testUnit = new TestUnit("Test", "Unit", 20, 4, [centerTorso]);
+        var testUnit = new TestUnit("Test", "Unit", 20, [centerTorso]);
         
         var ac5Weapon = new TestWeapon("AC/5", 2, WeaponType.Ballistic, MakaMekComponent.ISAmmoAC5);
         centerTorso.TryAddComponent(ac5Weapon);
@@ -619,7 +618,7 @@ public class UnitTests
             new TestUnitPart("Right Arm", PartLocation.RightArm, 20, 5, 10)
         };
         
-        var unit = new TestUnit("Test", "Unit", 20, 4, parts);
+        var unit = new TestUnit("Test", "Unit", 20, parts);
         
         // Act
         var totalMaxArmor = unit.TotalMaxArmor;
@@ -639,7 +638,7 @@ public class UnitTests
             new TestUnitPart("Right Arm", PartLocation.RightArm, 20, 5, 10)
         };
         
-        var unit = new TestUnit("Test", "Unit", 20, 4, parts);
+        var unit = new TestUnit("Test", "Unit", 20, parts);
         
         // Apply damage to reduce armor
         unit.ApplyDamage([CreateHitDataForLocation(parts[0].Location,5)], HitDirection.Front); // Center Torso: 10 -> 5
@@ -663,7 +662,7 @@ public class UnitTests
             new TestUnitPart("Right Arm", PartLocation.RightArm, 20, 12, 10)
         };
         
-        var unit = new TestUnit("Test", "Unit", 20, 4, parts);
+        var unit = new TestUnit("Test", "Unit", 20, parts);
         
         // Act
         var totalMaxStructure = unit.TotalMaxStructure;
@@ -683,7 +682,7 @@ public class UnitTests
             new TestUnitPart("Right Arm", PartLocation.RightArm, 20, 12, 10)
         };
         
-        var unit = new TestUnit("Test", "Unit", 20, 4, parts);
+        var unit = new TestUnit("Test", "Unit", 20, parts);
         
         // Apply damage to reduce armor and structure
         unit.ApplyDamage([CreateHitDataForLocation(parts[0].Location, 15)], HitDirection.Front); 
@@ -707,7 +706,7 @@ public class UnitTests
             new TestUnitPart("Right Arm", PartLocation.RightArm, 20, 12, 10)
         };
         
-        var unit = new TestUnit("Test", "Unit", 20, 4, parts);
+        var unit = new TestUnit("Test", "Unit", 20, parts);
         
         // Initial values
         unit.TotalMaxArmor.ShouldBe(45); // 10 + 15 + 20
@@ -1105,7 +1104,7 @@ public class UnitTests
         // Arrange
         var head = new Head("Head", 10, 5);
         var pilot = new MechWarrior("John", "Doe");
-        var unit = new TestUnit("Test", "Unit", 20, 4, [head]);
+        var unit = new TestUnit("Test", "Unit", 20, [head]);
         unit.AssignPilot(pilot);
         var cockpit = unit.GetAllComponents<Cockpit>().First();
         var hitLocation = new LocationCriticalHitsData(PartLocation.Head, [4, 4], 1,

@@ -109,7 +109,6 @@ public class CommandTransportAdapterTests
             Chassis = "Atlas",
             Model = "AS7-D",
             Mass = 100,
-            WalkMp = 3,
             EngineRating = 300,
             EngineType = "Fusion",
             ArmorValues = new Dictionary<PartLocation, ArmorLocation>
@@ -519,7 +518,6 @@ public class CommandTransportAdapterTests
             Chassis = "TestMech",
             Model = "TM-1",
             Mass = 50,
-            WalkMp = 4,
             EngineRating = 300,
             EngineType = "Fusion",
             ArmorValues = new Dictionary<PartLocation, ArmorLocation>(),
@@ -533,7 +531,7 @@ public class CommandTransportAdapterTests
             GameOriginId = Guid.NewGuid(),
             Timestamp = DateTime.UtcNow,
             PlayerName = "TestPlayer",
-            Units = new List<UnitData> { unitData },
+            Units = [unitData],
             Tint = "#FF0000",
             PilotAssignments = new List<PilotAssignmentData>(),
             PlayerId = Guid.NewGuid()

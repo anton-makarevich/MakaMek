@@ -30,7 +30,6 @@ public class MechFactory : IMechFactory
             unitData.Chassis,
             unitData.Model,
             unitData.Mass,
-            unitData.WalkMp,
             parts,
             1,
             unitData.Id);

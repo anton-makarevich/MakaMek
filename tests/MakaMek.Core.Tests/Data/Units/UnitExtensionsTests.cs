@@ -38,7 +38,6 @@ public class UnitExtensionsTests
         convertedUnitData.Chassis.ShouldBe(_originalUnitData.Chassis);
         convertedUnitData.Model.ShouldBe(_originalUnitData.Model);
         convertedUnitData.Mass.ShouldBe(_originalUnitData.Mass);
-        convertedUnitData.WalkMp.ShouldBe(_originalUnitData.WalkMp);
         convertedUnitData.EngineRating.ShouldBe(_originalUnitData.EngineRating);
         convertedUnitData.EngineType.ShouldBe(_originalUnitData.EngineType);
     }
@@ -128,7 +127,6 @@ public class UnitExtensionsTests
         convertedUnitData.Chassis.ShouldBe(_originalUnitData.Chassis);
         convertedUnitData.Model.ShouldBe(_originalUnitData.Model);
         convertedUnitData.Mass.ShouldBe(_originalUnitData.Mass);
-        convertedUnitData.WalkMp.ShouldBe(_originalUnitData.WalkMp);
         convertedUnitData.EngineRating.ShouldBe(_originalUnitData.EngineRating);
         convertedUnitData.EngineType.ShouldBe(_originalUnitData.EngineType);
         

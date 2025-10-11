@@ -35,7 +35,7 @@ public class HeadTests
     {
         // Arrange
         var sut = new Head("Head",  8, 3);
-        var mech = new Mech("Test", "TST-1A", 50, 6, [sut]);
+        var mech = new Mech("Test", "TST-1A", 50, [sut]);
         var pilot = new MechWarrior("John", "Doe");
         mech.AssignPilot(pilot);
 
@@ -61,7 +61,7 @@ public class HeadTests
     {
         // Arrange
         var sut = new Head("Head",  8, 3);
-        var mech = new Mech("Test", "TST-1A", 50, 6, [sut]);
+        var mech = new Mech("Test", "TST-1A", 50, [sut]);
         var pilot = new MechWarrior("John", "Doe");
         mech.AssignPilot(pilot);
 
@@ -91,7 +91,7 @@ public class HeadTests
     {
         // Arrange
         var sut = new Head("Head",  8, 3);
-        var mech = new Mech("Test", "TST-1A", 50, 6, [sut]);
+        var mech = new Mech("Test", "TST-1A", 50, [sut]);
         var pilot = new MechWarrior("John", "Doe");
         mech.AssignPilot(pilot);
 
