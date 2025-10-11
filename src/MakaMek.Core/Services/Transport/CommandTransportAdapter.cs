@@ -1,7 +1,5 @@
 using System.Text.Json;
 using Sanet.MakaMek.Core.Data.Game.Commands;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Serialization;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
@@ -15,7 +13,7 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 /// <summary>
 /// Adapter that bridges between game commands and transport messages
 /// </summary>
-public class CommandTransportAdapter
+public partial class CommandTransportAdapter
 {
     internal readonly List<ITransportPublisher> TransportPublishers = new();
     private readonly Dictionary<string, Type> _commandTypes;
@@ -203,45 +201,23 @@ public class CommandTransportAdapter
     /// <summary>
     /// Initializes a dictionary mapping command type names to their types
     /// This avoids using reflection for type resolution
+    /// Command types are automatically registered by the source generator
     /// </summary>
     private Dictionary<string, Type> InitializeCommandTypeDictionary()
     {
-        // Explicitly register all command types to avoid reflection
-        // This could be auto-generated at build time if needed
-        return new Dictionary<string, Type>
-        {
-            // Client commands
-            { nameof(JoinGameCommand), typeof(JoinGameCommand) },
-            { nameof(UpdatePlayerStatusCommand), typeof(UpdatePlayerStatusCommand) },
-            { nameof(DeployUnitCommand), typeof(DeployUnitCommand) },
-            { nameof(MoveUnitCommand), typeof(MoveUnitCommand) },
-            { nameof(WeaponConfigurationCommand), typeof(WeaponConfigurationCommand) },
-            { nameof(WeaponAttackDeclarationCommand), typeof(WeaponAttackDeclarationCommand) },
-            { nameof(PhysicalAttackCommand), typeof(PhysicalAttackCommand) },
-            { nameof(TurnEndedCommand), typeof(TurnEndedCommand) },
-            { nameof(RollDiceCommand), typeof(RollDiceCommand) },
-            { nameof(RequestGameLobbyStatusCommand), typeof(RequestGameLobbyStatusCommand) },
-            { nameof(TryStandupCommand), typeof(TryStandupCommand) },
-            { nameof(ShutdownUnitCommand), typeof(ShutdownUnitCommand) },
-            { nameof(StartupUnitCommand), typeof(StartupUnitCommand) },
-            
-            // Server commands 
-            { nameof(WeaponAttackResolutionCommand), typeof(WeaponAttackResolutionCommand) },
-            { nameof(HeatUpdatedCommand), typeof(HeatUpdatedCommand) },
-            { nameof(TurnIncrementedCommand), typeof(TurnIncrementedCommand) },
-            { nameof(DiceRolledCommand), typeof(DiceRolledCommand) },
-            { nameof(ChangePhaseCommand), typeof(ChangePhaseCommand) },
-            { nameof(ChangeActivePlayerCommand), typeof(ChangeActivePlayerCommand) },
-            { nameof(SetBattleMapCommand), typeof(SetBattleMapCommand) },
-            { nameof(MechFallCommand), typeof(MechFallCommand) },
-            { nameof(MechStandUpCommand), typeof(MechStandUpCommand) },
-            { nameof(PilotConsciousnessRollCommand), typeof(PilotConsciousnessRollCommand)},
-            { nameof(UnitShutdownCommand), typeof(UnitShutdownCommand)},
-            { nameof(UnitStartupCommand), typeof(UnitStartupCommand) },
-            { nameof(AmmoExplosionCommand), typeof(AmmoExplosionCommand) },
-            { nameof(CriticalHitsResolutionCommand), typeof(CriticalHitsResolutionCommand) }
-        };
+        var commandTypes = new Dictionary<string, Type>();
+
+        // Call the generated method to register all command types
+        RegisterGeneratedCommandTypes(commandTypes);
+
+        return commandTypes;
     }
+
+    /// <summary>
+    /// Registers command types found by the source generator
+    /// This method is implemented by the CommandTypeRegistrationGenerator
+    /// </summary>
+    partial void RegisterGeneratedCommandTypes(Dictionary<string, Type> commandTypes);
     
     // Helper method to encapsulate the subscription logic including error handling
     private void SubscribePublisher(ITransportPublisher publisher, Action<IGameCommand, ITransportPublisher> onCommandReceived)
