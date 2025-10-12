@@ -1,13 +1,6 @@
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Melee;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 
 namespace Sanet.MakaMek.Core.Models.Game.Rules;
 

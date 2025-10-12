@@ -63,6 +63,12 @@ public class ComponentProviderGenerator : IIncrementalGenerator
 
             if (componentSymbol is null)
             {
+                // Report diagnostic
+                context.ReportDiagnostic(Diagnostic.Create(
+                    new DiagnosticDescriptor("CPG002", "Components not found",
+                        "compilation.GetTypeByMetadataName did not find any components.",
+                        "SourceGenerator", DiagnosticSeverity.Error, true),
+                    Location.None));
                 // Generate empty implementation
                 var emptySource = GenerateEmptyProvider();
                 context.AddSource("ClassicBattletechComponentProvider.g.cs", SourceText.From(emptySource, Encoding.UTF8));
@@ -97,6 +103,12 @@ public class ComponentProviderGenerator : IIncrementalGenerator
 
             if (componentTypes.Count == 0)
             {
+                // Report diagnostic
+                context.ReportDiagnostic(Diagnostic.Create(
+                    new DiagnosticDescriptor("CPG003", "Components not found",
+                        "No Components were added to the list",
+                        "SourceGenerator", DiagnosticSeverity.Error, true),
+                    Location.None));
                 // Generate empty implementation
                 var emptySource = GenerateEmptyProvider();
                 context.AddSource("ClassicBattletechComponentProvider.g.cs", SourceText.From(emptySource, Encoding.UTF8));
@@ -104,7 +116,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             }
 
             // Generate the source code
-            var source = GenerateProvider(componentTypes, weaponDefinitions);
+            var source = GenerateProvider(componentTypes, weaponDefinitions, context);
             context.AddSource("ClassicBattletechComponentProvider.g.cs", SourceText.From(source, Encoding.UTF8));
         }
         catch (Exception ex)
@@ -140,7 +152,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
     }
 
     private static string GenerateProvider(List<ComponentInfo> componentTypes,
-        Dictionary<string, IFieldSymbol> weaponDefinitions)
+        Dictionary<string, IFieldSymbol> weaponDefinitions, SourceProductionContext context)
     {
         var sb = new StringBuilder();
 
@@ -179,12 +191,12 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         sb.AppendLine("    {");
 
         // Generate InitializeGeneratedDefinitions method
-        GenerateDefinitionsMethod(sb, componentTypes, weaponDefinitions);
+        GenerateDefinitionsMethod(sb, componentTypes, weaponDefinitions, context);
 
         sb.AppendLine();
 
         // Generate InitializeGeneratedFactories method
-        GenerateFactoriesMethod(sb, componentTypes, weaponDefinitions);
+        GenerateFactoriesMethod(sb, componentTypes, weaponDefinitions, context);
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
@@ -193,7 +205,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
     }
 
     private static void GenerateDefinitionsMethod(StringBuilder sb, List<ComponentInfo> componentTypes,
-        Dictionary<string, IFieldSymbol> weaponDefinitions)
+        Dictionary<string, IFieldSymbol> weaponDefinitions, SourceProductionContext context)
     {
         sb.AppendLine("        /// <summary>");
         sb.AppendLine("        /// Initializes component definitions dictionary with auto-discovered mappings");
@@ -241,6 +253,15 @@ public class ComponentProviderGenerator : IIncrementalGenerator
                     }
                 }
             }
+            else
+            {
+                // Report diagnostic
+                context.ReportDiagnostic(Diagnostic.Create(
+                    new DiagnosticDescriptor("CPG004", "ComponentType not found",
+                        $"ComponentDefinition for {component.Name} does not have a ComponentType specified",
+                        "SourceGenerator", DiagnosticSeverity.Warning, true),
+                    Location.None));
+            }
         }
 
         // Add ammo definitions
@@ -258,7 +279,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
     }
 
     private static void GenerateFactoriesMethod(StringBuilder sb, List<ComponentInfo> componentTypes,
-        Dictionary<string, IFieldSymbol> weaponDefinitions)
+        Dictionary<string, IFieldSymbol> weaponDefinitions, SourceProductionContext context)
     {
         sb.AppendLine("        /// <summary>");
         sb.AppendLine("        /// Initializes component factories dictionary with auto-discovered constructors");
@@ -314,6 +335,15 @@ public class ComponentProviderGenerator : IIncrementalGenerator
                         ammoMappings.Add((ammoEnumValue, component.Name));
                     }
                 }
+            }
+            else
+            {
+                // Report diagnostic
+                context.ReportDiagnostic(Diagnostic.Create(
+                    new DiagnosticDescriptor("CPG005", "ComponentType not found",
+                        $"ComponentDefinition for {component.Name} does not have a ComponentType specified (factories)",
+                        "SourceGenerator", DiagnosticSeverity.Warning, true),
+                    Location.None));
             }
         }
 
