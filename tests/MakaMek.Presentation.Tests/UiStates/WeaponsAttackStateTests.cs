@@ -1666,6 +1666,7 @@ public class WeaponsAttackStateTests
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
         _sut.SelectedTarget.ShouldBeNull();
         _sut.Attacker.ShouldBe(attacker); // Attacker should still be selected
+        attacker.WeaponAttackState.WeaponTargets.ShouldBeEmpty();
         _battleMapViewModel.IsWeaponSelectionVisible.ShouldBeFalse();
     }
 

@@ -237,6 +237,7 @@ public class WeaponsAttackState : IUiState
             if (CurrentStep != WeaponsAttackStep.TargetSelection) return;
 
             // Clear target and weapon selections
+            Attacker?.WeaponAttackState.ClearAllWeaponTargets();
             SelectedTarget = null;
             _viewModel.SelectedUnit = null;
             _viewModel.IsWeaponSelectionVisible = false;
