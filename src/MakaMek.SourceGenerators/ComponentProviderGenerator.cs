@@ -116,7 +116,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             }
 
             // Generate the source code
-            var source = GenerateProvider(componentTypes, weaponDefinitions, context);
+            var source = GenerateProvider(componentTypes, weaponDefinitions, context, compilation);
             context.AddSource("ClassicBattletechComponentProvider.g.cs", SourceText.From(source, Encoding.UTF8));
         }
         catch (Exception ex)
@@ -152,7 +152,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
     }
 
     private static string GenerateProvider(List<ComponentInfo> componentTypes,
-        Dictionary<string, IFieldSymbol> weaponDefinitions, SourceProductionContext context)
+        Dictionary<string, IFieldSymbol> weaponDefinitions, SourceProductionContext context, Compilation compilation)
     {
         var sb = new StringBuilder();
 
@@ -191,12 +191,12 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         sb.AppendLine("    {");
 
         // Generate InitializeGeneratedDefinitions method
-        GenerateDefinitionsMethod(sb, componentTypes, weaponDefinitions, context);
+        GenerateDefinitionsMethod(sb, componentTypes, weaponDefinitions, context, compilation);
 
         sb.AppendLine();
 
         // Generate InitializeGeneratedFactories method
-        GenerateFactoriesMethod(sb, componentTypes, weaponDefinitions, context);
+        GenerateFactoriesMethod(sb, componentTypes, weaponDefinitions, context, compilation);
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
@@ -205,7 +205,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
     }
 
     private static void GenerateDefinitionsMethod(StringBuilder sb, List<ComponentInfo> componentTypes,
-        Dictionary<string, IFieldSymbol> weaponDefinitions, SourceProductionContext context)
+        Dictionary<string, IFieldSymbol> weaponDefinitions, SourceProductionContext context, Compilation compilation)
     {
         sb.AppendLine("        /// <summary>");
         sb.AppendLine("        /// Initializes component definitions dictionary with auto-discovered mappings");
@@ -238,7 +238,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
                 continue;
 
             // Extract the ComponentType enum value from the Definition field
-            var componentEnumValue = ExtractComponentTypeFromDefinition(definitionField);
+            var componentEnumValue = ExtractComponentTypeFromDefinition(definitionField, compilation);
             if (componentEnumValue != null)
             {
                 sb.AppendLine($"            definitions[MakaMekComponent.{componentEnumValue}] = {component.Name}.Definition;");
@@ -246,7 +246,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
                 // Check if this is a weapon with ammo
                 if (weaponDefinitions.ContainsKey(component.Name))
                 {
-                    var ammoEnumValue = ExtractAmmoComponentTypeFromDefinition(definitionField);
+                    var ammoEnumValue = ExtractAmmoComponentTypeFromDefinition(definitionField, compilation);
                     if (ammoEnumValue != null)
                     {
                         ammoMappings.Add((ammoEnumValue, component.Name));
@@ -279,7 +279,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
     }
 
     private static void GenerateFactoriesMethod(StringBuilder sb, List<ComponentInfo> componentTypes,
-        Dictionary<string, IFieldSymbol> weaponDefinitions, SourceProductionContext context)
+        Dictionary<string, IFieldSymbol> weaponDefinitions, SourceProductionContext context, Compilation compilation)
     {
         sb.AppendLine("        /// <summary>");
         sb.AppendLine("        /// Initializes component factories dictionary with auto-discovered constructors");
@@ -288,7 +288,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         sb.AppendLine("        partial void InitializeGeneratedFactories(");
         sb.AppendLine("            Dictionary<MakaMekComponent, Func<ComponentData?, Component?>> factories)");
         sb.AppendLine("        {");
-        
+
         // Collect ammo mappings
         var ammoMappings = new List<(string AmmoEnumValue, string WeaponClassName)>();
 
@@ -311,7 +311,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             // For Engine, we use "Engine" directly since it has dynamic definition
             var componentEnumValue = component.Name == "Engine"
                 ? "Engine"
-                : ExtractComponentTypeFromDefinition(definitionField!);
+                : ExtractComponentTypeFromDefinition(definitionField!, compilation);
 
             if (componentEnumValue != null)
             {
@@ -329,7 +329,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
                 // Check if this is a weapon with ammo
                 if (weaponDefinitions.ContainsKey(component.Name))
                 {
-                    var ammoEnumValue = ExtractAmmoComponentTypeFromDefinition(definitionField!);
+                    var ammoEnumValue = ExtractAmmoComponentTypeFromDefinition(definitionField!, compilation);
                     if (ammoEnumValue != null)
                     {
                         ammoMappings.Add((ammoEnumValue, component.Name));
@@ -363,13 +363,9 @@ public class ComponentProviderGenerator : IIncrementalGenerator
 
     /// <summary>
     /// Extracts the ComponentType enum value from a component's static Definition field
-    /// Uses semantic model to get the constant value of the ComponentType property
+    /// Uses semantic analysis to robustly identify MakaMekComponent enum members
     /// </summary>
-    /// <summary>
-    /// Extracts the ComponentType enum value from a component's static Definition field
-    /// Handles both explicit (new TypeName(...)) and implicit (new(...)) object creation syntax
-    /// </summary>
-    private static string? ExtractComponentTypeFromDefinition(IFieldSymbol definitionField)
+    private static string? ExtractComponentTypeFromDefinition(IFieldSymbol definitionField, Compilation compilation)
     {
         // Get the field declaration syntax
         var syntaxRef = definitionField.DeclaringSyntaxReferences.FirstOrDefault();
@@ -384,6 +380,9 @@ public class ComponentProviderGenerator : IIncrementalGenerator
 
         if (declarator.Initializer == null)
             return null;
+
+        // Get the semantic model for this syntax tree
+        var semanticModel = compilation.GetSemanticModel(syntaxRef.SyntaxTree);
 
         // Handle both explicit (new TypeName(...)) and implicit (new(...)) object creation
         ArgumentListSyntax? argumentList;
@@ -405,7 +404,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             return null;
 
         // Search through all arguments for a MakaMekComponent enum value
-        // Look for the FIRST MakaMekComponent enum member access that's not AmmoComponentType
+        // Look for the FIRST MakaMekComponent enum member that's not AmmoComponentType
         foreach (var argument in argumentList.Arguments)
         {
             // Get the argument name - could be from NameColon (old style) or from the argument itself
@@ -421,15 +420,17 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             if (argName == "AmmoComponentType")
                 continue;
 
-            // Check if this argument is a member access expression (e.g., MakaMekComponent.Gyro)
-            if (argument.Expression is MemberAccessExpressionSyntax memberAccess)
+            // Use semantic analysis to get the symbol information
+            var symbolInfo = semanticModel.GetSymbolInfo(argument.Expression);
+
+            if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
             {
-                // Check if the left side is "MakaMekComponent"
-                var leftSide = memberAccess.Expression.ToString();
-                if (leftSide == "MakaMekComponent")
+                // Check if it's a MakaMekComponent enum member
+                if (fieldSymbol.ContainingType?.Name == "MakaMekComponent" &&
+                    fieldSymbol.ContainingType.TypeKind == TypeKind.Enum)
                 {
-                    // Return the member name (e.g., "Gyro" from "MakaMekComponent.Gyro")
-                    return memberAccess.Name.Identifier.Text;
+                    // Return the enum member name
+                    return fieldSymbol.Name;
                 }
             }
         }
@@ -439,8 +440,9 @@ public class ComponentProviderGenerator : IIncrementalGenerator
 
     /// <summary>
     /// Extracts the AmmoComponentType enum value from a WeaponDefinition field
+    /// Uses semantic analysis to robustly identify MakaMekComponent enum members
     /// </summary>
-    private static string? ExtractAmmoComponentTypeFromDefinition(IFieldSymbol definitionField)
+    private static string? ExtractAmmoComponentTypeFromDefinition(IFieldSymbol definitionField, Compilation compilation)
     {
         // Get the field declaration syntax
         var syntaxRef = definitionField.DeclaringSyntaxReferences.FirstOrDefault();
@@ -450,6 +452,9 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         var fieldDecl = syntaxRef.GetSyntax() as VariableDeclaratorSyntax;
         if (fieldDecl?.Initializer == null)
             return null;
+
+        // Get the semantic model for this syntax tree
+        var semanticModel = compilation.GetSemanticModel(syntaxRef.SyntaxTree);
 
         // Handle both explicit and implicit object creation
         ArgumentListSyntax? argumentList;
@@ -477,10 +482,18 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             var argName = argument.NameColon?.Name.Identifier.Text;
             if (argName == "AmmoComponentType")
             {
-                // Extract the enum member access (e.g., MakaMekComponent.ISAmmoMG)
-                if (argument.Expression is MemberAccessExpressionSyntax memberAccess)
+                // Use semantic analysis to get the symbol information
+                var symbolInfo = semanticModel.GetSymbolInfo(argument.Expression);
+
+                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
                 {
-                    return memberAccess.Name.Identifier.Text;
+                    // Check if it's a MakaMekComponent enum member
+                    if (fieldSymbol.ContainingType?.Name == "MakaMekComponent" &&
+                        fieldSymbol.ContainingType.TypeKind == TypeKind.Enum)
+                    {
+                        // Return the enum member name
+                        return fieldSymbol.Name;
+                    }
                 }
             }
         }
