@@ -22,6 +22,8 @@ internal class UnitState : IEquatable<UnitState>
     public int TotalCurrentStructure { get; init; }
     public IReadOnlyCollection<UiEvent> Events { get; init; } = [];
     public UnitStatus Status { get; init; }
+    
+    public int CurrentHeat { get; init; }
 
     public bool Equals(UnitState? other)
     {

@@ -38,6 +38,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly StackPanel _healthBars;
         private readonly ProgressBar _armorBar;
         private readonly ProgressBar _structureBar;
+        private readonly ProgressBar _heatBar;
         private readonly StackPanel _eventsPanel;
         private readonly TimeSpan _eventDisplayDuration = TimeSpan.FromSeconds(5);
 
@@ -120,6 +121,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
             var structureBrush = _resourcesLocator.TryFindResource("MechStructureBrush") as SolidColorBrush
                                  ?? new SolidColorBrush(Colors.Orange);
             var backgroundBrush = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0));
+            var heatBrush = _resourcesLocator.TryFindResource("HeatBrush") as SolidColorBrush
+                           ?? new SolidColorBrush(Colors.Red);
 
             // Create an armor bar
             _armorBar = new ProgressBar
@@ -147,6 +150,21 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Minimum = 0,
                 Maximum = 1,
                 Value = 1
+            };
+
+            // Create heat level bar (vertical)
+            _heatBar = new ProgressBar
+            {
+                Foreground = heatBrush,
+                Background = backgroundBrush,
+                Width = 6,
+                MinHeight = 0,
+                Height = Height * 0.8,
+                Orientation = Orientation.Vertical,
+                CornerRadius = new CornerRadius(3),
+                Minimum = 0,
+                Maximum = 30, // Max heat level
+                Value = 0,
             };
 
             // Add bars to the panel
@@ -269,7 +287,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     TotalMaxStructure = _unit.TotalMaxStructure,
                     TotalCurrentStructure = _unit.TotalCurrentStructure,
                     Status = _unit.Status,
-                    Events = _unit.Notifications
+                    Events = _unit.Notifications,
+                    CurrentHeat = _unit.CurrentHeat
                 })
                 .DistinctUntilChanged()
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
@@ -306,6 +325,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     UpdateActionButtons(state.Actions);
                     UpdateHealthBars(state.TotalCurrentArmor, state.TotalMaxArmor, state.TotalCurrentStructure,
                         state.TotalMaxStructure);
+                    UpdateHeatBar(state.CurrentHeat);
 
                     // Process any new events
                     if (state.Events.Any())
@@ -353,6 +373,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             _ = UpdateImage();
             UpdateHealthBars(_unit.TotalCurrentArmor, _unit.TotalMaxArmor, _unit.TotalCurrentStructure,
                 _unit.TotalMaxStructure);
+            UpdateHeatBar(_unit.CurrentHeat);
         }
 
         private void UpdateHealthBars(int currentArmor, int maxArmor, int currentStructure, int maxStructure)
@@ -364,6 +385,12 @@ namespace Sanet.MakaMek.Avalonia.Controls
             // Update structure bar
             _structureBar.Maximum = maxStructure;
             _structureBar.Value = currentStructure;
+        }
+
+        private void UpdateHeatBar(int currentHeat)
+        {
+            _heatBar.Value = currentHeat;
+            _heatBar.IsVisible = currentHeat > 0;
         }
 
         private void UpdateActionButtons(IEnumerable<StateAction> actions)
@@ -431,10 +458,13 @@ namespace Sanet.MakaMek.Avalonia.Controls
             if (_healthBars.Parent == null && Parent is Canvas canvas2)
             {
                 canvas2.Children.Add(_healthBars);
+                canvas2.Children.Add(_heatBar);
             }
 
             Canvas.SetLeft(_healthBars, leftPos);
             Canvas.SetTop(_healthBars, topPos - 15); // Position above the unit
+            Canvas.SetLeft(_heatBar, leftPos);
+            Canvas.SetTop(_heatBar, topPos); 
 
             // Update events panel position to follow the unit
             if (_eventsPanel.Parent == null && Parent is Canvas canvas3)
