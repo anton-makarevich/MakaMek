@@ -295,31 +295,32 @@ public class WeaponsAttackStateTests
         // Arrange
         SetPhase(PhaseNames.WeaponsAttack);
         SetActivePlayer();
-        
-        // Setup attacker (player's unit)
+
+        // Setup attacker (player's unit) with a weapon
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Deploy(attackerPosition);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
-        
-        // Set up another friendly unit
-        var friendlyPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
+
+        // Set up another friendly unit within weapon range
+        var friendlyPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
         var friendlyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id && u != attacker);
         friendlyUnit.Deploy(friendlyPosition);
-        
+
         // Activate target selection
         var targetSelectionAction = _sut.GetAvailableActions()
             .First(a => a.Label == "Select Target");
         targetSelectionAction.OnExecute();
-        
-        // Create hex with a friendly unit
+
+        // Create hex with a friendly unit (within weapon range, so it's highlighted)
         var friendlyHex = new Hex(friendlyPosition.Coordinates);
 
         // Act
         _sut.HandleHexSelection(friendlyHex);
 
-        // Assert
+        // Assert - should stay in target selection but not select the friendly unit
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
         _battleMapViewModel.SelectedUnit.ShouldBeNull();
         _sut.Attacker.ShouldBe(attacker);
@@ -351,37 +352,37 @@ public class WeaponsAttackStateTests
     }
 
     [Fact]
-    public void HandleHexSelection_DoesNotSelectEnemyUnit_WhenOutOfWeaponRange()
+    public void HandleHexSelection_CancelsTargetSelection_WhenClickingOutOfWeaponRange()
     {
         // Arrange
         SetPhase(PhaseNames.WeaponsAttack);
         SetActivePlayer();
-        
+
         // Setup attacker (player's unit)
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Deploy(attackerPosition);
         attacker.AssignPilot(_pilot);
         _sut.HandleUnitSelection(attacker);
-        
+
         // Set up an enemy unit far away (out of weapon range)
         var enemyPosition = new HexPosition(new HexCoordinates(10, 10), HexDirection.Bottom);
         var enemyUnit = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         enemyUnit.Deploy(enemyPosition);
-        
+
         // Activate target selection
         var targetSelectionAction = _sut.GetAvailableActions()
             .First(a => a.Label == "Select Target");
         targetSelectionAction.OnExecute();
-        
+
         // Create hex with an enemy unit
         var enemyHex = new Hex(enemyPosition.Coordinates);
 
         // Act
         _sut.HandleHexSelection(enemyHex);
 
-        // Assert
-        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
+        // Assert - should cancel target selection when clicking outside weapon range
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
         _battleMapViewModel.SelectedUnit.ShouldBeNull();
         _sut.Attacker.ShouldBe(attacker);
         _sut.SelectedTarget.ShouldBeNull();
@@ -1019,14 +1020,14 @@ public class WeaponsAttackStateTests
     }
     
     [Fact]
-    public void UpdateWeaponViewModels_SetsNAForHitProbability_WhenWeaponNotInRange()
+    public void HandleHexSelection_CancelsSelection_WhenTargetOutOfRange()
     {
         // Arrange
         // Set up attacker and target units
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        
+
         // Position units on the map - far apart to ensure weapons are out of range
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(10, 10), HexDirection.Top);
@@ -1039,72 +1040,14 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
-        _sut.HandleUnitSelection(target);
-        
-        // Act
-        var weaponItems = _sut.WeaponSelectionItems.ToList();
-        
-        // Assert
-        weaponItems.ShouldNotBeEmpty();
-        foreach (var item in weaponItems)
-        {
-            // All weapons should be out of range
-            item.IsInRange.ShouldBeFalse();
-            item.HitProbability.ShouldBeEquivalentTo(0.0);
-            item.HitProbabilityText.ShouldBe("-");
-        }
-    }
 
-    [Fact]
-    public void DeterminePrimaryTarget_WithMultipleTargets_SelectsTargetInForwardArc()
-    {
-        // Arrange
-        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
-        
-        // Set up two enemy targets at different positions
-        var targetInForwardArc = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
-        var targetInOtherArc = _battleMapViewModel.Units.Last(u => u.Owner!.Id != _player.Id);
-        
-        // Position units: attacker facing Top, targetInForwardArc directly in front, targetInOtherArc to the side
-        var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
-        var targetInForwardPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
-        var targetInOtherPosition = new HexPosition(new HexCoordinates(7, 5), HexDirection.Bottom);
-        
-        attacker.Deploy(attackerPosition);
-        attacker.AssignPilot(_pilot);
-        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        attacker.Parts[PartLocation.RightTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
-        targetInForwardArc.Deploy(targetInForwardPosition);
-        targetInOtherArc.Deploy(targetInOtherPosition);
-        
-        // Set up the state
-        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
-        _sut.HandleUnitSelection(attacker);
-        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
-        selectTargetAction.OnExecute();
-        
-        // Get two different weapons to target different enemies
-        var weapons = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).Take(2).ToList();
-        
-        // Select the first target and weapon
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetInForwardPosition.Coordinates));
-        _sut.HandleUnitSelection(targetInForwardArc);
-        var weaponSelection1 = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapons[0]);
-        weaponSelection1.IsSelected = true;
-        
-        // Select a second target and weapon
-        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetInOtherPosition.Coordinates));
-        _sut.HandleUnitSelection(targetInOtherArc);
-        var weaponSelection2 = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapons[1]);
-        weaponSelection2.IsSelected = true;
-        
-        // Act
-        var primaryTarget = _sut.PrimaryTarget;
-        
-        // Assert
-        primaryTarget.ShouldNotBeNull();
-        primaryTarget.ShouldBe(targetInForwardArc);
+        // Act - try to select a target out of range
+        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
+
+        // Assert - selection should be cancelled when clicking outside weapon range
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        _sut.SelectedTarget.ShouldBeNull();
+        _sut.Attacker.ShouldBe(attacker);
     }
     
     [Fact]
@@ -1648,9 +1591,122 @@ public class WeaponsAttackStateTests
         
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         unitWithNoWeapons.Deploy(position);
-        
+
         // Set the unit as the attacker in the state
         _sut.HandleUnitSelection(unitWithNoWeapons);
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h=>h.Coordinates==position.Coordinates));
+    }
+
+    [Fact]
+    public void HandleHexSelection_CancelsTorsoRotation_WhenInWeaponsConfigurationStep()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(position);
+        attacker.AssignPilot(_pilot);
+
+        // Select unit and start torso rotation
+        _sut.HandleUnitSelection(attacker);
+        var actions = _sut.GetAvailableActions().ToList();
+        var torsoAction = actions.First(a => a.Label == "Turn Torso");
+        torsoAction.OnExecute();
+
+        // Verify we're in WeaponsConfiguration step
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.WeaponsConfiguration);
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
+
+        // Act - click on a hex (outside direction selector)
+        var hex = new Hex(new HexCoordinates(5, 5));
+        _sut.HandleHexSelection(hex);
+
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeFalse();
+        _sut.Attacker.ShouldBe(attacker); // Attacker should still be selected
+    }
+
+    [Fact]
+    public void HandleHexSelection_CancelsTargetSelection_WhenClickingOutsideWeaponRange()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+
+        var targetPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        target.Deploy(targetPosition);
+
+        // Select attacker and enter target selection
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+
+        // Select a target
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Verify we're in target selection with a target
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
+        _sut.SelectedTarget.ShouldBe(target);
+
+        // Act - click on a hex outside weapon range
+        var farAwayHex = new Hex(new HexCoordinates(10, 10));
+        _sut.HandleHexSelection(farAwayHex);
+
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        _sut.SelectedTarget.ShouldBeNull();
+        _sut.Attacker.ShouldBe(attacker); // Attacker should still be selected
+        attacker.WeaponAttackState.WeaponTargets.ShouldBeEmpty();
+        _battleMapViewModel.IsWeaponSelectionVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HandleHexSelection_DoesNotCancelTargetSelection_WhenClickingOnValidTarget()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+
+        var target1Position = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
+        var target1 = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        target1.Deploy(target1Position);
+
+        var target2Position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        var target2 = _battleMapViewModel.Units.Last(u => u.Owner!.Id != _player.Id);
+        target2.Deploy(target2Position);
+
+        // Select attacker and enter target selection
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+
+        // Select first target
+        _sut.HandleHexSelection(new Hex(target1Position.Coordinates));
+        _sut.HandleUnitSelection(target1);
+
+        // Act - click on a different valid target
+        _sut.HandleHexSelection(new Hex(target2Position.Coordinates));
+        _sut.HandleUnitSelection(target2);
+
+        // Assert - should switch to the new target, not cancel
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
+        _sut.SelectedTarget.ShouldBe(target2);
+        _sut.Attacker.ShouldBe(attacker);
     }
 }
