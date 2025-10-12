@@ -45,23 +45,12 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         if (typeSymbol is null || typeSymbol.IsAbstract)
             return null;
 
-        // Only consider classes that might be related to Component
-        var fullName = typeSymbol.ToDisplayString();
-        if (fullName.Contains("Component") || fullName.Contains("Weapon") || 
-            fullName.Contains("Actuator") || fullName.Contains("Gyro") ||
-            fullName.Contains("Sensor") || fullName.Contains("Cockpit") ||
-            fullName.Contains("LifeSupport") || fullName.Contains("HeatSink") ||
-            fullName.Contains("JumpJet") || fullName.Contains("Engine") ||
-            fullName.Contains("Masc"))
-        {
-            return new ComponentInfo(
-                typeSymbol.Name,
-                typeSymbol.ContainingNamespace.ToDisplayString(),
-                typeSymbol.ToDisplayString(),
-                typeSymbol);
-        }
-
-        return null;
+        // Return the component info - inheritance checking will be done in Execute
+        // This is a preliminary filter to reduce the number of types to process
+        return new ComponentInfo(
+            typeSymbol.Name,
+            typeSymbol.ContainingNamespace.ToDisplayString(),
+            typeSymbol);
     }
 
     private static void Execute(Compilation compilation, ImmutableArray<ComponentInfo> types, SourceProductionContext context)
@@ -115,7 +104,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             }
 
             // Generate the source code
-            var source = GenerateProvider(componentTypes, weaponDefinitions, compilation);
+            var source = GenerateProvider(componentTypes, weaponDefinitions);
             context.AddSource("ClassicBattletechComponentProvider.g.cs", SourceText.From(source, Encoding.UTF8));
         }
         catch (Exception ex)
@@ -128,11 +117,10 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         }
     }
 
-    private class ComponentInfo(string name, string ns, string fullName, INamedTypeSymbol symbol)
+    private class ComponentInfo(string name, string ns, INamedTypeSymbol symbol)
     {
         public string Name { get; } = name;
         public string Namespace { get; } = ns;
-        public string FullName { get; } = fullName;
         public INamedTypeSymbol Symbol { get; } = symbol;
     }
 
@@ -152,7 +140,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
     }
 
     private static string GenerateProvider(List<ComponentInfo> componentTypes,
-        Dictionary<string, IFieldSymbol> weaponDefinitions, Compilation compilation)
+        Dictionary<string, IFieldSymbol> weaponDefinitions)
     {
         var sb = new StringBuilder();
 
@@ -191,12 +179,12 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         sb.AppendLine("    {");
 
         // Generate InitializeGeneratedDefinitions method
-        GenerateDefinitionsMethod(sb, componentTypes, weaponDefinitions, compilation);
+        GenerateDefinitionsMethod(sb, componentTypes, weaponDefinitions);
 
         sb.AppendLine();
 
         // Generate InitializeGeneratedFactories method
-        GenerateFactoriesMethod(sb, componentTypes, weaponDefinitions, compilation);
+        GenerateFactoriesMethod(sb, componentTypes, weaponDefinitions);
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
@@ -205,7 +193,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
     }
 
     private static void GenerateDefinitionsMethod(StringBuilder sb, List<ComponentInfo> componentTypes,
-        Dictionary<string, IFieldSymbol> weaponDefinitions, Compilation compilation)
+        Dictionary<string, IFieldSymbol> weaponDefinitions)
     {
         sb.AppendLine("        /// <summary>");
         sb.AppendLine("        /// Initializes component definitions dictionary with auto-discovered mappings");
@@ -214,9 +202,6 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         sb.AppendLine("        partial void InitializeGeneratedDefinitions(");
         sb.AppendLine("            Dictionary<MakaMekComponent, ComponentDefinition> definitions)");
         sb.AppendLine("        {");
-
-        // Get MakaMekComponent enum symbol
-        var enumSymbol = compilation.GetTypeByMetadataName("Sanet.MakaMek.Core.Data.Units.Components.MakaMekComponent");
 
         // Collect ammo mappings
         var ammoMappings = new List<(string AmmoEnumValue, string WeaponClassName)>();
@@ -240,8 +225,8 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             if (definitionField == null)
                 continue;
 
-            // Use name matching to determine enum value
-            var componentEnumValue = MapClassNameToEnumValue(component.Name);
+            // Extract the ComponentType enum value from the Definition field
+            var componentEnumValue = ExtractComponentTypeFromDefinition(definitionField);
             if (componentEnumValue != null)
             {
                 sb.AppendLine($"            definitions[MakaMekComponent.{componentEnumValue}] = {component.Name}.Definition;");
@@ -249,7 +234,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
                 // Check if this is a weapon with ammo
                 if (weaponDefinitions.ContainsKey(component.Name))
                 {
-                    var ammoEnumValue = MapWeaponToAmmoEnumValue(component.Name);
+                    var ammoEnumValue = ExtractAmmoComponentTypeFromDefinition(definitionField);
                     if (ammoEnumValue != null)
                     {
                         ammoMappings.Add((ammoEnumValue, component.Name));
@@ -273,7 +258,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
     }
 
     private static void GenerateFactoriesMethod(StringBuilder sb, List<ComponentInfo> componentTypes,
-        Dictionary<string, IFieldSymbol> weaponDefinitions, Compilation compilation)
+        Dictionary<string, IFieldSymbol> weaponDefinitions)
     {
         sb.AppendLine("        /// <summary>");
         sb.AppendLine("        /// Initializes component factories dictionary with auto-discovered constructors");
@@ -282,10 +267,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         sb.AppendLine("        partial void InitializeGeneratedFactories(");
         sb.AppendLine("            Dictionary<MakaMekComponent, Func<ComponentData?, Component?>> factories)");
         sb.AppendLine("        {");
-
-        // Get MakaMekComponent enum symbol
-        var enumSymbol = compilation.GetTypeByMetadataName("Sanet.MakaMek.Core.Data.Units.Components.MakaMekComponent");
-
+        
         // Collect ammo mappings
         var ammoMappings = new List<(string AmmoEnumValue, string WeaponClassName)>();
 
@@ -304,8 +286,12 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             if (definitionField == null && component.Name != "Engine")
                 continue;
 
-            // Use name matching to determine enum value
-            var componentEnumValue = component.Name == "Engine" ? "Engine" : MapClassNameToEnumValue(component.Name);
+            // Extract the ComponentType enum value from the Definition field
+            // For Engine, we use "Engine" directly since it has dynamic definition
+            var componentEnumValue = component.Name == "Engine"
+                ? "Engine"
+                : ExtractComponentTypeFromDefinition(definitionField!);
+
             if (componentEnumValue != null)
             {
                 // Special handling for Engine
@@ -322,7 +308,7 @@ public class ComponentProviderGenerator : IIncrementalGenerator
                 // Check if this is a weapon with ammo
                 if (weaponDefinitions.ContainsKey(component.Name))
                 {
-                    var ammoEnumValue = MapWeaponToAmmoEnumValue(component.Name);
+                    var ammoEnumValue = ExtractAmmoComponentTypeFromDefinition(definitionField!);
                     if (ammoEnumValue != null)
                     {
                         ammoMappings.Add((ammoEnumValue, component.Name));
@@ -345,82 +331,131 @@ public class ComponentProviderGenerator : IIncrementalGenerator
         sb.AppendLine("        }");
     }
 
-    private static string? MapClassNameToEnumValue(string className)
+    /// <summary>
+    /// Extracts the ComponentType enum value from a component's static Definition field
+    /// Uses semantic model to get the constant value of the ComponentType property
+    /// </summary>
+    /// <summary>
+    /// Extracts the ComponentType enum value from a component's static Definition field
+    /// Handles both explicit (new TypeName(...)) and implicit (new(...)) object creation syntax
+    /// </summary>
+    private static string? ExtractComponentTypeFromDefinition(IFieldSymbol definitionField)
     {
-        // Map class names to MakaMekComponent enum values
-        // Most follow a simple pattern, but some need special handling
-        return className switch
+        // Get the field declaration syntax
+        var syntaxRef = definitionField.DeclaringSyntaxReferences.FirstOrDefault();
+        if (syntaxRef == null)
+            return null;
+
+        var syntax = syntaxRef.GetSyntax();
+
+        // The syntax should be a VariableDeclaratorSyntax
+        if (syntax is not VariableDeclaratorSyntax declarator)
+            return null;
+
+        if (declarator.Initializer == null)
+            return null;
+
+        // Handle both explicit (new TypeName(...)) and implicit (new(...)) object creation
+        ArgumentListSyntax? argumentList;
+
+        if (declarator.Initializer.Value is ObjectCreationExpressionSyntax objectCreation)
         {
-            // Actuators
-            "ShoulderActuator" => "Shoulder",
-            "UpperArmActuator" => "UpperArmActuator",
-            "LowerArmActuator" => "LowerArmActuator",
-            "HandActuator" => "HandActuator",
-            "HipActuator" => "Hip",
-            "UpperLegActuator" => "UpperLegActuator",
-            "LowerLegActuator" => "LowerLegActuator",
-            "FootActuator" => "FootActuator",
+            argumentList = objectCreation.ArgumentList;
+        }
+        else if (declarator.Initializer.Value is ImplicitObjectCreationExpressionSyntax implicitCreation)
+        {
+            argumentList = implicitCreation.ArgumentList;
+        }
+        else
+        {
+            return null;
+        }
 
-            // Internal Components
-            "Gyro" => "Gyro",
-            "LifeSupport" => "LifeSupport",
-            "Sensors" => "Sensors",
-            "Cockpit" => "Cockpit",
+        if (argumentList == null)
+            return null;
 
-            // Equipment
-            "HeatSink" => "HeatSink",
-            "JumpJets" => "JumpJet",
-            "Masc" => "Masc",
+        // Search through all arguments for a MakaMekComponent enum value
+        // Look for the FIRST MakaMekComponent enum member access that's not AmmoComponentType
+        foreach (var argument in argumentList.Arguments)
+        {
+            // Get the argument name - could be from NameColon (old style) or from the argument itself
+            string? argName = null;
 
-            // Energy Weapons
-            "SmallLaser" => "SmallLaser",
-            "MediumLaser" => "MediumLaser",
-            "LargeLaser" => "LargeLaser",
-            "Ppc" => "PPC",
-            "Flamer" => "Flamer",
+            // Check for named argument with colon (e.g., Name: "value")
+            if (argument.NameColon != null)
+            {
+                argName = argument.NameColon.Name.Identifier.Text;
+            }
 
-            // Ballistic Weapons
-            "MachineGun" => "MachineGun",
-            "Ac2" => "AC2",
-            "Ac5" => "AC5",
-            "Ac10" => "AC10",
-            "Ac20" => "AC20",
+            // Skip AmmoComponentType - we want ComponentType or WeaponComponentType
+            if (argName == "AmmoComponentType")
+                continue;
 
-            // Missile Weapons
-            "Lrm5" => "LRM5",
-            "Lrm10" => "LRM10",
-            "Lrm15" => "LRM15",
-            "Lrm20" => "LRM20",
-            "Srm2" => "SRM2",
-            "Srm4" => "SRM4",
-            "Srm6" => "SRM6",
+            // Check if this argument is a member access expression (e.g., MakaMekComponent.Gyro)
+            if (argument.Expression is MemberAccessExpressionSyntax memberAccess)
+            {
+                // Check if the left side is "MakaMekComponent"
+                var leftSide = memberAccess.Expression.ToString();
+                if (leftSide == "MakaMekComponent")
+                {
+                    // Return the member name (e.g., "Gyro" from "MakaMekComponent.Gyro")
+                    return memberAccess.Name.Identifier.Text;
+                }
+            }
+        }
 
-            // Melee Weapons
-            "Hatchet" => "Hatchet",
-
-            _ => null
-        };
+        return null;
     }
 
-    private static string? MapWeaponToAmmoEnumValue(string weaponClassName)
+    /// <summary>
+    /// Extracts the AmmoComponentType enum value from a WeaponDefinition field
+    /// </summary>
+    private static string? ExtractAmmoComponentTypeFromDefinition(IFieldSymbol definitionField)
     {
-        // Map weapon class names to their ammo enum values
-        return weaponClassName switch
+        // Get the field declaration syntax
+        var syntaxRef = definitionField.DeclaringSyntaxReferences.FirstOrDefault();
+        if (syntaxRef == null)
+            return null;
+
+        var fieldDecl = syntaxRef.GetSyntax() as VariableDeclaratorSyntax;
+        if (fieldDecl?.Initializer == null)
+            return null;
+
+        // Handle both explicit and implicit object creation
+        ArgumentListSyntax? argumentList;
+
+        if (fieldDecl.Initializer.Value is ObjectCreationExpressionSyntax objectCreation)
         {
-            "MachineGun" => "ISAmmoMG",
-            "Ac2" => "ISAmmoAC2",
-            "Ac5" => "ISAmmoAC5",
-            "Ac10" => "ISAmmoAC10",
-            "Ac20" => "ISAmmoAC20",
-            "Lrm5" => "ISAmmoLRM5",
-            "Lrm10" => "ISAmmoLRM10",
-            "Lrm15" => "ISAmmoLRM15",
-            "Lrm20" => "ISAmmoLRM20",
-            "Srm2" => "ISAmmoSRM2",
-            "Srm4" => "ISAmmoSRM4",
-            "Srm6" => "ISAmmoSRM6",
-            _ => null
-        };
+            argumentList = objectCreation.ArgumentList;
+        }
+        else if (fieldDecl.Initializer.Value is ImplicitObjectCreationExpressionSyntax implicitCreation)
+        {
+            argumentList = implicitCreation.ArgumentList;
+        }
+        else
+        {
+            return null;
+        }
+
+        // Look for the AmmoComponentType parameter (only in WeaponDefinition)
+        if (argumentList == null)
+            return null;
+
+        foreach (var argument in argumentList.Arguments)
+        {
+            // Only look for named parameter "AmmoComponentType"
+            var argName = argument.NameColon?.Name.Identifier.Text;
+            if (argName == "AmmoComponentType")
+            {
+                // Extract the enum member access (e.g., MakaMekComponent.ISAmmoMG)
+                if (argument.Expression is MemberAccessExpressionSyntax memberAccess)
+                {
+                    return memberAccess.Name.Identifier.Text;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static string GenerateEmptyProvider()
