@@ -106,6 +106,23 @@ public class WeaponsAttackState : IUiState
 
     public void HandleHexSelection(Hex hex)
     {
+        // Handle cancellation when direction selector is shown (torso rotation step)
+        if (CurrentStep == WeaponsAttackStep.WeaponsConfiguration)
+        {
+            CancelTorsoRotation();
+            return;
+        }
+
+        if (CurrentStep == WeaponsAttackStep.TargetSelection)
+        {
+            // Cancel target selection if clicked outside weapon range (non-highlighted hex)
+            if (!IsHexInWeaponRange(hex.Coordinates))
+            {
+                CancelTargetSelection();
+                return;
+            }
+        }
+
         HandleUnitSelectionFromHex(hex);
     }
 
@@ -197,6 +214,35 @@ public class WeaponsAttackState : IUiState
             _weaponViewModels.Clear();
             _viewModel.SelectedUnit = null;
             CurrentStep = WeaponsAttackStep.SelectingUnit;
+            _viewModel.NotifyStateChanged();
+        }
+    }
+
+    private void CancelTorsoRotation()
+    {
+        if (CurrentStep != WeaponsAttackStep.WeaponsConfiguration) return;
+
+        // Hide the direction selector
+        _viewModel.HideDirectionSelector();
+
+        // Return to action selection step
+        CurrentStep = WeaponsAttackStep.ActionSelection;
+        _viewModel.NotifyStateChanged();
+    }
+
+    private void CancelTargetSelection()
+    {
+        lock (_stateLock)
+        {
+            if (CurrentStep != WeaponsAttackStep.TargetSelection) return;
+
+            // Clear target and weapon selections
+            SelectedTarget = null;
+            _viewModel.SelectedUnit = null;
+            _viewModel.IsWeaponSelectionVisible = false;
+
+            // Return to action selection step
+            CurrentStep = WeaponsAttackStep.ActionSelection;
             _viewModel.NotifyStateChanged();
         }
     }
