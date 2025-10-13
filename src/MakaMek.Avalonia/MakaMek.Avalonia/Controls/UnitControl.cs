@@ -450,7 +450,6 @@ namespace Sanet.MakaMek.Avalonia.Controls
             if (_actionButtons.Parent == null && Parent is Canvas canvas)
             {
                 canvas.Children.Add(_actionButtons);
-
             }
 
             Canvas.SetLeft(_actionButtons, leftPos);
@@ -476,6 +475,10 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
             Canvas.SetLeft(_eventsPanel, leftPos);
             Canvas.SetTop(_eventsPanel, topPos - 40 - _eventsPanel.Children.Count * 10);
+
+            if (Parent is not Canvas canvas4) return;
+            if (_actionButtons.ZIndex < canvas4.Children.Count)
+                _actionButtons.ZIndex = canvas4.Children.Count;
         }
 
         /// <summary>
