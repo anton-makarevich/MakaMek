@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Game.Rules;
+﻿using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -47,11 +48,11 @@ public class HeatProjectionViewModelTests
     public void CurrentHeat_ReturnsAttackerHeat_WhenAttackerSet()
     {
         // Arrange
-        _attacker.ApplyHeat(new Core.Data.Game.HeatData
+        _attacker.ApplyHeat(new HeatData
         {
             MovementHeatSources = [],
-            WeaponHeatSources = [new Core.Data.Game.WeaponHeatData { WeaponName = "Test", HeatPoints = 10 }],
-            DissipationData = new Core.Data.Game.HeatDissipationData
+            WeaponHeatSources = [new WeaponHeatData { WeaponName = "Test", HeatPoints = 10 }],
+            DissipationData = new HeatDissipationData
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
@@ -185,7 +186,7 @@ public class HeatProjectionViewModelTests
 
         // Declare weapon attacks (simulating server-side declaration)
         _attacker.DeclareWeaponAttack([
-            new Core.Data.Game.WeaponTargetData
+            new WeaponTargetData
             {
                 Weapon = new Core.Data.Units.Components.ComponentData
                 {
@@ -196,7 +197,7 @@ public class HeatProjectionViewModelTests
                 TargetId = _target.Id,
                 IsPrimaryTarget = true
             },
-            new Core.Data.Game.WeaponTargetData
+            new WeaponTargetData
             {
                 Weapon = new Core.Data.Units.Components.ComponentData
                 {
@@ -242,17 +243,18 @@ public class HeatProjectionViewModelTests
         _sut.Unit = _attacker;
 
         // Add current heat
-        _attacker.ApplyHeat(new Core.Data.Game.HeatData
+        _attacker.ApplyHeat(new HeatData
         {
             MovementHeatSources = [],
-            WeaponHeatSources = [new Core.Data.Game.WeaponHeatData { WeaponName = "Test", HeatPoints = 5 }],
-            DissipationData = new Core.Data.Game.HeatDissipationData
+            WeaponHeatSources = [new WeaponHeatData { WeaponName = "Test", HeatPoints = 5 }],
+            DissipationData = new HeatDissipationData
             {
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
                 DissipationPoints = 0
             }
         });
+        _attacker.ResetTurnState();
 
         // Add weapons
         var weapon = new MediumLaser(); // Heat: 3
@@ -271,6 +273,44 @@ public class HeatProjectionViewModelTests
         // CurrentHeat (5) + SelectedWeaponHeat (3) + EngineHeat (5) = 13
         _sut.ProjectedHeat.ShouldBe(13);
         _sut.HeatProjectionText.ShouldBe($"Heat: 5 → 13");
+    }
+    
+    [Fact]
+    public void ProjectedHeat_ShouldBeSameAsCurrentHeat_WhenHeatAlreadyApplied()
+    {
+        // Arrange
+        _sut.Unit = _attacker;
+    
+        // Add weapons
+        var weapon = new MediumLaser(); // Heat: 3
+        var leftArm = _attacker.Parts[Core.Models.Units.PartLocation.LeftArm];
+        leftArm.TryAddComponent(weapon);
+        _attacker.WeaponAttackState.SetWeaponTarget(weapon, _target, _attacker);
+    
+        // Damage the engine (1 hit = 5 heat points)
+        var engine = _attacker.GetAllComponents<Core.Models.Units.Components.Engines.Engine>().First();
+        engine.Hit();
+        
+        // Apply heat
+        _attacker.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData { WeaponName = "Test", HeatPoints = 5 }],
+            DissipationData = new HeatDissipationData
+            {
+                HeatSinks = 0,
+                EngineHeatSinks = 0,
+                DissipationPoints = 0
+            }
+        });
+        
+        // Act
+        _sut.UpdateProjectedHeat();
+    
+        // Assert
+        // CurrentHeat (5) only
+        _sut.ProjectedHeat.ShouldBe(5);
+        _sut.HeatProjectionText.ShouldBe($"Heat: 5 → 5");
     }
 }
 

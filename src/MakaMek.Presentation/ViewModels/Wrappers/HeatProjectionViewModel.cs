@@ -65,21 +65,28 @@ public class HeatProjectionViewModel : BindableBase
             ProjectedHeat = 0;
             return;
         }
-
-        var heatData = Unit.GetHeatData(_rulesProvider);
         
-        var movementHeat = 
-            heatData.MovementHeatSources.Sum(source => source.HeatPoints);
+        if (Unit.HasAppliedHeat)
+        {
+            ProjectedHeat = CurrentHeat;
+        }
+        else
+        {
+            var heatData = Unit.GetHeatData(_rulesProvider);
 
-        // Use declared weapon heat if attacks have been declared, otherwise use selected weapons
-        var weaponHeat = Unit.HasDeclaredWeaponAttack
-            ? heatData.WeaponHeatSources.Sum(source => source.HeatPoints)
-            : Unit.WeaponAttackState.SelectedWeapons.Sum(weapon => weapon.Heat);
+            var movementHeat =
+                heatData.MovementHeatSources.Sum(source => source.HeatPoints);
 
-        // Include engine heat penalty if present
-        var engineHeat = heatData.EngineHeatSource?.Value ?? 0;
+            // Use declared weapon heat if attacks have been declared, otherwise use selected weapons
+            var weaponHeat = Unit.HasDeclaredWeaponAttack
+                ? heatData.WeaponHeatSources.Sum(source => source.HeatPoints)
+                : Unit.WeaponAttackState.SelectedWeapons.Sum(weapon => weapon.Heat);
 
-        ProjectedHeat = CurrentHeat + movementHeat + weaponHeat + engineHeat;
+            // Include engine heat penalty if present
+            var engineHeat = heatData.EngineHeatSource?.Value ?? 0;
+
+            ProjectedHeat = CurrentHeat + movementHeat + weaponHeat + engineHeat;
+        }
 
         // Also notify CurrentHeat in case the unit's heat changed
         NotifyPropertyChanged(nameof(CurrentHeat));
