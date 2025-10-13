@@ -12,7 +12,7 @@
         <ProgressBar Value="{Binding ProjectedHeat}"
                    Maximum="30"
                    Classes="infoPanel"
-                   Foreground="{StaticResource WarningBrush}"/>
+                   Foreground="{StaticResource TargetingBrush}"/>
         
         <!-- Overlay progress bar showing current heat in solid red -->
         <ProgressBar Grid.Row="0" Value="{Binding CurrentHeat}"

@@ -2,9 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:units="clr-namespace:Sanet.MakaMek.Core.Models.Units;assembly=Sanet.MakaMek.Core"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
-             x:DataType="units:Unit"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             x:DataType="wrappers:HeatProjectionViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitHeatLevelPanel"
              mc:Ignorable="d">
     <UserControl.Resources>
@@ -12,38 +13,26 @@
         <converters:ModifierToTextConverter x:Key="ModifierToTextConverter"/>
     </UserControl.Resources>
     <StackPanel>
-        <TextBlock Text="Heat Level" Margin="0,0,0,5"/>
-        <Grid Height="20" Margin="0,0,0,10">
-            <ProgressBar Value="{Binding CurrentHeat}" 
-                       Maximum="30"
-                       Classes="infoPanel">
-                <ProgressBar.Foreground>
-                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                        <GradientStop Offset="0" Color="{StaticResource SecondaryLightColor}"/>
-                        <GradientStop Offset="0.5" Color="{StaticResource HighlightColor}"/>
-                        <GradientStop Offset="1" Color="{StaticResource ErrorColor}"/>
-                    </LinearGradientBrush>
-                </ProgressBar.Foreground>
-            </ProgressBar>
-            <TextBlock Text="{Binding CurrentHeat}"
-                     Classes="progressBarLabel"/>
-        </Grid>
-        <!-- Movement Heat Penalty Tag -->
+
+        <!-- Heat Projection Control -->
+        <controls:HeatProjectionControl Margin="0,10" />
+
+        <!-- Heat Penalty Tags -->
         <WrapPanel ItemSpacing="2" LineSpacing="2" Orientation="Horizontal">
-            <Border IsVisible="{Binding MovementHeatPenalty, Converter={StaticResource NullToVisibilityConverter}}"
+            <Border IsVisible="{Binding Unit.MovementHeatPenalty, Converter={StaticResource NullToVisibilityConverter}}"
                     Classes="statusTag">
-                <TextBlock Text="{Binding MovementHeatPenalty, Converter={StaticResource ModifierToTextConverter}}"/>
+                <TextBlock Text="{Binding Unit.MovementHeatPenalty, Converter={StaticResource ModifierToTextConverter}}"/>
             </Border>
-            <Border IsVisible="{Binding AttackHeatPenalty, Converter={StaticResource NullToVisibilityConverter}}"
+            <Border IsVisible="{Binding Unit.AttackHeatPenalty, Converter={StaticResource NullToVisibilityConverter}}"
                     Classes="statusTag">
-                <TextBlock Text="{Binding AttackHeatPenalty, Converter={StaticResource ModifierToTextConverter}}"/>
+                <TextBlock Text="{Binding Unit.AttackHeatPenalty, Converter={StaticResource ModifierToTextConverter}}"/>
             </Border>
-            <Border IsVisible="{Binding EngineHeatPenalty, Converter={StaticResource NullToVisibilityConverter}}"
+            <Border IsVisible="{Binding Unit.EngineHeatPenalty, Converter={StaticResource NullToVisibilityConverter}}"
                     Classes="statusTag">
-                <TextBlock Text="{Binding EngineHeatPenalty, Converter={StaticResource ModifierToTextConverter}}"/>
+                <TextBlock Text="{Binding Unit.EngineHeatPenalty, Converter={StaticResource ModifierToTextConverter}}"/>
             </Border>
         </WrapPanel>
-        
+
     </StackPanel>
 </UserControl>
 

@@ -106,6 +106,7 @@ public class BattleMapViewModel : BaseViewModel
             return Task.CompletedTask;
         });
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
+        SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
     }
 
     public ClientGame? Game
@@ -125,6 +126,8 @@ public class BattleMapViewModel : BaseViewModel
     public ObservableCollection<WeaponSelectionViewModel> WeaponSelectionItems { get; } = [];
 
     public HeatProjectionViewModel HeatProjection { get; }
+
+    public HeatProjectionViewModel SelectedUnitHeatProjection { get; }
 
     public bool IsWeaponSelectionVisible
     {
@@ -396,8 +399,11 @@ public class BattleMapViewModel : BaseViewModel
             NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
             NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
             NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
-            
+
             UpdateSelectedUnitEvents();
+
+            // Update heat projection for selected unit
+            SelectedUnitHeatProjection.Unit = value;
         }
     }
     

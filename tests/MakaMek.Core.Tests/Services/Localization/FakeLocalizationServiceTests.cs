@@ -355,6 +355,7 @@ public class FakeLocalizationServiceTests
     
     [Theory]
     [InlineData("HeatProjection_ProjectionText", "Heat: {0} → {1}")]
+    [InlineData("HeatProjection_CurrentHeatText", "Heat: {0}")]
     [InlineData("HeatProjection_DissipationText", "Dissipation: {0}")]
     public void GetString_HeatProjection_ReturnsExpectedString(string key, string expected)
     {
