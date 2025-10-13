@@ -447,10 +447,14 @@ namespace Sanet.MakaMek.Avalonia.Controls
             SetValue(Canvas.TopProperty, topPos);
 
             // Update buttons position to follow the unit
-            if (_actionButtons.Parent == null && Parent is Canvas canvas)
+            if (Parent is Canvas canvas)
             {
-                canvas.Children.Add(_actionButtons);
+                if (_actionButtons.Parent == canvas)
+                {
+                    canvas.Children.Remove(_actionButtons);
+                }
 
+                canvas.Children.Add(_actionButtons);
             }
 
             Canvas.SetLeft(_actionButtons, leftPos);
