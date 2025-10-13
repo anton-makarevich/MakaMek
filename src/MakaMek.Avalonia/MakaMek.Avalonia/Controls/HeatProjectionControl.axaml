@@ -6,7 +6,8 @@
              x:DataType="wrappers:HeatProjectionViewModel"
              x:Class="Sanet.MakaMek.Avalonia.Controls.HeatProjectionControl"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="30">
-    <Grid Height="20">
+    <Grid Height="40"
+          RowDefinitions="*,*">
         <!-- Base progress bar showing projected heat in light red -->
         <ProgressBar Value="{Binding ProjectedHeat}"
                    Maximum="30"
@@ -14,17 +15,29 @@
                    Foreground="#80FF0000"/>
         
         <!-- Overlay progress bar showing current heat in solid red -->
-        <ProgressBar Value="{Binding CurrentHeat}"
+        <ProgressBar Grid.Row="0" Value="{Binding CurrentHeat}"
                    Maximum="30"
                    Classes="infoPanel"
                    Background="Transparent"/>
         
+        <!-- Heat dissipation progress bar in light blue -->
+        <ProgressBar Grid.Row="1" Value="{Binding HeatDissipation}"
+                     Maximum="30"
+                     Classes="infoPanel"
+                     Foreground="#800000FF"/>
+        
         <!-- Text overlay showing heat values and dissipation -->
-        <TextBlock Classes="progressBarLabel">
+        <TextBlock Grid.Row="0" Classes="progressBarLabel">
             <TextBlock.Text>
-                <MultiBinding StringFormat="Heat: {0} → {1} (Sink: {2})">
+                <MultiBinding StringFormat="Heat: {0} → {1}">
                     <Binding Path="CurrentHeat"/>
                     <Binding Path="ProjectedHeat"/>
+                </MultiBinding>
+            </TextBlock.Text>
+        </TextBlock>
+        <TextBlock Grid.Row="1" Classes="progressBarLabel">
+            <TextBlock.Text>
+                <MultiBinding StringFormat="Dissipation: {0}">
                     <Binding Path="HeatDissipation"/>
                 </MultiBinding>
             </TextBlock.Text>
