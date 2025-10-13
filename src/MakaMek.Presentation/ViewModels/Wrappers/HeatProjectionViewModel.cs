@@ -56,7 +56,7 @@ public class HeatProjectionViewModel : BindableBase
     public int HeatDissipation => Unit?.HeatDissipation ?? 0;
 
     /// <summary>
-    /// Updates the projected heat based on currently selected weapons
+    /// Updates the projected heat based on currently selected weapons or declared attacks
     /// </summary>
     public void UpdateProjectedHeat()
     {
@@ -65,15 +65,22 @@ public class HeatProjectionViewModel : BindableBase
             ProjectedHeat = 0;
             return;
         }
-        
-        var movementHeat = Unit.GetHeatData(_rulesProvider)
-            .MovementHeatSources.Sum(source => source.HeatPoints);
 
-        var selectedWeaponsHeat = Unit.WeaponAttackState.SelectedWeapons
-            .Sum(weapon => weapon.Heat);
-
-        ProjectedHeat = CurrentHeat + movementHeat + selectedWeaponsHeat;
+        var heatData = Unit.GetHeatData(_rulesProvider);
         
+        var movementHeat = 
+            heatData.MovementHeatSources.Sum(source => source.HeatPoints);
+
+        // Use declared weapon heat if attacks have been declared, otherwise use selected weapons
+        var weaponHeat = Unit.HasDeclaredWeaponAttack
+            ? heatData.WeaponHeatSources.Sum(source => source.HeatPoints)
+            : Unit.WeaponAttackState.SelectedWeapons.Sum(weapon => weapon.Heat);
+
+        // Include engine heat penalty if present
+        var engineHeat = heatData.EngineHeatSource?.Value ?? 0;
+
+        ProjectedHeat = CurrentHeat + movementHeat + weaponHeat + engineHeat;
+
         // Also notify CurrentHeat in case the unit's heat changed
         NotifyPropertyChanged(nameof(CurrentHeat));
         NotifyPropertyChanged(nameof(HeatDissipation));

@@ -164,5 +164,113 @@ public class HeatProjectionViewModelTests
         currentHeatChanged.ShouldBeTrue();
         dissipationChanged.ShouldBeTrue();
     }
+
+    [Fact]
+    public void ProjectedHeat_UsesDeclaredWeaponHeat_WhenAttacksAreDeclared()
+    {
+        // Arrange
+        _sut.Unit = _attacker;
+
+        // Add weapons to attacker
+        var weapon1 = new MediumLaser(); // Heat: 3
+        var weapon2 = new MediumLaser(); // Heat: 3
+        var leftArm = _attacker.Parts[Core.Models.Units.PartLocation.LeftArm];
+        var rightArm = _attacker.Parts[Core.Models.Units.PartLocation.RightArm];
+        leftArm.TryAddComponent(weapon1);
+        rightArm.TryAddComponent(weapon2);
+
+        // Get the actual slot assignments from the mounted weapons
+        var weapon1Slot = weapon1.SlotAssignments[0].FirstSlot;
+        var weapon2Slot = weapon2.SlotAssignments[0].FirstSlot;
+
+        // Declare weapon attacks (simulating server-side declaration)
+        _attacker.DeclareWeaponAttack([
+            new Core.Data.Game.WeaponTargetData
+            {
+                Weapon = new Core.Data.Units.Components.ComponentData
+                {
+                    Name = "Medium Laser",
+                    Type = Core.Data.Units.Components.MakaMekComponent.MediumLaser,
+                    Assignments = [new Core.Data.Units.Components.LocationSlotAssignment(Core.Models.Units.PartLocation.LeftArm, weapon1Slot, 1)]
+                },
+                TargetId = _target.Id,
+                IsPrimaryTarget = true
+            },
+            new Core.Data.Game.WeaponTargetData
+            {
+                Weapon = new Core.Data.Units.Components.ComponentData
+                {
+                    Name = "Medium Laser",
+                    Type = Core.Data.Units.Components.MakaMekComponent.MediumLaser,
+                    Assignments = [new Core.Data.Units.Components.LocationSlotAssignment(Core.Models.Units.PartLocation.RightArm, weapon2Slot, 1)]
+                },
+                TargetId = _target.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
+
+        // Act
+        _sut.UpdateProjectedHeat();
+
+        // Assert
+        _sut.ProjectedHeat.ShouldBe(6); // 3 + 3 = 6 heat from declared weapons
+        _sut.HeatProjectionText.ShouldBe($"Heat: 0 → 6");
+    }
+
+    [Fact]
+    public void ProjectedHeat_IncludesEngineHeat_WhenEngineIsDamaged()
+    {
+        // Arrange
+        _sut.Unit = _attacker;
+
+        // Damage the engine (1 hit = 5 heat points)
+        var engine = _attacker.GetAllComponents<Core.Models.Units.Components.Engines.Engine>().First();
+        engine.Hit();
+
+        // Act
+        _sut.UpdateProjectedHeat();
+
+        // Assert
+        _sut.ProjectedHeat.ShouldBe(5); // 5 heat from engine damage
+        _sut.HeatProjectionText.ShouldBe($"Heat: 0 → 5");
+    }
+
+    [Fact]
+    public void ProjectedHeat_CombinesAllHeatSources_WhenMultipleSourcesPresent()
+    {
+        // Arrange
+        _sut.Unit = _attacker;
+
+        // Add current heat
+        _attacker.ApplyHeat(new Core.Data.Game.HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new Core.Data.Game.WeaponHeatData { WeaponName = "Test", HeatPoints = 5 }],
+            DissipationData = new Core.Data.Game.HeatDissipationData
+            {
+                HeatSinks = 0,
+                EngineHeatSinks = 0,
+                DissipationPoints = 0
+            }
+        });
+
+        // Add weapons
+        var weapon = new MediumLaser(); // Heat: 3
+        var leftArm = _attacker.Parts[Core.Models.Units.PartLocation.LeftArm];
+        leftArm.TryAddComponent(weapon);
+        _attacker.WeaponAttackState.SetWeaponTarget(weapon, _target, _attacker);
+
+        // Damage the engine (1 hit = 5 heat points)
+        var engine = _attacker.GetAllComponents<Core.Models.Units.Components.Engines.Engine>().First();
+        engine.Hit();
+
+        // Act
+        _sut.UpdateProjectedHeat();
+
+        // Assert
+        // CurrentHeat (5) + SelectedWeaponHeat (3) + EngineHeat (5) = 13
+        _sut.ProjectedHeat.ShouldBe(13);
+        _sut.HeatProjectionText.ShouldBe($"Heat: 5 → 13");
+    }
 }
 

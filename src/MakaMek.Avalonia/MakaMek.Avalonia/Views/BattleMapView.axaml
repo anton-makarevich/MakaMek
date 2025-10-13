@@ -186,7 +186,7 @@
                     </TabItem.Header>
                     <StackPanel Margin="10">
                         <controls:UnitBasicInfoPanel DataContext="{Binding SelectedUnit}" />
-                        <controls:UnitHeatLevelPanel DataContext="{Binding SelectedUnit}" />
+                        <controls:UnitHeatLevelPanel DataContext="{Binding SelectedUnitHeatProjection}" />
                         <controls:UnitMovementInfoPanel DataContext="{Binding SelectedUnit}" />
                     </StackPanel>
                 </TabItem>

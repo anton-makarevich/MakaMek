@@ -37,14 +37,14 @@
     <!-- Game-Specific Colors -->
     <Color x:Key="MechArmorColor">#4FC3F7</Color>
     <Color x:Key="MechStructureColor">#FFD54F</Color>
-    <Color x:Key="HeatColor">#D32F2F</Color>
+    <Color x:Key="HeatColor">#D33F2F</Color>
     <Color x:Key="DestroyedColor">#80D32F2F</Color>
     <Color x:Key="DamagedColor">#80FFC107</Color>
 
     <!-- Overlay Colors -->
     <Color x:Key="OverlayBackgroundColor">#E0E0E0</Color>
     <Color x:Key="OverlayTransparentColor">#CCE0E0E0</Color>
-    <Color x:Key="TargetingColor">#D32F2F</Color>
+    <Color x:Key="TargetingColor">#99D31111</Color>
     <Color x:Key="MovementColor">#4FC3F7</Color>
 
     <!-- Shadow Colors -->
