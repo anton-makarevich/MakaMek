@@ -95,16 +95,11 @@ public class HeatProjectionViewModel : BindableBase
         NotifyPropertyChanged(nameof(HeatDissipationText));
     }
     
-    public string HeatProjectionText
-    {
-        get
-        {
-            var template = CurrentHeat == ProjectedHeat
-                ? _localizationService.GetString("HeatProjection_CurrentHeatText")
-                : _localizationService.GetString("HeatProjection_ProjectionText");
-            return string.Format(template, CurrentHeat, ProjectedHeat);
-        }
-    }
+    public string HeatProjectionText =>
+        CurrentHeat == ProjectedHeat
+            ? string.Format(_localizationService.GetString("HeatProjection_CurrentHeatText"), CurrentHeat)
+            : string.Format(_localizationService.GetString("HeatProjection_ProjectionText"), CurrentHeat,
+                ProjectedHeat);
 
     public string HeatDissipationText 
         => string.Format(_localizationService.GetString("HeatProjection_DissipationText"), HeatDissipation);
