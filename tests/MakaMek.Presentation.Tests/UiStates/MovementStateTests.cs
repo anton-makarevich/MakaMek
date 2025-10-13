@@ -71,7 +71,10 @@ public class MovementStateTests
         _localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
         _localizationService.GetString("Action_ChangeFacing").Returns("Change Facing | MP: {0}");
         
-         _battleMapViewModel = new BattleMapViewModel(imageService, _localizationService,Substitute.For<IDispatcherService>());
+         _battleMapViewModel = new BattleMapViewModel(imageService,
+             _localizationService,
+             Substitute.For<IDispatcherService>(),
+             _rulesProvider);
         var playerId = Guid.NewGuid();
         
         _pilot.IsConscious.Returns(true);

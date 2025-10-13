@@ -41,7 +41,8 @@ public class DeploymentStateTests
         _battleMapViewModel = new BattleMapViewModel(
             imageService,
             _localizationService,
-            Substitute.For<IDispatcherService>());
+            Substitute.For<IDispatcherService>(),
+            _rulesProvider);
 
         var unitData = MechFactoryTests.CreateDummyMechData();
         

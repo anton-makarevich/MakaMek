@@ -19,7 +19,8 @@ public class HeatProjectionViewModelTests
     public HeatProjectionViewModelTests()
     {
         var localizationService = new FakeLocalizationService();
-        _sut = new HeatProjectionViewModel(localizationService);
+        var rulesProvider = new ClassicBattletechRulesProvider();
+        _sut = new HeatProjectionViewModel(localizationService, rulesProvider);
 
         var mechFactory = new MechFactory(
             new ClassicBattletechRulesProvider(),

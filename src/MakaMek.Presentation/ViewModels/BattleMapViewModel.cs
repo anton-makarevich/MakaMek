@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -89,7 +90,11 @@ public class BattleMapViewModel : BaseViewModel
         CurrentState.HandleFacingSelection(direction);
     }
 
-    public BattleMapViewModel(IImageService imageService, ILocalizationService localizationService, IDispatcherService dispatcherService)
+    public BattleMapViewModel(
+        IImageService imageService,
+        ILocalizationService localizationService, 
+        IDispatcherService dispatcherService,
+        IRulesProvider rulesProvider)
     {
         ImageService = imageService;
         _localizationService = localizationService;
@@ -100,7 +105,7 @@ public class BattleMapViewModel : BaseViewModel
             HideAimedShotLocationSelector();
             return Task.CompletedTask;
         });
-        HeatProjection = new HeatProjectionViewModel(_localizationService);
+        HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
     }
 
     public ClientGame? Game

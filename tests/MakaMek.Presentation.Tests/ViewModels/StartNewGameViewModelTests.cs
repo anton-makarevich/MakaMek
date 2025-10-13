@@ -56,7 +56,10 @@ public class StartNewGameViewModelTests
         var localizationService = Substitute.For<ILocalizationService>();
         var imageService = Substitute.For<IImageService>();
         _battleMapViewModel =
-            new BattleMapViewModel(imageService, localizationService, Substitute.For<IDispatcherService>());
+            new BattleMapViewModel(imageService,
+                localizationService,
+                Substitute.For<IDispatcherService>(),
+                _rulesProvider);
         _navigationService.GetViewModel<BattleMapViewModel>().Returns(_battleMapViewModel);
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
 

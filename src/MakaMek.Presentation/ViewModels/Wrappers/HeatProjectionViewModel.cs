@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Units;
+﻿using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MVVM.Core.ViewModels;
 
@@ -12,10 +13,12 @@ public class HeatProjectionViewModel : BindableBase
     private Unit? _unit;
     private int _projectedHeat;
     private readonly ILocalizationService _localizationService;
+    private readonly IRulesProvider _rulesProvider;
 
-    public HeatProjectionViewModel(ILocalizationService localizationService)
+    public HeatProjectionViewModel(ILocalizationService localizationService, IRulesProvider rulesProvider)
     {
         _localizationService = localizationService;
+        _rulesProvider = rulesProvider;
     }
 
     /// <summary>
@@ -62,11 +65,14 @@ public class HeatProjectionViewModel : BindableBase
             ProjectedHeat = 0;
             return;
         }
+        
+        var movementHeat = Unit.GetHeatData(_rulesProvider)
+            .MovementHeatSources.Sum(source => source.HeatPoints);
 
         var selectedWeaponsHeat = Unit.WeaponAttackState.SelectedWeapons
             .Sum(weapon => weapon.Heat);
 
-        ProjectedHeat = CurrentHeat + selectedWeaponsHeat;
+        ProjectedHeat = CurrentHeat + movementHeat + selectedWeaponsHeat;
         
         // Also notify CurrentHeat in case the unit's heat changed
         NotifyPropertyChanged(nameof(CurrentHeat));
