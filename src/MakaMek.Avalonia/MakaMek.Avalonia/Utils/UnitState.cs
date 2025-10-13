@@ -22,6 +22,8 @@ internal class UnitState : IEquatable<UnitState>
     public int TotalCurrentStructure { get; init; }
     public IReadOnlyCollection<UiEvent> Events { get; init; } = [];
     public UnitStatus Status { get; init; }
+    
+    public int CurrentHeat { get; init; }
 
     public bool Equals(UnitState? other)
     {
@@ -38,6 +40,7 @@ internal class UnitState : IEquatable<UnitState>
                TotalMaxStructure == other.TotalMaxStructure &&
                TotalCurrentStructure == other.TotalCurrentStructure &&
                Status == other.Status &&
+               CurrentHeat == other.CurrentHeat &&
                AreEventsEqual(Events, other.Events);
     }
 
@@ -56,8 +59,8 @@ internal class UnitState : IEquatable<UnitState>
             IsWeaponsPhase.GetHashCode(),
             TorsoDirection?.GetHashCode() ?? 0,
             Status,
-            TotalCurrentArmor,
-            TotalCurrentStructure
+            HashCode.Combine(TotalCurrentArmor, TotalCurrentStructure),
+            CurrentHeat
         );
     }
 
