@@ -352,4 +352,19 @@ public class FakeLocalizationServiceTests
         // Assert
         result.ShouldBe(expected);
     }
+    
+    [Theory]
+    [InlineData("HeatProjection_ProjectionText", "Heat: {0} → {1}")]
+    [InlineData("HeatProjection_DissipationText", "Dissipation: {0}")]
+    public void GetString_HeatProjection_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
 }

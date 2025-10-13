@@ -46,7 +46,10 @@ public class EndStateTests
         localizationService.GetString("Action_Shutdown").Returns("Shutdown");
         localizationService.GetString("Action_Startup").Returns("Startup");
         
-        _battleMapViewModel = new BattleMapViewModel(imageService, localizationService,Substitute.For<IDispatcherService>());
+        _battleMapViewModel = new BattleMapViewModel(imageService,
+            localizationService,
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IRulesProvider>());
         var playerId = Guid.NewGuid();
         
         var rules = new ClassicBattletechRulesProvider();
