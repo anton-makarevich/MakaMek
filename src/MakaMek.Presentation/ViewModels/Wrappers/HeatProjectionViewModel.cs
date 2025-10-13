@@ -71,6 +71,13 @@ public class HeatProjectionViewModel : BindableBase
         // Also notify CurrentHeat in case the unit's heat changed
         NotifyPropertyChanged(nameof(CurrentHeat));
         NotifyPropertyChanged(nameof(HeatDissipation));
+        NotifyPropertyChanged(nameof(HeatProjectionText));
+        NotifyPropertyChanged(nameof(HeatDissipationText));
     }
+    
+    public string HeatProjectionText 
+        => string.Format(_localizationService.GetString("HeatProjection_ProjectionText"), CurrentHeat, ProjectedHeat);
+    public string HeatDissipationText 
+        => string.Format(_localizationService.GetString("HeatProjection_DissipationText"), HeatDissipation);
 }
 

@@ -279,6 +279,10 @@ public class FakeLocalizationService: ILocalizationService
             "MainMenu_Loading_NoItemsFound" => "No items found",
             "MainMenu_Loading_ItemsLoaded" => "Loaded {0} items",
             "MainMenu_Loading_Error" => "Error loading content: {0}",
+            
+            // Heat projection text
+            "HeatProjection_ProjectionText" => "Heat: {0} → {1}",
+            "HeatProjection_DissipationText" => "Dissipation: {0}",
             _ => key
         };
     }

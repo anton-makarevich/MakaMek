@@ -100,7 +100,8 @@ public class HeatProjectionViewModelTests
         _sut.UpdateProjectedHeat();
 
         // Assert
-        _sut.ProjectedHeat.ShouldBe(_sut.CurrentHeat + 6); // 3 + 3 = 6 heat
+        _sut.ProjectedHeat.ShouldBe( 6); // 3 + 3 = 6 heat
+        _sut.HeatProjectionText.ShouldBe($"Heat: 0 → 6");
     }
 
     [Fact]
@@ -111,6 +112,7 @@ public class HeatProjectionViewModelTests
 
         // Act & Assert
         _sut.HeatDissipation.ShouldBe(_attacker.HeatDissipation);
+        _sut.HeatDissipationText.ShouldBe($"Dissipation: 4"); // 4 engine heat sinks
     }
 
     [Fact]

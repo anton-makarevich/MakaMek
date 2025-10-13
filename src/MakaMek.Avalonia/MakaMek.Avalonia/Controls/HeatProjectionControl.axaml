@@ -12,36 +12,24 @@
         <ProgressBar Value="{Binding ProjectedHeat}"
                    Maximum="30"
                    Classes="infoPanel"
-                   Foreground="#80FF0000"/>
+                   Foreground="{StaticResource WarningBrush}"/>
         
         <!-- Overlay progress bar showing current heat in solid red -->
         <ProgressBar Grid.Row="0" Value="{Binding CurrentHeat}"
                    Maximum="30"
                    Classes="infoPanel"
+                   Foreground="{StaticResource HeatBrush}"
                    Background="Transparent"/>
         
         <!-- Heat dissipation progress bar in light blue -->
         <ProgressBar Grid.Row="1" Value="{Binding HeatDissipation}"
                      Maximum="30"
                      Classes="infoPanel"
-                     Foreground="#800000FF"/>
+                     Foreground="{StaticResource InfoBrush}"/>
         
         <!-- Text overlay showing heat values and dissipation -->
-        <TextBlock Grid.Row="0" Classes="progressBarLabel">
-            <TextBlock.Text>
-                <MultiBinding StringFormat="Heat: {0} → {1}">
-                    <Binding Path="CurrentHeat"/>
-                    <Binding Path="ProjectedHeat"/>
-                </MultiBinding>
-            </TextBlock.Text>
-        </TextBlock>
-        <TextBlock Grid.Row="1" Classes="progressBarLabel">
-            <TextBlock.Text>
-                <MultiBinding StringFormat="Dissipation: {0}">
-                    <Binding Path="HeatDissipation"/>
-                </MultiBinding>
-            </TextBlock.Text>
-        </TextBlock>
+        <TextBlock Grid.Row="0" Classes="progressBarLabel" Text="{Binding HeatProjectionText}"/>
+        <TextBlock Grid.Row="1" Classes="progressBarLabel" Text="{Binding HeatDissipationText}"/>
     </Grid>
 </UserControl>
 
