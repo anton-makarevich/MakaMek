@@ -282,6 +282,7 @@ public class FakeLocalizationService: ILocalizationService
             
             // Heat projection text
             "HeatProjection_ProjectionText" => "Heat: {0} → {1}",
+            "HeatProjection_CurrentHeatText" => "Heat: {0}",
             "HeatProjection_DissipationText" => "Dissipation: {0}",
             _ => key
         };

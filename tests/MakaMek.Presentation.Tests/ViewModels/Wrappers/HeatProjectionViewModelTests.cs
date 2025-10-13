@@ -310,7 +310,7 @@ public class HeatProjectionViewModelTests
         // Assert
         // CurrentHeat (5) only
         _sut.ProjectedHeat.ShouldBe(5);
-        _sut.HeatProjectionText.ShouldBe($"Heat: 5 → 5");
+        _sut.HeatProjectionText.ShouldBe($"Heat: 5");
     }
 }
 

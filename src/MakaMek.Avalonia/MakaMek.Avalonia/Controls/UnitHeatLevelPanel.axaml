@@ -15,7 +15,7 @@
     <StackPanel>
 
         <!-- Heat Projection Control -->
-        <controls:HeatProjectionControl Margin="0,0,0,10" />
+        <controls:HeatProjectionControl Margin="0,10" />
 
         <!-- Heat Penalty Tags -->
         <WrapPanel ItemSpacing="2" LineSpacing="2" Orientation="Horizontal">
