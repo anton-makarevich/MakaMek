@@ -1,0 +1,34 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
+             x:DataType="wrappers:HeatProjectionViewModel"
+             x:Class="Sanet.MakaMek.Avalonia.Controls.HeatProjectionControl"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="30">
+    <Grid Height="20">
+        <!-- Base progress bar showing projected heat in light red -->
+        <ProgressBar Value="{Binding ProjectedHeat}"
+                   Maximum="30"
+                   Classes="infoPanel"
+                   Foreground="#80FF0000"/>
+        
+        <!-- Overlay progress bar showing current heat in solid red -->
+        <ProgressBar Value="{Binding CurrentHeat}"
+                   Maximum="30"
+                   Classes="infoPanel"
+                   Background="Transparent"/>
+        
+        <!-- Text overlay showing heat values and dissipation -->
+        <TextBlock Classes="progressBarLabel">
+            <TextBlock.Text>
+                <MultiBinding StringFormat="Heat: {0} → {1} (Sink: {2})">
+                    <Binding Path="CurrentHeat"/>
+                    <Binding Path="ProjectedHeat"/>
+                    <Binding Path="HeatDissipation"/>
+                </MultiBinding>
+            </TextBlock.Text>
+        </TextBlock>
+    </Grid>
+</UserControl>
+

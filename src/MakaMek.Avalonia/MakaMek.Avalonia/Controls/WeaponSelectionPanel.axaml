@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="450"
@@ -44,6 +45,15 @@
                     Grid.Row="1"
                     Grid.Column="1"
                     Text="{Binding SelectedUnit.Name}"/>
+
+            <!-- Heat Projection Control -->
+            <controls:HeatProjectionControl
+                Grid.Row="2"
+                Grid.Column="0"
+                Grid.ColumnSpan="2"
+                Margin="10,5,10,5"
+                DataContext="{Binding HeatProjection}"/>
+
             <ScrollViewer Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
                 <ItemsControl 
                     Margin="10"
