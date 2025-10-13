@@ -1,5 +1,4 @@
-﻿using NSubstitute;
-using Sanet.MakaMek.Core.Models.Game.Rules;
+﻿using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -19,9 +18,9 @@ public class HeatProjectionViewModelTests
 
     public HeatProjectionViewModelTests()
     {
-        _sut = new HeatProjectionViewModel();
-        
-        var localizationService = Substitute.For<ILocalizationService>();
+        var localizationService = new FakeLocalizationService();
+        _sut = new HeatProjectionViewModel(localizationService);
+
         var mechFactory = new MechFactory(
             new ClassicBattletechRulesProvider(),
             new ClassicBattletechComponentProvider(),
@@ -60,7 +59,7 @@ public class HeatProjectionViewModelTests
         });
 
         // Act
-        _sut.Attacker = _attacker;
+        _sut.Unit = _attacker;
 
         // Assert
         _sut.CurrentHeat.ShouldBe(10);
@@ -70,7 +69,7 @@ public class HeatProjectionViewModelTests
     public void ProjectedHeat_EqualsCurrentHeat_WhenNoWeaponsSelected()
     {
         // Arrange
-        _sut.Attacker = _attacker;
+        _sut.Unit = _attacker;
 
         // Act
         _sut.UpdateProjectedHeat();
@@ -83,7 +82,7 @@ public class HeatProjectionViewModelTests
     public void ProjectedHeat_IncludesSelectedWeaponsHeat()
     {
         // Arrange
-        _sut.Attacker = _attacker;
+        _sut.Unit = _attacker;
         
         // Add weapons to attacker
         var weapon1 = new MediumLaser(); // Heat: 3
@@ -108,7 +107,7 @@ public class HeatProjectionViewModelTests
     public void HeatDissipation_ReturnsAttackerDissipation()
     {
         // Arrange
-        _sut.Attacker = _attacker;
+        _sut.Unit = _attacker;
 
         // Act & Assert
         _sut.HeatDissipation.ShouldBe(_attacker.HeatDissipation);
@@ -118,7 +117,7 @@ public class HeatProjectionViewModelTests
     public void UpdateProjectedHeat_NotifiesPropertyChanged_WhenValueChanges()
     {
         // Arrange
-        _sut.Attacker = _attacker;
+        _sut.Unit = _attacker;
 
         // Add a weapon and select it to change the projected heat
         var weapon = new MediumLaser();
@@ -156,7 +155,7 @@ public class HeatProjectionViewModelTests
         };
 
         // Act
-        _sut.Attacker = _attacker;
+        _sut.Unit = _attacker;
 
         // Assert
         currentHeatChanged.ShouldBeTrue();

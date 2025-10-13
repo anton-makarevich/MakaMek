@@ -40,7 +40,6 @@ public class BattleMapViewModel : BaseViewModel
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private AimedShotLocationSelectorViewModel? _unitPartSelector;
     private bool _isUnitPartSelectorVisible;
-    private HeatProjectionViewModel _heatProjection = new();
 
 
     public HexCoordinates? DirectionSelectorPosition
@@ -101,6 +100,7 @@ public class BattleMapViewModel : BaseViewModel
             HideAimedShotLocationSelector();
             return Task.CompletedTask;
         });
+        HeatProjection = new HeatProjectionViewModel(_localizationService);
     }
 
     public ClientGame? Game
@@ -119,11 +119,7 @@ public class BattleMapViewModel : BaseViewModel
 
     public ObservableCollection<WeaponSelectionViewModel> WeaponSelectionItems { get; } = [];
 
-    public HeatProjectionViewModel HeatProjection
-    {
-        get => _heatProjection;
-        private set => SetProperty(ref _heatProjection, value);
-    }
+    public HeatProjectionViewModel HeatProjection { get; }
 
     public bool IsWeaponSelectionVisible
     {
@@ -345,8 +341,7 @@ public class BattleMapViewModel : BaseViewModel
         NotifyPropertyChanged(nameof(PlayerActionLabel));
 
         // Update heat projection when attacker changes
-        HeatProjection.Attacker = Attacker;
-        HeatProjection.UpdateProjectedHeat();
+        HeatProjection.Unit = Attacker;
     }
 
     internal void HighlightHexes(List<HexCoordinates> coordinates, bool isHighlighted)

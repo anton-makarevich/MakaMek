@@ -1,25 +1,32 @@
 ﻿using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 /// <summary>
-/// ViewModel for displaying heat projection based on selected weapons
+/// ViewModel for displaying heat projection based on selected weapons or declared attacks
 /// </summary>
 public class HeatProjectionViewModel : BindableBase
 {
-    private Unit? _attacker;
+    private Unit? _unit;
     private int _projectedHeat;
+    private readonly ILocalizationService _localizationService;
+
+    public HeatProjectionViewModel(ILocalizationService localizationService)
+    {
+        _localizationService = localizationService;
+    }
 
     /// <summary>
-    /// Gets or sets the attacking unit
+    /// Gets or sets the unit
     /// </summary>
-    public Unit? Attacker
+    public Unit? Unit
     {
-        get => _attacker;
+        get => _unit;
         set
         {
-            SetProperty(ref _attacker, value);
+            SetProperty(ref _unit, value);
             NotifyPropertyChanged(nameof(CurrentHeat));
             NotifyPropertyChanged(nameof(HeatDissipation));
             UpdateProjectedHeat();
@@ -27,9 +34,9 @@ public class HeatProjectionViewModel : BindableBase
     }
 
     /// <summary>
-    /// Gets the current heat level of the attacker
+    /// Gets the current heat level of the unit
     /// </summary>
-    public int CurrentHeat => Attacker?.CurrentHeat ?? 0;
+    public int CurrentHeat => Unit?.CurrentHeat ?? 0;
 
     /// <summary>
     /// Gets the projected heat level after firing selected weapons
@@ -41,22 +48,22 @@ public class HeatProjectionViewModel : BindableBase
     }
 
     /// <summary>
-    /// Gets the heat dissipation capacity of the attacker
+    /// Gets the heat dissipation capacity of the unit
     /// </summary>
-    public int HeatDissipation => Attacker?.HeatDissipation ?? 0;
+    public int HeatDissipation => Unit?.HeatDissipation ?? 0;
 
     /// <summary>
     /// Updates the projected heat based on currently selected weapons
     /// </summary>
     public void UpdateProjectedHeat()
     {
-        if (Attacker == null)
+        if (Unit == null)
         {
             ProjectedHeat = 0;
             return;
         }
 
-        var selectedWeaponsHeat = Attacker.WeaponAttackState.SelectedWeapons
+        var selectedWeaponsHeat = Unit.WeaponAttackState.SelectedWeapons
             .Sum(weapon => weapon.Heat);
 
         ProjectedHeat = CurrentHeat + selectedWeaponsHeat;
