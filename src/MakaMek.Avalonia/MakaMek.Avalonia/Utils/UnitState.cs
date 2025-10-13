@@ -40,6 +40,7 @@ internal class UnitState : IEquatable<UnitState>
                TotalMaxStructure == other.TotalMaxStructure &&
                TotalCurrentStructure == other.TotalCurrentStructure &&
                Status == other.Status &&
+               CurrentHeat == other.CurrentHeat &&
                AreEventsEqual(Events, other.Events);
     }
 
@@ -58,8 +59,8 @@ internal class UnitState : IEquatable<UnitState>
             IsWeaponsPhase.GetHashCode(),
             TorsoDirection?.GetHashCode() ?? 0,
             Status,
-            TotalCurrentArmor,
-            TotalCurrentStructure
+            HashCode.Combine(TotalCurrentArmor, TotalCurrentStructure),
+            CurrentHeat
         );
     }
 

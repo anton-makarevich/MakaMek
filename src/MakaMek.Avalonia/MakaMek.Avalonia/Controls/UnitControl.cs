@@ -163,7 +163,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Orientation = Orientation.Vertical,
                 CornerRadius = new CornerRadius(3),
                 Minimum = 0,
-                Maximum = 30, // Max heat level
+                Maximum = MaxHeatLevel, 
                 Value = 0,
             };
 
@@ -375,6 +375,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 _unit.TotalMaxStructure);
             UpdateHeatBar(_unit.CurrentHeat);
         }
+
+        private const double MaxHeatLevel = 30;
 
         private void UpdateHealthBars(int currentArmor, int maxArmor, int currentStructure, int maxStructure)
         {
