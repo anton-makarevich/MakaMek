@@ -55,28 +55,20 @@ public class MainMenuViewModel : BaseViewModel
         get => _loadingText;
         private set => SetProperty(ref _loadingText, value);
     }
-
-    private async Task NavigateToNewGame()
+    
+    private async Task NavigateToViewModel<TViewModel>() where TViewModel : BaseViewModel
     {
-        var startNewGameViewModel = NavigationService.GetNewViewModel<StartNewGameViewModel>();
-        if (startNewGameViewModel == null)
+        var viewModel = NavigationService.GetNewViewModel<TViewModel>();
+        if (viewModel == null)
         {
-            throw new Exception("StartNewGameViewModel is not registered");
+            throw new InvalidOperationException($"{typeof(TViewModel).Name} is not registered");
         }
-
-        await NavigationService.NavigateToViewModelAsync(startNewGameViewModel);
+        await NavigationService.NavigateToViewModelAsync(viewModel);
     }
 
-    private async Task NavigateToJoinGame()
-    {
-        var joinGameViewModel = NavigationService.GetNewViewModel<JoinGameViewModel>();
-        if (joinGameViewModel == null)
-        {
-            throw new Exception("JoinGameViewModel is not registered");
-        }
+    private Task NavigateToNewGame() => NavigateToViewModel<StartNewGameViewModel>();
 
-        await NavigationService.NavigateToViewModelAsync(joinGameViewModel);
-    }
+    private Task NavigateToJoinGame() => NavigateToViewModel<JoinGameViewModel>();
 
     /// <summary>
     /// Preloads unit data from all configured providers

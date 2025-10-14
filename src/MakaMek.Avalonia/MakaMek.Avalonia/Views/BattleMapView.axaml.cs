@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
@@ -196,7 +197,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         if (origin.X > MapCanvas.Width || origin.Y > MapCanvas.Height) return;
         
         var newScale = _mapScaleTransform.ScaleX * scaleFactor;
-        if (newScale < MinScale || newScale > MaxScale) return;
+        if (newScale is < MinScale or > MaxScale) return;
     
         MapCanvas.RenderTransformOrigin = new RelativePoint(origin, RelativeUnit.Absolute);
         _mapScaleTransform.ScaleX = newScale;
@@ -272,5 +273,11 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         _mapScaleTransform.ScaleX = 1;
         _mapScaleTransform.ScaleY = 1;
         MapCanvas.RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
+    }
+
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        TurnInfoPanel.MaxWidth = e.NewSize.Width-6;
     }
 }

@@ -35,7 +35,6 @@ public class GameManager : IGameManager
     private readonly ICommandLoggerFactory _commandLoggerFactory;
     private ICommandLogger? _commandLogger;
     private Action<IGameCommand>? _logHandler;
-    private bool _loggingSubscribed;
 
     public GameManager(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
@@ -84,49 +83,72 @@ public class GameManager : IGameManager
             }
         };
 
+    public async Task ResetForNewGame()
+    {
+        // Dispose current server game if exists
+        if (_serverGame != null)
+        {
+            _serverGame.Dispose();
+
+            // Wait a bit for disposal to complete
+            await Task.Delay(200);
+
+            _serverGame = null;
+        }
+
+        // Unsubscribe logging handler
+        if (_logHandler != null)
+        {
+            _commandPublisher.Unsubscribe(_logHandler);
+            _logHandler = null;
+        }
+
+        // Dispose command logger
+        _commandLogger?.Dispose();
+        _commandLogger = null;
+    }
+
     public async Task InitializeLobby()
     {
+        // Reset before initializing new lobby
+        await ResetForNewGame();
+
         var transportAdapter = _commandPublisher.Adapter;
         // Start the network host if supported and not already running
         if (CanStartLanServer && !IsLanServerRunning && _networkHostService != null)
         {
             await _networkHostService.Start();
-            
+
             // Add the network publisher to the transport adapter if successfully started
             if (_networkHostService.Publisher != null)
             {
                 transportAdapter.AddPublisher(_networkHostService.Publisher);
             }
         }
-        
-        // Create the game server instance if not already created
-        if (_serverGame == null)
-        {
-            _serverGame = _gameFactory.CreateServerGame(
-                _rulesProvider,
-                _mechFactory,
-                _commandPublisher,
-                _diceRoller,
-                _toHitCalculator,
-                _damageTransferCalculator,
-                _criticalHitsCalculator,
-                _pilotingSkillCalculator,
-                _consciousnessCalculator,
-                _heatEffectsCalculator,
-                _fallProcessor
-            );
-            // Start server listening loop in background
-            _ = Task.Run(() => _serverGame?.Start());
-        }
-        if (!_loggingSubscribed)
-        {
-            var transportPublisher = transportAdapter.TransportPublishers.FirstOrDefault(ta => ta is RxTransportPublisher);
-            _commandLogger = _commandLoggerFactory.CreateLogger(_localizationService, _serverGame);
-            
-            _logHandler = SafeLog(_commandLogger);
-            _commandPublisher.Subscribe(_logHandler, transportPublisher);
-            _loggingSubscribed = true;
-        }
+
+        // Create the game server instance
+        _serverGame = _gameFactory.CreateServerGame(
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _diceRoller,
+            _toHitCalculator,
+            _damageTransferCalculator,
+            _criticalHitsCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _fallProcessor
+        );
+        // Start server listening loop in background
+        _ = Task.Run(() => _serverGame?.Start());
+
+        // Setup logging
+        var transportPublisher = transportAdapter.TransportPublishers.FirstOrDefault(ta => ta is RxTransportPublisher);
+        _commandLogger = _commandLoggerFactory.CreateLogger(_localizationService, _serverGame);
+
+        _logHandler = SafeLog(_commandLogger);
+        _commandPublisher.Subscribe(_logHandler, transportPublisher);
     }
 
     public void SetBattleMap(BattleMap battleMap)

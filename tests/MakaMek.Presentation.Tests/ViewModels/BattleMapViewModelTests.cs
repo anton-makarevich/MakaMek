@@ -30,6 +30,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MVVM.Core.Services;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
@@ -40,6 +41,7 @@ public class BattleMapViewModelTests
     private ClientGame _game;
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
+    private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
 
     private readonly IMechFactory _mechFactory;
 
@@ -1835,6 +1837,31 @@ public class BattleMapViewModelTests
         var highlightedHexes = game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         highlightedHexes.ShouldNotBeEmpty();
     }
+    
+    [Fact]
+    public void ProcessGameEndedCommand_ShouldNavigateToRoot_WhenGameEnded()
+    {
+        // Arrange
+        var gameEndedCommand = new GameEndedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Reason = GameEndReason.PlayersLeft,
+            Timestamp = DateTime.UtcNow
+        };
+        var game = CreateClientGame();
+        game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+        
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        
+        // Act
+        game.HandleCommand(gameEndedCommand);
+        
+        // Assert
+        navigationService.Received(1).NavigateToRootAsync();
+    }
 
     [Fact]
     public void ShowAimedShotLocationSelector_SetsUnitPartSelectorAndVisibility()
@@ -1899,6 +1926,24 @@ public class BattleMapViewModelTests
         _sut.IsUnitPartSelectorVisible.ShouldBeFalse();
         _sut.UnitPartSelector.ShouldBeNull();
     }
+    
+    [Fact]
+    public void LeaveGameCommand_ShouldPublishPlayerLeftCommand_WhenExecuted()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        _game.LocalPlayers.Add(playerId);
+        _commandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.LeaveGameCommand.Execute(null);
+        
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<PlayerLeftCommand>(cmd => 
+            cmd.PlayerId == playerId &&
+            cmd.GameOriginId == _game.Id
+        ));
+    }
 
     private ToHitBreakdown CreateTestBreakdown(int total)
     {
@@ -1933,7 +1978,7 @@ public class BattleMapViewModelTests
         return new ClientGame(
             new ClassicBattletechRulesProvider(),
             _mechFactory,
-            Substitute.For<ICommandPublisher>(),
+            _commandPublisher,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),

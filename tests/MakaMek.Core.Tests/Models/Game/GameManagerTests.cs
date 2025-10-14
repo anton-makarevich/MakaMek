@@ -305,7 +305,7 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task StartServer_CalledMultipleTimes_StartsServerAndNetworkHostOnlyOnce()
+    public async Task StartServer_CalledMultipleTimes_StartsNetworkHostOnlyOnce()
     {
         // Arrange
         var networkPublisher = Substitute.For<ITransportPublisher>();
@@ -320,20 +320,6 @@ public class GameManagerTests : IDisposable
 
         // Assert
         await _networkHostService.Received(1).Start(); // Should only be called once
-        _transportAdapter.TransportPublishers.Count.ShouldBe(2); // Publisher should only be added once
-        _transportAdapter.TransportPublishers.ShouldContain(networkPublisher);
-        _gameFactory.Received(1).CreateServerGame(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _diceRoller,
-            _toHitCalculator,
-            _damageTransferCalculator,
-            _criticalHitsCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _fallProcessor);
     }
 
     [Fact]
@@ -431,7 +417,7 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task InitializeLobby_CalledMultipleTimes_SubscribesLoggingOnlyOnce()
+    public async Task InitializeLobby_CalledMultipleTimes_UnsubscribesLoggerBeforeResubscribing()
     {
         // Arrange
         var logger = Substitute.For<ICommandLogger>();
@@ -444,7 +430,8 @@ public class GameManagerTests : IDisposable
         // Assert
         _commandPublisher.Received()
             .Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>());
-        _commandLoggerFactory.Received(1).CreateLogger(_localizationService, _serverGame);
+        _commandLoggerFactory.Received(2).CreateLogger(_localizationService, _serverGame);
+        _commandPublisher.Received().Unsubscribe(Arg.Any<Action<IGameCommand>>());
     }
 
     [Fact]

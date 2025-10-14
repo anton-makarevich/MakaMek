@@ -107,8 +107,28 @@ public class BattleMapViewModel : BaseViewModel
         });
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
+        LeaveGameCommand = new AsyncCommand(LeaveGame);
     }
 
+    private async Task LeaveGame()
+    {
+        // Send PlayerLeftCommand for each local player
+        if (Game != null)
+        {
+            foreach (var playerId in Game.LocalPlayers)
+            {
+                Game.LeaveGame(playerId);
+            }
+
+            // Small delay to allow command to be sent
+            await Task.Delay(100);
+
+            // Dispose client game
+            Game?.Dispose();
+            Game = null;
+        }
+    }
+    
     public ClientGame? Game
     {
         get => _game;
@@ -184,6 +204,10 @@ public class BattleMapViewModel : BaseViewModel
                     break;
                 case MechStandUpCommand standUpCommand:
                     ProcessMechStandUp(standUpCommand);
+                    break;
+                case GameEndedCommand:
+                    // Server ended the game - navigate back to menu
+                    _ = NavigationService.NavigateToRootAsync();
                     break;
             }
         });
@@ -543,4 +567,6 @@ public class BattleMapViewModel : BaseViewModel
     /// Command to hide the body part selector
     /// </summary>
     public ICommand HideBodyPartSelectorCommand { get; }
+
+    public ICommand LeaveGameCommand { get; }
 }

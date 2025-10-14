@@ -5,6 +5,5 @@ public enum PlayerStatus
     NotJoined,
     Joining,
     Ready,
-    Joined,
-    JoinFailed
+    Joined
 }

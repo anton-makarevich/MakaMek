@@ -25,76 +25,87 @@
         </Canvas>
         
         <Grid x:Name="TurnStatus"
+            Height="50"
             VerticalAlignment="Top"
             Background="{StaticResource OverlayTransparentBrush}"
             Classes="statusPanel"
-            Margin="{OnPlatform '0,0,0,0', Android='0,30,0,0'}"
-            ColumnDefinitions="*,Auto,Auto,Auto,*">
-            
-            <!-- Turn Info Section -->
-            <Border Grid.Column="1" 
-                    Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}" 
+            ColumnDefinitions="Auto,*,Auto,*">
+            <templatedControls:ActionButton
+                Margin="5"
+                Command="{Binding LeaveGameCommand}"
+                IconData="{StaticResource CloseIcon}"
+                />
+            <Grid Grid.Column="2"
+                  x:Name="TurnInfoPanel"
+                  Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}" 
+                  ColumnDefinitions="*,*,*">
+                <!-- Turn Info Section -->
+                <Border Grid.Column="0" 
                     Classes="statusSection"
                     Padding="10,5">
-                <StackPanel Orientation="Horizontal" Classes="horizontalSpaced">
+                    <StackPanel Orientation="Horizontal" Classes="horizontalSpaced">
+                        <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                            <TextBlock Text="TURN" 
+                                     Classes="turnInfoLabel"
+                                     HorizontalAlignment="Center"
+                                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                            <TextBlock Text="{Binding Turn}" 
+                                     Classes="turnInfo"
+                                     FontWeight="Bold" 
+                                     HorizontalAlignment="Center"
+                                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                        </StackPanel>
+                        
+                        <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                            <TextBlock Text="PHASE" 
+                                     Classes="turnInfoLabel"
+                                     HorizontalAlignment="Center"
+                                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                            <TextBlock Text="{Binding TurnPhaseName}" 
+                                     Classes="turnInfo"
+                                     FontWeight="Bold" 
+                                     ClipToBounds="True"
+                                     TextTrimming="CharacterEllipsis"
+                                     HorizontalAlignment="Center"
+                                     Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Active Player Section -->
+                <Border Grid.Column="1" 
+                        Classes="statusSection"
+                        Padding="10,5"
+                        Margin="1,0,1,0">
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                        <TextBlock Text="TURN" 
+                        <TextBlock Text="ACTIVE PLAYER" 
                                  Classes="turnInfoLabel"
                                  HorizontalAlignment="Center"
                                  Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-                        <TextBlock Text="{Binding Turn}" 
+                        <TextBlock Text="{Binding ActivePlayerName}" 
                                  Classes="turnInfo"
                                  FontWeight="Bold" 
                                  HorizontalAlignment="Center"
                                  Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
                     </StackPanel>
-                    
-                    <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                        <TextBlock Text="PHASE" 
-                                 Classes="turnInfoLabel"
-                                 HorizontalAlignment="Center"
-                                 Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-                        <TextBlock Text="{Binding TurnPhaseName}" 
-                                 Classes="turnInfo"
-                                 FontWeight="Bold" 
-                                 HorizontalAlignment="Center"
-                                 Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-            
-            <!-- Active Player Section -->
-            <Border Grid.Column="2" 
-                    Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}" 
-                    Classes="statusSection"
-                    Padding="10,5"
-                    Margin="1,0,1,0">
-                <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                    <TextBlock Text="ACTIVE PLAYER" 
-                             Classes="turnInfoLabel"
-                             HorizontalAlignment="Center"
-                             Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-                    <TextBlock Text="{Binding ActivePlayerName}" 
+                </Border>
+                
+                <!-- Player Action Section -->
+                <Border Grid.Column="2" 
+                        Classes="statusSection"
+                        Padding="15,5"
+                        IsVisible="{Binding IsUserActionLabelVisible}">
+                    <TextBlock Text="{Binding ActionInfoLabel}" 
                              Classes="turnInfo"
-                             FontWeight="Bold" 
-                             HorizontalAlignment="Center"
-                             Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"/>
-                </StackPanel>
-            </Border>
+                             TextWrapping="Wrap"
+                             FontWeight="Bold"
+                             Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
+                             VerticalAlignment="Center"
+                             TextAlignment="Center"
+                             HorizontalAlignment="Center"/>
+                </Border>
+            </Grid>
             
-            <!-- Player Action Section -->
-            <Border Grid.Column="3" 
-                    Background="{Binding ActivePlayerTint, Converter={StaticResource HexColorToBrushConverter}}" 
-                    Classes="statusSection"
-                    Padding="15,5"
-                    IsVisible="{Binding IsUserActionLabelVisible}">
-                <TextBlock Text="{Binding ActionInfoLabel}" 
-                         Classes="actionInfo"
-                         TextWrapping="Wrap"
-                         FontWeight="Bold"
-                         Foreground="{Binding ActivePlayerTint, Converter={StaticResource ContrastingForegroundConverter}}"
-                         VerticalAlignment="Center"/>
-            </Border>
         </Grid>
         
         <Grid x:Name="MechList"

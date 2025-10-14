@@ -181,10 +181,44 @@ public class CommandPublisherTests
     }
 
     [Fact]
-
-
     public void Adapter_ReturnsCorrectValue()
     {
         _sut.Adapter.ShouldBe(_adapter);
+    }
+    
+    [Fact]
+    public void Unsubscribe_RemovesSubscriber()
+    {
+        // Arrange
+        var received = false;
+        var subscriber = new Action<IGameCommand>(_ => received = true);
+        _sut.Subscribe(subscriber);
+
+        // Act
+        _sut.Unsubscribe(subscriber);
+
+        // Send a command to verify the subscriber was removed
+        var sourceId = Guid.NewGuid();
+        var timestamp = DateTime.UtcNow;
+        var commandToSend = new TurnIncrementedCommand
+        {
+            GameOriginId = sourceId,
+            Timestamp = timestamp,
+            TurnNumber = 1
+        };
+        var payload = System.Text.Json.JsonSerializer.Serialize(commandToSend);
+        var message = new TransportMessage
+        {
+            MessageType = nameof(TurnIncrementedCommand),
+            SourceId = sourceId,
+            Timestamp = timestamp,
+            Payload = payload
+        };
+
+        // Act - simulate receiving the message
+        _transportCallback!(message);
+
+        // Assert
+        received.ShouldBeFalse("The unsubscribed subscriber should not have been called");
     }
 }

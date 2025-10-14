@@ -2533,4 +2533,79 @@ public class ClientGameTests
         var leftArm = unit.Parts[PartLocation.LeftArm];
         leftArm.HitSlots.ShouldNotBeEmpty();
     }
+    
+    [Fact]
+    public void RequestLobbyStatus_ShouldPublishRequestLobbyStatusCommand_WhenCalled()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.RequestLobbyStatus(new RequestGameLobbyStatusCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        });
+        
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Any<RequestGameLobbyStatusCommand>());
+    }
+    
+    [Fact]
+    public void LeaveGame_ShouldNotPublishPlayerLeftCommand_WhenPlayerNotLocal()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.LeaveGame(Guid.NewGuid());
+        
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PlayerLeftCommand>());
+    }
+    
+    [Fact]
+    public void LeaveGame_ShouldPublishPlayerLeftCommand_WhenPlayerLocal()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+        var playerId = Guid.NewGuid();
+        _sut.LocalPlayers.Add(playerId);
+        
+        // Act
+        _sut.LeaveGame(playerId);
+        
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<PlayerLeftCommand>(cmd => 
+            cmd.PlayerId == playerId &&
+            cmd.GameOriginId == _sut.Id
+        ));
+    }
+    
+    [Fact]
+    public void Dispose_ShouldUnsubscribeFromCommandPublisher_WhenCalled()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.Dispose();
+        
+        // Assert
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
+    
+    [Fact]
+    public void Dispose_ShouldUnsubscribeOnlyOnce_WhenCalledMultipleTimes()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+    
+        // Act
+        _sut.Dispose();
+        _sut.Dispose(); // Second call should be no-op
+    
+        // Assert
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
 }

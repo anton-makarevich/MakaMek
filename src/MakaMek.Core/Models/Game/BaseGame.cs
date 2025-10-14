@@ -162,6 +162,17 @@ public abstract class BaseGame : IGame
         _players.Add(player);
     }
     
+    protected virtual void OnPlayerLeft(PlayerLeftCommand command)
+    {
+        // Find the player
+        var player = Players.FirstOrDefault(p => p.Id == command.PlayerId);
+        if (player == null) return; // Player already removed - idempotent
+
+        // Mark player as left by setting status
+        player.Status = PlayerStatus.NotJoined;
+        _players.Remove(player);
+    }
+    
     internal void OnPlayerStatusUpdated(UpdatePlayerStatusCommand updatePlayerStatusCommand)
     {
         var player = _players.FirstOrDefault(p => p.Id == updatePlayerStatusCommand.PlayerId);
@@ -435,6 +446,8 @@ public abstract class BaseGame : IGame
             StartupUnitCommand => true,
             AmmoExplosionCommand => true,
             CriticalHitsResolutionCommand => true,
+            PlayerLeftCommand => true,
+            GameEndedCommand => true,
             _ => false
         };
     }

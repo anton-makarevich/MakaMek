@@ -7,6 +7,7 @@ public class FakeLocalizationServiceTests
 {
     [Theory]
     [InlineData("Command_JoinGame", "{0} has joined game with {1} units")]
+    [InlineData("Command_PlayerLeft", "{0} has left the game")]
     [InlineData("Command_MoveUnit", "{0} moved {1} to {2} facing {3} using {4}")]
     [InlineData("Command_DeployUnit", "{0} deployed {1} to {2} facing {3}")]
     [InlineData("Command_TryStandup", "{0} attempts to stand up {1}")]
@@ -103,6 +104,22 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_CriticalHitsResolution_Header", "{0} suffered structure damage and requires critical hit rolls")]
     [InlineData("Command_CriticalHitsResolution_ExplosionDamageDistribution", "Explosion damage distribution:")]
     public void GetString_CriticalHitsResolution_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+    
+    [Theory]
+    [InlineData("Command_GameEnded_Unknown", "Game aborted")]
+    [InlineData("Command_GameEnded_Victory", "Game ended: Victory")]
+    [InlineData("Command_GameEnded_PlayersLeft", "Players left. Game ended")]
+    public void GetString_GameEnded_ReturnsExpectedString(string key, string expected)
     {
         // Arrange
         var localizationService = new FakeLocalizationService();
