@@ -32,7 +32,7 @@
             ColumnDefinitions="Auto,*,Auto,*">
             <templatedControls:ActionButton
                 Margin="5"
-                Command="{Binding BackToMenuCommand}"
+                Command="{Binding LeaveGameCommand}"
                 IconData="{StaticResource BackArrowIcon}"
                 />
             <Grid Grid.Column="2"

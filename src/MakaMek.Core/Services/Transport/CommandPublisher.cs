@@ -11,7 +11,8 @@ public class CommandPublisher : ICommandPublisher
 {
     private readonly List<Action<IGameCommand>> _subscribers = [];
     private readonly Dictionary<Action<IGameCommand>, ITransportPublisher> _subscriberTransports = new();
-    
+    private readonly Lock _syncLock = new();
+
     /// <summary>
     /// Gets the command transport adapter used by this publisher
     /// </summary>
@@ -43,10 +44,13 @@ public class CommandPublisher : ICommandPublisher
     public void Subscribe(Action<IGameCommand> onCommandReceived, ITransportPublisher? transportPublisher = null)
     {
         Adapter.Initialize(OnCommandReceived);
-        _subscribers.Add(onCommandReceived);
-        if (transportPublisher != null)
+        lock (_syncLock)
         {
-            _subscriberTransports.Add(onCommandReceived, transportPublisher);
+            _subscribers.Add(onCommandReceived);
+            if (transportPublisher != null)
+            {
+                _subscriberTransports.Add(onCommandReceived, transportPublisher);
+            }
         }
     }
 
@@ -56,8 +60,12 @@ public class CommandPublisher : ICommandPublisher
     /// <param name="onCommandReceived">Action to remove from subscribers</param>
     public void Unsubscribe(Action<IGameCommand> onCommandReceived)
     {
-        _subscribers.Remove(onCommandReceived);
-        _subscriberTransports.Remove(onCommandReceived);
+        lock (_syncLock)
+        {
+            _subscribers.Remove(onCommandReceived);
+            _subscriberTransports.Remove(onCommandReceived);
+        }
+        
     }
 
     /// <summary>
@@ -67,18 +75,25 @@ public class CommandPublisher : ICommandPublisher
     /// <param name="sourcePublisher">A transport publisher to subscribe to, if null subscribe to all</param>
     private void OnCommandReceived(IGameCommand command, ITransportPublisher sourcePublisher)
     {
-        foreach (var subscriber in _subscribers)
+        Action<IGameCommand>[] subscribersSnapshot;
+        Dictionary<Action<IGameCommand>, ITransportPublisher> transportsSnapshot;
+        lock (_syncLock)
+        {
+            subscribersSnapshot = _subscribers.ToArray();
+            transportsSnapshot = new Dictionary<Action<IGameCommand>, ITransportPublisher>(_subscriberTransports);
+        }
+
+        foreach (var subscriber in subscribersSnapshot)
         {
             try
             {
-                _subscriberTransports.TryGetValue(subscriber, out var subTransport); 
+                transportsSnapshot.TryGetValue(subscriber, out var subTransport);
                 var shouldCall = subTransport == null || subTransport == sourcePublisher;
                 if (!shouldCall) continue;
                 subscriber(command);
             }
             catch (Exception ex)
             {
-                // Log subscriber error
                 Console.WriteLine($"Error in command subscriber: {ex.Message}");
             }
         }

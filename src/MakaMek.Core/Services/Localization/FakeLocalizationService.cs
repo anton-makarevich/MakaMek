@@ -86,6 +86,11 @@ public class FakeLocalizationService: ILocalizationService
             "Command_PilotingSkillRoll_TotalTargetNumber" => "Total Target Number: {0}",
             "Command_RollResult" => "Roll Result: {0}",
             
+            // Game End Reason strings
+            "Command_GameEnded_GameAborted" => "Game aborted",
+            "Command_GameEnded_Victory" => "Game ended: Victory",
+            "Command_GameEnded_PlayersLeft" => "Players left. Game ended",
+            
             // Piloting Skill Roll Types
             "PilotingSkillRollType_GyroHit" => "Gyro Hit",
             "PilotingSkillRollType_GyroDestroyed" => "Gyro Destroyed",

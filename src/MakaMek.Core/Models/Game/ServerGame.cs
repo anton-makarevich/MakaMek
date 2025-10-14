@@ -117,10 +117,10 @@ public class ServerGame : BaseGame, IDisposable
         if (player == null) return; // Player already removed - idempotent
 
         // Mark player as left by setting status
-        player.Status = PlayerStatus.Left;
+        player.Status = PlayerStatus.NotJoined;
 
         // At the moment it's not possible to continue even if one player is leaving
-        StopGame(GameEndReason.AllPlayersLeft);
+        StopGame(GameEndReason.PlayersLeft);
     }
 
     /// <summary>
@@ -196,6 +196,7 @@ public class ServerGame : BaseGame, IDisposable
         if (_isDisposed) return;
         _isDisposed = true;
         _isGameOver = true; // Ensure the loop in Start() exits
+        CommandPublisher.Unsubscribe(HandleCommand);
         // Add any specific cleanup for ServerGame if needed (e.g., unsubscribe from events)
         GC.SuppressFinalize(this);
     }

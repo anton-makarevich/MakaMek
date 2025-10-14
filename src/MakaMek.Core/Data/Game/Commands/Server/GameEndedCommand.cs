@@ -15,12 +15,3 @@ public record struct GameEndedCommand : IGameCommand
         return localizationService.GetString(key);
     }
 }
-
-public enum GameEndReason
-{
-    HostDisconnected,
-    GameAborted,
-    Victory,
-    AllPlayersLeft
-}
-

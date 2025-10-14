@@ -113,6 +113,22 @@ public class FakeLocalizationServiceTests
         // Assert
         result.ShouldBe(expected);
     }
+    
+    [Theory]
+    [InlineData("Command_GameEnded_GameAborted", "Game aborted")]
+    [InlineData("Command_GameEnded_Victory", "Game ended: Victory")]
+    [InlineData("Command_GameEnded_PlayersLeft", "Players left. Game ended")]
+    public void GetString_GameEnded_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
 
     [Theory]
     [InlineData("Direction_Forward", "forward")]

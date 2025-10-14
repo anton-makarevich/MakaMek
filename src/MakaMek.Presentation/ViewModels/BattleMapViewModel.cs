@@ -107,10 +107,10 @@ public class BattleMapViewModel : BaseViewModel
         });
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
-        BackToMenuCommand = new AsyncCommand(BackToMenu);
+        LeaveGameCommand = new AsyncCommand(LeaveGame);
     }
 
-    private async Task BackToMenu()
+    private async Task LeaveGame()
     {
         // Send PlayerLeftCommand for each local player
         if (Game != null)
@@ -126,11 +126,8 @@ public class BattleMapViewModel : BaseViewModel
             // Dispose client game
             Game?.Dispose();
         }
-
-        // Navigate to menu
-        await NavigationService.NavigateToRootAsync();
     }
-
+    
     public ClientGame? Game
     {
         get => _game;
@@ -209,7 +206,7 @@ public class BattleMapViewModel : BaseViewModel
                     break;
                 case GameEndedCommand:
                     // Server ended the game - navigate back to menu
-                    //_ = BackToMenu();
+                    _ = NavigationService.NavigateToRootAsync();
                     break;
             }
         });
@@ -570,5 +567,5 @@ public class BattleMapViewModel : BaseViewModel
     /// </summary>
     public ICommand HideBodyPartSelectorCommand { get; }
 
-    public ICommand BackToMenuCommand { get; }
+    public ICommand LeaveGameCommand { get; }
 }

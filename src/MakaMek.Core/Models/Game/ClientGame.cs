@@ -142,9 +142,6 @@ public sealed class ClientGame : BaseGame, IDisposable
             case CriticalHitsResolutionCommand criticalHitsCommand:
                 OnCriticalHitsResolution(criticalHitsCommand);
                 break;
-            case GameEndedCommand gameEndedCommand:
-                OnGameEnded(gameEndedCommand);
-                break;
         }
 
         // Log the command
@@ -152,12 +149,6 @@ public sealed class ClientGame : BaseGame, IDisposable
 
         // Publish the command to subscribers
         _commandSubject.OnNext(command);
-    }
-
-    private void OnGameEnded(GameEndedCommand command)
-    {
-        // Game has ended - just log and publish to subscribers
-        // The ViewModel will handle navigation
     }
 
     public bool CanActivePlayerAct => ActivePlayer != null 
@@ -230,6 +221,11 @@ public sealed class ClientGame : BaseGame, IDisposable
     /// <param name="playerId">The ID of the player leaving</param>
     public void LeaveGame(Guid playerId)
     {
+        if (!LocalPlayers.Contains(playerId))
+        {
+            return;
+        }
+
         var playerLeftCommand = new PlayerLeftCommand
         {
             GameOriginId = Id,
@@ -243,11 +239,12 @@ public sealed class ClientGame : BaseGame, IDisposable
     {
         if (_isDisposed) return;
         _isDisposed = true;
+        
+        // Unsubscribe from command publisher
+        CommandPublisher.Unsubscribe(HandleCommand);
 
         // Complete and dispose subjects
         _commandSubject.OnCompleted();
         _commandSubject.Dispose();
-
-        GC.SuppressFinalize(this);
     }
 }
