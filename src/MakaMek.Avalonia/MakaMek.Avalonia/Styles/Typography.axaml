@@ -83,7 +83,7 @@
     
     <!-- Game-Specific Text Styles -->
     <Style Selector="TextBlock.turnInfo">
-        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontSize" Value="14"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
     </Style>

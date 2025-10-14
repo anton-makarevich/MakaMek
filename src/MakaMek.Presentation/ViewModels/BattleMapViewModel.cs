@@ -107,6 +107,12 @@ public class BattleMapViewModel : BaseViewModel
         });
         HeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
         SelectedUnitHeatProjection = new HeatProjectionViewModel(_localizationService, rulesProvider);
+        BackToMenuCommand = new AsyncCommand(BackToMenu);
+    }
+
+    private async Task BackToMenu()
+    {
+        await NavigationService.NavigateToRootAsync();
     }
 
     public ClientGame? Game
@@ -543,4 +549,6 @@ public class BattleMapViewModel : BaseViewModel
     /// Command to hide the body part selector
     /// </summary>
     public ICommand HideBodyPartSelectorCommand { get; }
+
+    public ICommand BackToMenuCommand { get; }
 }
