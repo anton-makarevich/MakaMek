@@ -1081,7 +1081,7 @@ public class BaseGameTests : BaseGame
     public void ValidateCommand_ShouldAutoValidateAmmoExplosionCommand()
     {
         // Arrange
-        var command = new AmmoExplosionCommand()
+        var command = new AmmoExplosionCommand
         {
             GameOriginId = Guid.NewGuid(),
             UnitId = Guid.NewGuid(),
@@ -1112,6 +1112,42 @@ public class BaseGameTests : BaseGame
             Timestamp = DateTime.UtcNow,
             TargetId = Guid.NewGuid(),
             CriticalHits = []
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ValidateCommand_ShouldReturnTrue_WhenGameEndedCommand()
+    {
+        // Arrange
+        var command = new GameEndedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Reason = GameEndReason.PlayersLeft,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ValidateCommand_ShouldReturnTrue_WhenPlayerLeftCommand()
+    {
+        // Arrange
+        var command = new PlayerLeftCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
