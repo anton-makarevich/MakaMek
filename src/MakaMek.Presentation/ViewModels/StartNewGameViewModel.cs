@@ -121,8 +121,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         }
         return Task.CompletedTask; 
     }
-
-
+    
     public MapConfigViewModel MapConfig { get; }
 
     public bool CanStartGame => Players.Count > 0 && Players.All(p => p.Units.Count > 0 && p.Player.Status == PlayerStatus.Ready);
@@ -162,7 +161,11 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager.SetBattleMap(map);
 
         // Host Client for local player(s)
-        var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
+        var battleMapViewModel = NavigationService.GetNewViewModel<BattleMapViewModel>();
+        if (battleMapViewModel == null)
+        {
+            throw new Exception("BattleMapViewModel is not registered");
+        }
         battleMapViewModel.Game = _localGame;
 
         // Navigate to BattleMap view
@@ -201,8 +204,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 
     public void Dispose()
     {
-        // Dispose game manager if this ViewModel owns it (depends on DI lifetime)
-        _gameManager.Dispose(); 
         MapConfig.Dispose();
         GC.SuppressFinalize(this);
     }

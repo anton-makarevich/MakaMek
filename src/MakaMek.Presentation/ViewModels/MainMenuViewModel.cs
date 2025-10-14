@@ -58,7 +58,11 @@ public class MainMenuViewModel : BaseViewModel
 
     private async Task NavigateToNewGame()
     {
-        await NavigationService.NavigateToViewModelAsync<StartNewGameViewModel>();
+        var startNewGameViewModel = NavigationService.GetNewViewModel<StartNewGameViewModel>();
+        if (startNewGameViewModel != null)
+        {
+            await NavigationService.NavigateToViewModelAsync(startNewGameViewModel);
+        }
     }
 
     private async Task NavigateToJoinGame()
