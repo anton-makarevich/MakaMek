@@ -7,6 +7,7 @@ public class FakeLocalizationService: ILocalizationService
         return key switch
         {
             "Command_JoinGame" => "{0} has joined game with {1} units",
+            "Command_PlayerLeft" => "{0} has left the game",
             "Command_MoveUnit" => "{0} moved {1} to {2} facing {3} using {4}",
             "Command_DeployUnit" => "{0} deployed {1} to {2} facing {3}",
             "Command_TryStandup" => "{0} attempts to stand up {1}",
@@ -87,7 +88,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_RollResult" => "Roll Result: {0}",
             
             // Game End Reason strings
-            "Command_GameEnded_GameAborted" => "Game aborted",
+            "Command_GameEnded_Unknown" => "Game aborted",
             "Command_GameEnded_Victory" => "Game ended: Victory",
             "Command_GameEnded_PlayersLeft" => "Players left. Game ended",
             

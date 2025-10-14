@@ -125,6 +125,7 @@ public class BattleMapViewModel : BaseViewModel
 
             // Dispose client game
             Game?.Dispose();
+            Game = null;
         }
     }
     
