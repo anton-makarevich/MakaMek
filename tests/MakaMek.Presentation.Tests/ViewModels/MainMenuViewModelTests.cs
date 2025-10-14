@@ -76,7 +76,7 @@ public class MainMenuViewModelTests
         await command.ExecuteAsync();
 
         // Assert
-        await _navigationService.Received(1).NavigateToViewModelAsync(Arg.Any<StartNewGameViewModel>());
+        await _navigationService.Received(1).NavigateToViewModelAsync(startVm);
     }
     
     [Fact]
@@ -85,12 +85,27 @@ public class MainMenuViewModelTests
         // Arrange
         var command = _sut.JoinGameCommand as IAsyncCommand;
         command.ShouldNotBeNull();
+        var joinVm = new JoinGameViewModel(
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IMechFactory>(),
+            Substitute.For<IUnitsLoader>(),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IGameFactory>(),
+            Substitute.For<ITransportFactory>(),
+            Substitute.For<IBattleMapFactory>(),
+            Substitute.For<IFileCachingService>());
+        _navigationService.GetNewViewModel<JoinGameViewModel>().Returns(joinVm);
 
         // Act
         await command.ExecuteAsync();
 
         // Assert
-        await _navigationService.Received(1).NavigateToViewModelAsync<JoinGameViewModel>();
+        await _navigationService.Received(1).NavigateToViewModelAsync(joinVm);
     }
     
     [Fact]

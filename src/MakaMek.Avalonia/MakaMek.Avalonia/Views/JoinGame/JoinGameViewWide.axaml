@@ -7,15 +7,17 @@
              x:Class="Sanet.MakaMek.Avalonia.Views.JoinGame.JoinGameViewWide"
              x:DataType="viewModels:JoinGameViewModel"
              xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
-             xmlns:fragments2="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments">
+             xmlns:fragments2="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls">
 
     <Grid Margin="10" 
           RowDefinitions="Auto,*">
-        <TextBlock Text="Join Game"
-                   Grid.ColumnSpan="2"
-                   Classes="h1" 
-                   HorizontalAlignment="Center"
-                   Margin="0,0,0,10"/>
+        <templatedControls:ToolBar
+            Title="Join Game"
+            TitleAlignment="Center"
+            LeftCommand="{Binding BackCommand}"
+            LeftIcon="{StaticResource BackArrowIcon}"
+            Margin="0,0,0,10"/>
         <StackPanel Grid.Row="1"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"

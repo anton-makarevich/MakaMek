@@ -12,7 +12,9 @@
           RowDefinitions="Auto,*,Auto">
         <templatedControls:ToolBar
             Title="Start New Game"
-            TitleAlignment="Center"/>
+            TitleAlignment="Center"
+            LeftCommand="{Binding BackCommand}"
+            LeftIcon="{StaticResource BackArrowIcon}"/>
         
         <TabControl Grid.Row="1">
             <TabItem Header="Players">

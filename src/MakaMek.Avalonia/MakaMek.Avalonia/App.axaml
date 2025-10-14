@@ -21,6 +21,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Colors.axaml"/>
                 <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Animations.axaml"/>
+                <ResourceInclude Source="avares://Sanet.MakaMek.Avalonia/Styles/Icons.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
