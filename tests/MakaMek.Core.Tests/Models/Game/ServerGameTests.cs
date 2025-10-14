@@ -467,6 +467,20 @@ public class ServerGameTests
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
     }
+    
+    [Fact]
+    public void Dispose_ShouldUnsubscribeOnlyOnce_WhenCalledMultipleTimes()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+    
+        // Act
+        _sut.Dispose();
+        _sut.Dispose(); // Second call should be no-op
+    
+        // Assert
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
 
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
         int damage,

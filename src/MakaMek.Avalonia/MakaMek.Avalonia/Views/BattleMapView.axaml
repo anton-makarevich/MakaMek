@@ -33,7 +33,7 @@
             <templatedControls:ActionButton
                 Margin="5"
                 Command="{Binding LeaveGameCommand}"
-                IconData="{StaticResource BackArrowIcon}"
+                IconData="{StaticResource CloseIcon}"
                 />
             <Grid Grid.Column="2"
                   x:Name="TurnInfoPanel"

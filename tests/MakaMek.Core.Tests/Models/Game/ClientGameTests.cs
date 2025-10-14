@@ -2552,7 +2552,7 @@ public class ClientGameTests
     }
     
     [Fact]
-    public void LeaveGame_ShouldNoPublishPlayerLeftCommand_WhenPlayerNotLocal()
+    public void LeaveGame_ShouldNotPublishPlayerLeftCommand_WhenPlayerNotLocal()
     {
         // Arrange
         _commandPublisher.ClearReceivedCalls();
@@ -2591,6 +2591,20 @@ public class ClientGameTests
         // Act
         _sut.Dispose();
         
+        // Assert
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
+    
+    [Fact]
+    public void Dispose_ShouldUnsubscribeOnlyOnce_WhenCalledMultipleTimes()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+    
+        // Act
+        _sut.Dispose();
+        _sut.Dispose(); // Second call should be no-op
+    
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
     }
