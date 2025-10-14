@@ -30,5 +30,6 @@
         <StyleInclude Source="Styles/Theme.axaml"/>
         <StyleInclude Source="Views/TemplatedControls/GamePanel.axaml"/>
         <StyleInclude Source="Views/TemplatedControls/ActionButton.axaml"/>
+        <StyleInclude Source="Views/TemplatedControls/ToolBar.axaml"/>
     </Application.Styles>
 </Application>
