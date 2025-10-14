@@ -20,7 +20,7 @@
         <TrimmerRootDescriptor Include="TrimmerRoots.xml" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Avalonia.Browser" Version="11.3.6" />
+        <PackageReference Include="Avalonia.Browser" Version="11.3.7" />
     </ItemGroup>
 
     <ItemGroup>
