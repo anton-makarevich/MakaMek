@@ -7,6 +7,7 @@ public interface ICommandPublisher
 {
     void PublishCommand(IGameCommand command);
     void Subscribe(Action<IGameCommand> onCommandReceived, ITransportPublisher? transportPublisher = null);
+    void Unsubscribe(Action<IGameCommand> onCommandReceived);
 
     CommandTransportAdapter Adapter { get; }
 }

@@ -435,6 +435,8 @@ public abstract class BaseGame : IGame
             StartupUnitCommand => true,
             AmmoExplosionCommand => true,
             CriticalHitsResolutionCommand => true,
+            PlayerLeftCommand => true,
+            GameEndedCommand => true,
             _ => false
         };
     }

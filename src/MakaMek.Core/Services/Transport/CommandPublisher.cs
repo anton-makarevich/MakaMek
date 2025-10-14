@@ -51,6 +51,16 @@ public class CommandPublisher : ICommandPublisher
     }
 
     /// <summary>
+    /// Unsubscribes from receiving commands
+    /// </summary>
+    /// <param name="onCommandReceived">Action to remove from subscribers</param>
+    public void Unsubscribe(Action<IGameCommand> onCommandReceived)
+    {
+        _subscribers.Remove(onCommandReceived);
+        _subscriberTransports.Remove(onCommandReceived);
+    }
+
+    /// <summary>
     /// Called when a command is received from the transport
     /// </summary>
     /// <param name="command">The received command</param>

@@ -100,7 +100,47 @@ public class ServerGame : BaseGame, IDisposable
         if (!ShouldHandleCommand(command)) return;
         if (!ValidateCommand(command)) return;
 
+        // Handle PlayerLeftCommand before delegating to phase
+        if (command is PlayerLeftCommand playerLeftCommand)
+        {
+            HandlePlayerLeft(playerLeftCommand);
+            return;
+        }
+
         _currentPhase.HandleCommand(command);
+    }
+
+    private void HandlePlayerLeft(PlayerLeftCommand command)
+    {
+        // Find the player
+        var player = Players.FirstOrDefault(p => p.Id == command.PlayerId);
+        if (player == null) return; // Player already removed - idempotent
+
+        // Mark player as left by setting status
+        player.Status = PlayerStatus.Left;
+
+        // At the moment it's not possible to continue even if one player is leaving
+        StopGame(GameEndReason.AllPlayersLeft);
+    }
+
+    /// <summary>
+    /// Stops the game and notifies all clients
+    /// </summary>
+    public void StopGame(GameEndReason reason)
+    {
+        if (_isDisposed || _isGameOver) return;
+
+        // Publish GameEndedCommand to all clients
+        var endCommand = new GameEndedCommand
+        {
+            GameOriginId = Id,
+            Reason = reason,
+            Timestamp = DateTime.UtcNow
+        };
+        CommandPublisher.PublishCommand(endCommand);
+
+        // Mark game as over (will exit Start() loop)
+        _isGameOver = true;
     }
 
     public void SetActivePlayer(IPlayer? player, int unitsToMove)

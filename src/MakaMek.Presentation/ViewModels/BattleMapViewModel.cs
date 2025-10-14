@@ -112,6 +112,22 @@ public class BattleMapViewModel : BaseViewModel
 
     private async Task BackToMenu()
     {
+        // Send PlayerLeftCommand for each local player
+        if (Game != null)
+        {
+            foreach (var playerId in Game.LocalPlayers)
+            {
+                Game.LeaveGame(playerId);
+            }
+
+            // Small delay to allow command to be sent
+            await Task.Delay(100);
+
+            // Dispose client game
+            Game?.Dispose();
+        }
+
+        // Navigate to menu
         await NavigationService.NavigateToRootAsync();
     }
 
@@ -190,6 +206,10 @@ public class BattleMapViewModel : BaseViewModel
                     break;
                 case MechStandUpCommand standUpCommand:
                     ProcessMechStandUp(standUpCommand);
+                    break;
+                case GameEndedCommand:
+                    // Server ended the game - navigate back to menu
+                    //_ = BackToMenu();
                     break;
             }
         });

@@ -15,12 +15,13 @@ using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
-public sealed class ClientGame : BaseGame
+public sealed class ClientGame : BaseGame, IDisposable
 {
     private readonly Subject<IGameCommand> _commandSubject = new();
     private readonly List<IGameCommand> _commandLog = [];
     private readonly HashSet<Guid> _playersEndedTurn = [];
     private readonly IBattleMapFactory _mapFactory;
+    private bool _isDisposed;
 
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
@@ -141,13 +142,22 @@ public sealed class ClientGame : BaseGame
             case CriticalHitsResolutionCommand criticalHitsCommand:
                 OnCriticalHitsResolution(criticalHitsCommand);
                 break;
+            case GameEndedCommand gameEndedCommand:
+                OnGameEnded(gameEndedCommand);
+                break;
         }
-        
+
         // Log the command
         _commandLog.Add(command);
-        
+
         // Publish the command to subscribers
         _commandSubject.OnNext(command);
+    }
+
+    private void OnGameEnded(GameEndedCommand command)
+    {
+        // Game has ended - just log and publish to subscribers
+        // The ViewModel will handle navigation
     }
 
     public bool CanActivePlayerAct => ActivePlayer != null 
@@ -212,5 +222,32 @@ public sealed class ClientGame : BaseGame
     public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
     {
         CommandPublisher.PublishCommand(statusCommand);
+    }
+
+    /// <summary>
+    /// Sends a PlayerLeftCommand for the specified player
+    /// </summary>
+    /// <param name="playerId">The ID of the player leaving</param>
+    public void LeaveGame(Guid playerId)
+    {
+        var playerLeftCommand = new PlayerLeftCommand
+        {
+            GameOriginId = Id,
+            PlayerId = playerId,
+            Timestamp = DateTime.UtcNow
+        };
+        CommandPublisher.PublishCommand(playerLeftCommand);
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        _isDisposed = true;
+
+        // Complete and dispose subjects
+        _commandSubject.OnCompleted();
+        _commandSubject.Dispose();
+
+        GC.SuppressFinalize(this);
     }
 }
