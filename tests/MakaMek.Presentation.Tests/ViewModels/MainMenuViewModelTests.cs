@@ -80,6 +80,16 @@ public class MainMenuViewModelTests
     }
     
     [Fact]
+    public async Task StartNewGameCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnStartNewGameViewModel()
+    {
+        // Arrange
+        _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns((StartNewGameViewModel?)null);
+        // Act & Assert
+        (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.StartNewGameCommand)
+            .ExecuteAsync())).Message.ShouldContain("StartNewGameViewModel is not registered");
+    }
+    
+    [Fact]
     public async Task JoinGameCommand_WhenExecuted_NavigatesToJoinGameViewModel()
     {
         // Arrange
@@ -106,6 +116,16 @@ public class MainMenuViewModelTests
 
         // Assert
         await _navigationService.Received(1).NavigateToViewModelAsync(joinVm);
+    }
+    
+    [Fact]
+    public async Task JoinGameCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnJoinGameViewModel()
+    {
+        // Arrange
+        _navigationService.GetNewViewModel<JoinGameViewModel>().Returns((JoinGameViewModel?)null);
+        // Act & Assert
+        (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.JoinGameCommand)
+            .ExecuteAsync())).Message.ShouldContain("JoinGameViewModel is not registered");
     }
     
     [Fact]
