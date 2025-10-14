@@ -41,7 +41,7 @@
                 <fragments:NetworkFragment Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10"/>
             </Grid>
         </UniformGrid>
-        <Button Grid.Row="2" Grid.Column="0"
+        <Button Grid.Row="2"
                 Command="{Binding StartGameCommand}"
                 Content="Start Game"
                 Classes="primary"

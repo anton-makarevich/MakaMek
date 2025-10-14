@@ -22,27 +22,50 @@ public class ToolBar : TemplatedControl
     public static readonly StyledProperty<string> RightIconProperty = AvaloniaProperty.Register<ToolBar, string>(
         nameof(RightIcon));
 
-    public static readonly StyledProperty<HorizontalAlignment> TitleAlignmentProperty = AvaloniaProperty.Register<ToolBar, HorizontalAlignment>(
-        nameof(TitleAlignment));
+    public static readonly StyledProperty<HorizontalAlignment> TitleAlignmentProperty =
+        AvaloniaProperty.Register<ToolBar, HorizontalAlignment>(
+            nameof(TitleAlignment));
+
+    public static readonly DirectProperty<ToolBar, bool> HasLeftButtonProperty =
+        AvaloniaProperty.RegisterDirect<ToolBar, bool>(nameof(HasLeftButton), o => o.HasLeftButton);
+
+    public static readonly DirectProperty<ToolBar, bool> HasRightButtonProperty =
+        AvaloniaProperty.RegisterDirect<ToolBar, bool>(nameof(HasRightButton), o => o.HasRightButton);
+
+    static ToolBar()
+    {
+        LeftIconProperty.Changed.AddClassHandler<ToolBar>((x, e) =>
+        {
+            var oldVal = !string.IsNullOrEmpty((string?)e.OldValue);
+            var newVal = !string.IsNullOrEmpty((string?)e.NewValue);
+            x.RaisePropertyChanged(HasLeftButtonProperty, oldVal, newVal);
+        });
+        RightIconProperty.Changed.AddClassHandler<ToolBar>((x, e) =>
+        {
+            var oldVal = !string.IsNullOrEmpty((string?)e.OldValue);
+            var newVal = !string.IsNullOrEmpty((string?)e.NewValue);
+            x.RaisePropertyChanged(HasRightButtonProperty, oldVal, newVal);
+        });
+    }
 
     public HorizontalAlignment TitleAlignment
     {
         get => GetValue(TitleAlignmentProperty);
         set => SetValue(TitleAlignmentProperty, value);
     }
-    
+
     public string RightIcon
     {
         get => GetValue(RightIconProperty);
         set => SetValue(RightIconProperty, value);
     }
-    
+
     public ICommand RightCommand
     {
         get => GetValue(RightCommandProperty);
         set => SetValue(RightCommandProperty, value);
     }
-    
+
     public string Title
     {
         get => GetValue(TitleProperty);

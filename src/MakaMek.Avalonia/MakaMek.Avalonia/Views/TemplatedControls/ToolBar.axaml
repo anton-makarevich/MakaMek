@@ -14,7 +14,7 @@
                     <templatedControls:ActionButton
                         Command="{TemplateBinding LeftCommand}"
                         IconData="{TemplateBinding LeftIcon}"
-                        IsVisible="{Binding HasLeftButton, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type templatedControls:ToolBar}}}"
+                        IsVisible="{TemplateBinding HasLeftButton}"
                         />
                     <TextBlock Grid.Column="1"
                            Classes="h1"
@@ -25,7 +25,7 @@
                         Grid.Column="2"
                         Command="{TemplateBinding RightCommand}"
                         IconData="{TemplateBinding RightIcon}"
-                        IsVisible="{Binding HasRightButton, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type templatedControls:ToolBar}}}"/>
+                        IsVisible="{TemplateBinding HasRightButton}"/>
                 </Grid>
             </ControlTemplate>
         </Setter>
