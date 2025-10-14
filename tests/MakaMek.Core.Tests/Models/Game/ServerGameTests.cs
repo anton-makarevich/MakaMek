@@ -2,6 +2,7 @@ using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Map;
@@ -330,6 +331,38 @@ public class ServerGameTests
         mockPhase.Received(1).HandleCommand(Arg.Is<RequestGameLobbyStatusCommand>(cmd => 
             cmd.GameOriginId == requestCommand.GameOriginId));
     }
+    
+    [Fact]
+    public void HandleCommand_ShouldProcessLeftGameCommand_WhenReceived()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        
+        var player = _sut.Players.First(p => p.Id == playerId);
+
+        var leftCommand = new PlayerLeftCommand
+        {
+            PlayerId = playerId,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        _sut.HandleCommand(leftCommand);
+
+        // Assert
+        _sut.Players.ShouldNotContain(p => p.Id == playerId);
+        player.Status.ShouldBe(PlayerStatus.NotJoined);
+    }
 
     [Fact]
     public void SetBattleMap_ShouldPublishSetBattleMapCommand_WhenCalled()
@@ -393,6 +426,46 @@ public class ServerGameTests
 
         // Assert - TotalPhaseDamage should be reset to 0
         unit.TotalPhaseDamage.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void StopGame_ShouldSetIsGameOverToTrue_WhenCalled()
+    {
+        // Arrange
+        // Act
+        _sut.StopGame(GameEndReason.PlayersLeft);
+        
+        // Assert
+        _sut.IsGameOver.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void StopGame_ShouldPublishGameEndedCommand_WhenCalled()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.StopGame(GameEndReason.PlayersLeft);
+        
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<GameEndedCommand>(cmd => 
+            cmd.Reason == GameEndReason.PlayersLeft &&
+            cmd.GameOriginId == _sut.Id
+        ));
+    }
+    
+    [Fact]
+    public void Dispose_ShouldUnsubscribeFromCommandPublisher_WhenCalled()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+        
+        // Act
+        _sut.Dispose();
+        
+        // Assert
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
     }
 
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,

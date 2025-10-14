@@ -17,7 +17,6 @@ public class ServerGame : BaseGame, IDisposable
 {
     private IGamePhase _currentPhase;
     private List<IPlayer> _initiativeOrder = [];
-    private bool _isGameOver;
     private bool _isDisposed;
 
     public bool IsAutoRoll { get; set; } = true;
@@ -54,6 +53,8 @@ public class ServerGame : BaseGame, IDisposable
     public IFallProcessor FallProcessor { get; }
 
     public IReadOnlyList<IPlayer> InitiativeOrder => _initiativeOrder;
+    
+    public bool IsGameOver { get; private set; }
 
     public override void SetBattleMap(BattleMap map)
     {
@@ -103,22 +104,16 @@ public class ServerGame : BaseGame, IDisposable
         // Handle PlayerLeftCommand before delegating to phase
         if (command is PlayerLeftCommand playerLeftCommand)
         {
-            HandlePlayerLeft(playerLeftCommand);
+            OnPlayerLeft(playerLeftCommand);
             return;
         }
 
         _currentPhase.HandleCommand(command);
     }
 
-    private void HandlePlayerLeft(PlayerLeftCommand command)
+    protected override void OnPlayerLeft(PlayerLeftCommand command)
     {
-        // Find the player
-        var player = Players.FirstOrDefault(p => p.Id == command.PlayerId);
-        if (player == null) return; // Player already removed - idempotent
-
-        // Mark player as left by setting status
-        player.Status = PlayerStatus.NotJoined;
-
+        base.OnPlayerLeft(command);
         // At the moment it's not possible to continue even if one player is leaving
         StopGame(GameEndReason.PlayersLeft);
     }
@@ -128,7 +123,7 @@ public class ServerGame : BaseGame, IDisposable
     /// </summary>
     public void StopGame(GameEndReason reason)
     {
-        if (_isDisposed || _isGameOver) return;
+        if (_isDisposed || IsGameOver) return;
 
         // Publish GameEndedCommand to all clients
         var endCommand = new GameEndedCommand
@@ -140,7 +135,7 @@ public class ServerGame : BaseGame, IDisposable
         CommandPublisher.PublishCommand(endCommand);
 
         // Mark game as over (will exit Start() loop)
-        _isGameOver = true;
+        IsGameOver = true;
     }
 
     public void SetActivePlayer(IPlayer? player, int unitsToMove)
@@ -185,7 +180,7 @@ public class ServerGame : BaseGame, IDisposable
     {
         // The game loop is driven by commands and phase transitions
         // This method mainly keeps the server alive until disposed
-        while (!_isDisposed && !_isGameOver)
+        while (!_isDisposed && !IsGameOver)
         {
             await Task.Delay(100); // Keep the task alive but idle
         }
@@ -195,7 +190,7 @@ public class ServerGame : BaseGame, IDisposable
     {
         if (_isDisposed) return;
         _isDisposed = true;
-        _isGameOver = true; // Ensure the loop in Start() exits
+        IsGameOver = true; // Ensure the loop in Start() exits
         CommandPublisher.Unsubscribe(HandleCommand);
         // Add any specific cleanup for ServerGame if needed (e.g., unsubscribe from events)
         GC.SuppressFinalize(this);
