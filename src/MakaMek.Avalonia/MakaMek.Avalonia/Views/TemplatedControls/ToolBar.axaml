@@ -1,0 +1,33 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls">
+    <Design.PreviewWith>
+        <templatedControls:ToolBar />
+    </Design.PreviewWith>
+
+    <Style Selector="templatedControls|ToolBar">
+        <!-- Set Defaults -->
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                      HorizontalAlignment="Stretch">
+                    <templatedControls:ActionButton
+                        Command="{TemplateBinding LeftCommand}"
+                        IconData="{TemplateBinding LeftIcon}"
+                        IsVisible="{TemplateBinding HasLeftButton}"
+                        />
+                    <TextBlock Grid.Column="1"
+                           Classes="h1"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="{TemplateBinding TitleAlignment}"
+                           Text="{TemplateBinding Title}"/>
+                    <templatedControls:ActionButton
+                        Grid.Column="2"
+                        Command="{TemplateBinding RightCommand}"
+                        IconData="{TemplateBinding RightIcon}"
+                        IsVisible="{TemplateBinding HasRightButton}"/>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

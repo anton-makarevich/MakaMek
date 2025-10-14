@@ -5,13 +5,19 @@
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
              xmlns:converters="clr-namespace:Sanet.MakaMek.Avalonia.Converters;assembly=Sanet.MakaMek.Avalonia"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewWide"
              x:DataType="viewModels1:StartNewGameViewModel">
     <Grid 
         Margin="10"
-        RowDefinitions="*, Auto">
-        <UniformGrid
+        RowDefinitions="Auto,*, Auto">
+        <templatedControls:ToolBar
+            Title="Start New Game"
+            TitleAlignment="Center"
+            LeftCommand="{Binding BackCommand}"
+            LeftIcon="{StaticResource BackArrowIcon}"/>
+        <UniformGrid Grid.Row="1"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"
             Rows="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Grid}, 
@@ -22,7 +28,7 @@
                         Path=Bounds.Size, 
                         Converter={StaticResource AdaptiveGridConverter}, 
                         ConverterParameter={x:Static converters:GridOrientation.Columns}}"
-            >
+        >
             <Grid RowDefinitions="Auto,*">
                 <TextBlock Text="Players" Classes="h2" HorizontalAlignment="Center"/>
                 <fragments:PlayersFragment Grid.Row="1" Margin="10"/>
@@ -35,7 +41,7 @@
                 <fragments:NetworkFragment Grid.Row="2" IsVisible="{Binding CanStartLanServer}" Margin="10"/>
             </Grid>
         </UniformGrid>
-        <Button Grid.Row="1" Grid.Column="0"
+        <Button Grid.Row="2"
                 Command="{Binding StartGameCommand}"
                 Content="Start Game"
                 Classes="primary"

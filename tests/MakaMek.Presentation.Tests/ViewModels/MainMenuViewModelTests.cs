@@ -1,7 +1,15 @@
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
+using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Factories;
+using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
+using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
@@ -47,12 +55,38 @@ public class MainMenuViewModelTests
         // Arrange
         var command = _sut.StartNewGameCommand as IAsyncCommand;
         command.ShouldNotBeNull();
+        var startVm = new StartNewGameViewModel(
+            Substitute.For<IGameManager>(),
+            Substitute.For<IUnitsLoader>(),
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IMechFactory>(),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IGameFactory>(),
+            Substitute.For<IBattleMapFactory>(),
+            Substitute.For<IFileCachingService>(),
+            Substitute.For<IMapPreviewRenderer>());
+        _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns(startVm);
 
         // Act
         await command.ExecuteAsync();
 
         // Assert
-        await _navigationService.Received(1).NavigateToViewModelAsync<StartNewGameViewModel>();
+        await _navigationService.Received(1).NavigateToViewModelAsync(startVm);
+    }
+    
+    [Fact]
+    public async Task StartNewGameCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnStartNewGameViewModel()
+    {
+        // Arrange
+        _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns((StartNewGameViewModel?)null);
+        // Act & Assert
+        (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.StartNewGameCommand)
+            .ExecuteAsync())).Message.ShouldContain("StartNewGameViewModel is not registered");
     }
     
     [Fact]
@@ -61,12 +95,37 @@ public class MainMenuViewModelTests
         // Arrange
         var command = _sut.JoinGameCommand as IAsyncCommand;
         command.ShouldNotBeNull();
+        var joinVm = new JoinGameViewModel(
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IMechFactory>(),
+            Substitute.For<IUnitsLoader>(),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<IToHitCalculator>(),
+            Substitute.For<IPilotingSkillCalculator>(),
+            Substitute.For<IConsciousnessCalculator>(),
+            Substitute.For<IHeatEffectsCalculator>(),
+            Substitute.For<IDispatcherService>(),
+            Substitute.For<IGameFactory>(),
+            Substitute.For<ITransportFactory>(),
+            Substitute.For<IBattleMapFactory>(),
+            Substitute.For<IFileCachingService>());
+        _navigationService.GetNewViewModel<JoinGameViewModel>().Returns(joinVm);
 
         // Act
         await command.ExecuteAsync();
 
         // Assert
-        await _navigationService.Received(1).NavigateToViewModelAsync<JoinGameViewModel>();
+        await _navigationService.Received(1).NavigateToViewModelAsync(joinVm);
+    }
+    
+    [Fact]
+    public async Task JoinGameCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnJoinGameViewModel()
+    {
+        // Arrange
+        _navigationService.GetNewViewModel<JoinGameViewModel>().Returns((JoinGameViewModel?)null);
+        // Act & Assert
+        (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.JoinGameCommand)
+            .ExecuteAsync())).Message.ShouldContain("JoinGameViewModel is not registered");
     }
     
     [Fact]

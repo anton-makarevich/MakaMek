@@ -58,12 +58,24 @@ public class MainMenuViewModel : BaseViewModel
 
     private async Task NavigateToNewGame()
     {
-        await NavigationService.NavigateToViewModelAsync<StartNewGameViewModel>();
+        var startNewGameViewModel = NavigationService.GetNewViewModel<StartNewGameViewModel>();
+        if (startNewGameViewModel == null)
+        {
+            throw new Exception("StartNewGameViewModel is not registered");
+        }
+
+        await NavigationService.NavigateToViewModelAsync(startNewGameViewModel);
     }
 
     private async Task NavigateToJoinGame()
     {
-        await NavigationService.NavigateToViewModelAsync<JoinGameViewModel>();
+        var joinGameViewModel = NavigationService.GetNewViewModel<JoinGameViewModel>();
+        if (joinGameViewModel == null)
+        {
+            throw new Exception("JoinGameViewModel is not registered");
+        }
+
+        await NavigationService.NavigateToViewModelAsync(joinGameViewModel);
     }
 
     /// <summary>

@@ -4,16 +4,17 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              xmlns:fragments1="clr-namespace:Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments"
+             xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="800"
              x:Class="Sanet.MakaMek.Avalonia.Views.StartNewGame.StartNewGameViewNarrow"
              x:DataType="viewModels1:StartNewGameViewModel">
     <Grid Classes="pageContainer"
           RowDefinitions="Auto,*,Auto">
-        <TextBlock Text="Start New Game" 
-                   Classes="h1" 
-                   HorizontalAlignment="Center"
-                   DockPanel.Dock="Top"
-                   Margin="0,0,0,10"/>
+        <templatedControls:ToolBar
+            Title="Start New Game"
+            TitleAlignment="Center"
+            LeftCommand="{Binding BackCommand}"
+            LeftIcon="{StaticResource BackArrowIcon}"/>
         
         <TabControl Grid.Row="1">
             <TabItem Header="Players">

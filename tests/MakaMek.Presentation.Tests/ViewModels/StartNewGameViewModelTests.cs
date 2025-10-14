@@ -60,7 +60,7 @@ public class StartNewGameViewModelTests
                 localizationService,
                 Substitute.For<IDispatcherService>(),
                 _rulesProvider);
-        _navigationService.GetViewModel<BattleMapViewModel>().Returns(_battleMapViewModel);
+        _navigationService.GetNewViewModel<BattleMapViewModel>().Returns(_battleMapViewModel);
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
 
 
@@ -130,6 +130,16 @@ public class StartNewGameViewModelTests
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
         _battleMapViewModel.Game.ShouldBe(_clientGame);
+    }
+    
+    [Fact]
+    public async Task StartGameCommand_ShouldThrow_WhenNavigationServiceDoesnNotReturnBattleMapViewModel()
+    {
+        // Arrange
+        _navigationService.GetNewViewModel<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
+        // Act & Assert
+        (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.StartGameCommand)
+            .ExecuteAsync())).Message.ShouldContain("BattleMapViewModel is not registered");
     }
 
     [Fact]
@@ -308,11 +318,11 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public void Dispose_ShouldDisposeGameManager()
+    public void Dispose_ShouldNotDisposeGameManager()
     {
         _sut.Dispose();
 
-        _gameManager.Received(1).Dispose();
+        _gameManager.DidNotReceive().Dispose();
     }
 
     [Fact]
