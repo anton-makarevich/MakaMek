@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -65,20 +66,20 @@ public partial class UnitItemControl : UserControl
         DataContextChanged += OnDataContextChanged;
 
         // Listen for PlayerTint property changes to update the tint
-        PlayerTintProperty.Changed.AddClassHandler<UnitItemControl>((control, args) =>
+        PlayerTintProperty.Changed.AddClassHandler<UnitItemControl>((control, _) =>
         {
             if (control.DataContext is UnitData unitData)
             {
-                _ = control.LoadUnitImage(unitData);
+                control.LoadUnitImage(unitData).SafeFireAndForget();
             }
         });
     }
     
-    private async void OnDataContextChanged(object? sender, EventArgs e)
+    private void OnDataContextChanged(object? sender, EventArgs e)
     {
         if (DataContext is UnitData unitData && _imageService != null)
         {
-            await LoadUnitImage(unitData);
+            LoadUnitImage(unitData).SafeFireAndForget();
         }
     }
     

@@ -65,7 +65,7 @@ public class UnitTests
         {
         }
 
-        protected override void UpdateDestroyedStatus()
+        public override void UpdateDestroyedStatus()
         {
             // Implement the same logic as Mech for testing
             var head = Parts.Values.FirstOrDefault(p => p.Location == PartLocation.Head);

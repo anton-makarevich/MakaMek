@@ -83,7 +83,7 @@ public class Mech : Unit
         }
     }
 
-    protected override void UpdateDestroyedStatus()
+    public override void UpdateDestroyedStatus()
     {
         if (_parts.TryGetValue(PartLocation.Head, out var head) && head.IsDestroyed)
         {

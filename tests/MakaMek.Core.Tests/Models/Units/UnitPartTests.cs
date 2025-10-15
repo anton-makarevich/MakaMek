@@ -559,7 +559,7 @@ public class UnitPartTests
 
         public override bool CanMoveBackward(MovementType type) => true;
 
-        protected override void UpdateDestroyedStatus()
+        public override void UpdateDestroyedStatus()
         {
             // Do nothing for tests
         }

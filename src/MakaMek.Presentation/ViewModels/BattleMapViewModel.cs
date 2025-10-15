@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -205,9 +206,9 @@ public class BattleMapViewModel : BaseViewModel
                 case MechStandUpCommand standUpCommand:
                     ProcessMechStandUp(standUpCommand);
                     break;
-                case GameEndedCommand:
-                    // Server ended the game - navigate back to menu
-                    _ = NavigationService.NavigateToRootAsync();
+                case GameEndedCommand gameEndedCommand:
+                    // Server ended the game - navigate to appropriate screen
+                    ProcessGameEnded(gameEndedCommand).SafeFireAndForget();
                     break;
             }
         });
@@ -569,4 +570,33 @@ public class BattleMapViewModel : BaseViewModel
     public ICommand HideBodyPartSelectorCommand { get; }
 
     public ICommand LeaveGameCommand { get; }
+
+    private Task ProcessGameEnded(GameEndedCommand command)
+    {
+        // If the game ended with victory, navigate to the end game screen
+        if (command.Reason == GameEndReason.Victory && _game != null)
+        {
+            var endGameViewModel = NavigationService.GetNewViewModel<EndGameViewModel>();
+            if (endGameViewModel != null)
+            {
+                // Initialize the end game view model with the game and reason
+                endGameViewModel.Initialize(_game, command.Reason);
+                return NavigationService.NavigateToViewModelAsync(endGameViewModel);
+            }
+        }
+
+        // For other reasons navigate back to menu
+        return GoToMainMenu();
+    }
+    
+    private async Task GoToMainMenu()
+    {
+        // Dispose the game
+        if (Game != null)
+        {
+            Game.Dispose();
+            Game = null;
+        }
+        await NavigationService.NavigateToRootAsync();
+    }
 }

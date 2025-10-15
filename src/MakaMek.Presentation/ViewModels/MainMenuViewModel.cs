@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Windows.Input;
+using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -31,7 +32,7 @@ public class MainMenuViewModel : BaseViewModel
         // Start preloading units
         IsLoading = true;
         LoadingText = _localizationService.GetString("MainMenu_Loading_Content");
-        _ = Task.Run(PreloadUnits);
+        PreloadUnits().SafeFireAndForget();
     }
 
     public ICommand StartNewGameCommand { get; }

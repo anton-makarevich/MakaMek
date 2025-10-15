@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -211,6 +212,6 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override void AttachHandlers()
     {
         base.AttachHandlers();
-        _ = InitializeLobbyAndSubscribe();
+        InitializeLobbyAndSubscribe().SafeFireAndForget();
     }
 }

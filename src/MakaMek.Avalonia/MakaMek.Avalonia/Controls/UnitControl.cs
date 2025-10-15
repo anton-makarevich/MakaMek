@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Services;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncAwaitBestPractices;
 using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Media.Immutable;
@@ -370,7 +371,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
             // Initial update
             Render();
-            _ = UpdateImage();
+            UpdateImage().SafeFireAndForget();
             UpdateHealthBars(_unit.TotalCurrentArmor, _unit.TotalMaxArmor, _unit.TotalCurrentStructure,
                 _unit.TotalMaxStructure);
             UpdateHeatBar(_unit.CurrentHeat);
@@ -534,7 +535,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             _eventsPanel.Children.Add(textBlock);
 
             // Start animation
-            _ = AnimateDamageLabel(textBlock);
+            AnimateDamageLabel(textBlock).SafeFireAndForget();
         }
 
         /// <summary>

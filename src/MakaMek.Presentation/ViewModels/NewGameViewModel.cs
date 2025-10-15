@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Windows.Input;
+using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -260,10 +261,11 @@ public abstract class NewGameViewModel : BaseViewModel
     public override void AttachHandlers()
     {
         base.AttachHandlers();
-        _ = LoadAvailableUnits();
+        LoadAvailableUnits().SafeFireAndForget();
 
         // Auto-add default player
-        _ = AddDefaultPlayer();
+        if (Players.Count == 0)
+            AddDefaultPlayer().SafeFireAndForget();
     }
     
     private async Task LoadAvailableUnits()

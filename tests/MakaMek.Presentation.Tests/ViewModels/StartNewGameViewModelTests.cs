@@ -569,8 +569,21 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public void AddDefaultPlayer_ShouldAddDefaultPlayer()
+    public void AttachHandlers_ShouldAddDefaultPlayer()
     {
+        // Act called in the constructor
+        // Assert
+        _sut.Players.Count.ShouldBe(1);
+        _sut.Players.First().Player.Name.ShouldStartWith("Player");
+        _sut.Players.First().Player.Tint.ShouldNotBeNullOrEmpty();
+    }
+    
+    [Fact]
+    public void AttachHandlers_ShouldAddOnlyOnePlayer_WhenCalledMultipleTimes()
+    {
+        // Act
+        _sut.AttachHandlers(); // Second call
+
         // Assert
         _sut.Players.Count.ShouldBe(1);
         _sut.Players.First().Player.Name.ShouldStartWith("Player");

@@ -468,7 +468,11 @@ public abstract class Unit
         }
     }
 
-    protected abstract void UpdateDestroyedStatus();
+    /// <summary>
+    /// Recomputes this unit's destroyed/immobile status from its parts and pilot state.
+    /// Call after mutating parts/components outside normal damage flows.
+    /// </summary>
+    public abstract void UpdateDestroyedStatus();
 
     /// <summary>
     /// Applies pre-calculated critical hits data to the unit
