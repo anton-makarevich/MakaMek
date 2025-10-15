@@ -40,6 +40,8 @@ public class FallProcessor : IFallProcessor
         List<ComponentHitData> componentHits,
         List<PartLocation>? destroyedPartLocations = null)
     {
+        if (mech.IsProne) return []; // Prone mechs cannot fall
+        
         var fallReasons = new List<FallReasonType>();
 
         // Check for component critical hits that may cause falling
@@ -92,19 +94,25 @@ public class FallProcessor : IFallProcessor
     
     private IEnumerable<FallContextData> GetFallContextForReasons(
         List<FallReasonType> fallReasons,
-        Mech mech, 
+        Mech mech,
         IGame game)
     {
         if (fallReasons.Count == 0)
             return [];
 
         var results = new List<FallContextData>();
-        
-        foreach (var reasonType in fallReasons)
+
+        // Process automatic falls first (leg destroyed, gyro destroyed) as they take precedence
+        // over PSR-required falls (heavy damage, actuator hits, etc.)
+        var sortedReasons = fallReasons
+            .OrderBy(r => r.RequiresPilotingSkillRoll() ? 1 : 0)
+            .ToList();
+
+        foreach (var reasonType in sortedReasons)
         {
             var requiresPsr = reasonType.RequiresPilotingSkillRoll();
             var isFallingNow = !requiresPsr; // Auto-fall if PSR not required
-            
+
             PilotingSkillRollData? fallPsrData = null;
 
             if (requiresPsr && reasonType.ToPilotingSkillRollType() is { } psrRollType)
@@ -131,7 +139,7 @@ public class FallProcessor : IFallProcessor
                         PilotingSkillRollType.PilotDamageFromFall);
                 }
             }
-            
+
             var fallingDamageData = isFallingNow
                 ? _fallingDamageCalculator.CalculateFallingDamage(mech, 0, false)
                 : null;
@@ -150,7 +158,7 @@ public class FallProcessor : IFallProcessor
             };
 
             results.Add(fallContextData);
-            
+
             if (isFallingNow) break;
         }
 

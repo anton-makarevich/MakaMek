@@ -1098,4 +1098,124 @@ public class FallProcessorTests
             return Name;
         }
     }
+
+    [Theory]
+    [InlineData(PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightLeg)]
+    public void ProcessPotentialFall_ShouldNotReturnMechFallingCommand_WhenProneMechLegIsDestroyed(PartLocation destroyedLeg)
+    {
+        // Arrange
+        _testMech.SetProne(); // Make the mech prone
+
+        var componentHits = new List<ComponentHitData>();
+        var destroyedLegLocations = new List<PartLocation> { destroyedLeg };
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, destroyedLegLocations).ToList();
+
+        // Assert
+        results.ShouldBeEmpty("Prone mechs should not fall when losing a leg - they're already on the ground");
+    }
+
+    [Theory]
+    [InlineData(PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightLeg)]
+    public void ProcessPotentialFall_ShouldReturnMechFallingCommand_WhenStandingMechLegIsDestroyedAndHeavyDamagePsrSucceeds(
+        PartLocation destroyedLeg)
+    {
+        // Arrange 
+        const int totalDamageDealt = 20; // Damage at/above a heavy damage threshold
+        _testMech.ApplyDamage(
+            [
+                CreateHitDataForLocation(PartLocation.CenterTorso,
+                    totalDamageDealt,
+                    [],
+                    []),
+            ],
+            HitDirection.Front);
+
+        var componentHits = new List<ComponentHitData>();
+        var destroyedLegLocations = new List<PartLocation> { destroyedLeg };
+
+        // Setup Heavy Damage PSR to succeed
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 0, "Heavy Damage");
+        SetupRollResult(true, PilotingSkillRollType.HeavyDamage); // PSR succeeds
+
+        // Setup piloting skill calculator for pilot damage from fall (for leg destroyed)
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 5, "Pilot taking damage");
+        SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall);
+
+        // Setup falling damage calculator
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(),
+                Arg.Is<int>(i => i == 0),
+                Arg.Is<bool>(b => b == false))
+            .Returns(fallingDamageData);
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, destroyedLegLocations).ToList();
+
+        // Assert
+        results.ShouldNotBeEmpty("Should return fall commands");
+        results.Count.ShouldBe(1, "Should process leg destroyed (automatic fall) first and stop");
+
+        var fallCommand = results.First();
+        fallCommand.DamageData.ShouldNotBeNull("Mech should fall due to destroyed leg - DamageData indicates fall occurred");
+        fallCommand.FallPilotingSkillRoll.ShouldBeNull("No PSR required for leg destroyed - automatic fall");
+        fallCommand.IsPilotingSkillRollRequired.ShouldBe(false, "Leg destroyed is automatic fall");
+        fallCommand.PilotDamagePilotingSkillRoll.ShouldNotBeNull("Should have pilot damage PSR");
+    }
+
+    [Theory]
+    [InlineData(PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightLeg)]
+    public void ProcessPotentialFall_ShouldPrioritizeLegDestroyedOverHeavyDamage(PartLocation destroyedLeg)
+    {
+        // Arrange - Standing mech
+        _testMech.IsProne.ShouldBeFalse();
+
+        var componentHits = new List<ComponentHitData>();
+        var destroyedLegLocations = new List<PartLocation> { destroyedLeg };
+
+        // Setup Heavy Damage PSR
+        SetupPsrFor(PilotingSkillRollType.HeavyDamage, 0, "Heavy Damage");
+        SetupRollResult(true, PilotingSkillRollType.HeavyDamage);
+
+        // Setup pilot damage PSR for leg destroyed
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 5, "Pilot taking damage");
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+
+        // Setup falling damage
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<int>(),
+                Arg.Any<bool>())
+            .Returns(fallingDamageData);
+
+        // Apply heavy damage
+        for (int i = 0; i < 20; i++)
+        {
+            _testMech.ApplyDamage(new List<LocationHitData>
+            {
+                CreateHitDataForLocation(PartLocation.CenterTorso, 1, [], [7])
+            }, HitDirection.Front);
+        }
+
+        // Act
+        var results = _sut.ProcessPotentialFall(_testMech, _game, componentHits, destroyedLegLocations).ToList();
+
+        // Assert
+        results.ShouldNotBeEmpty();
+
+        // The first result should be LegDestroyed (automatic fall), not HeavyDamage (PSR required)
+        // We verify this by checking that FallPilotingSkillRoll is null (automatic fall)
+        // and DamageData is not null (fall occurred)
+        var firstResult = results.First();
+        firstResult.FallPilotingSkillRoll.ShouldBeNull(
+            "Automatic falls (leg destroyed) should be processed before PSR-required falls (heavy damage)");
+        firstResult.DamageData.ShouldNotBeNull("Fall should occur due to leg destroyed");
+        firstResult.IsPilotingSkillRollRequired.ShouldBe(false, "Leg destroyed is automatic fall");
+    }
 }
