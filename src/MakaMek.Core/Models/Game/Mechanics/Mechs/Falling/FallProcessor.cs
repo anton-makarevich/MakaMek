@@ -105,7 +105,7 @@ public class FallProcessor : IFallProcessor
         // Process automatic falls first (leg destroyed, gyro destroyed) as they take precedence
         // over PSR-required falls (heavy damage, actuator hits, etc.)
         var sortedReasons = fallReasons
-            .OrderBy(r => r.RequiresPilotingSkillRoll() ? 1 : 0)
+            .OrderBy(r => r.RequiresPilotingSkillRoll())
             .ToList();
 
         foreach (var reasonType in sortedReasons)
