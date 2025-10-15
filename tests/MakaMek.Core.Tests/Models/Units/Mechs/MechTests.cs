@@ -1014,6 +1014,8 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
         leftLeg.TryAddComponent(new JumpJets());
+        var rightLeg = parts.Single(p => p.Location == PartLocation.RightLeg);
+        rightLeg.BlowOff(); // Should still be able to jump with just one leg
 
         var sut = new Mech("Test", "TST-1A", 50, parts);
         sut.AttemptStandup(); // This increments StandupAttempts
