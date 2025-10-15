@@ -115,11 +115,13 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
 
         // Check for damaged gyro
         var gyroHits = GetGyroHits(mech);
-        if (gyroHits == 1)
+        if (gyroHits >= 1)
         {
             modifiers.Add(new DamagedGyroModifier
             {
-                Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit),
+                Value = gyroHits == 2
+                    ? _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroDestroyed)
+                    : _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroHit),
                 HitsCount = gyroHits
             });
         }
@@ -228,17 +230,6 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                 Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
                 LevelsFallen = levelsFallen
             });
-
-            // Check for destroyed gyro
-            var gyroHits = GetGyroHits(mech);
-            if (gyroHits > 1)
-            {
-                modifiers.Add(new DamagedGyroModifier
-                {
-                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.GyroDestroyed),
-                    HitsCount = gyroHits
-                });
-            }
         }
         return modifiers;
     }
