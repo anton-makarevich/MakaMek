@@ -36,7 +36,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
             .Throttle(TimeSpan.FromMilliseconds(300))
             .Subscribe( (mapParameterChange) =>
             {
-                _ =UpdateMapAsync();
+                UpdateMapAsync().SafeFireAndForget();
             });
 
         // Generate initial map and preview
