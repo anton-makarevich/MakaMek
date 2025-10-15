@@ -59,13 +59,9 @@ public class EndGameViewModel : BaseViewModel
                 return _localizationService.GetString($"EndGame_{_endReason}_Subtitle");
 
             var victor = Players.FirstOrDefault(p => p.IsVictor);
-            if (victor != null)
-            {
-                return _localizationService.GetString("EndGame_Victory_Subtitle")
-                    .Replace("{PlayerName}", victor.Name);
-            }
-
-            return _localizationService.GetString("EndGame_Draw_Subtitle");
+            return victor != null 
+                ? string.Format(_localizationService.GetString("EndGame_Victory_Subtitle"), victor.Name) 
+                : _localizationService.GetString("EndGame_Draw_Subtitle");
         }
     }
 
@@ -74,6 +70,8 @@ public class EndGameViewModel : BaseViewModel
     /// </summary>
     public ICommand ReturnToMenuCommand { get; }
 
+    public string ReturnToMenuText => _localizationService.GetString("EndGame_ReturnToMenu");
+
     private void InitializePlayers()
     {
         if (_game == null) return;
@@ -81,10 +79,12 @@ public class EndGameViewModel : BaseViewModel
         // Determine the victor (player with alive units, if any)
         var alivePlayers = _game.AlivePlayers.ToList();
         var victorId = alivePlayers.Count == 1 ? alivePlayers[0].Id : (Guid?)null;
+        
+        Players.Clear();
 
         // Create view models for all players, ordered by victory status
         var playerViewModels = _game.Players
-            .Select(p => new EndGamePlayerViewModel(p, p.Id == victorId))
+            .Select(p => new EndGamePlayerViewModel(p, p.Id == victorId, _localizationService))
             .OrderByDescending(p => p.IsVictor)
             .ThenBy(p => p.Name);
 

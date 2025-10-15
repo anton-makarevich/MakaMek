@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
@@ -9,12 +10,14 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 public class EndGamePlayerViewModel
 {
     private readonly IPlayer _player;
+    private readonly ILocalizationService _localizationService;
 
-    public EndGamePlayerViewModel(IPlayer player, bool isVictor)
+    public EndGamePlayerViewModel(IPlayer player, bool isVictor, ILocalizationService localizationService)
     {
         _player = player;
         IsVictor = isVictor;
-        
+        _localizationService = localizationService;
+
         // Create view models for all units
         Units = new ObservableCollection<EndGameUnitViewModel>(
             player.Units.Select(u => new EndGameUnitViewModel(u)));
@@ -39,5 +42,9 @@ public class EndGamePlayerViewModel
     /// Gets the list of units for this player
     /// </summary>
     public ObservableCollection<EndGameUnitViewModel> Units { get; }
+
+    public string VictorBadgeText => IsVictor
+    ? _localizationService.GetString("EndGame_Victor_Badge")
+    : string.Empty;
 }
 

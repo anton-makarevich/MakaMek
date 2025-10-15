@@ -1,4 +1,5 @@
 ﻿using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
@@ -7,9 +8,9 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 /// </summary>
 public class EndGameUnitViewModel
 {
-    private readonly Core.Models.Units.Unit _unit;
+    private readonly Unit _unit;
 
-    public EndGameUnitViewModel(Core.Models.Units.Unit unit)
+    public EndGameUnitViewModel(Unit unit)
     {
         _unit = unit;
         UnitData = unit.ToData();

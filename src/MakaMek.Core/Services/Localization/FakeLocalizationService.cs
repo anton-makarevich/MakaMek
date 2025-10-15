@@ -294,9 +294,11 @@ public class FakeLocalizationService: ILocalizationService
             // End Game screen text
             "EndGame_Victory_Title" => "Victory!",
             "EndGame_Title" => "Game Over",
-            "EndGame_Victory_Subtitle" => "{PlayerName} is victorious!",
+            "EndGame_Victory_Subtitle" => "{0} is victorious!",
             "EndGame_Draw_Subtitle" => "The battle ended in a draw",
             "EndGame_PlayersLeft_Subtitle" => "All players have left the game",
+            "EndGame_ReturnToMenu" => "Return to Menu",
+            "EndGame_Victor_Badge" => "VICTOR",
             _ => key
         };
     }

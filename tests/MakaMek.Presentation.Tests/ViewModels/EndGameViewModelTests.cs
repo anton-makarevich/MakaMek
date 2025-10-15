@@ -290,10 +290,6 @@ public class EndGameViewModelTests
     [Fact]
     public void SubtitleText_ShouldReturnReasonMessage_WhenReasonIsNotVictory()
     {
-        // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1");
-        _game.JoinGameWithUnits(player, [], []);
-
         // Act
         _sut.Initialize(_game, GameEndReason.PlayersLeft);
 
@@ -305,8 +301,6 @@ public class EndGameViewModelTests
     public async Task ReturnToMenuCommand_ShouldNavigateToRoot()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1");
-        _game.JoinGameWithUnits(player, [], []);
         _sut.Initialize(_game, GameEndReason.Victory);
 
         // Act
@@ -317,19 +311,13 @@ public class EndGameViewModelTests
     }
 
     [Fact]
-    public async Task ReturnToMenuCommand_ShouldDisposeGame()
+    public void ReturnToMenuText_ShouldReturnExpectedText()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1");
-        _game.JoinGameWithUnits(player, [], []);
         _sut.Initialize(_game, GameEndReason.Victory);
 
-        // Act
-        await ((IAsyncCommand)_sut.ReturnToMenuCommand).ExecuteAsync();
-
         // Assert
-        // Game should be disposed (we can't directly test this, but we can verify navigation happened)
-        await _navigationService.Received(1).NavigateToRootAsync();
+        _sut.ReturnToMenuText.ShouldBe("Return to Menu");
     }
 }
 

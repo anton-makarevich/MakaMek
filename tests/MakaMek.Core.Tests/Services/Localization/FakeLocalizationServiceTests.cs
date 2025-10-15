@@ -389,9 +389,11 @@ public class FakeLocalizationServiceTests
     [Theory]
     [InlineData("EndGame_Victory_Title", "Victory!")]
     [InlineData("EndGame_Title", "Game Over")]
-    [InlineData("EndGame_Victory_Subtitle", "{PlayerName} is victorious!")]
+    [InlineData("EndGame_Victory_Subtitle", "{0} is victorious!")]
     [InlineData("EndGame_Draw_Subtitle", "The battle ended in a draw")]
     [InlineData("EndGame_PlayersLeft_Subtitle", "All players have left the game")]
+    [InlineData("EndGame_ReturnToMenu", "Return to Menu")]
+    [InlineData("EndGame_Victor_Badge", "VICTOR")]
     public void GetString_EndGame_ReturnsExpectedString(string key, string expected)
     {
         // Arrange

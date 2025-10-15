@@ -468,6 +468,10 @@ public abstract class Unit
         }
     }
 
+    /// <summary>
+    /// Recomputes this unit's destroyed/immobile status from its parts and pilot state.
+    /// Call after mutating parts/components outside normal damage flows.
+    /// </summary>
     public abstract void UpdateDestroyedStatus();
 
     /// <summary>

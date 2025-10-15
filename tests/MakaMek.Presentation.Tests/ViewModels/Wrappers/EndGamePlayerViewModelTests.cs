@@ -12,6 +12,7 @@ namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
 
 public class EndGamePlayerViewModelTests
 {
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly MechFactory _mechFactory;
 
     public EndGamePlayerViewModelTests()
@@ -19,7 +20,7 @@ public class EndGamePlayerViewModelTests
         _mechFactory = new MechFactory(
             new ClassicBattletechRulesProvider(),
             new ClassicBattletechComponentProvider(),
-            Substitute.For<ILocalizationService>());
+            _localizationService);
     }
 
     private Unit CreateMech()
@@ -37,7 +38,7 @@ public class EndGamePlayerViewModelTests
         player.AddUnit(mech);
 
         // Act
-        var sut = new EndGamePlayerViewModel(player, isVictor: true);
+        var sut = new EndGamePlayerViewModel(player, isVictor: true, _localizationService);
 
         // Assert
         sut.Name.ShouldBe("TestPlayer");
@@ -57,7 +58,7 @@ public class EndGamePlayerViewModelTests
         player.AddUnit(mech2);
 
         // Act
-        var sut = new EndGamePlayerViewModel(player, isVictor: false);
+        var sut = new EndGamePlayerViewModel(player, isVictor: false, _localizationService);
 
         // Assert
         sut.Units.Count.ShouldBe(2);
@@ -74,7 +75,7 @@ public class EndGamePlayerViewModelTests
         var player = new Player(Guid.NewGuid(), "TestPlayer");
 
         // Act
-        var sut = new EndGamePlayerViewModel(player, isVictor);
+        var sut = new EndGamePlayerViewModel(player, isVictor, _localizationService);
 
         // Assert
         sut.IsVictor.ShouldBe(isVictor);
@@ -87,7 +88,7 @@ public class EndGamePlayerViewModelTests
         var player = new Player(Guid.NewGuid(), "VictoriousPlayer");
 
         // Act
-        var sut = new EndGamePlayerViewModel(player, isVictor: true);
+        var sut = new EndGamePlayerViewModel(player, isVictor: true, _localizationService);
 
         // Assert
         sut.Name.ShouldBe("VictoriousPlayer");
@@ -100,7 +101,7 @@ public class EndGamePlayerViewModelTests
         var player = new Player(Guid.NewGuid(), "TestPlayer", "#00FF00");
 
         // Act
-        var sut = new EndGamePlayerViewModel(player, isVictor: false);
+        var sut = new EndGamePlayerViewModel(player, isVictor: false, _localizationService);
 
         // Assert
         sut.Tint.ShouldBe("#00FF00");
@@ -113,10 +114,38 @@ public class EndGamePlayerViewModelTests
         var player = new Player(Guid.NewGuid(), "TestPlayer");
 
         // Act
-        var sut = new EndGamePlayerViewModel(player, isVictor: false);
+        var sut = new EndGamePlayerViewModel(player, isVictor: false, _localizationService);
 
         // Assert
         sut.Units.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void VictorBadgeText_ShouldReturnLocalizedText_WhenIsVictor()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "TestPlayer");
+        _localizationService.GetString("EndGame_Victor_Badge").Returns("Victor");
+
+        // Act
+        var sut = new EndGamePlayerViewModel(player, isVictor: true, _localizationService);
+
+        // Assert
+        sut.VictorBadgeText.ShouldBe("Victor");
+    }
+    
+    [Fact]
+    public void VictorBadgeText_ShouldBeEmpty_WhenNotVictor()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "TestPlayer");
+
+        // Act
+        var sut = new EndGamePlayerViewModel(player, isVictor: false, _localizationService);
+
+        // Assert
+        sut.VictorBadgeText.ShouldBeEmpty();
+        _localizationService.DidNotReceive().GetString(Arg.Any<string>());
     }
 }
 

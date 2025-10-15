@@ -67,7 +67,7 @@
                                                            Text="&#xf091;"
                                                            FontSize="14"
                                                            Foreground="{StaticResource TextColor}"/>
-                                                <TextBlock Text="VICTOR"
+                                                <TextBlock Text="{Binding VictorBadgeText}"
                                                            Classes="bodySmall"
                                                            FontWeight="Bold"
                                                            Foreground="{StaticResource TextColor}"/>
@@ -114,7 +114,7 @@
 
         <!-- Return to Menu Button -->
         <Button Grid.Row="3"
-                Content="Return to Menu"
+                Content="{Binding ReturnToMenuText}"
                 Command="{Binding ReturnToMenuCommand}"
                 Classes="primary"
                 HorizontalAlignment="Center"
