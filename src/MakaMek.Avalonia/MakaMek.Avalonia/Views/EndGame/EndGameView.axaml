@@ -28,7 +28,7 @@
         <!-- Players List -->
         <ScrollViewer Grid.Row="2">
             <StackPanel Classes="verticalSpaced"
-                        MinWidth="300"
+                        MinWidth="380"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Stretch">
                 <ItemsControl ItemsSource="{Binding Players}">

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -207,7 +208,7 @@ public class BattleMapViewModel : BaseViewModel
                     break;
                 case GameEndedCommand gameEndedCommand:
                     // Server ended the game - navigate to appropriate screen
-                    _ = ProcessGameEnded(gameEndedCommand);
+                    ProcessGameEnded(gameEndedCommand).SafeFireAndForget();
                     break;
             }
         });

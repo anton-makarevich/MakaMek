@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using AsyncAwaitBestPractices;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
@@ -39,7 +40,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
             });
 
         // Generate initial map and preview
-        _ = UpdateMapAsync();
+        UpdateMapAsync().SafeFireAndForget();
 
     }
 

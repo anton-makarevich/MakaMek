@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AsyncAwaitBestPractices;
 
 namespace Sanet.MakaMek.Core.Services.ResourceProviders;
 
@@ -83,7 +84,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             var contentBytes = memoryStream.ToArray();
 
             // Cache the content (fire and forget)
-            _ = Task.Run(async () =>
+            Task.Run(async () =>
             {
                 try
                 {
@@ -93,7 +94,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
                 {
                     Console.WriteLine($"Error caching file from {resourceId}: {ex.Message}");
                 }
-            }); 
+            }).SafeFireAndForget(); 
             return new MemoryStream(contentBytes);
         }
         catch (Exception ex)
