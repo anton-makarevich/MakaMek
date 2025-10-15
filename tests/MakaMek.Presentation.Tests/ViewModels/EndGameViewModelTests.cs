@@ -168,13 +168,32 @@ public class EndGameViewModelTests
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1");
-        _game.JoinGameWithUnits(player, [], []);
+        _game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            Tint = player.Tint,
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            GameOriginId = Guid.NewGuid(),
+            PilotAssignments = []
+        });
 
         // Act
         _sut.Initialize(_game, GameEndReason.Victory);
 
         // Assert
         _sut.TitleText.ShouldBe("Victory!");
+    }
+    
+    [Fact]
+    public void TitleText_ShouldReturnGameOverTitle_WhenNoVictor()
+    {
+        // No player with active units
+        // Act
+        _sut.Initialize(_game, GameEndReason.Victory);
+
+        // Assert
+        _sut.TitleText.ShouldBe("Game Over");
     }
 
     [Fact]

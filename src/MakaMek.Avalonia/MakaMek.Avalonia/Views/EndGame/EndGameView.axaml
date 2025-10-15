@@ -92,7 +92,7 @@
                                                         <StackPanel>
                                                             <controls:UnitItemControl
                                                                 DataContext="{Binding UnitData}"
-                                                                PlayerTint="{Binding $parent[ItemsControl].((wrappers:EndGamePlayerViewModel)DataContext).Tint}"
+                                                                PlayerTint="{Binding $parent[ItemsControl].DataContext.Tint}"
                                                                 IsRemoveButtonVisible="False"/>
                                                             <TextBlock 
                                                                 Classes="bodySmall"

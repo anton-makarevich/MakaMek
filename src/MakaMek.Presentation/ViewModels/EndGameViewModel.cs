@@ -44,7 +44,7 @@ public class EndGameViewModel : BaseViewModel
     /// <summary>
     /// Gets the title text for the end game screen
     /// </summary>
-    public string TitleText => _endReason == GameEndReason.Victory
+    public string TitleText => _endReason == GameEndReason.Victory && Players.Any(p => p.IsVictor)
         ? _localizationService.GetString("EndGame_Victory_Title")
         : _localizationService.GetString("EndGame_Title");
 
