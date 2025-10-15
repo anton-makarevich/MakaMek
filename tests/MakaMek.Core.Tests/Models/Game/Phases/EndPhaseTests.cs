@@ -6,9 +6,13 @@ using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Utils;
+using Sanet.MakaMek.Core.Utils;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -588,5 +592,134 @@ public class EndPhaseTests : GamePhaseTestsBase
         MockHeatEffectsCalculator.Received(1).AttemptRestart(
             Arg.Is<Mech>(m => m.Id == unit.Id),
             Game.Turn);
+    }
+
+    [Fact]
+    public void Enter_ShouldEndGameWithVictory_WhenOnlyOnePlayerHasAliveUnits()
+    {
+        // Arrange
+        // Deploy all units
+        var player1Units = Game.Players.First(p => p.Id == _player1Id).Units;
+        var player2Units = Game.Players.First(p => p.Id == _player2Id).Units;
+        var player3Units = Game.Players.First(p => p.Id == _player3Id).Units;
+
+        player1Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        player2Units[0].Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
+        player3Units[0].Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom));
+
+        // Destroy all units for player 2 and player 3
+        player2Units[0].ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
+        player3Units[0].ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        Game.IsGameOver.ShouldBeTrue();
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<GameEndedCommand>(cmd =>
+                cmd.Reason == GameEndReason.Victory &&
+                cmd.GameOriginId == Game.Id));
+    }
+
+    [Fact]
+    public void Enter_ShouldEndGameWithVictory_WhenAllPlayersLoseTheirUnits()
+    {
+        // Arrange
+        // Deploy all units
+        var player1Units = Game.Players.First(p => p.Id == _player1Id).Units;
+        var player2Units = Game.Players.First(p => p.Id == _player2Id).Units;
+        var player3Units = Game.Players.First(p => p.Id == _player3Id).Units;
+
+        player1Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        player2Units[0].Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
+        player3Units[0].Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom));
+
+        // Destroy all units for all players
+        player1Units[0].ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
+        player2Units[0].ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
+        player3Units[0].ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        Game.IsGameOver.ShouldBeTrue();
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<GameEndedCommand>(cmd =>
+                cmd.Reason == GameEndReason.Victory &&
+                cmd.GameOriginId == Game.Id));
+    }
+
+    [Fact]
+    public void Enter_ShouldNotEndGame_WhenMultiplePlayersHaveAliveUnits()
+    {
+        // Arrange
+        // Deploy all units
+        var player1Units = Game.Players.First(p => p.Id == _player1Id).Units;
+        var player2Units = Game.Players.First(p => p.Id == _player2Id).Units;
+        var player3Units = Game.Players.First(p => p.Id == _player3Id).Units;
+
+        player1Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        player2Units[0].Deploy(new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
+        player3Units[0].Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom));
+
+        // Destroy only one player's units
+        player3Units[0].ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
+
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        Game.IsGameOver.ShouldBeFalse();
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<GameEndedCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldNotEndGame_WhenOnlyOnePlayerInGame()
+    {
+        // Arrange - Create a new game with only one player
+        var rulesProvider = new ClassicBattletechRulesProvider();
+        var mechFactory = new MechFactory(
+            rulesProvider,
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+
+        var singlePlayerGame = new ServerGame(
+            rulesProvider,
+            mechFactory,
+            CommandPublisher,
+            DiceRoller,
+            MockToHitCalculator,
+            MockDamageTransferCalculator,
+            MockCriticalHitsCalculator,
+            MockPilotingSkillCalculator,
+            MockConsciousnessCalculator,
+            MockHeatEffectsCalculator,
+            MockFallProcessor,
+            MockPhaseManager);
+
+        var playerId = Guid.NewGuid();
+        singlePlayerGame.HandleCommand(CreateJoinCommand(playerId, "Solo Player"));
+        singlePlayerGame.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
+
+        var player = singlePlayerGame.Players.First(p => p.Id == playerId);
+        player.Units[0].Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        var singlePlayerEndPhase = new EndPhase(singlePlayerGame);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        singlePlayerEndPhase.Enter();
+
+        // Assert
+        singlePlayerGame.IsGameOver.ShouldBeFalse();
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<GameEndedCommand>());
     }
 }

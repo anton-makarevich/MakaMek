@@ -17,6 +17,9 @@ public class EndPhase(ServerGame game) : GamePhase(game)
 
         // Process consciousness recovery rolls for unconscious pilots
         ProcessConsciousnessRecoveryRolls();
+
+        // Check for victory conditions
+        CheckVictoryConditions();
     }
 
     public override void HandleCommand(IGameCommand command)
@@ -152,6 +155,27 @@ public class EndPhase(ServerGame game) : GamePhase(game)
                 Game.OnPilotConsciousnessRoll(broadcastCommand);
                 Game.CommandPublisher.PublishCommand(broadcastCommand);
             }
+        }
+    }
+
+    /// <summary>
+    /// Checks if victory conditions are met and ends the game if so
+    /// Victory conditions:
+    /// - More than 1 total player in the game (to avoid single-player scenarios)
+    /// - Only one (or less) player has alive units
+    /// </summary>
+    private void CheckVictoryConditions()
+    {
+        // Need more than 1 player for victory to be possible
+        if (Game.Players.Count <= 1) return;
+
+        // Count players with alive units
+        var alivePlayerCount = Game.AlivePlayers.Count;
+
+        // Victory condition: only one or zero players have alive units
+        if (alivePlayerCount <= 1)
+        {
+            Game.StopGame(GameEndReason.Victory);
         }
     }
 

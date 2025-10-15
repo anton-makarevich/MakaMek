@@ -290,6 +290,14 @@ public class FakeLocalizationService: ILocalizationService
             "HeatProjection_ProjectionText" => "Heat: {0} → {1}",
             "HeatProjection_CurrentHeatText" => "Heat: {0}",
             "HeatProjection_DissipationText" => "Dissipation: {0}",
+
+            // End Game screen text
+            "EndGame_Victory_Title" => "Victory!",
+            "EndGame_Title" => "Game Over",
+            "EndGame_Victory_Subtitle" => "{PlayerName} is victorious!",
+            "EndGame_Draw_Subtitle" => "The battle ended in a draw",
+            "EndGame_PlayersLeft_Subtitle" => "All players have left the game",
+            "EndGame_Unknown_Subtitle" => "The game has ended",
             _ => key
         };
     }

@@ -84,5 +84,6 @@ public static class CoreServices
         services.AddTransient<StartNewGameViewModel, StartNewGameViewModel>();
         services.AddTransient<JoinGameViewModel, JoinGameViewModel>();
         services.AddTransient<BattleMapViewModel, BattleMapViewModel>();
+        services.AddTransient<EndGameViewModel, EndGameViewModel>();
     }
 }

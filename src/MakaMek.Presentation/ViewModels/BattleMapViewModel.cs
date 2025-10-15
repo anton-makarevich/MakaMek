@@ -205,9 +205,9 @@ public class BattleMapViewModel : BaseViewModel
                 case MechStandUpCommand standUpCommand:
                     ProcessMechStandUp(standUpCommand);
                     break;
-                case GameEndedCommand:
-                    // Server ended the game - navigate back to menu
-                    _ = NavigationService.NavigateToRootAsync();
+                case GameEndedCommand gameEndedCommand:
+                    // Server ended the game - navigate to appropriate screen
+                    ProcessGameEnded(gameEndedCommand);
                     break;
             }
         });
@@ -569,4 +569,24 @@ public class BattleMapViewModel : BaseViewModel
     public ICommand HideBodyPartSelectorCommand { get; }
 
     public ICommand LeaveGameCommand { get; }
+
+    private void ProcessGameEnded(GameEndedCommand command)
+    {
+        // If the game ended with victory, navigate to the end game screen
+        if (command.Reason == GameEndReason.Victory && _game != null)
+        {
+            var endGameViewModel = NavigationService.GetNewViewModel<EndGameViewModel>();
+            if (endGameViewModel != null)
+            {
+                // Initialize the end game view model with the game and reason
+                endGameViewModel.Initialize(_game, command.Reason);
+                _ = NavigationService.NavigateToViewModelAsync(endGameViewModel);
+            }
+        }
+        else
+        {
+            // For other reasons (e.g., PlayersLeft), navigate back to menu
+            _ = NavigationService.NavigateToRootAsync();
+        }
+    }
 }

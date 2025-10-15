@@ -1,0 +1,142 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="800"
+             x:Class="Sanet.MakaMek.Avalonia.Views.EndGame.EndGameViewNarrow"
+             x:DataType="viewModels:EndGameViewModel">
+    <Grid Classes="pageContainer" RowDefinitions="Auto,Auto,*,Auto">
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="{Binding TitleText}"
+                   Classes="h2"
+                   HorizontalAlignment="Center"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="10,15,10,5"/>
+
+        <!-- Subtitle -->
+        <TextBlock Grid.Row="1"
+                   Text="{Binding SubtitleText}"
+                   Classes="h4"
+                   HorizontalAlignment="Center"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="10,0,10,15"/>
+
+        <!-- Players List -->
+        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Players}" Margin="10">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="card" Margin="0,0,0,10">
+                            <Grid RowDefinitions="Auto,*">
+                                <!-- Player Header -->
+                                <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="10,10,10,5">
+                                    <!-- Color Preview -->
+                                    <Border Grid.Column="0"
+                                            Width="25"
+                                            Height="25"
+                                            Classes="card"
+                                            Background="{Binding Tint}"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"/>
+
+                                    <!-- Player Name and Victory Badge -->
+                                    <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="5">
+                                        <TextBlock Text="{Binding Name}"
+                                                   Classes="h3"
+                                                   TextWrapping="Wrap"/>
+                                        
+                                        <!-- Victory Badge -->
+                                        <Border Classes="card"
+                                                Background="#FFD700"
+                                                Padding="8,4"
+                                                CornerRadius="12"
+                                                IsVisible="{Binding IsVictor}"
+                                                HorizontalAlignment="Left">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock FontFamily="{StaticResource AwesomeFontSolid}"
+                                                           Text="&#xf091;"
+                                                           Foreground="#000000"
+                                                           FontSize="14"
+                                                           VerticalAlignment="Center"/>
+                                                <TextBlock Text="VICTOR"
+                                                           Foreground="#000000"
+                                                           FontWeight="Bold"
+                                                           FontSize="12"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Units List -->
+                                <ItemsControl Grid.Row="1" ItemsSource="{Binding Units}" Margin="10,0,10,10">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Classes="card" Margin="0,5" Padding="8">
+                                                <StackPanel Orientation="Vertical" Spacing="5">
+                                                    <!-- Unit Name -->
+                                                    <TextBlock Text="{Binding Name}"
+                                                               Classes="bodyLarge"
+                                                               FontWeight="Bold"
+                                                               TextWrapping="Wrap"/>
+                                                    
+                                                    <!-- Unit Details -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                                        <TextBlock Text="{Binding WeightClass}" Classes="bodySmall"/>
+                                                        <TextBlock Text="-" Classes="bodySmall"/>
+                                                        <TextBlock Text="{Binding Tonnage}" Classes="bodySmall"/>
+                                                        <TextBlock Text="tons" Classes="bodySmall"/>
+                                                    </StackPanel>
+                                                    
+                                                    <!-- Pilot Name -->
+                                                    <TextBlock Text="{Binding PilotName}"
+                                                               IsVisible="{Binding PilotName, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                                               Classes="bodySmall"/>
+                                                    
+                                                    <!-- Status Tags -->
+                                                    <WrapPanel ItemSpacing="5" LineSpacing="5">
+                                                        <!-- Pilot Status -->
+                                                        <Border Classes="statusTag"
+                                                                Background="#FF4444"
+                                                                IsVisible="{Binding IsPilotDead}">
+                                                            <TextBlock Text="Pilot KIA" Classes="bodySmall"/>
+                                                        </Border>
+
+                                                        <Border Classes="statusTag"
+                                                                Background="#FFA500"
+                                                                IsVisible="{Binding IsPilotUnconscious}">
+                                                            <TextBlock Text="Pilot Unconscious" Classes="bodySmall"/>
+                                                        </Border>
+
+                                                        <!-- Unit Status -->
+                                                        <Border Classes="statusTag">
+                                                            <TextBlock Text="{Binding Status}" Classes="bodySmall"/>
+                                                        </Border>
+                                                    </WrapPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Return to Menu Button -->
+        <Button Grid.Row="3"
+                Content="Return to Menu"
+                Command="{Binding ReturnToMenuCommand}"
+                Classes="primary"
+                HorizontalAlignment="Stretch"
+                Margin="10,10,10,15"/>
+    </Grid>
+</UserControl>
+
