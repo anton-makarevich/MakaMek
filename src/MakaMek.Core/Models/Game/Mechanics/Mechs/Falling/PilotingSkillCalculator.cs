@@ -124,55 +124,27 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             });
         }
 
-        // Lower leg actuator hit modifier
-        var lowerLegActuators = mech.GetAllComponents<LowerLegActuator>();
-        foreach (var actuator in lowerLegActuators)
+        // Process leg-related modifiers
+        // For each leg: if destroyed, add only +5 modifier; otherwise add individual component modifiers
+        var legLocations = new[] { PartLocation.LeftLeg, PartLocation.RightLeg };
+        foreach (var legLocation in legLocations)
         {
-            if (actuator.IsDestroyed)
+            if (mech.Parts.TryGetValue(legLocation, out var legPart) && legPart is Leg leg)
             {
-                modifiers.Add(new LowerLegActuatorHitModifier
+                if (leg.IsDestroyed)
                 {
-                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit)
-                });
-            }
-        }
-
-        // Hip actuator hit modifier
-        var hipActuators = mech.GetAllComponents<HipActuator>();
-        foreach (var actuator in hipActuators)
-        {
-            if (actuator.IsDestroyed)
-            {
-                modifiers.Add(new HipActuatorHitModifier
+                    // Leg is destroyed - add only the +5 leg destroyed modifier
+                    // This replaces all individual component modifiers for this leg
+                    modifiers.Add(new LegDestroyedModifier
+                    {
+                        Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed)
+                    });
+                }
+                else
                 {
-                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HipActuatorHit)
-                });
-            }
-        }
-
-        // Foot actuator hit modifier
-        var footActuators = mech.GetAllComponents<FootActuator>();
-        foreach (var actuator in footActuators)
-        {
-            if (actuator.IsDestroyed)
-            {
-                modifiers.Add(new FootActuatorHitModifier
-                {
-                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.FootActuatorHit)
-                });
-            }
-        }
-
-        // Upper leg actuator hit modifier
-        var upperLegActuators = mech.GetAllComponents<UpperLegActuator>();
-        foreach (var actuator in upperLegActuators)
-        {
-            if (actuator.IsDestroyed)
-            {
-                modifiers.Add(new UpperLegActuatorHitModifier
-                {
-                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.UpperLegActuatorHit)
-                });
+                    // Leg is not destroyed - add individual component modifiers for this leg
+                    AddLegComponentModifiers(leg, modifiers);
+                }
             }
         }
 
@@ -190,6 +162,54 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     }
 
     /// <summary>
+    /// Adds individual component modifiers for a specific leg (hip, upper leg, lower leg, foot)
+    /// </summary>
+    /// <param name="leg">The leg to check for damaged components</param>
+    /// <param name="modifiers">The list to add modifiers to</param>
+    private void AddLegComponentModifiers(Leg leg, List<RollModifier> modifiers)
+    {
+        // Hip actuator hit modifier
+        var hipActuator = leg.GetComponent<HipActuator>();
+        if (hipActuator?.IsDestroyed == true)
+        {
+            modifiers.Add(new HipActuatorHitModifier
+            {
+                Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.HipActuatorHit)
+            });
+        }
+
+        // Upper leg actuator hit modifier
+        var upperLegActuator = leg.GetComponent<UpperLegActuator>();
+        if (upperLegActuator?.IsDestroyed == true)
+        {
+            modifiers.Add(new UpperLegActuatorHitModifier
+            {
+                Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.UpperLegActuatorHit)
+            });
+        }
+
+        // Lower leg actuator hit modifier
+        var lowerLegActuator = leg.GetComponent<LowerLegActuator>();
+        if (lowerLegActuator?.IsDestroyed == true)
+        {
+            modifiers.Add(new LowerLegActuatorHitModifier
+            {
+                Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit)
+            });
+        }
+
+        // Foot actuator hit modifier
+        var footActuator = leg.GetComponent<FootActuator>();
+        if (footActuator?.IsDestroyed == true)
+        {
+            modifiers.Add(new FootActuatorHitModifier
+            {
+                Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.FootActuatorHit)
+            });
+        }
+    }
+
+    /// <summary>
     /// Gets special modifiers that apply only to specific roll types
     /// </summary>
     /// <param name="rollType">The specific roll type</param>
@@ -202,23 +222,13 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         if (rollType == PilotingSkillRollType.PilotDamageFromFall)
         {
             // Falling levels modifier
-            var levelsFallen = 0; // TODO: Calculate levels fallen if game with map is provided
+            const int levelsFallen = 0; // TODO: Calculate levels fallen if game with map is provided
             modifiers.Add(new FallingLevelsModifier
             {
                 Value = Math.Max(0, levelsFallen - 1), // +1 for each level above 1
                 LevelsFallen = levelsFallen
             });
 
-            // Leg destroyed modifier (for pilot damage during fall)
-            var destroyedLegs = mech.Parts.Values.OfType<Leg>().Count(leg => leg.IsDestroyed);
-            for (var i = 0; i < destroyedLegs; i++)
-            {
-                modifiers.Add(new LegDestroyedModifier
-                {
-                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed),
-                });
-            }
-            
             // Check for destroyed gyro
             var gyroHits = GetGyroHits(mech);
             if (gyroHits > 1)

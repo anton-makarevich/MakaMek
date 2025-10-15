@@ -391,11 +391,18 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         }
         
         [Fact]
-        public void GetPsrBreakdown_BlownOffLeg_ForPilotDamageFromFall_AddsModifier()
+        public void GetPsrBreakdown_BlownOffLeg_AddsOnlyLegDestroyedModifier()
         {
             // Arrange
             var torso = new CenterTorso("Test Torso", 10, 3, 5);
             var leftLeg = new Leg("Left Leg", PartLocation.LeftLeg, 10, 5);
+
+            // Destroy some actuators before blowing off the leg
+            var hipActuator = leftLeg.GetComponent<HipActuator>()!;
+            hipActuator.Hit();
+            var lowerLegActuator = leftLeg.GetComponent<LowerLegActuator>()!;
+            lowerLegActuator.Hit();
+
             leftLeg.BlowOff(); // Blow off the left leg
 
             var mech = new Mech("Test", "TST-1A", 50, [torso, leftLeg]);
@@ -406,7 +413,10 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.PilotDamageFromFall);
 
             // Assert
+            // Should have only the leg destroyed modifier, not individual component modifiers
             result.Modifiers.ShouldContain(m => m is LegDestroyedModifier && m.Value == 5);
+            result.Modifiers.ShouldNotContain(m => m is HipActuatorHitModifier);
+            result.Modifiers.ShouldNotContain(m => m is LowerLegActuatorHitModifier);
         }
 
         [Fact]
@@ -578,6 +588,109 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             // Act & Assert
             Should.Throw<ArgumentException>(() => _sut.EvaluateRoll(psrBreakdown, mech, PilotingSkillRollType.GyroHit))
                 .Message.ShouldContain("pilot");
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_DestroyedLeftLeg_OnlyAddsLegDestroyedModifier_NoComponentModifiers()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var leftLeg = new Leg("Left Leg", PartLocation.LeftLeg, 10, 5);
+            var rightLeg = new Leg("Right Leg", PartLocation.RightLeg, 10, 5);
+
+            // Destroy the left leg by depleting its structure
+            leftLeg.ApplyDamage(100, HitDirection.Front);
+            leftLeg.IsDestroyed.ShouldBeTrue();
+
+            var mech = new Mech("Test", "TST-1A", 50, [torso, leftLeg, rightLeg]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed).Returns(5);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+
+            // Assert
+            // Should have only the leg destroyed modifier (+5), not individual component modifiers
+            var legModifiers = result.Modifiers.OfType<LegDestroyedModifier>().ToList();
+            legModifiers.Count.ShouldBe(1);
+            legModifiers.First().Value.ShouldBe(5);
+
+            // Should NOT have any individual component modifiers for the destroyed leg
+            result.Modifiers.ShouldNotContain(m => m is HipActuatorHitModifier);
+            result.Modifiers.ShouldNotContain(m => m is LowerLegActuatorHitModifier);
+            result.Modifiers.ShouldNotContain(m => m is UpperLegActuatorHitModifier);
+            result.Modifiers.ShouldNotContain(m => m is FootActuatorHitModifier);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_RightLegWithDestroyedHip_LegNotDestroyed_AddsOnlyHipModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var leftLeg = new Leg("Left Leg", PartLocation.LeftLeg, 10, 5);
+            var rightLeg = new Leg("Right Leg", PartLocation.RightLeg, 10, 5);
+
+            // Destroy only the hip actuator in the right leg
+            var hipActuator = rightLeg.GetComponent<HipActuator>()!;
+            hipActuator.Hit();
+            hipActuator.IsDestroyed.ShouldBeTrue();
+            rightLeg.IsDestroyed.ShouldBeFalse(); // Leg itself is not destroyed
+
+            var mech = new Mech("Test", "TST-1A", 50, [torso, leftLeg, rightLeg]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.HipActuatorHit).Returns(2);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+
+            // Assert
+            // Should have the hip actuator modifier
+            result.Modifiers.ShouldContain(m => m is HipActuatorHitModifier && m.Value == 2);
+
+            // Should NOT have leg destroyed modifier
+            result.Modifiers.ShouldNotContain(m => m is LegDestroyedModifier);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_BothLegsWithDifferentStates_AddsCorrectModifiers()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var leftLeg = new Leg("Left Leg", PartLocation.LeftLeg, 10, 5);
+            var rightLeg = new Leg("Right Leg", PartLocation.RightLeg, 10, 5);
+
+            // Destroy the left leg completely
+            leftLeg.ApplyDamage(100, HitDirection.Front);
+            leftLeg.IsDestroyed.ShouldBeTrue();
+
+            // Destroy hip and lower leg actuators in the right leg, but not the leg itself
+            var rightHipActuator = rightLeg.GetComponent<HipActuator>()!;
+            rightHipActuator.Hit();
+            var rightLowerLegActuator = rightLeg.GetComponent<LowerLegActuator>()!;
+            rightLowerLegActuator.Hit();
+            rightLeg.IsDestroyed.ShouldBeFalse();
+
+            var mech = new Mech("Test", "TST-1A", 50, [torso, leftLeg, rightLeg]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LegDestroyed).Returns(5);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.HipActuatorHit).Returns(2);
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.LowerLegActuatorHit).Returns(1);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, PilotingSkillRollType.GyroHit);
+
+            // Assert
+            // Should have leg destroyed modifier for left leg (+5)
+            var legDestroyedModifiers = result.Modifiers.OfType<LegDestroyedModifier>().ToList();
+            legDestroyedModifiers.Count.ShouldBe(1);
+            legDestroyedModifiers.First().Value.ShouldBe(5);
+
+            // Should have individual component modifiers for right leg (+2 hip, +1 lower leg)
+            result.Modifiers.ShouldContain(m => m is HipActuatorHitModifier && m.Value == 2);
+            result.Modifiers.ShouldContain(m => m is LowerLegActuatorHitModifier && m.Value == 1);
+
+            // Total modifier should be +8 (5 + 2 + 1)
+            result.ModifiedPilotingSkill.ShouldBe(result.BasePilotingSkill + 8);
         }
     }
 }
