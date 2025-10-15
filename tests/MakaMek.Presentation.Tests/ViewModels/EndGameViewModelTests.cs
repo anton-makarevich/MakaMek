@@ -338,5 +338,21 @@ public class EndGameViewModelTests
         // Assert
         _sut.ReturnToMenuText.ShouldBe("Return to Menu");
     }
+    
+    [Fact]
+    public void Initialize_ShouldClearPreviousPlayers_WhenCalledMultipleTimes()
+    {
+        // Arrange
+        var player1 = new Player(Guid.NewGuid(), "Player1", "#FF0000");
+        _game.JoinGameWithUnits(player1, [MechFactoryTests.CreateDummyMechData()], []);
+        
+        // Act - Initialize twice
+        _sut.Initialize(_game, GameEndReason.Victory);
+        var firstCount = _sut.Players.Count;
+        _sut.Initialize(_game, GameEndReason.Victory);
+        
+        // Assert - Count should remain the same, not double
+        _sut.Players.Count.ShouldBe(firstCount);
+    }
 }
 

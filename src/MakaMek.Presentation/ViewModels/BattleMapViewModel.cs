@@ -591,10 +591,10 @@ public class BattleMapViewModel : BaseViewModel
     private async Task GoToMainMenu()
     {
         // Dispose the game
-        if (_game != null)
+        if (Game != null)
         {
-            _game.Dispose();
-            _game = null;
+            Game.Dispose();
+            Game = null;
         }
         await NavigationService.NavigateToRootAsync();
     }
