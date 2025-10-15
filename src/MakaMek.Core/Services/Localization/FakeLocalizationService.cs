@@ -297,7 +297,6 @@ public class FakeLocalizationService: ILocalizationService
             "EndGame_Victory_Subtitle" => "{PlayerName} is victorious!",
             "EndGame_Draw_Subtitle" => "The battle ended in a draw",
             "EndGame_PlayersLeft_Subtitle" => "All players have left the game",
-            "EndGame_Unknown_Subtitle" => "The game has ended",
             _ => key
         };
     }

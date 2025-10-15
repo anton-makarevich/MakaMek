@@ -9,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -23,24 +22,16 @@ namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 public class EndGameViewModelTests
 {
     private readonly EndGameViewModel _sut;
-    private readonly ILocalizationService _localizationService;
     private readonly INavigationService _navigationService;
     private readonly ClientGame _game;
     private readonly MechFactory _mechFactory;
 
     public EndGameViewModelTests()
     {
-        _localizationService = Substitute.For<ILocalizationService>();
+        var localizationService = new FakeLocalizationService();
         _navigationService = Substitute.For<INavigationService>();
 
-        // Setup localization strings
-        _localizationService.GetString("EndGame_Victory_Title").Returns("Victory!");
-        _localizationService.GetString("EndGame_Title").Returns("Game Over");
-        _localizationService.GetString("EndGame_Victory_Subtitle").Returns("{PlayerName} is victorious!");
-        _localizationService.GetString("EndGame_Draw_Subtitle").Returns("The battle ended in a draw");
-        _localizationService.GetString("EndGame_PlayersLeft_Subtitle").Returns("All players have left the game");
-
-        _sut = new EndGameViewModel(_localizationService);
+        _sut = new EndGameViewModel(localizationService);
         _sut.SetNavigationService(_navigationService);
 
         // Create a test game
@@ -48,7 +39,7 @@ public class EndGameViewModelTests
         _mechFactory = new MechFactory(
             rulesProvider,
             new ClassicBattletechComponentProvider(),
-            _localizationService);
+            localizationService);
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var toHitCalculator = Substitute.For<IToHitCalculator>();
         var pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
