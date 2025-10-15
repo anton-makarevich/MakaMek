@@ -40,6 +40,8 @@ public class MechFactory : IMechFactory
         // Restore part states if present
         RestorePartStates(mech, unitData);
 
+        mech.UpdateDestroyedStatus();
+        
         return mech;
     }
 

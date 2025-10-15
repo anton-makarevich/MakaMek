@@ -1,0 +1,124 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
+             xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
+             xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="Sanet.MakaMek.Avalonia.Views.EndGame.EndGameView"
+             x:DataType="viewModels:EndGameViewModel">
+    <Grid
+        Margin="10"
+        RowDefinitions="Auto,Auto,*,Auto">
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="{Binding TitleText}"
+                   Classes="h1"
+                   HorizontalAlignment="Center"
+                   Margin="0,20,0,10"/>
+
+        <!-- Subtitle -->
+        <TextBlock Grid.Row="1"
+                   Text="{Binding SubtitleText}"
+                   Classes="h3"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,20"/>
+
+        <!-- Players List -->
+        <ScrollViewer Grid.Row="2">
+            <StackPanel Classes="verticalSpaced"
+                        MinWidth="300"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Stretch">
+                <ItemsControl ItemsSource="{Binding Players}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="card" Margin="0,5">
+                                <Grid RowDefinitions="Auto,Auto">
+                                    <!-- Player Name with Color Preview and Victory Badge -->
+                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" 
+                                          Margin="10,10,10,5">
+                                        <!-- Color Preview Rectangle -->
+                                        <Border Grid.Column="0"
+                                                Width="20"
+                                                Height="20"
+                                                Classes="card"
+                                                Background="{Binding Tint}"
+                                                Margin="0,0,5,0"/>
+                                        
+                                        <!-- Player Name -->
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Name}"
+                                                   Classes="h3"
+                                                   VerticalAlignment="Center"
+                                                   TextAlignment="Left"/>
+                                        
+                                        <!-- Victory Badge -->
+                                        <Border Grid.Column="2"
+                                                Background="{StaticResource HighlightBrush}"
+                                                CornerRadius="12"
+                                                Padding="8,4"
+                                                IsVisible="{Binding IsVictor}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center">
+                                                <TextBlock FontFamily="{StaticResource AwesomeFontSolid}"
+                                                           Text="&#xf091;"
+                                                           FontSize="14"
+                                                           Foreground="{StaticResource TextColor}"/>
+                                                <TextBlock Text="VICTOR"
+                                                           Classes="bodySmall"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource TextColor}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Units - Horizontal Scrollable View -->
+                                    <Border Grid.Row="1"
+                                            MinHeight="150"
+                                            Margin="10,5">
+                                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                      VerticalScrollBarVisibility="Disabled">
+                                            <ItemsControl ItemsSource="{Binding Units}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="5"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel>
+                                                            <controls:UnitItemControl
+                                                                DataContext="{Binding UnitData}"
+                                                                PlayerTint="{Binding $parent[ItemsControl].((wrappers:EndGamePlayerViewModel)DataContext).Tint}"
+                                                                IsRemoveButtonVisible="False"/>
+                                                            <TextBlock 
+                                                                Classes="bodySmall"
+                                                                HorizontalAlignment="Center"
+                                                                Text="{Binding Status}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Return to Menu Button -->
+        <Button Grid.Row="3"
+                Content="Return to Menu"
+                Command="{Binding ReturnToMenuCommand}"
+                Classes="primary"
+                HorizontalAlignment="Center"
+                Margin="0,20"/>
+    </Grid>
+</UserControl>
+

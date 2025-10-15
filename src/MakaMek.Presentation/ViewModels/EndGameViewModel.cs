@@ -2,8 +2,8 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -98,115 +98,9 @@ public class EndGameViewModel : BaseViewModel
     {
         // Dispose the game
         _game?.Dispose();
-        
+
         // Navigate back to the main menu
         await NavigationService.NavigateToRootAsync();
     }
-}
-
-/// <summary>
-/// ViewModel for a player in the end game summary
-/// </summary>
-public class EndGamePlayerViewModel
-{
-    private readonly IPlayer _player;
-
-    public EndGamePlayerViewModel(IPlayer player, bool isVictor)
-    {
-        _player = player;
-        IsVictor = isVictor;
-        
-        // Create view models for all units
-        Units = new ObservableCollection<EndGameUnitViewModel>(
-            player.Units.Select(u => new EndGameUnitViewModel(u)));
-    }
-
-    /// <summary>
-    /// Gets the player's name
-    /// </summary>
-    public string Name => _player.Name;
-
-    /// <summary>
-    /// Gets the player's color tint
-    /// </summary>
-    public string Tint => _player.Tint;
-
-    /// <summary>
-    /// Gets whether this player is the victor
-    /// </summary>
-    public bool IsVictor { get; }
-
-    /// <summary>
-    /// Gets the list of units for this player
-    /// </summary>
-    public ObservableCollection<EndGameUnitViewModel> Units { get; }
-}
-
-/// <summary>
-/// ViewModel for a unit in the end game summary
-/// </summary>
-public class EndGameUnitViewModel
-{
-    private readonly Core.Models.Units.Unit _unit;
-
-    public EndGameUnitViewModel(Core.Models.Units.Unit unit)
-    {
-        _unit = unit;
-    }
-
-    /// <summary>
-    /// Gets the unit's name
-    /// </summary>
-    public string Name => _unit.Name;
-
-    /// <summary>
-    /// Gets the unit's chassis
-    /// </summary>
-    public string Chassis => _unit.Chassis;
-
-    /// <summary>
-    /// Gets the unit's model
-    /// </summary>
-    public string Model => _unit.Model;
-
-    /// <summary>
-    /// Gets the unit's tonnage
-    /// </summary>
-    public int Tonnage => _unit.Tonnage;
-
-    /// <summary>
-    /// Gets the unit's weight class
-    /// </summary>
-    public string WeightClass => _unit.Class.ToString();
-
-    /// <summary>
-    /// Gets the unit's status
-    /// </summary>
-    public string Status => _unit.Status.ToString();
-
-    /// <summary>
-    /// Gets whether the unit is destroyed
-    /// </summary>
-    public bool IsDestroyed => _unit.IsDestroyed;
-
-    /// <summary>
-    /// Gets whether the unit is alive
-    /// </summary>
-    public bool IsAlive => !_unit.IsDestroyed;
-
-    /// <summary>
-    /// Gets the pilot's name, if any
-    /// </summary>
-    public string? PilotName => _unit.Pilot?.Name;
-
-    /// <summary>
-    /// Gets whether the pilot is dead
-    /// </summary>
-    public bool IsPilotDead => _unit.Pilot?.IsDead ?? false;
-
-    /// <summary>
-    /// Gets whether the pilot is unconscious
-    /// </summary>
-    public bool IsPilotUnconscious => _unit.Pilot?.IsConscious == false;
 }
 

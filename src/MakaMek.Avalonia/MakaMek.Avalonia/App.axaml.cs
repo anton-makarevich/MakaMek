@@ -94,16 +94,16 @@ public partial class App : Application
         {
             navigationService.RegisterViews(typeof(StartNewGameViewNarrow), typeof(StartNewGameViewModel));
             navigationService.RegisterViews(typeof(JoinGameViewNarrow), typeof(JoinGameViewModel));
-            navigationService.RegisterViews(typeof(EndGameViewNarrow), typeof(EndGameViewModel));
         }
         else
         {
             navigationService.RegisterViews(typeof(StartNewGameViewWide), typeof(StartNewGameViewModel));
             navigationService.RegisterViews(typeof(JoinGameViewWide), typeof(JoinGameViewModel));
-            navigationService.RegisterViews(typeof(EndGameViewWide), typeof(EndGameViewModel));
         }
 
+        // Register views that are the same for all platforms
         navigationService.RegisterViews(typeof(BattleMapView), typeof(BattleMapViewModel));
+        navigationService.RegisterViews(typeof(EndGameView), typeof(EndGameViewModel));
     }
     private bool IsMobile()
     {

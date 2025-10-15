@@ -468,7 +468,7 @@ public abstract class Unit
         }
     }
 
-    protected abstract void UpdateDestroyedStatus();
+    public abstract void UpdateDestroyedStatus();
 
     /// <summary>
     /// Applies pre-calculated critical hits data to the unit
