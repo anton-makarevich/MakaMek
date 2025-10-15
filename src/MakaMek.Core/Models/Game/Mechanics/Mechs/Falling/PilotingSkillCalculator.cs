@@ -151,7 +151,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
 
         // Heavy damage modifier
-        if (mech.TotalPhaseDamage > _rules.GetHeavyDamageThreshold())
+        if (mech.TotalPhaseDamage >= _rules.GetHeavyDamageThreshold())
         {
             modifiers.Add(new HeavyDamageModifier
             {
