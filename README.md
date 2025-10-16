@@ -9,7 +9,7 @@ MakaMek is an open-source tactical combat game featuring giant walking war machi
 ![MakaMek](docs/screenshots/win/251013.png)
 
 ## Implementation Phases
-### Game foundation 
+### Phase 0. Game foundation ✅
 Complete as of v0.46.5. Allows to complete games locally and over the LAN.
 - [MVP Product Requirements Document (PRD)](docs/MakaMek-MVP-PRD.md) - Detailed requirements and specifications for the Minimum Viable Product
 - [MVP Gap Analysis](docs/MakaMek-MVP-Gap-Analysis(0.42.27).md) - Current implementation status against MVP requirements (as of v0.42.27)
@@ -27,8 +27,10 @@ Complete as of v0.46.5. Allows to complete games locally and over the LAN.
 - Prototype UI built with AvaloniaUI
 - Importing mechs defined in MegaMek's MTF format (Level 1 equipment only), 173 mech variants are supported at the moment
 
-### Bot framework 
+### Phase 1. Bot framework 🚧
 In progress (v 0.47.0 +). Combat against AI opponents
+- [Bot Player System - Product Requirements Document (PRD)](docs/architecture/bot-player-system-prd.md) - Detailed requirements and specifications for the Bot Player System
+- [Bot Player System - Implementation Roadmap](docs/architecture/bot-player-system-implementation-roadmap.md) - High-level plan for implementing the bot player system
 
 ### Future Phases
 - Support of map Levels and extended terrain types
