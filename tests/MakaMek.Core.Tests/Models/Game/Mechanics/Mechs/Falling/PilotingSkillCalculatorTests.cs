@@ -26,6 +26,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
         {
             _mockRulesProvider = Substitute.For<IRulesProvider>();
             _mockDiceRoller = Substitute.For<IDiceRoller>();
+            _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
             _sut = new PilotingSkillCalculator(_mockRulesProvider, _mockDiceRoller);
         }
         

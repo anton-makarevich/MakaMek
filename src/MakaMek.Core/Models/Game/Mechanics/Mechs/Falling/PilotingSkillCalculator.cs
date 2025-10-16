@@ -51,10 +51,10 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         var modifiers = new List<RollModifier>();
         
         // Add standard modifiers
-        modifiers.AddRange(GetStandardModifiers(mech, game));
+        modifiers.AddRange(GetStandardModifiers(mech));
         
         // Add special modifiers for specific roll types
-        modifiers.AddRange(GetModifiersForRoll(rollType, mech, game));
+        modifiers.AddRange(GetModifiersForRoll(rollType));
 
         return new PsrBreakdown
         {
@@ -107,9 +107,8 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// Gets all standard modifiers that apply to piloting skill rolls
     /// </summary>
     /// <param name="mech">The mech making the piloting skill roll</param>
-    /// <param name="game">The game instance, used for accessing the map and other game state</param>
     /// <returns>A collection of standard roll modifiers</returns>
-    private IEnumerable<RollModifier> GetStandardModifiers(Mech mech, IGame? game = null)
+    private IEnumerable<RollModifier> GetStandardModifiers(Mech mech)
     {
         var modifiers = new List<RollModifier>();
 
@@ -215,10 +214,8 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// Gets special modifiers that apply only to specific roll types
     /// </summary>
     /// <param name="rollType">The specific roll type</param>
-    /// <param name="mech">The mech making the piloting skill roll</param>
-    /// <param name="game">The game instance, used for accessing the map and other game state</param>
     /// <returns>A collection of special roll modifiers for the specified roll type</returns>
-    private IEnumerable<RollModifier> GetModifiersForRoll(PilotingSkillRollType rollType, Mech mech, IGame? game = null)
+    private IEnumerable<RollModifier> GetModifiersForRoll(PilotingSkillRollType rollType)
     {
         var modifiers = new List<RollModifier>();
         if (rollType == PilotingSkillRollType.PilotDamageFromFall)
