@@ -8,28 +8,34 @@ MakaMek is an open-source tactical combat game featuring giant walking war machi
 
 ![MakaMek](docs/screenshots/win/251013.png)
 
-## Features
+## Implementation Phases
+### Game foundation 
+Complete as of v0.46.5. Allows to complete games locally and over the LAN.
 - [MVP Product Requirements Document (PRD)](docs/MakaMek-MVP-PRD.md) - Detailed requirements and specifications for the Minimum Viable Product
 - [MVP Gap Analysis](docs/MakaMek-MVP-Gap-Analysis(0.42.27).md) - Current implementation status against MVP requirements (as of v0.42.27)
 
-### Implemented
+#### Implemented
 - [Client-Server app architecture](https://github.com/anton-makarevich/MakaMek/wiki/Game-(Protocol)-High-Level-Architecture) with RX communication for local play
-- LAN multiplayer with SignalR (only Desktop app can host the game, mobile clients could connect)
+- LAN multiplayer with SignalR (only Desktop app can host the game, mobile clients could connect, WEB can neither host nor connect)
 - Single-player combat with up to 4 players on a single device
 - Complete Turn flow implementation with all major phases including initiative, movement, attack declaration and resolution, heat and end phase
 - Critical hits, aimed shots, destruction of units, locations, and components
-- Basic pilots implementation, unconsciousness, piloting skill rolls
+- Basic pilots implementation, unconsciousness, piloting skill rolls and falling
 - Heat effects, shutdown, ammo explosion, restart, pilot damage and to hit modifiers
-- Hex map generator with the simplest terrain types (clear, light, and heavy wood) ([MegaMek](https://megamek.org/)'s assets) and previewer
+- Hex map generator (and previewer) with the simplest terrain types (clear, light, and heavy wood) ([MegaMek](https://megamek.org/)'s assets) without levels 
 - Cross-platform support (Windows, Linux, macOS, Web, Android, iOS)
 - Prototype UI built with AvaloniaUI
-- Importing mechs defined in MTF format (Level 1 equipment only), 173 mech variants are supported at the moment
+- Importing mechs defined in MegaMek's MTF format (Level 1 equipment only), 173 mech variants are supported at the moment
 
-### Planned
-- Single-player combat against AI opponents
+### Bot framework 
+In progress (v 0.47.0 +). Combat against AI opponents
+
+### Future Phases
+- Support of map Levels and extended terrain types
+- Support of advanced tech rules (Clan, LosTech equipment and more)
+- Support for vehicles, battle armor, and infantry
 - Multiplayer over the Internet (WebSockets/SignalR)
-- Unit customization and management
-- Compatible with common community data formats
+- Tools for creating and managing custom units and maps, compatible with common community data formats
 - Monogame version with 3D graphics and possible VR/AR support
 
 ## Technology Stack

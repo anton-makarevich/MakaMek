@@ -20,11 +20,11 @@ The MakaMek game uses a command-based client-server architecture:
 
 Bots will integrate by:
 
-1. **Reusing ClientGame**: Each bot uses a `ClientGame` instance to interact with the server
-2. **Server-Side Hosting**: Bot `ClientGame` instances are created and managed on the server side
+1. **Reusing ClientGame**: Bots use a `ClientGame` instance to interact with the server
+2. **BotPlayers List**: All bot player IDs added to `ClientGame.BotPlayers`
 3. **RX Transport**: Bots communicate via `RxTransportPublisher`, identical to local human players
-4. **Network Transparency**: Remote players cannot distinguish bots from human players
-5. **Decision Engine**: Bot logic observes game state and publishes appropriate commands
+5. **Network Transparency**: Remote players cannot distinguish bots from human players
+6. **Decision Engine**: Bot logic observes game state and publishes appropriate commands
 
 ## 2. Component Design
 
@@ -54,21 +54,6 @@ public interface IBotPlayer : IDisposable
     /// Bot difficulty/strategy level
     /// </summary>
     BotDifficulty Difficulty { get; }
-    
-    /// <summary>
-    /// Starts the bot's decision-making loop
-    /// </summary>
-    Task Start(); // do we need this? bot should be active all the time
-    
-    /// <summary>
-    /// Stops the bot's decision-making loop
-    /// </summary>
-    void Stop();  // do we need this? bot should be active all the time
-    
-    /// <summary>
-    /// Whether the bot is currently active
-    /// </summary>
-    bool IsActive { get; } // do we need this? bot should be active all the time
 }
 ```
 
@@ -84,89 +69,34 @@ public class BotPlayer : IBotPlayer
     private IDisposable? _commandSubscription;
     private bool _isActive;
     
+    // depends on current phase, the same as UIState for human players
+    privte IBotDecisionEngine _currentDecisionEngine,
+    
     public IPlayer Player { get; }
-    public ClientGame ClientGame { get; }
     public BotDifficulty Difficulty { get; }
-    public bool IsActive => _isActive;
     
     public BotPlayer(
         IPlayer player,
         ClientGame clientGame,
-        IBotDecisionEngine decisionEngine, //should it be injected?
         BotDifficulty difficulty)
     {
         Player = player;
         ClientGame = clientGame;
         _decisionEngine = decisionEngine;
         Difficulty = difficulty;
-    }
-    
-    public Task Start()
-    {
-        _isActive = true;
         
-        // Subscribe to game commands to observe state changes
         _commandSubscription = ClientGame.Commands.Subscribe(OnCommandReceived);
-        
-        // Subscribe to active player changes
-        ClientGame.ActivePlayerChanges.Subscribe(OnActivePlayerChanged);
-        
-        return Task.CompletedTask;
     }
     
     private void OnCommandReceived(IGameCommand command)
     {
         // Bot observes all commands to maintain awareness of game state
-        // Decision engine uses this to update internal state
-    }
-    
-    private async void OnActivePlayerChanged(IPlayer? activePlayer)
-    {
-        if (!_isActive) return;
-        if (activePlayer?.Id != Player.Id) return;
-        if (!ClientGame.CanActivePlayerAct) return;
-        
-        // This bot is now active - make a decision
-        await MakeDecision();
-    }
-    
-    private async Task MakeDecision()
-    {
-        // Add delay to simulate thinking time and avoid instant responses
-        await Task.Delay(GetThinkingDelay());
-        
-        // Get available actions from decision engine
-        var action = await _decisionEngine.SelectAction(ClientGame, Player);
-        
-        if (action != null)
-        {
-            // Execute the selected action
-            action.Execute(ClientGame);
-        }
+        // If a command activates the bot's player, it should make a decision(s) corresponding to current game phase
     }
     
     private int GetThinkingDelay()
     {
-        // Vary delay based on difficulty
-        return Difficulty switch
-        {
-            BotDifficulty.Easy => Random.Shared.Next(500, 1500),
-            BotDifficulty.Medium => Random.Shared.Next(300, 1000),
-            BotDifficulty.Hard => Random.Shared.Next(100, 500),
-            _ => 500
-        };
-    }
-    
-    public void Stop()
-    {
-        _isActive = false;
-        _commandSubscription?.Dispose();
-    }
-    
-    public void Dispose()
-    {
-        Stop();
-        ClientGame.Dispose();
+        // optionally introduce delay's to Bot's decision making to make it feel more natural
     }
 }
 ```
@@ -184,7 +114,7 @@ public enum BotDifficulty
 }
 ```
 
-### 2.2 Decision-Making System
+### 2.2 Decision Engine
 
 #### 2.2.1 IBotDecisionEngine Interface
 
@@ -233,10 +163,10 @@ namespace Sanet.MakaMek.Core.Models.Game.Players.Bots.DecisionEngines;
 // Base implementation
 public class BotDecisionEngine : IBotDecisionEngine
 {
-    private readonly IDeploymentDecisionEngine _deploymentEngine;
-    private readonly IMovementDecisionEngine _movementEngine;
-    private readonly IWeaponsDecisionEngine _weaponsEngine;
-    private readonly IEndPhaseDecisionEngine _endPhaseEngine;
+    private readonly IDecisionEngine _deploymentEngine;
+    private readonly IDecisionEngine _movementEngine;
+    private readonly IDecisionEngine _weaponsEngine;
+    private readonly IDecisionEngine _endPhaseEngine;
     
     public async Task<IBotAction?> SelectAction(ClientGame game, IPlayer player)
     {
@@ -267,7 +197,7 @@ public interface IBotManager : IDisposable
     /// <summary>
     /// Creates and adds a bot player to the game
     /// </summary>
-    Task<IBotPlayer> AddBot(string name, BotDifficulty difficulty, List<UnitData> units);
+    Task<IBotPlayer> AddBot(IPlayer, BotDifficulty difficulty);
     
     /// <summary>
     /// Removes a bot player from the game
@@ -278,117 +208,68 @@ public interface IBotManager : IDisposable
     /// Gets all active bots
     /// </summary>
     IReadOnlyList<IBotPlayer> Bots { get; }
-    
-    /// <summary>
-    /// Starts all bots
-    /// </summary>
-    Task StartAll();
-    
-    /// <summary>
-    /// Stops all bots
-    /// </summary>
-    void StopAll();
 }
 ```
 
 #### 2.3.2 BotManager Implementation
 
 ```csharp
-namespace Sanet.MakaMek.Core.Models.Game.Players.Bots;
-
 public class BotManager : IBotManager
 {
     private readonly List<IBotPlayer> _bots = [];
-    private readonly IGameFactory _gameFactory;
-    private readonly ICommandPublisher _commandPublisher;
+    private readonly ClientGame _clientGame; // how to set it? Reset() method accepting the client game and cleaning up all the current bots?
     private readonly IBotDecisionEngineFactory _decisionEngineFactory;
     // ... other dependencies
     
     public IReadOnlyList<IBotPlayer> Bots => _bots;
     
-    public async Task<IBotPlayer> AddBot(string name, BotDifficulty difficulty, List<UnitData> units)
+    public async Task<IBotPlayer> AddBot(IPlayer player, BotDifficulty difficulty)
     {
-        // Create a player for the bot
-        var player = new Player(Guid.NewGuid(), name, GenerateBotTint());
-        
-        // Create a ClientGame instance for this bot
-        var botClientGame = _gameFactory.CreateClientGame(
-            _rulesProvider,
-            _mechFactory,
-            _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            _mapFactory);
-        
+                
         // Join the game with the bot's units
-        botClientGame.JoinGameWithUnits(player, units, pilotAssignments);
+        _clientGame.JoinGameWithUnits(player, units, pilotAssignments); //+ a flag indicating it's a bot
         
         // Create decision engine for this bot
         var decisionEngine = _decisionEngineFactory.Create(difficulty);
         
         // Create the bot player
-        var bot = new BotPlayer(player, botClientGame, decisionEngine, difficulty);
+        var bot = new BotPlayer(player, clientGame, decisionEngine, difficulty);
         
         _bots.Add(bot);
         
         return bot;
     }
     
-    public async Task StartAll()
-    {
-        foreach (var bot in _bots)
-        {
-            await bot.Start();
-        }
-    }
-    
-    public void StopAll()
-    {
-        foreach (var bot in _bots)
-        {
-            bot.Stop();
-        }
-    }
-    
     // ... other methods
 }
 ```
 
+Bots could be added to existing client games (created in either `StartNewGameViewModel` or `JoinGameViewModel`) by levaraging existing JoinGameWithUnits method passing `IsBot` flag. ClientGame would add those players to `BotPlayers` instead of `LocalPlayers`.
+
+The open question is where to "host" the BotManager itself.
+
 ## 3. ClientGame Instance Decision
 
-### 3.1 Recommendation: One ClientGame Per Bot (Option B)
+### 3.1 Recommendation: One Shared ClientGame for All Bots and Human Players on that "client" device
 
-**Decision: Use one `ClientGame` instance per bot player.**
+**Decision: Use one `ClientGame` instance for all bots, with all bot player IDs in `BotPlayers`.**
 
 ### 3.2 Justification
 
-#### Pros of One Instance Per Bot:
-1. **Isolation**: Each bot has its own game state, preventing interference
-2. **Simplicity**: Mirrors the human player model (one ClientGame per human)
-3. **LocalPlayers Management**: ClientGame.LocalPlayers naturally maps to one bot
-4. **Parallel Processing**: Bots can process commands independently
-5. **Easier Debugging**: Each bot's state is isolated and traceable
-6. **Future Extensibility**: Supports different bot implementations easily
+#### Pros of Shared ClientGame:
+1. **Mirrors Current Architecture**: Exactly how local human players work
+2. **Single Game State**: One synchronized state for all bots 
+3. **Lower Memory Overhead**: One `ClientGame` instance instead of N
+4. **Simpler Transport**: One subscription to command stream
+5. **Consistent with Design**: Follows existing patterns
+6. **Turn-Based Game**: Bots act sequentially when activated, no parallel processing needed
 
-#### Cons of One Instance Per Bot:
-1. **Memory Overhead**: Multiple ClientGame instances consume more memory
-2. **Duplicate State**: Each ClientGame maintains a copy of the full game state
-
-#### Why Not Shared Instance (Option A):
-1. **LocalPlayers Confusion**: ClientGame.LocalPlayers would contain multiple bot IDs
-2. **Action Coordination**: Complex logic needed to determine which bot should act
-3. **State Conflicts**: Bots might interfere with each other's decision-making
-4. **Tight Coupling**: All bots would depend on a single ClientGame instance
-
-### 3.3 Memory Considerations
-
-The memory overhead is acceptable because:
-- ClientGame primarily holds references to shared objects (BattleMap, Players, Units)
-- Most game state is already in ServerGame
-- Typical games have 2-4 players, so 1-3 bot instances is manageable
-- Modern systems can easily handle this overhead
+#### Why Not One Instance Per Bot:
+1. **Violates Current Architecture**: Human players share one `ClientGame`, bots should too
+2. **Higher Memory Overhead**: N duplicate game states
+3. **Inconsistent Design**: Bots would work differently than humans
+4. **Wrong Conceptually**: Game state is shared, not per-player - there's no "bot state" vs "human state"
+5. **Unnecessary Complexity**: Turn-based game doesn't need parallel bot processing
 
 ## 4. Communication Flow
 
@@ -411,17 +292,17 @@ ServerGame publishes server command
     ↓
 RxTransportPublisher broadcasts
     ↓
-All ClientGame instances (human + bot)
+All ClientGame instances (human + bot + remote)
     ↓
-Bot observes via Commands.Subscribe()
+Bot's ClientGame observes via Commands.Subscribe()
 ```
 
 ### 4.2 Transport Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    ServerGame                            │
-│  (Authoritative State, Phase Management)                 │
+│                    ServerGame                           │
+│  (Authoritative State, Phase Management)                │
 └────────────────┬────────────────────────────────────────┘
                  │
                  │ CommandPublisher
@@ -432,11 +313,16 @@ Bot observes via Commands.Subscribe()
 RxTransportPublisher   SignalRTransportPublisher
 (Local)                (Network)
     │                         │
-    ├─────────┬───────┬───────┼──────────┐
-    │         │       │       │          │
-    ▼         ▼       ▼       ▼          ▼
-ClientGame ClientGame ClientGame  ClientGame  ClientGame
-(Human)    (Bot 1)  (Bot 2)   (Remote 1) (Remote 2)
+    │                         ├──────────┐
+    │                         │          │
+    ▼                         ▼          ▼
+ClientGame              ClientGame  ClientGame
+(Humans & Bots)          (Remote 1) (Remote 2)
+    │                        │         
+    ├─────────┐              ├─────────┐
+    │         │              │         │ 
+    ▼         ▼              ▼         ▼
+   UI      BotManager        UI      BotManager
 ```
 
 ## 5. Bot Lifecycle
@@ -444,40 +330,37 @@ ClientGame ClientGame ClientGame  ClientGame  ClientGame
 ### 5.1 Creation and Initialization
 
 1. **Pre-Game Setup** (in lobby):
+   - `BitManager` is initialized with ClientGame instance as soon as it's created
    - User selects "Add Bot" option
-   - Specifies bot difficulty and units
+   - Specifies bot difficulty (optional for now) and units
+   - Create `Player` instance with unique ID and name (follows current pattern)
    - `BotManager.AddBot()` is called
 
 2. **Bot Creation**:
-   - Create `Player` instance with unique ID and name
-   - Create `ClientGame` instance via `IGameFactory`
-   - Bot's `ClientGame` joins the game via `JoinGameWithUnits()`
+   - Bot's player ID is added to `ClientGameBotsPlayers` via `JoinGameWithUnits()`
    - Create `IBotDecisionEngine` based on difficulty
-   - Create `BotPlayer` instance wrapping all components
+   - Create `BotPlayer` instance
+   - Add to `BotManager.Bots` list
 
 3. **Server Registration**:
    - Bot's `JoinGameCommand` is processed by `ServerGame`
-   - Server creates player and units in authoritative state
+   - Server creates player and units in authoritative state, no difference from regular human players
    - Other clients receive `JoinGameCommand` and see bot as regular player
 
 ### 5.2 Activation and Decision-Making
 
 1. **Game Start**:
-   - `BotManager.StartAll()` is called when game begins
-   - Each bot calls `Start()`, subscribing to game events
+   - `BotPlayer` is already subscribed to `ClientGame` commands
 
 2. **Phase Activation**:
-   - `ServerGame` sets active player via `SetActivePlayer()`
-   - `ChangeActivePlayerCommand` is broadcast
+   - `ServerGame` sets active player via `ChangeActivePlayerCommand`
    - Bot's `ClientGame` receives command and updates `ActivePlayer`
-   - Bot's `ActivePlayerChanges` observable fires
-   - Bot checks if it's the active player
+   - `BotPlayer` observes command and acts if ActivePlayer's Id matches its player Id
 
 3. **Decision Process**:
-   - Bot adds thinking delay (difficulty-based)
-   - `IBotDecisionEngine.SelectAction()` is called
    - Decision engine analyzes current phase and game state
-   - Returns appropriate `IBotAction` or null
+   - Returns appropriate `IBotAction`
+   - Bot Should always execute an action, even if it's a "skip" one to prvent game stuck 
 
 4. **Action Execution**:
    - `IBotAction.Execute()` publishes command via `ClientGame`
@@ -488,20 +371,15 @@ ClientGame ClientGame ClientGame  ClientGame  ClientGame
 ### 5.3 Cleanup
 
 1. **Game End**:
-   - `BotManager.StopAll()` is called
    - Each bot unsubscribes from events
    - Bot `ClientGame` instances are disposed
-
-2. **Early Removal**:
-   - `BotManager.RemoveBot()` can remove individual bots
-   - Bot publishes `PlayerLeftCommand`
-   - Bot is stopped and disposed
+   - BotPlayers are cleared/disposed on next game start
 
 ## 6. Action Selection Framework
 
 ### 6.1 Phase-Specific Action Discovery
 
-Similar to `UiStates` for human players, bots need phase-specific logic:
+Similar to `UiStates` for human players, bots need phase-specific logic. Some bits of logic could be extracted and shared between specific UIStates and DecisionEngines if/when makes sense.
 
 #### 6.1.1 Deployment Phase Actions
 
@@ -752,68 +630,14 @@ public class EndTurnAction : IBotAction
 
 ## 7. Integration Points
 
-### 7.1 GameManager Integration
+Ideally Bot Framework should be developed as a separate project/dll with only dependency on MakaMek.Core.
+That would force correct DI direction and mitigate risk of messy code/architectural decisions.  
 
-`GameManager` should be extended to support bot management:
+### 7.1 StartNewGameViewModel/JoinGameViewModel Integration
 
-```csharp
-public class GameManager : IGameManager
-{
-    private readonly IBotManager _botManager;
+UI should allow adding bots in the lobby, reuse current AddPlayer logic, extending it to add Bots via the BotManager, not directly to the ClientGame.
 
-    public async Task InitializeLobby()
-    {
-        // ... existing code ...
-
-        // Initialize bot manager
-        _botManager = new BotManager(
-            _gameFactory,
-            _commandPublisher,
-            _rulesProvider,
-            _mechFactory,
-            // ... other dependencies
-        );
-    }
-
-    public async Task<IBotPlayer> AddBot(string name, BotDifficulty difficulty, List<UnitData> units)
-    {
-        return await _botManager.AddBot(name, difficulty, units);
-    }
-
-    public void SetBattleMap(BattleMap battleMap)
-    {
-        _serverGame?.SetBattleMap(battleMap);
-
-        // Start bots when game begins
-        _ = Task.Run(() => _botManager.StartAll());
-    }
-}
-```
-
-### 7.2 StartNewGameViewModel Integration
-
-UI should allow adding bots in the lobby:
-
-```csharp
-public class StartNewGameViewModel : NewGameViewModel
-{
-    private readonly IGameManager _gameManager;
-
-    public ICommand AddBotCommand => new AsyncCommand(async () =>
-    {
-        var botName = $"Bot {_players.Count + 1}";
-        var difficulty = BotDifficulty.Medium; // Could be user-selected
-        var units = SelectBotUnits(); // UI for selecting bot units
-
-        var bot = await _gameManager.AddBot(botName, difficulty, units);
-
-        // Bot automatically joins the game, will appear in player list
-        // via JoinGameCommand handling
-    });
-}
-```
-
-### 7.3 Dependency Injection
+### 7.2 Dependency Injection
 
 Register bot-related services:
 
@@ -821,69 +645,34 @@ Register bot-related services:
 // In DI configuration
 services.AddTransient<IBotManager, BotManager>();
 services.AddTransient<IBotDecisionEngineFactory, BotDecisionEngineFactory>();
-services.AddTransient<IDeploymentDecisionEngine, DeploymentDecisionEngine>();
-services.AddTransient<IMovementDecisionEngine, MovementDecisionEngine>();
-services.AddTransient<IWeaponsDecisionEngine, WeaponsDecisionEngine>();
-services.AddTransient<IEndPhaseDecisionEngine, EndPhaseDecisionEngine>();
+services.AddTransient<IDecisionEngine, DeploymentDecisionEngine>(); // just a pseudo code, that won't work with the same interface like that
+services.AddTransient<IDecisionEngine, MovementDecisionEngine>();
+services.AddTransient<IDecisionEngine, WeaponsDecisionEngine>();
+services.AddTransient<IDecisionEngine, EndPhaseDecisionEngine>();
 ```
 
 ## 8. Potential Challenges
 
-### 8.1 Architectural Gaps
-
-1. **Initiative Phase**: Bots need to automatically roll initiative
-   - **Solution**: Add `IInitiativeDecisionEngine` that publishes `RollDiceCommand` when bot is active player
-
-2. **Piloting Skill Rolls**: Bots need to handle PSR prompts automatically
-   - **Solution**: Server should auto-roll for bots (check if player is bot), or bot observes PSR-required events and responds
-
-3. **Standup Attempts**: Bots need to decide when to attempt standing up
+1. **Standup Attempts**: Bots need to decide when to attempt standing up
    - **Solution**: Include in `IMovementDecisionEngine` logic - check if unit is prone and decide whether to standup
 
-4. **Heat Management**: Bots need to make shutdown/startup decisions
+2  **Heat Management**: Bots need to make shutdown/startup decisions
    - **Solution**: Implemented in `IEndPhaseDecisionEngine` with heat threshold logic
 
-5. **Torso Twisting**: Bots need to decide when to rotate torso
+3. **Torso Twisting**: Bots need to decide when to rotate torso
    - **Solution**: Include in `IWeaponsDecisionEngine` - evaluate if torso rotation improves firing arcs
-
-### 8.2 Timing and Synchronization
-
-1. **Race Conditions**: Multiple bots might try to act simultaneously
-   - **Solution**: Each bot has its own `ClientGame`, server serializes commands via phase management
-
-2. **Thinking Delays**: Bots should not respond instantly (feels unnatural)
+   - 
+4. **Thinking Delays**: Bots should not respond instantly (feels unnatural)
    - **Solution**: Implemented via `GetThinkingDelay()` based on difficulty level
-
-3. **Command Validation**: Bot commands might be invalid due to state changes
-   - **Solution**: Server validates all commands; bot should handle failures gracefully (retry or skip)
-
-4. **Phase Transitions**: Bot might be deciding when phase changes
-   - **Solution**: Bot checks `CanActivePlayerAct` before executing; server rejects stale commands
-
-### 8.3 State Management
-
-1. **Game State Synchronization**: Bots must maintain accurate game state
-   - **Solution**: `ClientGame` already handles this via command observation; bots leverage existing mechanism
-
-2. **Unit State Tracking**: Bots need to track which units have acted
+   
+5. **Unit State Tracking**: Bots need to track which units have acted
    - **Solution**: Use existing `Unit` properties (MovementTypeUsed, HasDeclaredWeaponAttack, IsDeployed, etc.)
 
-3. **Partial Information**: Bots should only know what their player knows
+6. **Partial Information**: Bots should only know what their player knows
    - **Solution**: Bot uses `ClientGame` which only has information broadcast by server (no cheating)
 
-### 8.4 Testing Challenges
-
-1. **Bot Behavior Testing**: Difficult to test decision-making logic in isolation
+7. **Bot Behavior Testing**: Difficult to test decision-making logic in isolation
    - **Solution**: Mock `ClientGame` and verify correct commands are published for given game states
-
-2. **Integration Testing**: Testing bots with real games is complex
-   - **Solution**: Create integration tests with simplified scenarios (small maps, few units)
-
-3. **Performance Testing**: Multiple bots might impact performance
-   - **Solution**: Profile and optimize decision engines; consider async decision-making
-
-4. **Determinism**: Bot behavior should be testable and reproducible
-   - **Solution**: Allow seeding random number generators for tests
 
 ## 9. Future Extensibility
 
@@ -931,12 +720,6 @@ Different bot personalities can be implemented via strategy pattern:
   - Adapts to situation
   - Moderate risk-taking
 
-- **Sniper**:
-  - Long-range focus
-  - Minimal movement
-  - Precision targeting
-  - Avoids close combat
-
 ### 9.3 Learning and Adaptation
 
 Future enhancements could include:
@@ -958,44 +741,32 @@ The architecture supports various multiplayer configurations:
 
 ## 10. Implementation Phases
 
-### Phase 1: Core Infrastructure (Week 1-2)
+### Phase 1: Core Infrastructure 
 - [ ] Implement `IBotPlayer`, `BotPlayer` classes
 - [ ] Implement `IBotManager`, `BotManager` classes
 - [ ] Implement `IBotAction` interface and base action classes
-- [ ] Integrate `BotManager` with `GameManager`
+- [ ] Integrate `BotManager` with ClientGame
 - [ ] Add bot-related dependency injection configuration
 - [ ] Unit tests for core bot infrastructure
 
-### Phase 2: Basic Decision Engines (Week 3-4)
-- [ ] Implement `IDeploymentDecisionEngine` with random deployment logic
-- [ ] Implement `IMovementDecisionEngine` with random movement logic
-- [ ] Implement `IWeaponsDecisionEngine` with random target selection
-- [ ] Implement `IEndPhaseDecisionEngine` with basic end turn logic
-- [ ] Implement `IInitiativeDecisionEngine` for initiative rolls
+### Phase 2: Basic Decision Engines 
+- [ ] Implement `DeploymentDecisionEngine` with random deployment logic
+- [ ] Implement `MovementDecisionEngine` with random movement logic
+- [ ] Implement `WeaponsDecisionEngine` with random target selection
+- [ ] Implement `EndPhaseDecisionEngine` with basic end turn logic
 - [ ] Unit tests for each decision engine
 
-### Phase 3: UI Integration (Week 5)
+### Phase 3: UI Integration 
 - [ ] Add "Add Bot" button to `StartNewGameViewModel`
 - [ ] Display bots in player list with bot indicator
-- [ ] Bot difficulty selection UI
-- [ ] Bot unit selection UI
 - [ ] Remove bot functionality
-- [ ] Integration tests for UI workflows
 
-### Phase 4: Enhanced AI (Week 6-8)
+### Phase 4: Enhanced AI 
 - [ ] Improve deployment logic (strategic positioning, formation)
 - [ ] Improve movement logic (pathfinding, cover-seeking, range optimization)
 - [ ] Improve weapons logic (target prioritization, heat management, weapon selection)
-- [ ] Add difficulty variations (Easy, Medium, Hard)
 - [ ] Implement thinking delays
 - [ ] Performance optimization
-
-### Phase 5: Testing and Polish (Week 9-10)
-- [ ] Comprehensive integration testing (full game scenarios)
-- [ ] Performance profiling and optimization
-- [ ] Bug fixes and edge case handling
-- [ ] Documentation (code comments, user guide)
-- [ ] Playtesting and balance adjustments
 
 ## 11. Success Criteria
 
@@ -1007,81 +778,15 @@ The architecture supports various multiplayer configurations:
 6. **Reliability**: Bots handle edge cases gracefully (invalid commands, state changes, etc.)
 7. **Testability**: Bot behavior is testable and reproducible
 
-## 12. Risks and Mitigations
-
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Bot commands frequently invalid | High | Medium | Comprehensive validation in decision engines; extensive testing |
-| Performance degradation with multiple bots | Medium | Low | Profile and optimize; limit bot count; async decision-making |
-| Complex decision logic hard to implement | High | High | Start simple (random), iterate based on testing; modular design |
-| State synchronization issues | High | Low | Leverage existing `ClientGame` mechanisms; thorough testing |
-| Testing difficulty | Medium | Medium | Create comprehensive test scenarios; mock frameworks |
-| Bot behavior feels unnatural | Medium | Medium | Add thinking delays; vary actions; playtesting |
-| Initiative/PSR handling gaps | Medium | Medium | Implement auto-roll for bots; server-side detection |
-
-## 13. Alternative Approaches Considered
-
-### 13.1 Server-Side Bot Logic (Rejected)
-
-**Approach**: Implement bot decision-making directly in `ServerGame` without using `ClientGame`.
-
-**Pros**:
-- No need for bot `ClientGame` instances
-- Direct access to authoritative state
-- Potentially simpler implementation
-
-**Cons**:
-- Violates client-server separation
-- Bots would have perfect information (cheating)
-- Harder to test in isolation
-- Network transparency compromised
-- Doesn't reuse existing client infrastructure
-
-**Verdict**: Rejected - violates architectural principles
-
-### 13.2 Shared ClientGame for All Bots (Rejected)
-
-**Approach**: Use one `ClientGame` instance for all bots with `LocalPlayers` containing all bot IDs.
-
-**Pros**:
-- Lower memory overhead
-- Single game state for all bots
-
-**Cons**:
-- Complex coordination logic needed
-- `LocalPlayers` semantics unclear
-- Tight coupling between bots
-- Harder to debug and test
-- Doesn't scale well
-
-**Verdict**: Rejected - too complex and fragile
-
-### 13.3 Bot as UI State (Rejected)
-
-**Approach**: Implement bots as automated UI states that control a human player's `ClientGame`.
-
-**Pros**:
-- Reuses existing UI state infrastructure
-- Minimal new code
-
-**Cons**:
-- Bots tied to presentation layer
-- Can't run headless
-- Doesn't work for server-hosted bots
-- Violates separation of concerns
-
-**Verdict**: Rejected - wrong architectural layer
-
-## 14. Conclusion
+## 12. Conclusion
 
 The proposed bot player system integrates seamlessly with MakaMek's existing client-server architecture by:
 
-1. **Reusing ClientGame**: Each bot uses its own `ClientGame` instance (one per bot), mirroring the human player model
+1. **Reusing ClientGame**: Each bot uses a `ClientGame` instance, mirroring the human player model
 2. **RX Transport**: Bots communicate via `RxTransportPublisher` like local human players, ensuring network transparency
-3. **Server-Side Hosting**: Bot `ClientGame` instances are created and managed server-side, invisible to remote players
-4. **Phase-Specific Decision Engines**: Similar to UI states, bots use specialized decision engines for each game phase
-5. **Command Pattern**: Bots publish commands through `ClientGame`, validated by `ServerGame` like any other player
-6. **Extensible Design**: Supports multiple difficulty levels, strategies, and future AI enhancements
+3. **Phase-Specific Decision Engines**: Similar to UI states, bots use specialized decision engines for each game phase
+4. **Command Pattern**: Bots publish commands through `ClientGame`, validated by `ServerGame` like any other player
+5. **Extensible Design**: Supports multiple difficulty levels, strategies, and future AI enhancements
 
 ### Key Architectural Strengths
 
