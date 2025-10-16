@@ -2,7 +2,7 @@
 
 **Date:** 2025-10-16  
 **Status:** Ready for Implementation  
-**Based on:** bot-player-system-prd.md and bot-player-system-analysis.md
+**Based on:** bot-player-system-prd.md
 
 ---
 
@@ -23,7 +23,6 @@ Before starting implementation, ensure you understand:
 
 **Recommended Reading:**
 - `docs/architecture/bot-player-system-prd.md` - Original design document
-- `docs/architecture/bot-player-system-analysis.md` - Detailed analysis
 - `src/MakaMek.Core/Models/Game/ClientGame.cs` - Client game implementation
 - `src/MakaMek.Core/Models/Game/ServerGame.cs` - Server game implementation
 
@@ -39,7 +38,7 @@ Before implementation, the following architectural decisions must be made:
 ### Decision 2: Bot Identification in UI
 **Options:**
 - **A) Add `IsBot` property to `PlayerViewModel`**
-- **B) Create separate `BotPlayerViewModel` class**
+- **B) Create separate `BotViewModel` class**
 - **C) Use naming convention (e.g., "Bot 1234")**
 
 **Recommendation:** Option A + C
@@ -75,20 +74,18 @@ Before implementation, the following architectural decisions must be made:
 ```
 src/MakaMek.Bots/
 ├── MakaMek.Bots.csproj
-├── IBotPlayer.cs
-├── BotPlayer.cs
+├── IBot.cs
+├── Bot.cs
 ├── IBotManager.cs
 ├── BotManager.cs
 ├── BotDifficulty.cs
-├── DecisionEngines/
-│   ├── IBotDecisionEngine.cs
-│   ├── BotDecisionEngine.cs
-│   ├── IDeploymentDecisionEngine.cs
-│   ├── IMovementDecisionEngine.cs
-│   ├── IWeaponsDecisionEngine.cs
-│   └── IEndPhaseDecisionEngine.cs
-└── Actions/
-    └── IBotAction.cs
+└── DecisionEngines/
+    ├── IBotDecisionEngine.cs
+    ├── DeploymentEngine.cs
+    ├── MovementEngine.cs
+    ├── WeaponsEngine.cs
+    └── EndPhaseEngine.cs
+
 ```
 
 **Dependencies:**
@@ -110,11 +107,11 @@ src/MakaMek.Bots/
 public class ClientGame : BaseGame
 {
     // ADD: Bot players list
-    public List<Guid> BotPlayers { get; } = [];
+    public List<Guid> Bots { get; } = [];
     
     // MODIFY: Check both local and bot players
     public bool CanActivePlayerAct => ActivePlayer != null 
-        && (LocalPlayers.Contains(ActivePlayer.Id) || BotPlayers.Contains(ActivePlayer.Id))
+        && (LocalPlayers.Contains(ActivePlayer.Id) || Bots.Contains(ActivePlayer.Id))
         && ActivePlayer.CanAct;
     
     // MODIFY: Add isBot parameter
@@ -134,7 +131,7 @@ public class ClientGame : BaseGame
         
         // ADD: Route to correct list
         if (isBot)
-            BotPlayers.Add(player.Id);
+            Bots.Add(player.Id);
         else
             LocalPlayers.Add(player.Id);
             
@@ -160,7 +157,7 @@ public void JoinGameWithUnits_WhenIsBot_AddsToBotsPlayers()
     _sut.JoinGameWithUnits(player, [], [], isBot: true);
     
     // Assert
-    _sut.BotPlayers.ShouldContain(player.Id);
+    _sut.Bots.ShouldContain(player.Id);
     _sut.LocalPlayers.ShouldNotContain(player.Id);
 }
 
@@ -168,12 +165,12 @@ public void JoinGameWithUnits_WhenIsBot_AddsToBotsPlayers()
 public void CanActivePlayerAct_WhenActivePlayerIsBot_ReturnsTrue()
 {
     // Arrange
-    var botPlayer = new Player(Guid.NewGuid(), "Bot");
-    _sut.JoinGameWithUnits(botPlayer, [], [], isBot: true);
+    var Bot = new Player(Guid.NewGuid(), "Bot");
+    _sut.JoinGameWithUnits(Bot, [], [], isBot: true);
     // Simulate server setting active player
     _sut.HandleCommand(new ChangeActivePlayerCommand 
     { 
-        PlayerId = botPlayer.Id,
+        PlayerId = Bot.Id,
         GameOriginId = _sut.Id 
     });
     
@@ -183,117 +180,78 @@ public void CanActivePlayerAct_WhenActivePlayerIsBot_ReturnsTrue()
 ```
 
 **Acceptance Criteria:**
-- [ ] `BotPlayers` list added
+- [ ] `Bots` list added
 - [ ] `CanActivePlayerAct` checks both lists
 - [ ] `JoinGameWithUnits` has `isBot` parameter
 - [ ] All tests pass
 
 ---
 
-### Phase 1: Core Bot Infrastructure (Week 2)
+### Phase 1: Core Bot Infrastructure 
 
-#### Task 1.1: Implement IBotPlayer and BotPlayer
+#### Task 1.1: Implement IBot and Bot
 **Goal:** Create bot player that observes game and makes decisions
 
-**File:** `src/MakaMek.Bots/BotPlayer.cs`
+**File:** `src/MakaMek.Bots/Bot.cs`
 
 **Implementation:**
 ```csharp
-public class BotPlayer : IBotPlayer
+public class Bot : IBot
 {
-    private readonly IBotDecisionEngine _decisionEngine;
+    private IBotDecisionEngine _decisionEngine;
     private IDisposable? _commandSubscription;
-    private bool _isDisposed;
+    
+    // depends on current phase, stateless, the same as UIState for human players
+    privte IBotDecisionEngine _currentDecisionEngine,
     
     public IPlayer Player { get; }
-    public ClientGame ClientGame { get; }
     public BotDifficulty Difficulty { get; }
     
-    public BotPlayer(
+    public Bot(
         IPlayer player,
         ClientGame clientGame,
-        IBotDecisionEngine decisionEngine,
         BotDifficulty difficulty)
     {
         Player = player;
         ClientGame = clientGame;
-        _decisionEngine = decisionEngine;
         Difficulty = difficulty;
         
-        // Subscribe to game commands
         _commandSubscription = ClientGame.Commands.Subscribe(OnCommandReceived);
     }
     
-    private async void OnCommandReceived(IGameCommand command)
+    private void OnCommandReceived(IGameCommand command)
     {
-        try
-        {
-            // Only react to active player changes
-            if (command is not ChangeActivePlayerCommand activePlayerCmd) return;
-            
-            // Check if this bot is now active
-            if (activePlayerCmd.PlayerId != Player.Id) return;
-            
-            // Apply thinking delay
-            await Task.Delay(GetThinkingDelay());
-            
-            // Make decision
-            await MakeDecision();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Bot error: {ex.Message}");
-            // Fallback: skip turn
-            await SkipTurn();
-        }
-    }
-    
-    private async Task MakeDecision()
+        switch (command)
     {
-        var action = await _decisionEngine.SelectAction(ClientGame, Player);
-        
-        if (action == null)
-        {
-            Console.WriteLine($"Bot {Player.Name}: No action selected, skipping");
-            await SkipTurn();
-            return;
-        }
-        
-        Console.WriteLine($"Bot {Player.Name}: {action.Description}");
-        action.Execute(ClientGame);
-    }
-    
-    private Task SkipTurn()
-    {
-        // Phase-specific skip logic
-        return Task.CompletedTask;
+        case ChangeActivePlayerCommand activePlayerCmd:
+            if (activePlayerCmd.PlayerId == Player.Id)
+                _ = _currentDecisionEngine.MakeDecision();
+            break;
+        case ChangePhaseCommand phaseCmd:
+            // for better testability DecisionEngines can be created in BotManager and provided as collection via constructor
+            _currentDecisionEngine = TransferDecisionEngine(phaseCmd.Phase);
+            break;
+        case GameEndedCommand:
+            Dispose();
+            break;
+        // Ignore other commands
     }
     
     private int GetThinkingDelay()
     {
-        return Difficulty switch
-        {
-            BotDifficulty.Easy => Random.Shared.Next(500, 1000),
-            BotDifficulty.Medium => Random.Shared.Next(1000, 2000),
-            BotDifficulty.Hard => Random.Shared.Next(1500, 3000),
-            _ => 1000
-        };
+        // optionally introduce delay's to Bot's decision making to make it feel more natural
     }
     
     public void Dispose()
     {
-        if (_isDisposed) return;
-        _isDisposed = true;
-        
         _commandSubscription?.Dispose();
-        _commandSubscription = null;
     }
 }
 ```
 
 **Tests:**
 ```csharp
-// tests/MakaMek.Bots.Tests/BotPlayerTests.cs
+// tests/MakaMek.Bots.Tests/BotTests.cs
 
 [Fact]
 public async Task OnCommandReceived_WhenBotIsActive_MakesDecision()
@@ -304,7 +262,7 @@ public async Task OnCommandReceived_WhenBotIsActive_MakesDecision()
     mockDecisionEngine.SelectAction(Arg.Any<ClientGame>(), Arg.Any<IPlayer>())
         .Returns(mockAction);
     
-    var sut = new BotPlayer(_player, _clientGame, mockDecisionEngine, BotDifficulty.Easy);
+    var sut = new Bot(_player, _clientGame, mockDecisionEngine, BotDifficulty.Easy);
     
     // Act
     _clientGame.HandleCommand(new ChangeActivePlayerCommand 
@@ -322,8 +280,9 @@ public async Task OnCommandReceived_WhenBotIsActive_MakesDecision()
 ```
 
 **Acceptance Criteria:**
-- [ ] BotPlayer subscribes to ClientGame.Commands
-- [ ] BotPlayer reacts to ChangeActivePlayerCommand
+- [ ] Bot subscribes to ClientGame.Commands
+- [ ] Bot reacts to ChangePhaseCommand
+- [ ] Bot reacts to ChangeActivePlayerCommand
 - [ ] Thinking delay is applied
 - [ ] Decision engine is called
 - [ ] Action is executed
@@ -339,138 +298,108 @@ public async Task OnCommandReceived_WhenBotIsActive_MakesDecision()
 ```csharp
 public class BotManager : IBotManager
 {
-    private readonly List<IBotPlayer> _bots = [];
-    private readonly ClientGame _clientGame;
-    private readonly IBotDecisionEngineFactory _decisionEngineFactory;
-    private bool _isDisposed;
+    private readonly List<IBot> _bots = [];
+    private readonly ClientGame? _clientGame;
+    // ... other dependencies
     
-    public IReadOnlyList<IBotPlayer> Bots => _bots;
-    
-    public BotManager(
-        ClientGame clientGame,
-        IBotDecisionEngineFactory decisionEngineFactory)
+    public void Initialize(ClientGame clientGame)
     {
         _clientGame = clientGame;
-        _decisionEngineFactory = decisionEngineFactory;
-    }
-    
-    public async Task<IBotPlayer> AddBot(
-        IPlayer player, 
-        List<UnitData> units,
-        List<PilotAssignmentData> pilotAssignments,
-        BotDifficulty difficulty)
-    {
-        // Join the game as a bot
-        _clientGame.JoinGameWithUnits(player, units, pilotAssignments, isBot: true);
-        
-        // Create decision engine
-        var decisionEngine = _decisionEngineFactory.Create(difficulty);
-        
-        // Create bot player
-        var bot = new BotPlayer(player, _clientGame, decisionEngine, difficulty);
-        
-        _bots.Add(bot);
-        
-        return bot;
-    }
-    
-    public void RemoveBot(Guid botPlayerId)
-    {
-        var bot = _bots.FirstOrDefault(b => b.Player.Id == botPlayerId);
-        if (bot == null) return;
-        
-        bot.Dispose();
-        _bots.Remove(bot);
-        
-        // Send leave command
-        _clientGame.LeaveGame(botPlayerId);
-    }
-    
-    public void Dispose()
-    {
-        if (_isDisposed) return;
-        _isDisposed = true;
-        
         foreach (var bot in _bots)
         {
             bot.Dispose();
         }
         _bots.Clear();
     }
+    
+    public IReadOnlyList<IBot> Bots => _bots;
+    
+    public void AddBot(IPlayer player, BotDifficulty difficulty = BotDifficulty.Easy)
+    {
+        // Join the game with the bot's units
+        _clientGame.JoinGameWithUnits(player, units, pilotAssignments); //+ a flag indicating it's a bot
+        
+        // Create the bot player
+        var bot = new Bot(player, clientGame, difficulty);
+        
+        _bots.Add(bot);
+    }
+    
+    // ... other methods
 }
 ```
 
 **Acceptance Criteria:**
 - [ ] BotManager creates bots
-- [ ] Bots are added to ClientGame.BotPlayers
+- [ ] Bots are added to ClientGame.Bots
 - [ ] Bots can be removed
 - [ ] Cleanup works correctly
 - [ ] All tests pass
 
 ---
 
-### Phase 2: Basic Decision Engines (Week 3-4)
+### Phase 2: Basic Decision Engines 
 
 #### Task 2.1: Implement Deployment Decision Engine
 **Goal:** Bot can deploy units randomly
 
-**File:** `src/MakaMek.Bots/DecisionEngines/DeploymentDecisionEngine.cs`
+**File:** `src/MakaMek.Bots/DecisionEngines/DeploymentEngine.cs`
 
 **Key Logic:**
 1. Find undeployed units: `player.Units.Where(u => !u.IsDeployed)`
 2. Get valid deployment hexes from map
 3. Select random hex and direction
-4. Return `DeployUnitAction`
+4. Publish `DeployUnitCommand`
 
 **Acceptance Criteria:**
 - [ ] Bot deploys all units
 - [ ] Deployment positions are valid
-- [ ] Returns null when all units deployed
 
 #### Task 2.2: Implement Movement Decision Engine
 **Goal:** Bot can move units randomly
 
-**File:** `src/MakaMek.Bots/DecisionEngines/MovementDecisionEngine.cs`
+**File:** `src/MakaMek.Bots/DecisionEngines/MovementEngine.cs`
 
 **Key Logic:**
 1. Find unmoved units: `player.AliveUnits.Where(u => u.MovementTypeUsed == null)`
 2. Select random movement type (prefer Walk)
 3. Calculate random valid path using `BattleMap.FindPath()`
-4. Return `MoveUnitAction`
+4. Publish `MoveUnitCommand`
 
 **Acceptance Criteria:**
 - [ ] Bot moves all units
 - [ ] Movement paths are valid
 - [ ] Handles standing still
-- [ ] Returns null when all units moved
 
 #### Task 2.3: Implement Weapons Decision Engine
 **Goal:** Bot can attack targets randomly
 
-**File:** `src/MakaMek.Bots/DecisionEngines/WeaponsDecisionEngine.cs`
+**File:** `src/MakaMek.Bots/DecisionEngines/WeaponsEngine.cs`
 
 **Key Logic:**
 1. Find units that haven't attacked: `player.AliveUnits.Where(u => !u.HasDeclaredWeaponAttack)`
 2. Find targets in range
 3. Select random target
 4. Select all weapons in range
-5. Return `DeclareWeaponAttackAction` or `SkipWeaponAttackAction`
+5. Publish `WeaponAttackDeclarationCommand` and optionally `WeaponConfigurationCommand`
 
 **Acceptance Criteria:**
 - [ ] Bot attacks when targets available
 - [ ] Bot skips when no targets
 - [ ] Weapon selection is valid
-- [ ] Returns null when all units attacked
+- [ ] Turns torso when needed
 
 #### Task 2.4: Implement End Phase Decision Engine
 **Goal:** Bot can end turn
 
-**File:** `src/MakaMek.Bots/DecisionEngines/EndPhaseDecisionEngine.cs`
+**File:** `src/MakaMek.Bots/DecisionEngines/EndPhaseEngine.cs`
 
 **Key Logic:**
 1. Check for shutdown units (always attempt restart)
 2. Check for overheated units (shutdown if heat > 25)
-3. Return `EndTurnAction`
+3. Publish `EndTurnCommand`
+4. Publish `ShutdownUnitCommand` when overheated
+5. Publish `StartupUnitCommand` when shutdown
 
 **Acceptance Criteria:**
 - [ ] Bot attempts restart for shutdown units
@@ -479,108 +408,43 @@ public class BotManager : IBotManager
 
 ---
 
-### Phase 3: UI Integration (Week 5)
+### Phase 3: UI Integration
 
 #### Task 3.1: Add "Add Bot" Button to Lobby
 **Goal:** Users can add bots from UI
 
 **Files to Modify:**
-- `src/MakaMek.Presentation/ViewModels/StartNewGameViewModel.cs`
-- `src/MakaMek.Avalonia/MakaMek.Avalonia/Views/StartNewGameView.axaml`
-
-**ViewModel Changes:**
-```csharp
-public ICommand AddBotCommand => new AsyncCommand(AddBot);
-
-private async Task AddBot()
-{
-    if (_localGame == null) return;
-    
-    var botPlayerData = PlayerData.CreateDefault() with 
-    { 
-        Name = $"Bot {Random.Shared.Next(1000, 9999)}",
-        Tint = GetNextTint() 
-    };
-    var botPlayer = new Player(botPlayerData, Guid.NewGuid());
-    
-    // Get units for bot (reuse existing unit selection logic)
-    var units = await SelectUnitsForBot();
-    var pilotAssignments = CreatePilotAssignments(units);
-    
-    // Add bot via GameManager.BotManager
-    await _gameManager.BotManager.AddBot(botPlayer, units, pilotAssignments, BotDifficulty.Easy);
-    
-    // Add to UI
-    var botPlayerVm = new PlayerViewModel(
-        botPlayer,
-        isLocalPlayer: false,
-        isBot: true,
-        ...
-    );
-    _players.Add(botPlayerVm);
-}
-```
+- files related to StartNewGame and JoinGame functionality
 
 **Acceptance Criteria:**
 - [ ] "Add Bot" button appears in lobby
 - [ ] Clicking button adds bot to player list
 - [ ] Bot has indicator (e.g., robot icon)
 - [ ] Bot can be removed before game starts
+- [ ] Existing AddPlayer infrastructure is reused as much as possible
 - [ ] Bot joins game correctly
-
----
-
-### Phase 4: Integration Testing (Week 6)
-
-#### Task 4.1: Bot vs Bot Full Game Test
-**Goal:** Verify bots can complete a full game
-
-**Test Scenario:**
-1. Create 2 bots
-2. Start game
-3. Let bots play until victory/defeat
-4. Verify no errors or hangs
-
-**Acceptance Criteria:**
-- [ ] Game completes without errors
-- [ ] All phases execute correctly
-- [ ] Winner is determined
-- [ ] No memory leaks
-
-#### Task 4.2: Human vs Bot Game Test
-**Goal:** Verify bots work alongside humans
-
-**Test Scenario:**
-1. Create 1 human player + 1 bot
-2. Human makes moves
-3. Bot responds
-4. Complete game
-
-**Acceptance Criteria:**
-- [ ] Bot doesn't interfere with human turns
-- [ ] Bot responds when activated
-- [ ] Game feels natural
 
 ---
 
 ## Testing Strategy
 
 ### Unit Tests
-- **BotPlayer**: Activation, decision-making, error handling
+- **Bot**: Activation, decision-making, error handling
 - **BotManager**: Bot creation, removal, cleanup
 - **Decision Engines**: Action selection for various game states
 - **Bot Actions**: Command creation and execution
 
 ### Integration Tests
-- **Bot vs Bot**: Full game completion
-- **Human vs Bot**: Mixed gameplay
-- **Multiple Bots**: 4 bots playing
-- **Error Scenarios**: Invalid moves, exceptions, edge cases
+
 
 ### Manual Testing
 - **UI Flow**: Add bot, remove bot, start game
 - **Performance**: Decision times, memory usage
 - **User Experience**: Bot behavior feels natural
+- **Bot vs Bot**: Full game completion
+- **Human vs Bot**: Mixed gameplay
+- **Multiple Bots**: 4 bots playing
+- **Error Scenarios**: Invalid moves, exceptions, edge cases
 
 ---
 
@@ -613,7 +477,7 @@ private async Task AddBot()
 1. **Review and approve** architectural decisions (Section: Critical Decisions Required)
 2. **Create MakaMek.Bots project** (Phase 0, Task 0.1)
 3. **Modify ClientGame** (Phase 0, Task 0.2)
-4. **Implement BotPlayer** (Phase 1, Task 1.1)
+4. **Implement Bot** (Phase 1, Task 1.1)
 5. **Implement BotManager** (Phase 1, Task 1.2)
 6. **Continue with decision engines** (Phase 2)
 
