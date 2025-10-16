@@ -573,11 +573,14 @@ public class WeaponsAttackState : IUiState
 
     private void UpdateSelectedTargetViewModel()
     {
-        if (SelectedTarget == null)
+        if (SelectedTarget == null || Attacker == null)
         {
             _viewModel.SelectedTarget = null;
             return;
         }
+
+        // Only show target info if there are weapons assigned to this target
+        var hasWeaponsForTarget = Attacker.WeaponAttackState.WeaponTargets.Values.Contains(SelectedTarget);
 
         var isPrimary = SelectedTarget == PrimaryTarget;
 
@@ -585,10 +588,11 @@ public class WeaponsAttackState : IUiState
         if (_viewModel.SelectedTarget?.Target == SelectedTarget)
         {
             _viewModel.SelectedTarget.IsPrimary = isPrimary;
+            _viewModel.SelectedTarget.HasWeaponsForTarget = hasWeaponsForTarget;
         }
         else
         {
-            _viewModel.SelectedTarget = new TargetSelectionViewModel(SelectedTarget, isPrimary, HandleSetPrimaryTarget);
+            _viewModel.SelectedTarget = new TargetSelectionViewModel(SelectedTarget, isPrimary, hasWeaponsForTarget, HandleSetPrimaryTarget);
         }
     }
 
