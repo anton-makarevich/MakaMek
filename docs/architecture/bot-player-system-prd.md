@@ -66,7 +66,7 @@ public class Bot : IBot
     private IDisposable? _commandSubscription;
     
     // depends on current phase, stateless, the same as UIState for human players
-    privte IBotDecisionEngine _currentDecisionEngine,
+    private IBotDecisionEngine _currentDecisionEngine;
     
     public IPlayer Player { get; }
     public BotDifficulty Difficulty { get; }
@@ -204,7 +204,7 @@ public interface IBotManager : IDisposable
 public class BotManager : IBotManager
 {
     private readonly List<IBot> _bots = [];
-    private readonly ClientGame? _clientGame;
+    private ClientGame? _clientGame;
     // ... other dependencies
     
     public void Initialize(ClientGame clientGame)
@@ -221,11 +221,12 @@ public class BotManager : IBotManager
     
     public void AddBot(IPlayer player, BotDifficulty difficulty = BotDifficulty.Easy)
     {
+        if (ClientGame == null) return; //Introduce a better way to handle this, maybe IsInitialized property
         // Join the game with the bot's units
         _clientGame.JoinGameWithUnits(player, units, pilotAssignments); //+ a flag indicating it's a bot
         
         // Create the bot player
-        var bot = new Bot(player, clientGame, difficulty);
+        var bot = new Bot(player, _clientGame, difficulty);
         
         _bots.Add(bot);
     }
