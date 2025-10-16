@@ -167,4 +167,59 @@ public class UnitWeaponAttackStateTests
         _sut.IsWeaponAssigned(_leftArmWeapon).ShouldBeFalse();
         _sut.IsWeaponAssigned(_leftArmWeapon, _target1).ShouldBeFalse();
     }
+
+    [Fact]
+    public void SetPrimaryTarget_WithValidTarget_ShouldSetPrimaryTarget()
+    {
+        // Arrange
+        _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
+        _sut.SetWeaponTarget(_torsoWeapon, _target2, _attacker);
+
+        // Act
+        _sut.SetPrimaryTarget(_target2);
+
+        // Assert
+        _sut.PrimaryTarget.ShouldBe(_target2);
+    }
+
+    [Fact]
+    public void SetPrimaryTarget_WithInvalidTarget_ShouldThrowException()
+    {
+        // Arrange
+        _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => _sut.SetPrimaryTarget(_target2));
+    }
+
+    [Fact]
+    public void SetPrimaryTarget_ShouldPersistAcrossWeaponChanges()
+    {
+        // Arrange
+        _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
+        _sut.SetWeaponTarget(_torsoWeapon, _target2, _attacker);
+        _sut.SetPrimaryTarget(_target2);
+
+        // Act - Add another weapon to target1
+        var rightArmWeapon = CreateWeapon(PartLocation.RightArm, _attacker);
+        _sut.SetWeaponTarget(rightArmWeapon, _target1, _attacker);
+
+        // Assert - Primary target should still be target2
+        _sut.PrimaryTarget.ShouldBe(_target2);
+    }
+
+    [Fact]
+    public void UpdatePrimaryTarget_WhenPrimaryTargetRemovedFromTargets_ShouldSelectNewPrimary()
+    {
+        // Arrange
+        _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
+        _sut.SetWeaponTarget(_torsoWeapon, _target2, _attacker);
+        _sut.SetPrimaryTarget(_target2);
+
+        // Act - Remove all weapons targeting target2
+        _sut.RemoveWeaponTarget(_torsoWeapon, _attacker);
+
+        // Assert - Primary target should now be target1 (the only remaining target)
+        _sut.PrimaryTarget.ShouldBe(_target1);
+    }
 }
