@@ -50,6 +50,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = [],
             WeaponHeatSources = [],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -90,6 +91,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = movementHeatSources,
             WeaponHeatSources = [],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -132,6 +134,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = [],
             WeaponHeatSources = weaponHeatSources,
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -180,6 +183,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = movementHeatSources,
             WeaponHeatSources = weaponHeatSources,
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -218,6 +222,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = [],
             WeaponHeatSources = [],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,

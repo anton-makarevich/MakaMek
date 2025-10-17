@@ -57,7 +57,8 @@ public class HeatProjectionViewModelTests
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
                 DissipationPoints = 0
-            }
+            },
+            ExternalHeatSources = []
         });
 
         // Act
@@ -252,7 +253,8 @@ public class HeatProjectionViewModelTests
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
                 DissipationPoints = 0
-            }
+            },
+            ExternalHeatSources = []
         });
         _attacker.ResetTurnState();
 
@@ -301,7 +303,8 @@ public class HeatProjectionViewModelTests
                 HeatSinks = 0,
                 EngineHeatSinks = 0,
                 DissipationPoints = 0
-            }
+            },
+            ExternalHeatSources = []
         });
         
         // Act

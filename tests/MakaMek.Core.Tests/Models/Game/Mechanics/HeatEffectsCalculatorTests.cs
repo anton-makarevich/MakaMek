@@ -416,6 +416,7 @@ public class HeatEffectsCalculatorTests
                     HeatPoints = heatLevel
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = default
         };
         mech.ApplyHeat(heatData);

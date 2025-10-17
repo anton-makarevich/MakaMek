@@ -203,12 +203,12 @@ public abstract class Unit
     {
         var movementHeatSources = new List<MovementHeatData>();
         var weaponHeatSources = new List<WeaponHeatData>();
-        
+
         // Calculate movement heat
         if (MovementTypeUsed.HasValue)
         {
             var movementHeatPoints = rulesProvider.GetMovementHeatPoints(MovementTypeUsed.Value, MovementPointsSpent);
-                
+
             if (movementHeatPoints > 0)
             {
                 movementHeatSources.Add(new MovementHeatData
@@ -219,7 +219,7 @@ public abstract class Unit
                 });
             }
         }
-        
+
         // Calculate weapon heat for weapons with targets
         var weaponTargets = GetAllWeaponTargetsData();
 
@@ -238,7 +238,7 @@ public abstract class Unit
                 HeatPoints = weapon.Heat
             });
         }
-        
+
         // Get heat dissipation
         var heatSinks = GetAvailableComponents<HeatSink>().Count();
         var engineHeatSinks = EngineHeatSinks;
@@ -249,11 +249,16 @@ public abstract class Unit
             EngineHeatSinks = engineHeatSinks,
             DissipationPoints = heatDissipation
         };
-        
+
+        // Get external heat sources (from weapons like Flamers)
+        var externalHeatSources = new List<ExternalHeatData>(_turnExternalHeat);
+
         return new HeatData
         {
+            ExternalHeatCap = rulesProvider.GetExternalHeatCap(),
             MovementHeatSources = movementHeatSources,
             WeaponHeatSources = weaponHeatSources,
+            ExternalHeatSources = externalHeatSources,
             DissipationData = dissipationData,
             EngineHeatSource = EngineHeatPenalty
         };
@@ -267,6 +272,7 @@ public abstract class Unit
             - heatData.TotalHeatDissipationPoints);
         ApplyHeatEffects();
         HasAppliedHeat = true;
+        _turnExternalHeat.Clear();
     }
 
     protected abstract void ApplyHeatEffects();
@@ -324,6 +330,11 @@ public abstract class Unit
     public int TotalPhaseDamage { get; private set; }
 
     /// <summary>
+    /// Tracks external heat applied to this unit during the current phase (e.g., from Flamers)
+    /// </summary>
+    private readonly List<ExternalHeatData> _turnExternalHeat = [];
+
+    /// <summary>
     /// Indicates whether this unit has declared weapon attacks for the current turn
     /// </summary>
     public bool HasDeclaredWeaponAttack { get; private set; }
@@ -364,6 +375,22 @@ public abstract class Unit
         TotalPhaseDamage = 0;
     }
 
+    /// <summary>
+    /// Adds external heat to this unit from a weapon attack
+    /// </summary>
+    /// <param name="weaponName">Name of the weapon applying external heat</param>
+    /// <param name="heatPoints">Amount of external heat to apply</param>
+    public void AddExternalHeat(string weaponName, int heatPoints)
+    {
+        if (heatPoints <= 0) return;
+
+        _turnExternalHeat.Add(new ExternalHeatData
+        {
+            WeaponName = weaponName,
+            HeatPoints = heatPoints
+        });
+    }
+    
     private void ResetWeaponsTargets()
     {
         _weaponTargets.Clear();

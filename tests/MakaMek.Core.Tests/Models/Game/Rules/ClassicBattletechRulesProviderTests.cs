@@ -654,5 +654,15 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules
             // Assert
             result.ShouldBe(expectedAvoidNumber);
         }
+        
+        [Fact]
+        public void GetExternalHeatCap_ShouldReturnExpectedValue()
+        {
+            // Act
+            var result = _sut.GetExternalHeatCap();
+
+            // Assert
+            result.ShouldBe(15);
+        }
     }
 }

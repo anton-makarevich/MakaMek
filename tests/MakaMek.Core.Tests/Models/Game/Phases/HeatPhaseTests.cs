@@ -493,6 +493,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
                 HeatPoints = 15
             }
             ],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 0,

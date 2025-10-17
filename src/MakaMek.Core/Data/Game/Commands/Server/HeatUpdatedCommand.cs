@@ -54,7 +54,16 @@ public record struct HeatUpdatedCommand : IGameCommand
                 source.WeaponName,
                 source.HeatPoints).AppendLine();
         }
-        
+
+        // External heat sources
+        foreach (var source in HeatData.ExternalHeatSources)
+        {
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_HeatUpdated_ExternalHeat"),
+                source.WeaponName,
+                source.HeatPoints).AppendLine();
+        }
+
         // Total heat generated
         stringBuilder.AppendFormat(
             localizationService.GetString("Command_HeatUpdated_TotalGenerated"),

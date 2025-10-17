@@ -14,6 +14,7 @@ public abstract class Weapon : Component
 
     public int Damage => WeaponDefinition.TotalDamage;
     public int Heat => WeaponDefinition.Heat;
+    public int ExternalHeat => WeaponDefinition.ExternalHeat;
     public int MinimumRange => WeaponDefinition.MinimumRange;
     public int ShortRange => WeaponDefinition.ShortRange;
     public int MediumRange => WeaponDefinition.MediumRange;

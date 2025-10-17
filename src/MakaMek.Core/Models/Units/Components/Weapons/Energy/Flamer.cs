@@ -2,7 +2,7 @@
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 
-public sealed class Flamer : Weapon
+public sealed class Flamer(ComponentData? componentData = null) : Weapon(Definition, componentData)
 {
     // Static definition for this weapon type
     public static readonly WeaponDefinition Definition = new(
@@ -15,10 +15,8 @@ public sealed class Flamer : Weapon
         LongRange: 3,
         Type: WeaponType.Energy,
         BattleValue: 6,
-        WeaponComponentType: MakaMekComponent.Flamer);
+        WeaponComponentType: MakaMekComponent.Flamer,
+        ExternalHeat: 2);
 
     // Constructor uses the static definition
-    public Flamer(ComponentData? componentData = null) : base(Definition, componentData)
-    {
-    }
 }

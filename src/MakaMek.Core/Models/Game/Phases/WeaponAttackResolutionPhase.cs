@@ -368,6 +368,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         if (resolution is { IsHit: true, HitLocationsData.HitLocations: not null })
         {
             target.ApplyDamage(resolution.HitLocationsData.HitLocations, resolution.AttackDirection);
+
+            // Apply external heat if the weapon has ExternalHeat property
+            if (weapon.ExternalHeat > 0)
+            {
+                target.AddExternalHeat(weapon.Name, weapon.ExternalHeat);
+            }
         }
 
         // Check which parts are newly destroyed

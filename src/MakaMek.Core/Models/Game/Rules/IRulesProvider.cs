@@ -126,4 +126,6 @@ public interface IRulesProvider
     /// - 8: Avoid on 8+ (heat 28+)
     /// </returns>
     int GetHeatAmmoExplosionAvoidNumber(int heatLevel);
+
+    int GetExternalHeatCap();
 }
