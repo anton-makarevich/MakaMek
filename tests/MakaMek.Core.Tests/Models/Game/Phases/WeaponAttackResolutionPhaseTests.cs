@@ -898,7 +898,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void PublishCommand_ShouldApplyDamage()
+    public void PublishCommand_ShouldApplyDamageAndExternalHeat()
     {
         // Arrange
         SetupPlayer1WeaponTargets();
@@ -914,6 +914,8 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         // Verify that damage was applied to the target
         _player2Unit1.TotalCurrentArmor.ShouldBeLessThan(initialArmor);
+        var externalHeat = _player2Unit1.GetHeatData(_rulesProvider).ExternalHeatPoints;
+        externalHeat.ShouldBe(2);
     }
 
     [Fact]
@@ -1241,7 +1243,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         : Weapon(new WeaponDefinition(
             "Test Weapon", damage, 3,
             0, 3, 6, 9,
-            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType));
+            type, 10, 1, 1, 1, 1, MakaMekComponent.MachineGun, ammoType, 2));
 
     // Custom cluster weapon class that allows setting damage for testing
     private class TestClusterWeapon(
