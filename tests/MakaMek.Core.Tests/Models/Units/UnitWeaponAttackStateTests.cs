@@ -183,13 +183,14 @@ public class UnitWeaponAttackStateTests
     }
 
     [Fact]
-    public void SetPrimaryTarget_WithInvalidTarget_ShouldThrowException()
+    public void SetPrimaryTarget_WithInvalidTarget_ShouldNotSetPrimaryTarget()
     {
         // Arrange
         _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
 
         // Act & Assert
-        Should.Throw<InvalidOperationException>(() => _sut.SetPrimaryTarget(_target2));
+        _sut.SetPrimaryTarget(_target2);
+        _sut.PrimaryTarget.ShouldBe(_target1);
     }
 
     [Fact]

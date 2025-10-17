@@ -108,13 +108,12 @@ public class UnitWeaponAttackState
     /// Manually sets the primary target
     /// </summary>
     /// <param name="target">The target to set as primary</param>
-    /// <exception cref="InvalidOperationException">Thrown when the target is not in the current target list</exception>
     public void SetPrimaryTarget(Unit target)
     {
         // Verify that the target is actually in our target list
         if (!AllTargets.Contains(target))
         {
-            throw new InvalidOperationException("Cannot set a target as primary that is not currently being targeted");
+            return;
         }
 
         PrimaryTarget = target;

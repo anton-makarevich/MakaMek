@@ -150,7 +150,11 @@ public class BattleMapViewModel : BaseViewModel
     public TargetSelectionViewModel? SelectedTarget
     {
         get => _selectedTarget;
-        set => SetProperty(ref _selectedTarget, value);
+        set
+        {
+            SetProperty(ref _selectedTarget, value);
+            NotifyPropertyChanged(nameof(IsWeaponSelectionVisible));
+        }
     }
 
     public HeatProjectionViewModel HeatProjection { get; }
