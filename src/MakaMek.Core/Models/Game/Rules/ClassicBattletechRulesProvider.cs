@@ -474,4 +474,9 @@ public class ClassicBattletechRulesProvider : IRulesProvider
             _ => 8       // 28+ => avoid on 8+
         };
     }
+    
+    public int GetExternalHeatCap()
+    {
+        return 15;
+    }
 }

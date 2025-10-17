@@ -22,6 +22,8 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units;
 
 public class UnitTests
 {
+    private readonly IRulesProvider _rulesProvider = Substitute.For<IRulesProvider>();
+    
     private class TestComponent(string name, int size = 1) : Component(new EquipmentDefinition(
         name,
         MakaMekComponent.Masc,
@@ -268,7 +270,7 @@ public class UnitTests
         };
         
         // Act
-        var act = () => unit.DeclareWeaponAttack(weaponTargets);
+        var  act = () => unit.DeclareWeaponAttack(weaponTargets);
         
         // Assert
         var ex = Should.Throw<InvalidOperationException>(act);
@@ -1648,6 +1650,7 @@ public class UnitTests
                     HeatPoints = 15
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = default
         });
 
@@ -2055,6 +2058,217 @@ public class UnitTests
         
         // Assert
         sut.Position.ShouldBeNull();
+    }
+    
+    [Fact]
+    public void AddExternalHeat_MultipleWeapons_AccumulatesHeat()
+    {
+        // Arrange
+        _rulesProvider.GetExternalHeatCap().Returns(15);
+        var sut = CreateTestUnit();
+        
+        // Act
+        sut.AddExternalHeat("Flamer 1", 2);
+        sut.AddExternalHeat("Flamer 2", 2);
+        sut.AddExternalHeat("Flamer 3", 2);
+        
+        // Assert
+        var heatData = sut.GetHeatData(_rulesProvider);
+        heatData.ExternalHeatPoints.ShouldBe(6);
+    }
+    
+    [Fact]
+    public void GetHeatData_ExternalHeatPoints_WithMoreThan15Points_CapsAt15()
+    {
+        // Arrange
+        _rulesProvider.GetExternalHeatCap().Returns(15);
+        var unit = CreateTestUnit();
+        
+        // 10 Flamers × 2 heat each = 20 total
+        for (var i = 0; i < 10; i++)
+        {
+            unit.AddExternalHeat($"Flamer {i}", 2);
+        }
+        
+        // Act & Assert
+        var heatData = unit.GetHeatData(_rulesProvider);
+        heatData.ExternalHeatPoints.ShouldBe(15);
+    }
+    
+    [Fact]
+    public void ApplyHeat_ClearsExternalHeat()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.AddExternalHeat("Flamer", 2);
+        var heatData =sut.GetHeatData(_rulesProvider);
+        heatData.ExternalHeatSources.Sum(s => s.HeatPoints).ShouldBe(2);
+        
+        // Act
+        sut.ApplyHeat(heatData) ;
+        
+        // Assert
+        sut.GetHeatData(_rulesProvider).ExternalHeatSources.Sum(s => s.HeatPoints).ShouldBe(0);
+    }
+    
+    [Fact]
+    public void GetHeatData_WithExternalHeat_IncludesExternalHeatSources()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.AddExternalHeat("Flamer 1", 2);
+        sut.AddExternalHeat("Flamer 2", 2);
+        
+        // Act
+        var heatData = sut.GetHeatData(_rulesProvider);
+        
+        // Assert
+        heatData.ExternalHeatSources.ShouldNotBeEmpty();
+        heatData.ExternalHeatSources.Count.ShouldBe(2);
+        heatData.ExternalHeatSources[0].WeaponName.ShouldBe("Flamer 1");
+        heatData.ExternalHeatSources[0].HeatPoints.ShouldBe(2);
+        heatData.ExternalHeatSources[1].WeaponName.ShouldBe("Flamer 2");
+        heatData.ExternalHeatSources[1].HeatPoints.ShouldBe(2);
+    }
+    
+    [Fact]
+    public void GetHeatData_WithNoExternalHeat_ReturnsEmptyExternalHeatSources()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Act
+        var heatData = sut.GetHeatData(_rulesProvider);
+        
+        // Assert
+        heatData.ExternalHeatSources.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void GetHeatData_TotalHeatPoints_IncludesExternalHeatWithCap()
+    {
+        // Arrange
+        _rulesProvider.GetExternalHeatCap().Returns(15);
+        var sut = CreateTestUnit();
+        
+        // Add 10 Flamers × 2 heat each = 20 total, but capped at 15
+        for (var i = 0; i < 10; i++)
+        {
+            sut.AddExternalHeat($"Flamer {i}", 2);
+        }
+        
+        // Act
+        var heatData = sut.GetHeatData(_rulesProvider);
+        
+        // Assert
+        // External heat sources should show all 20 points
+        heatData.ExternalHeatSources.Sum(s => s.HeatPoints).ShouldBe(20);
+        
+        // But TotalHeatPoints should cap external heat at 15
+        heatData.TotalHeatPoints.ShouldBe(15, "TotalHeatPoints should cap external heat at 15");
+    }
+    
+    [Fact]
+    public void GetHeatData_TotalHeatPoints_CombinesAllHeatSourcesWithExternalCap()
+    {
+        // Arrange
+        _rulesProvider.GetExternalHeatCap().Returns(15);
+        var sut = CreateTestUnit();
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition);
+        
+        // Add movement heat
+        sut.Move(MovementType.Run, [
+            new PathSegmentData
+            {
+                From = deployPosition.ToData(),
+                To = deployPosition.ToData(),
+                Cost = 5
+            }
+        ]);
+        
+        // Add external heat (10 Flamers × 2 = 20, capped at 15)
+        for (var i = 0; i < 10; i++)
+        {
+            sut.AddExternalHeat($"Flamer {i}", 2);
+        }
+        
+        _rulesProvider.GetMovementHeatPoints(MovementType.Run, 5).Returns(2);
+        
+        // Act
+        var heatData = sut.GetHeatData(_rulesProvider);
+        
+        // Assert
+        // Movement: 2, External: 15 (capped from 20)
+        heatData.TotalHeatPoints.ShouldBe(17);
+    }
+    
+    [Fact]
+    public void ApplyHeat_WithExternalHeat_IncreasesCurrentHeat()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var initialHeat = sut.CurrentHeat;
+        
+        var heatData = new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [],
+            ExternalHeatSources = [
+                new ExternalHeatData { WeaponName = "Flamer 1", HeatPoints = 2 },
+                new ExternalHeatData { WeaponName = "Flamer 2", HeatPoints = 2 }
+            ],
+            DissipationData = new HeatDissipationData
+            {
+                HeatSinks = 0,
+                EngineHeatSinks = 0,
+                DissipationPoints = 0
+            }
+        };
+        
+        // Act
+        sut.ApplyHeat(heatData);
+        
+        // Assert
+        sut.CurrentHeat.ShouldBe(initialHeat + 4);
+    }
+    
+    [Fact]
+    public void ApplyHeat_WithExternalHeatExceedingCap_AppliesOnlyCappedAmount()
+    {
+        // Arrange
+        var unit = CreateTestUnit();
+        var initialHeat = unit.CurrentHeat;
+        
+        // Create 10 external heat sources × 2 points = 20 total
+        var externalHeatSources = new List<ExternalHeatData>();
+        for (var i = 0; i < 10; i++)
+        {
+            externalHeatSources.Add(new ExternalHeatData 
+            { 
+                WeaponName = $"Flamer {i}", 
+                HeatPoints = 2 
+            });
+        }
+        
+        var heatData = new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [],
+            ExternalHeatSources = externalHeatSources,
+            DissipationData = new HeatDissipationData
+            {
+                HeatSinks = 0,
+                EngineHeatSinks = 0,
+                DissipationPoints = 0
+            }
+        };
+        
+        // Act
+        unit.ApplyHeat(heatData);
+        
+        // Assert
+        unit.CurrentHeat.ShouldBe(initialHeat + 15, "Should apply only 15 points of external heat (capped)");
     }
 
     // Helper class for testing explodable components

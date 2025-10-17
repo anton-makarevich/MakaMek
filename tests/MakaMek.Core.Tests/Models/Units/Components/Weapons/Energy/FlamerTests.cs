@@ -35,12 +35,22 @@ public class FlamerTests
     public void Hit_DestroysFlamer()
     {
         // Arrange
-        var flamer = new Flamer();
+        var sut = new Flamer();
 
         // Act
-        flamer.Hit();
+        sut.Hit();
 
         // Assert
-        flamer.IsDestroyed.ShouldBeTrue();
+        sut.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void Flamer_HasExternalHeatProperty()
+    {
+        // Arrange & Act
+        var sut = new Flamer();
+        
+        // Assert
+        sut.ExternalHeat.ShouldBe(2, "Flamer should apply 2 points of external heat to targets");
     }
 }

@@ -84,6 +84,8 @@ public class HeatProjectionViewModel : BindableBase
 
             // Include engine heat penalty if present
             var engineHeat = heatData.EngineHeatSource?.Value ?? 0;
+            
+            // External heat is not included as it's applied after the attack resolution
 
             ProjectedHeat = CurrentHeat + movementHeat + weaponHeat + engineHeat;
         }

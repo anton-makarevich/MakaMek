@@ -50,6 +50,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = [],
             WeaponHeatSources = [],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -90,6 +91,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = movementHeatSources,
             WeaponHeatSources = [],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -132,6 +134,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = [],
             WeaponHeatSources = weaponHeatSources,
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -160,6 +163,96 @@ public class HeatUpdatedCommandTests
         result.ShouldContain("Total heat generated: 11");
         result.ShouldContain("Heat dissipation from 10 heat sinks and 10 engine heat sinks: -20 heat");
     }
+    
+    [Fact]
+    public void Render_WithExternalHeat_ReturnsExpectedString()
+    {
+        // Arrange
+        var externalHeatSources = new List<ExternalHeatData>
+        {
+            new() { WeaponName = "Flamer 1", HeatPoints = 2 },
+            new() { WeaponName = "Flamer 2", HeatPoints = 2 }
+        };
+
+        var heatData = new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [],
+            ExternalHeatSources = externalHeatSources,
+            DissipationData = new HeatDissipationData
+            {
+                HeatSinks = 10,
+                EngineHeatSinks = 10,
+                DissipationPoints = 20
+            }
+        };
+
+        var command = new HeatUpdatedCommand
+        {
+            UnitId = _unit.Id,
+            HeatData = heatData,
+            PreviousHeat = 0,
+            GameOriginId = _gameId,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain($"Heat update for {_unit.Model} (Previous: 0)");
+        result.ShouldContain("Heat sources:");
+        result.ShouldContain("External heat from Flamer 1: 2 heat");
+        result.ShouldContain("External heat from Flamer 2: 2 heat");
+        result.ShouldContain("Total heat generated: 4");
+        result.ShouldContain("Heat dissipation from 10 heat sinks and 10 engine heat sinks: -20 heat");
+    }
+    
+    [Fact]
+    public void Render_WithExternalHeatExceedingCap_ReturnsExpectedString()
+    {
+        // Arrange
+        List<ExternalHeatData> externalHeatSources = [];
+        for (var i = 0; i < 10; i++)
+        {
+            externalHeatSources.Add(new ExternalHeatData { WeaponName = $"Flamer {i}", HeatPoints = 2 });
+        }
+
+        var heatData = new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [],
+            ExternalHeatSources = externalHeatSources,
+            DissipationData = new HeatDissipationData
+            {
+                HeatSinks = 10,
+                EngineHeatSinks = 10,
+                DissipationPoints = 20
+            }
+        };
+
+        var command = new HeatUpdatedCommand
+        {
+            UnitId = _unit.Id,
+            HeatData = heatData,
+            PreviousHeat = 0,
+            GameOriginId = _gameId,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var result = command.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain($"Heat update for {_unit.Model} (Previous: 0)");
+        result.ShouldContain("Heat sources:");
+        for (var i = 0; i < 10; i++)
+        {
+            result.ShouldContain($"External heat from Flamer {i}: 2 heat");
+        }
+        result.ShouldContain("Total heat generated: 15");
+        result.ShouldContain("Wasted 5 points of external heat");
+    }
 
     [Fact]
     public void Render_WithCombinedHeatSources_ReturnsExpectedString()
@@ -180,6 +273,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = movementHeatSources,
             WeaponHeatSources = weaponHeatSources,
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -218,6 +312,7 @@ public class HeatUpdatedCommandTests
         {
             MovementHeatSources = [],
             WeaponHeatSources = [],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,

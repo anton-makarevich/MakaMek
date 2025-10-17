@@ -244,6 +244,8 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_HeatUpdated_Sources", "Heat sources:")]
     [InlineData("Command_HeatUpdated_MovementHeat", "+ {0} movement ({1} MP): {2} heat")]
     [InlineData("Command_HeatUpdated_WeaponHeat", "+ Firing {0}: {1} heat")]
+    [InlineData("Command_HeatUpdated_ExternalHeat", "+ External heat from {0}: {1} heat")]
+    [InlineData("Command_HeatUpdated_ExternalHeat_Lost", "- Wasted {0} points of external heat")]
     [InlineData("Command_HeatUpdated_TotalGenerated", "Total heat generated: {0}")]
     [InlineData("Command_HeatUpdated_Dissipation", "- Heat dissipation from {0} heat sinks and {1} engine heat sinks: -{2} heat")]
     // Start phase
@@ -292,7 +294,19 @@ public class FakeLocalizationServiceTests
     [InlineData("Command_PilotConsciousnessRoll_Failure", "{0} {1} roll failed")]
     [InlineData("Command_PilotConsciousnessRoll_ConsciousnessNumber", "Consciousness Number: {0}")]
     [InlineData("Command_RollResult", "Roll Result: {0}")]
+    public void GetString_Commands_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
 
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
     // Pilot status
     [InlineData("Pilot_Status_Unknown", "UNKNOWN")]
     [InlineData("Pilot_Status_Conscious", "CONSCIOUS")]

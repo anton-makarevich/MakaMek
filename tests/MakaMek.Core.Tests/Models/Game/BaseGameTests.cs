@@ -441,6 +441,7 @@ public class BaseGameTests : BaseGame
                 [],
                 true,
                 HitDirection.Front,
+                0,
                 new AttackHitLocationsData([], 0, [], 0))
         };
 
@@ -497,6 +498,7 @@ public class BaseGameTests : BaseGame
                 [],
                 false, // Attack missed
                 HitDirection.Front,
+                0,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 
@@ -555,6 +557,7 @@ public class BaseGameTests : BaseGame
                 [],
                 true,
                 HitDirection.Front,
+                0,
                 new AttackHitLocationsData([], 0, [], 0))
         };
 
@@ -565,7 +568,7 @@ public class BaseGameTests : BaseGame
     }
 
     [Fact]
-    public void OnWeaponsAttackResolution_ShouldFireWeaponAndApplyDamage()
+    public void OnWeaponsAttackResolution_ShouldFireWeaponAndApplyDamageAndExternalHeat()
     {
         // Arrange
         // Add attacker player and unit
@@ -635,6 +638,7 @@ public class BaseGameTests : BaseGame
                 [],
                 true,
                 HitDirection.Front,
+                2,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 
@@ -645,6 +649,7 @@ public class BaseGameTests : BaseGame
         // Verify that damage was applied to the target
         centerTorsoPart.CurrentArmor.ShouldBe(initialCenterTorsoArmor - 5);
         leftArmPart.CurrentArmor.ShouldBe(initialLeftArmArmor - 3);
+        targetMech.GetHeatData(RulesProviderInstance).ExternalHeatPoints.ShouldBe(2);
     }
 
     [Fact]

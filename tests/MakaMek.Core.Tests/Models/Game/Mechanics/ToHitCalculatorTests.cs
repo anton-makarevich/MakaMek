@@ -233,6 +233,7 @@ public class ToHitCalculatorTests
                     WeaponName = ""
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = default
         });
         

@@ -21,7 +21,8 @@ public record WeaponDefinition(
     int Size = 1,
     int FullAmmoRounds = 1,
     MakaMekComponent WeaponComponentType = MakaMekComponent.MachineGun,
-    MakaMekComponent? AmmoComponentType = null)
+    MakaMekComponent? AmmoComponentType = null,
+    int ExternalHeat = 0)
     : ComponentDefinition(Name, Size, 1, BattleValue, true, WeaponComponentType)
 {
     /// <summary>

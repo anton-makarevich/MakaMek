@@ -23,7 +23,7 @@ public interface IRulesProvider
     /// <summary>
     /// Gets the modifier for firing at a specific range bracket
     /// </summary>
-    int GetRangeModifier(WeaponRange  rangeType, int rangeValue, int distance);
+    int GetRangeModifier(WeaponRange rangeType, int rangeValue, int distance);
 
     /// <summary>
     /// Gets the to-hit modifier for a specific terrain type
@@ -49,7 +49,7 @@ public interface IRulesProvider
     /// <param name="isFrontArc">Whether the target is in the front arc</param>
     /// <returns>The modifier value to apply</returns>
     int GetSecondaryTargetModifier(bool isFrontArc);
-    
+
     /// <summary>
     /// Determines the hit location on a unit based on dice roll and attack direction
     /// </summary>
@@ -57,7 +57,7 @@ public interface IRulesProvider
     /// <param name="attackDirection">The direction from which the attack is coming</param>
     /// <returns>The part location that was hit</returns>
     PartLocation GetHitLocation(int diceResult, HitDirection attackDirection);
-    
+
     /// <summary>
     /// Determines how many missiles hit the target based on the cluster hit table
     /// </summary>
@@ -65,7 +65,7 @@ public interface IRulesProvider
     /// <param name="weaponSize">The total number of missiles in the weapon (Clusters * ClusterSize)</param>
     /// <returns>The number of missiles that hit the target</returns>
     int GetClusterHits(int diceResult, int weaponSize);
-    
+
     /// <summary>
     /// Determines the new facing direction after a fall based on a die roll
     /// </summary>
@@ -73,7 +73,7 @@ public interface IRulesProvider
     /// <param name="currentFacing">The unit's current facing direction</param>
     /// <returns>The new facing direction after the fall</returns>
     HexDirection GetFacingAfterFall(int roll, HexDirection currentFacing);
-    
+
     /// <summary>
     /// Determines the attack direction for hit location purposes after a fall
     /// </summary>
@@ -126,4 +126,10 @@ public interface IRulesProvider
     /// - 8: Avoid on 8+ (heat 28+)
     /// </returns>
     int GetHeatAmmoExplosionAvoidNumber(int heatLevel);
+
+    /// <summary>
+    /// Gets the maximum external heat points that can be applied to a unit per turn
+    /// </summary>
+    /// <returns>The external heat cap (typically 15 for Classic BattleTech)</returns>
+    int GetExternalHeatCap();
 }

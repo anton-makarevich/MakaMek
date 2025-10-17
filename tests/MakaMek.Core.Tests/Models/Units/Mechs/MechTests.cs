@@ -913,6 +913,7 @@ public class MechTests
                     HeatPoints = heat
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = default
         };
 
@@ -1292,6 +1293,7 @@ public class MechTests
                     HeatPoints = 15
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = default
         });
 
@@ -1303,6 +1305,7 @@ public class MechTests
         {
             MovementHeatSources = [],
             WeaponHeatSources = [],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 DissipationPoints = 12,
@@ -1346,6 +1349,7 @@ public class MechTests
                     HeatPoints = heat
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = default
         };
 
@@ -1375,6 +1379,7 @@ public class MechTests
                     HeatPoints = 17
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = default
         });
 
@@ -1386,6 +1391,7 @@ public class MechTests
         {
             MovementHeatSources = [],
             WeaponHeatSources = [],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 DissipationPoints = 10,
@@ -1449,6 +1455,7 @@ public class MechTests
                     HeatPoints = heatPoints
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = default
         });
 
@@ -1950,6 +1957,7 @@ public class MechTests
                     HeatPoints = 6
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = default
         };
         sut.ApplyHeat(heatData);

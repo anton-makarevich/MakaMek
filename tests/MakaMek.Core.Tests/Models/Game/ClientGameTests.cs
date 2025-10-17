@@ -1009,6 +1009,7 @@ public class ClientGameTests
                 [],
                 true,
                 HitDirection.Front,
+                0,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 
@@ -1053,7 +1054,7 @@ public class ClientGameTests
         // Create heat data
         var heatData = new HeatData
         {
-            MovementHeatSources = 
+            MovementHeatSources =
             [
                 new MovementHeatData
                 {
@@ -1062,7 +1063,7 @@ public class ClientGameTests
                     HeatPoints = 12
                 }
             ],
-            WeaponHeatSources = 
+            WeaponHeatSources =
             [
                 new WeaponHeatData
                 {
@@ -1070,6 +1071,7 @@ public class ClientGameTests
                     HeatPoints = 13
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -1121,7 +1123,7 @@ public class ClientGameTests
         // Create heat data
         var heatData = new HeatData
         {
-            MovementHeatSources = 
+            MovementHeatSources =
             [
                 new MovementHeatData
                 {
@@ -1130,7 +1132,7 @@ public class ClientGameTests
                     HeatPoints = 12
                 }
             ],
-            WeaponHeatSources = 
+            WeaponHeatSources =
             [
                 new WeaponHeatData
                 {
@@ -1138,6 +1140,7 @@ public class ClientGameTests
                     HeatPoints = 13
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,
@@ -1189,7 +1192,7 @@ public class ClientGameTests
         // Create heat data
         var heatData = new HeatData
         {
-            MovementHeatSources = 
+            MovementHeatSources =
             [
                 new MovementHeatData
                 {
@@ -1198,7 +1201,7 @@ public class ClientGameTests
                     HeatPoints = 12
                 }
             ],
-            WeaponHeatSources = 
+            WeaponHeatSources =
             [
                 new WeaponHeatData
                 {
@@ -1206,6 +1209,7 @@ public class ClientGameTests
                     HeatPoints = 13
                 }
             ],
+            ExternalHeatSources = [],
             DissipationData = new HeatDissipationData
             {
                 HeatSinks = 10,

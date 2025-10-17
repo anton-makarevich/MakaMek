@@ -20,6 +20,7 @@ Complete as of v0.46.5. Allows to complete games locally and over the LAN.
 - Single-player combat with up to 4 players on a single device
 - Complete Turn flow implementation with all major phases including initiative, movement, attack declaration and resolution, heat and end phase
 - Critical hits, aimed shots, destruction of units, locations, and components
+- Optional rule where flamers apply both damage and heat to the targets  
 - Basic pilots implementation, unconsciousness, piloting skill rolls and falling
 - Heat effects, shutdown, ammo explosion, restart, pilot damage and to hit modifiers
 - Hex map generator (and previewer) with the simplest terrain types (clear, light, and heavy wood) ([MegaMek](https://megamek.org/)'s assets) without levels 

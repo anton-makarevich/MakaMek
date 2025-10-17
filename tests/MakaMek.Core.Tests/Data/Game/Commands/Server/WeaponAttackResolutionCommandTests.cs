@@ -97,6 +97,7 @@ public class WeaponAttackResolutionCommandTests
             [new DiceResult(4), new DiceResult(5)],
             true,
             HitDirection.Front,
+            0,
             hitLocationsData);
         
         return new WeaponAttackResolutionCommand
@@ -117,7 +118,8 @@ public class WeaponAttackResolutionCommandTests
             8,
             [new(2), new(3)],
             false,
-            HitDirection.Front);
+            HitDirection.Front,
+            0);
         
         return new WeaponAttackResolutionCommand
         {
@@ -152,6 +154,7 @@ public class WeaponAttackResolutionCommandTests
             [new DiceResult(4), new DiceResult(4)],
             true,
             HitDirection.Front,
+            0,
             hitLocationsData);
         
         return new WeaponAttackResolutionCommand
@@ -310,6 +313,7 @@ public class WeaponAttackResolutionCommandTests
             [new(4), new(5)],
             true,
             direction,
+            0,
             hitLocationsData);
         
         var sut = new WeaponAttackResolutionCommand
@@ -355,6 +359,7 @@ public class WeaponAttackResolutionCommandTests
             [new DiceResult(4), new DiceResult(5)],
             true,
             HitDirection.Front,
+            0,
             hitLocationsData);
 
         var sut = new WeaponAttackResolutionCommand
@@ -397,6 +402,7 @@ public class WeaponAttackResolutionCommandTests
             [new(4), new(5)],
             true,
             HitDirection.Front,
+            0,
             hitLocationsData,
             destroyedParts);
         
@@ -441,6 +447,7 @@ public class WeaponAttackResolutionCommandTests
             [new(4), new(5)],
             true,
             HitDirection.Front,
+            0,
             hitLocationsData,
             null,
             true);
