@@ -1009,6 +1009,7 @@ public class ClientGameTests
                 [],
                 true,
                 HitDirection.Front,
+                0,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 

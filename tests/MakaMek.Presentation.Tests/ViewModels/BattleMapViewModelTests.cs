@@ -1409,7 +1409,8 @@ public class BattleMapViewModelTests
                 ToHitNumber: 7,
                 AttackDirection: HitDirection.Front,
                 AttackRoll: [new DiceResult(6)],
-                IsHit: true),
+                IsHit: true,
+                ExternalHeat: 0),
             GameOriginId = Guid.NewGuid()
         };
         

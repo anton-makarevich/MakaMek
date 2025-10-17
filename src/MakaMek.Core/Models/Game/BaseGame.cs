@@ -251,11 +251,19 @@ public abstract class BaseGame : IGame
         
         if (targetUnit == null) return;
         
+        
+        if (attackResolutionCommand.ResolutionData is not { IsHit: true, HitLocationsData: not null }) return;
+        
         // Apply damage to the target unit using the hit locations data
-        if (attackResolutionCommand.ResolutionData is { IsHit: true, HitLocationsData: not null })
+        targetUnit.ApplyDamage(attackResolutionCommand.ResolutionData.HitLocationsData.HitLocations,
+            attackResolutionCommand.ResolutionData.AttackDirection);
+            
+        // Apply external heat if the weapon has ExternalHeat property
+        if (attackResolutionCommand is { ResolutionData.ExternalHeat: > 0 })
         {
-            targetUnit.ApplyDamage(attackResolutionCommand.ResolutionData.HitLocationsData.HitLocations,
-                attackResolutionCommand.ResolutionData.AttackDirection);
+            targetUnit.AddExternalHeat(
+                attackResolutionCommand.WeaponData.Name ?? "Unknown",
+                attackResolutionCommand.ResolutionData.ExternalHeat);
         }
     }
     

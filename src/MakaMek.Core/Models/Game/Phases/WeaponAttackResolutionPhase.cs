@@ -156,7 +156,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // If hit, determine location and damage
         AttackHitLocationsData? hitLocationsData = null;
 
-        if (!isHit) return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
+        if (!isHit) return new AttackResolutionData(toHitNumber,
+            attackRoll,
+            isHit,
+            attackDirection,
+            weapon.ExternalHeat,
+            hitLocationsData);
         // Determine an attack direction once for this weapon attack
         attackDirection = DetermineAttackDirection(attacker, target);
 
@@ -167,7 +172,12 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             hitLocationsData = ResolveClusterWeaponHit(weapon, target, attackDirection, weaponTargetData);
 
             // Create hit locations data with multiple hits
-            return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
+            return new AttackResolutionData(toHitNumber,
+                attackRoll,
+                isHit,
+                attackDirection,
+                weapon.ExternalHeat,
+                hitLocationsData);
         }
 
         // Standard weapon, single hit location
@@ -181,10 +191,18 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             1 // Single hit
         );
 
-        return new AttackResolutionData(toHitNumber, attackRoll, isHit, attackDirection, hitLocationsData);
+        return new AttackResolutionData(toHitNumber,
+            attackRoll,
+            isHit,
+            attackDirection,
+            weapon.ExternalHeat,
+            hitLocationsData);
     }
 
-    private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon, Unit target, HitDirection attackDirection, WeaponTargetData weaponTargetData)
+    private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon,
+        Unit target,
+        HitDirection attackDirection,
+        WeaponTargetData weaponTargetData)
     {
         // Roll for cluster hits
         var clusterRoll = Game.DiceRoller.Roll2D6();

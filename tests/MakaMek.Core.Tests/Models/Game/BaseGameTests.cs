@@ -441,6 +441,7 @@ public class BaseGameTests : BaseGame
                 [],
                 true,
                 HitDirection.Front,
+                0,
                 new AttackHitLocationsData([], 0, [], 0))
         };
 
@@ -497,6 +498,7 @@ public class BaseGameTests : BaseGame
                 [],
                 false, // Attack missed
                 HitDirection.Front,
+                0,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 
@@ -555,6 +557,7 @@ public class BaseGameTests : BaseGame
                 [],
                 true,
                 HitDirection.Front,
+                0,
                 new AttackHitLocationsData([], 0, [], 0))
         };
 
@@ -635,6 +638,7 @@ public class BaseGameTests : BaseGame
                 [],
                 true,
                 HitDirection.Front,
+                0,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 
