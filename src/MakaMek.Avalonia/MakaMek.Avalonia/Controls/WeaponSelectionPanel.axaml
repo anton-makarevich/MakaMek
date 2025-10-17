@@ -25,7 +25,7 @@
         <Grid RowDefinitions="Auto,Auto,Auto,Auto,*"
               ColumnDefinitions="Auto,*"
               Width="300">
-            <TextBlock 
+            <TextBlock
                 Margin="10,0,0,0"
                 Grid.Column="0"
                 Grid.Row="0"
@@ -42,18 +42,37 @@
                 Grid.ColumnSpan="2"
                 Margin="10,5,10,5"
                 DataContext="{Binding HeatProjection}"/>
-            <TextBlock 
-                Margin="10,0,0,0"
-                Grid.Column="0"
-                Grid.Row="2"
-                FontFamily="{StaticResource AwesomeFontSolid}" Text="&#xf05b;"/>
+
+            <!-- Selected Target Section -->
             
-                
-            <TextBlock
-                    Margin="10,0,0,0"
-                    Grid.Row="2"
-                    Grid.Column="1"
-                    Text="{Binding SelectedUnit.Name}"/>
+            <StackPanel
+                DataContext="{Binding SelectedTarget}"
+                Grid.Row="2"
+                Grid.Column="0"
+                Grid.ColumnSpan="2"
+                Margin="10,10,0,0"
+                Orientation="Horizontal" Spacing="5">
+                <TextBlock
+                    FontFamily="{StaticResource AwesomeFontSolid}"
+                    Text="&#xf05b;"/>
+                <TextBlock Text="{Binding Name}"/>
+                <Panel IsVisible="{Binding HasWeaponsForTarget}">
+                    <Border
+                        VerticalAlignment="Center"
+                        Classes="statusTag"
+                        IsVisible="{Binding IsPrimary}">
+                        <TextBlock Text="PRIMARY"/>
+                    </Border>
+                    <Button
+                        Classes="outline"
+                        IsVisible="{Binding IsSecondary}"
+                        Command="{Binding SetAsPrimary}"
+                        Padding="5,2"
+                        FontSize="10">
+                        Set Primary
+                    </Button>
+                </Panel>
+            </StackPanel>
 
             <ScrollViewer Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
                 <ItemsControl 

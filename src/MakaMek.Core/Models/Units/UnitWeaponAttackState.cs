@@ -105,6 +105,26 @@ public class UnitWeaponAttackState
     }
 
     /// <summary>
+    /// Manually sets the primary target
+    /// </summary>
+    /// <param name="target">The target to set as primary</param>
+    public void SetPrimaryTarget(Unit? target)
+    {
+        if (target == null)
+        {
+            PrimaryTarget = null;
+            return;
+        }
+        // Verify that the target is actually in our target list
+        if (!AllTargets.Contains(target))
+        {
+            return;
+        }
+
+        PrimaryTarget = target;
+    }
+
+    /// <summary>
     /// Updates the primary target based on current weapon selections
     /// </summary>
     private void UpdatePrimaryTarget(Unit attacker)
@@ -114,42 +134,48 @@ public class UnitWeaponAttackState
             PrimaryTarget = null;
             return;
         }
-        
+
         // Get all unique targets
         var targets = _weaponTargets.Values.Distinct().ToList();
-        
+
         // If only one target, it's the primary
         if (targets.Count == 1)
         {
             PrimaryTarget = targets[0];
             return;
         }
-        
+
+        // If primary target is already set and still valid, keep it
+        if (PrimaryTarget != null && targets.Contains(PrimaryTarget))
+        {
+            return;
+        }
+
         // For multiple targets, prefer targets in the forward arc
         if (attacker.Position == null)
         {
             PrimaryTarget = targets[0];
             return;
         }
-        
+
         var attackerPosition = attacker.Position;
         var facing = attacker is Mech mech ? mech.TorsoDirection : attackerPosition.Facing;
-        
+
         if (facing == null)
         {
             PrimaryTarget = targets[0];
             return;
         }
-        
+
         // Find targets in the forward arc
         var targetsInForwardArc = targets
-            .Where(t => t.Position != null && 
+            .Where(t => t.Position != null &&
                        attackerPosition.Coordinates.IsInFiringArc(
-                           t.Position.Coordinates, 
-                           facing.Value, 
+                           t.Position.Coordinates,
+                           facing.Value,
                            FiringArc.Front))
             .ToList();
-            
+
         PrimaryTarget = targetsInForwardArc.Count > 0 ? targetsInForwardArc[0] : targets[0];
     }
 }

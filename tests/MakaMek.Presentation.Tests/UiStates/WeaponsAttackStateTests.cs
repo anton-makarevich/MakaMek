@@ -1712,4 +1712,57 @@ public class WeaponsAttackStateTests
         _sut.SelectedTarget.ShouldBe(target2);
         _sut.Attacker.ShouldBe(attacker);
     }
+    
+    [Fact]
+    public void HandleSetPrimaryTarget_SetsPrimaryTarget_WhenSetAsPrimaryCommandExecuted()
+    {
+        // Arrange
+        var attackingPlayer = _game.Players[0];
+        var targetPlayer = _game.Players[1];
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == attackingPlayer.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id == targetPlayer.Id);
+
+        // Deploy units close to each other
+        var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 4), HexDirection.Bottom);
+
+        attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        target.Deploy(targetPosition);
+
+        // Set active player
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attackingPlayer.Id,
+            UnitsToPlay = 1
+        });
+
+        // Select attacker and enter target selection
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+
+        // Select target
+        _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+
+        // Select a weapon for the target (initially this target is not primary)
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
+        weaponSelection.IsSelected = true;
+
+        // Ensure target is not primary initially
+        attacker.WeaponAttackState.SetPrimaryTarget(null);
+        _sut.PrimaryTarget.ShouldBeNull();
+
+        // Act - Invoke the private method via the command callback
+        _battleMapViewModel.SelectedTarget?.SetAsPrimary.Execute(null);
+
+        // Assert
+        _sut.PrimaryTarget.ShouldBe(target);
+        attacker.WeaponAttackState.PrimaryTarget.ShouldBe(target);
+    }
 }

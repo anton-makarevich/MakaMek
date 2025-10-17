@@ -146,13 +146,25 @@ public class BattleMapViewModel : BaseViewModel
 
     public ObservableCollection<WeaponSelectionViewModel> WeaponSelectionItems { get; } = [];
 
+    private TargetSelectionViewModel? _selectedTarget;
+    public TargetSelectionViewModel? SelectedTarget
+    {
+        get => _selectedTarget;
+        set
+        {
+            SetProperty(ref _selectedTarget, value);
+            NotifyPropertyChanged(nameof(IsWeaponSelectionVisible));
+        }
+    }
+
     public HeatProjectionViewModel HeatProjection { get; }
 
     public HeatProjectionViewModel SelectedUnitHeatProjection { get; }
 
     public bool IsWeaponSelectionVisible
     {
-        get => CurrentState is WeaponsAttackState { CurrentStep: WeaponsAttackStep.TargetSelection, SelectedTarget: not null }
+        get => CurrentState is WeaponsAttackState { CurrentStep: WeaponsAttackStep.TargetSelection }
+            && SelectedTarget != null
             && _isWeaponSelectionVisible;
         set => SetProperty(ref _isWeaponSelectionVisible, value);
     }

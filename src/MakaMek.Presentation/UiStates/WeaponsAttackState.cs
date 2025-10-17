@@ -19,6 +19,7 @@ public class WeaponsAttackState : IUiState
     private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly ClientGame _game;
     private readonly Lock _stateLock = new();
+    private Unit? _selectedTarget;
 
     public WeaponsAttackStep CurrentStep { get; private set; } = WeaponsAttackStep.SelectingUnit;
 
@@ -212,7 +213,6 @@ public class WeaponsAttackState : IUiState
             Attacker = null;
             _weaponRanges.Clear();
             _weaponViewModels.Clear();
-            _viewModel.SelectedUnit = null;
             CurrentStep = WeaponsAttackStep.SelectingUnit;
             _viewModel.NotifyStateChanged();
         }
@@ -239,7 +239,6 @@ public class WeaponsAttackState : IUiState
             // Clear target and weapon selections
             Attacker?.WeaponAttackState.ClearAllWeaponTargets();
             SelectedTarget = null;
-            _viewModel.SelectedUnit = null;
             _viewModel.IsWeaponSelectionVisible = false;
 
             // Return to action selection step
@@ -430,7 +429,16 @@ public class WeaponsAttackState : IUiState
     
     public Unit? Attacker { get; private set; }
 
-    public Unit? SelectedTarget { get; private set; }
+    public Unit? SelectedTarget
+    {
+        get => _selectedTarget;
+        private set
+        {
+            _selectedTarget = value;
+            _viewModel.SelectedUnit = value;
+            UpdateSelectedTargetViewModel();
+        }
+    }
 
     public Unit? PrimaryTarget => Attacker?.WeaponAttackState.PrimaryTarget;
 
@@ -549,7 +557,43 @@ public class WeaponsAttackState : IUiState
         }
 
         UpdateWeaponViewModels();
+        UpdateSelectedTargetViewModel();
         _viewModel.NotifyStateChanged();
+    }
+
+    private void HandleSetPrimaryTarget(Unit target)
+    {
+        if (Attacker == null) return;
+
+        Attacker.WeaponAttackState.SetPrimaryTarget(target);
+        UpdateSelectedTargetViewModel();
+        UpdateWeaponViewModels();
+        _viewModel.NotifyStateChanged();
+    }
+
+    private void UpdateSelectedTargetViewModel()
+    {
+        if (SelectedTarget == null || Attacker == null)
+        {
+            _viewModel.SelectedTarget = null;
+            return;
+        }
+
+        // Only show target info if there are weapons assigned to this target
+        var hasWeaponsForTarget = Attacker.WeaponAttackState.WeaponTargets.Values.Contains(SelectedTarget);
+
+        var isPrimary = SelectedTarget == PrimaryTarget;
+
+        // Update or create the view model for the selected target
+        if (_viewModel.SelectedTarget?.Target == SelectedTarget)
+        {
+            _viewModel.SelectedTarget.IsPrimary = isPrimary;
+            _viewModel.SelectedTarget.HasWeaponsForTarget = hasWeaponsForTarget;
+        }
+        else
+        {
+            _viewModel.SelectedTarget = new TargetSelectionViewModel(SelectedTarget, isPrimary, hasWeaponsForTarget, HandleSetPrimaryTarget);
+        }
     }
 
     // DeterminePrimaryTarget method removed - now handled in UnitWeaponAttackState
@@ -603,11 +647,11 @@ public class WeaponsAttackState : IUiState
         SelectedTarget = null;
         Attacker = null;
         _viewModel.IsWeaponSelectionVisible = false;
-        
+
         // Clear the weapon view models
         _weaponViewModels.Clear();
         _viewModel.WeaponSelectionItems.Clear();
-        
+
         CurrentStep = WeaponsAttackStep.SelectingUnit;
         _viewModel.NotifyStateChanged();
     }
