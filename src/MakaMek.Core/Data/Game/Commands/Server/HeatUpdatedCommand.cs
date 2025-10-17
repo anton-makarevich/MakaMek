@@ -64,9 +64,10 @@ public record struct HeatUpdatedCommand : IGameCommand
                 source.HeatPoints).AppendLine();
         }
         // If external heat was capped, show the amount lost
-        if (HeatData.ExternalHeatPoints < HeatData.ExternalHeatSources.Sum(s => s.HeatPoints))
+        var externalHeatTotal = HeatData.ExternalHeatSources.Sum(s => s.HeatPoints);
+        if (HeatData.ExternalHeatPoints < externalHeatTotal)
         {
-            var lostHeat = HeatData.ExternalHeatSources.Sum(s => s.HeatPoints) - HeatData.ExternalHeatPoints;
+            var lostHeat = externalHeatTotal - HeatData.ExternalHeatPoints;
             stringBuilder.AppendFormat(localizationService.GetString("Command_HeatUpdated_ExternalHeat_Lost"), lostHeat)
                 .AppendLine();
         }

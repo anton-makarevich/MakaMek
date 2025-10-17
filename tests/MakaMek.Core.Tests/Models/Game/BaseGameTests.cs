@@ -571,9 +571,6 @@ public class BaseGameTests : BaseGame
     public void OnWeaponsAttackResolution_ShouldFireWeaponAndApplyDamageAndExternalHeat()
     {
         // Arrange
-        
-        var rulesProvider = Substitute.For<IRulesProvider>();
-        rulesProvider.GetExternalHeatCap().Returns(15);
         // Add attacker player and unit
         var attackerPlayerId = Guid.NewGuid();
         var attackerUnitData = MechFactoryTests.CreateDummyMechData();
@@ -652,7 +649,7 @@ public class BaseGameTests : BaseGame
         // Verify that damage was applied to the target
         centerTorsoPart.CurrentArmor.ShouldBe(initialCenterTorsoArmor - 5);
         leftArmPart.CurrentArmor.ShouldBe(initialLeftArmArmor - 3);
-        targetMech.GetHeatData(rulesProvider).ExternalHeatPoints.ShouldBe(2);
+        targetMech.GetHeatData(RulesProviderInstance).ExternalHeatPoints.ShouldBe(2);
     }
 
     [Fact]

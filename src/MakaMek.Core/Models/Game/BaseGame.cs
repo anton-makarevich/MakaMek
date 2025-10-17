@@ -233,14 +233,14 @@ public abstract class BaseGame : IGame
         // Declare the weapon attack
         attackerUnit.DeclareWeaponAttack(attackCommand.WeaponTargets);
     }
-    
+
     internal void OnWeaponsAttackResolution(WeaponAttackResolutionCommand attackResolutionCommand)
     {
         // Find the attacking unit
         var attackerUnit = _players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == attackResolutionCommand.AttackerId);
-            
+
         if (attackerUnit == null) return;
         // Fire the weapon from the attacker unit
         attackerUnit.FireWeapon(attackResolutionCommand.WeaponData);
@@ -248,25 +248,25 @@ public abstract class BaseGame : IGame
         var targetUnit = _players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == attackResolutionCommand.TargetId);
-        
+
         if (targetUnit == null) return;
-        
-        
-        if (attackResolutionCommand.ResolutionData is not { IsHit: true, HitLocationsData: not null }) return;
-        
-        // Apply damage to the target unit using the hit locations data
-        targetUnit.ApplyDamage(attackResolutionCommand.ResolutionData.HitLocationsData.HitLocations,
-            attackResolutionCommand.ResolutionData.AttackDirection);
-            
-        // Apply external heat if the weapon has ExternalHeat property
-        if (attackResolutionCommand is { ResolutionData.ExternalHeat: > 0 })
+
+        var res = attackResolutionCommand.ResolutionData;
+        if (!res.IsHit) return;
+
+        // Apply damage only if we have hit locations
+        if (res.HitLocationsData is not null)
         {
-            targetUnit.AddExternalHeat(
-                attackResolutionCommand.WeaponData.Name ?? "Unknown",
-                attackResolutionCommand.ResolutionData.ExternalHeat);
+            targetUnit.ApplyDamage(res.HitLocationsData.HitLocations, res.AttackDirection);
+        }
+
+        // Apply external heat on hit
+        if (res.ExternalHeat > 0)
+        {
+            targetUnit.AddExternalHeat(attackResolutionCommand.WeaponData.Name ?? "Unknown", res.ExternalHeat);
         }
     }
-    
+
     internal void OnMechFalling(MechFallCommand fallCommand)
     {
         // Find the unit with the given ID across all players
