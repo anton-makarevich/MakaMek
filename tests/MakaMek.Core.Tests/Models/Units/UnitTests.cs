@@ -2051,7 +2051,7 @@ public class UnitTests
         sut.Position.ShouldNotBeNull();
         
         // Act
-        sut.Remove();
+        sut.RemoveFromBoard();
         
         // Assert
         sut.Position.ShouldBeNull();

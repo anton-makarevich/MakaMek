@@ -183,7 +183,7 @@ public abstract class Unit
     /// <summary>
     /// Removes the unit from the board
     /// </summary>
-    public void Remove()
+    public void RemoveFromBoard()
     {
         Position = null;
     }

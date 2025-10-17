@@ -53,7 +53,7 @@ public class UnitWeaponAttackStateTests
     {
         var part = mech.Parts[location];
         var weapon = new MediumLaser();
-        part.TryAddComponent(weapon);
+        part.TryAddComponent(weapon).ShouldBeTrue();
         
         return weapon;
     }
@@ -272,7 +272,7 @@ public class UnitWeaponAttackStateTests
         // Verify we have multiple targets and no primary is set
         _sut.AllTargets.Count().ShouldBe(3);
         _sut.PrimaryTarget.ShouldBeNull();
-        _attacker.Remove();
+        _attacker.RemoveFromBoard();
         
         // Act - This should trigger the forward arc logic in UpdatePrimaryTarget
         // Since no primary target is set and attacker is not deployed there is no way to calculate arcs,

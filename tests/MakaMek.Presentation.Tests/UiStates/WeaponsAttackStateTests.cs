@@ -1758,7 +1758,7 @@ public class WeaponsAttackStateTests
         attacker.WeaponAttackState.SetPrimaryTarget(null);
         _sut.PrimaryTarget.ShouldBeNull();
 
-        // Act - Invoke the private method directly
+        // Act - Invoke the private method via the command callback
         _battleMapViewModel.SelectedTarget?.SetAsPrimary.Execute(null);
 
         // Assert
