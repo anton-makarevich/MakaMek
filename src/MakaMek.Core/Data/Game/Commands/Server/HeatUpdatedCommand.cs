@@ -62,6 +62,13 @@ public record struct HeatUpdatedCommand : IGameCommand
                 localizationService.GetString("Command_HeatUpdated_ExternalHeat"),
                 source.WeaponName,
                 source.HeatPoints).AppendLine();
+            if (HeatData.ExternalHeatPoints < HeatData.ExternalHeatSources.Sum(s => s.HeatPoints))
+            {
+                var lostHeat = HeatData.ExternalHeatSources.Sum(s => s.HeatPoints) - HeatData.ExternalHeatPoints;
+                stringBuilder.AppendFormat(localizationService.GetString("Command_HeatUpdated_ExternalHeat_Lost"), lostHeat)
+                    .AppendLine();
+                break;
+            }
         }
 
         // Total heat generated
