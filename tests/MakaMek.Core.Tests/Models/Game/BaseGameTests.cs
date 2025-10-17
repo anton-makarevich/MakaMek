@@ -568,9 +568,12 @@ public class BaseGameTests : BaseGame
     }
 
     [Fact]
-    public void OnWeaponsAttackResolution_ShouldFireWeaponAndApplyDamage()
+    public void OnWeaponsAttackResolution_ShouldFireWeaponAndApplyDamageAndExternalHeat()
     {
         // Arrange
+        
+        var rulesProvider = Substitute.For<IRulesProvider>();
+        rulesProvider.GetExternalHeatCap().Returns(15);
         // Add attacker player and unit
         var attackerPlayerId = Guid.NewGuid();
         var attackerUnitData = MechFactoryTests.CreateDummyMechData();
@@ -638,7 +641,7 @@ public class BaseGameTests : BaseGame
                 [],
                 true,
                 HitDirection.Front,
-                0,
+                2,
                 new AttackHitLocationsData(hitLocations, 8, [], 0))
         };
 
@@ -649,6 +652,7 @@ public class BaseGameTests : BaseGame
         // Verify that damage was applied to the target
         centerTorsoPart.CurrentArmor.ShouldBe(initialCenterTorsoArmor - 5);
         leftArmPart.CurrentArmor.ShouldBe(initialLeftArmArmor - 3);
+        targetMech.GetHeatData(rulesProvider).ExternalHeatPoints.ShouldBe(2);
     }
 
     [Fact]
