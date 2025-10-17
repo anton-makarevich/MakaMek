@@ -41,6 +41,8 @@ public sealed class ClientGame : BaseGame, IDisposable
     }
 
     public List<Guid> LocalPlayers { get; } = [];
+    
+    public override bool IsDisposed => _isDisposed;
 
     public override void HandleCommand(IGameCommand command)
     {
@@ -188,7 +190,7 @@ public sealed class ClientGame : BaseGame, IDisposable
     /// </summary>
     /// <param name="command">Any client command to be sent</param>
     /// <typeparam name="T">Type of command that implements IClientCommand</typeparam>
-    public void SendPlayerAction<T>(T command) where T : IClientCommand
+    private void SendPlayerAction<T>(T command) where T : IClientCommand
     {
         if (!CanActivePlayerAct) return;
         CommandPublisher.PublishCommand(command);

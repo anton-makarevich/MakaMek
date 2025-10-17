@@ -64,6 +64,12 @@ public class ServerGameTests
     }
 
     [Fact]
+    public void IsDisposed_ShouldBeFalse_ByDefault()
+    {
+        _sut!.IsDisposed.ShouldBeFalse();
+    }
+    
+    [Fact]
     public void IncrementTurn_ShouldPublishTurnIncrementedCommand_WhenCalled()
     {
         // Arrange
@@ -466,6 +472,7 @@ public class ServerGameTests
         
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+        _sut.IsDisposed.ShouldBeTrue();
     }
     
     [Fact]
@@ -480,6 +487,7 @@ public class ServerGameTests
     
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+        _sut.IsDisposed.ShouldBeTrue();
     }
 
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,

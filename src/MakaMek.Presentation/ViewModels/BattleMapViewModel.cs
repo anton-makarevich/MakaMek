@@ -116,8 +116,10 @@ public class BattleMapViewModel : BaseViewModel
         // Send PlayerLeftCommand for each local player
         if (Game != null)
         {
+            
             foreach (var playerId in Game.LocalPlayers)
             {
+                if (Game==null || Game.IsDisposed) return;
                 Game.LeaveGame(playerId);
             }
 

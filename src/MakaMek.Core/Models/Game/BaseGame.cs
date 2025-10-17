@@ -36,6 +36,8 @@ public abstract class BaseGame : IGame
     private readonly Subject<int> _unitsToPlaySubject = new();
 
     public Guid Id { get; }
+    
+    public abstract bool IsDisposed { get; }
     public IObservable<int> TurnChanges => _turnSubject.AsObservable();
     public IObservable<PhaseNames> PhaseChanges => _phaseSubject.AsObservable();
     public IObservable<IPlayer?> ActivePlayerChanges => _activePlayerSubject.AsObservable();
