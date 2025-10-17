@@ -2041,6 +2041,21 @@ public class UnitTests
         // Assert
         sut.AvailableWalkingPoints.ShouldBe(0);
     }
+    
+    [Fact]
+    public void Remove_ShouldSetPositionToNull()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        sut.Position.ShouldNotBeNull();
+        
+        // Act
+        sut.Remove();
+        
+        // Assert
+        sut.Position.ShouldBeNull();
+    }
 
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)

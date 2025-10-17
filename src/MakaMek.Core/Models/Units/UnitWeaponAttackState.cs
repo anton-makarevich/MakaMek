@@ -108,8 +108,13 @@ public class UnitWeaponAttackState
     /// Manually sets the primary target
     /// </summary>
     /// <param name="target">The target to set as primary</param>
-    public void SetPrimaryTarget(Unit target)
+    public void SetPrimaryTarget(Unit? target)
     {
+        if (target == null)
+        {
+            PrimaryTarget = null;
+            return;
+        }
         // Verify that the target is actually in our target list
         if (!AllTargets.Contains(target))
         {

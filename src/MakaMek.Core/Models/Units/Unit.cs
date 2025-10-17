@@ -179,6 +179,14 @@ public abstract class Unit
         }
         Position = position;
     }
+    
+    /// <summary>
+    /// Removes the unit from the board
+    /// </summary>
+    public void Remove()
+    {
+        Position = null;
+    }
 
     // Heat management
     public int CurrentHeat { get; protected set; }

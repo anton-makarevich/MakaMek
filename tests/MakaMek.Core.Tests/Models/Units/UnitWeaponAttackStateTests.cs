@@ -20,22 +20,23 @@ public class UnitWeaponAttackStateTests
     private readonly Mech _target2;
     private readonly Weapon _leftArmWeapon;
     private readonly Weapon _torsoWeapon;
+    private readonly MechFactory _mechFactory;
 
     public UnitWeaponAttackStateTests()
     {
         _sut = new UnitWeaponAttackState();
         
         var localizationService = Substitute.For<ILocalizationService>();
-        var mechFactory = new MechFactory(
+        _mechFactory = new MechFactory(
             new ClassicBattletechRulesProvider(),
             new ClassicBattletechComponentProvider(),
             localizationService);
         
         // Create mock units
         var data = MechFactoryTests.CreateDummyMechData();
-        _attacker = mechFactory.Create(data);
-        _target1 = mechFactory.Create(data);
-        _target2 = mechFactory.Create(data);
+        _attacker = _mechFactory.Create(data);
+        _target1 = _mechFactory.Create(data);
+        _target2 = _mechFactory.Create(data);
         
         // Create mock weapons with different locations
         _leftArmWeapon = CreateWeapon(PartLocation.LeftArm, _attacker);
@@ -43,9 +44,9 @@ public class UnitWeaponAttackStateTests
         _torsoWeapon = CreateWeapon(PartLocation.CenterTorso, _attacker);
         
         // Setup attacker position for primary target calculation
-        _attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
-        _target1.Deploy(new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom));
-        _target2.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom));
+        _attacker.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom));
+        _target1.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        _target2.Deploy(new HexPosition(new HexCoordinates(3, 4), HexDirection.Bottom));
     }
 
     private Weapon CreateWeapon(PartLocation location, Mech mech)
@@ -221,6 +222,64 @@ public class UnitWeaponAttackStateTests
         _sut.RemoveWeaponTarget(_torsoWeapon, _attacker);
 
         // Assert - Primary target should now be target1 (the only remaining target)
+        _sut.PrimaryTarget.ShouldBe(_target1);
+    }
+    
+    [Fact]
+    public void UpdatePrimaryTarget_WithMultipleTargetsNoPrimary_ShouldSelectForwardArcTarget()
+    {
+        // Arrange - Set up multiple targets with no primary target set
+        _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
+        _sut.SetWeaponTarget(_torsoWeapon, _target2, _attacker);
+        
+        // Create a third target positioned in the forward arc (south of attacker)
+        var target3 = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
+        target3.Deploy(new HexPosition(new HexCoordinates(1, 0), HexDirection.Bottom));
+        var rightArmWeapon = CreateWeapon(PartLocation.RightArm, _attacker);
+        _sut.SetWeaponTarget(rightArmWeapon, target3, _attacker);
+        
+        // Clear primary target to ensure none is set initially
+        _sut.SetPrimaryTarget(null);
+        
+        // Verify we have multiple targets and no primary is set
+        _sut.AllTargets.Count().ShouldBe(3);
+        _sut.PrimaryTarget.ShouldBeNull();
+        
+        // Act - This should trigger the forward arc logic in UpdatePrimaryTarget
+        // Since no primary target is set, it should select a target from the forward arc
+        _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker); // This calls UpdatePrimaryTarget
+        
+        // Assert - target1 is backwards to attacker
+        _sut.PrimaryTarget.ShouldBe(_target2);
+    }
+    
+    [Fact]
+    public void UpdatePrimaryTarget_WithMultipleTargetsNoPrimary_ShouldSelectFirstTarget_WhenAttackerIsNotDeployed()
+    {
+        // Arrange - Set up multiple targets with no primary target set
+        _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker);
+        _sut.SetWeaponTarget(_torsoWeapon, _target2, _attacker);
+        
+        // Create a third target positioned in the forward arc (south of attacker)
+        var target3 = _mechFactory.Create(MechFactoryTests.CreateDummyMechData());
+        target3.Deploy(new HexPosition(new HexCoordinates(1, 0), HexDirection.Bottom));
+        var rightArmWeapon = CreateWeapon(PartLocation.RightArm, _attacker);
+        _sut.SetWeaponTarget(rightArmWeapon, target3, _attacker);
+        
+        // Clear primary target to ensure none is set initially
+        _sut.SetPrimaryTarget(null);
+        
+        // Verify we have multiple targets and no primary is set
+        _sut.AllTargets.Count().ShouldBe(3);
+        _sut.PrimaryTarget.ShouldBeNull();
+        _attacker.Remove();
+        
+        // Act - This should trigger the forward arc logic in UpdatePrimaryTarget
+        // Since no primary target is set and attacker is not deployed there is no way to calculate arcs,
+        // and it should fall back to first available target
+        _sut.SetWeaponTarget(_leftArmWeapon, _target1, _attacker); // This calls UpdatePrimaryTarget
+        
+        // Assert
         _sut.PrimaryTarget.ShouldBe(_target1);
     }
 }
