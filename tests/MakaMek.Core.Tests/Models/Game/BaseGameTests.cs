@@ -49,6 +49,8 @@ public class BaseGameTests : BaseGame
             BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain())));
     }
     
+    public override bool IsDisposed => false;
+    
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
         int damage,
         int[]? aimedShotRoll = null,

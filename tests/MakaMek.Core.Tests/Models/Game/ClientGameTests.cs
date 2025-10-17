@@ -75,6 +75,12 @@ public class ClientGameTests
     }
 
     [Fact]
+    public void IsDisposed_ShouldBeFalse_ByDefault()
+    {
+        _sut!.IsDisposed.ShouldBeFalse();
+    }
+    
+    [Fact]
     public void HandleCommand_ShouldAddPlayer_WhenJoinGameCommandIsReceived()
     {
         // Arrange
@@ -2597,6 +2603,7 @@ public class ClientGameTests
         
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+        _sut.IsDisposed.ShouldBeTrue();
     }
     
     [Fact]
@@ -2611,5 +2618,6 @@ public class ClientGameTests
     
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+        _sut.IsDisposed.ShouldBeTrue();
     }
 }
