@@ -152,13 +152,6 @@ public class AboutViewModelTests
     }
 
     [Fact]
-    public void Constructor_ShouldThrowArgumentNullException_WhenLocalizationServiceIsNull()
-    {
-        // Act & Assert
-        Should.Throw<ArgumentNullException>(() => new AboutViewModel(_externalNavigationService, null!));
-    }
-
-    [Fact]
     public async Task OpenContactEmailCommand_ShouldCallExternalNavigationService()
     {
         // Act

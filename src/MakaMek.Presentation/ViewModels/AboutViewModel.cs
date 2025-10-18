@@ -15,7 +15,7 @@ public class AboutViewModel : BaseViewModel
 
     public AboutViewModel(IExternalNavigationService externalNavigationService, ILocalizationService localizationService)
     {
-        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _localizationService = localizationService;
 
         // Get version from entry assembly
         var assembly = GetType().Assembly;
