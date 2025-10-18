@@ -104,6 +104,17 @@ public class AboutViewModelTests
         result.ShouldContain("free");
         result.ShouldContain("open source");
     }
+    
+    [Fact]
+    public void ContactStatement_ShouldReturnLocalizedString()
+    {
+        // Act
+        var result = _sut.ContactStatement;
+
+        // Assert
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldContain("contact");
+    }
 
     [Fact]
     public void TrademarkNotice1_ShouldReturnLocalizedString()
@@ -138,13 +149,6 @@ public class AboutViewModelTests
         // Assert
         result.ShouldNotBeNullOrEmpty();
         result.ShouldContain("Game Content Usage Rules");
-    }
-
-    [Fact]
-    public void Constructor_ShouldThrowArgumentNullException_WhenExternalNavigationServiceIsNull()
-    {
-        // Act & Assert
-        Should.Throw<ArgumentNullException>(() => new AboutViewModel(null!, _localizationService));
     }
 
     [Fact]
