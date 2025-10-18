@@ -44,5 +44,42 @@ public class DesktopExternalNavigationService : IExternalNavigationService
 
         return Task.CompletedTask;
     }
+
+    public Task OpenEmailAsync(string emailAddress, string subject)
+    {
+        try
+        {
+            // Create mailto URI with subject
+            var mailtoUri = $"mailto:{emailAddress}?subject={Uri.EscapeDataString(subject)}";
+
+            // Use platform-specific approach to open email client
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Windows
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = mailtoUri,
+                    UseShellExecute = true
+                });
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                // Linux
+                Process.Start("xdg-open", mailtoUri);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // macOS
+                Process.Start("open", mailtoUri);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't throw - we don't want to crash the app if email opening fails
+            Console.WriteLine($"Failed to open email client for {emailAddress}: {ex.Message}");
+        }
+
+        return Task.CompletedTask;
+    }
 }
 

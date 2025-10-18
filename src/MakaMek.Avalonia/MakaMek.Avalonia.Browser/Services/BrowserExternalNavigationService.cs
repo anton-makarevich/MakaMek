@@ -25,6 +25,23 @@ public partial class BrowserExternalNavigationService : IExternalNavigationServi
         return Task.CompletedTask;
     }
 
+    public Task OpenEmailAsync(string emailAddress, string subject)
+    {
+        try
+        {
+            // Create mailto URI with subject
+            var mailtoUri = $"mailto:{emailAddress}?subject={Uri.EscapeDataString(subject)}";
+            OpenUrlInNewTab(mailtoUri);
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't throw - we don't want to crash the app if email opening fails
+            Console.WriteLine($"Failed to open email client for {emailAddress}: {ex.Message}");
+        }
+
+        return Task.CompletedTask;
+    }
+
     [JSImport("globalThis.window.open")]
     private static partial void OpenUrlInNewTab(string url);
 }

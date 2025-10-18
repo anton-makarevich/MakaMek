@@ -60,9 +60,21 @@
                                 Command="{Binding OpenMegaMekCommand}"
                                 Classes="primary"
                                 HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Contact -->
+                <Border Classes="card">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Contact"
+                                   Classes="h3"/>
                         <TextBlock Text="{Binding ContactStatement}"
-                                                           TextWrapping="Wrap"
-                                                           Classes="body"/>
+                                   TextWrapping="Wrap"
+                                   Classes="body"/>
+                        <Button Content="Send Email"
+                                Command="{Binding OpenContactEmailCommand}"
+                                Classes="primary"
+                                HorizontalAlignment="Left"/>
                     </StackPanel>
                 </Border>
                 

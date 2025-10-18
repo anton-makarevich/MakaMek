@@ -24,5 +24,21 @@ public class IosExternalNavigationService : IExternalNavigationService
             Console.WriteLine($"Failed to open URL {url}: {ex.Message}");
         }
     }
+
+    public async Task OpenEmailAsync(string emailAddress, string subject)
+    {
+        try
+        {
+            // Create mailto URI with subject
+            var mailtoUri = $"mailto:{emailAddress}?subject={Uri.EscapeDataString(subject)}";
+            var nsUrl = new NSUrl(mailtoUri);
+            await UIApplication.SharedApplication.OpenUrlAsync(nsUrl, new UIApplicationOpenUrlOptions());
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't throw - we don't want to crash the app if email opening fails
+            Console.WriteLine($"Failed to open email client for {emailAddress}: {ex.Message}");
+        }
+    }
 }
 
