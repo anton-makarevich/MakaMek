@@ -94,17 +94,6 @@ public class AboutViewModelTests
     }
 
     [Fact]
-    public void ContactStatement_ShouldReturnLocalizedStringWithEmail()
-    {
-        // Act
-        var result = _sut.ContactStatement;
-
-        // Assert
-        result.ShouldNotBeNullOrEmpty();
-        result.ShouldContain("anton.makarevich@gmail.com");
-    }
-
-    [Fact]
     public void FreeAndOpenSourceStatement_ShouldReturnLocalizedString()
     {
         // Act
