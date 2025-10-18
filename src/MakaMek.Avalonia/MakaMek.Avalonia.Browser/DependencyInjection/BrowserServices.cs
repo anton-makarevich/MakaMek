@@ -18,5 +18,8 @@ public static class BrowserServices
 
         // Register browser caching service for WASM platform
         services.AddSingleton<IFileCachingService, BrowserCachingService>();
+
+        // Register external navigation service for browser platform
+        services.AddSingleton<IExternalNavigationService, BrowserExternalNavigationService>();
     }
 }

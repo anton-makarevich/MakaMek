@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.DI;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Avalonia.Views;
+using Sanet.MakaMek.Avalonia.Views.About;
 using Sanet.MakaMek.Avalonia.Views.EndGame;
 using Sanet.MakaMek.Avalonia.Views.JoinGame;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
@@ -104,6 +105,7 @@ public partial class App : Application
         // Register views that are the same for all platforms
         navigationService.RegisterViews(typeof(BattleMapView), typeof(BattleMapViewModel));
         navigationService.RegisterViews(typeof(EndGameView), typeof(EndGameViewModel));
+        navigationService.RegisterViews(typeof(AboutView), typeof(AboutViewModel));
     }
     private bool IsMobile()
     {

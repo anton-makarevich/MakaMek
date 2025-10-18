@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Sanet.MakaMek.Avalonia.iOS.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -17,5 +18,8 @@ public static class IosServices
 
         // Register file system caching service for iOS platform
         services.AddSingleton<IFileCachingService, FileSystemCachingService>();
+
+        // Register external navigation service for iOS platform
+        services.AddSingleton<IExternalNavigationService, IosExternalNavigationService>();
     }
 }
