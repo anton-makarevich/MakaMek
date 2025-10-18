@@ -36,6 +36,11 @@
                     Command="{Binding JoinGameCommand}"
                     HorizontalAlignment="Stretch"
                     MinWidth="200"/>
+            <Button Content="About"
+                    Classes="main-menu"
+                    Command="{Binding AboutCommand}"
+                    HorizontalAlignment="Stretch"
+                    MinWidth="200"/>
         </StackPanel>
 
         <!-- Version TextBlock -->

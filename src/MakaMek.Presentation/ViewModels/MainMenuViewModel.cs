@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
@@ -23,11 +22,12 @@ public class MainMenuViewModel : BaseViewModel
         _messageDelay = messageDelay;
 
         // Get version from entry assembly
-        var assembly = Assembly.GetEntryAssembly();
-        Version = $"v{assembly?.GetName().Version?.ToString()}";
+        var assembly = GetType().Assembly;
+        Version = $"v{assembly.GetName().Version?.ToString()}";
 
         StartNewGameCommand = new AsyncCommand(NavigateToNewGame);
         JoinGameCommand = new AsyncCommand(NavigateToJoinGame);
+        AboutCommand = new AsyncCommand(NavigateToAbout);
 
         // Start preloading units
         IsLoading = true;
@@ -37,6 +37,7 @@ public class MainMenuViewModel : BaseViewModel
 
     public ICommand StartNewGameCommand { get; }
     public ICommand JoinGameCommand { get; }
+    public ICommand AboutCommand { get; }
     public string Version { get; }
 
     /// <summary>
@@ -70,6 +71,8 @@ public class MainMenuViewModel : BaseViewModel
     private Task NavigateToNewGame() => NavigateToViewModel<StartNewGameViewModel>();
 
     private Task NavigateToJoinGame() => NavigateToViewModel<JoinGameViewModel>();
+
+    private Task NavigateToAbout() => NavigateToViewModel<AboutViewModel>();
 
     /// <summary>
     /// Preloads unit data from all configured providers
