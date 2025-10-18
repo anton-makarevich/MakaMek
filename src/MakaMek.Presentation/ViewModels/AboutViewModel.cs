@@ -15,17 +15,16 @@ public class AboutViewModel : BaseViewModel
 
     public AboutViewModel(IExternalNavigationService externalNavigationService, ILocalizationService localizationService)
     {
-        var externalNavigationService1 = externalNavigationService ?? throw new ArgumentNullException(nameof(externalNavigationService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
 
         // Get version from entry assembly
         var assembly = GetType().Assembly;
         Version = $"v{assembly.GetName().Version?.ToString()}";
 
-        OpenGitHubCommand = new AsyncCommand(() => externalNavigationService1.OpenUrlAsync(GitHubUrl));
-        OpenMegaMekCommand = new AsyncCommand(() => externalNavigationService1.OpenUrlAsync(MegaMekUrl));
-        OpenGameContentRulesCommand = new AsyncCommand(() => externalNavigationService1.OpenUrlAsync(GameContentRulesUrl));
-        OpenContactEmailCommand = new AsyncCommand(() => externalNavigationService1.OpenEmailAsync(ContactEmail, $"MakaMek {Version} question"));
+        OpenGitHubCommand = new AsyncCommand(() => externalNavigationService.OpenUrlAsync(GitHubUrl));
+        OpenMegaMekCommand = new AsyncCommand(() => externalNavigationService.OpenUrlAsync(MegaMekUrl));
+        OpenGameContentRulesCommand = new AsyncCommand(() => externalNavigationService.OpenUrlAsync(GameContentRulesUrl));
+        OpenContactEmailCommand = new AsyncCommand(() => externalNavigationService.OpenEmailAsync(ContactEmail, $"MakaMek {Version} question"));
     }
 
     public string Version { get; }
@@ -36,10 +35,10 @@ public class AboutViewModel : BaseViewModel
     public ICommand OpenContactEmailCommand { get; }
 
     // URLs
-    private string GitHubUrl => "https://github.com/anton-makarevich/MakaMek";
-    private string MegaMekUrl => "https://megamek.org";
-    private string GameContentRulesUrl => "https://www.xbox.com/en-US/developers/rules";
-    private string ContactEmail => "anton.makarevich@gmail.com";
+    private const string GitHubUrl = "https://github.com/anton-makarevich/MakaMek";
+    private const string MegaMekUrl = "https://megamek.org";
+    private const string GameContentRulesUrl = "https://www.xbox.com/en-US/developers/rules";
+    private const string ContactEmail = "anton.makarevich@gmail.com";
 
     // Content
     public string GameDescription => _localizationService.GetString("About_GameDescription");

@@ -80,11 +80,11 @@ public static class CoreServices
     }
     public static void RegisterViewModels(this IServiceCollection services)
     {
-        services.AddTransient<MainMenuViewModel, MainMenuViewModel>();
-        services.AddTransient<StartNewGameViewModel, StartNewGameViewModel>();
-        services.AddTransient<JoinGameViewModel, JoinGameViewModel>();
-        services.AddTransient<BattleMapViewModel, BattleMapViewModel>();
-        services.AddTransient<EndGameViewModel, EndGameViewModel>();
-        services.AddTransient<AboutViewModel, AboutViewModel>();
+        services.AddTransient<MainMenuViewModel>();
+        services.AddTransient<StartNewGameViewModel>();
+        services.AddTransient<JoinGameViewModel>();
+        services.AddTransient<BattleMapViewModel>();
+        services.AddTransient<EndGameViewModel>();
+        services.AddTransient<AboutViewModel>();
     }
 }
