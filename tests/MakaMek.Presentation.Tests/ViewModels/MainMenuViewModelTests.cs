@@ -129,6 +129,34 @@ public class MainMenuViewModelTests
     }
     
     [Fact]
+    public async Task AboutCommand_WhenExecuted_NavigatesToAboutViewModel()
+    {
+        // Arrange
+        var command = _sut.AboutCommand as IAsyncCommand;
+        command.ShouldNotBeNull();
+        var aboutVm = new AboutViewModel(
+            Substitute.For<IExternalNavigationService>(),
+            Substitute.For<ILocalizationService>());
+        _navigationService.GetNewViewModel<AboutViewModel>().Returns(aboutVm);
+
+        // Act
+        await command.ExecuteAsync();
+
+        // Assert
+        await _navigationService.Received(1).NavigateToViewModelAsync(aboutVm);
+    }
+    
+    [Fact]
+    public async Task AboutCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnAboutViewModel()
+    {
+        // Arrange
+        _navigationService.GetNewViewModel<AboutViewModel>().Returns((AboutViewModel?)null);
+        // Act & Assert
+        (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.AboutCommand)
+            .ExecuteAsync())).Message.ShouldContain("AboutViewModel is not registered");
+    }   
+    
+    [Fact]
     public async Task PreloadUnits_WhenExceptionThrown_SetsErrorTextAndKeepsLoadingTrue()
     {
         // Arrange

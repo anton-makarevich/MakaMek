@@ -301,6 +301,15 @@ public class FakeLocalizationService: ILocalizationService
             "EndGame_PlayersLeft_Subtitle" => "All players have left the game",
             "EndGame_ReturnToMenu" => "Return to Menu",
             "EndGame_Victor_Badge" => "VICTOR",
+
+            // About page text
+            "About_GameDescription" => "MakaMek is an open-source tactical combat game that follows Classic BattleTech rules. The game is inspired by another computer implementation of BattleTech called MegaMek but focusing on simplicity and accessibility for all players. We aim to keep gameplay simple and prioritize a mobile-first and web-first user experience.",
+            "About_MegaMekAttribution" => "Some art and assets used in this project—specifically unit and terrain images—are taken from the MegaMek Data Repository. These materials are used as-is without any modifications and are distributed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.",
+            "About_ContactStatement" => "If there are any problems using any in-game material, or you have any questions, please feel free to contact me.",
+            "About_FreeAndOpenSourceStatement" => "This game is free, open source, not affiliated with any copyright or trademark holders and distributed under the GPLv3 license.",
+            "About_TrademarkNotice1" => "MechWarrior and BattleMech are registered trademarks of The Topps Company, Inc.",
+            "About_TrademarkNotice2" => "Microsoft holds the license for MechWarrior computer games. This game is NOT affiliated with Microsoft.",
+            "About_GameContentRulesNotice" => "This game follows Microsoft's \"Game Content Usage Rules\".",
             _ => key
         };
     }

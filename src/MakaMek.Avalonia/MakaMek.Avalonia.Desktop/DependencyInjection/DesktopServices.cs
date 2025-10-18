@@ -18,5 +18,8 @@ public static class DesktopServices
 
         // Register file system caching service for desktop platform
         services.AddSingleton<IFileCachingService, FileSystemCachingService>();
+
+        // Register external navigation service for desktop platform
+        services.AddSingleton<IExternalNavigationService, DesktopExternalNavigationService>();
     }
 }
