@@ -48,7 +48,6 @@ public class EndStateTests
         
         _battleMapViewModel = new BattleMapViewModel(imageService,
             localizationService,
-            Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>());
         var playerId = Guid.NewGuid();
         

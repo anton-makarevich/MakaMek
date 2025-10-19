@@ -73,7 +73,6 @@ public class MovementStateTests
         
          _battleMapViewModel = new BattleMapViewModel(imageService,
              _localizationService,
-             Substitute.For<IDispatcherService>(),
              _rulesProvider);
         var playerId = Guid.NewGuid();
         

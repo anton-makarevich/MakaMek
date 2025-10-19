@@ -90,9 +90,12 @@ public class JoinGameViewModel : NewGameViewModel
                 
             case SetBattleMapCommand:
                 // Handle navigation to BattleMapViewModel when battle map is set
-                
                 // Get the BattleMapViewModel and set the game
                 var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
+                if (battleMapViewModel == null)
+                {
+                    throw new Exception("BattleMapViewModel is not registered");
+                }
                 battleMapViewModel.Game = _localGame;
                 
                 // Navigate to BattleMap view

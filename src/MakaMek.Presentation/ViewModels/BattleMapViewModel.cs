@@ -38,7 +38,6 @@ public class BattleMapViewModel : BaseViewModel
     private List<PathSegmentViewModel>? _movementPath;
     private List<WeaponAttackViewModel>? _weaponAttacks;
     private bool _isWeaponSelectionVisible;
-    private readonly IDispatcherService _dispatcherService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
     private AimedShotLocationSelectorViewModel? _unitPartSelector;
     private bool _isUnitPartSelectorVisible;
@@ -93,13 +92,11 @@ public class BattleMapViewModel : BaseViewModel
 
     public BattleMapViewModel(
         IImageService imageService,
-        ILocalizationService localizationService, 
-        IDispatcherService dispatcherService,
+        ILocalizationService localizationService,
         IRulesProvider rulesProvider)
     {
         ImageService = imageService;
         _localizationService = localizationService;
-        _dispatcherService = dispatcherService;
         CurrentState = new IdleState();
         HideBodyPartSelectorCommand = new AsyncCommand(() =>
         {
@@ -184,6 +181,7 @@ public class BattleMapViewModel : BaseViewModel
         if (Game is null) return;
 
         _commandSubscription = Game.Commands
+            .ObserveOn(SynchronizationContext.Current!)
             .Subscribe( ProcessCommand );
         
         _gameSubscription = Game.TurnChanges
@@ -192,6 +190,7 @@ public class BattleMapViewModel : BaseViewModel
                 Game.ActivePlayerChanges.StartWith(Game.ActivePlayer),
                 Game.UnitsToPlayChanges.StartWith(Game.UnitsToPlayCurrentStep),
                 (turn, phase, player, units) => (turn, phase, player, units))
+            .ObserveOn(SynchronizationContext.Current!)
             .Subscribe(_ =>
             {
                 ClearSelection();
@@ -202,30 +201,27 @@ public class BattleMapViewModel : BaseViewModel
 
     private void ProcessCommand(IGameCommand command)
     {
-        _dispatcherService.RunOnUIThread(() =>
-        {
-            if (Game == null) return;
-            var formattedCommand = command.Render(_localizationService, Game);
-            _commandLog.Add(formattedCommand);
-            NotifyPropertyChanged(nameof(CommandLog));
+        if (Game == null) return;
+        var formattedCommand = command.Render(_localizationService, Game);
+        _commandLog.Add(formattedCommand);
+        NotifyPropertyChanged(nameof(CommandLog));
 
-            switch (command)
-            {
-                case WeaponAttackDeclarationCommand weaponCommand:
-                    ProcessWeaponAttackDeclaration(weaponCommand);
-                    break;
-                case WeaponAttackResolutionCommand resolutionCommand:
-                    ProcessWeaponAttackResolution(resolutionCommand);
-                    break;
-                case MechStandUpCommand standUpCommand:
-                    ProcessMechStandUp(standUpCommand);
-                    break;
-                case GameEndedCommand gameEndedCommand:
-                    // Server ended the game - navigate to appropriate screen
-                    ProcessGameEnded(gameEndedCommand).SafeFireAndForget();
-                    break;
-            }
-        });
+        switch (command)
+        {
+            case WeaponAttackDeclarationCommand weaponCommand:
+                ProcessWeaponAttackDeclaration(weaponCommand);
+                break;
+            case WeaponAttackResolutionCommand resolutionCommand:
+                ProcessWeaponAttackResolution(resolutionCommand);
+                break;
+            case MechStandUpCommand standUpCommand:
+                ProcessMechStandUp(standUpCommand);
+                break;
+            case GameEndedCommand gameEndedCommand:
+                // Server ended the game - navigate to appropriate screen
+                ProcessGameEnded(gameEndedCommand).SafeFireAndForget();
+                break;
+        }
     }
 
     private void ProcessMechStandUp(MechStandUpCommand standUpCommand)
