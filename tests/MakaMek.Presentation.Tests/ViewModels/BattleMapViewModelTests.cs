@@ -1,3 +1,4 @@
+using System.Reactive.Concurrency;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -56,6 +57,7 @@ public class BattleMapViewModelTests
         
         // Configure the dispatcher to execute actions immediately
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
         var rules = new ClassicBattletechRulesProvider();
         
         _localizationService.GetString("Action_SelectTarget").Returns("Select Target");
