@@ -19,6 +19,7 @@
 
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="11.3.7" />
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.7" />
         <PackageReference Include="Avalonia.Skia" Version="11.3.7" />
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.7" />
         <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.7" />

@@ -1,3 +1,4 @@
+using System.Reactive.Concurrency;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -71,9 +72,12 @@ public class MovementStateTests
         _localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
         _localizationService.GetString("Action_ChangeFacing").Returns("Change Facing | MP: {0}");
         
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        
          _battleMapViewModel = new BattleMapViewModel(imageService,
              _localizationService,
-             Substitute.For<IDispatcherService>(),
+             dispatcherService,
              _rulesProvider);
         var playerId = Guid.NewGuid();
         

@@ -1,3 +1,5 @@
+using System.Reactive.Concurrency;
+
 namespace Sanet.MakaMek.Core.Services;
 
 /// <summary>
@@ -14,4 +16,5 @@ public interface IDispatcherService
     Task InvokeOnUIThread(Action action);
 
     void RunOnUIThread<TResult>(Func<TResult> callback);
+    IScheduler Scheduler { get; }
 }

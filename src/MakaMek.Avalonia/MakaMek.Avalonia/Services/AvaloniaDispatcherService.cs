@@ -1,5 +1,7 @@
 using System;
+using System.Reactive.Concurrency;
 using System.Threading.Tasks;
+using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Sanet.MakaMek.Core.Services;
 
@@ -48,4 +50,6 @@ public class AvaloniaDispatcherService : IDispatcherService
         // Post the action to the UI thread's dispatcher queue
         Dispatcher.UIThread.InvokeAsync(callback);
     }
+
+    public IScheduler Scheduler => AvaloniaScheduler.Instance;
 }

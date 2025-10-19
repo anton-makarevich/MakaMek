@@ -93,6 +93,10 @@ public class JoinGameViewModel : NewGameViewModel
                 
                 // Get the BattleMapViewModel and set the game
                 var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
+                if (battleMapViewModel == null)
+                {
+                    throw new Exception("BattleMapViewModel is not registered");
+                }
                 battleMapViewModel.Game = _localGame;
                 
                 // Navigate to BattleMap view
