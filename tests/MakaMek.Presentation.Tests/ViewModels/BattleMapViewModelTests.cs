@@ -51,6 +51,7 @@ public class BattleMapViewModelTests
         var dispatcherService = Substitute.For<IDispatcherService>();
         _sut = new BattleMapViewModel(imageService,
             _localizationService,
+            dispatcherService,
             Substitute.For<IRulesProvider>());
         
         // Configure the dispatcher to execute actions immediately
