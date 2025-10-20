@@ -170,7 +170,8 @@ public sealed class ClientGame : BaseGame, IDisposable
 
     public bool CanActivePlayerAct => ActivePlayer != null 
                                       && LocalPlayers.Contains(ActivePlayer.Id) 
-                                      && ActivePlayer.CanAct;
+                                      && ActivePlayer.CanAct
+                                      && _pendingCommands.Count == 0;
 
     public void JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
     {

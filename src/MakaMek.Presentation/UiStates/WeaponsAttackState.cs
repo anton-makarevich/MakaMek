@@ -34,7 +34,7 @@ public class WeaponsAttackState : IUiState
 
     public bool IsActionRequired => _viewModel.Game is {CanActivePlayerAct:true};
 
-    public bool CanExecutePlayerAction => CurrentStep == WeaponsAttackStep.ActionSelection || CurrentStep == WeaponsAttackStep.TargetSelection;
+    public bool CanExecutePlayerAction => CurrentStep is WeaponsAttackStep.ActionSelection or WeaponsAttackStep.TargetSelection;
 
     public string PlayerActionLabel
     {
@@ -129,6 +129,7 @@ public class WeaponsAttackState : IUiState
 
     private void HandleUnitSelectionFromHex(Hex hex)
     {
+        if (_game is { CanActivePlayerAct: false }) return;
         var unit = _viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
         if (unit == null) return;
         lock (_stateLock)
