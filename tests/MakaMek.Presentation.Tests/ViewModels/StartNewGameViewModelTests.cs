@@ -446,11 +446,15 @@ public class StartNewGameViewModelTests
         // Act
         localPlayerVm.SetReadyCommand.Execute(null);
 
+        var readyCommand = _commandPublisher.ReceivedCalls();
+
         // Assert - verify the command was published with correct parameters
         _commandPublisher.Received().PublishCommand(Arg.Is<UpdatePlayerStatusCommand>(cmd =>
             cmd.PlayerId == localPlayerVm.Player.Id &&
             cmd.PlayerStatus == PlayerStatus.Ready &&
-            cmd.GameOriginId == _clientGame.Id));
+            cmd.GameOriginId == _clientGame.Id &&
+            cmd.IdempotencyKey != null
+        ));
     }
 
     [Fact]

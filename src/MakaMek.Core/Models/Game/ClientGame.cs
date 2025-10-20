@@ -228,7 +228,11 @@ public sealed class ClientGame : BaseGame, IDisposable
         _pendingCommands[idempotencyKey] = tcs;
 
         // Assign the idempotency key to the command
-        var commandWithKey = command with { IdempotencyKey = idempotencyKey };
+        var commandWithKey = command with
+        {
+            GameOriginId = Id,
+            IdempotencyKey = idempotencyKey
+        };
 
         // Publish the command
         CommandPublisher.PublishCommand(commandWithKey);
