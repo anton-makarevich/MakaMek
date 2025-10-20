@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -41,6 +42,7 @@ public class JoinGameViewModelTests
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
     private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly ClientGame _clientGame;
 
     public JoinGameViewModelTests()
@@ -54,7 +56,8 @@ public class JoinGameViewModelTests
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            _mapFactory);
+            _mapFactory,
+            _hashService);
         // Configure the adapter to be accessible from the command publisher
         _commandPublisher.Adapter.Returns(_adapter);
         
@@ -70,7 +73,8 @@ public class JoinGameViewModelTests
                 _pilotingSkillCalculator,
                 _consciousnessCalculator,
                 _heatEffectsCalculator,
-                _mapFactory)
+                _mapFactory,
+                _hashService)
             .Returns(_clientGame);
         
         // Configure dispatcher to execute actions immediately
@@ -92,7 +96,8 @@ public class JoinGameViewModelTests
             _gameFactory,
             _transportFactory,
             _mapFactory,
-            _cachingService);
+            _cachingService,
+            _hashService);
         _sut.AttachHandlers();
     }
 
@@ -200,7 +205,8 @@ public class JoinGameViewModelTests
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            _mapFactory);
+            _mapFactory,
+            _hashService);
     }
     
     [Fact]
@@ -226,7 +232,8 @@ public class JoinGameViewModelTests
             Arg.Any<IPilotingSkillCalculator>(),
             Arg.Any<IConsciousnessCalculator>(),
             Arg.Any<IHeatEffectsCalculator>(),
-            Arg.Any<IBattleMapFactory>());
+            Arg.Any<IBattleMapFactory>(),
+            Arg.Any<IHashService>());
     }
     
     [Fact]
@@ -486,7 +493,8 @@ public class JoinGameViewModelTests
             _gameFactory,
             _transportFactory,
             _mapFactory,
-            cachingService);
+            cachingService,
+            _hashService);
         sut.AttachHandlers();
 
         // Act
@@ -517,7 +525,8 @@ public class JoinGameViewModelTests
             _gameFactory,
             _transportFactory,
             _mapFactory,
-            cachingService);
+            cachingService,
+            _hashService);
 
         // Assert - should be able to add default player even when not connected
         sut.IsConnected.ShouldBeFalse();

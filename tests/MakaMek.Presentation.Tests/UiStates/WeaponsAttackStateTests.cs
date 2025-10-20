@@ -22,6 +22,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -48,6 +49,7 @@ public class WeaponsAttackStateTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly MechFactory _mechFactory;
     private readonly IPilot _pilot = Substitute.For<IPilot>();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
 
     public WeaponsAttackStateTests()
     {
@@ -81,6 +83,16 @@ public class WeaponsAttackStateTests
         _pilot.IsConscious.Returns(true);
         _unit1.AssignPilot(_pilot);
         
+        var idempotencyKey = Guid.NewGuid();
+        _hashService.ComputeCommandIdempotencyKey(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<Type>(),
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>())
+            .Returns(idempotencyKey);
+        
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
@@ -93,9 +105,9 @@ public class WeaponsAttackStateTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            Substitute.For<IBattleMapFactory>());
+            Substitute.For<IBattleMapFactory>(),
+            _hashService);
         _game.JoinGameWithUnits(_player,[],[]);
-        var joinCommand = (JoinGameCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
         _game.SetBattleMap(battleMap);
 
         var expectedModifiers = new ToHitBreakdown
@@ -119,7 +131,7 @@ public class WeaponsAttackStateTests
             .Returns(expectedModifiers);
         
         _battleMapViewModel.Game = _game;
-        AddPlayerUnits(joinCommand.IdempotencyKey!.Value);
+        AddPlayerUnits(idempotencyKey);
         SetActivePlayer();
         _sut = new WeaponsAttackState(_battleMapViewModel);
     }

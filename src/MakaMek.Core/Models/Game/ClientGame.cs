@@ -1,8 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -14,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Map.Factory;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game;
@@ -24,6 +23,7 @@ public sealed class ClientGame : BaseGame, IDisposable
     private readonly List<IGameCommand> _commandLog = [];
     private readonly HashSet<Guid> _playersEndedTurn = [];
     private readonly IBattleMapFactory _mapFactory;
+    private readonly IHashService _hashService;
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> _pendingCommands = new();
     private bool _isDisposed;
 
@@ -38,10 +38,12 @@ public sealed class ClientGame : BaseGame, IDisposable
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
-        IBattleMapFactory mapFactory)
+        IBattleMapFactory mapFactory,
+        IHashService hashService)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
     {
         _mapFactory = mapFactory;
+        _hashService = hashService;
     }
 
     public List<Guid> LocalPlayers { get; } = [];
@@ -214,7 +216,13 @@ public sealed class ClientGame : BaseGame, IDisposable
         var unitId = GetUnitIdFromCommand(command);
 
         // Compute idempotency key
-        var idempotencyKey = ComputeIdempotencyKey(command.PlayerId, typeof(T), unitId);
+        var idempotencyKey = _hashService.ComputeCommandIdempotencyKey
+            (Id,
+                command.PlayerId,
+                typeof(T),
+                Turn, 
+                nameof(TurnPhase),
+                unitId);
 
         // Check if this command is already pending
         if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCommand))
@@ -278,26 +286,6 @@ public sealed class ClientGame : BaseGame, IDisposable
         };
         // Call it directly as we don't want to track this command for now
         CommandPublisher.PublishCommand(playerLeftCommand);
-    }
-
-    /// <summary>
-    /// Computes a deterministic idempotency key for a command.
-    /// The key is based on GameId, PlayerId, UnitId (optional), Phase, Turn, and CommandType.
-    /// </summary>
-    /// <param name="playerId">The ID of the player sending the command</param>
-    /// <param name="commandType">The type of the command</param>
-    /// <param name="unitId">Optional unit ID for unit-specific commands</param>
-    /// <returns>A deterministic GUID that serves as the idempotency key</returns>
-    public Guid ComputeIdempotencyKey(Guid playerId, Type commandType, Guid? unitId = null)
-    {
-        // Build the input string for hashing
-        var input = $"{Id}:{playerId}:{unitId?.ToString() ?? "null"}:{TurnPhase}:{Turn}:{commandType.Name}";
-
-        // Compute SHA256 hash
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-
-        // Take first 16 bytes to create a GUID
-        return new Guid(hash[..16]);
     }
 
     /// <summary>

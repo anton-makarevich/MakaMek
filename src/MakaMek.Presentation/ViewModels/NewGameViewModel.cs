@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
@@ -34,6 +35,7 @@ public abstract class NewGameViewModel : BaseViewModel
     protected readonly IHeatEffectsCalculator _heatEffectsCalculator;
     private readonly IDispatcherService _dispatcherService;
     protected readonly IGameFactory _gameFactory;
+    protected readonly IHashService _hashService;
     private readonly IFileCachingService _cachingService;
 
     protected ClientGame? _localGame;
@@ -54,7 +56,8 @@ public abstract class NewGameViewModel : BaseViewModel
         IHeatEffectsCalculator heatEffectsCalculator,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
-        IFileCachingService cachingService)
+        IFileCachingService cachingService,
+        IHashService hashService)
     {
         _rulesProvider = rulesProvider;
         _unitsLoader = unitsLoader;
@@ -66,6 +69,7 @@ public abstract class NewGameViewModel : BaseViewModel
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
         _cachingService = cachingService;
+        _hashService = hashService;
 
         HideTableCommand = new AsyncCommand(HideTable);
         AddUnitCommand = new AsyncCommand(() => AddUnit(_activePlayer));

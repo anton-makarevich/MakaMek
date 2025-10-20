@@ -23,6 +23,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -43,11 +44,21 @@ public class BattleMapViewModelTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
-
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IMechFactory _mechFactory;
+    
+    private readonly Guid _idempotencyKey = Guid.NewGuid();
 
     public BattleMapViewModelTests()
     {
+        _hashService.ComputeCommandIdempotencyKey(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<Type>(),
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>())
+            .Returns(_idempotencyKey);
         var imageService = Substitute.For<IImageService>();
         var dispatcherService = Substitute.For<IDispatcherService>();
         _sut = new BattleMapViewModel(imageService,
@@ -146,7 +157,8 @@ public class BattleMapViewModelTests
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
 
         // Act
@@ -332,7 +344,8 @@ public class BattleMapViewModelTests
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         
         // Act
@@ -365,14 +378,14 @@ public class BattleMapViewModelTests
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         _game.HandleCommand(new ChangePhaseCommand()
         {
             Phase = PhaseNames.WeaponsAttack,
             GameOriginId = Guid.NewGuid()
         });
-        
         
         // Act
         _game.HandleCommand(new ChangeActivePlayerCommand
@@ -670,7 +683,8 @@ public class BattleMapViewModelTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -689,8 +703,7 @@ public class BattleMapViewModelTests
             PlayerId = player.Id,
             UnitsToPlay = 1
         });
-
-
+        
         // Place unit
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _sut.Units.First();
@@ -779,10 +792,6 @@ public class BattleMapViewModelTests
         var player2 = new Player(Guid.NewGuid(), "Player2");
         var game = CreateClientGame();
         game.JoinGameWithUnits(player1,[],[]);
-        game.JoinGameWithUnits(player2,[],[]);
-        game.SetBattleMap(battleMap);
-        
-        _sut.Game = game;
         game.HandleCommand(new JoinGameCommand
         {
             PlayerName = "Player1",
@@ -790,8 +799,14 @@ public class BattleMapViewModelTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = player1.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
+        game.JoinGameWithUnits(player2,[],[]);
+        game.SetBattleMap(battleMap);
+        
+        _sut.Game = game;
+        
         game.HandleCommand(new JoinGameCommand
         {
             PlayerName = "Player2",
@@ -799,7 +814,8 @@ public class BattleMapViewModelTests
             Tint = "#00FF00",
             GameOriginId = Guid.NewGuid(),
             PlayerId = player2.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -863,10 +879,6 @@ public class BattleMapViewModelTests
         var player2 = new Player(Guid.NewGuid(), "Player2");
         var game = CreateClientGame();
         game.JoinGameWithUnits(player1,[],[]);
-        game.JoinGameWithUnits(player2,[],[]);
-        game.SetBattleMap(battleMap);
-        
-        _sut.Game = game;
         game.HandleCommand(new JoinGameCommand
         {
             PlayerName = "Player1",
@@ -874,8 +886,14 @@ public class BattleMapViewModelTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = player1.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
+        game.JoinGameWithUnits(player2,[],[]);
+        game.SetBattleMap(battleMap);
+        
+        _sut.Game = game;
+        
         game.HandleCommand(new JoinGameCommand
         {
             PlayerName = "Player2",
@@ -883,7 +901,8 @@ public class BattleMapViewModelTests
             Tint = "#00FF00",
             GameOriginId = Guid.NewGuid(),
             PlayerId = player2.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -973,7 +992,8 @@ public class BattleMapViewModelTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = player1.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         game.HandleCommand(new UpdatePlayerStatusCommand
         {
@@ -1614,7 +1634,8 @@ public class BattleMapViewModelTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = playerId,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         // Set up the game state for the End phase
         clientGame.HandleCommand(new ChangePhaseCommand
@@ -1774,7 +1795,8 @@ public class BattleMapViewModelTests
             PlayerName = player.Name,
             GameOriginId = Guid.NewGuid(),
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
 
         game.HandleCommand(new ChangePhaseCommand
@@ -1989,7 +2011,8 @@ public class BattleMapViewModelTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            _mapFactory);
+            _mapFactory,
+            _hashService);
     }
 
     [Fact]

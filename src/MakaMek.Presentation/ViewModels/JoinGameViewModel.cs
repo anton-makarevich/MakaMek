@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -37,12 +38,19 @@ public class JoinGameViewModel : NewGameViewModel
         IGameFactory gameFactory,
         ITransportFactory transportFactory,
         IBattleMapFactory mapFactory,
-        IFileCachingService cachingService)
-        : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
+        IFileCachingService cachingService,
+        IHashService hashService)
+        : base(rulesProvider,
+            unitsLoader,
+            commandPublisher,
+            toHitCalculator,
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
-            dispatcherService, gameFactory, cachingService)
+            dispatcherService,
+            gameFactory,
+            cachingService,
+            hashService)
     {
         _mechFactory = mechFactory;
         _transportFactory = transportFactory;
@@ -169,7 +177,8 @@ public class JoinGameViewModel : NewGameViewModel
                 _pilotingSkillCalculator,
                 _consciousnessCalculator,
                 _heatEffectsCalculator,
-                _mapFactory);
+                _mapFactory,
+                _hashService);
             IsConnected = true;
             await _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
             {

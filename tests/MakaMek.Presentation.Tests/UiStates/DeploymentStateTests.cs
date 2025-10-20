@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -34,6 +35,7 @@ public class DeploymentStateTests
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
 
     public DeploymentStateTests()
     {
@@ -63,12 +65,23 @@ public class DeploymentStateTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            Substitute.For<IBattleMapFactory>());
+            Substitute.For<IBattleMapFactory>(),
+            _hashService);
+        
+        var idempotencyKey = Guid.NewGuid();
+        _hashService.ComputeCommandIdempotencyKey(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<Type>(),
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>())
+            .Returns(idempotencyKey);
+        
         _game.JoinGameWithUnits(player,[],[]);
-        var joinCommand = (JoinGameCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
         
         _battleMapViewModel.Game = _game;
-        SetActivePlayer(player, unitData, joinCommand.IdempotencyKey!.Value);
+        SetActivePlayer(player, unitData, idempotencyKey);
         _unit = _battleMapViewModel.Units.First();
         _sut = new DeploymentState(_battleMapViewModel);
     }

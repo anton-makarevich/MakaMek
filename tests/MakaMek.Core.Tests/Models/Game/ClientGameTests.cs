@@ -22,6 +22,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -40,8 +41,19 @@ public class ClientGameTests
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
+    private readonly Guid _idempotencyKey = Guid.NewGuid();
     public ClientGameTests()
     {
+        _hashService.ComputeCommandIdempotencyKey(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<Type>(),
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>())
+            .Returns(_idempotencyKey);
+        
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
         var mechFactory = new MechFactory(
@@ -57,7 +69,8 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            _mapFactory);
+            _mapFactory,
+            _hashService);
     }
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
@@ -350,21 +363,18 @@ public class ClientGameTests
         if (isLocalPlayer)
         {
             _sut.JoinGameWithUnits(player,[unitData],[]);
-            var joinCommand = (JoinGameCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
-            _sut.HandleCommand(joinCommand with { GameOriginId = Guid.NewGuid() });
         }
-        else
+
+        _sut.HandleCommand(new JoinGameCommand
         {
-            _sut.HandleCommand(new JoinGameCommand
-            {
-                PlayerId = player.Id,
-                GameOriginId = Guid.NewGuid(),
-                PlayerName = player.Name,
-                Units = [unitData],
-                Tint = "#FF0000",
-                PilotAssignments = []
-            });
-        }
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -439,7 +449,8 @@ public class ClientGameTests
             PlayerName = player.Name,
             Units = [unitData],
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -664,21 +675,18 @@ public class ClientGameTests
         if (isLocalPlayer)
         {
             _sut.JoinGameWithUnits(player, [unitData],[]);
-            var joinCommand = (JoinGameCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
-            _sut.HandleCommand(joinCommand with { GameOriginId = Guid.NewGuid() });
         }
-        else
+
+        _sut.HandleCommand(new JoinGameCommand
         {
-            _sut.HandleCommand(new JoinGameCommand
-            {
-                PlayerId = player.Id,
-                GameOriginId = Guid.NewGuid(),
-                PlayerName = player.Name,
-                Units = [unitData],
-                Tint = "#FF0000",
-                PilotAssignments = []
-            });
-        }
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -689,7 +697,7 @@ public class ClientGameTests
 
         var command = new WeaponConfigurationCommand
         {
-            GameOriginId = Guid.NewGuid(),
+            GameOriginId = _sut.Id,
             PlayerId = player.Id,
             UnitId = unitData.Id.Value,
             Configuration = new WeaponConfiguration
@@ -808,7 +816,8 @@ public class ClientGameTests
             PlayerName = player.Name,
             Units = [unitData],
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
@@ -1281,7 +1290,8 @@ public class ClientGameTests
             PlayerName = player.Name,
             Units = [unitData],
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         _sut.HandleCommand(new ChangePhaseCommand
         {
@@ -1518,7 +1528,8 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            _mapFactory);
+            _mapFactory,
+            _hashService);
         var unitData = MechFactoryTests.CreateDummyMechData();
         clientGame.JoinGameWithUnits(localPlayer1,[unitData],[]);
         clientGame.JoinGameWithUnits(localPlayer2,[unitData],[]);
@@ -1599,7 +1610,8 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            _mapFactory);
+            _mapFactory,
+            _hashService);
         clientGame.JoinGameWithUnits(localPlayer1,[],[]);
         clientGame.JoinGameWithUnits(localPlayer2,[],[]);
         clientGame.JoinGameWithUnits(localPlayer3,[],[]);
@@ -2640,79 +2652,6 @@ public class ClientGameTests
         _sut.IsDisposed.ShouldBeTrue();
     }
     
-    [Fact]
-    public void ComputeIdempotencyKey_ShouldReturnSameKey_ForSameInputs()
-    {
-        // Arrange
-        var playerId = Guid.NewGuid();
-        var unitId = Guid.NewGuid();
-        var commandType = typeof(DeployUnitCommand);
-
-        // Act
-        var key1 = _sut.ComputeIdempotencyKey(playerId, commandType, unitId);
-        var key2 = _sut.ComputeIdempotencyKey(playerId, commandType, unitId);
-
-        // Assert
-        key1.ShouldBe(key2);
-    }
-
-    [Fact]
-    public void ComputeIdempotencyKey_ShouldReturnDifferentKeys_ForDifferentPlayers()
-    {
-        // Arrange
-        var playerId1 = Guid.NewGuid();
-        var playerId2 = Guid.NewGuid();
-        var unitId = Guid.NewGuid();
-        var commandType = typeof(DeployUnitCommand);
-
-        // Act
-        var key1 = _sut.ComputeIdempotencyKey(playerId1, commandType, unitId);
-        var key2 = _sut.ComputeIdempotencyKey(playerId2, commandType, unitId);
-
-        // Assert
-        key1.ShouldNotBe(key2);
-    }
-
-    [Fact]
-    public void ComputeIdempotencyKey_ShouldReturnDifferentKeys_ForDifferentCommandTypes()
-    {
-        // Arrange
-        var playerId = Guid.NewGuid();
-        var unitId = Guid.NewGuid();
-
-        // Act
-        var key1 = _sut.ComputeIdempotencyKey(playerId, typeof(DeployUnitCommand), unitId);
-        var key2 = _sut.ComputeIdempotencyKey(playerId, typeof(MoveUnitCommand), unitId);
-
-        // Assert
-        key1.ShouldNotBe(key2);
-    }
-
-    [Fact]
-    public void ComputeIdempotencyKey_ShouldReturnDifferentKeys_ForDifferentPhases()
-    {
-        // Arrange
-        var playerId = Guid.NewGuid();
-        var unitId = Guid.NewGuid();
-        var commandType = typeof(DeployUnitCommand);
-
-        // Get key in current phase
-        var key1 = _sut.ComputeIdempotencyKey(playerId, commandType, unitId);
-
-        // Change phase
-        _sut.HandleCommand(new ChangePhaseCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            Phase = PhaseNames.Movement
-        });
-
-        // Get key in new phase
-        var key2 = _sut.ComputeIdempotencyKey(playerId, commandType, unitId);
-
-        // Assert
-        key1.ShouldNotBe(key2);
-    }
-
     [Fact]
     public async Task SendPlayerAction_ShouldAssignIdempotencyKey_WhenSendingCommand()
     {
