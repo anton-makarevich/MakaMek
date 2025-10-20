@@ -26,6 +26,7 @@ public sealed class ClientGame : BaseGame, IDisposable
     private readonly IHashService _hashService;
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> _pendingCommands = new();
     private bool _isDisposed;
+    private static readonly TimeSpan AckTimeout = TimeSpan.FromSeconds(10);
 
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
@@ -208,27 +209,27 @@ public sealed class ClientGame : BaseGame, IDisposable
             : SendClientCommand(command);
     }
 
-    private Task<bool> SendClientCommand<T>(T command) where T : struct, IClientCommand
+    private async Task<bool> SendClientCommand<T>(T command) where T : struct, IClientCommand
     {
-        if (!ValidateCommand(command)) return Task.FromResult(false);
-        
+        if (!ValidateCommand(command)) return false;
+
         // Extract UnitId from the command if it has one
         var unitId = GetUnitIdFromCommand(command);
 
         // Compute idempotency key
         var idempotencyKey = _hashService.ComputeCommandIdempotencyKey
-            (Id,
-                command.PlayerId,
-                typeof(T),
-                Turn, 
-                nameof(TurnPhase),
-                unitId);
+        (Id,
+            command.PlayerId,
+            typeof(T),
+            Turn,
+            nameof(TurnPhase),
+            unitId);
 
         // Check if this command is already pending
         if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCommand))
         {
             // Return the existing task
-            return pendingCommand.Task;
+            return await pendingCommand.Task;
         }
 
         // Create a new task completion source for this command
@@ -241,12 +242,14 @@ public sealed class ClientGame : BaseGame, IDisposable
             GameOriginId = Id,
             IdempotencyKey = idempotencyKey
         };
-
-        // Publish the command
-        CommandPublisher.PublishCommand(commandWithKey);
-
+        
         // Return the task that will be completed when the server responds
-        return tcs.Task;
+        CommandPublisher.PublishCommand(commandWithKey);
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(AckTimeout)).ConfigureAwait(false);
+        if (completed == tcs.Task) return await tcs.Task.ConfigureAwait(false);
+        // Timeout: clean up and report failure
+        _pendingCommands.TryRemove(idempotencyKey, out _);
+        return false;
     }
 
     public Task<bool> DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
@@ -322,9 +325,14 @@ public sealed class ClientGame : BaseGame, IDisposable
     {
         if (_isDisposed) return;
         _isDisposed = true;
-        
+
         // Unsubscribe from command publisher
         CommandPublisher.Unsubscribe(HandleCommand);
+
+        // Fail/cancel any pending waits to avoid hangs
+        foreach (var kv in _pendingCommands)
+            kv.Value.TrySetCanceled();
+        _pendingCommands.Clear();
 
         // Complete and dispose subjects
         _commandSubject.OnCompleted();
