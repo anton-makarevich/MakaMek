@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
 using System.Security.Cryptography;
@@ -23,7 +24,7 @@ public sealed class ClientGame : BaseGame, IDisposable
     private readonly List<IGameCommand> _commandLog = [];
     private readonly HashSet<Guid> _playersEndedTurn = [];
     private readonly IBattleMapFactory _mapFactory;
-    private readonly Dictionary<Guid, TaskCompletionSource<bool>> _pendingCommands = new();
+    private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> _pendingCommands = new();
     private bool _isDisposed;
 
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
@@ -171,9 +172,9 @@ public sealed class ClientGame : BaseGame, IDisposable
     public bool CanActivePlayerAct => ActivePlayer != null 
                                       && LocalPlayers.Contains(ActivePlayer.Id) 
                                       && ActivePlayer.CanAct
-                                      && _pendingCommands.Count == 0;
+                                      && _pendingCommands.IsEmpty;
 
-    public void JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
+    public Task JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
     {
         var joinCommand = new JoinGameCommand
         {
@@ -186,20 +187,10 @@ public sealed class ClientGame : BaseGame, IDisposable
         };
         player.Status = PlayerStatus.Joining;
         LocalPlayers.Add(player.Id);
-        if (ValidateCommand(joinCommand))
-        {
-            CommandPublisher.PublishCommand(joinCommand);
-        }
+        return SendClientCommand(joinCommand);
     }
     
-    public void SetPlayerReady(UpdatePlayerStatusCommand readyCommand)
-    {
-        if (ValidateCommand(readyCommand))
-        {
-            readyCommand.GameOriginId = Id;
-            CommandPublisher.PublishCommand(readyCommand);
-        }
-    }
+    public Task SetPlayerReady(UpdatePlayerStatusCommand readyCommand) => SendClientCommand(readyCommand);
 
     /// <summary>
     /// Sends a player action command if the active player can act.
@@ -208,10 +199,17 @@ public sealed class ClientGame : BaseGame, IDisposable
     /// <param name="command">Any client command to be sent</param>
     /// <typeparam name="T">Type of command that implements IClientCommand</typeparam>
     /// <returns>A task that completes with true on success, false on error</returns>
-    private async Task<bool> SendPlayerAction<T>(T command) where T : struct, IClientCommand
+    private Task<bool> SendPlayerAction<T>(T command) where T : struct, IClientCommand
     {
-        if (!CanActivePlayerAct) return false;
+        return !CanActivePlayerAct 
+            ? Task.FromResult(false) 
+            : SendClientCommand(command);
+    }
 
+    private Task<bool> SendClientCommand<T>(T command) where T : struct, IClientCommand
+    {
+        if (!ValidateCommand(command)) return Task.FromResult(false);
+        
         // Extract UnitId from the command if it has one
         var unitId = GetUnitIdFromCommand(command);
 
@@ -222,7 +220,7 @@ public sealed class ClientGame : BaseGame, IDisposable
         if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCommand))
         {
             // Return the existing task
-            return await pendingCommand.Task;
+            return pendingCommand.Task;
         }
 
         // Create a new task completion source for this command
@@ -236,7 +234,7 @@ public sealed class ClientGame : BaseGame, IDisposable
         CommandPublisher.PublishCommand(commandWithKey);
 
         // Return the task that will be completed when the server responds
-        return await tcs.Task;
+        return tcs.Task;
     }
 
     public Task<bool> DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
@@ -255,10 +253,7 @@ public sealed class ClientGame : BaseGame, IDisposable
 
     public Task<bool> StartupUnit(StartupUnitCommand command) => SendPlayerAction(command);
 
-    public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
-    {
-        CommandPublisher.PublishCommand(statusCommand);
-    }
+    public Task RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)=> SendClientCommand(statusCommand);
 
     /// <summary>
     /// Sends a PlayerLeftCommand for the specified player
@@ -277,6 +272,7 @@ public sealed class ClientGame : BaseGame, IDisposable
             PlayerId = playerId,
             Timestamp = DateTime.UtcNow
         };
+        // Call it directly as we don't want to track this command for now
         CommandPublisher.PublishCommand(playerLeftCommand);
     }
 

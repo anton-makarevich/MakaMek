@@ -171,7 +171,7 @@ public class JoinGameViewModel : NewGameViewModel
                 _heatEffectsCalculator,
                 _mapFactory);
             IsConnected = true;
-            _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
+            await _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
             {
                 GameOriginId = _localGame.Id
             });

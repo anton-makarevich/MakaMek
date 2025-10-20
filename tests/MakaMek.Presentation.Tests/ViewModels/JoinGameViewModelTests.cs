@@ -41,11 +41,12 @@ public class JoinGameViewModelTests
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
     private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
+    private readonly ClientGame _clientGame;
 
     public JoinGameViewModelTests()
     {
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
-        var clientGame = new ClientGame(
+        _clientGame = new ClientGame(
             _rulesProvider,
             _mechFactory,
             _commandPublisher, 
@@ -70,7 +71,7 @@ public class JoinGameViewModelTests
                 _consciousnessCalculator,
                 _heatEffectsCalculator,
                 _mapFactory)
-            .Returns(clientGame);
+            .Returns(_clientGame);
         
         // Configure dispatcher to execute actions immediately
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
@@ -96,13 +97,16 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
-    public async Task ConnectToServer_ClearsExistingPublishers()
+    public void ConnectToServer_ClearsExistingPublishers()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Act
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         // Assert
         // Verify that ClearPublishers was called on the adapter
@@ -110,26 +114,32 @@ public class JoinGameViewModelTests
     }
     
     [Fact]
-    public async Task ConnectToServer_RequestsLobbyStatus()
+    public void ConnectToServer_RequestsLobbyStatus()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Act
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
         
         // Assert
-        _commandPublisher.Received().PublishCommand(Arg.Any<RequestGameLobbyStatusCommand>());
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        lobbyCommand.GameOriginId.ShouldBe(_clientGame.Id);
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
     }
     
     [Fact]
-    public async Task ConnectToServer_AddsNewPublisherAfterClearing()
+    public void ConnectToServer_AddsNewPublisherAfterClearing()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Act
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         // Assert
         // Verify that the new publisher was added to the adapter
@@ -137,21 +147,25 @@ public class JoinGameViewModelTests
     }
     
     [Fact]
-    public async Task ConnectToServer_SetsIsConnectedToTrue_OnSuccess()
+    public void ConnectToServer_SetsIsConnectedToTrue_OnSuccess()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Act
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
         
         // Assert
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        
         _sut.IsConnected.ShouldBeTrue();
         _sut.CanPublishCommands.ShouldBeTrue();
     }
     
     [Fact]
-    public async Task ConnectToServer_SetsIsConnectedToFalse_OnError()
+    public void ConnectToServer_SetsIsConnectedToFalse_OnError()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
@@ -161,7 +175,7 @@ public class JoinGameViewModelTests
             .Returns<Task<ITransportPublisher>>(_ => throw new Exception("Connection failed"));
         
         // Act
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
         
         // Assert
         _sut.IsConnected.ShouldBeFalse();
@@ -174,6 +188,9 @@ public class JoinGameViewModelTests
         _sut.ServerIp="127.0.0.1";
         // Act
         _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         // Assert
         _gameFactory.Received(1).CreateClientGame(_rulesProvider,
@@ -196,6 +213,9 @@ public class JoinGameViewModelTests
         
         // Act - call again
         _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         // Assert - should not create a new game
         _gameFactory.DidNotReceive().CreateClientGame(
@@ -220,11 +240,14 @@ public class JoinGameViewModelTests
     }
     
     [Fact]
-    public async Task CanAddPlayer_ReturnsTrue_WhenConnectedAndLessThanFourPlayers()
+    public void CanAddPlayer_ReturnsTrue_WhenConnectedAndLessThanFourPlayers()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         // Assert
         _sut.CanAddPlayer.ShouldBeTrue();
@@ -235,10 +258,13 @@ public class JoinGameViewModelTests
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         // Add 4 players
-        for (int i = 0; i < 4; i++)
+        for (var i = 0; i < 4; i++)
         {
             await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         }
@@ -268,11 +294,14 @@ public class JoinGameViewModelTests
     }
     
     [Fact]
-    public async Task CanConnect_ReturnsFalse_WhenAlreadyConnected()
+    public void CanConnect_ReturnsFalse_WhenAlreadyConnected()
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         // Assert
         _sut.CanConnect.ShouldBeFalse();
@@ -283,7 +312,10 @@ public class JoinGameViewModelTests
     {
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         
         var player = _sut.Players.First();
@@ -305,11 +337,16 @@ public class JoinGameViewModelTests
     }
     
     [Fact]
-    public async Task HandleCommandInternal_JoinGameCommand_AddsNewRemotePlayer()
+    public void HandleCommandInternal_JoinGameCommand_AddsNewRemotePlayer()
     {
         // Connect
         _sut.ServerIp = "http://localhost:5000";
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        // Complete request lobby command
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         // Create join command for a new remote player
         var remotePlayerId = Guid.NewGuid();
@@ -334,11 +371,14 @@ public class JoinGameViewModelTests
     }
     
     [Fact]
-    public async Task HandleCommandInternal_JoinGameCommand_UpdatesExistingLocalPlayer()
+    public void HandleCommandInternal_JoinGameCommand_UpdatesExistingLocalPlayer()
     {
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         var player = _sut.Players.First();
         var playerId = player.Player.Id;
@@ -367,7 +407,10 @@ public class JoinGameViewModelTests
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         var navigationService = Substitute.For<INavigationService>();
         var localizationService = Substitute.For<ILocalizationService>();
         var imageService = Substitute.For<IImageService>();
@@ -493,7 +536,10 @@ public class JoinGameViewModelTests
         player.CanJoin.ShouldBeFalse();
         
         // Act
-        await ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
+            .Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
         
         // Assert
         _sut.IsConnected.ShouldBeTrue();

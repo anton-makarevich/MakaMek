@@ -225,6 +225,8 @@ public class BattleMapViewModel : BaseViewModel
                 ProcessGameEnded(gameEndedCommand).SafeFireAndForget();
                 break;
         }
+
+        NotifyStateChanged();
     }
 
     private void ProcessMechStandUp(MechStandUpCommand standUpCommand)

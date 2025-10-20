@@ -136,6 +136,7 @@ public class ServerGame : BaseGame, IDisposable
     protected override void OnPlayerLeft(PlayerLeftCommand command)
     {
         base.OnPlayerLeft(command);
+        CommandPublisher.PublishCommand(command with { GameOriginId = Id });
         // At the moment it's not possible to continue even if one player is leaving
         StopGame(GameEndReason.PlayersLeft);
     }

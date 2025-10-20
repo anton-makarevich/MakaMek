@@ -1942,10 +1942,13 @@ public class BattleMapViewModelTests
         _sut.LeaveGameCommand.Execute(null);
         
         // Assert
-        _commandPublisher.Received(1).PublishCommand(Arg.Is<PlayerLeftCommand>(cmd => 
-            cmd.PlayerId == playerId &&
-            cmd.GameOriginId == _game.Id
-        ));
+        var capturedCommand = (PlayerLeftCommand)_commandPublisher.ReceivedCalls() 
+            .First().GetArguments()[0]!;
+        
+        capturedCommand.PlayerId.ShouldBe(playerId);
+        capturedCommand.GameOriginId.ShouldBe(_game.Id);
+        
+        _game.HandleCommand(capturedCommand with { GameOriginId = Guid.NewGuid() });
     }
 
     private ToHitBreakdown CreateTestBreakdown(int total)

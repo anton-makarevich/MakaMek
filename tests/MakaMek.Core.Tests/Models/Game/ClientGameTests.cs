@@ -2745,7 +2745,7 @@ public class ClientGameTests
         var deployTask = _sut.DeployUnit(deployCommand);
 
         // Simulate server response
-        var capturedCommand = (DeployUnitCommand)_commandPublisher.ReceivedCalls()
+        var capturedCommand = (DeployUnitCommand)_commandPublisher.ReceivedCalls() 
             .First().GetArguments()[0]!;
 
         capturedCommand.IdempotencyKey.ShouldNotBeNull();
