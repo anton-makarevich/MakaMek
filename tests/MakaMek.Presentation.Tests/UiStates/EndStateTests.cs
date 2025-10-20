@@ -71,6 +71,7 @@ public class EndStateTests
             _heatEffectsCalculator,
             Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[],[]);
+        var joinCommand = (JoinGameCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         
         _battleMapViewModel.Game = _game;
@@ -82,7 +83,8 @@ public class EndStateTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = _player.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = joinCommand.IdempotencyKey!.Value
         });
         _unit1 = _battleMapViewModel.Units.First();
     

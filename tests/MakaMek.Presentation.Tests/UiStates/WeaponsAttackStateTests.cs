@@ -95,6 +95,7 @@ public class WeaponsAttackStateTests
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IBattleMapFactory>());
         _game.JoinGameWithUnits(_player,[],[]);
+        var joinCommand = (JoinGameCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
         _game.SetBattleMap(battleMap);
 
         var expectedModifiers = new ToHitBreakdown
@@ -118,12 +119,12 @@ public class WeaponsAttackStateTests
             .Returns(expectedModifiers);
         
         _battleMapViewModel.Game = _game;
-        AddPlayerUnits();
+        AddPlayerUnits(joinCommand.IdempotencyKey!.Value);
         SetActivePlayer();
         _sut = new WeaponsAttackState(_battleMapViewModel);
     }
 
-    private void AddPlayerUnits()
+    private void AddPlayerUnits(Guid joinCommandIdempotencyKey)
     {
         var playerId2 = Guid.NewGuid();
         _game.HandleCommand(new JoinGameCommand
@@ -133,7 +134,8 @@ public class WeaponsAttackStateTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = _player.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = joinCommandIdempotencyKey
         });
         _game.HandleCommand(new JoinGameCommand
         {

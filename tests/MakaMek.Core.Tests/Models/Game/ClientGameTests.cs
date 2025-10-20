@@ -349,17 +349,23 @@ public class ClientGameTests
         unitData.Id= Guid.NewGuid();
         if (isLocalPlayer)
         {
-            _sut.JoinGameWithUnits(player,[],[]);
+            _sut.JoinGameWithUnits(player,[unitData],[]);
+            var joinCommand = (JoinGameCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
+            _sut.HandleCommand(joinCommand with { GameOriginId = Guid.NewGuid() });
         }
-        _sut.HandleCommand(new JoinGameCommand
+        else
         {
-            PlayerId = player.Id,
-            GameOriginId = Guid.NewGuid(),
-            PlayerName = player.Name,
-            Units = [unitData],
-            Tint = "#FF0000",
-            PilotAssignments = []
-        });
+            _sut.HandleCommand(new JoinGameCommand
+            {
+                PlayerId = player.Id,
+                GameOriginId = Guid.NewGuid(),
+                PlayerName = player.Name,
+                Units = [unitData],
+                Tint = "#FF0000",
+                PilotAssignments = []
+            });
+        }
+
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -657,17 +663,22 @@ public class ClientGameTests
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
         {
-            _sut.JoinGameWithUnits(player, [],[]);
+            _sut.JoinGameWithUnits(player, [unitData],[]);
+            var joinCommand = (JoinGameCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
+            _sut.HandleCommand(joinCommand with { GameOriginId = Guid.NewGuid() });
         }
-        _sut.HandleCommand(new JoinGameCommand
+        else
         {
-            PlayerId = player.Id,
-            GameOriginId = Guid.NewGuid(),
-            PlayerName = player.Name,
-            Units = [unitData],
-            Tint = "#FF0000",
-            PilotAssignments = []
-        });
+            _sut.HandleCommand(new JoinGameCommand
+            {
+                PlayerId = player.Id,
+                GameOriginId = Guid.NewGuid(),
+                PlayerName = player.Name,
+                Units = [unitData],
+                Tint = "#FF0000",
+                PilotAssignments = []
+            });
+        }
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {

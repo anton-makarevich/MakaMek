@@ -132,10 +132,11 @@ public class MovementStateTests
             Substitute.For<IBattleMapFactory>());
         
         _game.JoinGameWithUnits(_player,[],[]);
+        var joinCommand = (JoinGameCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
         _game.SetBattleMap(battleMap);
         
         _battleMapViewModel.Game = _game;
-        AddPlayerUnits();
+        AddPlayerUnits(joinCommand.IdempotencyKey!.Value);
         SetActivePlayer();
         _sut = new MovementState(_battleMapViewModel);
     }
@@ -155,7 +156,7 @@ public class MovementStateTests
         _sut.CanExecutePlayerAction.ShouldBeFalse();
     }
 
-    private void AddPlayerUnits()
+    private void AddPlayerUnits(Guid joinCommandIdempotencyKey)
     {
         var playerId2 = Guid.NewGuid();
         _game.HandleCommand(new JoinGameCommand
@@ -165,7 +166,8 @@ public class MovementStateTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = _player.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = joinCommandIdempotencyKey
         });
         _game.HandleCommand(new JoinGameCommand
         {
