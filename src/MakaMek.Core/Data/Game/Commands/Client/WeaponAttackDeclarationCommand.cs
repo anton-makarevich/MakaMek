@@ -11,6 +11,7 @@ public record struct WeaponAttackDeclarationCommand : IClientCommand
     public required List<WeaponTargetData> WeaponTargets { get; init; }
     public required Guid PlayerId { get; init; }
     public DateTime Timestamp { get; set; }
+    public Guid? IdempotencyKey { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {

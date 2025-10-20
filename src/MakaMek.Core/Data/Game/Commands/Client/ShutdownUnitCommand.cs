@@ -10,12 +10,13 @@ public record struct ShutdownUnitCommand : IClientCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
-    
+    public Guid? IdempotencyKey { get; init; }
+
     /// <summary>
     /// The ID of the unit to shut down
     /// </summary>
     public required Guid UnitId { get; init; }
-    
+
     /// <summary>
     /// The ID of the player requesting the shutdown
     /// </summary>

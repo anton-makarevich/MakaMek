@@ -1,5 +1,7 @@
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -21,6 +23,7 @@ public sealed class ClientGame : BaseGame, IDisposable
     private readonly List<IGameCommand> _commandLog = [];
     private readonly HashSet<Guid> _playersEndedTurn = [];
     private readonly IBattleMapFactory _mapFactory;
+    private readonly Dictionary<Guid, TaskCompletionSource<bool>> _pendingCommands = new();
     private bool _isDisposed;
 
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
@@ -144,6 +147,18 @@ public sealed class ClientGame : BaseGame, IDisposable
             case CriticalHitsResolutionCommand criticalHitsCommand:
                 OnCriticalHitsResolution(criticalHitsCommand);
                 break;
+            case ErrorCommand errorCommand:
+                // Complete the pending task with failure
+                if (errorCommand.IdempotencyKey.HasValue)
+                    CompletePendingCommand(errorCommand.IdempotencyKey.Value, false);
+                break;
+        }
+
+        // Check if this is a re-broadcasted client command with IdempotencyKey
+        if (command is IClientCommand { IdempotencyKey: not null } clientCommand)
+        {
+            // Complete the pending task with success
+            CompletePendingCommand(clientCommand.IdempotencyKey.Value, true);
         }
 
         // Log the command
@@ -186,31 +201,58 @@ public sealed class ClientGame : BaseGame, IDisposable
     }
 
     /// <summary>
-    /// Sends a player action command if the active player can act
+    /// Sends a player action command if the active player can act.
+    /// Computes and assigns an idempotency key, tracks the command, and returns a task that completes when the server responds.
     /// </summary>
     /// <param name="command">Any client command to be sent</param>
     /// <typeparam name="T">Type of command that implements IClientCommand</typeparam>
-    private void SendPlayerAction<T>(T command) where T : IClientCommand
+    /// <returns>A task that completes with true on success, false on error</returns>
+    private async Task<bool> SendPlayerAction<T>(T command) where T : struct, IClientCommand
     {
-        if (!CanActivePlayerAct) return;
-        CommandPublisher.PublishCommand(command);
+        if (!CanActivePlayerAct) return false;
+
+        // Extract UnitId from the command if it has one
+        var unitId = GetUnitIdFromCommand(command);
+
+        // Compute idempotency key
+        var idempotencyKey = ComputeIdempotencyKey(command.PlayerId, typeof(T), unitId);
+
+        // Check if this command is already pending
+        if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCommand))
+        {
+            // Return the existing task
+            return await pendingCommand.Task;
+        }
+
+        // Create a new task completion source for this command
+        var tcs = new TaskCompletionSource<bool>();
+        _pendingCommands[idempotencyKey] = tcs;
+
+        // Assign the idempotency key to the command
+        var commandWithKey = command with { IdempotencyKey = idempotencyKey };
+
+        // Publish the command
+        CommandPublisher.PublishCommand(commandWithKey);
+
+        // Return the task that will be completed when the server responds
+        return await tcs.Task;
     }
 
-    public void DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
-    
-    public void MoveUnit(MoveUnitCommand command) => SendPlayerAction(command);
-    
-    public void ConfigureUnitWeapons(WeaponConfigurationCommand command) => SendPlayerAction(command);
-    
-    public void DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendPlayerAction(command);
-    
-    public void EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
-    
-    public void TryStandupUnit(TryStandupCommand command) => SendPlayerAction(command);
+    public Task<bool> DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
 
-    public void ShutdownUnit(ShutdownUnitCommand command) => SendPlayerAction(command);
+    public Task<bool> MoveUnit(MoveUnitCommand command) => SendPlayerAction(command);
 
-    public void StartupUnit(StartupUnitCommand command) => SendPlayerAction(command);
+    public Task<bool> ConfigureUnitWeapons(WeaponConfigurationCommand command) => SendPlayerAction(command);
+
+    public Task<bool> DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendPlayerAction(command);
+
+    public Task<bool> EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
+
+    public Task<bool> TryStandupUnit(TryStandupCommand command) => SendPlayerAction(command);
+
+    public Task<bool> ShutdownUnit(ShutdownUnitCommand command) => SendPlayerAction(command);
+
+    public Task<bool> StartupUnit(StartupUnitCommand command) => SendPlayerAction(command);
 
     public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
     {
@@ -235,6 +277,56 @@ public sealed class ClientGame : BaseGame, IDisposable
             Timestamp = DateTime.UtcNow
         };
         CommandPublisher.PublishCommand(playerLeftCommand);
+    }
+
+    /// <summary>
+    /// Computes a deterministic idempotency key for a command.
+    /// The key is based on GameId, PlayerId, UnitId (optional), Phase, Turn, and CommandType.
+    /// </summary>
+    /// <param name="playerId">The ID of the player sending the command</param>
+    /// <param name="commandType">The type of the command</param>
+    /// <param name="unitId">Optional unit ID for unit-specific commands</param>
+    /// <returns>A deterministic GUID that serves as the idempotency key</returns>
+    public Guid ComputeIdempotencyKey(Guid playerId, Type commandType, Guid? unitId = null)
+    {
+        // Build the input string for hashing
+        var input = $"{Id}:{playerId}:{unitId?.ToString() ?? "null"}:{TurnPhase}:{Turn}:{commandType.Name}";
+
+        // Compute SHA256 hash
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+
+        // Take first 16 bytes to create a GUID
+        return new Guid(hash[..16]);
+    }
+
+    /// <summary>
+    /// Extracts the UnitId from a command if it has one.
+    /// </summary>
+    private static Guid? GetUnitIdFromCommand(IClientCommand command)
+    {
+        return command switch
+        {
+            DeployUnitCommand deployCommand => deployCommand.UnitId,
+            MoveUnitCommand moveCommand => moveCommand.UnitId,
+            WeaponConfigurationCommand configCommand => configCommand.UnitId,
+            WeaponAttackDeclarationCommand attackCommand => attackCommand.AttackerId,
+            TryStandupCommand standupCommand => standupCommand.UnitId,
+            ShutdownUnitCommand shutdownCommand => shutdownCommand.UnitId,
+            StartupUnitCommand startupCommand => startupCommand.UnitId,
+            PhysicalAttackCommand physicalCommand => physicalCommand.AttackerUnitId,
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Completes a pending command task.
+    /// </summary>
+    private void CompletePendingCommand(Guid idempotencyKey, bool success)
+    {
+        if (_pendingCommands.Remove(idempotencyKey, out var tcs))
+        {
+            tcs.SetResult(success);
+        }
     }
 
     public void Dispose()

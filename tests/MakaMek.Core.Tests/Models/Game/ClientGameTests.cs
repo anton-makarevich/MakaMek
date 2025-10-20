@@ -77,7 +77,7 @@ public class ClientGameTests
     [Fact]
     public void IsDisposed_ShouldBeFalse_ByDefault()
     {
-        _sut!.IsDisposed.ShouldBeFalse();
+        _sut.IsDisposed.ShouldBeFalse();
     }
     
     [Fact]
@@ -694,7 +694,11 @@ public class ClientGameTests
         // Assert
         if (isLocalPlayer)
         {
-            _commandPublisher.Received(1).PublishCommand(command);
+            _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponConfigurationCommand>(cmd =>
+                cmd.PlayerId == command.PlayerId &&
+                cmd.UnitId == command.UnitId &&
+                cmd.GameOriginId == command.GameOriginId &&
+                cmd.IdempotencyKey.HasValue)); // Should have an idempotency key
         }
         else
         {
@@ -843,7 +847,11 @@ public class ClientGameTests
         // Assert
         if (isLocalPlayer)
         {
-            _commandPublisher.Received(1).PublishCommand(command);
+            _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+                cmd.PlayerId == command.PlayerId &&
+                cmd.AttackerId == command.AttackerId &&
+                cmd.GameOriginId == command.GameOriginId &&
+                cmd.IdempotencyKey.HasValue)); // Should have an idempotency key
         }
         else
         {
@@ -2611,13 +2619,208 @@ public class ClientGameTests
     {
         // Arrange
         _commandPublisher.ClearReceivedCalls();
-    
+
         // Act
         _sut.Dispose();
         _sut.Dispose(); // Second call should be no-op
-    
+
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
         _sut.IsDisposed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void ComputeIdempotencyKey_ShouldReturnSameKey_ForSameInputs()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitId = Guid.NewGuid();
+        var commandType = typeof(DeployUnitCommand);
+
+        // Act
+        var key1 = _sut.ComputeIdempotencyKey(playerId, commandType, unitId);
+        var key2 = _sut.ComputeIdempotencyKey(playerId, commandType, unitId);
+
+        // Assert
+        key1.ShouldBe(key2);
+    }
+
+    [Fact]
+    public void ComputeIdempotencyKey_ShouldReturnDifferentKeys_ForDifferentPlayers()
+    {
+        // Arrange
+        var playerId1 = Guid.NewGuid();
+        var playerId2 = Guid.NewGuid();
+        var unitId = Guid.NewGuid();
+        var commandType = typeof(DeployUnitCommand);
+
+        // Act
+        var key1 = _sut.ComputeIdempotencyKey(playerId1, commandType, unitId);
+        var key2 = _sut.ComputeIdempotencyKey(playerId2, commandType, unitId);
+
+        // Assert
+        key1.ShouldNotBe(key2);
+    }
+
+    [Fact]
+    public void ComputeIdempotencyKey_ShouldReturnDifferentKeys_ForDifferentCommandTypes()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitId = Guid.NewGuid();
+
+        // Act
+        var key1 = _sut.ComputeIdempotencyKey(playerId, typeof(DeployUnitCommand), unitId);
+        var key2 = _sut.ComputeIdempotencyKey(playerId, typeof(MoveUnitCommand), unitId);
+
+        // Assert
+        key1.ShouldNotBe(key2);
+    }
+
+    [Fact]
+    public void ComputeIdempotencyKey_ShouldReturnDifferentKeys_ForDifferentPhases()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var unitId = Guid.NewGuid();
+        var commandType = typeof(DeployUnitCommand);
+
+        // Get key in current phase
+        var key1 = _sut.ComputeIdempotencyKey(playerId, commandType, unitId);
+
+        // Change phase
+        _sut.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.Movement
+        });
+
+        // Get key in new phase
+        var key2 = _sut.ComputeIdempotencyKey(playerId, commandType, unitId);
+
+        // Assert
+        key1.ShouldNotBe(key2);
+    }
+
+    [Fact]
+    public async Task SendPlayerAction_ShouldAssignIdempotencyKey_WhenSendingCommand()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = []
+        };
+
+        _sut.HandleCommand(joinCommand);
+        _sut.LocalPlayers.Add(player.Id);
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        var deployCommand = new DeployUnitCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unitData.Id!.Value,
+            Position = new HexCoordinateData(0, 0),
+            Direction = 0
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        var deployTask = _sut.DeployUnit(deployCommand);
+
+        // Simulate server response
+        var capturedCommand = (DeployUnitCommand)_commandPublisher.ReceivedCalls()
+            .First().GetArguments()[0]!;
+
+        capturedCommand.IdempotencyKey.ShouldNotBeNull();
+
+        // Simulate server rebroadcast - change GameOriginId to simulate server rebroadcast
+        var rebroadcastCommand = capturedCommand with { GameOriginId = Guid.NewGuid() };
+        _sut.HandleCommand(rebroadcastCommand);
+
+        // Assert - wait for the task to complete with a timeout
+        var completedTask = await Task.WhenAny(deployTask, Task.Delay(1000));
+        completedTask.ShouldBe(deployTask, "Task should complete when server rebroadcasts command");
+
+        var result = await deployTask;
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SendPlayerAction_ShouldCompletePendingTask_WhenErrorCommandReceived()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = []
+        };
+
+        _sut.HandleCommand(joinCommand);
+        _sut.LocalPlayers.Add(player.Id);
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        var deployCommand = new DeployUnitCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unitData.Id!.Value,
+            Position = new HexCoordinateData(0, 0),
+            Direction = 0
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        var deployTask = _sut.DeployUnit(deployCommand);
+
+        // Get the idempotency key from the published command
+        var capturedCommand = (DeployUnitCommand)_commandPublisher.ReceivedCalls()
+            .First().GetArguments()[0]!;
+
+        // Simulate server error response - this should complete the task
+        _sut.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = capturedCommand.IdempotencyKey!.Value,
+            ErrorCode = ErrorCode.DuplicateCommand
+        });
+
+        // Assert - wait for the task to complete with a timeout
+        var completedTask = await Task.WhenAny(deployTask, Task.Delay(1000));
+        completedTask.ShouldBe(deployTask, "Task should complete when ErrorCommand is received");
+
+        var result = await deployTask;
+        result.ShouldBeFalse();
     }
 }

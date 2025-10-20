@@ -66,7 +66,7 @@ public class ServerGameTests
     [Fact]
     public void IsDisposed_ShouldBeFalse_ByDefault()
     {
-        _sut!.IsDisposed.ShouldBeFalse();
+        _sut.IsDisposed.ShouldBeFalse();
     }
     
     [Fact]
@@ -502,5 +502,161 @@ public class ServerGameTests
                 1,
                 false)
         ], aimedShotRoll??[], locationRoll??[], partLocation);
+    }
+    
+    [Fact]
+    public void HandleCommand_ShouldRejectDuplicateCommand_WhenSameIdempotencyKey()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var idempotencyKey = Guid.NewGuid();
+
+        var command1 = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = idempotencyKey
+        };
+
+        var command2 = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = idempotencyKey // Same key
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(command1);
+        _sut.HandleCommand(command2); // Duplicate
+
+        // Assert
+        _sut.Players.Count.ShouldBe(1); // Only one player added
+
+        // Verify ErrorCommand was published for the duplicate
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(cmd =>
+            cmd.IdempotencyKey == idempotencyKey &&
+            cmd.ErrorCode == ErrorCode.DuplicateCommand
+        ));
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldAcceptCommand_WhenDifferentIdempotencyKey()
+    {
+        // Arrange
+        var playerId1 = Guid.NewGuid();
+        var playerId2 = Guid.NewGuid();
+
+        var command1 = new JoinGameCommand
+        {
+            PlayerId = playerId1,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid()
+        };
+
+        var command2 = new JoinGameCommand
+        {
+            PlayerId = playerId2,
+            PlayerName = "Player2",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#00FF00",
+            PilotAssignments = [],
+            IdempotencyKey = Guid.NewGuid() // Different key
+        };
+
+        // Act
+        _sut.HandleCommand(command1);
+        _sut.HandleCommand(command2);
+
+        // Assert
+        _sut.Players.Count.ShouldBe(2); // Both players added
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldPreserveIdempotencyKey_WhenRebroadcasting()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var idempotencyKey = Guid.NewGuid();
+
+        var command = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = idempotencyKey
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<JoinGameCommand>(cmd =>
+            cmd.IdempotencyKey == idempotencyKey
+        ));
+    }
+
+    [Fact]
+    public void SetPhase_ShouldClearProcessedCommandKeys_WhenPhaseChanges()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var idempotencyKey = Guid.NewGuid();
+
+        var command1 = new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = idempotencyKey
+        };
+
+        // Process command in first phase
+        _sut.HandleCommand(command1);
+
+        // Change phase
+        _sut.SetPhase(PhaseNames.Movement);
+
+        // Try to send the same command again (should be accepted after phase change)
+        var command2 = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(), // Different player to avoid validation error
+            PlayerName = "Player2",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#00FF00",
+            PilotAssignments = [],
+            IdempotencyKey = idempotencyKey // Same key as before
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(command2);
+
+        // Assert - should not send error command since keys were cleared
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ErrorCommand>());
     }
 }

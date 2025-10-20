@@ -9,6 +9,7 @@ public record struct MoveUnitCommand: IClientCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
+    public Guid? IdempotencyKey { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
