@@ -194,7 +194,7 @@ public sealed class ClientGame : BaseGame, IDisposable
     private async Task<bool> SendClientCommand<T>(T command) where T : struct, IClientCommand
     {
         // Extract UnitId from the command if it has one
-        var unitId = command.UnitId;
+        var unitId = GetUnitIdFromCommand(command);
 
         // Compute idempotency key
         var idempotencyKey = _hashService.ComputeCommandIdempotencyKey
@@ -298,6 +298,14 @@ public sealed class ClientGame : BaseGame, IDisposable
         };
         // Call it directly as we don't want to track this command for now
         CommandPublisher.PublishCommand(playerLeftCommand);
+    }
+
+    /// <summary>
+    /// Extracts the UnitId from a command if it has one.
+    /// </summary>
+    private static Guid? GetUnitIdFromCommand(IClientCommand command)
+    {
+        return command is IClientUnitCommand unitCommand ? unitCommand.UnitId : null;
     }
 
     /// <summary>

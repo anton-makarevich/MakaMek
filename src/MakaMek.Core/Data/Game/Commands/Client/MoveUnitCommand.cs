@@ -5,7 +5,7 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
-public record struct MoveUnitCommand: IClientCommand
+public record struct MoveUnitCommand: IClientUnitCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
@@ -30,7 +30,7 @@ public record struct MoveUnitCommand: IClientCommand
             MovementType);
     }
 
-    public required Guid? UnitId { get; init; }
+    public required Guid UnitId { get; init; }
     public required MovementType MovementType { get; init; }
     public required List<PathSegmentData> MovementPath { get; init; }
     public Guid PlayerId { get; init; }

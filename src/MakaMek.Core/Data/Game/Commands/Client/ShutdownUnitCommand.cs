@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 /// <summary>
 /// Client command for voluntary unit shutdown
 /// </summary>
-public record struct ShutdownUnitCommand : IClientCommand
+public record struct ShutdownUnitCommand : IClientUnitCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
@@ -15,7 +15,7 @@ public record struct ShutdownUnitCommand : IClientCommand
     /// <summary>
     /// The ID of the unit to shut down
     /// </summary>
-    public required Guid? UnitId { get; init; }
+    public required Guid UnitId { get; init; }
 
     /// <summary>
     /// The ID of the player requesting the shutdown

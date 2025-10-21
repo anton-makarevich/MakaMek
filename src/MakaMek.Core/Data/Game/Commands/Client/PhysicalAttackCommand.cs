@@ -3,7 +3,7 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
-public record struct PhysicalAttackCommand : IClientCommand
+public record struct PhysicalAttackCommand : IClientUnitCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
@@ -28,7 +28,7 @@ public record struct PhysicalAttackCommand : IClientCommand
             AttackType);
     }
 
-    public required Guid? UnitId { get; init; }
+    public required Guid UnitId { get; init; }
     public required Guid TargetUnitId { get; init; }
     public required PhysicalAttackType AttackType { get; init; }
     public Guid PlayerId { get; init; }

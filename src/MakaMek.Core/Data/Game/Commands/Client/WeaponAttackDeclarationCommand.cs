@@ -4,14 +4,14 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
-public record struct WeaponAttackDeclarationCommand : IClientCommand
+public record struct WeaponAttackDeclarationCommand : IClientUnitCommand
 {
     public required Guid GameOriginId { get; set; }
     
     /// <summary>
     /// The ID of the unit declaring the weapon attack
     /// </summary>
-    public required Guid? UnitId { get; init; }
+    public required Guid UnitId { get; init; }
     public required List<WeaponTargetData> WeaponTargets { get; init; }
     public required Guid PlayerId { get; init; }
     public DateTime Timestamp { get; set; }

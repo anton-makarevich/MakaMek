@@ -5,9 +5,9 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
-public record struct DeployUnitCommand : IClientCommand
+public record struct DeployUnitCommand : IClientUnitCommand
 {
-    public required Guid? UnitId { get; init; }
+    public required Guid UnitId { get; init; }
     public required HexCoordinateData Position { get; init; }
     public required int Direction { get; init; }
 

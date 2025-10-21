@@ -9,6 +9,4 @@ public interface IClientCommand: IGameCommand
     /// Computed as a deterministic hash of (GameId, PlayerId, UnitId, Phase, Turn, CommandType).
     /// </summary>
     Guid? IdempotencyKey { get; init; }
-    
-    Guid? UnitId { get; init; }
 }
