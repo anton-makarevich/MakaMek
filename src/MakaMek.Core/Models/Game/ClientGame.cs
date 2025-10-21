@@ -26,7 +26,8 @@ public sealed class ClientGame : BaseGame, IDisposable
     private readonly IHashService _hashService;
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> _pendingCommands = new();
     private bool _isDisposed;
-    private static readonly TimeSpan AckTimeout = TimeSpan.FromSeconds(10);
+    private readonly TimeSpan _ackTimeout;
+    private readonly List<Guid> _localPlayers = [];
 
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
@@ -40,15 +41,17 @@ public sealed class ClientGame : BaseGame, IDisposable
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
         IBattleMapFactory mapFactory,
-        IHashService hashService)
+        IHashService hashService,
+        int ackTimeoutMilliseconds = 10000)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
     {
         _mapFactory = mapFactory;
         _hashService = hashService;
+        _ackTimeout = TimeSpan.FromMilliseconds(ackTimeoutMilliseconds);
     }
 
-    public List<Guid> LocalPlayers { get; } = [];
-    
+    public IReadOnlyList<Guid> LocalPlayers => _localPlayers;
+
     public override bool IsDisposed => _isDisposed;
 
     public override void HandleCommand(IGameCommand command)
@@ -84,11 +87,11 @@ public sealed class ClientGame : BaseGame, IDisposable
             case ChangePhaseCommand phaseCommand:
                 TurnPhase = phaseCommand.Phase;
                 
-                // When entering End phase, clear the players who ended turn and set first local player as active
+                // When entering End phase, clear the players who ended turn and set first alive local player as active
                 if (phaseCommand.Phase == PhaseNames.End)
                 {
                     _playersEndedTurn.Clear();
-                     ActivePlayer = AlivePlayers.FirstOrDefault(p =>p.Id == LocalPlayers.FirstOrDefault());
+                     ActivePlayer = AlivePlayers.FirstOrDefault(p => LocalPlayers.Contains(p.Id));
                 }
                 break;
             case ChangeActivePlayerCommand changeActivePlayerCommand:
@@ -211,7 +214,7 @@ public sealed class ClientGame : BaseGame, IDisposable
             // Return the existing task
             return await pendingCommand.Task.ConfigureAwait(false);
         }
-        
+
         if (!ValidateCommand(command)) return false;
 
         // Assign the idempotency key to the command
@@ -220,15 +223,18 @@ public sealed class ClientGame : BaseGame, IDisposable
             GameOriginId = Id,
             IdempotencyKey = idempotencyKey
         };
-        
+
         // Create a new task completion source for this command
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _pendingCommands.TryAdd(idempotencyKey, tcs);
+        if (!_pendingCommands.TryAdd(idempotencyKey, tcs))
+        {
+            return await _pendingCommands[idempotencyKey].Task.ConfigureAwait(false);
+        }
 
         // Return the task that will be completed when the server responds
         CommandPublisher.PublishCommand(commandWithKey);
-        
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(AckTimeout)).ConfigureAwait(false);
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(_ackTimeout)).ConfigureAwait(false);
         if (completed == tcs.Task) return await tcs.Task.ConfigureAwait(false);
 
         // Timeout: clean up and report failure
@@ -236,7 +242,7 @@ public sealed class ClientGame : BaseGame, IDisposable
         _pendingCommands.TryRemove(idempotencyKey, out _);
         return false;
     }
-    
+
     public Task<bool> JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
     {
         var joinCommand = new JoinGameCommand
@@ -249,7 +255,7 @@ public sealed class ClientGame : BaseGame, IDisposable
             PilotAssignments = pilotAssignments
         };
         player.Status = PlayerStatus.Joining;
-        LocalPlayers.Add(player.Id);
+        _localPlayers.Add(player.Id);
         return SendClientCommand(joinCommand);
     }
     

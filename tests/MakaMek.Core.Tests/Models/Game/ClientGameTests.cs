@@ -1,3 +1,4 @@
+using AsyncAwaitBestPractices;
 using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
@@ -56,7 +57,7 @@ public class ClientGameTests
         
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
-        var mechFactory = new MechFactory(
+        IMechFactory mechFactory = new MechFactory(
             _rulesProvider,
             _componentProvider,
             Substitute.For<ILocalizationService>());
@@ -70,7 +71,8 @@ public class ClientGameTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
-            _hashService);
+            _hashService,
+            110);
     }
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
@@ -1364,14 +1366,15 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             Tint = player.Tint,
             Units = [unitData],
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         };
 
         _sut.HandleCommand(joinCommand);
 
         if (isLocalPlayer)
         {
-            _sut.LocalPlayers.Add(player.Id);
+            _sut.JoinGameWithUnits(player, [unitData],[]);
         }
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
@@ -1444,14 +1447,15 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             Tint = player.Tint,
             Units = [unitData],
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         };
 
         _sut.HandleCommand(joinCommand);
 
         if (isLocalPlayer)
         {
-            _sut.LocalPlayers.Add(player.Id);
+            _sut.JoinGameWithUnits(player, [unitData],[]);
         }
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
@@ -2611,7 +2615,17 @@ public class ClientGameTests
         // Arrange
         _commandPublisher.ClearReceivedCalls();
         var playerId = Guid.NewGuid();
-        _sut.LocalPlayers.Add(playerId);
+        _sut.JoinGameWithUnits(new Player(playerId, "Player1"), [],[]);
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
         
         // Act
         _sut.LeaveGame(playerId);
@@ -2660,6 +2674,7 @@ public class ClientGameTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
+        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
         var joinCommand = new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -2667,11 +2682,10 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             Tint = player.Tint,
             Units = [unitData],
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         };
-
         _sut.HandleCommand(joinCommand);
-        _sut.LocalPlayers.Add(player.Id);
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -2720,6 +2734,8 @@ public class ClientGameTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
+        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
+        
         var joinCommand = new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -2727,11 +2743,11 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             Tint = player.Tint,
             Units = [unitData],
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         };
 
         _sut.HandleCommand(joinCommand);
-        _sut.LocalPlayers.Add(player.Id);
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -2772,5 +2788,87 @@ public class ClientGameTests
 
         var result = await deployTask;
         result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SendPlayerAction_ShouldCompletePendingTask_WhenGameDisposed()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        
+        var task = _sut.JoinGameWithUnits(player, [unitData],[]);
+
+        // Act
+        _sut.Dispose();
+        
+        // Assert, task should be canceled
+        await Task.Delay(100);
+        task.IsCanceled.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public async Task SendPlayerAction_ShouldCompletePendingTask_WhenServerDoesnAcknowledge()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        var task = _sut.JoinGameWithUnits(player, [unitData],[]);
+        
+        var result = await task;
+        result.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void TryStandup_ShouldSendTryStandupCommand_WhenCalled()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        };
+        _sut.HandleCommand(joinCommand);
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        var standupCommand = new TryStandupCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unitData.Id!.Value,
+            NewFacing = HexDirection.Bottom,
+            MovementTypeAfterStandup = MovementType.Walk
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.TryStandupUnit(standupCommand);
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<TryStandupCommand>(cmd => 
+            cmd.PlayerId == player.Id &&
+            cmd.UnitId == unitData.Id!.Value &&
+            cmd.NewFacing == HexDirection.Bottom &&
+            cmd.MovementTypeAfterStandup == MovementType.Walk));
     }
 }

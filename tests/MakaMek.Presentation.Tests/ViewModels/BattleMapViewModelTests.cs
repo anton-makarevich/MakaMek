@@ -1957,7 +1957,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        _game.LocalPlayers.Add(playerId);
+        _game.JoinGameWithUnits(new Player(playerId, "Player1"), [],[]);
         _commandPublisher.ClearReceivedCalls();
         
         // Act
