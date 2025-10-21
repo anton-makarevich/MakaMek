@@ -72,7 +72,7 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
             _hashService,
-            110);
+            200);
     }
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
