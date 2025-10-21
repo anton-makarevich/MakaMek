@@ -180,7 +180,7 @@ public class JoinGameViewModel : NewGameViewModel
                 _mapFactory,
                 _hashService);
             IsConnected = true;
-            await _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
+            _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
             {
                 GameOriginId = _localGame.Id
             });

@@ -229,12 +229,8 @@ public sealed class ClientGame : BaseGame, IDisposable
         if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCommand))
         {
             // Return the existing task
-            return await pendingCommand.Task;
+            return await pendingCommand.Task.ConfigureAwait(false);
         }
-
-        // Create a new task completion source for this command
-        var tcs = new TaskCompletionSource<bool>();
-        _pendingCommands[idempotencyKey] = tcs;
 
         // Assign the idempotency key to the command
         var commandWithKey = command with
@@ -243,10 +239,16 @@ public sealed class ClientGame : BaseGame, IDisposable
             IdempotencyKey = idempotencyKey
         };
         
+        // Create a new task completion source for this command
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingCommands.TryAdd(idempotencyKey, tcs);
+
         // Return the task that will be completed when the server responds
         CommandPublisher.PublishCommand(commandWithKey);
+        
         var completed = await Task.WhenAny(tcs.Task, Task.Delay(AckTimeout)).ConfigureAwait(false);
         if (completed == tcs.Task) return await tcs.Task.ConfigureAwait(false);
+
         // Timeout: clean up and report failure
         _pendingCommands.TryRemove(idempotencyKey, out _);
         return false;
@@ -268,7 +270,13 @@ public sealed class ClientGame : BaseGame, IDisposable
 
     public Task<bool> StartupUnit(StartupUnitCommand command) => SendPlayerAction(command);
 
-    public Task RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)=> SendClientCommand(statusCommand);
+    public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
+    {
+        // Assign GameOriginId only; no idempotency/ack tracking
+        // as this command is not being re-broadcasted rn
+        var cmd = statusCommand with { GameOriginId = Id };
+        CommandPublisher.PublishCommand(cmd);
+    }
 
     /// <summary>
     /// Sends a PlayerLeftCommand for the specified player
@@ -315,9 +323,9 @@ public sealed class ClientGame : BaseGame, IDisposable
     /// </summary>
     private void CompletePendingCommand(Guid idempotencyKey, bool success)
     {
-        if (_pendingCommands.Remove(idempotencyKey, out var tcs))
+        if (_pendingCommands.TryRemove(idempotencyKey, out var tcs))
         {
-            tcs.SetResult(success);
+            tcs.TrySetResult(success);
         }
     }
 
