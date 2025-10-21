@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -17,7 +18,7 @@ public class ServerGame : BaseGame, IDisposable
 {
     private IGamePhase _currentPhase;
     private List<IPlayer> _initiativeOrder = [];
-    private readonly HashSet<Guid> _processedCommandKeys = [];
+    private readonly ConcurrentDictionary<Guid, byte> _processedCommandKeys = new();
     private bool _isDisposed;
 
     public bool IsAutoRoll { get; set; } = true;
@@ -106,7 +107,7 @@ public class ServerGame : BaseGame, IDisposable
         // Check for duplicate commands using idempotency key
         if (command is IClientCommand { IdempotencyKey: not null } clientCommand)
         {
-            if (!_processedCommandKeys.Add(clientCommand.IdempotencyKey.Value))
+            if (!_processedCommandKeys.TryAdd(clientCommand.IdempotencyKey.Value,0))
             {
                 // Duplicate command detected - send error response
                 var errorCommand = new ErrorCommand
