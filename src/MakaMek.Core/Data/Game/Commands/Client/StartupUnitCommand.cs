@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -6,16 +6,17 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 /// <summary>
 /// Client command for voluntary unit startup
 /// </summary>
-public record struct StartupUnitCommand : IClientCommand
+public record struct StartupUnitCommand : IClientUnitCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
-    
+    public Guid? IdempotencyKey { get; init; }
+
     /// <summary>
     /// The ID of the unit to start up
     /// </summary>
     public required Guid UnitId { get; init; }
-    
+
     /// <summary>
     /// The ID of the player requesting the startup
     /// </summary>

@@ -69,14 +69,14 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         {
             GameOriginId = Game.Id,
             PlayerId = Game.ActivePlayer!.Id,
-            AttackerUnitId = _unit1Id,
+            UnitId = _unit1Id,
             TargetUnitId = _unit2Id,
             AttackType = PhysicalAttackType.Punch
         });
     
         // Assert
         CommandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(cmd => 
-            cmd.AttackerUnitId == _unit1Id && 
+            cmd.UnitId == _unit1Id && 
             cmd.TargetUnitId == _unit2Id &&
             cmd.AttackType == PhysicalAttackType.Punch));
     }
@@ -93,7 +93,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         {
             GameOriginId = Game.Id,
             PlayerId = wrongPlayerId,
-            AttackerUnitId = _unit1Id,
+            UnitId = _unit1Id,
             TargetUnitId = _unit2Id,
             AttackType = PhysicalAttackType.Kick
         });
@@ -116,7 +116,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
             {
                 GameOriginId = Game.Id,
                 PlayerId = firstPlayer.Id,
-                AttackerUnitId = unit.Id,
+                UnitId = unit.Id,
                 TargetUnitId = _unit2Id,
                 AttackType = PhysicalAttackType.Punch
             });
@@ -133,7 +133,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
             {
                 GameOriginId = Game.Id,
                 PlayerId = secondPlayer.Id,
-                AttackerUnitId = unit.Id,
+                UnitId = unit.Id,
                 TargetUnitId = _unit1Id,
                 AttackType = PhysicalAttackType.Punch
             });
@@ -155,7 +155,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         {
             GameOriginId = Game.Id,
             PlayerId = Game.ActivePlayer!.Id,
-            AttackerId = _unit1Id,
+            UnitId = _unit1Id,
             WeaponTargets = []
         });
     

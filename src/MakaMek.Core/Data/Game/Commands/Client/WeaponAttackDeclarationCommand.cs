@@ -4,19 +4,24 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
-public record struct WeaponAttackDeclarationCommand : IClientCommand
+public record struct WeaponAttackDeclarationCommand : IClientUnitCommand
 {
     public required Guid GameOriginId { get; set; }
-    public required Guid AttackerId { get; init; }
+    
+    /// <summary>
+    /// The ID of the unit declaring the weapon attack
+    /// </summary>
+    public required Guid UnitId { get; init; }
     public required List<WeaponTargetData> WeaponTargets { get; init; }
     public required Guid PlayerId { get; init; }
     public DateTime Timestamp { get; set; }
+    public Guid? IdempotencyKey { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {
         var command = this;
         var player = game.Players.FirstOrDefault(p => p.Id == command.PlayerId);
-        var attacker = player?.Units.FirstOrDefault(u => u.Id == command.AttackerId);
+        var attacker = player?.Units.FirstOrDefault(u => u.Id == command.UnitId);
 
         if (attacker == null || player == null) return string.Empty;
 

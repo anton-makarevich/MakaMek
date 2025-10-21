@@ -21,6 +21,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -52,6 +53,7 @@ public class MovementStateTests
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
 
     public MovementStateTests()
     {
@@ -129,13 +131,24 @@ public class MovementStateTests
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            Substitute.For<IBattleMapFactory>());
+            Substitute.For<IBattleMapFactory>(),
+            _hashService);
+        
+        var idempotencyKey = Guid.NewGuid();
+        _hashService.ComputeCommandIdempotencyKey(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<Type>(),
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>())
+            .Returns(idempotencyKey);
         
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(battleMap);
         
         _battleMapViewModel.Game = _game;
-        AddPlayerUnits();
+        AddPlayerUnits(idempotencyKey);
         SetActivePlayer();
         _sut = new MovementState(_battleMapViewModel);
     }
@@ -155,7 +168,7 @@ public class MovementStateTests
         _sut.CanExecutePlayerAction.ShouldBeFalse();
     }
 
-    private void AddPlayerUnits()
+    private void AddPlayerUnits(Guid joinCommandIdempotencyKey)
     {
         var playerId2 = Guid.NewGuid();
         _game.HandleCommand(new JoinGameCommand
@@ -165,7 +178,8 @@ public class MovementStateTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = _player.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = joinCommandIdempotencyKey
         });
         _game.HandleCommand(new JoinGameCommand
         {

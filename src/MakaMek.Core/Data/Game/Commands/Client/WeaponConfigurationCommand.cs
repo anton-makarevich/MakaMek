@@ -4,13 +4,14 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
-public record struct WeaponConfigurationCommand : IClientCommand
+public record struct WeaponConfigurationCommand : IClientUnitCommand
 {
     public required Guid UnitId { get; init; }
     public required WeaponConfiguration Configuration { get; set; }
 
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
+    public Guid? IdempotencyKey { get; init; }
 
     public string Render(ILocalizationService localizationService, IGame game)
     {

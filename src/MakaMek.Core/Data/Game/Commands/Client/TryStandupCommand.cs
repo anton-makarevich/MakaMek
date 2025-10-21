@@ -5,10 +5,11 @@ using Sanet.MakaMek.Core.Services.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
-public record struct TryStandupCommand : IClientCommand
+public record struct TryStandupCommand : IClientUnitCommand
 {
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
+    public Guid? IdempotencyKey { get; init; }
 
     public required Guid UnitId { get; init; }
     public required Guid PlayerId { get; init; }

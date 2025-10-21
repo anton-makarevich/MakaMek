@@ -310,7 +310,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         {
             GameOriginId = Game.Id,
             PlayerId = _player1Id,
-            AttackerId = _player1Unit1Id,
+            UnitId = _player1Unit1Id,
             WeaponTargets = new List<WeaponTargetData>()
         };
 

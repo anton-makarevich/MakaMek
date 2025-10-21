@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -46,6 +47,7 @@ public class EndGameViewModelTests
         var consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
         var heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
         var mapFactory = Substitute.For<IBattleMapFactory>();
+        var hashService = Substitute.For<IHashService>();
 
         _game = new ClientGame(
             rulesProvider,
@@ -55,7 +57,8 @@ public class EndGameViewModelTests
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
-            mapFactory);
+            mapFactory,
+            hashService);
     }
 
     private Unit CreateMech()

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -17,6 +18,7 @@ public class ServerGame : BaseGame, IDisposable
 {
     private IGamePhase _currentPhase;
     private List<IPlayer> _initiativeOrder = [];
+    private readonly ConcurrentDictionary<Guid, byte> _processedCommandKeys = new();
     private bool _isDisposed;
 
     public bool IsAutoRoll { get; set; } = true;
@@ -101,6 +103,25 @@ public class ServerGame : BaseGame, IDisposable
     {
         if (command is not IClientCommand and not RequestGameLobbyStatusCommand) return;
         if (!ShouldHandleCommand(command)) return;
+
+        // Check for duplicate commands using idempotency key
+        if (command is IClientCommand { IdempotencyKey: not null } clientCommand)
+        {
+            if (!_processedCommandKeys.TryAdd(clientCommand.IdempotencyKey.Value,0))
+            {
+                // Duplicate command detected - send error response
+                var errorCommand = new ErrorCommand
+                {
+                    GameOriginId = Id,
+                    IdempotencyKey = clientCommand.IdempotencyKey.Value,
+                    ErrorCode = ErrorCode.DuplicateCommand,
+                    Timestamp = DateTime.UtcNow
+                };
+                CommandPublisher.PublishCommand(errorCommand);
+                return;
+            }
+        }
+
         if (!ValidateCommand(command)) return;
 
         // Handle PlayerLeftCommand before delegating to phase
@@ -116,6 +137,7 @@ public class ServerGame : BaseGame, IDisposable
     protected override void OnPlayerLeft(PlayerLeftCommand command)
     {
         base.OnPlayerLeft(command);
+        CommandPublisher.PublishCommand(command with { GameOriginId = Id });
         // At the moment it's not possible to continue even if one player is leaving
         StopGame(GameEndReason.PlayersLeft);
     }
@@ -158,6 +180,10 @@ public class ServerGame : BaseGame, IDisposable
     public void SetPhase(PhaseNames phase)
     {
         TurnPhase = phase;
+
+        // Clear processed command keys when phase changes
+        _processedCommandKeys.Clear();
+
         CommandPublisher.PublishCommand(new ChangePhaseCommand
         {
             GameOriginId = Id,

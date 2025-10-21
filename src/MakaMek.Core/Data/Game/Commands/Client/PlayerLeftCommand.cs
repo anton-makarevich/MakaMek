@@ -8,7 +8,9 @@ public record struct PlayerLeftCommand : IClientCommand
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
     public required Guid PlayerId { get; init; }
-    
+    public Guid? IdempotencyKey { get; init; }
+    public Guid? UnitId { get; init; } // remains null for this command
+
     public readonly string Render(ILocalizationService localizationService, IGame game)
     {
         var playerId = PlayerId; // Copy to local variable to avoid capturing 'this' in lambda

@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels;
@@ -48,7 +49,8 @@ namespace MakaMek.Avalonia.Tests.Views
                 Substitute.For<IGameFactory>(),
                 Substitute.For<IBattleMapFactory>(),
                 cachingService,
-                Substitute.For<IMapPreviewRenderer>());
+                Substitute.For<IMapPreviewRenderer>(),
+                Substitute.For<IHashService>());
 
             // Act
             view.DataContext = viewModel;

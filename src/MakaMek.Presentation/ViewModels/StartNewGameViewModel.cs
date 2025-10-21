@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -38,12 +39,19 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IGameFactory gameFactory,
         IBattleMapFactory mapFactory,
         IFileCachingService cachingService,
-        IMapPreviewRenderer mapPreviewRenderer)
-        : base(rulesProvider, unitsLoader, commandPublisher, toHitCalculator,
-           pilotingSkillCalculator,
-           consciousnessCalculator,
-           heatEffectsCalculator,
-            dispatcherService, gameFactory, cachingService)
+        IMapPreviewRenderer mapPreviewRenderer,
+        IHashService hashService)
+        : base(rulesProvider,
+            unitsLoader,
+            commandPublisher,
+            toHitCalculator,
+            pilotingSkillCalculator,
+            consciousnessCalculator,
+            heatEffectsCalculator,
+            dispatcherService,
+            gameFactory,
+            cachingService,
+            hashService)
     {
         _gameManager = gameManager;
         _mechFactory = mechFactory;
@@ -65,7 +73,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            _mapFactory);
+            _mapFactory,
+            _hashService);
         // Update server IP initially if needed
         NotifyPropertyChanged(nameof(ServerIpAddress));
     }

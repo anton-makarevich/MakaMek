@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -26,6 +27,7 @@ public class GameFactoryTests
     private readonly IHeatEffectsCalculator _heatEffectsCalculator= Substitute.For<IHeatEffectsCalculator>();
     private readonly IBattleMapFactory _mapFactory= Substitute.For<IBattleMapFactory>();
     private readonly IMechFactory _mechFactory= Substitute.For<IMechFactory>();
+    private readonly IHashService _hashService= Substitute.For<IHashService>();
 
     [Fact]
     public void CreateServerGame_ReturnsServerGameInstance()
@@ -62,7 +64,8 @@ public class GameFactoryTests
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            _mapFactory);
+            _mapFactory,
+            _hashService);
 
         // Assert
         clientGame.ShouldNotBeNull();

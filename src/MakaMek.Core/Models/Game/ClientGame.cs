@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
 using Sanet.MakaMek.Core.Data.Game.Commands;
@@ -11,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Map.Factory;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game;
@@ -21,7 +23,11 @@ public sealed class ClientGame : BaseGame, IDisposable
     private readonly List<IGameCommand> _commandLog = [];
     private readonly HashSet<Guid> _playersEndedTurn = [];
     private readonly IBattleMapFactory _mapFactory;
+    private readonly IHashService _hashService;
+    private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> _pendingCommands = new();
     private bool _isDisposed;
+    private readonly TimeSpan _ackTimeout;
+    private readonly List<Guid> _localPlayers = [];
 
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
@@ -34,14 +40,18 @@ public sealed class ClientGame : BaseGame, IDisposable
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
-        IBattleMapFactory mapFactory)
+        IBattleMapFactory mapFactory,
+        IHashService hashService,
+        int ackTimeoutMilliseconds = 10000)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
     {
         _mapFactory = mapFactory;
+        _hashService = hashService;
+        _ackTimeout = TimeSpan.FromMilliseconds(ackTimeoutMilliseconds);
     }
 
-    public List<Guid> LocalPlayers { get; } = [];
-    
+    public IReadOnlyList<Guid> LocalPlayers => _localPlayers;
+
     public override bool IsDisposed => _isDisposed;
 
     public override void HandleCommand(IGameCommand command)
@@ -77,11 +87,11 @@ public sealed class ClientGame : BaseGame, IDisposable
             case ChangePhaseCommand phaseCommand:
                 TurnPhase = phaseCommand.Phase;
                 
-                // When entering End phase, clear the players who ended turn and set first local player as active
+                // When entering End phase, clear the players who ended turn and set first alive local player as active
                 if (phaseCommand.Phase == PhaseNames.End)
                 {
                     _playersEndedTurn.Clear();
-                     ActivePlayer = AlivePlayers.FirstOrDefault(p =>p.Id == LocalPlayers.FirstOrDefault());
+                     ActivePlayer = AlivePlayers.FirstOrDefault(p => LocalPlayers.Contains(p.Id));
                 }
                 break;
             case ChangeActivePlayerCommand changeActivePlayerCommand:
@@ -144,6 +154,18 @@ public sealed class ClientGame : BaseGame, IDisposable
             case CriticalHitsResolutionCommand criticalHitsCommand:
                 OnCriticalHitsResolution(criticalHitsCommand);
                 break;
+            case ErrorCommand errorCommand:
+                // Complete the pending task with failure
+                if (errorCommand.IdempotencyKey.HasValue)
+                    CompletePendingCommand(errorCommand.IdempotencyKey.Value, false);
+                break;
+        }
+
+        // Check if this is a re-broadcasted client command with IdempotencyKey
+        if (command is IClientCommand { IdempotencyKey: not null } clientCommand)
+        {
+            // Complete the pending task with success
+            CompletePendingCommand(clientCommand.IdempotencyKey.Value, true);
         }
 
         // Log the command
@@ -155,9 +177,73 @@ public sealed class ClientGame : BaseGame, IDisposable
 
     public bool CanActivePlayerAct => ActivePlayer != null 
                                       && LocalPlayers.Contains(ActivePlayer.Id) 
-                                      && ActivePlayer.CanAct;
+                                      && ActivePlayer.CanAct
+                                      && _pendingCommands.IsEmpty;
 
-    public void JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
+    /// <summary>
+    /// Sends a player action command if the active player can act.
+    /// Computes and assigns an idempotency key, tracks the command, and returns a task that completes when the server responds.
+    /// </summary>
+    /// <param name="command">Any client command to be sent</param>
+    /// <typeparam name="T">Type of command that implements IClientCommand</typeparam>
+    /// <returns>A task that completes with true on success, false on error</returns>
+    private Task<bool> SendPlayerAction<T>(T command) where T : struct, IClientCommand
+    {
+        return !CanActivePlayerAct 
+            ? Task.FromResult(false) 
+            : SendClientCommand(command);
+    }
+
+    private async Task<bool> SendClientCommand<T>(T command) where T : struct, IClientCommand
+    {
+        // Extract UnitId from the command if it has one
+        var unitId = GetUnitIdFromCommand(command);
+
+        // Compute idempotency key
+        var idempotencyKey = _hashService.ComputeCommandIdempotencyKey
+        (Id,
+            command.PlayerId,
+            typeof(T),
+            Turn,
+            TurnPhase.ToString(),
+            unitId);
+
+        // Check if this command is already pending
+        if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCommand))
+        {
+            // Return the existing task
+            return await pendingCommand.Task.ConfigureAwait(false);
+        }
+
+        if (!ValidateCommand(command)) return false;
+
+        // Assign the idempotency key to the command
+        var commandWithKey = command with
+        {
+            GameOriginId = Id,
+            IdempotencyKey = idempotencyKey
+        };
+
+        // Create a new task completion source for this command
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!_pendingCommands.TryAdd(idempotencyKey, tcs))
+        {
+            return await _pendingCommands[idempotencyKey].Task.ConfigureAwait(false);
+        }
+
+        // Return the task that will be completed when the server responds
+        CommandPublisher.PublishCommand(commandWithKey);
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(_ackTimeout)).ConfigureAwait(false);
+        if (completed == tcs.Task) return await tcs.Task.ConfigureAwait(false);
+
+        // Timeout: clean up and report failure
+        tcs.TrySetResult(false);
+        _pendingCommands.TryRemove(idempotencyKey, out _);
+        return false;
+    }
+
+    public Task<bool> JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
     {
         var joinCommand = new JoinGameCommand
         {
@@ -169,52 +255,34 @@ public sealed class ClientGame : BaseGame, IDisposable
             PilotAssignments = pilotAssignments
         };
         player.Status = PlayerStatus.Joining;
-        LocalPlayers.Add(player.Id);
-        if (ValidateCommand(joinCommand))
-        {
-            CommandPublisher.PublishCommand(joinCommand);
-        }
+        _localPlayers.Add(player.Id);
+        return SendClientCommand(joinCommand);
     }
     
-    public void SetPlayerReady(UpdatePlayerStatusCommand readyCommand)
-    {
-        if (ValidateCommand(readyCommand))
-        {
-            readyCommand.GameOriginId = Id;
-            CommandPublisher.PublishCommand(readyCommand);
-        }
-    }
+    public Task<bool> SetPlayerReady(UpdatePlayerStatusCommand readyCommand) => SendClientCommand(readyCommand);
 
-    /// <summary>
-    /// Sends a player action command if the active player can act
-    /// </summary>
-    /// <param name="command">Any client command to be sent</param>
-    /// <typeparam name="T">Type of command that implements IClientCommand</typeparam>
-    private void SendPlayerAction<T>(T command) where T : IClientCommand
-    {
-        if (!CanActivePlayerAct) return;
-        CommandPublisher.PublishCommand(command);
-    }
+    public Task<bool> DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
 
-    public void DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
-    
-    public void MoveUnit(MoveUnitCommand command) => SendPlayerAction(command);
-    
-    public void ConfigureUnitWeapons(WeaponConfigurationCommand command) => SendPlayerAction(command);
-    
-    public void DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendPlayerAction(command);
-    
-    public void EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
-    
-    public void TryStandupUnit(TryStandupCommand command) => SendPlayerAction(command);
+    public Task<bool> MoveUnit(MoveUnitCommand command) => SendPlayerAction(command);
 
-    public void ShutdownUnit(ShutdownUnitCommand command) => SendPlayerAction(command);
+    public Task<bool> ConfigureUnitWeapons(WeaponConfigurationCommand command) => SendPlayerAction(command);
 
-    public void StartupUnit(StartupUnitCommand command) => SendPlayerAction(command);
+    public Task<bool> DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendPlayerAction(command);
+
+    public Task<bool> EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
+
+    public Task<bool> TryStandupUnit(TryStandupCommand command) => SendPlayerAction(command);
+
+    public Task<bool> ShutdownUnit(ShutdownUnitCommand command) => SendPlayerAction(command);
+
+    public Task<bool> StartupUnit(StartupUnitCommand command) => SendPlayerAction(command);
 
     public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
     {
-        CommandPublisher.PublishCommand(statusCommand);
+        // Assign GameOriginId only; no idempotency/ack tracking
+        // as this command is not being re-broadcasted rn
+        var cmd = statusCommand with { GameOriginId = Id };
+        CommandPublisher.PublishCommand(cmd);
     }
 
     /// <summary>
@@ -234,16 +302,41 @@ public sealed class ClientGame : BaseGame, IDisposable
             PlayerId = playerId,
             Timestamp = DateTime.UtcNow
         };
+        // Call it directly as we don't want to track this command for now
         CommandPublisher.PublishCommand(playerLeftCommand);
+    }
+
+    /// <summary>
+    /// Extracts the UnitId from a command if it has one.
+    /// </summary>
+    private static Guid? GetUnitIdFromCommand(IClientCommand command)
+    {
+        return command is IClientUnitCommand unitCommand ? unitCommand.UnitId : null;
+    }
+
+    /// <summary>
+    /// Completes a pending command task.
+    /// </summary>
+    private void CompletePendingCommand(Guid idempotencyKey, bool success)
+    {
+        if (_pendingCommands.TryRemove(idempotencyKey, out var tcs))
+        {
+            tcs.TrySetResult(success);
+        }
     }
 
     public void Dispose()
     {
         if (_isDisposed) return;
         _isDisposed = true;
-        
+
         // Unsubscribe from command publisher
         CommandPublisher.Unsubscribe(HandleCommand);
+
+        // Fail/cancel any pending waits to avoid hangs
+        foreach (var kv in _pendingCommands)
+            kv.Value.TrySetCanceled();
+        _pendingCommands.Clear();
 
         // Complete and dispose subjects
         _commandSubject.OnCompleted();

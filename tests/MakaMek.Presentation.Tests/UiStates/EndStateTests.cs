@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -32,8 +33,9 @@ public class EndStateTests
     private readonly Unit _unit1;
     private readonly Player _player;
     private readonly BattleMapViewModel _battleMapViewModel;
-    private readonly ICommandPublisher _commandPublisher;
+    private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
 
     public EndStateTests()
     {
@@ -56,7 +58,6 @@ public class EndStateTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         
         _player = new Player(playerId, "Player1");
-        _commandPublisher = Substitute.For<ICommandPublisher>();
         
         _game = new ClientGame(
             rules,
@@ -69,7 +70,19 @@ public class EndStateTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             _heatEffectsCalculator,
-            Substitute.For<IBattleMapFactory>());
+            Substitute.For<IBattleMapFactory>(),
+            _hashService);
+        
+        var idempotencyKey = Guid.NewGuid();
+        _hashService.ComputeCommandIdempotencyKey(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<Type>(),
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>())
+            .Returns(idempotencyKey);
+        
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
         
@@ -82,7 +95,8 @@ public class EndStateTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = _player.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = idempotencyKey
         });
         _unit1 = _battleMapViewModel.Units.First();
     

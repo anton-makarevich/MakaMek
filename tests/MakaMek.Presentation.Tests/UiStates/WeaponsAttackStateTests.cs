@@ -22,6 +22,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -48,6 +49,7 @@ public class WeaponsAttackStateTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly MechFactory _mechFactory;
     private readonly IPilot _pilot = Substitute.For<IPilot>();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
 
     public WeaponsAttackStateTests()
     {
@@ -81,6 +83,16 @@ public class WeaponsAttackStateTests
         _pilot.IsConscious.Returns(true);
         _unit1.AssignPilot(_pilot);
         
+        var idempotencyKey = Guid.NewGuid();
+        _hashService.ComputeCommandIdempotencyKey(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<Type>(),
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>())
+            .Returns(idempotencyKey);
+        
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
@@ -93,7 +105,8 @@ public class WeaponsAttackStateTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            Substitute.For<IBattleMapFactory>());
+            Substitute.For<IBattleMapFactory>(),
+            _hashService);
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(battleMap);
 
@@ -118,12 +131,12 @@ public class WeaponsAttackStateTests
             .Returns(expectedModifiers);
         
         _battleMapViewModel.Game = _game;
-        AddPlayerUnits();
+        AddPlayerUnits(idempotencyKey);
         SetActivePlayer();
         _sut = new WeaponsAttackState(_battleMapViewModel);
     }
 
-    private void AddPlayerUnits()
+    private void AddPlayerUnits(Guid joinCommandIdempotencyKey)
     {
         var playerId2 = Guid.NewGuid();
         _game.HandleCommand(new JoinGameCommand
@@ -133,7 +146,8 @@ public class WeaponsAttackStateTests
             Tint = "#FF0000",
             GameOriginId = Guid.NewGuid(),
             PlayerId = _player.Id,
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = joinCommandIdempotencyKey
         });
         _game.HandleCommand(new JoinGameCommand
         {
@@ -1198,7 +1212,7 @@ public class WeaponsAttackStateTests
         // Assert
         _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
             cmd.PlayerId == attackingPlayer.Id &&
-            cmd.AttackerId == attacker.Id &&
+            cmd.UnitId == attacker.Id &&
             cmd.WeaponTargets.Count == 1 &&
             cmd.WeaponTargets[0].TargetId == target.Id &&
             cmd.WeaponTargets[0].IsPrimaryTarget == true &&
@@ -1426,7 +1440,7 @@ public class WeaponsAttackStateTests
         // Assert
         _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd => 
             cmd.PlayerId == attackingPlayer.Id &&
-            cmd.AttackerId == attacker.Id &&
+            cmd.UnitId == attacker.Id &&
             cmd.WeaponTargets.Count == 0
         ));
     }

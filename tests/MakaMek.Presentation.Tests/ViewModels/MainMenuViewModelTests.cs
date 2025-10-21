@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
@@ -22,6 +23,7 @@ public class MainMenuViewModelTests
     private readonly INavigationService _navigationService;
     private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
 
     public MainMenuViewModelTests()
     {
@@ -69,7 +71,8 @@ public class MainMenuViewModelTests
             Substitute.For<IGameFactory>(),
             Substitute.For<IBattleMapFactory>(),
             Substitute.For<IFileCachingService>(),
-            Substitute.For<IMapPreviewRenderer>());
+            Substitute.For<IMapPreviewRenderer>(),
+            _hashService);
         _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns(startVm);
 
         // Act
@@ -108,7 +111,8 @@ public class MainMenuViewModelTests
             Substitute.For<IGameFactory>(),
             Substitute.For<ITransportFactory>(),
             Substitute.For<IBattleMapFactory>(),
-            Substitute.For<IFileCachingService>());
+            Substitute.For<IFileCachingService>(),
+            _hashService);
         _navigationService.GetNewViewModel<JoinGameViewModel>().Returns(joinVm);
 
         // Act

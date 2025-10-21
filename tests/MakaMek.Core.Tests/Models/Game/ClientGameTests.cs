@@ -1,3 +1,4 @@
+using AsyncAwaitBestPractices;
 using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
@@ -22,6 +23,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -40,11 +42,22 @@ public class ClientGameTests
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
+    private readonly Guid _idempotencyKey = Guid.NewGuid();
     public ClientGameTests()
     {
+        _hashService.ComputeCommandIdempotencyKey(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<Type>(),
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>())
+            .Returns(_idempotencyKey);
+        
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
-        var mechFactory = new MechFactory(
+        IMechFactory mechFactory = new MechFactory(
             _rulesProvider,
             _componentProvider,
             Substitute.For<ILocalizationService>());
@@ -57,7 +70,9 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            _mapFactory);
+            _mapFactory,
+            _hashService,
+            200);
     }
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
@@ -77,7 +92,7 @@ public class ClientGameTests
     [Fact]
     public void IsDisposed_ShouldBeFalse_ByDefault()
     {
-        _sut!.IsDisposed.ShouldBeFalse();
+        _sut.IsDisposed.ShouldBeFalse();
     }
     
     [Fact]
@@ -349,8 +364,9 @@ public class ClientGameTests
         unitData.Id= Guid.NewGuid();
         if (isLocalPlayer)
         {
-            _sut.JoinGameWithUnits(player,[],[]);
+            _sut.JoinGameWithUnits(player,[unitData],[]);
         }
+
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -358,8 +374,10 @@ public class ClientGameTests
             PlayerName = player.Name,
             Units = [unitData],
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
+
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -433,7 +451,8 @@ public class ClientGameTests
             PlayerName = player.Name,
             Units = [unitData],
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -657,8 +676,9 @@ public class ClientGameTests
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
         {
-            _sut.JoinGameWithUnits(player, [],[]);
+            _sut.JoinGameWithUnits(player, [unitData],[]);
         }
+
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -666,7 +686,8 @@ public class ClientGameTests
             PlayerName = player.Name,
             Units = [unitData],
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
@@ -678,7 +699,7 @@ public class ClientGameTests
 
         var command = new WeaponConfigurationCommand
         {
-            GameOriginId = Guid.NewGuid(),
+            GameOriginId = _sut.Id,
             PlayerId = player.Id,
             UnitId = unitData.Id.Value,
             Configuration = new WeaponConfiguration
@@ -694,7 +715,11 @@ public class ClientGameTests
         // Assert
         if (isLocalPlayer)
         {
-            _commandPublisher.Received(1).PublishCommand(command);
+            _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponConfigurationCommand>(cmd =>
+                cmd.PlayerId == command.PlayerId &&
+                cmd.UnitId == command.UnitId &&
+                cmd.GameOriginId == command.GameOriginId &&
+                cmd.IdempotencyKey.HasValue)); // Should have an idempotency key
         }
         else
         {
@@ -793,7 +818,8 @@ public class ClientGameTests
             PlayerName = player.Name,
             Units = [unitData],
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
@@ -820,7 +846,7 @@ public class ClientGameTests
         {
             GameOriginId = _sut.Id,
             PlayerId = player.Id,
-            AttackerId = unitData.Id.Value,
+            UnitId = unitData.Id.Value,
             WeaponTargets =
             [
                 new WeaponTargetData()
@@ -843,7 +869,11 @@ public class ClientGameTests
         // Assert
         if (isLocalPlayer)
         {
-            _commandPublisher.Received(1).PublishCommand(command);
+            _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+                cmd.PlayerId == command.PlayerId &&
+                cmd.UnitId == command.UnitId &&
+                cmd.GameOriginId == command.GameOriginId &&
+                cmd.IdempotencyKey.HasValue)); // Should have an idempotency key
         }
         else
         {
@@ -859,7 +889,7 @@ public class ClientGameTests
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = Guid.NewGuid(),
-            AttackerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
             WeaponTargets =
             [
                 new WeaponTargetData
@@ -941,7 +971,7 @@ public class ClientGameTests
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = attackerPlayer.Id,
-            AttackerId = attackerUnitData.Id.Value,
+            UnitId = attackerUnitData.Id.Value,
             WeaponTargets =
             [
                 new WeaponTargetData
@@ -1262,7 +1292,8 @@ public class ClientGameTests
             PlayerName = player.Name,
             Units = [unitData],
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         });
         _sut.HandleCommand(new ChangePhaseCommand
         {
@@ -1335,14 +1366,15 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             Tint = player.Tint,
             Units = [unitData],
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         };
 
         _sut.HandleCommand(joinCommand);
 
         if (isLocalPlayer)
         {
-            _sut.LocalPlayers.Add(player.Id);
+            _sut.JoinGameWithUnits(player, [unitData],[]);
         }
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
@@ -1415,14 +1447,15 @@ public class ClientGameTests
             GameOriginId = Guid.NewGuid(),
             Tint = player.Tint,
             Units = [unitData],
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
         };
 
         _sut.HandleCommand(joinCommand);
 
         if (isLocalPlayer)
         {
-            _sut.LocalPlayers.Add(player.Id);
+            _sut.JoinGameWithUnits(player, [unitData],[]);
         }
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
@@ -1499,7 +1532,8 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            _mapFactory);
+            _mapFactory,
+            _hashService);
         var unitData = MechFactoryTests.CreateDummyMechData();
         clientGame.JoinGameWithUnits(localPlayer1,[unitData],[]);
         clientGame.JoinGameWithUnits(localPlayer2,[unitData],[]);
@@ -1580,7 +1614,8 @@ public class ClientGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            _mapFactory);
+            _mapFactory,
+            _hashService);
         clientGame.JoinGameWithUnits(localPlayer1,[],[]);
         clientGame.JoinGameWithUnits(localPlayer2,[],[]);
         clientGame.JoinGameWithUnits(localPlayer3,[],[]);
@@ -2580,7 +2615,17 @@ public class ClientGameTests
         // Arrange
         _commandPublisher.ClearReceivedCalls();
         var playerId = Guid.NewGuid();
-        _sut.LocalPlayers.Add(playerId);
+        _sut.JoinGameWithUnits(new Player(playerId, "Player1"), [],[]);
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = playerId,
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
         
         // Act
         _sut.LeaveGame(playerId);
@@ -2611,13 +2656,219 @@ public class ClientGameTests
     {
         // Arrange
         _commandPublisher.ClearReceivedCalls();
-    
+
         // Act
         _sut.Dispose();
         _sut.Dispose(); // Second call should be no-op
-    
+
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
         _sut.IsDisposed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public async Task SendPlayerAction_ShouldAssignIdempotencyKey_WhenSendingCommand()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        };
+        _sut.HandleCommand(joinCommand);
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        var deployCommand = new DeployUnitCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unitData.Id!.Value,
+            Position = new HexCoordinateData(0, 0),
+            Direction = 0
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        var deployTask = _sut.DeployUnit(deployCommand);
+
+        // Simulate server response
+        var capturedCommand = (DeployUnitCommand)_commandPublisher.ReceivedCalls() 
+            .First().GetArguments()[0]!;
+
+        capturedCommand.IdempotencyKey.ShouldNotBeNull();
+
+        // Simulate server rebroadcast - change GameOriginId to simulate server rebroadcast
+        var rebroadcastCommand = capturedCommand with { GameOriginId = Guid.NewGuid() };
+        _sut.HandleCommand(rebroadcastCommand);
+
+        // Assert - wait for the task to complete with a timeout
+        var completedTask = await Task.WhenAny(deployTask, Task.Delay(1000));
+        completedTask.ShouldBe(deployTask, "Task should complete when server rebroadcasts command");
+
+        var result = await deployTask;
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SendPlayerAction_ShouldCompletePendingTask_WhenErrorCommandReceived()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
+        
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        };
+
+        _sut.HandleCommand(joinCommand);
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        var deployCommand = new DeployUnitCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unitData.Id!.Value,
+            Position = new HexCoordinateData(0, 0),
+            Direction = 0
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        var deployTask = _sut.DeployUnit(deployCommand);
+
+        // Get the idempotency key from the published command
+        var capturedCommand = (DeployUnitCommand)_commandPublisher.ReceivedCalls()
+            .First().GetArguments()[0]!;
+
+        // Simulate server error response - this should complete the task
+        _sut.HandleCommand(new ErrorCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            IdempotencyKey = capturedCommand.IdempotencyKey!.Value,
+            ErrorCode = ErrorCode.DuplicateCommand
+        });
+
+        // Assert - wait for the task to complete with a timeout
+        var completedTask = await Task.WhenAny(deployTask, Task.Delay(1000));
+        completedTask.ShouldBe(deployTask, "Task should complete when ErrorCommand is received");
+
+        var result = await deployTask;
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SendPlayerAction_ShouldCompletePendingTask_WhenGameDisposed()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        
+        var task = _sut.JoinGameWithUnits(player, [unitData],[]);
+
+        // Act
+        _sut.Dispose();
+        
+        // Assert, task should be canceled
+        await Task.Delay(100);
+        task.IsCanceled.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public async Task SendPlayerAction_ShouldCompletePendingTask_WhenServerDoesnAcknowledge()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        var task = _sut.JoinGameWithUnits(player, [unitData],[]);
+        
+        var result = await task;
+        result.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void TryStandup_ShouldSendTryStandupCommand_WhenCalled()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = player.Tint,
+            Units = [unitData],
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        };
+        _sut.HandleCommand(joinCommand);
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+
+        var standupCommand = new TryStandupCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            UnitId = unitData.Id!.Value,
+            NewFacing = HexDirection.Bottom,
+            MovementTypeAfterStandup = MovementType.Walk
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.TryStandupUnit(standupCommand);
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<TryStandupCommand>(cmd => 
+            cmd.PlayerId == player.Id &&
+            cmd.UnitId == unitData.Id!.Value &&
+            cmd.NewFacing == HexDirection.Bottom &&
+            cmd.MovementTypeAfterStandup == MovementType.Walk));
     }
 }

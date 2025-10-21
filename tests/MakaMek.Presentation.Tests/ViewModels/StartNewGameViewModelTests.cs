@@ -16,6 +16,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -49,6 +50,7 @@ public class StartNewGameViewModelTests
     private readonly IGameFactory _gameFactory = Substitute.For<IGameFactory>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly IMapPreviewRenderer _mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
 
     public StartNewGameViewModelTests()
     {
@@ -72,7 +74,8 @@ public class StartNewGameViewModelTests
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            _mapFactory);
+            _mapFactory,
+            _hashService);
         _gameFactory.CreateClientGame(_rulesProvider,
                 _mechFactory,
                 _commandPublisher,
@@ -80,7 +83,8 @@ public class StartNewGameViewModelTests
                 _pilotingSkillCalculator,
                 _consciousnessCalculator,
                 _heatEffectsCalculator,
-                _mapFactory)
+                _mapFactory,
+                _hashService)
             .Returns(_clientGame);
 
         // Set up server game ID
@@ -109,7 +113,8 @@ public class StartNewGameViewModelTests
             _gameFactory,
             _mapFactory,
             _cachingService,
-            _mapPreviewRenderer);
+            _mapPreviewRenderer,
+            _hashService);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -133,7 +138,7 @@ public class StartNewGameViewModelTests
     }
     
     [Fact]
-    public async Task StartGameCommand_ShouldThrow_WhenNavigationServiceDoesnNotReturnBattleMapViewModel()
+    public async Task StartGameCommand_ShouldThrow_WhenNavigationServiceDoesNotReturnBattleMapViewModel()
     {
         // Arrange
         _navigationService.GetNewViewModel<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
@@ -445,12 +450,14 @@ public class StartNewGameViewModelTests
 
         // Act
         localPlayerVm.SetReadyCommand.Execute(null);
-
+        
         // Assert - verify the command was published with correct parameters
         _commandPublisher.Received().PublishCommand(Arg.Is<UpdatePlayerStatusCommand>(cmd =>
             cmd.PlayerId == localPlayerVm.Player.Id &&
             cmd.PlayerStatus == PlayerStatus.Ready &&
-            cmd.GameOriginId == _clientGame.Id));
+            cmd.GameOriginId == _clientGame.Id &&
+            cmd.IdempotencyKey != null
+        ));
     }
 
     [Fact]
@@ -611,7 +618,8 @@ public class StartNewGameViewModelTests
             _gameFactory,
             _mapFactory,
             _cachingService,
-            _mapPreviewRenderer);
+            _mapPreviewRenderer,
+            _hashService);
         sut.AttachHandlers();
 
         // Assert
@@ -647,7 +655,8 @@ public class StartNewGameViewModelTests
             _gameFactory,
             _mapFactory,
             _cachingService,
-            _mapPreviewRenderer);
+            _mapPreviewRenderer,
+            _hashService);
         sut.AttachHandlers();
 
         // Act
@@ -682,7 +691,8 @@ public class StartNewGameViewModelTests
                 _gameFactory,
                 _mapFactory,
                 _cachingService,
-                _mapPreviewRenderer);
+                _mapPreviewRenderer,
+                _hashService);
             sut.AttachHandlers();
 
             // Assert
@@ -721,7 +731,8 @@ public class StartNewGameViewModelTests
                 _gameFactory,
                 _mapFactory,
                 _cachingService,
-                _mapPreviewRenderer);
+                _mapPreviewRenderer,
+                _hashService);
             sut.AttachHandlers();
 
             // Assert

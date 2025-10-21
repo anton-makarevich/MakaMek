@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Map.Factory;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game.Factories;
@@ -41,5 +42,7 @@ public interface IGameFactory
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
-        IBattleMapFactory mapFactory);
+        IBattleMapFactory mapFactory,
+        IHashService hashService
+    );
 }

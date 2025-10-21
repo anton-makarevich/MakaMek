@@ -38,7 +38,7 @@ public class DeploymentState : IUiState
         _builder = new DeploymentCommandBuilder(_viewModel.Game.Id, _viewModel.Game.ActivePlayer.Id);
     }
 
-    public void HandleUnitSelection(Unit? unit)
+    public void  HandleUnitSelection(Unit? unit)
     {
         if (_viewModel.Game is { CanActivePlayerAct: false }) return;
         if (_currentSubState != SubState.SelectingUnit) return;

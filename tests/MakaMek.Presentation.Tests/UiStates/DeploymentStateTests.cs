@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -33,6 +34,8 @@ public class DeploymentStateTests
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
+    private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
+    private readonly IHashService _hashService = Substitute.For<IHashService>();
 
     public DeploymentStateTests()
     {
@@ -48,9 +51,8 @@ public class DeploymentStateTests
         
         // Create two adjacent hexes
         _hex1 = new Hex(new HexCoordinates(1, 1));
-        _hex2 = new Hex(new HexCoordinates(1, 2)); 
-        
-        var battleMap = new BattleMap(1, 1);
+        _hex2 = new Hex(new HexCoordinates(1, 2));
+
         var player = new Player(Guid.NewGuid(), "Player1");
         _game = new ClientGame(
             _rulesProvider,
@@ -58,22 +60,33 @@ public class DeploymentStateTests
                 _rulesProvider,
                 _componentProvider,
                 _localizationService),
-            Substitute.For<ICommandPublisher>(),
+            _commandPublisher,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            Substitute.For<IBattleMapFactory>());
+            Substitute.For<IBattleMapFactory>(),
+            _hashService);
+        
+        var idempotencyKey = Guid.NewGuid();
+        _hashService.ComputeCommandIdempotencyKey(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<Type>(),
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>())
+            .Returns(idempotencyKey);
+        
         _game.JoinGameWithUnits(player,[],[]);
-        _game.SetBattleMap(battleMap);
         
         _battleMapViewModel.Game = _game;
-        SetActivePlayer(player, unitData);
+        SetActivePlayer(player, unitData, idempotencyKey);
         _unit = _battleMapViewModel.Units.First();
         _sut = new DeploymentState(_battleMapViewModel);
     }
     
-    private void SetActivePlayer(Player player, UnitData unitData)
+    private void SetActivePlayer(Player player, UnitData unitData, Guid idempotencyKey)
     {
         _game.HandleCommand(new JoinGameCommand
         {
@@ -82,7 +95,8 @@ public class DeploymentStateTests
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id,
             Tint = "#FF0000",
-            PilotAssignments = []
+            PilotAssignments = [],
+            IdempotencyKey = idempotencyKey
         });
         _game.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -105,7 +119,7 @@ public class DeploymentStateTests
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player2");
-        SetActivePlayer(player, MechFactoryTests.CreateDummyMechData());
+        SetActivePlayer(player, MechFactoryTests.CreateDummyMechData(), Guid.NewGuid());
         // Assert
         _sut.ActionLabel.ShouldBe("");
         _sut.IsActionRequired.ShouldBeFalse();
@@ -134,7 +148,7 @@ public class DeploymentStateTests
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player2");
-        SetActivePlayer(player, MechFactoryTests.CreateDummyMechData());
+        SetActivePlayer(player, MechFactoryTests.CreateDummyMechData(), Guid.NewGuid());
         // Act
         _sut.HandleUnitSelection(_unit);
 
@@ -160,7 +174,7 @@ public class DeploymentStateTests
     {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player2");
-        SetActivePlayer(player, MechFactoryTests.CreateDummyMechData());
+        SetActivePlayer(player, MechFactoryTests.CreateDummyMechData(), Guid.NewGuid());
         // Act
         _sut.HandleHexSelection(_hex1);
 
