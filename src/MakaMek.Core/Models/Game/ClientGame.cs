@@ -176,43 +176,9 @@ public sealed class ClientGame : BaseGame, IDisposable
                                       && LocalPlayers.Contains(ActivePlayer.Id) 
                                       && ActivePlayer.CanAct
                                       && _pendingCommands.IsEmpty;
-
-    public Task JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
-    {
-        var joinCommand = new JoinGameCommand
-        {
-            PlayerId = player.Id,
-            PlayerName = player.Name,
-            GameOriginId = Id,
-            Tint = player.Tint,
-            Units = units,
-            PilotAssignments = pilotAssignments
-        };
-        player.Status = PlayerStatus.Joining;
-        LocalPlayers.Add(player.Id);
-        return SendClientCommand(joinCommand);
-    }
     
-    public Task SetPlayerReady(UpdatePlayerStatusCommand readyCommand) => SendClientCommand(readyCommand);
-
-    /// <summary>
-    /// Sends a player action command if the active player can act.
-    /// Computes and assigns an idempotency key, tracks the command, and returns a task that completes when the server responds.
-    /// </summary>
-    /// <param name="command">Any client command to be sent</param>
-    /// <typeparam name="T">Type of command that implements IClientCommand</typeparam>
-    /// <returns>A task that completes with true on success, false on error</returns>
-    private Task<bool> SendPlayerAction<T>(T command) where T : struct, IClientCommand
-    {
-        return !CanActivePlayerAct 
-            ? Task.FromResult(false) 
-            : SendClientCommand(command);
-    }
-
     private async Task<bool> SendClientCommand<T>(T command) where T : struct, IClientCommand
     {
-        if (!ValidateCommand(command)) return false;
-
         // Extract UnitId from the command if it has one
         var unitId = GetUnitIdFromCommand(command);
 
@@ -222,7 +188,7 @@ public sealed class ClientGame : BaseGame, IDisposable
             command.PlayerId,
             typeof(T),
             Turn,
-            nameof(TurnPhase),
+            TurnPhase.ToString(),
             unitId);
 
         // Check if this command is already pending
@@ -231,6 +197,8 @@ public sealed class ClientGame : BaseGame, IDisposable
             // Return the existing task
             return await pendingCommand.Task.ConfigureAwait(false);
         }
+        
+        if (!CanActivePlayerAct || !ValidateCommand(command)) return false;
 
         // Assign the idempotency key to the command
         var commandWithKey = command with
@@ -250,25 +218,44 @@ public sealed class ClientGame : BaseGame, IDisposable
         if (completed == tcs.Task) return await tcs.Task.ConfigureAwait(false);
 
         // Timeout: clean up and report failure
+        tcs.TrySetResult(false);
         _pendingCommands.TryRemove(idempotencyKey, out _);
         return false;
     }
+    
+    public Task<bool> JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
+    {
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            GameOriginId = Id,
+            Tint = player.Tint,
+            Units = units,
+            PilotAssignments = pilotAssignments
+        };
+        player.Status = PlayerStatus.Joining;
+        LocalPlayers.Add(player.Id);
+        return SendClientCommand(joinCommand);
+    }
+    
+    public Task<bool> SetPlayerReady(UpdatePlayerStatusCommand readyCommand) => SendClientCommand(readyCommand);
 
-    public Task<bool> DeployUnit(DeployUnitCommand command) => SendPlayerAction(command);
+    public Task<bool> DeployUnit(DeployUnitCommand command) => SendClientCommand(command);
 
-    public Task<bool> MoveUnit(MoveUnitCommand command) => SendPlayerAction(command);
+    public Task<bool> MoveUnit(MoveUnitCommand command) => SendClientCommand(command);
 
-    public Task<bool> ConfigureUnitWeapons(WeaponConfigurationCommand command) => SendPlayerAction(command);
+    public Task<bool> ConfigureUnitWeapons(WeaponConfigurationCommand command) => SendClientCommand(command);
 
-    public Task<bool> DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendPlayerAction(command);
+    public Task<bool> DeclareWeaponAttack(WeaponAttackDeclarationCommand command) => SendClientCommand(command);
 
-    public Task<bool> EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
+    public Task<bool> EndTurn(TurnEndedCommand command) => SendClientCommand(command);
 
-    public Task<bool> TryStandupUnit(TryStandupCommand command) => SendPlayerAction(command);
+    public Task<bool> TryStandupUnit(TryStandupCommand command) => SendClientCommand(command);
 
-    public Task<bool> ShutdownUnit(ShutdownUnitCommand command) => SendPlayerAction(command);
+    public Task<bool> ShutdownUnit(ShutdownUnitCommand command) => SendClientCommand(command);
 
-    public Task<bool> StartupUnit(StartupUnitCommand command) => SendPlayerAction(command);
+    public Task<bool> StartupUnit(StartupUnitCommand command) => SendClientCommand(command);
 
     public void RequestLobbyStatus(RequestGameLobbyStatusCommand statusCommand)
     {
