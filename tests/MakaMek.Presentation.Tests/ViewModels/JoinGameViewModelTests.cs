@@ -101,6 +101,13 @@ public class JoinGameViewModelTests
         _sut.AttachHandlers();
     }
 
+    private void ConnectAndAckLobby()
+    {
+        _sut.ConnectCommand.Execute(null);
+        var lobbyCommand = (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls().Last().GetArguments()[0]!;
+        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+    }
+
     [Fact]
     public void ConnectToServer_ClearsExistingPublishers()
     {
@@ -108,10 +115,7 @@ public class JoinGameViewModelTests
         _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Act
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         
         // Assert
         // Verify that ClearPublishers was called on the adapter
@@ -141,10 +145,7 @@ public class JoinGameViewModelTests
         _sut.ServerIp = "http://localhost:5000"; // Set a valid server address
         
         // Act
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         
         // Assert
         // Verify that the new publisher was added to the adapter
@@ -192,10 +193,7 @@ public class JoinGameViewModelTests
         // Arrange
         _sut.ServerIp="127.0.0.1";
         // Act
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         
         // Assert
         _gameFactory.Received(1).CreateClientGame(_rulesProvider,
@@ -218,10 +216,7 @@ public class JoinGameViewModelTests
         _gameFactory.ClearReceivedCalls();
         
         // Act - call again
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         
         // Assert - should not create a new game
         _gameFactory.DidNotReceive().CreateClientGame(
@@ -251,10 +246,7 @@ public class JoinGameViewModelTests
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         
         // Assert
         _sut.CanAddPlayer.ShouldBeTrue();
@@ -265,10 +257,7 @@ public class JoinGameViewModelTests
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         
         // Add 4 players
         for (var i = 0; i < 4; i++)
@@ -305,10 +294,7 @@ public class JoinGameViewModelTests
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         
         // Assert
         _sut.CanConnect.ShouldBeFalse();
@@ -319,10 +305,7 @@ public class JoinGameViewModelTests
     {
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
         
         var player = _sut.Players.First();
@@ -382,10 +365,7 @@ public class JoinGameViewModelTests
     {
         // Connect and add a player
         _sut.ServerIp = "http://localhost:5000";
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         
         var player = _sut.Players.First();
         var playerId = player.Player.Id;
@@ -414,10 +394,7 @@ public class JoinGameViewModelTests
     {
         // Arrange
         _sut.ServerIp = "http://localhost:5000";
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         var navigationService = Substitute.For<INavigationService>();
         var localizationService = Substitute.For<ILocalizationService>();
         var imageService = Substitute.For<IImageService>();
@@ -545,10 +522,7 @@ public class JoinGameViewModelTests
         player.CanJoin.ShouldBeFalse();
         
         // Act
-        _sut.ConnectCommand.Execute(null);
-        var lobbyCommand= (RequestGameLobbyStatusCommand)_commandPublisher.ReceivedCalls() 
-            .Last().GetArguments()[0]!;
-        _clientGame.HandleCommand(lobbyCommand with { GameOriginId = Guid.NewGuid() });
+        ConnectAndAckLobby();
         
         // Assert
         _sut.IsConnected.ShouldBeTrue();

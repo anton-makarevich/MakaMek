@@ -125,4 +125,43 @@ public class HashServiceTests
         // Assert
         key1.ShouldNotBe(key2);
     }
+    
+    [Fact]
+    public void ComputeCommandIdempotencyKey_ShouldReturnDifferentKeys_ForDifferentTurns()
+    {
+        // Arrange
+        var gameId = Guid.NewGuid();
+        var playerId = Guid.NewGuid();
+        var unitId = Guid.NewGuid();
+        var commandType = typeof(DeployUnitCommand);
+
+        // Act
+        var key1 = _sut.ComputeCommandIdempotencyKey(
+            gameId, playerId, commandType, 1, nameof(PhaseNames.Deployment), unitId);
+        var key2 = _sut.ComputeCommandIdempotencyKey(
+            gameId, playerId, commandType, 2, nameof(PhaseNames.Deployment), unitId);
+
+        // Assert
+        key1.ShouldNotBe(key2);
+    }
+
+    [Fact]
+    public void ComputeCommandIdempotencyKey_ShouldReturnDifferentKeys_ForDifferentUnits()
+    {
+        // Arrange
+        var gameId = Guid.NewGuid();
+        var playerId = Guid.NewGuid();
+        var unitId1 = Guid.NewGuid();
+        var unitId2 = Guid.NewGuid();
+        var commandType = typeof(DeployUnitCommand);
+
+        // Act
+        var key1 = _sut.ComputeCommandIdempotencyKey(
+            gameId, playerId, commandType, 1, nameof(PhaseNames.Deployment), unitId1);
+        var key2 = _sut.ComputeCommandIdempotencyKey(
+            gameId, playerId, commandType, 1, nameof(PhaseNames.Deployment), unitId2);
+
+        // Assert
+        key1.ShouldNotBe(key2);
+    }
 }
