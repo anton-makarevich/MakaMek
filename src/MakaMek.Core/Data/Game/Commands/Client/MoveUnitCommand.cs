@@ -30,7 +30,7 @@ public record struct MoveUnitCommand: IClientCommand
             MovementType);
     }
 
-    public required Guid UnitId { get; init; }
+    public required Guid? UnitId { get; init; }
     public required MovementType MovementType { get; init; }
     public required List<PathSegmentData> MovementPath { get; init; }
     public Guid PlayerId { get; init; }

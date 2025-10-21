@@ -51,7 +51,7 @@ public class WeaponAttackDeclarationCommandTests
         {
             GameOriginId = _gameId,
             PlayerId = _player1.Id,
-            AttackerId = _attacker.Id,
+            UnitId = _attacker.Id,
             WeaponTargets =
             [
                 new WeaponTargetData
@@ -86,7 +86,7 @@ public class WeaponAttackDeclarationCommandTests
     public void Render_ReturnsEmpty_WhenAttackerNotFound()
     {
         // Arrange
-        var command = CreateCommand() with { AttackerId = Guid.NewGuid() };
+        var command = CreateCommand() with { UnitId = Guid.NewGuid() };
 
         // Act
         var result = command.Render(_localizationService, _game);

@@ -9,6 +9,7 @@ public record struct TurnEndedCommand : IClientCommand
     public Guid PlayerId { get; init; }
     public DateTime Timestamp { get; set; }
     public Guid? IdempotencyKey { get; init; }
+    public Guid? UnitId { get; init; } //remains null for this command
 
     public string Render(ILocalizationService localizationService, IGame game)
     {

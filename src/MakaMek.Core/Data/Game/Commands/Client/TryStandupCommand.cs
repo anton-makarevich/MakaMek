@@ -11,7 +11,7 @@ public record struct TryStandupCommand : IClientCommand
     public DateTime Timestamp { get; set; }
     public Guid? IdempotencyKey { get; init; }
 
-    public required Guid UnitId { get; init; }
+    public required Guid? UnitId { get; init; }
     public required Guid PlayerId { get; init; }
 
     /// <summary>

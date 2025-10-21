@@ -226,7 +226,7 @@ public abstract class BaseGame : IGame
         if (player == null) return;
 
         // Find the attacking unit
-        var attackerUnit = player.Units.FirstOrDefault(u => u.Id == attackCommand.AttackerId);
+        var attackerUnit = player.Units.FirstOrDefault(u => u.Id == attackCommand.UnitId);
         if (attackerUnit == null) return;
 
         // Validate that the unit can fire weapons

@@ -19,4 +19,5 @@ public record struct RequestGameLobbyStatusCommand : IClientCommand
 
     public Guid PlayerId { get; init; }
     public Guid? IdempotencyKey { get; init; }
+    public Guid? UnitId { get; init; } //remains null for this command
 }

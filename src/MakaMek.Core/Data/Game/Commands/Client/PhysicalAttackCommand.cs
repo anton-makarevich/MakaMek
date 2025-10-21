@@ -13,7 +13,7 @@ public record struct PhysicalAttackCommand : IClientCommand
     {
         var command = this;
         var player = game.Players.FirstOrDefault(p => p.Id == command.PlayerId);
-        var unit = player?.Units.FirstOrDefault(u => u.Id == command.AttackerUnitId);
+        var unit = player?.Units.FirstOrDefault(u => u.Id == command.UnitId);
         var target = game.Players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == command.TargetUnitId);
@@ -28,7 +28,7 @@ public record struct PhysicalAttackCommand : IClientCommand
             AttackType);
     }
 
-    public required Guid AttackerUnitId { get; init; }
+    public required Guid? UnitId { get; init; }
     public required Guid TargetUnitId { get; init; }
     public required PhysicalAttackType AttackType { get; init; }
     public Guid PlayerId { get; init; }

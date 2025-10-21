@@ -636,7 +636,7 @@ public class WeaponsAttackState : IUiState
         {
             GameOriginId = _game.Id,
             PlayerId = _game.ActivePlayer!.Id,
-            AttackerId = Attacker.Id,
+            UnitId = Attacker.Id,
             WeaponTargets = weaponTargetsData
         };
         

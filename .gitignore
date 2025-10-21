@@ -268,9 +268,11 @@ __pycache__/
 
 # Coverage reports
 **/coverage.opencover.xml
+coveragereport/
 
 # Scripts
 
 serve-wasm.ps1
 
 **/.avalonia-build-tasks
+

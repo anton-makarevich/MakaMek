@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
 public record struct WeaponConfigurationCommand : IClientCommand
 {
-    public required Guid UnitId { get; init; }
+    public required Guid? UnitId { get; init; }
     public required WeaponConfiguration Configuration { get; set; }
 
     public required Guid GameOriginId { get; set; }

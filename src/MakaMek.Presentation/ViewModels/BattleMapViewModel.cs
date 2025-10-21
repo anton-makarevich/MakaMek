@@ -244,7 +244,7 @@ public class BattleMapViewModel : BaseViewModel
     
         var attacker = Game.Players
             .SelectMany(p => p.Units)
-            .FirstOrDefault(u => u.Id == command.AttackerId);
+            .FirstOrDefault(u => u.Id == command.UnitId);
     
         if (attacker?.Position == null || attacker.Owner == null) return;
 

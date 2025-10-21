@@ -225,7 +225,7 @@ public class BaseGameTests : BaseGame
         {
             GameOriginId = Id,
             PlayerId = Guid.NewGuid(),
-            AttackerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
             WeaponTargets = []
         };
 
@@ -256,7 +256,7 @@ public class BaseGameTests : BaseGame
         {
             GameOriginId = Id,
             PlayerId = player.Id,
-            AttackerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
             WeaponTargets = []
         };
 
@@ -318,7 +318,7 @@ public class BaseGameTests : BaseGame
         {
             GameOriginId = Id,
             PlayerId = attackerPlayerId,
-            AttackerId = attackerMech.Id,
+            UnitId = attackerMech.Id,
             WeaponTargets =
             [
                 new WeaponTargetData
@@ -396,7 +396,7 @@ public class BaseGameTests : BaseGame
         {
             GameOriginId = Id,
             PlayerId = attackerPlayerId,
-            AttackerId = attackerMech.Id,
+            UnitId = attackerMech.Id,
             WeaponTargets =
             [
                 new WeaponTargetData
@@ -714,7 +714,7 @@ public class BaseGameTests : BaseGame
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id,
-            AttackerId = mech.Id,
+            UnitId = mech.Id,
             WeaponTargets = []
         };
 
@@ -751,7 +751,7 @@ public class BaseGameTests : BaseGame
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = player.Id,
-            AttackerId = mech.Id,
+            UnitId = mech.Id,
             WeaponTargets = []
         };
 

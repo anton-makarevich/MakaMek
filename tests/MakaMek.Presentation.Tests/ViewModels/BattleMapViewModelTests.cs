@@ -1139,7 +1139,7 @@ public class BattleMapViewModelTests
         var weaponAttackCommand = new WeaponAttackDeclarationCommand
         {
             PlayerId = playerId,
-            AttackerId = attacker.Id,
+            UnitId = attacker.Id,
             WeaponTargets = [weaponTargetData],
             GameOriginId = Guid.NewGuid()
         };
@@ -1270,7 +1270,7 @@ public class BattleMapViewModelTests
         var weaponAttackCommand1 = new WeaponAttackDeclarationCommand
         {
             PlayerId = playerId,
-            AttackerId = attacker1.Id,
+            UnitId = attacker1.Id,
             WeaponTargets = [weaponTargetData1],
             GameOriginId = Guid.NewGuid()
         };
@@ -1278,7 +1278,7 @@ public class BattleMapViewModelTests
         var weaponAttackCommand2 = new WeaponAttackDeclarationCommand
         {
             PlayerId = playerId,
-            AttackerId = attacker2.Id,
+            UnitId = attacker2.Id,
             WeaponTargets = [weaponTargetData2],
             GameOriginId = Guid.NewGuid()
         };
@@ -1409,7 +1409,7 @@ public class BattleMapViewModelTests
         var weaponAttackCommand = new WeaponAttackDeclarationCommand
         {
             PlayerId = playerId,
-            AttackerId = attacker.Id,
+            UnitId = attacker.Id,
             WeaponTargets = [weaponTargetData1, weaponTargetData2],
             GameOriginId = Guid.NewGuid()
         };
@@ -1581,7 +1581,7 @@ public class BattleMapViewModelTests
         var weaponAttackCommand = new WeaponAttackDeclarationCommand
         {
             PlayerId = playerId,
-            AttackerId = attacker.Id,
+            UnitId = attacker.Id,
             WeaponTargets = [weaponTargetData],
             GameOriginId = Guid.NewGuid()
         };

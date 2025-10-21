@@ -1212,7 +1212,7 @@ public class WeaponsAttackStateTests
         // Assert
         _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
             cmd.PlayerId == attackingPlayer.Id &&
-            cmd.AttackerId == attacker.Id &&
+            cmd.UnitId == attacker.Id &&
             cmd.WeaponTargets.Count == 1 &&
             cmd.WeaponTargets[0].TargetId == target.Id &&
             cmd.WeaponTargets[0].IsPrimaryTarget == true &&
@@ -1440,7 +1440,7 @@ public class WeaponsAttackStateTests
         // Assert
         _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd => 
             cmd.PlayerId == attackingPlayer.Id &&
-            cmd.AttackerId == attacker.Id &&
+            cmd.UnitId == attacker.Id &&
             cmd.WeaponTargets.Count == 0
         ));
     }

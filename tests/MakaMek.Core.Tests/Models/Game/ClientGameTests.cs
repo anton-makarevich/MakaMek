@@ -844,7 +844,7 @@ public class ClientGameTests
         {
             GameOriginId = _sut.Id,
             PlayerId = player.Id,
-            AttackerId = unitData.Id.Value,
+            UnitId = unitData.Id.Value,
             WeaponTargets =
             [
                 new WeaponTargetData()
@@ -869,7 +869,7 @@ public class ClientGameTests
         {
             _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
                 cmd.PlayerId == command.PlayerId &&
-                cmd.AttackerId == command.AttackerId &&
+                cmd.UnitId == command.UnitId &&
                 cmd.GameOriginId == command.GameOriginId &&
                 cmd.IdempotencyKey.HasValue)); // Should have an idempotency key
         }
@@ -887,7 +887,7 @@ public class ClientGameTests
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = Guid.NewGuid(),
-            AttackerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
             WeaponTargets =
             [
                 new WeaponTargetData
@@ -969,7 +969,7 @@ public class ClientGameTests
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = attackerPlayer.Id,
-            AttackerId = attackerUnitData.Id.Value,
+            UnitId = attackerUnitData.Id.Value,
             WeaponTargets =
             [
                 new WeaponTargetData

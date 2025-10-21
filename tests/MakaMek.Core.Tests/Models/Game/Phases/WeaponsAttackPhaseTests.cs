@@ -93,13 +93,13 @@ public class WeaponsAttackPhaseTests : GamePhaseTestsBase
         {
             GameOriginId = Game.Id,
             PlayerId = Game.ActivePlayer!.Id,
-            AttackerId = _unit1Id,
+            UnitId = _unit1Id,
             WeaponTargets = [],
         });
     
         // Assert
         CommandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd => 
-            cmd.AttackerId == _unit1Id));
+            cmd.UnitId == _unit1Id));
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class WeaponsAttackPhaseTests : GamePhaseTestsBase
         {
             GameOriginId = Game.Id,
             PlayerId = wrongPlayerId,
-            AttackerId = _unit1Id,
+            UnitId = _unit1Id,
             WeaponTargets = []
         });
     
@@ -136,7 +136,7 @@ public class WeaponsAttackPhaseTests : GamePhaseTestsBase
             {
                 GameOriginId = Game.Id,
                 PlayerId = firstPlayer.Id,
-                AttackerId = unit.Id,
+                UnitId = unit.Id,
                 WeaponTargets = []
             });
         }
@@ -152,7 +152,7 @@ public class WeaponsAttackPhaseTests : GamePhaseTestsBase
             {
                 GameOriginId = Game.Id,
                 PlayerId = secondPlayer.Id,
-                AttackerId = unit.Id,
+                UnitId = unit.Id,
                 WeaponTargets = []
             });
         }

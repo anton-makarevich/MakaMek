@@ -15,7 +15,7 @@ public record struct ShutdownUnitCommand : IClientCommand
     /// <summary>
     /// The ID of the unit to shut down
     /// </summary>
-    public required Guid UnitId { get; init; }
+    public required Guid? UnitId { get; init; }
 
     /// <summary>
     /// The ID of the player requesting the shutdown
