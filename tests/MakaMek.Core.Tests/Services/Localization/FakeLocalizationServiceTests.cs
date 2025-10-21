@@ -366,6 +366,22 @@ public class FakeLocalizationServiceTests
         // Assert
         result.ShouldBe(expected);
     }
+    
+    [Theory]
+    [InlineData("Command_Error_DuplicateCommand", "Duplicate command detected")]
+    [InlineData("Command_Error_ValidationFailed", "Validation failed")]
+    [InlineData("Command_Error_InvalidGameState", "Invalid game state")]
+    public void GetString_ErrorCommands_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
 
     [Theory]
     [InlineData("MainMenu_Loading_Content", "Loading content...")]

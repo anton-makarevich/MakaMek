@@ -92,6 +92,11 @@ public class FakeLocalizationService: ILocalizationService
             "Command_GameEnded_Victory" => "Game ended: Victory",
             "Command_GameEnded_PlayersLeft" => "Players left. Game ended",
             
+            // Error Command strings
+            "Command_Error_DuplicateCommand" => "Duplicate command detected",
+            "Command_Error_ValidationFailed" => "Validation failed",
+            "Command_Error_InvalidGameState" => "Invalid game state",
+            
             // Piloting Skill Roll Types
             "PilotingSkillRollType_GyroHit" => "Gyro Hit",
             "PilotingSkillRollType_GyroDestroyed" => "Gyro Destroyed",
