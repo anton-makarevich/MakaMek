@@ -455,4 +455,21 @@ public class FakeLocalizationServiceTests
         // Assert
         result.ShouldBe(expected);
     }
+    
+    [Theory]
+    [InlineData("Dialog_Yes", "Yes")]
+    [InlineData("Dialog_No", "No")]
+    [InlineData("Dialog_LeaveGame_Title", "Leave Game")]
+    [InlineData("Dialog_LeaveGame_Message", "WARNING: This action ends the game for all players")]
+    public void GetString_Dialogs_ReturnsExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = new FakeLocalizationService();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
 }

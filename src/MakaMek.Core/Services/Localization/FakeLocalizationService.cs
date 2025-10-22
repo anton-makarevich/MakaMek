@@ -315,6 +315,12 @@ public class FakeLocalizationService: ILocalizationService
             "About_TrademarkNotice1" => "MechWarrior and BattleMech are registered trademarks of The Topps Company, Inc.",
             "About_TrademarkNotice2" => "Microsoft holds the license for MechWarrior computer games. This game is NOT affiliated with Microsoft.",
             "About_GameContentRulesNotice" => "This game follows Microsoft's \"Game Content Usage Rules\".",
+            
+            // Dialogs
+            "Dialog_Yes" => "Yes",
+            "Dialog_No" => "No",
+            "Dialog_LeaveGame_Title" => "Leave Game",
+            "Dialog_LeaveGame_Message" => "WARNING: This action ends the game for all players",
             _ => key
         };
     }
