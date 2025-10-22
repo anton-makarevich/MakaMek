@@ -17,6 +17,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MVVM.Core.Models;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -113,10 +114,33 @@ public class BattleMapViewModel : BaseViewModel
 
     private async Task LeaveGame()
     {
+        // Show confirmation dialog
+        var yesAction = new UiAction
+        {
+            Title = _localizationService.GetString("Dialog_Yes")
+        };
+
+        var noAction = new UiAction
+        {
+            Title = _localizationService.GetString("Dialog_No")
+        };
+
+        var selectedAction = await NavigationService.AskForActionAsync(
+            _localizationService.GetString("Dialog_LeaveGame_Title"), //"Do you really want to leave the game?",
+            _localizationService.GetString("Dialog_LeaveGame_Message"),//"WARNING: This action ends the game for all players",
+            yesAction,
+            noAction);
+
+        // If user didn't select "Yes", cancel the operation
+        if (selectedAction != yesAction)
+        {
+            return;
+        }
+
         // Send PlayerLeftCommand for each local player
         if (Game != null)
         {
-            
+
             foreach (var playerId in Game.LocalPlayers)
             {
                 if (Game==null || Game.IsDisposed) return;
