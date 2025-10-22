@@ -126,8 +126,8 @@ public class BattleMapViewModel : BaseViewModel
         };
 
         var selectedAction = await NavigationService.AskForActionAsync(
-            _localizationService.GetString("Dialog_LeaveGame_Title"), //"Do you really want to leave the game?",
-            _localizationService.GetString("Dialog_LeaveGame_Message"),//"WARNING: This action ends the game for all players",
+            _localizationService.GetString("Dialog_LeaveGame_Title"), 
+            _localizationService.GetString("Dialog_LeaveGame_Message"),
             yesAction,
             noAction);
 
