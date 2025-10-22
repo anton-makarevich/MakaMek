@@ -32,6 +32,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MVVM.Core.Models;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
 
@@ -1953,12 +1954,26 @@ public class BattleMapViewModelTests
     }
     
     [Fact]
-    public void LeaveGameCommand_ShouldPublishPlayerLeftCommand_WhenExecuted()
+    public void LeaveGameCommand_ShouldPublishPlayerLeftCommand_WhenPromptIsApproved()
     {
         // Arrange
+        _localizationService.GetString("Dialog_Yes").Returns("Yes");
+        _localizationService.GetString("Dialog_No").Returns("No");
         var playerId = Guid.NewGuid();
         _game.JoinGameWithUnits(new Player(playerId, "Player1"), [],[]);
         _commandPublisher.ClearReceivedCalls();
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        navigationService
+            .AskForActionAsync(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<UiAction>(), Arg.Any<UiAction>())!
+            .Returns(ci =>
+            {
+                var actions = (UiAction[])ci.Args()[2]; // third argument - actions
+                return Task.FromResult(actions[0]); // first action - yes
+            });
         
         // Act
         _sut.LeaveGameCommand.Execute(null);
@@ -1971,6 +1986,35 @@ public class BattleMapViewModelTests
         capturedCommand.GameOriginId.ShouldBe(_game.Id);
         
         _game.HandleCommand(capturedCommand with { GameOriginId = Guid.NewGuid() });
+    }
+    
+    [Fact]
+    public void LeaveGameCommand_ShouldNotPublishPlayerLeftCommand_WhenPromptIsCancelled()
+    {
+        // Arrange
+        _localizationService.GetString("Dialog_Yes").Returns("Yes");
+        _localizationService.GetString("Dialog_No").Returns("No");
+        var playerId = Guid.NewGuid();
+        _game.JoinGameWithUnits(new Player(playerId, "Player1"), [],[]);
+        _commandPublisher.ClearReceivedCalls();
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        navigationService
+            .AskForActionAsync(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<UiAction>(), Arg.Any<UiAction>())!
+            .Returns(ci =>
+            {
+                var actions = (UiAction[])ci.Args()[2]; // third argument - actions
+                return Task.FromResult(actions[1]); // second action - no
+            });
+        
+        // Act
+        _sut.LeaveGameCommand.Execute(null);
+        
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PlayerLeftCommand>());
     }
 
     private ToHitBreakdown CreateTestBreakdown(int total)
