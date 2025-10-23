@@ -840,7 +840,7 @@ public class StartNewGameViewModelTests
     public async Task ShowAvailableUnitsTable_ShouldNotAddUnit_WhenCancelled()
     {
         // Arrange
-        var unitData = MechFactoryTests.CreateDummyMechData();
+        MechFactoryTests.CreateDummyMechData();
         var navigationService = Substitute.For<INavigationService>();
         _sut.SetNavigationService(navigationService);
         navigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(Arg.Any<AvailableUnitsTableViewModel>())
