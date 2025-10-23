@@ -10,7 +10,7 @@ public class UnitSelectionResult
     /// <summary>
     /// The selected unit, or null if cancelled
     /// </summary>
-    public UnitData? SelectedUnit { get; private init; }
+    public UnitData? SelectedUnit { get; init; }
 
     /// <summary>
     /// Creates a result with a selected unit

@@ -24,6 +24,7 @@ using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
 
@@ -813,5 +814,25 @@ public class StartNewGameViewModelTests
 
         // Assert
         _sut.CanAddPlayer.ShouldBeTrue(); // Should be able to add players again
+    }
+    
+    [Fact]
+    public async Task ShowAvailableUnitsTable_ShouldAddUnitToPlayer()
+    {
+        // Arrange
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(Arg.Any<AvailableUnitsTableViewModel>())
+            .Returns(new UnitSelectionResult { SelectedUnit = unitData });
+        var localPlayerVm = _sut.Players.First();
+        var initialUnitCount = localPlayerVm.Units.Count;
+
+        // Act
+        await (localPlayerVm.ShowAvailableUnitsCommand as IAsyncCommand)!.ExecuteAsync();
+        var finalUnitCount = localPlayerVm.Units.Count;
+
+        // Assert
+        finalUnitCount.ShouldBe(initialUnitCount + 1);
     }
 }
