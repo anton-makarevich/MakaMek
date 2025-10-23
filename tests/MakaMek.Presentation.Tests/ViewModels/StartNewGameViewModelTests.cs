@@ -835,4 +835,24 @@ public class StartNewGameViewModelTests
         // Assert
         finalUnitCount.ShouldBe(initialUnitCount + 1);
     }
+    
+    [Fact]
+    public async Task ShowAvailableUnitsTable_ShouldNotAddUnit_WhenCancelled()
+    {
+        // Arrange
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(Arg.Any<AvailableUnitsTableViewModel>())
+            .Returns(new UnitSelectionResult { SelectedUnit = null });
+        var localPlayerVm = _sut.Players.First();
+        var initialUnitCount = localPlayerVm.Units.Count;
+
+        // Act
+        await (localPlayerVm.ShowAvailableUnitsCommand as IAsyncCommand)!.ExecuteAsync();
+        var finalUnitCount = localPlayerVm.Units.Count;
+
+        // Assert
+        finalUnitCount.ShouldBe(initialUnitCount);
+    }
 }
