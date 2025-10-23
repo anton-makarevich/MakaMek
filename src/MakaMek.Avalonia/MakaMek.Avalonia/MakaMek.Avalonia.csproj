@@ -29,7 +29,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />
         <PackageReference Include="Sanet.MVVM.DI.Avalonia" Version="1.4.1138" />
-        <PackageReference Include="Sanet.MVVM.Navigation.Avalonia" Version="1.4.11380" />
+        <PackageReference Include="Sanet.MVVM.Navigation.Avalonia" Version="1.4.11381" />
         <PackageReference Include="Sanet.MVVM.Views.Avalonia" Version="1.4.11380" />
         <PackageReference Include="System.Reactive" Version="6.1.0" />
     </ItemGroup>
