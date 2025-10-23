@@ -1,6 +1,4 @@
 using AsyncAwaitBestPractices.MVVM;
-using NSubstitute;
-using System.Windows.Input;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -15,10 +13,9 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
 
         // Act
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Assert
         sut.WeightClassFilters.ShouldBe([
@@ -51,8 +48,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand)
+        var sut = new AvailableUnitsTableViewModel(units)
         {
             // Act
             SelectedWeightClassFilterString = weightClass.ToString()
@@ -70,8 +66,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand)
+        var sut = new AvailableUnitsTableViewModel(units)
         {
             SelectedWeightClassFilterString = nameof(WeightClass.Light)
         };
@@ -96,8 +91,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         var propertyChanged = false;
         var filteredUnitsChanged = false;
@@ -121,8 +115,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
         var unit = units.First();
         sut.CanAddUnit.ShouldBeFalse();
 
@@ -139,8 +132,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
         var unit = units.First();
         sut.SelectedUnit = unit; // First set to a unit
         sut.CanAddUnit.ShouldBeTrue();
@@ -158,8 +150,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
         var unit = units.First();
 
         var selectedUnitChanged = false;
@@ -184,8 +175,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Act & Assert
         sut.CanAddUnit.ShouldBeFalse();
@@ -197,8 +187,7 @@ public class AvailableUnitsTableViewModelTests
         // Arrange
         var unit = MechFactoryTests.CreateDummyMechData() with { Mass = 20 }; // Light class unit
         var units = new List<UnitData> { unit };
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand)
+        var sut = new AvailableUnitsTableViewModel(units)
         {
             // Act - Set filter to Heavy class, but unit is Light class
             SelectedWeightClassFilterString = nameof(WeightClass.Heavy)
@@ -215,8 +204,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand)
+        var sut = new AvailableUnitsTableViewModel(units)
         {
             // Act
             SelectedWeightClassFilterString = "InvalidClass"
@@ -226,27 +214,25 @@ public class AvailableUnitsTableViewModelTests
         sut.SelectedWeightClassFilterString.ShouldBe("All"); // Should remain as All
     }
 
-    [Fact]
-    public void AddUnitCommand_ShouldBeSetFromConstructor()
-    {
-        // Arrange
-        var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-
-        // Act
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
-
-        // Assert
-        sut.AddUnitCommand.ShouldBe(addCommand);
-    }
+    // [Fact]
+    // public void AddUnitCommand_ShouldBeSetFromConstructor()
+    // {
+    //     // Arrange
+    //     var units = CreateTestUnits();
+    //
+    //     // Act
+    //     var sut = new AvailableUnitsTableViewModel(units);
+    //
+    //     // Assert
+    //     sut.AddUnitCommand.ShouldBe(addCommand);
+    // }
 
     [Fact]
     public async Task SortByNameCommand_WhenExecutedOnce_ShouldToggleToDescending()
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Act - First click toggles to descending
         await (sut.SortByNameCommand as IAsyncCommand)!.ExecuteAsync();
@@ -271,8 +257,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Act - First click to descending, second click back to ascending
         await (sut.SortByNameCommand as IAsyncCommand)!.ExecuteAsync();
@@ -298,8 +283,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Act
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -324,8 +308,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Act - First click to ascending, second click to descending
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -351,8 +334,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Act - Sort by tonnage, then switch to name
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -378,8 +360,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Act - Sort by tonnage descending, then apply filter
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -422,8 +403,7 @@ public class AvailableUnitsTableViewModelTests
                 Mass = 100
             }
         };
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Act - Default is ascending by name
         var result = sut.FilteredAvailableUnits.ToList();
@@ -457,8 +437,7 @@ public class AvailableUnitsTableViewModelTests
                 Mass = 70
             }
         };
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         // Act - Sort by tonnage
         await (sut.SortByTonnageCommand as IAsyncCommand)!.ExecuteAsync();
@@ -474,8 +453,7 @@ public class AvailableUnitsTableViewModelTests
     {
         // Arrange
         var units = CreateTestUnits();
-        var addCommand = Substitute.For<ICommand>();
-        var sut = new AvailableUnitsTableViewModel(units, addCommand);
+        var sut = new AvailableUnitsTableViewModel(units);
 
         var filteredUnitsChanged = false;
         var nameSortIndicatorChanged = false;

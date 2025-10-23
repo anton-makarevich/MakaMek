@@ -632,10 +632,11 @@ public class PlayerViewModelTests
         passedViewModel.ShouldBe(sut);
         return;
 
-        void ShowAvailableUnitsAction(PlayerViewModel playerVm)
+        Task ShowAvailableUnitsAction(PlayerViewModel playerVm)
         {
             showAvailableUnitsCalled = true;
             passedViewModel = playerVm;
+            return Task.CompletedTask;
         }
     }
     
@@ -648,7 +649,7 @@ public class PlayerViewModelTests
         var sut = new PlayerViewModel(
             new Player(Guid.NewGuid(), "Player1"),
             isLocalPlayer: true,
-            showAvailableUnits: _ => showAvailableUnitsCalled = true)
+            showAvailableUnits: _ => Task.Run(() => showAvailableUnitsCalled = true))
         {
             Player =
             {
