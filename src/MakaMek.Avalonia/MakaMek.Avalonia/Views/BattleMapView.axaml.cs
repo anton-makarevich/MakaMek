@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -278,6 +279,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
         base.OnSizeChanged(e);
-        TurnInfoPanel.MaxWidth = e.NewSize.Width-6;
+        TurnInfoPanel.MaxWidth = Math.Max(e.NewSize.Width-6, 300);
     }
 }

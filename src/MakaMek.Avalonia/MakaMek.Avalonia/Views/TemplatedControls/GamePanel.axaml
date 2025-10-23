@@ -12,8 +12,8 @@
                         BorderBrush="{StaticResource PrimaryBrush}"
                         BorderThickness="1"
                         CornerRadius="8"
-                        Width="300"
-                        Height="400"
+                        MinWidth="300"
+                        MinHeight="400"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Bottom"
                         Margin="10">
