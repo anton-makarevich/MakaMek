@@ -115,12 +115,12 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                     // Player doesn't exist - must be a remote player joining
                     var remotePlayer = new Player(joinCmd.PlayerId, joinCmd.PlayerName, joinCmd.Tint);
                     var remotePlayerVm = new PlayerViewModel(
-                        remotePlayer, 
+                        remotePlayer,
                         isLocalPlayer: false, // Mark as remote
                         _ => {}, // No join action needed for remote
                         _ => {}, // No set ready action needed for remote
-                        _ => {}, // No show units action needed for remote
-                        () => NotifyPropertyChanged(nameof(CanStartGame))); 
+                        _ => Task.CompletedTask, // No show units action needed for remote
+                        () => NotifyPropertyChanged(nameof(CanStartGame)));
                     
                     remotePlayerVm.AddUnits(joinCmd.Units, joinCmd.PilotAssignments); // Add units received from command
                     _players.Add(remotePlayerVm);
@@ -190,7 +190,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             isLocalPlayer: true,
             PublishJoinCommand,
             PublishSetReadyCommand,
-            ShowTable,
+            ShowAvailableUnitsTable,
             () => NotifyPropertyChanged(nameof(CanStartGame)),
             isDefaultPlayer
                 ? OnDefaultPlayerNameChanged

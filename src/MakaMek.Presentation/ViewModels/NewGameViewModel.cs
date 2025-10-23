@@ -45,8 +45,6 @@ public abstract class NewGameViewModel : BaseViewModel
 
     private const string DefaultPlayerCacheKey = "DefaultPlayer";
 
-    private PlayerViewModel? _activePlayer;
-
     protected NewGameViewModel(IRulesProvider rulesProvider,
         IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
@@ -71,8 +69,6 @@ public abstract class NewGameViewModel : BaseViewModel
         _cachingService = cachingService;
         _hashService = hashService;
 
-        HideTableCommand = new AsyncCommand(HideTable);
-        AddUnitCommand = new AsyncCommand(() => AddUnit(_activePlayer));
         RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
     }
 
@@ -210,9 +206,7 @@ public abstract class NewGameViewModel : BaseViewModel
 
         _players.Remove(playerVm!);
         NotifyPropertyChanged(nameof(CanAddPlayer));
-        return ReferenceEquals(_activePlayer, playerVm) 
-            ? HideTable() 
-            : Task.CompletedTask;
+        return Task.CompletedTask;
     }
     
     private static bool CanRemovePlayer(PlayerViewModel? playerVm)
@@ -275,11 +269,6 @@ public abstract class NewGameViewModel : BaseViewModel
     private async Task LoadAvailableUnits()
     {
         _availableUnits = await _unitsLoader.LoadUnits();
-        
-        // Initialize the AvailableUnitsTableViewModel
-        AvailableUnitsTableViewModel = new AvailableUnitsTableViewModel(
-            AvailableUnits,
-            AddUnitCommand);
     }
 
     /// <summary>
@@ -305,46 +294,21 @@ public abstract class NewGameViewModel : BaseViewModel
     }
 
     public List<UnitData> AvailableUnits => _availableUnits.ToList();
-    
-        
-    public ICommand HideTableCommand { get; }
-    private ICommand AddUnitCommand { get; }
-    
-    protected void ShowTable(PlayerViewModel playerVm)
-    {
-        _activePlayer = playerVm;
-        IsTableVisible = true;
-    }
 
-    private Task HideTable()
+    protected async Task ShowAvailableUnitsTable(PlayerViewModel playerVm)
     {
-        _activePlayer = null;
-        // Hide the table
-        IsTableVisible = false;
-        return Task.CompletedTask;
-    }
-    
-    private Task AddUnit(PlayerViewModel? playerVm)
-    {
-        if (playerVm == null) return Task.CompletedTask;
-        // Get the selected unit from the table ViewModel
-        var selectedUnit = AvailableUnitsTableViewModel?.SelectedUnit;
-        if (!selectedUnit.HasValue) return Task.CompletedTask;
+        if (!playerVm.CanAddUnit) return;
 
-        var unit = selectedUnit.Value;
-        playerVm.AddUnit(unit);
-        return HideTable();
+        // Create a new ViewModel instance for the dialog
+        var tableViewModel = new AvailableUnitsTableViewModel(AvailableUnits);
+
+        // Show the dialog and wait for result
+        var result = await NavigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(tableViewModel);
+
+        // If a unit was selected (not cancelled), add it to the player
+        if (result.SelectedUnit.HasValue)
+        {
+            await playerVm.AddUnit(result.SelectedUnit.Value);
+        }
     }
-    
-    private bool _isTableVisible;
-    public bool IsTableVisible
-    {
-        get => _isTableVisible;
-        set => SetProperty(ref _isTableVisible, value);
-    }
-    
-    /// <summary>
-    /// Gets the ViewModel for the available units table
-    /// </summary>
-    public AvailableUnitsTableViewModel? AvailableUnitsTableViewModel { get; private set; }
 }

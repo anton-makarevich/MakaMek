@@ -7,11 +7,12 @@ using Sanet.MVVM.Core.ViewModels;
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 /// <summary>
-/// ViewModel for the AvailableUnitsTable control, handling unit filtering, sorting, and selection
+/// ViewModel for the AvailableUnitsTable view, handling unit filtering, sorting, and selection
 /// </summary>
-public class AvailableUnitsTableViewModel : BindableBase
+public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitSelectionResult>
 {
     private readonly ObservableCollection<UnitData> _availableUnits;
+    private readonly TaskCompletionSource<UnitSelectionResult> _resultTaskCompletionSource = new();
     private UnitData? _selectedUnit;
     private WeightClass? _selectedWeightClassFilter; // Default is `all` so no filtering
     private bool _showAllClasses;
@@ -25,19 +26,18 @@ public class AvailableUnitsTableViewModel : BindableBase
         Tonnage
     }
 
-    public AvailableUnitsTableViewModel(
-        IList<UnitData> availableUnits,
-        ICommand addUnitCommand)
+    public AvailableUnitsTableViewModel(IList<UnitData> availableUnits)
     {
         _availableUnits = new ObservableCollection<UnitData>(availableUnits);
-        AddUnitCommand = addUnitCommand;
 
         // Initialize with "All" filter selected
         _showAllClasses = true;
 
-        // Initialize sort commands
+        // Initialize commands
         SortByNameCommand = new AsyncCommand(SortByName);
         SortByTonnageCommand = new AsyncCommand(SortByTonnage);
+        AddUnitCommand = new AsyncCommand(AddUnit);
+        CancelCommand = new AsyncCommand(Cancel);
     }
 
     /// <summary>
@@ -115,6 +115,11 @@ public class AvailableUnitsTableViewModel : BindableBase
     /// Command to add the selected unit
     /// </summary>
     public ICommand AddUnitCommand { get; }
+
+    /// <summary>
+    /// Command to cancel unit selection
+    /// </summary>
+    public ICommand CancelCommand { get; }
 
     /// <summary>
     /// Command to sort by Name column
@@ -199,6 +204,30 @@ public class AvailableUnitsTableViewModel : BindableBase
                     .ThenByDescending(u => u.Chassis),
             _ => units
         };
+    }
+
+    private Task AddUnit()
+    {
+        if (!CanAddUnit) return Task.CompletedTask;
+
+        // Complete the task with the selected unit
+        _resultTaskCompletionSource.TrySetResult(UnitSelectionResult.WithUnit(_selectedUnit!.Value));
+        return Task.CompletedTask;
+    }
+
+    private Task Cancel()
+    {
+        // Complete the task with cancelled result
+        _resultTaskCompletionSource.TrySetResult(UnitSelectionResult.Cancelled());
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Gets a task that completes when a unit is selected or the dialog is cancelled
+    /// </summary>
+    public Task<UnitSelectionResult> GetResultAsync()
+    {
+        return _resultTaskCompletionSource.Task;
     }
 }
 

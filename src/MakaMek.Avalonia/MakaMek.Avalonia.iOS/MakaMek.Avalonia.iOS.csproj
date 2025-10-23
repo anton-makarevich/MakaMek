@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia.iOS" Version="11.3.7" />
+        <PackageReference Include="Avalonia.iOS" Version="11.3.8" />
     </ItemGroup>
 
     <ItemGroup>
