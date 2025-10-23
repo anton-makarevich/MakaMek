@@ -4,9 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:wrappers="clr-namespace:Sanet.MakaMek.Presentation.ViewModels.Wrappers;assembly=Sanet.MakaMek.Presentation"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
+             xmlns:viewModels="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
              x:Class="Sanet.MakaMek.Avalonia.Views.AvailableUnitsTableView"
-             x:DataType="wrappers:AvailableUnitsTableViewModel">
+             x:DataType="viewModels:AvailableUnitsTableViewModel">
     
     <!-- Centered dialog panel -->
     <templatedControls:GamePanel

@@ -1,10 +1,11 @@
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Tests.Utils;
+using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
-namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
+namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
 
 public class AvailableUnitsTableViewModelTests
 {
@@ -213,19 +214,6 @@ public class AvailableUnitsTableViewModelTests
         // Assert
         sut.SelectedWeightClassFilterString.ShouldBe("All"); // Should remain as All
     }
-
-    // [Fact]
-    // public void AddUnitCommand_ShouldBeSetFromConstructor()
-    // {
-    //     // Arrange
-    //     var units = CreateTestUnits();
-    //
-    //     // Act
-    //     var sut = new AvailableUnitsTableViewModel(units);
-    //
-    //     // Assert
-    //     sut.AddUnitCommand.ShouldBe(addCommand);
-    // }
 
     [Fact]
     public async Task SortByNameCommand_WhenExecutedOnce_ShouldToggleToDescending()
@@ -476,6 +464,40 @@ public class AvailableUnitsTableViewModelTests
         filteredUnitsChanged.ShouldBeTrue();
         nameSortIndicatorChanged.ShouldBeTrue();
         tonnageSortIndicatorChanged.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public async Task AddUnitCommand_ShouldCompleteTaskWithSelectedUnit()
+    {
+        // Arrange
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units);
+        var unit = units.First();
+        sut.SelectedUnit = unit;
+
+        // Act
+        var resultTask = sut.GetResultAsync();
+        await (sut.AddUnitCommand as IAsyncCommand)!.ExecuteAsync();
+
+        // Assert
+        var result = await resultTask;
+        result.SelectedUnit.ShouldBe(unit);
+    }
+
+    [Fact]
+    public async Task CancelCommand_ShouldCompleteTaskWithNullResult()
+    {
+        // Arrange
+        var units = CreateTestUnits();
+        var sut = new AvailableUnitsTableViewModel(units);
+
+        // Act
+        var resultTask = sut.GetResultAsync();
+        await (sut.CancelCommand as IAsyncCommand)!.ExecuteAsync();
+
+        // Assert
+        var result = await resultTask;
+        result.SelectedUnit.ShouldBeNull();
     }
     
     private static List<UnitData> CreateTestUnits()

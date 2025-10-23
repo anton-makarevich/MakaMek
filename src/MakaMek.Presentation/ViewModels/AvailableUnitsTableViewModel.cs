@@ -2,9 +2,10 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
 
-namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+namespace Sanet.MakaMek.Presentation.ViewModels;
 
 /// <summary>
 /// ViewModel for the AvailableUnitsTable view, handling unit filtering, sorting, and selection
