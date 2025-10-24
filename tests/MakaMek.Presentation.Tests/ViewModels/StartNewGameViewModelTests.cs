@@ -24,6 +24,7 @@ using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
 
@@ -745,113 +746,6 @@ public class StartNewGameViewModelTests
             Console.SetOut(originalOut);
         }
     }
-    
-    [Fact]
-    public async Task ShowAvailableUnitsCommand_ShouldMakeTableVisible()
-    {
-        // Arrange
-        var playerVm = _sut.Players.First();
-        _sut.IsTableVisible.ShouldBeFalse();
-        playerVm.ShouldNotBeNull();
-
-        // Act
-        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
-
-        // Assert
-        _sut.IsTableVisible.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task HideTableCommand_ShouldHideTable()
-    {
-        // Arrange
-        var playerVm = _sut.Players.First();
-        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
-        _sut.IsTableVisible.ShouldBeTrue();
-
-        // Act
-        await ((AsyncCommand)_sut.HideTableCommand).ExecuteAsync();
-
-        // Assert
-        _sut.IsTableVisible.ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task AddUnitCommand_WhenNoUnitSelected_ShouldNotAddUnit()
-    {
-        // Arrange
-        var playerVm = _sut.Players.First();
-        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
-        var initialUnitCount = playerVm.Units.Count;
-
-        // Ensure no unit is selected in the table
-        _sut.AvailableUnitsTableViewModel!.SelectedUnit = null;
-
-        // Act
-        await ((AsyncCommand)_sut.AvailableUnitsTableViewModel.AddUnitCommand).ExecuteAsync();
-
-        // Assert
-        playerVm.Units.Count.ShouldBe(initialUnitCount);
-        _sut.IsTableVisible.ShouldBeTrue(); // Table should remain visible
-    }
-
-    [Fact]
-    public async Task AddUnitCommand_WhenUnitSelected_ShouldAddUnitToPlayerAndHideTable()
-    {
-        // Arrange
-        var playerVm = _sut.Players.First();
-        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
-        var initialUnitCount = playerVm.Units.Count;
-        var unitToSelect = _sut.AvailableUnits.First();
-
-        // Select a unit in the table
-        _sut.AvailableUnitsTableViewModel!.SelectedUnit = unitToSelect;
-
-        // Act
-        await ((AsyncCommand)_sut.AvailableUnitsTableViewModel.AddUnitCommand).ExecuteAsync();
-
-        // Assert
-        playerVm.Units.Count.ShouldBe(initialUnitCount + 1);
-        playerVm.Units.Last().Model.ShouldBe(unitToSelect.Model);
-        _sut.IsTableVisible.ShouldBeFalse(); // Table should be hidden
-    }
-
-    [Fact]
-    public async Task AddUnitCommand_WhenPlayerCannotAddUnits_ShouldNotAddUnit()
-    {
-        // Arrange
-        var playerVm = _sut.Players.First();
-        await playerVm.AddUnit(_sut.AvailableUnits.First());
-        playerVm.Player.Status = PlayerStatus.Joined; // Player cannot add units when joined
-        playerVm.RefreshStatus();
-        var initialUnitCount = playerVm.Units.Count;
-        var unitToSelect = _sut.AvailableUnits.Last();
-
-        // Select a unit in the table
-        _sut.AvailableUnitsTableViewModel!.SelectedUnit = unitToSelect;
-
-        // Act
-        await ((AsyncCommand)_sut.AvailableUnitsTableViewModel.AddUnitCommand).ExecuteAsync();
-
-        // Assert
-        playerVm.Units.Count.ShouldBe(initialUnitCount); // No new unit should be added
-    }
-
-    [Fact]
-    public void AvailableUnitsTableViewModel_ShouldHaveCorrectAvailableUnits()
-    {
-        // Arrange
-        var expectedUnits = _sut.AvailableUnits;
-
-        // Act
-        var tableUnits = _sut.AvailableUnitsTableViewModel!.FilteredAvailableUnits.ToList();
-
-        // Assert
-        tableUnits.ShouldNotBeNull();
-        tableUnits.Count.ShouldBe(expectedUnits.Count);
-        // Compare units by their key properties rather than exact equality
-        tableUnits.Select(u => u.Chassis).ShouldBeEquivalentTo(expectedUnits.Select(u => u.Chassis));
-    }
 
     [Fact]
     public void RemovePlayer_ShouldRemoveNonDefaultPlayer_WhenNotJoined()
@@ -867,23 +761,6 @@ public class StartNewGameViewModelTests
         // Assert
         _sut.Players.Count.ShouldBe(initialCount - 1);
         _sut.Players.ShouldNotContain(playerToRemove);
-    }
-    
-    [Fact]
-    public async Task RemovePlayer_ShouldHideTable_WhenRemovingActivePlayer()
-    {
-        // Arrange
-        _sut.AddPlayerCommand!.Execute(null); // Add a second player
-        var playerVm = _sut.Players.Last();
-        await ((AsyncCommand)playerVm.ShowAvailableUnitsCommand).ExecuteAsync();
-        _sut.IsTableVisible.ShouldBeTrue();
-        var playerToRemove = _sut.Players.Last();
-
-        // Act
-        _sut.RemovePlayerCommand.Execute(playerToRemove);
-
-        // Assert
-        _sut.IsTableVisible.ShouldBeFalse();
     }
 
     [Fact]
@@ -937,5 +814,45 @@ public class StartNewGameViewModelTests
 
         // Assert
         _sut.CanAddPlayer.ShouldBeTrue(); // Should be able to add players again
+    }
+    
+    [Fact]
+    public async Task ShowAvailableUnitsTable_ShouldAddUnitToPlayer()
+    {
+        // Arrange
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(Arg.Any<AvailableUnitsTableViewModel>())
+            .Returns(new UnitSelectionResult { SelectedUnit = unitData });
+        var localPlayerVm = _sut.Players.First();
+        var initialUnitCount = localPlayerVm.Units.Count;
+
+        // Act
+        await (localPlayerVm.ShowAvailableUnitsCommand as IAsyncCommand)!.ExecuteAsync();
+        var finalUnitCount = localPlayerVm.Units.Count;
+
+        // Assert
+        finalUnitCount.ShouldBe(initialUnitCount + 1);
+    }
+    
+    [Fact]
+    public async Task ShowAvailableUnitsTable_ShouldNotAddUnit_WhenCancelled()
+    {
+        // Arrange
+        MechFactoryTests.CreateDummyMechData();
+        var navigationService = Substitute.For<INavigationService>();
+        _sut.SetNavigationService(navigationService);
+        navigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(Arg.Any<AvailableUnitsTableViewModel>())
+            .Returns(new UnitSelectionResult { SelectedUnit = null });
+        var localPlayerVm = _sut.Players.First();
+        var initialUnitCount = localPlayerVm.Units.Count;
+
+        // Act
+        await (localPlayerVm.ShowAvailableUnitsCommand as IAsyncCommand)!.ExecuteAsync();
+        var finalUnitCount = localPlayerVm.Units.Count;
+
+        // Assert
+        finalUnitCount.ShouldBe(initialUnitCount);
     }
 }

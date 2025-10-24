@@ -202,7 +202,7 @@ public class JoinGameViewModel : NewGameViewModel
             isLocalPlayer: true,
             PublishJoinCommand,
             PublishSetReadyCommand,
-            ShowTable,
+            ShowAvailableUnitsTable,
             null,
             isDefaultPlayer
                 ? OnDefaultPlayerNameChanged

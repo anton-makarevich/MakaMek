@@ -12,7 +12,7 @@ public class PlayerViewModel : BindableBase
     private readonly Action? _onUnitChanged;
     private readonly Action<PlayerViewModel>? _joinGameAction;
     private readonly Action<PlayerViewModel>? _setReadyAction;
-    private readonly Action<PlayerViewModel>? _showAvailableUnits;
+    private readonly Func<PlayerViewModel, Task>? _showAvailableUnits;
     private readonly Dictionary<Guid, PilotData> _unitPilots = new();
     private bool _isEditingName;
     private string _editableName;
@@ -78,7 +78,7 @@ public class PlayerViewModel : BindableBase
         bool isLocalPlayer,
         Action<PlayerViewModel>? joinGameAction = null,
         Action<PlayerViewModel>? setReadyAction = null,
-        Action<PlayerViewModel>? showAvailableUnits = null,
+        Func<PlayerViewModel, Task>? showAvailableUnits = null,
         Action? onUnitChanged = null,
         Func<Player, Task>? onPlayerNameChanged = null,
         bool isDefaultPlayer = false,
@@ -132,13 +132,14 @@ public class PlayerViewModel : BindableBase
         return Task.CompletedTask;
     }
     
-    private Task ExecuteShowUnits()
+    private async Task ExecuteShowUnits()
     {
-        if (!CanAddUnit) return Task.CompletedTask;
+        if (!CanAddUnit) return;
 
-        _showAvailableUnits?.Invoke(this);
-
-        return Task.CompletedTask;
+        if (_showAvailableUnits != null)
+        {
+            await _showAvailableUnits.Invoke(this);
+        }
     }
 
     private Task ExecuteRemoveUnit(Guid unitId)
