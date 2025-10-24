@@ -17,9 +17,9 @@
         CloseCommand="{Binding CancelCommand}">
         
         <Border Padding="5">
-            <Grid RowDefinitions="Auto,Auto,*,Auto">
+            <Grid RowDefinitions="Auto,*,Auto">
                 <!-- Filter Controls -->
-                <Grid Grid.Row="1"
+                <Grid Grid.Row="0"
                       ColumnDefinitions="Auto,*"
                       Margin="0,0,0,10">
                     <TextBlock Grid.Column="0"
@@ -40,7 +40,7 @@
                 </Grid>
                 
                 <!-- Units Table -->
-                <Border Grid.Row="2"
+                <Border Grid.Row="1"
                         BorderBrush="{StaticResource PrimaryBrush}"
                         BorderThickness="1"
                         CornerRadius="4">
@@ -135,7 +135,7 @@
                 </Border>
 
                 <!-- Action Buttons -->
-                <StackPanel Grid.Row="3"
+                <StackPanel Grid.Row="2"
                             Orientation="Horizontal"
                             Spacing="10"
                             HorizontalAlignment="Right"

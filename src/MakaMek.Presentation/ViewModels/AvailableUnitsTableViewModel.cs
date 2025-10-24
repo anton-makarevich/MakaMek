@@ -37,7 +37,7 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         // Initialize commands
         SortByNameCommand = new AsyncCommand(SortByName);
         SortByTonnageCommand = new AsyncCommand(SortByTonnage);
-        AddUnitCommand = new AsyncCommand(AddUnit);
+        AddUnitCommand = new AsyncCommand(AddUnit, _ => CanAddUnit);
         CancelCommand = new AsyncCommand(Cancel);
     }
 
@@ -104,6 +104,7 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
         {
             SetProperty(ref _selectedUnit, value);
             NotifyPropertyChanged(nameof(CanAddUnit));
+            (AddUnitCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -224,7 +225,9 @@ public class AvailableUnitsTableViewModel : BaseViewModel, IResultProvider<UnitS
     }
 
     /// <summary>
-    /// Gets a task that completes when a unit is selected or the dialog is cancelled
+    /// Gets a task that completes when a unit is selected or the dialog is cancelled.
+    /// Note: This method returns the same task instance on every call. Once the task completes,
+    /// all subsequent awaits will receive the same result. Create a new ViewModel instance for each dialog invocation.
     /// </summary>
     public Task<UnitSelectionResult> GetResultAsync()
     {
