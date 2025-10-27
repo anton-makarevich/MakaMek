@@ -38,7 +38,22 @@ jobs:
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
           dotnet publish -c Release -r win-x64 -o publish
-          vpk pack --packId nl.sanetby.mekforge --packVersion ${{ env.APP_VERSION }} --packDir publish --mainExe MakaMek.exe
+
+      - name: Sign Windows Executable
+        uses: skymatic/code-sign-action@v1
+        with:
+          certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
+          password: '${{ secrets.WIN_SIGN_CERT_PASSWORD }}'
+          certificatename: '${{ secrets.WIN_SIGN_CERT_NAME }}'
+          description: 'MakaMek'
+          timestampUrl: 'http://timestamp.digicert.com'
+          folder: 'src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/publish'
+          recursive: true
+      
+      - name: Create Installer
+        run: |
+          cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
+          vpk pack --packId nl.sanetby.makamek --packVersion ${{ env.APP_VERSION }} --packDir publish --mainExe MakaMek.exe
 
       # For tagged releases only
       - name: Create Release
