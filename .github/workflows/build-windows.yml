@@ -1,4 +1,4 @@
-name: Build and Package Windows App
+name: Build and Package Windows App (Linux Runner)
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,13 +22,11 @@ jobs:
 
       - name: Extract version from Directory.Build.props
         id: extract_version
-        shell: pwsh
+        shell: bash
         run: |
-          $xml = [xml](Get-Content Directory.Build.props)
-          $version = $xml.Project.PropertyGroup.Version
-          
-          echo "APP_VERSION=$version" >> $env:GITHUB_ENV
-          echo "Version extracted: $version"
+          VERSION=$(grep -oP '(?<=<Version>).*(?=</Version>)' Directory.Build.props)
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Version extracted: $VERSION"
 
       - name: Install Velopack CLI
         run: |
@@ -39,16 +37,46 @@ jobs:
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
           dotnet publish -c Release -r win-x64 -o publish
 
+      - name: Setup osslsigncode
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y osslsigncode
+          mkdir -p certs
+          echo "${{ secrets.WIN_SIGN_CERTIFICATE }}" > certs/sign.crt
+          echo "${{ secrets.WIN_SIGN_CERT_KEY }}" > certs/sign.key
+          chmod 600 certs/*
+
       - name: Sign Windows Executable
-        uses: skymatic/code-sign-action@v1
-        with:
-          certificate: '${{ secrets.WIN_SIGN_CERTIFICATE }}'
-          password: '${{ secrets.WIN_SIGN_CERT_PASSWORD }}'
-          certificatename: '${{ secrets.WIN_SIGN_CERT_NAME }}'
-          description: 'MakaMek'
-          timestampUrl: 'http://timestamp.digicert.com'
-          folder: 'src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/publish'
-          recursive: true
+        run: |
+          cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/publish
+          
+          # Function to sign a single file
+          sign_file() {
+            local file=$1
+            if file "$file" | grep -q "PE32"; then
+              echo "Signing $file"
+              temp_file="${file}.unsigned"
+              mv "$file" "$temp_file"
+              osslsigncode sign \
+                -certs "../../../../certs/sign.crt" \
+                -key "../../../../certs/sign.key" \
+                -n "MakaMek" \
+                -i "https://makamek.nl" \
+                -t "http://timestamp.digicert.com" \
+                -in "$temp_file" \
+                -out "$file"
+              rm "$temp_file"
+            fi
+          }
+          
+          # Sign all .exe and .dll files
+          for file in *.exe *.dll; do
+            [ -f "$file" ] || continue
+            sign_file "$file"
+          done
+          
+          # Clean up sensitive files
+          rm -rf ../../../../certs
       
       - name: Create Installer
         run: |
