@@ -81,7 +81,7 @@ jobs:
       - name: Create Installer
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
-          vpk pack --packId nl.sanetby.makamek --packVersion ${{ env.APP_VERSION }} --packDir publish --mainExe MakaMek.exe
+          vpk [win] pack --packId nl.sanetby.makamek --packVersion ${{ env.APP_VERSION }} --packDir publish --mainExe MakaMek.exe
 
       # For tagged releases only
       - name: Create Release
