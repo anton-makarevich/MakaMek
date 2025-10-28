@@ -37,10 +37,12 @@ jobs:
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
           dotnet publish -c Release -r win-x64 -o publish
 
-      - name: Setup osslsigncode
+      - name: Setup jsign
         run: |
           sudo apt-get update
-          sudo apt-get install -y osslsigncode
+          sudo apt-get install -y wget
+          wget https://github.com/ebourg/jsign/releases/download/7.4/jsign_7.4_all.deb
+          sudo dpkg -i jsign_7.4_all.deb || sudo apt-get install -f -y
           mkdir -p certs
           echo "${{ secrets.WIN_SIGN_CERTIFICATE }}" > certs/sign.crt
           echo "${{ secrets.WIN_SIGN_CERT_KEY }}" > certs/sign.key
@@ -55,17 +57,14 @@ jobs:
             local file=$1
             if file "$file" | grep -q "PE32"; then
               echo "Signing $file"
-              temp_file="${file}.unsigned"
-              mv "$file" "$temp_file"
-              osslsigncode sign \
-                -certs "../../../../certs/sign.crt" \
-                -key "../../../../certs/sign.key" \
-                -n "MakaMek" \
-                -i "https://makamek.nl" \
-                -t "http://timestamp.digicert.com" \
-                -in "$temp_file" \
-                -out "$file"
-              rm "$temp_file"
+              jsign \
+                --keyfile "../../../certs/sign.key" \
+                --certfile "../../../certs/sign.crt" \
+                --storetype PEM \
+                --tsaurl "http://timestamp.digicert.com" \
+                --name "MakaMek" \
+                --url "https://makamek.nl" \
+                "$file"
             fi
           }
           
@@ -81,7 +80,11 @@ jobs:
       - name: Create Installer
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
-          vpk [win] pack --packId nl.sanetby.makamek --packVersion ${{ env.APP_VERSION }} --packDir publish --mainExe MakaMek.exe
+          vpk [win] pack \
+            --packId nl.sanetby.makamek \
+            --packVersion ${{ env.APP_VERSION }} \
+            --packDir publish \
+            --mainExe MakaMek.exe 
 
       # For tagged releases only
       - name: Create Release
