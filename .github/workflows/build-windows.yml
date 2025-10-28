@@ -35,7 +35,11 @@ jobs:
       - name: Build Windows App
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
-          dotnet publish -c Release -r win-x64 -o publish
+          dotnet publish -c Release -r win-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=true \
+            -o publish
 
       - name: Setup jsign
         run: |
