@@ -57,6 +57,8 @@ jobs:
             --packId nl.sanetby.makamek \
             --packVersion ${{ env.APP_VERSION }} \
             --packDir publish \
+            --packAuthors "Anton Makarevich" \
+            --icon $GITHUB_WORKSPACE/src/MakaMek.Avalonia/MakaMek.Avalonia/Assets/avalonia-logo.ico \
             --mainExe MakaMek.exe \
             --signParallel 12 \
             --signTemplate "jsign --certfile $GITHUB_WORKSPACE/certs/sign.crt --keyfile $GITHUB_WORKSPACE/certs/sign.key --tsaurl https://timestamp.digicert.com --name MakaMek --url https://makamek.nl {{file}}"
