@@ -60,8 +60,8 @@ jobs:
             if file "$file" | grep -q "PE32"; then
               echo "Signing $file"
               jsign \
-                --certfile "../../../certs/sign.crt" \
-                --keyfile "../../../certs/sign.key" \
+                --certfile "$GITHUB_WORKSPACE/certs/sign.crt" \
+                --keyfile "$GITHUB_WORKSPACE/certs/sign.key" \
                 --tsaurl "http://timestamp.digicert.com" \
                 --name "MakaMek" \
                 --url "https://makamek.nl" \
