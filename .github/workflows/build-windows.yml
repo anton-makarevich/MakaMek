@@ -39,14 +39,16 @@ jobs:
 
       - name: Setup jsign
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
-          wget https://github.com/ebourg/jsign/releases/download/7.4/jsign_7.4_all.deb
-          sudo dpkg -i jsign_7.4_all.deb || sudo apt-get install -f -y
           mkdir -p certs
           echo "${{ secrets.WIN_SIGN_CERTIFICATE }}" > certs/sign.crt
           echo "${{ secrets.WIN_SIGN_CERT_KEY }}" > certs/sign.key
           chmod 600 certs/*
+          echo "Certs created"
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget https://github.com/ebourg/jsign/releases/download/7.4/jsign_7.4_all.deb
+          sudo dpkg -i jsign_7.4_all.deb || sudo apt-get install -f -y
+          
 
       - name: Sign Windows Executable
         run: |
@@ -58,8 +60,8 @@ jobs:
             if file "$file" | grep -q "PE32"; then
               echo "Signing $file"
               jsign \
-                --keyfile "../../../certs/sign.key" \
                 --certfile "../../../certs/sign.crt" \
+                --keyfile "../../../certs/sign.key" \
                 --tsaurl "http://timestamp.digicert.com" \
                 --name "MakaMek" \
                 --url "https://makamek.nl" \
