@@ -39,6 +39,7 @@ jobs:
 
       - name: Setup jsign
         run: |
+          set -e
           mkdir -p certs
           echo "${{ secrets.WIN_SIGN_CERTIFICATE }}" > certs/sign.crt
           echo "${{ secrets.WIN_SIGN_CERT_KEY }}" > certs/sign.key
@@ -58,12 +59,12 @@ jobs:
             --packDir publish \
             --mainExe MakaMek.exe \
             --signParallel 12 \
-            --signTemplate "jsign --certfile $GITHUB_WORKSPACE/certs/sign.crt --keyfile $GITHUB_WORKSPACE/certs/sign.key --tsaurl http://timestamp.digicert.com --name MakaMek --url https://makamek.nl {{file}}"
+            --signTemplate "jsign --certfile $GITHUB_WORKSPACE/certs/sign.crt --keyfile $GITHUB_WORKSPACE/certs/sign.key --tsaurl https://timestamp.digicert.com --name MakaMek --url https://makamek.nl {{file}}"
 
       # For tagged releases only
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*Setup.exe
