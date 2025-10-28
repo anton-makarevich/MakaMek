@@ -48,35 +48,6 @@ jobs:
           sudo apt-get install -y wget
           wget https://github.com/ebourg/jsign/releases/download/7.4/jsign_7.4_all.deb
           sudo dpkg -i jsign_7.4_all.deb || sudo apt-get install -f -y
-          
-
-      - name: Sign Windows Executable
-        run: |
-          cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/publish
-          
-          # Function to sign a single file
-          sign_file() {
-            local file=$1
-            if file "$file" | grep -q "PE32"; then
-              echo "Signing $file"
-              jsign \
-                --certfile "$GITHUB_WORKSPACE/certs/sign.crt" \
-                --keyfile "$GITHUB_WORKSPACE/certs/sign.key" \
-                --tsaurl "http://timestamp.digicert.com" \
-                --name "MakaMek" \
-                --url "https://makamek.nl" \
-                "$file"
-            fi
-          }
-          
-          # Sign all .exe and .dll files
-          for file in *.exe *.dll; do
-            [ -f "$file" ] || continue
-            sign_file "$file"
-          done
-          
-          # Clean up sensitive files
-          rm -rf ../../../../certs
       
       - name: Create Installer
         run: |
@@ -85,7 +56,8 @@ jobs:
             --packId nl.sanetby.makamek \
             --packVersion ${{ env.APP_VERSION }} \
             --packDir publish \
-            --mainExe MakaMek.exe 
+            --mainExe MakaMek.exe \
+            --signTemplate "jsign --certfile $GITHUB_WORKSPACE/certs/sign.crt --keyfile $GITHUB_WORKSPACE/certs/sign.key --tsaurl http://timestamp.digicert.com --name MakaMek --url https://makamek.nl {{file}}"
 
       # For tagged releases only
       - name: Create Release
