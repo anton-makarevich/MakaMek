@@ -60,7 +60,6 @@ jobs:
               jsign \
                 --keyfile "../../../certs/sign.key" \
                 --certfile "../../../certs/sign.crt" \
-                --storetype PEM \
                 --tsaurl "http://timestamp.digicert.com" \
                 --name "MakaMek" \
                 --url "https://makamek.nl" \
