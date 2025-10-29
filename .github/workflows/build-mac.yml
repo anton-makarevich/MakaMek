@@ -1,0 +1,113 @@
+name: Build and Package MacOS App
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'  # Run on version tags
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 9.x
+
+      - name: Extract version from Directory.Build.props
+        id: extract_version
+        shell: bash
+        run: |
+          VERSION=$(grep -oP '(?<=<Version>).*(?=</Version>)' Directory.Build.props)
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Version extracted: $VERSION"
+
+      - name: Install Velopack CLI
+        run: |
+          dotnet tool install --global vpk
+
+      - name: Build Mac App
+        run: |
+          cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
+          dotnet publish -c Release -r osx-x64 \
+            --configuration Release \
+            -p:UseAppHost=true \
+            -o publish
+
+      - name: Install Apple certificates and notary profile
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_APP_CERTIFICATE }}
+          INSTALLER_CERTIFICATE_BASE64: ${{ secrets.MAC_INST_CERTIFICATE }}
+          P12_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM: ${{ secrets.APPLE_TEAM }}
+          KEYCHAIN_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+        run: |
+          # create variables for file paths
+          CERT_BUILD_PATH=$RUNNER_TEMP/build_certificate.p12
+          CERT_INSTALLER_PATH=$RUNNER_TEMP/installer_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # import certificates from secrets
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERT_BUILD_PATH
+          echo -n "$INSTALLER_CERTIFICATE_BASE64" | base64 --decode -o $CERT_INSTALLER_PATH
+
+          # create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # import certificates to keychain
+          security import $CERT_BUILD_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security import $CERT_INSTALLER_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # create notarytool profile
+          xcrun notarytool store-credentials --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM" --password "$APPLE_PASSWORD" velopack-profile
+      
+      - name: Create Installer
+        run: |
+          cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
+          vpk pack \
+            --packId nl.sanetby.makamek \
+            --packVersion ${{ env.APP_VERSION }} \
+            --packDir bundle \
+            --packAuthors "Anton Makarevich" \
+            --packTitle "MakaMek" \
+            --icon $GITHUB_WORKSPACE/src/MakaMek.Avalonia/MakaMek.Avalonia/Assets/avalonia-logo.ico \
+            --mainExe MakaMek \
+            --plist $GITHUB_WORKSPACE/src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/.macos/Info.plist \
+            --signAppIdentity "Developer ID Application: Anton Makarevich" \
+            --signInstallIdentity "Developer ID Installer: Anton Makarevich" \
+            --notaryProfile "velopack-profile" \
+            --keychain $RUNNER_TEMP/app-signing.keychain-db
+
+      # For tagged releases only
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*Setup.exe
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          
+      # For all builds (including main branch pushes and manual runs)
+      - name: Upload Installer as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MakaMek-Windows-Installer
+          path: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*Setup.exe
+          retention-days: 90  # Keep artifacts for 90 days
+          
+      - name: Clean up keychain
+          if: ${{ always() }}
+          run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
