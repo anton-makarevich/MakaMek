@@ -81,7 +81,7 @@ jobs:
             --packDir bundle \
             --packAuthors "Anton Makarevich" \
             --packTitle "MakaMek" \
-            --icon $GITHUB_WORKSPACE/src/MakaMek.Avalonia/MakaMek.Avalonia/Assets/avalonia-logo.ico \
+            --icon $GITHUB_WORKSPACE/src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/.macos/logo.icns \
             --mainExe MakaMek \
             --plist $GITHUB_WORKSPACE/src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/.macos/Info.plist \
             --signAppIdentity "Developer ID Application: Anton Makarevich" \
