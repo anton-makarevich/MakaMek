@@ -109,5 +109,5 @@ jobs:
           retention-days: 90  # Keep artifacts for 90 days
           
       - name: Clean up keychain
-          if: ${{ always() }}
-          run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
+        if: ${{ always() }}
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
