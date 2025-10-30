@@ -76,7 +76,7 @@ jobs:
           vpk pack \
             --packId nl.sanetby.makamek \
             --packVersion ${{ env.APP_VERSION }} \
-            --packDir bundle \
+            --packDir publish \
             --packAuthors "Anton Makarevich" \
             --packTitle "MakaMek" \
             --icon $GITHUB_WORKSPACE/src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/.macos/logo.icns \
