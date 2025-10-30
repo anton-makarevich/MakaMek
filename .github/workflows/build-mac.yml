@@ -36,8 +36,9 @@ jobs:
       - name: Build Mac App
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
-          dotnet publish -c Release -r osx-x64 \
-            --configuration Release \
+          dotnet publish \ 
+            -c Release \
+            -r osx-x64 \
             -p:UseAppHost=true \
             -o publish
 
