@@ -36,11 +36,7 @@ jobs:
       - name: Build Mac App
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
-          dotnet publish \ 
-            -c Release \
-            -r osx-x64 \
-            -p:UseAppHost=true \
-            -o publish
+          dotnet publish -c Release -r osx-x64 -p:UseAppHost=true -o publish
 
       - name: Install Apple certificates and notary profile
         env:
