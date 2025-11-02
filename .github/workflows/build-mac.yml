@@ -69,9 +69,14 @@ jobs:
 
           # create notarytool profile
           xcrun notarytool store-credentials --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM" --password "$APPLE_PASSWORD" velopack-profile
-      
+
       - name: Create Installer
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
         run: |
+          # Make sure keychain is unlocked
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $RUNNER_TEMP/app-signing.keychain-db
+
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
           vpk pack \
             --packId nl.sanetby.makamek \
