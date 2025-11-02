@@ -70,14 +70,54 @@ jobs:
           # create notarytool profile
           xcrun notarytool store-credentials --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM" --password "$APPLE_PASSWORD" velopack-profile
 
-      - name: Create Installer
+      - name: Debug Keychain and Notary Setup
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
         run: |
-          # Make sure keychain is unlocked
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $RUNNER_TEMP/app-signing.keychain-db
+          echo "=== Debugging Keychain and Notary Setup ==="
+          echo "Current directory: $(pwd)"
+          echo "Keychain path: $RUNNER_TEMP/app-signing.keychain-db"
+          
+          # List all keychains
+          echo "\n=== Current keychains ==="
+          security list-keychains
+          
+          # Show keychain settings
+          echo "\n=== Keychain settings ==="
+          security show-keychain-info $RUNNER_TEMP/app-signing.keychain-db || true
+          
+          # List all notary profiles
+          echo "\n=== Notary profiles ==="
+          xcrun notarytool list-keychain-profiles || true
+          
+          # Show notary profile details
+          echo "\n=== Notary profile details ==="
+          xcrun notarytool show-profile velopack-profile || true
+          
+          # Check if profile exists in keychain
+          echo "\n=== Checking keychain for notary profile ==="
+          security find-generic-password -s "velopack-profile" -g 2>&1 || echo "Profile not found in keychain"
+          
+          # List all certificates in the keychain
+          echo "\n=== Certificates in keychain ==="
+          security find-certificate -a -p $RUNNER_TEMP/app-signing.keychain-db | openssl x509 -noout -subject || true
 
+      - name: Create Installer with Debug
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+        run: |
+          # Make sure keychain is unlocked and set as default
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $RUNNER_TEMP/app-signing.keychain-db
+          security set-keychain-settings -lut 3600 $RUNNER_TEMP/app-signing.keychain-db
+          security default-keychain -s $RUNNER_TEMP/app-signing.keychain-db
+          security list-keychains -d user -s $RUNNER_TEMP/app-signing.keychain-db
+          
+          # Set environment variables for notarytool
+          export NOTARY_TOOL_KEYCHAIN_PROFILE=velopack-profile
+          
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
+          
+          # Run vpk with verbose output
           vpk pack \
             --packId nl.sanetby.makamek \
             --packVersion ${{ env.APP_VERSION }} \
@@ -90,7 +130,8 @@ jobs:
             --signAppIdentity "Developer ID Application: Anton Makarevich" \
             --signInstallIdentity "Developer ID Installer: Anton Makarevich" \
             --notaryProfile "velopack-profile" \
-            --keychain $RUNNER_TEMP/app-signing.keychain-db
+            --keychain $RUNNER_TEMP/app-signing.keychain-db \
+            --verbose
 
       # For tagged releases only
       - name: Create Release
