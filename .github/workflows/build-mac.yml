@@ -56,21 +56,34 @@ jobs:
           # import certificates from secrets
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERT_BUILD_PATH
           echo -n "$INSTALLER_CERTIFICATE_BASE64" | base64 --decode -o $CERT_INSTALLER_PATH
+          
+          # Verify certificates are different
+          echo "Checking certificate types..."
+          openssl pkcs12 -in $CERT_BUILD_PATH -passin pass:"$P12_PASSWORD" -nokeys -clcerts 2>/dev/null | openssl x509 -noout -subject
+          openssl pkcs12 -in $CERT_INSTALLER_PATH -passin pass:"$P12_PASSWORD" -nokeys -clcerts 2>/dev/null | openssl x509 -noout -subject
 
           # create temporary keychain
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
-          # import certificates to keychain
-          security import $CERT_BUILD_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security import $CERT_INSTALLER_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          # import certificates to keychain with verbose output
+          echo "Importing Application certificate..."
+          security import $CERT_BUILD_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/productbuild
+          
+          echo "Importing Installer certificate..."
+          security import $CERT_INSTALLER_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/productbuild
           
           # Add keychain to search list
           security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | sed s/\"//g)
           
           # Set partition list to allow codesign and productbuild to access the certificates
-          security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild:,productsign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          
+          # Verify both certificates are imported
+          echo "Verifying imported certificates..."
+          security find-identity -v -p codesigning $KEYCHAIN_PATH
+          security find-identity -v -p basic $KEYCHAIN_PATH
 
           # create notarytool profile - profile name is positional, not a flag
           echo "Creating notary profile in custom keychain..."
