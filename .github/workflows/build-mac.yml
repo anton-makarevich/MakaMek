@@ -65,7 +65,12 @@ jobs:
           # import certificates to keychain
           security import $CERT_BUILD_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security import $CERT_INSTALLER_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
+          
+          # Add keychain to search list
+          security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | sed s/\"//g)
+          
+          # Set partition list to allow codesign and productbuild to access the certificates
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
           # create notarytool profile - profile name is positional, not a flag
           echo "Creating notary profile in custom keychain..."
@@ -95,6 +100,14 @@ jobs:
           echo "\n=== Keychain settings ==="
           security show-keychain-info $RUNNER_TEMP/app-signing.keychain-db || true
           
+          # List all identities available for code signing
+          echo "\n=== Code signing identities ==="
+          security find-identity -v -p codesigning $RUNNER_TEMP/app-signing.keychain-db
+          
+          # List all identities available for installer signing
+          echo "\n=== Installer signing identities ==="
+          security find-identity -v -p basic $RUNNER_TEMP/app-signing.keychain-db
+          
           # List all notary profiles in the custom keychain
           echo "\n=== Notary profiles in custom keychain ==="
           xcrun notarytool list-keychain-profiles --keychain $RUNNER_TEMP/app-signing.keychain-db || true
@@ -103,9 +116,9 @@ jobs:
           echo "\n=== Notary profile details ==="
           xcrun notarytool show-profile velopack-profile --keychain $RUNNER_TEMP/app-signing.keychain-db || true
           
-          # List all certificates in the keychain
+          # List all certificates in the keychain with details
           echo "\n=== Certificates in keychain ==="
-          security find-certificate -a -p $RUNNER_TEMP/app-signing.keychain-db | openssl x509 -noout -subject || true
+          security find-certificate -a -c "Developer ID" -p $RUNNER_TEMP/app-signing.keychain-db | openssl x509 -noout -subject -dates || true
 
       - name: Create Installer with Debug
         env:
@@ -115,7 +128,14 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $RUNNER_TEMP/app-signing.keychain-db
           security set-keychain-settings -lut 3600 $RUNNER_TEMP/app-signing.keychain-db
           security default-keychain -s $RUNNER_TEMP/app-signing.keychain-db
-          security list-keychains -d user -s $RUNNER_TEMP/app-signing.keychain-db
+          
+          # Ensure keychain is in the search list
+          security list-keychains -d user -s $RUNNER_TEMP/app-signing.keychain-db $(security list-keychains -d user | sed s/\"//g)
+          
+          # Verify signing identities are accessible
+          echo "=== Verifying signing identities ==="
+          security find-identity -v -p codesigning
+          security find-identity -v -p basic
           
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
           
