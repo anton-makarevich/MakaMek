@@ -67,15 +67,14 @@ jobs:
           security import $CERT_INSTALLER_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
 
-          # create notarytool profile in the custom keychain
+          # create notarytool profile - profile name is positional, not a flag
           echo "Creating notary profile in custom keychain..."
-          xcrun notarytool store-credentials \
+          xcrun notarytool store-credentials "velopack-profile" \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM" \
             --password "$APPLE_PASSWORD" \
-            --keychain "$KEYCHAIN_PATH" \
-            --keychain-profile "velopack-profile"
-            
+            --keychain "$KEYCHAIN_PATH"
+          
           # Verify the profile was created
           echo "Verifying notary profile..."
           xcrun notarytool show-profile "velopack-profile" --keychain "$KEYCHAIN_PATH" || echo "Failed to verify notary profile"
@@ -96,17 +95,13 @@ jobs:
           echo "\n=== Keychain settings ==="
           security show-keychain-info $RUNNER_TEMP/app-signing.keychain-db || true
           
-          # List all notary profiles
-          echo "\n=== Notary profiles ==="
-          xcrun notarytool list-keychain-profiles || true
+          # List all notary profiles in the custom keychain
+          echo "\n=== Notary profiles in custom keychain ==="
+          xcrun notarytool list-keychain-profiles --keychain $RUNNER_TEMP/app-signing.keychain-db || true
           
           # Show notary profile details
           echo "\n=== Notary profile details ==="
-          xcrun notarytool show-profile velopack-profile || true
-          
-          # Check if profile exists in keychain
-          echo "\n=== Checking keychain for notary profile ==="
-          security find-generic-password -s "velopack-profile" -g 2>&1 || echo "Profile not found in keychain"
+          xcrun notarytool show-profile velopack-profile --keychain $RUNNER_TEMP/app-signing.keychain-db || true
           
           # List all certificates in the keychain
           echo "\n=== Certificates in keychain ==="
@@ -122,13 +117,7 @@ jobs:
           security default-keychain -s $RUNNER_TEMP/app-signing.keychain-db
           security list-keychains -d user -s $RUNNER_TEMP/app-signing.keychain-db
           
-          # Set environment variables for notarytool
-          export NOTARY_TOOL_KEYCHAIN_PROFILE=velopack-profile
-          
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
-          
-          # Set environment variable for keychain
-          export NOTARY_KEYCHAIN_PROFILE="velopack-profile=$RUNNER_TEMP/app-signing.keychain-db"
           
           # Run vpk with verbose output and explicit keychain
           vpk pack \
@@ -144,7 +133,6 @@ jobs:
             --signInstallIdentity "Developer ID Installer: Anton Makarevich" \
             --notaryProfile "velopack-profile" \
             --keychain $RUNNER_TEMP/app-signing.keychain-db \
-            --notaryKeychain $RUNNER_TEMP/app-signing.keychain-db \
             --verbose
 
       # For tagged releases only
@@ -153,19 +141,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*Setup.exe
+          files: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*
           draft: false
           prerelease: false
           generate_release_notes: true
-          
+      
       # For all builds (including main branch pushes and manual runs)
       - name: Upload Installer as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MakaMek-Windows-Installer
-          path: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*Setup.exe
+          name: MakaMek-MacOS-Installer
+          path: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*
           retention-days: 90  # Keep artifacts for 90 days
-          
+
       - name: Clean up keychain
         if: ${{ always() }}
         run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
