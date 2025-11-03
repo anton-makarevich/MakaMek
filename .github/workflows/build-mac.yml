@@ -67,8 +67,18 @@ jobs:
           security import $CERT_INSTALLER_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
 
-          # create notarytool profile
-          xcrun notarytool store-credentials --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM" --password "$APPLE_PASSWORD" velopack-profile
+          # create notarytool profile in the custom keychain
+          echo "Creating notary profile in custom keychain..."
+          xcrun notarytool store-credentials \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM" \
+            --password "$APPLE_PASSWORD" \
+            --keychain "$KEYCHAIN_PATH" \
+            --keychain-profile "velopack-profile"
+            
+          # Verify the profile was created
+          echo "Verifying notary profile..."
+          xcrun notarytool show-profile "velopack-profile" --keychain "$KEYCHAIN_PATH" || echo "Failed to verify notary profile"
 
       - name: Debug Keychain and Notary Setup
         env:
@@ -117,7 +127,10 @@ jobs:
           
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
           
-          # Run vpk with verbose output
+          # Set environment variable for keychain
+          export NOTARY_KEYCHAIN_PROFILE="velopack-profile=$RUNNER_TEMP/app-signing.keychain-db"
+          
+          # Run vpk with verbose output and explicit keychain
           vpk pack \
             --packId nl.sanetby.makamek \
             --packVersion ${{ env.APP_VERSION }} \
@@ -131,6 +144,7 @@ jobs:
             --signInstallIdentity "Developer ID Installer: Anton Makarevich" \
             --notaryProfile "velopack-profile" \
             --keychain $RUNNER_TEMP/app-signing.keychain-db \
+            --notaryKeychain $RUNNER_TEMP/app-signing.keychain-db \
             --verbose
 
       # For tagged releases only
