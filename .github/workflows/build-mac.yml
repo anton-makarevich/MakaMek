@@ -35,7 +35,7 @@ jobs:
       - name: Build Mac App
         run: |
           cd src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop
-          dotnet publish -c Release -r osx-x64 -p:UseAppHost=true -o publish
+          dotnet publish -c Release -r osx-x64 --self-contained true -p:UseAppHost=true -o publish
 
       - name: Install Apple certificates and notary profile
         env:
@@ -113,7 +113,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*
+          files: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*.pkg
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -123,7 +123,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MakaMek-MacOS-Installer
-          path: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*
+          path: src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop/Releases/*.pkg
           retention-days: 90  # Keep artifacts for 90 days
 
       - name: Clean up keychain
