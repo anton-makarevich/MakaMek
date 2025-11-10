@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Sanet.MakaMek.Bots</AssemblyName>
+        <RootNamespace>Sanet.MakaMek.Bots</RootNamespace>
+        <Description>An Attempt of Classic BattleTech game implementation. Bot Players</Description>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <None Include="../../README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\MakaMek.Core\MakaMek.Core.csproj" />
+    </ItemGroup>
+
+</Project>
+
