@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Bots.DecisionEngines;
+﻿using AsyncAwaitBestPractices;
+using Sanet.MakaMek.Bots.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
@@ -50,7 +51,7 @@ public class Bot : IBot
             case ChangeActivePlayerCommand activePlayerCmd:
                 if (activePlayerCmd.PlayerId == Player.Id)
                 {
-                    _ = MakeDecisionAsync();
+                    MakeDecisionAsync().SafeFireAndForget();
                 }
                 break;
 
