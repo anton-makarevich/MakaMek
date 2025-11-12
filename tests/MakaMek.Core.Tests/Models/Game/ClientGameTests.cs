@@ -155,7 +155,126 @@ public class ClientGameTests
             cmd.PlayerName == player.Name &&
             cmd.Units.Count == units.Count));
     }
-    
+
+    [Fact]
+    public void JoinGameWithUnits_WhenIsBot_AddsToBotsPlayers()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Bot");
+
+        // Act
+        _sut.JoinGameWithUnits(player, [], [], isBot: true);
+
+        // Assert
+        _sut.Bots.ShouldContain(player.Id);
+        _sut.LocalPlayers.ShouldNotContain(player.Id);
+    }
+
+    [Fact]
+    public void JoinGameWithUnits_WhenIsNotBot_AddsToLocalPlayers()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player");
+
+        // Act
+        _sut.JoinGameWithUnits(player, [], [], isBot: false);
+
+        // Assert
+        _sut.LocalPlayers.ShouldContain(player.Id);
+        _sut.Bots.ShouldNotContain(player.Id);
+    }
+
+    [Fact]
+    public void CanActivePlayerAct_WhenActivePlayerIsBot_ReturnsTrue()
+    {
+        // Arrange
+        var bot = new Player(Guid.NewGuid(), "Bot");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        _sut.JoinGameWithUnits(bot, [unitData], [], isBot: true);
+
+        // Simulate server response
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = bot.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = bot.Name,
+            Units = [unitData],
+            Tint = bot.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = bot.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 0
+        });
+
+        // Act & Assert
+        _sut.CanActivePlayerAct.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanActivePlayerAct_WhenActivePlayerIsLocal_ReturnsTrue()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        _sut.JoinGameWithUnits(player, [unitData], [], isBot: false);
+
+        // Simulate server response
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = player.Tint,
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 0
+        });
+
+        // Act & Assert
+        _sut.CanActivePlayerAct.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanActivePlayerAct_WhenActivePlayerIsNeitherLocalNorBot_ReturnsFalse()
+    {
+        // Arrange
+        var remotePlayer = new Player(Guid.NewGuid(), "RemotePlayer");
+        var unitData = MechFactoryTests.CreateDummyMechData();
+
+        // Simulate server adding remote player (not via JoinGameWithUnits)
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = remotePlayer.Id,
+            GameOriginId = _sut.Id,
+            PlayerName = remotePlayer.Name,
+            Units = [unitData],
+            Tint = remotePlayer.Tint,
+            PilotAssignments = []
+        });
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = remotePlayer.Id,
+            GameOriginId = _sut.Id,
+            UnitsToPlay = 0
+        });
+
+        // Act & Assert
+        _sut.CanActivePlayerAct.ShouldBeFalse();
+    }
+
     [Fact]
     public void HandleCommand_ShouldSetPlayerStatus_WhenPlayerStatusCommandIsReceived()
     {
@@ -2626,17 +2745,45 @@ public class ClientGameTests
             PilotAssignments = [],
             IdempotencyKey = _idempotencyKey
         });
-        
+
         // Act
         _sut.LeaveGame(playerId);
-        
+
         // Assert
-        _commandPublisher.Received(1).PublishCommand(Arg.Is<PlayerLeftCommand>(cmd => 
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<PlayerLeftCommand>(cmd =>
             cmd.PlayerId == playerId &&
             cmd.GameOriginId == _sut.Id
         ));
     }
-    
+
+    [Fact]
+    public void LeaveGame_ShouldPublishPlayerLeftCommand_WhenPlayerIsBot()
+    {
+        // Arrange
+        _commandPublisher.ClearReceivedCalls();
+        var botId = Guid.NewGuid();
+        _sut.JoinGameWithUnits(new Player(botId, "Bot1"), [],[], isBot: true);
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = botId,
+            PlayerName = "Bot1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        // Act
+        _sut.LeaveGame(botId);
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<PlayerLeftCommand>(cmd =>
+            cmd.PlayerId == botId &&
+            cmd.GameOriginId == _sut.Id
+        ));
+    }
+
     [Fact]
     public void Dispose_ShouldUnsubscribeFromCommandPublisher_WhenCalled()
     {
