@@ -36,7 +36,7 @@ jobs:
           files: src/MakaMek.Avalonia/MakaMek.Avalonia.Android/bin/Release/net9.0-android/*-Signed.apk
           draft: false
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false # Only one pipeline generates release notes
           
       # For all builds (including main branch pushes and manual runs)
       - name: Upload APK as Artifact
