@@ -30,7 +30,7 @@ public class StartupUnitCommandTests
         _game = Substitute.For<IGame>();
 
         // Create real instances instead of mocks
-        var player = new Player(_playerId, "Test Player");
+        var player = new Player(_playerId, "Test Player", PlayerControlType.Local);
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = _unitId;
 

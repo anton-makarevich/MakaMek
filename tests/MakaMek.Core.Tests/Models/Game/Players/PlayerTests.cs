@@ -48,7 +48,7 @@ public class PlayerTests
         const string tint = "#FF0000";
         
         // Act
-        var player = new Player(id, name, tint);
+        var player = new Player(id, name, PlayerControlType.Local, tint);
         
         // Assert
         player.Id.ShouldBe(id);
@@ -57,6 +57,7 @@ public class PlayerTests
         player.Status.ShouldBe(PlayerStatus.NotJoined);
         player.Units.ShouldBeEmpty();
         player.CanAct.ShouldBeFalse();
+        player.ControlType.ShouldBe(PlayerControlType.Local);
     }
     
     [Fact]
@@ -67,7 +68,7 @@ public class PlayerTests
         const string name = "Test Player";
         
         // Act
-        var player = new Player(id, name);
+        var player = new Player(id, name, PlayerControlType.Local);
         
         // Assert
         player.Tint.ShouldBe("#ffffff");
@@ -85,7 +86,7 @@ public class PlayerTests
         };
         
         // Act
-        var player = new Player(playerData);
+        var player = new Player(playerData, PlayerControlType.Local);
         
         // Assert
         player.Id.ShouldBe(playerData.Id);
@@ -94,6 +95,7 @@ public class PlayerTests
         player.Status.ShouldBe(PlayerStatus.NotJoined);
         player.Units.ShouldBeEmpty();
         player.CanAct.ShouldBeFalse();
+        player.ControlType.ShouldBe(PlayerControlType.Local);
     }
     
     [Fact]
@@ -109,7 +111,7 @@ public class PlayerTests
         var idOverride = Guid.NewGuid();
         
         // Act
-        var player = new Player(playerData, idOverride);
+        var player = new Player(playerData, PlayerControlType.Local, idOverride);
         
         // Assert
         player.Id.ShouldBe(idOverride);
@@ -119,7 +121,7 @@ public class PlayerTests
     public void AddUnit_ShouldAddUnitToCollection()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Test Player");
+        var player = new Player(Guid.NewGuid(), "Test Player", PlayerControlType.Local);
         var unit = CreateMech();
         
         // Act
@@ -134,7 +136,7 @@ public class PlayerTests
     public void AddUnit_ShouldSetUnitOwner()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Test Player");
+        var player = new Player(Guid.NewGuid(), "Test Player", PlayerControlType.Local);
         var unit = CreateMech();
         
         // Act
@@ -148,7 +150,7 @@ public class PlayerTests
     public void AddUnit_ShouldAllowPlayerToAct()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Test Player");
+        var player = new Player(Guid.NewGuid(), "Test Player", PlayerControlType.Local);
         var unit = CreateMech();
         
         // Act
@@ -162,11 +164,12 @@ public class PlayerTests
     public void Status_ShouldBeSettable()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Test Player");
-        
-        // Act
-        player.Status = PlayerStatus.Joined;
-        
+        var player = new Player(Guid.NewGuid(), "Test Player", PlayerControlType.Local)
+        {
+            // Act
+            Status = PlayerStatus.Joined
+        };
+
         // Assert
         player.Status.ShouldBe(PlayerStatus.Joined);
     }
@@ -175,7 +178,7 @@ public class PlayerTests
     public void Name_ShouldBeSettable()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Original Name");
+        var player = new Player(Guid.NewGuid(), "Original Name", PlayerControlType.Local);
         const string newName = "Updated Name";
         
         // Act
@@ -189,7 +192,7 @@ public class PlayerTests
     public void Units_ShouldBeReadOnly()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Test Player");
+        var player = new Player(Guid.NewGuid(), "Test Player", PlayerControlType.Local);
         var unit = CreateMech();
         
         // Act
@@ -202,7 +205,7 @@ public class PlayerTests
     [Fact]
     public void AliveUnits_ShouldReturnOnlyUnitsThatAreNotDestroyed()
     {
-        var player = new Player(Guid.NewGuid(), "Test Player");
+        var player = new Player(Guid.NewGuid(), "Test Player", PlayerControlType.Local);
         var aliveUnit = CreateMech();
         var destroyedUnit = CreateMech();
         // Destroy the head of the destroyed unit

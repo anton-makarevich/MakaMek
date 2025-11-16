@@ -19,8 +19,8 @@ public class WeaponAttackDeclarationCommandTests
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
-    private readonly Player _player1 = new Player(Guid.NewGuid(), "Player 1");
-    private readonly Player _player2 = new Player(Guid.NewGuid(), "Player 2");
+    private readonly Player _player1 = new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Local);
+    private readonly Player _player2 = new Player(Guid.NewGuid(), "Player 2", PlayerControlType.Local);
     private readonly Unit _attacker;
     private readonly Unit _target;
 

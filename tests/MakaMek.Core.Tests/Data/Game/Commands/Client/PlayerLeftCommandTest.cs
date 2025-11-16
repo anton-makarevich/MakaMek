@@ -25,7 +25,7 @@ public class PlayerLeftCommandTest
             Timestamp = DateTime.UtcNow
         };
         var game = Substitute.For<IGame>();
-        game.Players.Returns(new List<IPlayer> { new Player(sut.PlayerId, "Player 1") });
+        game.Players.Returns(new List<IPlayer> { new Player(sut.PlayerId, "Player 1", PlayerControlType.Local) });
 
         // Act
         var result = sut.Render(localizationService, game);
@@ -48,7 +48,7 @@ public class PlayerLeftCommandTest
             Timestamp = DateTime.UtcNow
         };
         var game = Substitute.For<IGame>();
-        game.Players.Returns(new List<IPlayer> { new Player(Guid.NewGuid(), "Player 2") });
+        game.Players.Returns(new List<IPlayer> { new Player(Guid.NewGuid(), "Player 2", PlayerControlType.Local) });
 
         // Act
         var result = sut.Render(localizationService, game);

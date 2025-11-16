@@ -37,7 +37,7 @@ public class MechStandUpCommandTests
 
     public MechStandUpCommandTests()
     {
-        var player = new Player(Guid.NewGuid(), "Player 1");
+        var player = new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Local);
 
         // Create a unit using MechFactory
         var mechFactory = new MechFactory(

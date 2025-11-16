@@ -12,7 +12,7 @@ public class RollDiceCommandTests
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Guid _gameId = Guid.NewGuid();
-    private readonly Player _player1 = new Player(Guid.NewGuid(), "Player 1");
+    private readonly Player _player1 = new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Local);
 
     public RollDiceCommandTests()
     {

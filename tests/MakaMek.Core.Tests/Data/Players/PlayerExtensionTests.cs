@@ -10,7 +10,7 @@ public class PlayerExtensionTests
     public void ToData_ShouldConvertPlayerToPlayerData()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Test Player");
+        var player = new Player(Guid.NewGuid(), "Test Player", PlayerControlType.Local);
         
         // Act
         var data = player.ToData();
