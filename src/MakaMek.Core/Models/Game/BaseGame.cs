@@ -142,7 +142,10 @@ public abstract class BaseGame : IGame
     internal void OnPlayerJoined(JoinGameCommand joinGameCommand)
     {
         if (!ValidateJoinCommand(joinGameCommand)) return;
-        var player = new Player(joinGameCommand.PlayerId, joinGameCommand.PlayerName,joinGameCommand.Tint);
+        var player = new Player(joinGameCommand.PlayerId,
+            joinGameCommand.PlayerName,
+            PlayerControlType.Remote,
+            joinGameCommand.Tint);
 
         // Create units from unit data
         foreach (var unitData in joinGameCommand.Units)

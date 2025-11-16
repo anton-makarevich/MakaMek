@@ -79,7 +79,10 @@ public class JoinGameViewModel : NewGameViewModel
                 var existingPlayerVm = _players.FirstOrDefault(p => p.Player.Id == joinCmd.PlayerId);
                 if (existingPlayerVm == null) // Add if it's a new remote player
                 {
-                     var newRemotePlayer = new Player(joinCmd.PlayerId, joinCmd.PlayerName, joinCmd.Tint); 
+                     var newRemotePlayer = new Player(joinCmd.PlayerId,
+                         joinCmd.PlayerName,
+                         PlayerControlType.Remote,
+                         joinCmd.Tint); 
                      var remotePlayerViewModel = new PlayerViewModel(
                         newRemotePlayer,
                         isLocalPlayer: false,
