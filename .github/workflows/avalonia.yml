@@ -19,7 +19,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9.x
+          dotnet-version: 10.x
 
       - name: Run Avalonia tests
         run: dotnet test tests/MakaMek.Avalonia.Tests/MakaMek.Avalonia.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute "/p:Include=\"[Sanet.MakaMek.Avalonia]Sanet.MakaMek.Avalonia.Converters*,[Sanet.MakaMek.Avalonia]Sanet.MakaMek.Avalonia.Game*\""
