@@ -259,7 +259,7 @@ public interface IBotManager : IDisposable
 ```csharp
 public class BotManager : IBotManager
 {
-    private readonly List<IBot> _bots = [];
+    private readonly Dictionary<Guid, IBot> _bots = new(); // Key: PlayerId
     private ClientGame? _clientGame;
     
     public void Initialize(ClientGame clientGame)
@@ -433,7 +433,7 @@ Bot's ClientGame observes via Commands.Subscribe()
 
 ### Transport Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                     ServerGame                          │
 │         (Authoritative State, Phase Management)         │
@@ -698,7 +698,7 @@ public class EndPhaseEngine : IBotDecisionEngine
 
 Bot Framework should be developed as a **separate project/dll** with only dependency on `MakaMek.Core`. This enforces correct DI direction and prevents architectural violations.
 
-```
+```text
 MakaMek.Core/
     Models/
         Game/
