@@ -79,8 +79,8 @@ public class EndGameViewModelTests
     public void Initialize_ShouldPopulatePlayers()
     {
         // Arrange
-        var player1 = new Player(Guid.NewGuid(), "Player1", "#FF0000");
-        var player2 = new Player(Guid.NewGuid(), "Player2", "#00FF00");
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local, "#FF0000");
+        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local, "#00FF00");
         var mech1 = CreateMech();
         var mech2 = CreateMech();
 
@@ -120,8 +120,8 @@ public class EndGameViewModelTests
     public void Initialize_ShouldOrderPlayersByVictoryStatus()
     {
         // Arrange
-        var player1 = new Player(Guid.NewGuid(), "Player1", "#FF0000");
-        var player2 = new Player(Guid.NewGuid(), "Player2", "#00FF00");
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local, "#FF0000");
+        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local, "#00FF00");
         var mech1 = CreateMech();
         var mech2 = CreateMech();
 
@@ -170,7 +170,7 @@ public class EndGameViewModelTests
     public void TitleText_ShouldReturnVictoryTitle_WhenReasonIsVictory()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1");
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
         _game.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -203,7 +203,7 @@ public class EndGameViewModelTests
     public void TitleText_ShouldReturnGenericTitle_WhenReasonIsNotVictory()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1");
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
         _game.JoinGameWithUnits(player, [], []);
 
         // Act
@@ -217,8 +217,8 @@ public class EndGameViewModelTests
     public void SubtitleText_ShouldReturnVictorName_WhenThereIsAVictor()
     {
         // Arrange
-        var player1 = new Player(Guid.NewGuid(), "Player1", "#FF0000");
-        var player2 = new Player(Guid.NewGuid(), "Player2", "#00FF00");
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local, "#FF0000");
+        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local, "#00FF00");
         var mech1 = CreateMech();
         var mech2 = CreateMech();
 
@@ -263,8 +263,8 @@ public class EndGameViewModelTests
     public void SubtitleText_ShouldReturnDrawMessage_WhenNoVictor()
     {
         // Arrange
-        var player1 = new Player(Guid.NewGuid(), "Player1", "#FF0000");
-        var player2 = new Player(Guid.NewGuid(), "Player2", "#00FF00");
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local, "#FF0000");
+        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local, "#00FF00");
         var mech1 = CreateMech();
         var mech2 = CreateMech();
 
@@ -346,7 +346,7 @@ public class EndGameViewModelTests
     public void Initialize_ShouldClearPreviousPlayers_WhenCalledMultipleTimes()
     {
         // Arrange
-        var player1 = new Player(Guid.NewGuid(), "Player1", "#FF0000");
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local, "#FF0000");
         _game.JoinGameWithUnits(player1, [MechFactoryTests.CreateDummyMechData()], []);
         
         // Act - Initialize twice

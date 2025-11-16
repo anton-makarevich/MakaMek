@@ -33,7 +33,7 @@ public class EndGamePlayerViewModelTests
     public void Constructor_ShouldInitializeProperties()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "TestPlayer", "#FF0000");
+        var player = new Player(Guid.NewGuid(), "TestPlayer", PlayerControlType.Local, "#FF0000");
         var mech = CreateMech();
         player.AddUnit(mech);
 
@@ -51,7 +51,7 @@ public class EndGamePlayerViewModelTests
     public void Constructor_ShouldCreateUnitViewModels()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "TestPlayer");
+        var player = new Player(Guid.NewGuid(), "TestPlayer", PlayerControlType.Local);
         var mech1 = CreateMech();
         var mech2 = CreateMech();
         player.AddUnit(mech1);
@@ -72,7 +72,7 @@ public class EndGamePlayerViewModelTests
     public void IsVictor_ShouldReflectConstructorParameter(bool isVictor)
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "TestPlayer");
+        var player = new Player(Guid.NewGuid(), "TestPlayer", PlayerControlType.Local);
 
         // Act
         var sut = new EndGamePlayerViewModel(player, isVictor, _localizationService);
@@ -85,7 +85,7 @@ public class EndGamePlayerViewModelTests
     public void Name_ShouldReturnPlayerName()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "VictoriousPlayer");
+        var player = new Player(Guid.NewGuid(), "VictoriousPlayer", PlayerControlType.Local);
 
         // Act
         var sut = new EndGamePlayerViewModel(player, isVictor: true, _localizationService);
@@ -98,7 +98,7 @@ public class EndGamePlayerViewModelTests
     public void Tint_ShouldReturnPlayerTint()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "TestPlayer", "#00FF00");
+        var player = new Player(Guid.NewGuid(), "TestPlayer", PlayerControlType.Local, "#00FF00");
 
         // Act
         var sut = new EndGamePlayerViewModel(player, isVictor: false, _localizationService);
@@ -111,7 +111,7 @@ public class EndGamePlayerViewModelTests
     public void Units_ShouldBeEmpty_WhenPlayerHasNoUnits()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "TestPlayer");
+        var player = new Player(Guid.NewGuid(), "TestPlayer", PlayerControlType.Local);
 
         // Act
         var sut = new EndGamePlayerViewModel(player, isVictor: false, _localizationService);
@@ -124,7 +124,7 @@ public class EndGamePlayerViewModelTests
     public void VictorBadgeText_ShouldReturnLocalizedText_WhenIsVictor()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "TestPlayer");
+        var player = new Player(Guid.NewGuid(), "TestPlayer", PlayerControlType.Local);
         _localizationService.GetString("EndGame_Victor_Badge").Returns("Victor");
 
         // Act
@@ -138,7 +138,7 @@ public class EndGamePlayerViewModelTests
     public void VictorBadgeText_ShouldBeEmpty_WhenNotVictor()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "TestPlayer");
+        var player = new Player(Guid.NewGuid(), "TestPlayer", PlayerControlType.Local);
 
         // Act
         var sut = new EndGamePlayerViewModel(player, isVictor: false, _localizationService);
