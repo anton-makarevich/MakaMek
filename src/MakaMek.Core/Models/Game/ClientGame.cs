@@ -28,7 +28,6 @@ public sealed class ClientGame : BaseGame, IDisposable
     private bool _isDisposed;
     private readonly TimeSpan _ackTimeout;
     private readonly List<Guid> _localPlayers = [];
-    private readonly List<Guid> _bots = [];
 
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
@@ -52,8 +51,6 @@ public sealed class ClientGame : BaseGame, IDisposable
     }
 
     public IReadOnlyList<Guid> LocalPlayers => _localPlayers;
-
-    public IReadOnlyList<Guid> Bots => _bots;
 
     public override bool IsDisposed => _isDisposed;
 
@@ -90,11 +87,11 @@ public sealed class ClientGame : BaseGame, IDisposable
             case ChangePhaseCommand phaseCommand:
                 TurnPhase = phaseCommand.Phase;
                 
-                // When entering End phase, clear the players who ended turn and set first alive local or bot player as active
+                // When entering End phase, clear the players who ended turn and set first alive local player as active
                 if (phaseCommand.Phase == PhaseNames.End)
                 {
                     _playersEndedTurn.Clear();
-                     ActivePlayer = AlivePlayers.FirstOrDefault(p => LocalPlayers.Contains(p.Id) || Bots.Contains(p.Id));
+                     ActivePlayer = AlivePlayers.FirstOrDefault(p => LocalPlayers.Contains(p.Id));
                 }
                 break;
             case ChangeActivePlayerCommand changeActivePlayerCommand:
@@ -136,10 +133,10 @@ public sealed class ClientGame : BaseGame, IDisposable
                     ActivePlayer != null &&
                     turnEndedCommand.PlayerId == ActivePlayer.Id)
                 {
-                    // Set the next local or bot player who hasn't ended their turn as active
+                    // Set the next local player who hasn't ended their turn as active
                     ActivePlayer = Players
                         .Where(p => _playersEndedTurn.Contains(p.Id) == false)
-                        .FirstOrDefault(p => LocalPlayers.Any(lp => lp == p.Id) || Bots.Any(bp => bp == p.Id));
+                        .FirstOrDefault(p => LocalPlayers.Any(lp => lp == p.Id));
                 }
                 break;
             case PilotConsciousnessRollCommand consciousnessRollCommand:
@@ -178,8 +175,8 @@ public sealed class ClientGame : BaseGame, IDisposable
         _commandSubject.OnNext(command);
     }
 
-    public bool CanActivePlayerAct => ActivePlayer != null
-                                      && (LocalPlayers.Contains(ActivePlayer.Id) || Bots.Contains(ActivePlayer.Id))
+    public bool CanActivePlayerAct => ActivePlayer != null 
+                                      && LocalPlayers.Contains(ActivePlayer.Id) 
                                       && ActivePlayer.CanAct
                                       && _pendingCommands.IsEmpty;
 
@@ -246,7 +243,7 @@ public sealed class ClientGame : BaseGame, IDisposable
         return false;
     }
 
-    public Task<bool> JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments, bool isBot = false)
+    public Task<bool> JoinGameWithUnits(IPlayer player, List<UnitData> units, List<PilotAssignmentData> pilotAssignments)
     {
         var joinCommand = new JoinGameCommand
         {
@@ -258,13 +255,7 @@ public sealed class ClientGame : BaseGame, IDisposable
             PilotAssignments = pilotAssignments
         };
         player.Status = PlayerStatus.Joining;
-
-        // Route to correct list based on player type
-        if (isBot)
-            _bots.Add(player.Id);
-        else
-            _localPlayers.Add(player.Id);
-
+        _localPlayers.Add(player.Id);
         return SendClientCommand(joinCommand);
     }
     
@@ -300,7 +291,7 @@ public sealed class ClientGame : BaseGame, IDisposable
     /// <param name="playerId">The ID of the player leaving</param>
     public void LeaveGame(Guid playerId)
     {
-        if (!LocalPlayers.Contains(playerId) && !Bots.Contains(playerId))
+        if (!LocalPlayers.Contains(playerId))
         {
             return;
         }
