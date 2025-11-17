@@ -437,8 +437,9 @@ public class JoinGameViewModelTests
     {
         // Assert - default player should be added automatically when AttachHandlers is called
         _sut.Players.Count.ShouldBe(1);
-        _sut.Players.First().Player.Name.ShouldStartWith("Player");
-        _sut.Players.First().Player.Tint.ShouldNotBeNullOrEmpty();
+        _sut.Players[0].Player.Name.ShouldStartWith("Player");
+        _sut.Players[0].Player.Tint.ShouldNotBeNullOrEmpty();
+        _sut.Players[0].Player.ControlType.ShouldBe(PlayerControlType.Local);
     }
 
     [Fact]
