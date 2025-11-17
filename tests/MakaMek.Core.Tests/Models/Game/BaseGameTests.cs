@@ -86,6 +86,7 @@ public class BaseGameTests : BaseGame
 
         // Assert
         Players.Count.ShouldBe(1);
+        Players[0].ControlType.ShouldBe(PlayerControlType.Remote);
     }
 
     [Fact]
