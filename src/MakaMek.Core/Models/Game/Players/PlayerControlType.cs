@@ -5,7 +5,7 @@
 /// </summary>
 public enum PlayerControlType
 {
-    Local,      // Human player on this client
+    Human,      // Human player on this client
     Bot,        // AI-controlled player on this client
-    Remote      // Human player on another client
+    Remote      // Player on another client
 }

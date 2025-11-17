@@ -96,7 +96,7 @@ public class WeaponsAttackStateTests
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
-        _player = new Player(playerId, "Player1", PlayerControlType.Local);
+        _player = new Player(playerId, "Player1", PlayerControlType.Human);
         _game = new ClientGame(
             rules,
             _mechFactory,

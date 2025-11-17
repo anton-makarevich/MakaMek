@@ -167,7 +167,7 @@ public class StartNewGameViewModelTests
         _sut.AddPlayerCommand!.Execute(null);
 
         _sut.Players.Count.ShouldBe(initialPlayerCount + 1);
-        _sut.Players.Last().Player.ControlType.ShouldBe(PlayerControlType.Local);
+        _sut.Players.Last().Player.ControlType.ShouldBe(PlayerControlType.Human);
         _sut.CanAddPlayer.ShouldBeTrue();
     }
 

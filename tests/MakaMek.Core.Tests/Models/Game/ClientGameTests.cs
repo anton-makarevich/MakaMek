@@ -144,7 +144,7 @@ public class ClientGameTests
     {
         // Arrange
         var units = new List<UnitData>();
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
 
         // Act
         _sut.JoinGameWithUnits(player, units,[]);
@@ -191,7 +191,7 @@ public class ClientGameTests
     public void SetPlayerReady_ShouldNotPublishPlayerStatusCommand_WhenCalled_ButPlayerIsNotInGame()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var readyCommand = new UpdatePlayerStatusCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -209,7 +209,7 @@ public class ClientGameTests
     public void SetPlayerReady_ShouldPublishPlayerStatusCommand_WhenCalled_AndPlayerIsInGame()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -259,7 +259,7 @@ public class ClientGameTests
     public void ChangeActivePlayer_ShouldProcessCommand()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -359,7 +359,7 @@ public class ClientGameTests
     public void DeployUnit_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id= Guid.NewGuid();
         if (isLocalPlayer)
@@ -437,7 +437,7 @@ public class ClientGameTests
     public void MoveUnit_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
@@ -511,7 +511,7 @@ public class ClientGameTests
     public void HandleCommand_ShouldDeployUnit_WhenDeployUnitCommandIsReceived()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         _sut.HandleCommand(new JoinGameCommand
@@ -548,7 +548,7 @@ public class ClientGameTests
     public void HandleCommand_ShouldNotDeployUnit_WhenUnitIsAlreadyDeployed()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         _sut.HandleCommand(new JoinGameCommand
@@ -594,7 +594,7 @@ public class ClientGameTests
     public void HandleCommand_ShouldMoveUnit_WhenMoveUnitCommandIsReceived()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         _sut.HandleCommand(new JoinGameCommand
@@ -641,7 +641,7 @@ public class ClientGameTests
     public void HandleCommand_ShouldNotMoveUnit_WhenUnitDoesNotExist()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = player.Id,
@@ -671,7 +671,7 @@ public class ClientGameTests
     public void ConfigureUnitWeapons_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
@@ -754,7 +754,7 @@ public class ClientGameTests
     public void HandleCommand_ShouldRotateTorso_WhenWeaponConfigurationCommandIsReceived()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         _sut.HandleCommand(new JoinGameCommand
@@ -804,7 +804,7 @@ public class ClientGameTests
     public void DeclareWeaponAttack_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
@@ -829,7 +829,7 @@ public class ClientGameTests
             UnitsToPlay = 1
         });
 
-        var targetPlayer = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local);
+        var targetPlayer = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Human);
         var targetUnitData = MechFactoryTests.CreateDummyMechData();
         targetUnitData.Id = Guid.NewGuid();
         _sut.HandleCommand(new JoinGameCommand
@@ -917,7 +917,7 @@ public class ClientGameTests
     public void HandleCommand_ShouldDeclareWeaponAttack_WhenWeaponAttackDeclarationCommandIsReceived()
     {
         // Arrange
-        var attackerPlayer = new Player(Guid.NewGuid(), "Attacker", PlayerControlType.Local);
+        var attackerPlayer = new Player(Guid.NewGuid(), "Attacker", PlayerControlType.Human);
         var attackerUnitData = MechFactoryTests.CreateDummyMechData();
         attackerUnitData.Id = Guid.NewGuid();
         _sut.HandleCommand(new JoinGameCommand
@@ -942,7 +942,7 @@ public class ClientGameTests
         _sut.HandleCommand(deployCommand);
 
         // Add a target player and unit
-        var targetPlayer = new Player(Guid.NewGuid(), "Target", PlayerControlType.Local);
+        var targetPlayer = new Player(Guid.NewGuid(), "Target", PlayerControlType.Human);
         var targetUnitData = MechFactoryTests.CreateDummyMechData();
         targetUnitData.Id = Guid.NewGuid();
         _sut.HandleCommand(new JoinGameCommand
@@ -1278,7 +1278,7 @@ public class ClientGameTests
     public void EndTurn_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         if (isLocalPlayer)
@@ -1355,7 +1355,7 @@ public class ClientGameTests
     public void ShutdownUnit_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
@@ -1436,7 +1436,7 @@ public class ClientGameTests
     public void StartupUnit_ShouldPublishCommand_WhenActivePlayerExists(bool isLocalPlayer)
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
@@ -1515,8 +1515,8 @@ public class ClientGameTests
     public void HandleCommand_ShouldClearPlayersEndedTurnAndSetFirstLocalPlayerAsActive_WhenEnteringEndPhase()
     {
         // Arrange
-        var localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1", PlayerControlType.Local);
-        var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2", PlayerControlType.Local);
+        var localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1", PlayerControlType.Human);
+        var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2", PlayerControlType.Human);
         
         // Create a new client game with local players
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
@@ -1598,9 +1598,9 @@ public class ClientGameTests
     public void HandleCommand_ShouldUpdateActivePlayer_WhenTurnEndedCommandIsReceivedInEndPhase()
     {
         // Arrange
-        var localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1", PlayerControlType.Local);
-        var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2", PlayerControlType.Local);
-        var localPlayer3 = new Player(Guid.NewGuid(), "LocalPlayer3", PlayerControlType.Local);
+        var localPlayer1 = new Player(Guid.NewGuid(), "LocalPlayer1", PlayerControlType.Human);
+        var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2", PlayerControlType.Human);
+        var localPlayer3 = new Player(Guid.NewGuid(), "LocalPlayer3", PlayerControlType.Human);
         
         // Create a new client game with local players
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
@@ -2063,7 +2063,7 @@ public class ClientGameTests
         // Arrange
         var playerId = Guid.NewGuid();
         var unitId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = unitId;
         
@@ -2149,7 +2149,7 @@ public class ClientGameTests
         // Arrange
         var playerId = Guid.NewGuid();
         var unitId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = unitId;
         
@@ -2444,7 +2444,7 @@ public class ClientGameTests
     public void HandleCommand_ShouldCallOnCriticalHitsResolution_WhenCriticalHitsResolutionCommandReceived()
     {
         // Arrange 
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
@@ -2523,7 +2523,7 @@ public class ClientGameTests
     public void HandleCommand_ShouldProcessMultipleCriticalHitsLocations_WhenCriticalHitsResolutionCommandReceived()
     {
         // Arrange - This tests lines 141-143 with multiple critical hit locations
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
@@ -2615,7 +2615,7 @@ public class ClientGameTests
         // Arrange
         _commandPublisher.ClearReceivedCalls();
         var playerId = Guid.NewGuid();
-        _sut.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Local), [],[]);
+        _sut.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Human), [],[]);
         _sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = playerId,
@@ -2670,7 +2670,7 @@ public class ClientGameTests
     public async Task SendPlayerAction_ShouldAssignIdempotencyKey_WhenSendingCommand()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
@@ -2730,7 +2730,7 @@ public class ClientGameTests
     public async Task SendPlayerAction_ShouldCompletePendingTask_WhenErrorCommandReceived()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
@@ -2794,7 +2794,7 @@ public class ClientGameTests
     public async Task SendPlayerAction_ShouldCompletePendingTask_WhenGameDisposed()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         
@@ -2812,7 +2812,7 @@ public class ClientGameTests
     public async Task SendPlayerAction_ShouldCompletePendingTask_WhenServerDoesNotAcknowledge()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
@@ -2826,7 +2826,7 @@ public class ClientGameTests
     public void TryStandup_ShouldSendTryStandupCommand_WhenCalled()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 

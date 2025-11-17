@@ -28,8 +28,8 @@ public class WeaponAttackResolutionCommandTests
     public WeaponAttackResolutionCommandTests()
     {
         // Create players
-        _player1 = new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Local);
-        var player2 = new Player(Guid.NewGuid(), "Player 2", PlayerControlType.Local);
+        _player1 = new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Human);
+        var player2 = new Player(Guid.NewGuid(), "Player 2", PlayerControlType.Human);
 
         // Create units using MechFactory
         var mechFactory = new MechFactory(

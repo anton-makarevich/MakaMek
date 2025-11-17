@@ -31,7 +31,7 @@ public class ShutdownUnitCommandTests
         _game = Substitute.For<IGame>();
 
         // Create real instances instead of mocks
-        var player = new Player(_playerId, "Test Player", PlayerControlType.Local);
+        var player = new Player(_playerId, "Test Player", PlayerControlType.Human);
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = _unitId;
         var rulesProvider = Substitute.For<IRulesProvider>();

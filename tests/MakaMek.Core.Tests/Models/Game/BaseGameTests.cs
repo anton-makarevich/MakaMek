@@ -668,14 +668,14 @@ public class BaseGameTests : BaseGame
         destroyedMech.ApplyDamage([CreateHitDataForLocation(PartLocation.Head, 100)], HitDirection.Front);
 
         // Player 1: Ready, has alive unit
-        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local)
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human)
         {
             Status = PlayerStatus.Ready
         };
         player1.AddUnit(aliveMech);
 
         // Player 2: Ready, only destroyed unit
-        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local)
+        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Human)
         {
             Status = PlayerStatus.Ready
         };

@@ -105,7 +105,7 @@ public class BattleMapViewModelTests
             Phase = PhaseNames.Deployment
         });
         _sut.TurnPhaseName.ShouldBe(PhaseNames.Deployment);
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local, "#FF0000");
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human, "#FF0000");
         _game.JoinGameWithUnits(player, [],[]);
         _game.HandleCommand(new JoinGameCommand
         {
@@ -137,7 +137,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var unitData = MechFactoryTests.CreateDummyMechData();
 
         _game = CreateClientGame();
@@ -188,8 +188,8 @@ public class BattleMapViewModelTests
     public void Units_ReturnsAllUnitsFromPlayers()
     {
         // Arrange
-        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
-        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local);
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Human);
 
         var mechData = MechFactoryTests.CreateDummyMechData();
     
@@ -233,7 +233,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var clientGame = CreateClientGame();
         clientGame.JoinGameWithUnits(player, [],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())) );
@@ -262,7 +262,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var clientGame = CreateClientGame();
         clientGame.JoinGameWithUnits(player,[],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -326,7 +326,7 @@ public class BattleMapViewModelTests
     public void MovementPhase_WithActivePlayer_ShouldShowCorrectActionLabel()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         _game = CreateClientGame();
         _game.JoinGameWithUnits(player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
@@ -366,7 +366,7 @@ public class BattleMapViewModelTests
     public void WeaponsAttackPhase_WithUnitsToPlay_ShouldShowCorrectActionLabel()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         _game = CreateClientGame();
         _game.JoinGameWithUnits(player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
@@ -405,7 +405,7 @@ public class BattleMapViewModelTests
     public void WeaponsAttackPhase_WithNoUnitsToPlay_ShouldBeIdle()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         _game = CreateClientGame();
         _game.JoinGameWithUnits(player,[],[]);
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
@@ -672,7 +672,7 @@ public class BattleMapViewModelTests
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var game = CreateClientGame();
         game.JoinGameWithUnits(player,[],[]);
         game.SetBattleMap(battleMap);
@@ -737,7 +737,7 @@ public class BattleMapViewModelTests
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var game = CreateClientGame();
         game.JoinGameWithUnits(player,[],[]);
         game.SetBattleMap(battleMap);
@@ -789,8 +789,8 @@ public class BattleMapViewModelTests
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
-        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
-        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local);
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Human);
         var game = CreateClientGame();
         game.JoinGameWithUnits(player1,[],[]);
         game.HandleCommand(new JoinGameCommand
@@ -876,8 +876,8 @@ public class BattleMapViewModelTests
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
-        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
-        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local);
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var player2 = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Human);
         var game = CreateClientGame();
         game.JoinGameWithUnits(player1,[],[]);
         game.HandleCommand(new JoinGameCommand
@@ -980,7 +980,7 @@ public class BattleMapViewModelTests
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
-        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var game = CreateClientGame();
         game.JoinGameWithUnits(player1,[],[]);
         game.SetBattleMap(battleMap);
@@ -1035,7 +1035,7 @@ public class BattleMapViewModelTests
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2, 11, new ClearTerrain()));
-        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         var game = CreateClientGame();
         game.JoinGameWithUnits(player1, [],[]);
         game.SetBattleMap(battleMap);
@@ -1066,9 +1066,9 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var targetPlayerId = Guid.NewGuid();
-        var targetPlayer = new Player(targetPlayerId, "Player2", PlayerControlType.Local);
+        var targetPlayer = new Player(targetPlayerId, "Player2", PlayerControlType.Human);
         
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = Guid.NewGuid();
@@ -1165,9 +1165,9 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var activePlayer = new Player(playerId, "Player1", PlayerControlType.Local);
+        var activePlayer = new Player(playerId, "Player1", PlayerControlType.Human);
         var targetPlayerId = Guid.NewGuid();
-        var targetPlayer = new Player(targetPlayerId, "Player2", PlayerControlType.Local);
+        var targetPlayer = new Player(targetPlayerId, "Player2", PlayerControlType.Human);
         
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = Guid.NewGuid();
@@ -1312,9 +1312,9 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var targetPlayerId = Guid.NewGuid();
-        var targetPlayer = new Player(targetPlayerId, "Player2", PlayerControlType.Local);
+        var targetPlayer = new Player(targetPlayerId, "Player2", PlayerControlType.Human);
         
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = Guid.NewGuid();
@@ -1454,7 +1454,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var clientGame = CreateClientGame();
         clientGame.JoinGameWithUnits(player, [],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -1495,9 +1495,9 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var targetPlayerId = Guid.NewGuid();
-        var targetPlayer = new Player(targetPlayerId, "Player2", PlayerControlType.Local);
+        var targetPlayer = new Player(targetPlayerId, "Player2", PlayerControlType.Human);
 
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = Guid.NewGuid();
@@ -1620,7 +1620,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var clientGame = CreateClientGame();
         clientGame.JoinGameWithUnits(player, [],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -1662,7 +1662,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var clientGame = CreateClientGame();
         clientGame.JoinGameWithUnits(player, [],[]);
         clientGame.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2, new SingleTerrainGenerator(2, 2, new ClearTerrain())));
@@ -1705,7 +1705,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var clientGame = CreateClientGame();
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         clientGame.JoinGameWithUnits(player,[],[]);
         clientGame.HandleCommand(new JoinGameCommand
         {
@@ -1745,7 +1745,7 @@ public class BattleMapViewModelTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = unitId;
         
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         _game.JoinGameWithUnits(player, [unitData],[]);
         _game.HandleCommand(new JoinGameCommand
         {
@@ -1780,7 +1780,7 @@ public class BattleMapViewModelTests
     {
         // Arrange
         var playerId = Guid.NewGuid();
-        var player = new Player(playerId, "Player1", PlayerControlType.Local);
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
         var mechData = MechFactoryTests.CreateDummyMechData();
         mechData.Id = Guid.NewGuid();
         var game = CreateClientGame();
@@ -1960,7 +1960,7 @@ public class BattleMapViewModelTests
         _localizationService.GetString("Dialog_Yes").Returns("Yes");
         _localizationService.GetString("Dialog_No").Returns("No");
         var playerId = Guid.NewGuid();
-        _game.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Local), [],[]);
+        _game.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Human), [],[]);
         _commandPublisher.ClearReceivedCalls();
         var navigationService = Substitute.For<INavigationService>();
         _sut.SetNavigationService(navigationService);
@@ -1995,7 +1995,7 @@ public class BattleMapViewModelTests
         _localizationService.GetString("Dialog_Yes").Returns("Yes");
         _localizationService.GetString("Dialog_No").Returns("No");
         var playerId = Guid.NewGuid();
-        _game.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Local), [],[]);
+        _game.JoinGameWithUnits(new Player(playerId, "Player1", PlayerControlType.Human), [],[]);
         _commandPublisher.ClearReceivedCalls();
         var navigationService = Substitute.For<INavigationService>();
         _sut.SetNavigationService(navigationService);

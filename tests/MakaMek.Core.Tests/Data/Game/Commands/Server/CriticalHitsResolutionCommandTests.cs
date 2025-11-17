@@ -26,7 +26,7 @@ public class CriticalHitsResolutionCommandTests
     {
         var player =
             // Create player
-            new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Local);
+            new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Human);
 
         // Create a target unit using MechFactory
         var mechFactory = new MechFactory(

@@ -439,7 +439,7 @@ public class JoinGameViewModelTests
         _sut.Players.Count.ShouldBe(1);
         _sut.Players[0].Player.Name.ShouldStartWith("Player");
         _sut.Players[0].Player.Tint.ShouldNotBeNullOrEmpty();
-        _sut.Players[0].Player.ControlType.ShouldBe(PlayerControlType.Local);
+        _sut.Players[0].Player.ControlType.ShouldBe(PlayerControlType.Human);
     }
 
     [Fact]

@@ -22,7 +22,7 @@ public class UnitShutdownCommandTests
 
     public UnitShutdownCommandTests()
     {
-        var player = new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Human);
 
         // Create unit using MechFactory
         var mechFactory = new MechFactory(

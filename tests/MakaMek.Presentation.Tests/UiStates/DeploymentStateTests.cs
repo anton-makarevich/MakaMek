@@ -53,7 +53,7 @@ public class DeploymentStateTests
         _hex1 = new Hex(new HexCoordinates(1, 1));
         _hex2 = new Hex(new HexCoordinates(1, 2));
 
-        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         _game = new ClientGame(
             _rulesProvider,
             new MechFactory(
@@ -118,7 +118,7 @@ public class DeploymentStateTests
     public void InitialState_DoesNotHaveSelectUnitAction_IfActivePlayer_IsNotLocal()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Human);
         SetActivePlayer(player, MechFactoryTests.CreateDummyMechData(), Guid.NewGuid());
         // Assert
         _sut.ActionLabel.ShouldBe("");
@@ -173,7 +173,7 @@ public class DeploymentStateTests
     public void HandleHexSelection_ForDeployment_DoesNotUpdateStepToSelectDirection_IfActivePlayerIsNotLocal()
     {
         // Arrange
-        var player = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Local);
+        var player = new Player(Guid.NewGuid(), "Player2", PlayerControlType.Human);
         SetActivePlayer(player, MechFactoryTests.CreateDummyMechData(), Guid.NewGuid());
         // Act
         _sut.HandleHexSelection(_hex1);
