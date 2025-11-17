@@ -2674,7 +2674,7 @@ public class ClientGameTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
-        _sut.JoinGameWithUnits(player, [unitData],[]).SafeFireAndForget();
+        await _sut.JoinGameWithUnits(player, [unitData],[]);
         var joinCommand = new JoinGameCommand
         {
             PlayerId = player.Id,
