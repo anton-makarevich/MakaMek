@@ -14,4 +14,10 @@ public interface IPlayer
     PlayerStatus Status { get; set; }
     
     string Tint { get; }
+    
+    /// <summary>
+    /// Indicates how this player is controlled 
+    /// This is metadata, not behavior
+    /// </summary>
+    PlayerControlType ControlType { get; }
 }

@@ -16,7 +16,7 @@ public class TurnEndedCommandTests
 
     public TurnEndedCommandTests()
     {
-        _player = new Player(Guid.NewGuid(), "Player 1");
+        _player = new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Human);
         _game.Players.Returns(new List<IPlayer> { _player });
         _localizationService.GetString("Command_TurnEnded").Returns("{0} has ended their turn.");
     }

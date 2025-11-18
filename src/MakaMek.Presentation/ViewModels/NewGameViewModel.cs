@@ -180,7 +180,7 @@ public abstract class NewGameViewModel : BaseViewModel
         playerData ??= PlayerData.CreateDefault() with { Tint = GetNextTint() };
 
         // Create Local Player Object
-        var newPlayer = new Player(playerData.Value, Guid.NewGuid());
+        var newPlayer = new Player(playerData.Value, PlayerControlType.Human, Guid.NewGuid());
 
         // Create Local ViewModel Wrapper with customizable callbacks
         var playerViewModel = CreatePlayerViewModel(newPlayer, isDefaultPlayer);

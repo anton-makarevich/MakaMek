@@ -57,7 +57,7 @@ public class EndStateTests
         var rules = new ClassicBattletechRulesProvider();
         var unitData = MechFactoryTests.CreateDummyMechData();
         
-        _player = new Player(playerId, "Player1");
+        _player = new Player(playerId, "Player1", PlayerControlType.Human);
         
         _game = new ClientGame(
             rules,
@@ -314,12 +314,12 @@ public class EndStateTests
     {
         // Arrange
         // Create another player and unit
-        var otherPlayer = new Player(Guid.NewGuid(), "Other Player");
+        var otherPlayer = new Player(Guid.NewGuid(), "Other Player", PlayerControlType.Human);
         _game.HandleCommand(new JoinGameCommand
         {
             PlayerId = otherPlayer.Id,
             PlayerName = otherPlayer.Name,
-            GameOriginId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(), 
             Tint = "Blue",
             Units = [MechFactoryTests.CreateDummyMechData()],
             PilotAssignments = []

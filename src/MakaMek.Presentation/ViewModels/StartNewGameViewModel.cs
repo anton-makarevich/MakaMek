@@ -113,7 +113,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
                 else
                 {
                     // Player doesn't exist - must be a remote player joining
-                    var remotePlayer = new Player(joinCmd.PlayerId, joinCmd.PlayerName, joinCmd.Tint);
+                    var remotePlayer = new Player(joinCmd.PlayerId,
+                        joinCmd.PlayerName,
+                        PlayerControlType.Remote,
+                        joinCmd.Tint);
                     var remotePlayerVm = new PlayerViewModel(
                         remotePlayer,
                         isLocalPlayer: false, // Mark as remote

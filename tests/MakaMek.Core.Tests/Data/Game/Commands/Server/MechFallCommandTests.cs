@@ -60,7 +60,7 @@ public class MechFallCommandTests
     {
         var player =
             // Create player
-            new Player(Guid.NewGuid(), "Player 1");
+            new Player(Guid.NewGuid(), "Player 1", PlayerControlType.Human);
 
         // Create a unit using MechFactory
         var mechFactory = new MechFactory(

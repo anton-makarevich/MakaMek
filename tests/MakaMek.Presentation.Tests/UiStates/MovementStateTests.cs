@@ -122,7 +122,7 @@ public class MovementStateTests
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2,11, new ClearTerrain()));
-         _player = new Player(playerId, "Player1");
+         _player = new Player(playerId, "Player1", PlayerControlType.Human);
         _game = new ClientGame(
             _rulesProvider,
             mechFactory,
