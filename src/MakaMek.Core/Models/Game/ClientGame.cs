@@ -52,7 +52,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     public IReadOnlyList<Guid> LocalPlayers => _localPlayers;
 
-    public override bool IsDisposed => _isDisposed;
+    public bool IsDisposed => _isDisposed;
 
     public override void HandleCommand(IGameCommand command)
     {

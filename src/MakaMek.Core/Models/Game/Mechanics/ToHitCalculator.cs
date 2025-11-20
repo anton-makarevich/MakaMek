@@ -25,7 +25,7 @@ public class ToHitCalculator : IToHitCalculator
         Unit attacker,
         Unit target,
         Weapon weapon,
-        BattleMap map,
+        IBattleMap map,
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null)
     {
@@ -37,7 +37,7 @@ public class ToHitCalculator : IToHitCalculator
         Unit attacker,
         Unit target,
         Weapon weapon,
-        BattleMap map,
+        IBattleMap map,
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null)
     {
@@ -161,7 +161,7 @@ public class ToHitCalculator : IToHitCalculator
         return modifiers;
     }
 
-    private IReadOnlyList<TerrainRollModifier> GetTerrainModifiers(Unit attacker, Unit target, BattleMap map)
+    private IReadOnlyList<TerrainRollModifier> GetTerrainModifiers(Unit attacker, Unit target, IBattleMap map)
     {
         var hexes = map.GetHexesAlongLineOfSight(
             attacker.Position!.Coordinates,

@@ -16,7 +16,7 @@ public interface IToHitCalculator
     int GetToHitNumber(Unit attacker,
         Unit target,
         Weapon weapon,
-        BattleMap map,
+        IBattleMap map,
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null);
 
@@ -26,7 +26,7 @@ public interface IToHitCalculator
     ToHitBreakdown GetModifierBreakdown(Unit attacker,
         Unit target,
         Weapon weapon,
-        BattleMap map,
+        IBattleMap map,
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null);
 

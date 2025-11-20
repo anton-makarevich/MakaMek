@@ -48,7 +48,7 @@ public class ServerGame : BaseGame, IDisposable
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }
     
-    public override bool IsDisposed => _isDisposed;
+    public virtual bool IsDisposed => _isDisposed;
 
     public IDamageTransferCalculator DamageTransferCalculator { get; }
 

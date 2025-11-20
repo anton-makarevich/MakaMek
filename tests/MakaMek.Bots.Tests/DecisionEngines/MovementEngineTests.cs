@@ -15,14 +15,14 @@ public class MovementEngineTests
 {
     private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
-    private readonly BattleMap _battleMap;
+    private readonly IBattleMap _battleMap;
     private readonly MovementEngine _sut;
 
     public MovementEngineTests()
     {
         _clientGame = Substitute.For<IClientGame>();
         _player = Substitute.For<IPlayer>();
-        _battleMap = Substitute.For<BattleMap>();
+        _battleMap = Substitute.For<IBattleMap>();
         
         _clientGame.Id.Returns(Guid.NewGuid());
         _clientGame.BattleMap.Returns(_battleMap);

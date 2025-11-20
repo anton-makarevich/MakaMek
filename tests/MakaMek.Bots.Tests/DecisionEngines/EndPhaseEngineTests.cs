@@ -9,13 +9,13 @@ namespace Sanet.MakaMek.Bots.Tests.DecisionEngines;
 
 public class EndPhaseEngineTests
 {
-    private readonly ClientGame _clientGame;
+    private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly EndPhaseEngine _sut;
 
     public EndPhaseEngineTests()
     {
-        _clientGame = Substitute.For<ClientGame>();
+        _clientGame = Substitute.For<IClientGame>();
         _player = Substitute.For<IPlayer>();
         
         _clientGame.Id.Returns(Guid.NewGuid());

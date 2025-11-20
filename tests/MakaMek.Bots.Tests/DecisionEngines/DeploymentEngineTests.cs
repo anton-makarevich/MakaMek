@@ -13,14 +13,14 @@ public class DeploymentEngineTests
 {
     private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
-    private readonly BattleMap _battleMap;
+    private readonly IBattleMap _battleMap;
     private readonly DeploymentEngine _sut;
 
     public DeploymentEngineTests()
     {
         _clientGame = Substitute.For<IClientGame>();
         _player = Substitute.For<IPlayer>();
-        _battleMap = Substitute.For<BattleMap>();
+        _battleMap = Substitute.For<IBattleMap>();
         
         _clientGame.Id.Returns(Guid.NewGuid());
         _clientGame.BattleMap.Returns(_battleMap);
@@ -136,8 +136,6 @@ public class DeploymentEngineTests
     private Unit CreateMockUnit(bool isDeployed)
     {
         var unit = Substitute.For<Unit>();
-        unit.Id.Returns(Guid.NewGuid());
-        unit.IsDeployed.Returns(isDeployed);
         
         if (isDeployed)
         {
