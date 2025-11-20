@@ -23,7 +23,7 @@ public class Bot : IBot
 
     public Bot(
         IPlayer player,
-        ClientGame clientGame,
+        IClientGame clientGame,
         BotDifficulty difficulty)
     {
         Player = player;
@@ -99,6 +99,8 @@ public class Bot : IBot
         // Adjust based on difficulty level or randomly
         return 0;
     }
+    
+    public IBotDecisionEngine? DecisionEngine => _currentDecisionEngine;
 
     public void Dispose()
     {

@@ -9,11 +9,11 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 /// </summary>
 public class EndPhaseEngine : IBotDecisionEngine
 {
-    private readonly ClientGame _clientGame;
+    private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly BotDifficulty _difficulty;
 
-    public EndPhaseEngine(ClientGame clientGame, IPlayer player, BotDifficulty difficulty)
+    public EndPhaseEngine(IClientGame clientGame, IPlayer player, BotDifficulty difficulty)
     {
         _clientGame = clientGame;
         _player = player;

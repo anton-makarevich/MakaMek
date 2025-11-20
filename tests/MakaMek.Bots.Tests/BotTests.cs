@@ -7,19 +7,20 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Shouldly;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
+using Sanet.MakaMek.Bots.DecisionEngines;
 
 namespace Sanet.MakaMek.Bots.Tests;
 
 public class BotTests : IDisposable
 {
-    private readonly ClientGame _clientGame;
+    private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly Subject<IGameCommand> _commandSubject;
-    private Bot _sut;
+    private readonly Bot _sut;
 
     public BotTests()
     {
-        _clientGame = Substitute.For<ClientGame>();
+        _clientGame = Substitute.For<IClientGame>();
         _player = Substitute.For<IPlayer>();
         _commandSubject = new Subject<IGameCommand>();
         
@@ -53,8 +54,8 @@ public class BotTests : IDisposable
         // Give some time for async processing
         Thread.Sleep(100);
 
-        // Assert - Bot should have received the command (we can't directly test this,
-        // but we can verify the bot was created without throwing)
+        // Assert 
+        _sut.DecisionEngine.ShouldBeOfType<MovementEngine>();
         bot.ShouldNotBeNull();
     }
 
@@ -71,8 +72,8 @@ public class BotTests : IDisposable
         // Act
         _commandSubject.OnNext(phaseCommand);
         
-        // Assert - Bot should handle the command without throwing
-        // (Internal state changes can't be directly tested due to private fields)
+        // Assert 
+        _sut.DecisionEngine.ShouldBeOfType<MovementEngine>();
         _sut.ShouldNotBeNull();
     }
 
@@ -168,7 +169,7 @@ public class BotTests : IDisposable
 
     public void Dispose()
     {
-        _sut?.Dispose();
-        _commandSubject?.Dispose();
+        _sut.Dispose();
+        _commandSubject.Dispose();
     }
 }

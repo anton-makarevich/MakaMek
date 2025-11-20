@@ -17,7 +17,7 @@ using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
-public sealed class ClientGame : BaseGame, IDisposable
+public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 {
     private readonly Subject<IGameCommand> _commandSubject = new();
     private readonly List<IGameCommand> _commandLog = [];

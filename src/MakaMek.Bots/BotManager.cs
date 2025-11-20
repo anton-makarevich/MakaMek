@@ -9,11 +9,11 @@ namespace Sanet.MakaMek.Bots;
 public class BotManager : IBotManager
 {
     private readonly Dictionary<Guid, IBot> _bots = new(); // Key: PlayerId
-    private ClientGame? _clientGame;
+    private IClientGame? _clientGame;
 
     public IReadOnlyList<IBot> Bots => _bots.Values.ToList();
 
-    public void Initialize(ClientGame clientGame)
+    public void Initialize(IClientGame clientGame)
     {
         // Clean up existing bots if reinitializing
         Clear();

@@ -11,14 +11,14 @@ namespace Sanet.MakaMek.Bots.Tests.DecisionEngines;
 
 public class DeploymentEngineTests
 {
-    private readonly ClientGame _clientGame;
+    private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly BattleMap _battleMap;
     private readonly DeploymentEngine _sut;
 
     public DeploymentEngineTests()
     {
-        _clientGame = Substitute.For<ClientGame>();
+        _clientGame = Substitute.For<IClientGame>();
         _player = Substitute.For<IPlayer>();
         _battleMap = Substitute.For<BattleMap>();
         

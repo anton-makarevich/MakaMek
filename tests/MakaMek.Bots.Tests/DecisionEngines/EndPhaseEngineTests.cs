@@ -4,7 +4,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
-using Shouldly;
 
 namespace Sanet.MakaMek.Bots.Tests.DecisionEngines;
 

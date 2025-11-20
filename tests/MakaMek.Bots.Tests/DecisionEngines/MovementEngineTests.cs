@@ -13,14 +13,14 @@ namespace Sanet.MakaMek.Bots.Tests.DecisionEngines;
 
 public class MovementEngineTests
 {
-    private readonly ClientGame _clientGame;
+    private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly BattleMap _battleMap;
     private readonly MovementEngine _sut;
 
     public MovementEngineTests()
     {
-        _clientGame = Substitute.For<ClientGame>();
+        _clientGame = Substitute.For<IClientGame>();
         _player = Substitute.For<IPlayer>();
         _battleMap = Substitute.For<BattleMap>();
         

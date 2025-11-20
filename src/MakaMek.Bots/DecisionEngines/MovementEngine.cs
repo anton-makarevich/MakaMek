@@ -12,11 +12,11 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 /// </summary>
 public class MovementEngine : IBotDecisionEngine
 {
-    private readonly ClientGame _clientGame;
+    private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly BotDifficulty _difficulty;
 
-    public MovementEngine(ClientGame clientGame, IPlayer player, BotDifficulty difficulty)
+    public MovementEngine(IClientGame clientGame, IPlayer player, BotDifficulty difficulty)
     {
         _clientGame = clientGame;
         _player = player;

@@ -11,13 +11,13 @@ namespace Sanet.MakaMek.Bots.Tests;
 public class BotManagerTests : IDisposable
 {
     private readonly BotManager _sut;
-    private readonly ClientGame _clientGame;
+    private readonly IClientGame _clientGame;
     private readonly Subject<IGameCommand> _commandSubject;
 
     public BotManagerTests()
     {
         _sut = new BotManager();
-        _clientGame = Substitute.For<ClientGame>();
+        _clientGame = Substitute.For<IClientGame>();
         _commandSubject = new Subject<IGameCommand>();
         
         _clientGame.Commands.Returns(_commandSubject.AsObservable());
@@ -40,7 +40,7 @@ public class BotManagerTests : IDisposable
         // Arrange
         _sut.Initialize(_clientGame);
         var player = CreateBotPlayer();
-        _sut.AddBot(player, BotDifficulty.Easy);
+        _sut.AddBot(player);
         _sut.Bots.Count.ShouldBe(1);
         
         // Act
@@ -57,7 +57,7 @@ public class BotManagerTests : IDisposable
         var player = CreateBotPlayer();
         
         // Act & Assert
-        Should.Throw<InvalidOperationException>(() => _sut.AddBot(player, BotDifficulty.Easy))
+        Should.Throw<InvalidOperationException>(() => _sut.AddBot(player))
             .Message.ShouldContain("BotManager must be initialized");
     }
 
@@ -69,7 +69,7 @@ public class BotManagerTests : IDisposable
         var player = CreateHumanPlayer();
         
         // Act & Assert
-        Should.Throw<ArgumentException>(() => _sut.AddBot(player, BotDifficulty.Easy))
+        Should.Throw<ArgumentException>(() => _sut.AddBot(player))
             .Message.ShouldContain("Player must have ControlType.Bot");
     }
 
@@ -95,7 +95,7 @@ public class BotManagerTests : IDisposable
         // Arrange
         _sut.Initialize(_clientGame);
         var player = CreateBotPlayer();
-        _sut.AddBot(player, BotDifficulty.Easy);
+        _sut.AddBot(player);
         
         // Act
         var result = _sut.IsBot(player.Id);
@@ -124,7 +124,7 @@ public class BotManagerTests : IDisposable
         // Arrange
         _sut.Initialize(_clientGame);
         var player = CreateBotPlayer();
-        _sut.AddBot(player, BotDifficulty.Easy);
+        _sut.AddBot(player);
         _sut.Bots.Count.ShouldBe(1);
         
         // Act
@@ -153,7 +153,7 @@ public class BotManagerTests : IDisposable
         _sut.Initialize(_clientGame);
         var player1 = CreateBotPlayer();
         var player2 = CreateBotPlayer();
-        _sut.AddBot(player1, BotDifficulty.Easy);
+        _sut.AddBot(player1);
         _sut.AddBot(player2, BotDifficulty.Hard);
         _sut.Bots.Count.ShouldBe(2);
         
@@ -184,7 +184,7 @@ public class BotManagerTests : IDisposable
 
     public void Dispose()
     {
-        _sut?.Clear();
-        _commandSubject?.Dispose();
+        _sut.Clear();
+        _commandSubject.Dispose();
     }
 }

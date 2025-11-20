@@ -1,5 +1,4 @@
 ﻿using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -11,11 +10,11 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 /// </summary>
 public class DeploymentEngine : IBotDecisionEngine
 {
-    private readonly ClientGame _clientGame;
+    private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly BotDifficulty _difficulty;
 
-    public DeploymentEngine(ClientGame clientGame, IPlayer player, BotDifficulty difficulty)
+    public DeploymentEngine(IClientGame clientGame, IPlayer player, BotDifficulty difficulty)
     {
         _clientGame = clientGame;
         _player = player;

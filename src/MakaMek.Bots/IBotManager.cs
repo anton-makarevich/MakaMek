@@ -17,7 +17,7 @@ public interface IBotManager
     /// Initializes the bot manager with a client game instance
     /// </summary>
     /// <param name="clientGame">The client game to manage bots for</param>
-    void Initialize(ClientGame clientGame);
+    void Initialize(IClientGame clientGame);
 
     /// <summary>
     /// Adds a new bot player to the game
