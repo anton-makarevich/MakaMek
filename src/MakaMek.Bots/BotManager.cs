@@ -9,7 +9,8 @@ namespace Sanet.MakaMek.Bots;
 public class BotManager : IBotManager
 {
     private readonly Dictionary<Guid, IBot> _bots = new(); // Key: PlayerId
-    private IClientGame? _clientGame;
+
+    public IClientGame? ClientGame { get; private set; }
 
     public IReadOnlyList<IBot> Bots => _bots.Values.ToList();
 
@@ -18,12 +19,12 @@ public class BotManager : IBotManager
         // Clean up existing bots if reinitializing
         Clear();
 
-        _clientGame = clientGame;
+        ClientGame = clientGame;
     }
 
     public void AddBot(IPlayer player, BotDifficulty difficulty = BotDifficulty.Easy)
     {
-        if (_clientGame == null)
+        if (ClientGame == null)
         {
             throw new InvalidOperationException("BotManager must be initialized with a ClientGame before adding bots");
         }
@@ -39,7 +40,7 @@ public class BotManager : IBotManager
         // _clientGame.JoinGameWithUnits(player, units, pilotAssignments);
 
         // BotManager tracks which players are bots
-        var bot = new Bot(player, _clientGame, difficulty);
+        var bot = new Bot(player, ClientGame, difficulty);
         _bots.Add(player.Id, bot);
     }
 

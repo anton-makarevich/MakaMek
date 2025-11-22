@@ -8,22 +8,22 @@ namespace Sanet.MakaMek.Core.Models.Game;
 
 public interface IGame
 {
-    public IReadOnlyList<IPlayer> Players { get; }
-    public int Turn { get; }
-    public PhaseNames TurnPhase { get; }
-    public IPlayer? ActivePlayer { get; }
-    public int UnitsToPlayCurrentStep { get; }
+    IReadOnlyList<IPlayer> Players { get; }
+    int Turn { get; }
+    PhaseNames TurnPhase { get; }
+    IPlayer? ActivePlayer { get; }
+    int UnitsToPlayCurrentStep { get; }
 
-    public IObservable<int> TurnChanges { get; }
-    public IObservable<PhaseNames> PhaseChanges { get; }
-    public IObservable<IPlayer?> ActivePlayerChanges { get; }
-    public IObservable<int> UnitsToPlayChanges { get; }
+    IObservable<int> TurnChanges { get; }
+    IObservable<PhaseNames> PhaseChanges { get; }
+    IObservable<IPlayer?> ActivePlayerChanges { get; }
+    IObservable<int> UnitsToPlayChanges { get; }
 
-    public IBattleMap? BattleMap { get; }
-    public void SetBattleMap(IBattleMap map);
+    IBattleMap? BattleMap { get; }
+    void SetBattleMap(IBattleMap map);
 
-    public Guid Id { get; }
+    Guid Id { get; }
 
-    public IToHitCalculator ToHitCalculator { get; }
-    public IRulesProvider RulesProvider { get; }
+    IToHitCalculator ToHitCalculator { get; }
+    IRulesProvider RulesProvider { get; }
 }

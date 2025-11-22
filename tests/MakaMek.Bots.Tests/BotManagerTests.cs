@@ -32,6 +32,7 @@ public class BotManagerTests : IDisposable
         
         // Assert
         _sut.Bots.ShouldBeEmpty();
+        _sut.ClientGame.ShouldBe(_clientGame);
     }
 
     [Fact]
