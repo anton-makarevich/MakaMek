@@ -27,7 +27,7 @@ public class DeploymentEngine : IBotDecisionEngine
         {
             // 1. Find undeployed units
             var undeployedUnits = _player.Units.Where(u => !u.IsDeployed).ToList();
-            if (!undeployedUnits.Any())
+            if (undeployedUnits.Count == 0)
             {
                 // No units to deploy, skip turn
                 return;

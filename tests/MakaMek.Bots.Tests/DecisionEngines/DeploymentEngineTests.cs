@@ -36,6 +36,10 @@ public class DeploymentEngineTests
         // Arrange
         var deployedUnit = CreateMockUnit(isDeployed: true);
         _player.Units.Returns([deployedUnit]);
+        _battleMap.Width.Returns(5);
+        _battleMap.Height.Returns(5);
+        _battleMap.GetHex(Arg.Any<HexCoordinates>()).Returns(new Hex(new HexCoordinates(1, 1)));
+        _clientGame.Players.Returns([_player]);
         
         // Act
         await _sut.MakeDecision();
@@ -146,6 +150,7 @@ public class DeploymentEngineTests
         {
             unit.Position.Returns((HexPosition?)null);
         }
+        unit.IsDeployed.Returns(isDeployed);
         
         return unit;
     }
