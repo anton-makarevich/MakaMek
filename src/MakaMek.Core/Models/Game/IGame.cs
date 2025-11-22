@@ -20,7 +20,7 @@ public interface IGame
     public IObservable<int> UnitsToPlayChanges { get; }
 
     public IBattleMap? BattleMap { get; }
-    public void SetBattleMap(BattleMap map);
+    public void SetBattleMap(IBattleMap map);
 
     public Guid Id { get; }
 

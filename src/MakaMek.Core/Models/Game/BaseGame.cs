@@ -127,7 +127,7 @@ public abstract class BaseGame : IGame
 
     public IReadOnlyList<IPlayer> Players => _players;
     
-    public virtual void SetBattleMap(BattleMap map)
+    public virtual void SetBattleMap(IBattleMap map)
     {
         if (BattleMap != null) return; // Prevent changing map 
         BattleMap = map;

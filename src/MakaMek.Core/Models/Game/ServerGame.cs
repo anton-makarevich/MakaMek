@@ -19,7 +19,6 @@ public class ServerGame : BaseGame, IDisposable
     private IGamePhase _currentPhase;
     private List<IPlayer> _initiativeOrder = [];
     private readonly ConcurrentDictionary<Guid, byte> _processedCommandKeys = new();
-    private bool _isDisposed;
 
     public bool IsAutoRoll { get; set; } = true;
     private IPhaseManager PhaseManager { get; }
@@ -48,7 +47,7 @@ public class ServerGame : BaseGame, IDisposable
         _currentPhase = new StartPhase(this); // Starts in the StartPhase
     }
     
-    public virtual bool IsDisposed => _isDisposed;
+    public bool IsDisposed { get; private set; }
 
     public IDamageTransferCalculator DamageTransferCalculator { get; }
 
@@ -60,7 +59,7 @@ public class ServerGame : BaseGame, IDisposable
     
     public bool IsGameOver { get; private set; }
 
-    public override void SetBattleMap(BattleMap map)
+    public override void SetBattleMap(IBattleMap map)
     {
         if (TurnPhase!= PhaseNames.Start) return; // Prevent changing map mid-game
         BattleMap = map;
@@ -147,7 +146,7 @@ public class ServerGame : BaseGame, IDisposable
     /// </summary>
     public void StopGame(GameEndReason reason)
     {
-        if (_isDisposed || IsGameOver) return;
+        if (IsDisposed || IsGameOver) return;
 
         // Publish GameEndedCommand to all clients
         var endCommand = new GameEndedCommand
@@ -208,7 +207,7 @@ public class ServerGame : BaseGame, IDisposable
     {
         // The game loop is driven by commands and phase transitions
         // This method mainly keeps the server alive until disposed
-        while (!_isDisposed && !IsGameOver)
+        while (!IsDisposed && !IsGameOver)
         {
             await Task.Delay(100); // Keep the task alive but idle
         }
@@ -216,8 +215,8 @@ public class ServerGame : BaseGame, IDisposable
     
     public void Dispose()
     {
-        if (_isDisposed) return;
-        _isDisposed = true;
+        if (IsDisposed) return;
+        IsDisposed = true;
         IsGameOver = true; // Ensure the loop in Start() exits
         CommandPublisher.Unsubscribe(HandleCommand);
         // Add any specific cleanup for ServerGame if needed (e.g., unsubscribe from events)
