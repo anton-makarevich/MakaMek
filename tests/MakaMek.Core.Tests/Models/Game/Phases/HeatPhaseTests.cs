@@ -22,8 +22,8 @@ public class HeatPhaseTests : GamePhaseTestsBase
     private readonly Guid _player2Id = Guid.NewGuid();
     private readonly Guid _unit1Id;
     private readonly Guid _unit2Id;
-    private readonly Unit _unit1;
-    private readonly Unit _unit2;
+    private readonly IUnit _unit1;
+    private readonly IUnit _unit2;
     private readonly IGamePhase _mockNextPhase;
 
     public HeatPhaseTests()
@@ -645,7 +645,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<PilotConsciousnessRollCommand>());
     }
     
-    private static void SetupUnitWithMovement(Unit unit, MovementType movementType)
+    private static void SetupUnitWithMovement(IUnit unit, MovementType movementType)
     {
         var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
         unit.Deploy(deployPosition);
@@ -658,7 +658,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         ]);
     }
 
-    private void SetupUnitWithWeaponFired(Unit unit)
+    private void SetupUnitWithWeaponFired(IUnit unit)
     {
         // Find a weapon on the unit or add one if needed
         var weapon = unit.GetAllComponents<Weapon>().First(w=>w.Heat>0);
@@ -674,7 +674,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         ]);
     }
     
-    private static void SetupUnitWithEngineDamage(Unit unit, int hits)
+    private static void SetupUnitWithEngineDamage(IUnit unit, int hits)
     {
         // Find the engine component on the unit
         var engine = unit.GetAllComponents<Engine>().FirstOrDefault();

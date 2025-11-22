@@ -16,8 +16,8 @@ public class Player(Guid id, string name, PlayerControlType controlType, string 
     public string Name { get; set; } = name;
     public string Tint { get; } = tint;
     public PlayerControlType ControlType { get; } = controlType;
-    public IReadOnlyList<Unit> Units => _units;
-    public IReadOnlyList<Unit> AliveUnits => Units.Where(u => u.Status != UnitStatus.Destroyed).ToList();
+    public IReadOnlyList<IUnit> Units => _units;
+    public IReadOnlyList<IUnit> AliveUnits => Units.Where(u => u.Status != UnitStatus.Destroyed).ToList();
     public bool CanAct => AliveUnits.Count > 0 ;
 
     /// <summary>

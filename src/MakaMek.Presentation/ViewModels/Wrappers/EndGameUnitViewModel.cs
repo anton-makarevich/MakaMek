@@ -8,9 +8,9 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 /// </summary>
 public class EndGameUnitViewModel
 {
-    private readonly Unit _unit;
+    private readonly IUnit _unit;
 
-    public EndGameUnitViewModel(Unit unit)
+    public EndGameUnitViewModel(IUnit unit)
     {
         _unit = unit;
         UnitData = unit.ToData();

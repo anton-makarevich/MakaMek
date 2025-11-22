@@ -18,7 +18,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         _mechFactory = mechFactory;
     }
     public IReadOnlyList<LocationDamageData> CalculateStructureDamage(
-        Unit unit,
+        IUnit unit,
         PartLocation initialLocation,
         int totalDamage,
         HitDirection hitDirection,
@@ -35,7 +35,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
     }
 
     public IReadOnlyList<LocationDamageData> CalculateExplosionDamage(
-        Unit unit,
+        IUnit unit,
         PartLocation initialLocation,
         int totalDamage)
     {
@@ -43,13 +43,13 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         return CalculateDamageDistribution(clonedUnit, initialLocation, totalDamage, HitDirection.Front, true);
     }
     
-    private Unit CloneUnit(Unit unit)
+    private Unit CloneUnit(IUnit unit)
     {
         var data = unit.ToData();
         return _mechFactory.Create(data);
     }
     
-    private List<LocationDamageData> CalculateDamageDistribution(Unit unit, PartLocation initialLocation, int totalDamage,
+    private List<LocationDamageData> CalculateDamageDistribution(IUnit unit, PartLocation initialLocation, int totalDamage,
         HitDirection hitDirection, bool isExplosion = false)
     {
         var damageDistribution = new List<LocationDamageData>();

@@ -1,4 +1,4 @@
-name: MakaMek Core Library
+name: MakaMek Bots Library
 on:
   push:
     branches:
@@ -12,22 +12,24 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      COVERAGE_EXCLUSIONS: "**/FileCommandLogger.cs"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.x
 
-      - name: Run Core tests
-        run: dotnet test tests/MakaMek.Core.Tests/MakaMek.Core.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Core]* /p:ExcludeByFile="${{ env.COVERAGE_EXCLUSIONS }}"
+      - name: Run Bots tests
+        run: dotnet test tests/MakaMek.Bots.Tests/MakaMek.Bots.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Bots]*
 
-      - name: Upload Core tests results
-        run: bash <(curl -s https://codecov.io/bash) -f "tests/MakaMek.Core.Tests/coverage.opencover.xml" -t ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload Bots tests results
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./tests/MakaMek.Bots.Tests/coverage.opencover.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
   
   publish-nuget:
     runs-on: ubuntu-latest
@@ -43,7 +45,7 @@ jobs:
 
       - name: Create nuget packages
         run: |
-          dotnet pack src/MakaMek.Core/MakaMek.Core.csproj --configuration Release --output ${{ env.NuGetDirectory }}
+          dotnet pack src/MakaMek.Bots/MakaMek.Bots.csproj --configuration Release --output ${{ env.NuGetDirectory }}
 
       - name: Publish NuGet package
         run: |

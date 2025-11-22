@@ -29,10 +29,10 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
     private readonly Guid _player1Unit1Id;
-    private readonly Unit _player1Unit1;
-    private readonly Unit _player1Unit2;
+    private readonly IUnit _player1Unit1;
+    private readonly IUnit _player1Unit2;
     private readonly Guid _player2Unit1Id;
-    private readonly Unit _player2Unit1;
+    private readonly IUnit _player2Unit1;
     private readonly IGamePhase _mockNextPhase;
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
@@ -1185,7 +1185,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         MakaMekComponent component,
         int slot,
         PartLocation location,
-        Unit unit)
+        IUnit unit)
     {
         // Setup structure damage calculator to return structure damage
         MockDamageTransferCalculator.CalculateStructureDamage(

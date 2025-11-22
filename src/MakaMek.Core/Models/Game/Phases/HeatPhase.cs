@@ -73,7 +73,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         _currentUnitIndex = 0;
     }
     
-    private void CalculateAndApplyHeat(Unit unit)
+    private void CalculateAndApplyHeat(IUnit unit)
     {
         // Store previous heat before applying new heat
         var previousHeat = unit.CurrentHeat;
@@ -89,7 +89,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
     }
     
     private void PublishHeatUpdatedCommand(
-        Unit unit, 
+        IUnit unit, 
         HeatData heatData,
         int previousHeat)
     {
@@ -119,7 +119,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         ProcessConsciousnessRollsForUnit(unit);
     }
 
-    private void CheckForUnitAutomaticRestart(Unit unit)
+    private void CheckForUnitAutomaticRestart(IUnit unit)
     {
         if (unit is not Mech mech) return;
         if (!mech.IsShutdown) return;
@@ -140,7 +140,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(broadcastCommand);
     }
 
-    private void CheckForUnitHeatShutdown(Unit unit)
+    private void CheckForUnitHeatShutdown(IUnit unit)
     {
         if (unit is not Mech mech) return;
 
@@ -153,7 +153,7 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
         Game.CommandPublisher.PublishCommand(broadcastCommand);
     }
 
-    private void CheckForUnitHeatAmmoExplosion(Unit unit)
+    private void CheckForUnitHeatAmmoExplosion(IUnit unit)
     {
         if (unit is not Mech mech) return;
 

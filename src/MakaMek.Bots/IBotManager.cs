@@ -17,7 +17,7 @@ public interface IBotManager
     /// Initializes the bot manager with a client game instance
     /// </summary>
     /// <param name="clientGame">The client game to manage bots for</param>
-    void Initialize(ClientGame clientGame);
+    void Initialize(IClientGame clientGame);
 
     /// <summary>
     /// Adds a new bot player to the game
@@ -36,5 +36,12 @@ public interface IBotManager
     /// Removes all bots and cleans up resources
     /// </summary>
     void Clear();
+
+    /// <summary>
+    /// Checks if a given player is controlled by a bot
+    /// </summary>
+    /// <param name="playerId">The ID of the player to check</param>
+    /// <returns>True if the player is a bot, false otherwise</returns>
+    bool IsBot(Guid playerId);
 }
 

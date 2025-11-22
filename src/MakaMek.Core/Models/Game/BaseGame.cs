@@ -24,11 +24,6 @@ public abstract class BaseGame : IGame
     internal readonly ICommandPublisher CommandPublisher;
     private readonly List<IPlayer> _players = [];
     private readonly IMechFactory _mechFactory;
-    
-    private PhaseNames _turnPhases = PhaseNames.Start;
-    private int _turn = 1;
-    private IPlayer? _activePlayer;
-    private int _unitsToPlayCurrentStep;
 
     private readonly Subject<int> _turnSubject = new();
     private readonly Subject<PhaseNames> _phaseSubject = new();
@@ -36,41 +31,40 @@ public abstract class BaseGame : IGame
     private readonly Subject<int> _unitsToPlaySubject = new();
 
     public Guid Id { get; }
-    
-    public abstract bool IsDisposed { get; }
+
     public IObservable<int> TurnChanges => _turnSubject.AsObservable();
     public IObservable<PhaseNames> PhaseChanges => _phaseSubject.AsObservable();
     public IObservable<IPlayer?> ActivePlayerChanges => _activePlayerSubject.AsObservable();
     public IObservable<int> UnitsToPlayChanges => _unitsToPlaySubject.AsObservable();
-    public BattleMap? BattleMap { get; protected set; }
+    public IBattleMap? BattleMap { get; protected set; }
     public IToHitCalculator ToHitCalculator { get; }
     public IPilotingSkillCalculator PilotingSkillCalculator { get; }
     public IRulesProvider RulesProvider { get; }
     public IConsciousnessCalculator ConsciousnessCalculator { get; }
     public IHeatEffectsCalculator HeatEffectsCalculator { get; }
-    
+
     public int Turn
     {
-        get => _turn;
+        get;
         protected set
         {
-            if (_turn == value) return;
-            _turn = value;
+            if (field == value) return;
+            field = value;
             _turnSubject.OnNext(value);
         }
-    }
+    } = 1;
 
     public virtual PhaseNames TurnPhase
     {
-        get => _turnPhases;
+        get;
         protected set
         {
-            if (_turnPhases == value) return;
-            _turnPhases = value;
+            if (field == value) return;
+            field = value;
             _phaseSubject.OnNext(value);
             ActivePlayer = null;
             UnitsToPlayCurrentStep = 0;
-            
+
             // Reset phase damage tracking for all units when phase changes
             foreach (var player in AlivePlayers)
             {
@@ -80,26 +74,26 @@ public abstract class BaseGame : IGame
                 }
             }
         }
-    }
+    } = PhaseNames.Start;
 
     public virtual IPlayer? ActivePlayer
     {
-        get => _activePlayer;
+        get;
         protected set
         {
-            if (_activePlayer == value) return;
-            _activePlayer = value;
+            if (field == value) return;
+            field = value;
             _activePlayerSubject.OnNext(value);
         }
     }
 
     public int UnitsToPlayCurrentStep
     {
-        get => _unitsToPlayCurrentStep;
+        get;
         protected set
         {
-            if (_unitsToPlayCurrentStep == value) return;
-            _unitsToPlayCurrentStep = value;
+            if (field == value) return;
+            field = value;
             _unitsToPlaySubject.OnNext(value);
         }
     }
@@ -133,7 +127,7 @@ public abstract class BaseGame : IGame
 
     public IReadOnlyList<IPlayer> Players => _players;
     
-    public virtual void SetBattleMap(BattleMap map)
+    public virtual void SetBattleMap(IBattleMap map)
     {
         if (BattleMap != null) return; // Prevent changing map 
         BattleMap = map;
@@ -193,7 +187,7 @@ public abstract class BaseGame : IGame
         unit?.Deploy(new HexPosition(new HexCoordinates(command.Position), (HexDirection)command.Direction));
     }
     
-    public void OnMoveUnit(MoveUnitCommand moveCommand)
+    internal void OnMoveUnit(MoveUnitCommand moveCommand)
     {
         var player = _players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         if (player == null) return;

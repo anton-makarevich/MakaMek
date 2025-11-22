@@ -13,7 +13,7 @@ namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
 public class TargetSelectionViewModelTests
 {
     private readonly Unit _target;
-    private Action<Unit>? _onSetPrimaryAction;
+    private Action<IUnit>? _onSetPrimaryAction;
     private TargetSelectionViewModel _sut = null!;
 
     public TargetSelectionViewModelTests()
@@ -161,7 +161,7 @@ public class TargetSelectionViewModelTests
     {
         // Arrange
         CreateSut(isPrimary: false);
-        Unit? capturedTarget = null;
+        IUnit? capturedTarget = null;
         _onSetPrimaryAction = target => capturedTarget = target;
         CreateSut(isPrimary: false); // Recreate with the action set
 
@@ -186,7 +186,7 @@ public class TargetSelectionViewModelTests
 
     private void CreateSut(bool isPrimary, bool hasWeaponsForTarget = false)
     {
-        _onSetPrimaryAction ??= Substitute.For<Action<Unit>>();
+        _onSetPrimaryAction ??= Substitute.For<Action<IUnit>>();
         _sut = new TargetSelectionViewModel(_target, isPrimary, hasWeaponsForTarget, _onSetPrimaryAction);
     }
 }

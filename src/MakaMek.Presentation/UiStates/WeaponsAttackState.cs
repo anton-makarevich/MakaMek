@@ -19,7 +19,6 @@ public class WeaponsAttackState : IUiState
     private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly ClientGame _game;
     private readonly Lock _stateLock = new();
-    private Unit? _selectedTarget;
 
     public WeaponsAttackStep CurrentStep { get; private set; } = WeaponsAttackStep.SelectingUnit;
 
@@ -71,7 +70,7 @@ public class WeaponsAttackState : IUiState
         }
     }
 
-    public void HandleUnitSelection(Unit? unit)
+    public void HandleUnitSelection(IUnit? unit)
     {
         lock (_stateLock)
         {
@@ -428,20 +427,20 @@ public class WeaponsAttackState : IUiState
             .ToList();
     }
     
-    public Unit? Attacker { get; private set; }
+    public IUnit? Attacker { get; private set; }
 
-    public Unit? SelectedTarget
+    public IUnit? SelectedTarget
     {
-        get => _selectedTarget;
+        get;
         private set
         {
-            _selectedTarget = value;
+            field = value;
             _viewModel.SelectedUnit = value;
             UpdateSelectedTargetViewModel();
         }
     }
 
-    public Unit? PrimaryTarget => Attacker?.WeaponAttackState.PrimaryTarget;
+    public IUnit? PrimaryTarget => Attacker?.WeaponAttackState.PrimaryTarget;
 
     private void CreateWeaponViewModels()
     {
@@ -562,7 +561,7 @@ public class WeaponsAttackState : IUiState
         _viewModel.NotifyStateChanged();
     }
 
-    private void HandleSetPrimaryTarget(Unit target)
+    private void HandleSetPrimaryTarget(IUnit target)
     {
         if (Attacker == null) return;
 

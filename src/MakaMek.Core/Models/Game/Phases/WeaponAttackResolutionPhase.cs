@@ -19,7 +19,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     private List<IPlayer> _playersInOrder = [];
     
     // Units with weapons that have targets, organized by player
-    private readonly Dictionary<Guid, List<Unit>> _unitsWithTargets = new();
+    private readonly Dictionary<Guid, List<IUnit>> _unitsWithTargets = new();
     
     // Dictionary to track accumulated damage data for PSR calculations at the phase end
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamageData = new();
@@ -127,7 +127,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         ResolveNextAttack();
     }
 
-    private AttackResolutionData ResolveAttack(Unit attacker, Unit target, Weapon weapon, WeaponTargetData weaponTargetData)
+    private AttackResolutionData ResolveAttack(IUnit attacker, IUnit target, Weapon weapon, WeaponTargetData weaponTargetData)
     {
 
         if (Game.BattleMap == null)
@@ -200,7 +200,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     }
 
     private AttackHitLocationsData ResolveClusterWeaponHit(Weapon weapon,
-        Unit target,
+        IUnit target,
         HitDirection attackDirection,
         WeaponTargetData weaponTargetData)
     {
@@ -278,7 +278,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     private LocationHitData DetermineHitLocation(
         HitDirection attackDirection,
         int damage,
-        Unit target,
+        IUnit target,
         Weapon weapon,
         WeaponTargetData weaponTargetData,
         IReadOnlyList<LocationHitData>? accumulatedHitLocations = null)
@@ -325,7 +325,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
             locationRoll,
             initialLocation);
 
-        bool IsAimedShotPossible(Unit unit, Weapon weapon1, WeaponTargetData weaponTargetData1)
+        bool IsAimedShotPossible(IUnit unit, Weapon weapon1, WeaponTargetData weaponTargetData1)
         {
             return unit.IsImmobile // Immobile target
                    && weapon1.IsAimShotCapable // Aimed shot capable weapon
@@ -348,7 +348,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// <param name="attacker">The attacking unit</param>
     /// <param name="target">The target unit</param>
     /// <returns>The direction from which the attack is coming</returns>
-    private HitDirection DetermineAttackDirection(Unit? attacker, Unit target)
+    private HitDirection DetermineAttackDirection(IUnit? attacker, IUnit target)
     {
         // Default to forward if no attacker is provided or positions are missing
         if (attacker?.Position == null || target.Position == null)
@@ -374,7 +374,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         return HitDirection.Front;
     }
 
-    private void FinalizeAttackResolution(IPlayer player, Unit attacker, Weapon weapon, Unit target,
+    private void FinalizeAttackResolution(IPlayer player, IUnit attacker, Weapon weapon, IUnit target,
         AttackResolutionData resolution)
     {
         // Track destroyed parts before damage

@@ -12,7 +12,7 @@ public class MovementState : IUiState
 {
     private readonly BattleMapViewModel _viewModel;
     private readonly MoveUnitCommandBuilder _builder;
-    private Unit? _selectedUnit;
+    private IUnit? _selectedUnit;
     private List<HexCoordinates> _forwardReachableHexes = [];
     private List<HexCoordinates> _backwardReachableHexes = [];
     private readonly List<HexCoordinates> _prohibitedHexes;
@@ -42,7 +42,7 @@ public class MovementState : IUiState
             .ToList();
     }
 
-    public void HandleUnitSelection(Unit? unit)
+    public void HandleUnitSelection(IUnit? unit)
     {
         lock (_stateLock)
         {
@@ -482,7 +482,7 @@ public class MovementState : IUiState
                 () => HandleMovementTypeSelection(MovementType.Walk)));
             
             // Run
-            if (_selectedUnit is Mech mechUnit && mechUnit.CanRun)
+            if (_selectedUnit is Mech { CanRun: true })
             {
                 actions.Add(new(
                     string.Format(_viewModel.LocalizationService.GetString("Action_MovementPoints"),

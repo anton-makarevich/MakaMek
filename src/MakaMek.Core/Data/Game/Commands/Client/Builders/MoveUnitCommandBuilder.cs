@@ -14,7 +14,7 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
         && _movementType != null 
         && _movementPath != null;
 
-    public void SetUnit(Unit unit)
+    public void SetUnit(IUnit unit)
     {
         _unitId = unit.Id;
     }

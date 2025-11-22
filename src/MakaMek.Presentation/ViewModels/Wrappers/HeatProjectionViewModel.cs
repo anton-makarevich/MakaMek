@@ -10,8 +10,6 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 /// </summary>
 public class HeatProjectionViewModel : BindableBase
 {
-    private Unit? _unit;
-    private int _projectedHeat;
     private readonly ILocalizationService _localizationService;
     private readonly IRulesProvider _rulesProvider;
 
@@ -24,12 +22,12 @@ public class HeatProjectionViewModel : BindableBase
     /// <summary>
     /// Gets or sets the unit
     /// </summary>
-    public Unit? Unit
+    public IUnit? Unit
     {
-        get => _unit;
+        get;
         set
         {
-            SetProperty(ref _unit, value);
+            SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(CurrentHeat));
             NotifyPropertyChanged(nameof(HeatDissipation));
             UpdateProjectedHeat();
@@ -46,8 +44,8 @@ public class HeatProjectionViewModel : BindableBase
     /// </summary>
     public int ProjectedHeat
     {
-        get => _projectedHeat;
-        private set => SetProperty(ref _projectedHeat, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     /// <summary>

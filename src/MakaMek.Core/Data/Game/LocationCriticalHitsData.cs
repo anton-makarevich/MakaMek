@@ -21,7 +21,7 @@ public record LocationCriticalHitsData(
     /// <param name="localizationService">Service used to get localized strings</param>
     /// <param name="unit">Unit to get component names and parts</param>
     /// <returns>String representation of the critical hits for this location</returns>
-    public string Render(ILocalizationService localizationService, Unit unit)
+    public string Render(ILocalizationService localizationService, IUnit unit)
     {
         var stringBuilder = new StringBuilder();
         var localizedLocation = localizationService.GetString($"MechPart_{Location}_Short");

@@ -13,7 +13,7 @@ public interface ICriticalHitsCalculator
     /// </summary>
     /// <param name="unit">The target unit</param>
     /// <param name="hitLocationsData">The hit locations data containing damage information</param>
-    CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(Unit unit, List<LocationDamageData> hitLocationsData);
+    CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData);
 
     /// <summary>
     /// Calculates critical hits for heat-induced component explosion
