@@ -55,8 +55,7 @@ public class BotTests : IDisposable
         Thread.Sleep(100);
 
         // Assert 
-        _sut.DecisionEngine.ShouldBeOfType<MovementEngine>();
-        bot.ShouldNotBeNull();
+        bot.DecisionEngine.ShouldBeOfType<MovementEngine>();
     }
 
     [Fact]
@@ -74,7 +73,6 @@ public class BotTests : IDisposable
         
         // Assert 
         _sut.DecisionEngine.ShouldBeOfType<MovementEngine>();
-        _sut.ShouldNotBeNull();
     }
 
     [Fact]
