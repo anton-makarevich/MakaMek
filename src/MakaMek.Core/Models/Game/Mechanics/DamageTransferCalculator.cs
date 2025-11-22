@@ -35,7 +35,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
     }
 
     public IReadOnlyList<LocationDamageData> CalculateExplosionDamage(
-        Unit unit,
+        IUnit unit,
         PartLocation initialLocation,
         int totalDamage)
     {

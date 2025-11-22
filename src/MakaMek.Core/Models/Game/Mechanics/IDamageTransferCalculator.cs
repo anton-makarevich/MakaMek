@@ -34,7 +34,7 @@ public interface IDamageTransferCalculator
     /// <param name="totalDamage">The total damage to distribute</param>
     /// <returns>List of locations to their structure damage (armor damage will always be 0)</returns>
     IReadOnlyList<LocationDamageData> CalculateExplosionDamage(
-        Unit unit,
+        IUnit unit,
         PartLocation initialLocation,
         int totalDamage);
 }
