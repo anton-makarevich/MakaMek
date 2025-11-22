@@ -187,7 +187,7 @@ public abstract class BaseGame : IGame
         unit?.Deploy(new HexPosition(new HexCoordinates(command.Position), (HexDirection)command.Direction));
     }
     
-    public void OnMoveUnit(MoveUnitCommand moveCommand)
+    internal void OnMoveUnit(MoveUnitCommand moveCommand)
     {
         var player = _players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         if (player == null) return;

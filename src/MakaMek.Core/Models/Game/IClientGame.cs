@@ -43,5 +43,4 @@ public interface IClientGame:IGame
     void LeaveGame(Guid playerId);
 
     void Dispose();
-    void OnMoveUnit(MoveUnitCommand moveCommand);
 }
