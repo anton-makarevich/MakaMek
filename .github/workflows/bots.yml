@@ -1,0 +1,50 @@
+name: MakaMek Bots Library
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+  workflow_dispatch:
+env:
+  NuGetDirectory: ${{ github.workspace}}/nuget
+  
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Run Bots tests
+        run: dotnet test tests/MakaMek.Bots.Tests/MakaMek.Bots.Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:ExcludeByAttribute=GeneratedCodeAttribute /p:Include=[Sanet.MakaMek.Bots]*
+
+      - name: Upload Bots tests results
+        run: bash <(curl -s https://codecov.io/bash) -f "tests/MakaMek.Bots.Tests/coverage.opencover.xml" -t ${{ secrets.CODECOV_TOKEN }}
+  
+  publish-nuget:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Create nuget packages
+        run: |
+          dotnet pack src/MakaMek.Bots/MakaMek.Bots.csproj --configuration Release --output ${{ env.NuGetDirectory }}
+
+      - name: Publish NuGet package
+        run: |
+          for file in "${{ env.NuGetDirectory }}"/*.nupkg; do
+            dotnet nuget push "$file" --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
