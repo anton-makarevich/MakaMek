@@ -115,14 +115,7 @@ public class MovementEngineTests
             .Returns(reachableHexes);
         
         // Mock path finding
-        var pathSegment = Substitute.For<PathSegment>();
-        var pathSegmentData = new PathSegmentData
-        {
-            From = new HexPositionData { Coordinates = new HexCoordinateData(1, 1), Facing = 0 },
-            To = new HexPositionData { Coordinates = new HexCoordinateData(2, 2), Facing = 0 },
-            Cost = 1
-        };
-        pathSegment.ToData().Returns(pathSegmentData);
+        var pathSegment = new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 1);
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
             .Returns([pathSegment]);
         

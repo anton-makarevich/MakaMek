@@ -85,7 +85,7 @@ public class DeploymentEngineTests
         _battleMap.Height.Returns(5);
         
         // Mock a valid hex
-        var hex = Substitute.For<Hex>();
+        var hex = new Hex(new HexCoordinates(1,1));
         _battleMap.GetHex(Arg.Any<HexCoordinates>()).Returns(hex);
         
         // Mock no other players have units deployed
@@ -121,7 +121,7 @@ public class DeploymentEngineTests
         _battleMap.Width.Returns(5);
         _battleMap.Height.Returns(5);
         
-        var hex = Substitute.For<Hex>();
+        var hex = new Hex(new HexCoordinates(1,1));
         _battleMap.GetHex(Arg.Any<HexCoordinates>()).Returns(hex);
         _clientGame.Players.Returns([_player]);
         
