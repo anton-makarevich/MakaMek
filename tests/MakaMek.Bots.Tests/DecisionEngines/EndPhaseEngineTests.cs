@@ -97,7 +97,7 @@ public class EndPhaseEngineTests
     public async Task MakeDecision_WhenExceptionInHandlers_ShouldStillEndTurn()
     {
         // Arrange
-        _player.AliveUnits.Returns((IReadOnlyList<Unit>?)null!); // This will cause an exception
+        _player.AliveUnits.Returns((IReadOnlyList<IUnit>?)null!); // This will cause an exception
         
         // Act
         await _sut.MakeDecision();
