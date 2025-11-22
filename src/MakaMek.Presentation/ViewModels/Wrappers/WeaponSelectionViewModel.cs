@@ -23,7 +23,7 @@ public class WeaponSelectionViewModel : BindableBase
         bool isInRange,
         bool isSelected,
         bool isEnabled,
-        Unit? target,
+        IUnit? target,
         Action<Weapon, bool> onSelectionChanged,
         Action<AimedShotLocationSelectorViewModel> onShowAimedShotLocationSelector, 
         Action onHideAimedShotLocationSelector,
