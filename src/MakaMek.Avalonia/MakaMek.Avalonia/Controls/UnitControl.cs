@@ -32,7 +32,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly Image _unitImage;
         private readonly IImageService<Bitmap> _imageService;
         private readonly BattleMapViewModel _viewModel;
-        private readonly Unit _unit;
+        private readonly IUnit _unit;
         private readonly IDisposable _subscription;
         private readonly Border _tintBorder;
         private readonly StackPanel _actionButtons;
@@ -48,7 +48,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         // Get the contrasting foreground converter from resources
         private readonly ContrastingForegroundConverter? _contrastingForegroundConverter;
 
-        public UnitControl(Unit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel)
+        public UnitControl(IUnit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel)
         {
             _unit = unit;
             _imageService = imageService;

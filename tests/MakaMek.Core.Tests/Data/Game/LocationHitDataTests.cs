@@ -50,7 +50,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -69,7 +69,7 @@ public class LocationHitDataTests
             [6]) with { InitialLocation = PartLocation.RightTorso };
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -88,7 +88,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -107,7 +107,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -145,7 +145,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -166,7 +166,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBeEmpty();
@@ -188,7 +188,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -211,7 +211,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -232,7 +232,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -253,7 +253,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -276,7 +276,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -299,7 +299,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -324,7 +324,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();

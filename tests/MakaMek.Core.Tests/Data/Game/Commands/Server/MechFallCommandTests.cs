@@ -259,7 +259,7 @@ public class MechFallCommandTests
         result.ShouldContain("Hit Locations:");
         foreach (var hitLocation in sut.DamageData!.HitLocations.HitLocations)
         {
-            var text = hitLocation.Render(_localizationService, _unit).Trim();
+            var text = hitLocation.Render(_localizationService).Trim();
             result.ShouldContain(text);
         }
         result.ShouldContain("pilot was injured");

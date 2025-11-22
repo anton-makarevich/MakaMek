@@ -45,7 +45,7 @@ public class WeaponsEngine : IBotDecisionEngine
             }
 
             // 3. Find potential targets
-            var potentialTargets = GetPotentialTargets(attackingUnit);
+            var potentialTargets = GetPotentialTargets();
             if (!potentialTargets.Any())
             {
                 // No targets available, skip attack
@@ -89,7 +89,7 @@ public class WeaponsEngine : IBotDecisionEngine
         }
     }
 
-    private List<Unit> GetPotentialTargets(Unit attackingUnit)
+    private List<IUnit> GetPotentialTargets()
     {
         // Find enemy units that are deployed and alive
         return _clientGame.Players
@@ -99,7 +99,7 @@ public class WeaponsEngine : IBotDecisionEngine
             .ToList();
     }
 
-    private List<Weapon> GetWeaponsInRange(Unit attackingUnit, Unit target)
+    private List<Weapon> GetWeaponsInRange(IUnit attackingUnit, IUnit target)
     {
         if (attackingUnit.Position == null || target.Position == null)
             return [];

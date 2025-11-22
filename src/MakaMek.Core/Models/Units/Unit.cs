@@ -18,7 +18,7 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 
 namespace Sanet.MakaMek.Core.Models.Units;
 
-public abstract class Unit
+public abstract class Unit : IUnit
 {
     protected readonly Dictionary<PartLocation, UnitPart> _parts;
     private readonly Queue<UiEvent> _notifications = new();

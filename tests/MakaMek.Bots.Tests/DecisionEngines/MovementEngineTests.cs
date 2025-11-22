@@ -146,9 +146,9 @@ public class MovementEngineTests
         await Should.NotThrowAsync(async () => await _sut.MakeDecision());
     }
 
-    private Unit CreateMockUnit(bool hasMoved, bool isDeployed = true)
+    private IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true)
     {
-        var unit = Substitute.For<Unit>();
+        var unit = Substitute.For<IUnit>();
         unit.Id.Returns(Guid.NewGuid());
         unit.MovementTypeUsed.Returns(hasMoved ? MovementType.Walk : null);
         unit.GetMovementPoints(MovementType.Walk).Returns(4);

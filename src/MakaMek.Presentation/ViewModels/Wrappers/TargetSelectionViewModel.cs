@@ -11,30 +11,28 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 public class TargetSelectionViewModel : BindableBase
 {
     private bool _isPrimary;
-    private bool _hasWeaponsForTarget;
 
-    public TargetSelectionViewModel(Unit target,
+    public TargetSelectionViewModel(IUnit target,
         bool isPrimary,
         bool hasWeaponsForTarget,
-        Action<Unit> onSetPrimary)
+        Action<IUnit> onSetPrimary)
     {
         Target = target;
         HasWeaponsForTarget = hasWeaponsForTarget;
         _isPrimary = isPrimary;
-        var onSetPrimary1 = onSetPrimary;
         SetAsPrimary = new AsyncCommand(() =>
         {
-            onSetPrimary1(Target);
+            onSetPrimary(Target);
             return Task.CompletedTask;
         });
     }
 
-    public Unit Target { get; }
+    public IUnit Target { get; }
 
     public bool HasWeaponsForTarget
     {
-        get => _hasWeaponsForTarget;
-        set => SetProperty(ref _hasWeaponsForTarget, value);
+        get;
+        set => SetProperty(ref field, value);
     }
 
     public string Name => Target.Name;

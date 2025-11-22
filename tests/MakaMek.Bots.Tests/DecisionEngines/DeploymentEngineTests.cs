@@ -133,9 +133,9 @@ public class DeploymentEngineTests
             cmd.UnitId == unit1.Id));
     }
 
-    private Unit CreateMockUnit(bool isDeployed)
+    private IUnit CreateMockUnit(bool isDeployed)
     {
-        var unit = Substitute.For<Unit>();
+        var unit = Substitute.For<IUnit>();
         
         if (isDeployed)
         {

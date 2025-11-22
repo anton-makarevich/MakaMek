@@ -129,9 +129,9 @@ public class EndPhaseEngineTests
         await _clientGame.Received(1).EndTurn(Arg.Any<TurnEndedCommand>());
     }
 
-    private Unit CreateMockUnit(bool isShutdown, int currentHeat)
+    private IUnit CreateMockUnit(bool isShutdown, int currentHeat)
     {
-        var unit = Substitute.For<Unit>();
+        var unit = Substitute.For<IUnit>();
         unit.Id.Returns(Guid.NewGuid());
         unit.IsShutdown.Returns(isShutdown);
         unit.CurrentHeat.Returns(currentHeat);

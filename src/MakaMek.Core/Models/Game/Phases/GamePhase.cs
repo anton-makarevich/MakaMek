@@ -27,7 +27,7 @@ public abstract class GamePhase : IGamePhase
     /// Processes consciousness rolls for a unit's pilot
     /// </summary>
     /// <param name="unit">The unit whose pilot needs consciousness rolls</param>
-    protected void ProcessConsciousnessRollsForUnit(Unit unit)
+    protected void ProcessConsciousnessRollsForUnit(IUnit unit)
     {
         if (unit.Pilot == null) return;
 

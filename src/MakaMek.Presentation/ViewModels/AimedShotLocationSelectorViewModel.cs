@@ -9,14 +9,14 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public class AimedShotLocationSelectorViewModel : BaseViewModel
 {
-    private readonly Unit _target;
+    private readonly IUnit _target;
     private readonly Action<PartLocation> _onPartSelected;
     private readonly ILocalizationService _localizationService;
     private readonly ToHitBreakdown _aimedHeadModifiersBreakdown;
     private readonly ToHitBreakdown _aimedOtherModifiersBreakdown;
 
     public AimedShotLocationSelectorViewModel(
-        Unit target,
+        IUnit target,
         ToHitBreakdown aimedHeadModifiersBreakdown,
         ToHitBreakdown aimedOtherModifiersBreakdown,
         Action<PartLocation> onPartSelected,

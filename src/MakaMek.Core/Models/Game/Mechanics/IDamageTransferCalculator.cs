@@ -19,7 +19,7 @@ public interface IDamageTransferCalculator
     /// Used to apply accumulated damage before calculating current cluster's damage distribution.</param>
     /// <returns>List of locations to their armor and structure damage</returns>
     IReadOnlyList<LocationDamageData> CalculateStructureDamage(
-        Unit unit,
+        IUnit unit,
         PartLocation initialLocation,
         int totalDamage,
         HitDirection hitDirection,

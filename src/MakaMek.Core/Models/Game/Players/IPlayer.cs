@@ -6,8 +6,8 @@ public interface IPlayer
 {
     Guid Id { get; }
     string Name { get; }
-    IReadOnlyList<Unit> Units { get; }
-    IReadOnlyList<Unit> AliveUnits { get; }
+    IReadOnlyList<IUnit> Units { get; }
+    IReadOnlyList<IUnit> AliveUnits { get; }
     
     bool CanAct { get; }
     

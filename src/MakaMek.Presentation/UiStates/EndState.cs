@@ -33,7 +33,7 @@ public class EndState : IUiState
 
     private bool CanActivePlayerAct => _viewModel.Game?.CanActivePlayerAct ?? false;
 
-    public void HandleUnitSelection(Unit? unit)
+    public void HandleUnitSelection(IUnit? unit)
     {
         // In EndState, we allow selecting any unit on the map for viewing
         _viewModel.NotifyStateChanged();
@@ -98,7 +98,7 @@ public class EndState : IUiState
         return actions;
     }
 
-    private void ExecuteShutdownAction(Unit unit)
+    private void ExecuteShutdownAction(IUnit unit)
     {
         if (!IsActivePlayer || _viewModel.Game == null) return;
 
@@ -142,7 +142,7 @@ public class EndState : IUiState
         return (true, probability);
     }
 
-    private void ExecuteStartupAction(Unit unit)
+    private void ExecuteStartupAction(IUnit unit)
     {
         if (!IsActivePlayer || _viewModel.Game == null) return;
 

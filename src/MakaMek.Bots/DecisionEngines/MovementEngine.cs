@@ -86,7 +86,7 @@ public class MovementEngine : IBotDecisionEngine
         }
     }
 
-    private async Task MoveUnit(Unit unit, MovementType movementType, List<PathSegmentData> path)
+    private async Task MoveUnit(IUnit unit, MovementType movementType, List<PathSegmentData> path)
     {
         var moveCommand = new MoveUnitCommand
         {

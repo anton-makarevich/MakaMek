@@ -27,64 +27,53 @@ public class BattleMapViewModel : BaseViewModel
     private ClientGame? _game;
     private IDisposable? _gameSubscription;
     private IDisposable? _commandSubscription;
-    private List<Unit> _unitsToDeploy = [];
-    private Unit? _selectedUnit;
+    private IUnit? _selectedUnit;
     private readonly ObservableCollection<string> _commandLog = [];
-    private bool _isCommandLogExpanded;
-    private bool _isRecordSheetExpanded;
     private readonly ILocalizationService _localizationService;
-    private HexCoordinates? _directionSelectorPosition;
-    private bool _isDirectionSelectorVisible;
-    private IEnumerable<HexDirection>? _availableDirections;
-    private List<PathSegmentViewModel>? _movementPath;
-    private List<WeaponAttackViewModel>? _weaponAttacks;
-    private bool _isWeaponSelectionVisible;
     private readonly IDispatcherService _dispatcherService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
-    private AimedShotLocationSelectorViewModel? _unitPartSelector;
-    private bool _isUnitPartSelectorVisible;
 
 
     public HexCoordinates? DirectionSelectorPosition
     {
-        get => _directionSelectorPosition;
-        private set => SetProperty(ref _directionSelectorPosition, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     public bool IsDirectionSelectorVisible
     {
-        get => _isDirectionSelectorVisible;
-        private set => SetProperty(ref _isDirectionSelectorVisible, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     public IEnumerable<HexDirection>? AvailableDirections
     {
-        get => _availableDirections;
-        private set => SetProperty(ref _availableDirections, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     public List<PathSegmentViewModel>? MovementPath
     {
-        get => _movementPath;
-        private set => SetProperty(ref _movementPath, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     public List<WeaponAttackViewModel>? WeaponAttacks
     {
-        get => _weaponAttacks;
-        private set => SetProperty(ref _weaponAttacks, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     public AimedShotLocationSelectorViewModel? UnitPartSelector
     {
-        get => _unitPartSelector;
-        private set => SetProperty(ref _unitPartSelector, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     public bool IsUnitPartSelectorVisible
     {
-        get => _isUnitPartSelectorVisible;
-        private set => SetProperty(ref _isUnitPartSelectorVisible, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     public void DirectionSelectedCommand(HexDirection direction)
@@ -172,13 +161,12 @@ public class BattleMapViewModel : BaseViewModel
 
     public ObservableCollection<WeaponSelectionViewModel> WeaponSelectionItems { get; } = [];
 
-    private TargetSelectionViewModel? _selectedTarget;
     public TargetSelectionViewModel? SelectedTarget
     {
-        get => _selectedTarget;
+        get;
         set
         {
-            SetProperty(ref _selectedTarget, value);
+            SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(IsWeaponSelectionVisible));
         }
     }
@@ -191,8 +179,8 @@ public class BattleMapViewModel : BaseViewModel
     {
         get => CurrentState is WeaponsAttackState { CurrentStep: WeaponsAttackStep.TargetSelection }
             && SelectedTarget != null
-            && _isWeaponSelectionVisible;
-        set => SetProperty(ref _isWeaponSelectionVisible, value);
+            && field;
+        set => SetProperty(ref field, value);
     }
 
     public void CloseWeaponSelectionCommand()
@@ -426,15 +414,15 @@ public class BattleMapViewModel : BaseViewModel
         }
     }
 
-    public List<Unit> UnitsToDeploy
+    public List<IUnit> UnitsToDeploy
     {
-        get => _unitsToDeploy;
+        get;
         private set
         {
-            SetProperty(ref _unitsToDeploy, value);
+            SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(AreUnitsToDeployVisible));
         }
-    }
+    } = [];
 
     public bool AreUnitsToDeployVisible => Game is not null
                                            && Game.CanActivePlayerAct
@@ -452,7 +440,7 @@ public class BattleMapViewModel : BaseViewModel
 
     public IImageService ImageService { get; }
 
-    public Unit? SelectedUnit
+    public IUnit? SelectedUnit
     {
         get => _selectedUnit;
         set
@@ -471,7 +459,7 @@ public class BattleMapViewModel : BaseViewModel
         }
     }
     
-    public Unit? Attacker => CurrentState is WeaponsAttackState weaponsAttackState ? weaponsAttackState.Attacker : null;
+    public IUnit? Attacker => CurrentState is WeaponsAttackState weaponsAttackState ? weaponsAttackState.Attacker : null;
 
     public void HandleHexSelection(Hex selectedHex)
     {
@@ -498,16 +486,16 @@ public class BattleMapViewModel : BaseViewModel
 
     public bool IsCommandLogExpanded
     {
-        get => _isCommandLogExpanded;
-        set => SetProperty(ref _isCommandLogExpanded, value);
+        get;
+        set => SetProperty(ref field, value);
     }
 
     public bool IsRecordSheetExpanded
     {
-        get => _isRecordSheetExpanded;
+        get;
         set
         {
-            SetProperty(ref _isRecordSheetExpanded, value); 
+            SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(IsRecordSheetButtonVisible));
             NotifyPropertyChanged(nameof(IsRecordSheetPanelVisible));
         }
@@ -526,7 +514,7 @@ public class BattleMapViewModel : BaseViewModel
         IsRecordSheetExpanded = !IsRecordSheetExpanded;
     }
 
-    public IEnumerable<Unit> Units => Game?.AlivePlayers.SelectMany(p => p.AliveUnits) ?? [];
+    public IEnumerable<IUnit> Units => Game?.AlivePlayers.SelectMany(p => p.AliveUnits) ?? [];
 
     public IUiState CurrentState { get; private set; }
 
