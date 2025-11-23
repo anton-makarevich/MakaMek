@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Game;
+﻿using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
 namespace Sanet.MakaMek.Bots;
@@ -35,9 +36,15 @@ public class BotManager : IBotManager
             throw new ArgumentException("Player must have ControlType.Bot", nameof(player));
         }
 
-        // TODO: Join the game with the bot's units
-        // This will be implemented when ClientGame is modified to support bot joining
-        // _clientGame.JoinGameWithUnits(player, units, pilotAssignments);
+        // Join the game with the bot's units
+        ClientGame.JoinGameWithUnits(player,
+            player.Units.Select(u => u.ToData())
+                .ToList(),
+            player.Units.Select(u => new PilotAssignmentData
+        {
+            UnitId = u.Id,
+            PilotData = u.Pilot!.ToData()
+        }).ToList());
 
         // BotManager tracks which players are bots
         var bot = new Bot(player, ClientGame, difficulty);

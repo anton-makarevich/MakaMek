@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Shouldly;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
+using Sanet.MakaMek.Core.Data.Units;
 
 namespace Sanet.MakaMek.Bots.Tests;
 
@@ -86,8 +87,25 @@ public class BotManagerTests : IDisposable
         
         // Assert
         _sut.Bots.Count.ShouldBe(1);
-        _sut.Bots.First().Player.ShouldBe(player);
-        _sut.Bots.First().Difficulty.ShouldBe(BotDifficulty.Medium);
+        _sut.Bots[0].Player.ShouldBe(player);
+        _sut.Bots[0].Difficulty.ShouldBe(BotDifficulty.Medium);
+    }
+
+    [Fact]
+    public void AddBot_ShouldJoinGameWithUnits()
+    {
+        // Arrange
+        _sut.Initialize(_clientGame);
+        var player = CreateBotPlayer();
+        
+        // Act
+        _sut.AddBot(player);
+        
+        // Assert
+        _clientGame.Received().JoinGameWithUnits(
+            player,
+            Arg.Any<List<UnitData>>(),
+            Arg.Any<List<PilotAssignmentData>>());
     }
 
     [Fact]
