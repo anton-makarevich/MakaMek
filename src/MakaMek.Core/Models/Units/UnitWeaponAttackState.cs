@@ -9,12 +9,12 @@ namespace Sanet.MakaMek.Core.Models.Units;
 /// </summary>
 public class UnitWeaponAttackState
 {
-    private readonly Dictionary<Weapon, Unit> _weaponTargets = new();
+    private readonly Dictionary<Weapon, IUnit> _weaponTargets = new();
     
     /// <summary>
     /// Gets the primary target based on current weapon selections
     /// </summary>
-    public Unit? PrimaryTarget { get; private set; }
+    public IUnit? PrimaryTarget { get; private set; }
     
     /// <summary>
     /// Gets the arm location that is committed when the unit is prone (null if no arm is committed)
@@ -24,12 +24,12 @@ public class UnitWeaponAttackState
     /// <summary>
     /// Gets a read-only dictionary of weapon-to-target mappings
     /// </summary>
-    public IReadOnlyDictionary<Weapon, Unit> WeaponTargets => _weaponTargets;
+    public IReadOnlyDictionary<Weapon, IUnit> WeaponTargets => _weaponTargets;
     
     /// <summary>
     /// Gets all unique targets that have weapons assigned to them
     /// </summary>
-    public IEnumerable<Unit> AllTargets => _weaponTargets.Values.Distinct();
+    public IEnumerable<IUnit> AllTargets => _weaponTargets.Values.Distinct();
     
     /// <summary>
     /// Gets all weapons that are currently selected to fire
@@ -42,7 +42,7 @@ public class UnitWeaponAttackState
     /// <param name="weapon">The weapon to assign</param>
     /// <param name="target">The target for the weapon</param>
     /// <param name="attacker">The attacking unit (used for primary target calculation)</param>
-    public void SetWeaponTarget(Weapon weapon, Unit target, Unit attacker)
+    public void SetWeaponTarget(Weapon weapon, IUnit target, IUnit attacker)
     {
         _weaponTargets[weapon] = target;
         UpdateCommittedArm(attacker);
@@ -54,7 +54,7 @@ public class UnitWeaponAttackState
     /// </summary>
     /// <param name="weapon">The weapon to remove</param>
     /// <param name="attacker">The attacking unit (used for primary target calculation)</param>
-    public void RemoveWeaponTarget(Weapon weapon, Unit attacker)
+    public void RemoveWeaponTarget(Weapon weapon, IUnit attacker)
     {
         _weaponTargets.Remove(weapon);
         UpdateCommittedArm(attacker);
@@ -77,7 +77,7 @@ public class UnitWeaponAttackState
     /// <param name="weapon">The weapon to check</param>
     /// <param name="target">The target to check against (optional)</param>
     /// <returns>True if the weapon is assigned to the specified target (or any target if target is null)</returns>
-    public bool IsWeaponAssigned(Weapon weapon, Unit? target = null)
+    public bool IsWeaponAssigned(Weapon weapon, IUnit? target = null)
     {
         if (!_weaponTargets.TryGetValue(weapon, out var assignedTarget))
             return false;
@@ -88,7 +88,7 @@ public class UnitWeaponAttackState
     /// <summary>
     /// Updates the committed arm location based on current weapon selections when the unit is prone
     /// </summary>
-    private void UpdateCommittedArm(Unit attacker)
+    private void UpdateCommittedArm(IUnit attacker)
     {
         // Only track committed arm if the unit is prone
         if (attacker is not Mech { IsProne: true })
@@ -108,7 +108,7 @@ public class UnitWeaponAttackState
     /// Manually sets the primary target
     /// </summary>
     /// <param name="target">The target to set as primary</param>
-    public void SetPrimaryTarget(Unit? target)
+    public void SetPrimaryTarget(IUnit? target)
     {
         if (target == null)
         {
@@ -127,7 +127,7 @@ public class UnitWeaponAttackState
     /// <summary>
     /// Updates the primary target based on current weapon selections
     /// </summary>
-    private void UpdatePrimaryTarget(Unit attacker)
+    private void UpdatePrimaryTarget(IUnit attacker)
     {
         if (_weaponTargets.Count == 0)
         {

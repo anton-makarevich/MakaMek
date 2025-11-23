@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Game;
+﻿using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
 namespace Sanet.MakaMek.Bots;
@@ -8,48 +9,68 @@ namespace Sanet.MakaMek.Bots;
 /// </summary>
 public class BotManager : IBotManager
 {
-    private readonly List<IBot> _bots = [];
-    private ClientGame? _clientGame;
+    private readonly Dictionary<Guid, IBot> _bots = new(); // Key: PlayerId
 
-    public IReadOnlyList<IBot> Bots => _bots;
+    public IClientGame? ClientGame { get; private set; }
 
-    public void Initialize(ClientGame clientGame)
+    public IReadOnlyList<IBot> Bots => _bots.Values.ToList();
+
+    public void Initialize(IClientGame clientGame)
     {
         // Clean up existing bots if reinitializing
         Clear();
-        
-        _clientGame = clientGame;
+
+        ClientGame = clientGame;
     }
 
     public void AddBot(IPlayer player, BotDifficulty difficulty = BotDifficulty.Easy)
     {
-        if (_clientGame == null)
+        if (ClientGame == null)
         {
             throw new InvalidOperationException("BotManager must be initialized with a ClientGame before adding bots");
         }
 
-        // TODO: Join the game with the bot's units
-        // This will be implemented in Task 0.2 when ClientGame is modified
-        // _clientGame.JoinGameWithUnits(player, units, pilotAssignments, isBot: true);
+        // Ensure player has correct control type
+        if (player.ControlType != PlayerControlType.Bot)
+        {
+            throw new ArgumentException("Player must have ControlType.Bot", nameof(player));
+        }
 
-        // Create the bot player
-        var bot = new Bot(player, _clientGame, difficulty);
-        _bots.Add(bot);
+        // Join the game with the bot's units
+        ClientGame.JoinGameWithUnits(player,
+            player.Units.Select(u => u.ToData())
+                .ToList(),
+            player.Units.Select(u => new PilotAssignmentData
+        {
+            UnitId = u.Id,
+            PilotData = u.Pilot!.ToData()
+        }).ToList());
+
+        // BotManager tracks which players are bots
+        var bot = new Bot(player, ClientGame, difficulty);
+        _bots.Add(player.Id, bot);
     }
 
     public void RemoveBot(Guid playerId)
     {
-        var bot = _bots.FirstOrDefault(b => b.Player.Id == playerId);
-        if (bot == null) return;
+        if (_bots.TryGetValue(playerId, out var bot))
+        {
+            bot.Dispose();
+            _bots.Remove(playerId);
 
-        bot.Dispose();
-        _bots.Remove(bot);
-        //TODO: should bot controlled players leave the game?
+            // Optionally remove player from game
+            // _clientGame.RemovePlayer(playerId);
+        }
+    }
+
+    public bool IsBot(Guid playerId)
+    {
+        return _bots.ContainsKey(playerId);
     }
 
     public void Clear()
     {
-        foreach (var bot in _bots)
+        foreach (var bot in _bots.Values)
         {
             bot.Dispose();
         }

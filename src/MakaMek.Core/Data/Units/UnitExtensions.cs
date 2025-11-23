@@ -13,7 +13,7 @@ public static class UnitExtensions
     /// </summary>
     /// <param name="unit">The unit to convert</param>
     /// <returns>A UnitData object representing the unit</returns>
-    public static UnitData ToData(this Unit unit)
+    public static UnitData ToData(this IUnit unit)
     {
         // Create armor values dictionary
         var armorValues = new Dictionary<PartLocation, ArmorLocation>();

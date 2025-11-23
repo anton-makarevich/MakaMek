@@ -111,7 +111,7 @@ public record struct MechFallCommand : IGameCommand
             // Render each hit location using the new method
             foreach (var hitLocation in DamageData.HitLocations.HitLocations)
             {
-                stringBuilder.Append(hitLocation.Render(localizationService, unit));
+                stringBuilder.Append(hitLocation.Render(localizationService));
             }
         }
 

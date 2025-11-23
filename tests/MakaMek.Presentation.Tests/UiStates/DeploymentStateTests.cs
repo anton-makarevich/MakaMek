@@ -27,7 +27,7 @@ public class DeploymentStateTests
 {
     private DeploymentState _sut;
     private readonly ClientGame _game;
-    private readonly Unit _unit;
+    private readonly IUnit _unit;
     private readonly Hex _hex1;
     private readonly Hex _hex2;
     private readonly BattleMapViewModel _battleMapViewModel;

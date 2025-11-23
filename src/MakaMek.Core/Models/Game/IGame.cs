@@ -18,12 +18,12 @@ public interface IGame
     IObservable<PhaseNames> PhaseChanges { get; }
     IObservable<IPlayer?> ActivePlayerChanges { get; }
     IObservable<int> UnitsToPlayChanges { get; }
-    
-    BattleMap? BattleMap { get; }
-    void SetBattleMap(BattleMap map);
-    
+
+    IBattleMap? BattleMap { get; }
+    void SetBattleMap(IBattleMap map);
+
     Guid Id { get; }
-    
+
     IToHitCalculator ToHitCalculator { get; }
     IRulesProvider RulesProvider { get; }
 }

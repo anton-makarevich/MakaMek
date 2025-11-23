@@ -89,7 +89,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
                 // Use the Render method for each hit location
                 foreach (var hitLocation in ResolutionData.HitLocationsData.HitLocations)
                 {
-                    stringBuilder.Append(hitLocation.Render(localizationService, target));
+                    stringBuilder.Append(hitLocation.Render(localizationService));
                 }
             }
 

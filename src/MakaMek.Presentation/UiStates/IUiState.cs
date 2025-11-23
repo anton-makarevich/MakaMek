@@ -9,7 +9,7 @@ public interface IUiState
     bool IsActionRequired { get; }
     bool CanExecutePlayerAction => false;
     string PlayerActionLabel => string.Empty;
-    void HandleUnitSelection(Unit? unit);
+    void HandleUnitSelection(IUnit? unit);
     void HandleHexSelection(Hex hex);
     void HandleFacingSelection(HexDirection direction);
     IEnumerable<StateAction> GetAvailableActions() => new List<StateAction>();

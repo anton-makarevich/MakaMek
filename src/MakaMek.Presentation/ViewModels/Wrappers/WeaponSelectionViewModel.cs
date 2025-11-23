@@ -10,17 +10,12 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 public class WeaponSelectionViewModel : BindableBase
 {
-    private bool _isSelected;
     private readonly Action<Weapon, bool> _onSelectionChanged;
     private readonly Action<AimedShotLocationSelectorViewModel> _onShowAimedShotLocationSelector;
     private readonly Action _onHideAimedShotLocationSelector;
-    private Unit? _target;
     private bool _isEnabled;
-    private bool _isInRange;
-    private ToHitBreakdown? _modifiersBreakdown;
     private readonly ILocalizationService _localizationService;
     private readonly IToHitCalculator _toHitCalculator;
-    private PartLocation? _aimedShotTarget;
     private ToHitBreakdown? _originalModifiersBreakdown;
 
     public WeaponSelectionViewModel(
@@ -28,7 +23,7 @@ public class WeaponSelectionViewModel : BindableBase
         bool isInRange,
         bool isSelected,
         bool isEnabled,
-        Unit? target,
+        IUnit? target,
         Action<Weapon, bool> onSelectionChanged,
         Action<AimedShotLocationSelectorViewModel> onShowAimedShotLocationSelector, 
         Action onHideAimedShotLocationSelector,
@@ -53,22 +48,22 @@ public class WeaponSelectionViewModel : BindableBase
 
     public bool IsInRange
     {
-        get => _isInRange;
+        get;
         set
         {
-            SetProperty(ref _isInRange, value);
+            SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(IsAimedShotAvailable));
         }
     }
 
     public bool IsSelected
     {
-        get => _isSelected;
+        get;
         set
         {
             if (!IsEnabled) return;
-            if (value == _isSelected) return;
-            SetProperty(ref _isSelected, value);
+            if (value == field) return;
+            SetProperty(ref field, value);
             _onSelectionChanged(Weapon, value);
         }
     }
@@ -79,12 +74,12 @@ public class WeaponSelectionViewModel : BindableBase
         set => SetProperty(ref _isEnabled, value);
     }
 
-    public Unit? Target
+    public IUnit? Target
     {
-        get => _target;
+        get;
         set
         {
-            SetProperty(ref _target, value);
+            SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(IsAimedShotAvailable));
         }
     }
@@ -109,16 +104,16 @@ public class WeaponSelectionViewModel : BindableBase
     /// </summary>
     public ToHitBreakdown? ModifiersBreakdown
     {
-        get => _modifiersBreakdown;
+        get;
         set
         {
-            SetProperty(ref _modifiersBreakdown, value);
+            SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(HitProbability));
             NotifyPropertyChanged(nameof(HitProbabilityText));
             NotifyPropertyChanged(nameof(AttackPossibilityDescription));
         }
     }
-    
+
     public ToHitBreakdown? AimedOtherModifiersBreakdown { get; set; }
 
     public ToHitBreakdown? AimedHeadModifiersBreakdown { get; set; }
@@ -198,10 +193,10 @@ public class WeaponSelectionViewModel : BindableBase
     public PartLocation? AimedShotTarget
     {
         // Expose aimed target only when the weapon is actually selected to fire
-        get => IsSelected? _aimedShotTarget:null;
+        get => IsSelected? field:null;
         set
         {
-            SetProperty(ref _aimedShotTarget, value);
+            SetProperty(ref field, value);
             NotifyPropertyChanged(nameof(IsAimedShot));
             NotifyPropertyChanged(nameof(AimedShotText));
         }
@@ -238,7 +233,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// <summary>
     /// Determines if aimed shots are available for the given weapon and target combination
     /// </summary>
-    private bool CanUseAimedShot(Weapon weapon, Unit? target)
+    private bool CanUseAimedShot(Weapon weapon, IUnit? target)
     {
         // Aimed shots require:
         // 1. Target must be immobile

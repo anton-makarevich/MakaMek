@@ -30,7 +30,7 @@ public class EndStateTests
 {
     private readonly EndState _sut;
     private readonly ClientGame _game;
-    private readonly Unit _unit1;
+    private readonly IUnit _unit1;
     private readonly Player _player;
     private readonly BattleMapViewModel _battleMapViewModel;
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();

@@ -1,5 +1,7 @@
-﻿using Sanet.MakaMek.Core.Models.Game;
+﻿using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Bots.DecisionEngines;
 
@@ -8,26 +10,96 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 /// </summary>
 public class DeploymentEngine : IBotDecisionEngine
 {
-    private readonly ClientGame _clientGame;
+    private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly BotDifficulty _difficulty;
 
-    public DeploymentEngine(ClientGame clientGame, IPlayer player, BotDifficulty difficulty)
+    public DeploymentEngine(IClientGame clientGame, IPlayer player, BotDifficulty difficulty)
     {
         _clientGame = clientGame;
         _player = player;
         _difficulty = difficulty;
     }
 
-    public Task MakeDecision()
+    public async Task MakeDecision()
     {
-        // TODO: Implement deployment logic
-        // 1. Find undeployed units: player.Units.Where(u => !u.IsDeployed)
-        // 2. Get valid deployment hexes from map
-        // 3. Select random hex and direction
-        // 4. Publish DeployUnitCommand
-        
-        return Task.CompletedTask;
+        try
+        {
+            // 1. Find undeployed units
+            var undeployedUnits = _player.Units.Where(u => !u.IsDeployed).ToList();
+            if (undeployedUnits.Count == 0)
+            {
+                // No units to deploy, skip turn
+                return;
+            }
+
+            // 2. Select first undeployed unit (simple strategy)
+            var unit = undeployedUnits.First();
+
+            // 3. Get valid deployment hexes from map
+            var validHexes = GetValidDeploymentHexes();
+            if (!validHexes.Any())
+            {
+                // No valid deployment hexes available
+                return;
+            }
+
+            // 4. Select random hex and direction
+            var selectedHex = validHexes[Random.Shared.Next(validHexes.Count)];
+            var selectedDirection = (HexDirection)Random.Shared.Next(0, 6);
+
+            // 5. Create and send deploy command
+            var deployCommand = new DeployUnitCommand
+            {
+                GameOriginId = _clientGame.Id,
+                PlayerId = _player.Id,
+                UnitId = unit.Id,
+                Position = selectedHex.ToData(),
+                Direction = (int)selectedDirection
+            };
+
+            await _clientGame.DeployUnit(deployCommand);
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't throw - graceful degradation
+            Console.WriteLine($"DeploymentEngine error for player {_player.Name}: {ex.Message}");
+        }
+    }
+
+    private List<HexCoordinates> GetValidDeploymentHexes()
+    {
+        var validHexes = new List<HexCoordinates>();
+
+        if (_clientGame.BattleMap == null)
+            return validHexes;
+
+        // For Phase 1, use simple deployment strategy:
+        // Deploy on the first two rows of the map (basic deployment zone)
+        for (int q = 1; q <= _clientGame.BattleMap.Width; q++)
+        {
+            for (int r = 1; r <= Math.Min(2, _clientGame.BattleMap.Height); r++)
+            {
+                var coordinates = new HexCoordinates(q, r);
+                var hex = _clientGame.BattleMap.GetHex(coordinates);
+
+                // Check if hex exists and is not occupied
+                if (hex != null && !IsHexOccupied(coordinates))
+                {
+                    validHexes.Add(coordinates);
+                }
+            }
+        }
+
+        return validHexes;
+    }
+
+    private bool IsHexOccupied(HexCoordinates coordinates)
+    {
+        // Check if any unit is already deployed at this position
+        return _clientGame.Players
+            .SelectMany(p => p.Units)
+            .Any(u => u.Position?.Coordinates == coordinates);
     }
 }
 

@@ -11,7 +11,7 @@ public class DeploymentCommandBuilder(Guid gameId, Guid playerId) : ClientComman
 
     public override bool CanBuild => _unitId.HasValue && _position!=null && _direction.HasValue;
     
-    public void SetUnit(Unit unit) => _unitId = unit.Id;
+    public void SetUnit(IUnit unit) => _unitId = unit.Id;
     public void SetPosition(HexCoordinates pos) => _position = pos;
     public void SetDirection(HexDirection dir) => _direction = dir;
     

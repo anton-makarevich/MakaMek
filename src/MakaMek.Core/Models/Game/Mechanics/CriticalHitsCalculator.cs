@@ -20,7 +20,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
         _damageTransferCalculator = damageTransferCalculator;
     }
     
-    public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(Unit unit, List<LocationDamageData> hitLocationsData)
+    public CriticalHitsResolutionCommand? CalculateAndApplyCriticalHits(IUnit unit, List<LocationDamageData> hitLocationsData)
     {
         var allCriticalHitsData = ProcessAndApplyCriticalHitsDamage(unit, hitLocationsData);
 
@@ -79,7 +79,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             .Concat(explosionConsequences).ToList();
     }
     
-    private List<LocationCriticalHitsData> ProcessAndApplyCriticalHitsDamage(Unit unit, List<LocationDamageData> hitLocationsData)
+    private List<LocationCriticalHitsData> ProcessAndApplyCriticalHitsDamage(IUnit unit, List<LocationDamageData> hitLocationsData)
     {
         var allCriticalHitsData = new List<LocationCriticalHitsData>();
 
@@ -99,7 +99,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
                 allCriticalHitsData.Add(criticalHitsData);
             }
             var explosions = criticalHitsData?
-                .HitComponents?.SelectMany(c => c.ExplosionDamageDistribution ?? []) ?? [];
+                .HitComponents?.SelectMany(c => c.ExplosionDamageDistribution) ?? [];
             foreach (var explosion in explosions)
             {
                 if (explosion.StructureDamage > 0)
@@ -114,7 +114,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     /// Calculates critical hits for a specific location that received structure damage
     /// </summary>
     private LocationCriticalHitsData? CalculateCriticalHitsForLocation(
-        Unit unit,
+        IUnit unit,
         PartLocation location,
         int structureDamage)
     {

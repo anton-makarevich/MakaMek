@@ -18,9 +18,8 @@ public record LocationHitData(
     /// Renders the hit location information including damage and any critical hits
     /// </summary>
     /// <param name="localizationService">Service used to get localized strings</param>
-    /// <param name="unit">Unit to get component names</param>
     /// <returns>String representation of the hit location with damage and criticals</returns>
-    public string Render(ILocalizationService localizationService, Unit unit)
+    public string Render(ILocalizationService localizationService)
     {
         var stringBuilder = new StringBuilder();
         

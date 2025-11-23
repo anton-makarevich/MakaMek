@@ -11,7 +11,6 @@ namespace Sanet.MakaMek.Core.Tests.Data.Game;
 public class LocationHitDataTests
 {
     private readonly ILocalizationService _localizationService = new FakeLocalizationService();
-    private readonly Unit _unit;
 
     public LocationHitDataTests()
     {
@@ -21,7 +20,7 @@ public class LocationHitDataTests
             new ClassicBattletechComponentProvider(),
             _localizationService);
         var unitData = MechFactoryTests.CreateDummyMechData();
-        _unit = mechFactory.Create(unitData);
+        mechFactory.Create(unitData);
     }
     
     private LocationHitData CreateHitDataForLocation(PartLocation partLocation,
@@ -50,7 +49,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -69,7 +68,7 @@ public class LocationHitDataTests
             [6]) with { InitialLocation = PartLocation.RightTorso };
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -88,7 +87,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -107,7 +106,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -145,7 +144,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -166,7 +165,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldBeEmpty();
@@ -188,7 +187,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -211,7 +210,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -232,7 +231,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -253,7 +252,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -276,7 +275,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -299,7 +298,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();
@@ -324,7 +323,7 @@ public class LocationHitDataTests
         );
 
         // Act
-        var result = sut.Render(_localizationService, _unit);
+        var result = sut.Render(_localizationService);
 
         // Assert
         result.ShouldNotBeEmpty();

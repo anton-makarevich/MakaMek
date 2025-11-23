@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Core.Models.Map;
 /// <summary>
 /// Represents the game battle map, managing hexes and providing pathfinding capabilities
 /// </summary>
-public class BattleMap(int width, int height)
+public class BattleMap(int width, int height) : IBattleMap
 {
     private readonly Dictionary<HexCoordinates, Hex> _hexes = new();
     private readonly LineOfSightCache _losCache = new();

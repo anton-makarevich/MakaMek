@@ -17,7 +17,7 @@ using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
-public sealed class ClientGame : BaseGame, IDisposable
+public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 {
     private readonly Subject<IGameCommand> _commandSubject = new();
     private readonly List<IGameCommand> _commandLog = [];
@@ -52,7 +52,7 @@ public sealed class ClientGame : BaseGame, IDisposable
 
     public IReadOnlyList<Guid> LocalPlayers => _localPlayers;
 
-    public override bool IsDisposed => _isDisposed;
+    public bool IsDisposed => _isDisposed;
 
     public override void HandleCommand(IGameCommand command)
     {
