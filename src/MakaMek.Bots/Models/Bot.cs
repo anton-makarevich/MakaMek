@@ -1,5 +1,6 @@
 ﻿using AsyncAwaitBestPractices;
 using Sanet.MakaMek.Bots.DecisionEngines;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
@@ -13,7 +14,7 @@ namespace Sanet.MakaMek.Bots.Models;
 /// </summary>
 public class Bot : IBot
 {
-    private readonly Dictionary<PhaseNames, IBotDecisionEngine> _decisionEngines;
+    private readonly IDecisionEngineProvider _decisionEngineProvider;
     private IBotDecisionEngine? _currentDecisionEngine;
     private IDisposable? _commandSubscription;
     private bool _isDisposed;
@@ -30,13 +31,15 @@ public class Bot : IBot
         Difficulty = difficulty;
 
         // Initialize decision engines for each phase
-        _decisionEngines = new Dictionary<PhaseNames, IBotDecisionEngine>
+        var decisionEngines = new Dictionary<PhaseNames, IBotDecisionEngine>
         {
             { PhaseNames.Deployment, new DeploymentEngine(clientGame, player, difficulty) },
             { PhaseNames.Movement, new MovementEngine(clientGame, player, difficulty) },
             { PhaseNames.WeaponsAttack, new WeaponsEngine(clientGame, player, difficulty) },
             { PhaseNames.End, new EndPhaseEngine(clientGame, player, difficulty) }
         };
+        
+        _decisionEngineProvider = new DecisionEngineProvider(decisionEngines);
 
         // Subscribe to game commands
         _commandSubscription = clientGame.Commands.Subscribe(OnCommandReceived);
@@ -67,7 +70,7 @@ public class Bot : IBot
 
     private void UpdateDecisionEngine(PhaseNames phase)
     {
-        _currentDecisionEngine = _decisionEngines.GetValueOrDefault(phase);
+        _currentDecisionEngine = _decisionEngineProvider.GetEngineForPhase(phase);
     }
 
     private async Task MakeDecisionAsync()
