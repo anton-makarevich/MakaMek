@@ -12,15 +12,15 @@ public class DecisionEngineProvider : IDecisionEngineProvider
 {
     private readonly Dictionary<PhaseNames, IBotDecisionEngine> _decisionEngines;
 
-    public DecisionEngineProvider(IClientGame clientGame, BotDifficulty difficulty)
+    public DecisionEngineProvider(IClientGame clientGame)
     {
         // Initialize decision engines for each phase (shared across all bots)
         _decisionEngines = new Dictionary<PhaseNames, IBotDecisionEngine>
         {
-            { PhaseNames.Deployment, new DeploymentEngine(clientGame, difficulty) },
-            { PhaseNames.Movement, new MovementEngine(clientGame, difficulty) },
-            { PhaseNames.WeaponsAttack, new WeaponsEngine(clientGame, difficulty) },
-            { PhaseNames.End, new EndPhaseEngine(clientGame, difficulty) }
+            { PhaseNames.Deployment, new DeploymentEngine(clientGame) },
+            { PhaseNames.Movement, new MovementEngine(clientGame) },
+            { PhaseNames.WeaponsAttack, new WeaponsEngine(clientGame) },
+            { PhaseNames.End, new EndPhaseEngine(clientGame) }
         };
     }
 

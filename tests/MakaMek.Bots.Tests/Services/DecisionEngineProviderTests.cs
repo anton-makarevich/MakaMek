@@ -1,6 +1,5 @@
 using NSubstitute;
 using Sanet.MakaMek.Bots.DecisionEngines;
-using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -18,7 +17,7 @@ public class DecisionEngineProviderTests
         _clientGame = Substitute.For<IClientGame>();
         _clientGame.Id.Returns(Guid.NewGuid());
         
-        _sut = new DecisionEngineProvider(_clientGame, BotDifficulty.Easy);
+        _sut = new DecisionEngineProvider(_clientGame);
     }
 
     [Fact]
@@ -96,19 +95,5 @@ public class DecisionEngineProviderTests
         
         // Assert
         engine1.ShouldBeSameAs(engine2);
-    }
-
-    [Fact]
-    public void Constructor_WithDifferentDifficulties_ShouldCreateProviders()
-    {
-        // Arrange & Act
-        var easyProvider = new DecisionEngineProvider(_clientGame, BotDifficulty.Easy);
-        var mediumProvider = new DecisionEngineProvider(_clientGame, BotDifficulty.Medium);
-        var hardProvider = new DecisionEngineProvider(_clientGame, BotDifficulty.Hard);
-        
-        // Assert
-        easyProvider.GetEngineForPhase(PhaseNames.Deployment).ShouldNotBeNull();
-        mediumProvider.GetEngineForPhase(PhaseNames.Deployment).ShouldNotBeNull();
-        hardProvider.GetEngineForPhase(PhaseNames.Deployment).ShouldNotBeNull();
     }
 }

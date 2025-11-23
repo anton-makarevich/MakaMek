@@ -20,16 +20,13 @@ public class Bot : IBot
     private bool _isDisposed;
 
     public IPlayer Player { get; }
-    public BotDifficulty Difficulty { get; }
 
     public Bot(
         IPlayer player,
         IClientGame clientGame,
-        BotDifficulty difficulty,
         IDecisionEngineProvider decisionEngineProvider)
     {
         Player = player;
-        Difficulty = difficulty;
         _decisionEngineProvider = decisionEngineProvider;
 
         // Subscribe to game commands

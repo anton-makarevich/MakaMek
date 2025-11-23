@@ -1,5 +1,4 @@
-﻿using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+﻿using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -12,12 +11,10 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 public class DeploymentEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
-    private readonly BotDifficulty _difficulty;
 
-    public DeploymentEngine(IClientGame clientGame, BotDifficulty difficulty)
+    public DeploymentEngine(IClientGame clientGame)
     {
         _clientGame = clientGame;
-        _difficulty = difficulty;
     }
 
     public async Task MakeDecision(IPlayer player)
@@ -37,7 +34,7 @@ public class DeploymentEngine : IBotDecisionEngine
 
             // 3. Get valid deployment hexes from map
             var validHexes = GetValidDeploymentHexes();
-            if (!validHexes.Any())
+            if (validHexes.Count == 0)
             {
                 // No valid deployment hexes available
                 return;

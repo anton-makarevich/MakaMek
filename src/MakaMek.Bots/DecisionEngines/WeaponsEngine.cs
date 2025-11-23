@@ -1,5 +1,4 @@
-﻿using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Core.Data.Game;
+﻿using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -14,12 +13,10 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 public class WeaponsEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
-    private readonly BotDifficulty _difficulty;
 
-    public WeaponsEngine(IClientGame clientGame, BotDifficulty difficulty)
+    public WeaponsEngine(IClientGame clientGame)
     {
         _clientGame = clientGame;
-        _difficulty = difficulty;
     }
 
     public async Task MakeDecision(IPlayer player)

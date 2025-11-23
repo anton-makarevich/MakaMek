@@ -11,10 +11,4 @@ public interface IBot : IDisposable
     /// Gets the player associated with this bot
     /// </summary>
     IPlayer Player { get; }
-    
-    /// <summary>
-    /// Gets the difficulty level of this bot
-    /// </summary>
-    BotDifficulty Difficulty { get; }
 }
-

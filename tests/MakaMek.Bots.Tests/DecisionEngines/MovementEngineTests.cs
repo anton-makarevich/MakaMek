@@ -1,9 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Bots.DecisionEngines;
-using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -30,7 +27,7 @@ public class MovementEngineTests
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Player");
         
-        _sut = new MovementEngine(_clientGame, BotDifficulty.Easy);
+        _sut = new MovementEngine(_clientGame);
     }
 
     [Fact]

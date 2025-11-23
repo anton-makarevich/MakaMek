@@ -84,12 +84,11 @@ public class BotManagerTests : IDisposable
         var player = CreateBotPlayer();
         
         // Act
-        _sut.AddBot(player, BotDifficulty.Medium);
+        _sut.AddBot(player);
         
         // Assert
         _sut.Bots.Count.ShouldBe(1);
         _sut.Bots[0].Player.ShouldBe(player);
-        _sut.Bots[0].Difficulty.ShouldBe(BotDifficulty.Medium);
     }
 
     [Fact]
@@ -174,7 +173,7 @@ public class BotManagerTests : IDisposable
         var player1 = CreateBotPlayer();
         var player2 = CreateBotPlayer();
         _sut.AddBot(player1);
-        _sut.AddBot(player2, BotDifficulty.Hard);
+        _sut.AddBot(player2);
         _sut.Bots.Count.ShouldBe(2);
         
         // Act

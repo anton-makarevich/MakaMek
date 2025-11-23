@@ -23,8 +23,7 @@ public interface IBotManager
     /// Adds a new bot player to the game
     /// </summary>
     /// <param name="player">The player to add as a bot</param>
-    /// <param name="difficulty">The difficulty level of the bot</param>
-    void AddBot(IPlayer player, BotDifficulty difficulty = BotDifficulty.Easy);
+    void AddBot(IPlayer player);
 
     /// <summary>
     /// Removes a bot player from the game

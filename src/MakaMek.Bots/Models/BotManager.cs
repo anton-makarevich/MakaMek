@@ -1,8 +1,6 @@
-﻿using Sanet.MakaMek.Bots.DecisionEngines;
-using Sanet.MakaMek.Bots.Services;
+﻿using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
 namespace Sanet.MakaMek.Bots.Models;
@@ -27,11 +25,10 @@ public class BotManager : IBotManager
         ClientGame = clientGame;
         
         // Create shared decision engine provider for all bots
-        // Using Medium difficulty as default - can be made configurable later
-        _sharedDecisionEngineProvider = new DecisionEngineProvider(clientGame, BotDifficulty.Medium);
+        _sharedDecisionEngineProvider = new DecisionEngineProvider(clientGame);
     }
 
-    public void AddBot(IPlayer player, BotDifficulty difficulty = BotDifficulty.Easy)
+    public void AddBot(IPlayer player)
     {
         if (ClientGame == null)
         {
@@ -60,7 +57,7 @@ public class BotManager : IBotManager
         }
 
         // BotManager tracks which players are bots
-        var bot = new Bot(player, ClientGame, difficulty, _sharedDecisionEngineProvider);
+        var bot = new Bot(player, ClientGame, _sharedDecisionEngineProvider);
         _bots.Add(player.Id, bot);
     }
 

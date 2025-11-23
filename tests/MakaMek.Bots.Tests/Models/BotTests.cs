@@ -40,7 +40,7 @@ public class BotTests : IDisposable
         _movementEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(_movementEngine);
         
-        _sut = new Bot(_player, _clientGame, BotDifficulty.Easy, _decisionEngineProvider);
+        _sut = new Bot(_player, _clientGame, _decisionEngineProvider);
     }
 
     [Fact]
@@ -48,7 +48,6 @@ public class BotTests : IDisposable
     {
         // Assert
         _sut.Player.ShouldBe(_player);
-        _sut.Difficulty.ShouldBe(BotDifficulty.Easy);
     }
 
     [Fact]
@@ -60,7 +59,7 @@ public class BotTests : IDisposable
         decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
         
         // Act - Create a new bot and send a command
-        using var bot = new Bot(_player, _clientGame, BotDifficulty.Easy, decisionEngineProvider);
+        using var bot = new Bot(_player, _clientGame, decisionEngineProvider);
         _commandSubject.OnNext(new ChangePhaseCommand
         {
             GameOriginId = _clientGame.Id,

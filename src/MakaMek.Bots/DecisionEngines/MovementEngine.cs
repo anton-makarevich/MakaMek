@@ -1,5 +1,4 @@
-﻿using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Core.Data.Game;
+﻿using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -14,12 +13,10 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 public class MovementEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
-    private readonly BotDifficulty _difficulty;
 
-    public MovementEngine(IClientGame clientGame, BotDifficulty difficulty)
+    public MovementEngine(IClientGame clientGame)
     {
         _clientGame = clientGame;
-        _difficulty = difficulty;
     }
 
     public async Task MakeDecision(IPlayer player)
@@ -28,7 +25,7 @@ public class MovementEngine : IBotDecisionEngine
         {
             // 1. Find unmoved units
             var unmovedUnits = player.AliveUnits.Where(u => u.MovementTypeUsed == null).ToList();
-            if (!unmovedUnits.Any())
+            if (unmovedUnits.Count == 0)
             {
                 // No units to move, skip turn
                 return;
@@ -44,7 +41,7 @@ public class MovementEngine : IBotDecisionEngine
             }
 
             // 3. Select movement type (prefer Walk for Phase 1)
-            var movementType = MovementType.Walk;
+            const MovementType movementType = MovementType.Walk;
             var movementPoints = unit.GetMovementPoints(movementType);
 
             // 4. Find a random valid destination
@@ -53,7 +50,7 @@ public class MovementEngine : IBotDecisionEngine
                 .GetReachableHexes(unit.Position, movementPoints, prohibitedHexes)
                 .ToList();
 
-            if (!reachableHexes.Any())
+            if (reachableHexes.Count == 0)
             {
                 // No reachable hexes, stand still
                 await MoveUnit(player, unit, movementType, []);
