@@ -1,5 +1,8 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
+﻿using Sanet.MakaMek.Bots.DecisionEngines;
+using Sanet.MakaMek.Bots.Services;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
 namespace Sanet.MakaMek.Bots.Models;
@@ -46,8 +49,18 @@ public class BotManager : IBotManager
             PilotData = u.Pilot!.ToData()
         }).ToList());
 
+        // Create decision engines for the bot
+        var decisionEngines = new Dictionary<PhaseNames, IBotDecisionEngine>
+        {
+            { PhaseNames.Deployment, new DeploymentEngine(ClientGame, player, difficulty) },
+            { PhaseNames.Movement, new MovementEngine(ClientGame, player, difficulty) },
+            { PhaseNames.WeaponsAttack, new WeaponsEngine(ClientGame, player, difficulty) },
+            { PhaseNames.End, new EndPhaseEngine(ClientGame, player, difficulty) }
+        };
+        var decisionEngineProvider = new DecisionEngineProvider(decisionEngines);
+
         // BotManager tracks which players are bots
-        var bot = new Bot(player, ClientGame, difficulty);
+        var bot = new Bot(player, ClientGame, difficulty, decisionEngineProvider);
         _bots.Add(player.Id, bot);
     }
 

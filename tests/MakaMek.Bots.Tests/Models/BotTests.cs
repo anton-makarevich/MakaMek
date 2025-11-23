@@ -3,6 +3,7 @@ using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Bots.DecisionEngines;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
@@ -17,6 +18,7 @@ public class BotTests : IDisposable
     private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly Subject<IGameCommand> _commandSubject;
+    private readonly IDecisionEngineProvider _decisionEngineProvider;
     private readonly Bot _sut;
 
     public BotTests()
@@ -24,13 +26,18 @@ public class BotTests : IDisposable
         _clientGame = Substitute.For<IClientGame>();
         _player = Substitute.For<IPlayer>();
         _commandSubject = new Subject<IGameCommand>();
+        _decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
         
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Bot");
         _clientGame.Commands.Returns(_commandSubject.AsObservable());
         _clientGame.Id.Returns(Guid.NewGuid());
         
-        _sut = new Bot(_player, _clientGame, BotDifficulty.Easy);
+        // Configure mock provider to return appropriate engines for different phases
+        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+        
+        _sut = new Bot(_player, _clientGame, BotDifficulty.Easy, _decisionEngineProvider);
     }
 
     [Fact]
@@ -44,8 +51,13 @@ public class BotTests : IDisposable
     [Fact]
     public void Constructor_ShouldSubscribeToClientGameCommands()
     {
+        // Arrange
+        var decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
+        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+        
         // Act - Create a new bot and send a command
-        using var bot = new Bot(_player, _clientGame, BotDifficulty.Easy);
+        using var bot = new Bot(_player, _clientGame, BotDifficulty.Easy, decisionEngineProvider);
         _commandSubject.OnNext(new ChangePhaseCommand
         {
             GameOriginId = _clientGame.Id,
@@ -56,13 +68,16 @@ public class BotTests : IDisposable
         Thread.Sleep(100);
 
         // Assert 
-        bot.DecisionEngine.ShouldBeOfType<MovementEngine>();
+        bot.DecisionEngine.ShouldBe(movementEngine);
     }
 
     [Fact]
     public void OnCommandReceived_WhenChangePhaseCommand_ShouldUpdateDecisionEngine()
     {
         // Arrange
+        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+        
         var phaseCommand = new ChangePhaseCommand
         {
             GameOriginId = _clientGame.Id,
@@ -73,7 +88,7 @@ public class BotTests : IDisposable
         _commandSubject.OnNext(phaseCommand);
         
         // Assert 
-        _sut.DecisionEngine.ShouldBeOfType<MovementEngine>();
+        _sut.DecisionEngine.ShouldBe(movementEngine);
     }
 
     [Fact]
@@ -128,25 +143,6 @@ public class BotTests : IDisposable
         
         // Assert - Bot should handle the command without throwing
         _sut.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void GetThinkingDelay_ShouldReturnDifferentValuesBasedOnDifficulty()
-    {
-        // Arrange & Act
-        var easyBot = new Bot(_player, _clientGame, BotDifficulty.Easy);
-        var mediumBot = new Bot(_player, _clientGame, BotDifficulty.Medium);
-        var hardBot = new Bot(_player, _clientGame, BotDifficulty.Hard);
-
-        // Assert - All bots should be created successfully
-        easyBot.ShouldNotBeNull();
-        mediumBot.ShouldNotBeNull();
-        hardBot.ShouldNotBeNull();
-        
-        // Cleanup
-        easyBot.Dispose();
-        mediumBot.Dispose();
-        hardBot.Dispose();
     }
 
     [Fact]

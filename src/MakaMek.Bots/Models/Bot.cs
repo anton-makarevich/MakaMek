@@ -25,21 +25,12 @@ public class Bot : IBot
     public Bot(
         IPlayer player,
         IClientGame clientGame,
-        BotDifficulty difficulty)
+        BotDifficulty difficulty,
+        IDecisionEngineProvider decisionEngineProvider)
     {
         Player = player;
         Difficulty = difficulty;
-
-        // Initialize decision engines for each phase
-        var decisionEngines = new Dictionary<PhaseNames, IBotDecisionEngine>
-        {
-            { PhaseNames.Deployment, new DeploymentEngine(clientGame, player, difficulty) },
-            { PhaseNames.Movement, new MovementEngine(clientGame, player, difficulty) },
-            { PhaseNames.WeaponsAttack, new WeaponsEngine(clientGame, player, difficulty) },
-            { PhaseNames.End, new EndPhaseEngine(clientGame, player, difficulty) }
-        };
-        
-        _decisionEngineProvider = new DecisionEngineProvider(decisionEngines);
+        _decisionEngineProvider = decisionEngineProvider;
 
         // Subscribe to game commands
         _commandSubscription = clientGame.Commands.Subscribe(OnCommandReceived);
