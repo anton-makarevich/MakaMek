@@ -2,7 +2,7 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace Sanet.MakaMek.Bots;
+namespace Sanet.MakaMek.Bots.Models;
 
 /// <summary>
 /// Manages the lifecycle of bot players in the game

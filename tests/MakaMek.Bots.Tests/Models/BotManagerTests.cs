@@ -1,13 +1,14 @@
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using NSubstitute;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Shouldly;
-using System.Reactive.Subjects;
-using System.Reactive.Linq;
-using Sanet.MakaMek.Core.Data.Units;
 
-namespace Sanet.MakaMek.Bots.Tests;
+namespace Sanet.MakaMek.Bots.Tests.Models;
 
 public class BotManagerTests : IDisposable
 {

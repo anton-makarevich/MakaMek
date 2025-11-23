@@ -6,7 +6,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace Sanet.MakaMek.Bots;
+namespace Sanet.MakaMek.Bots.Models;
 
 /// <summary>
 /// Represents a bot player that observes game state and makes automated decisions

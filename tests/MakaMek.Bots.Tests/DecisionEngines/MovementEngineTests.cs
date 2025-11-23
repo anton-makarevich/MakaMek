@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Bots.DecisionEngines;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Map;

@@ -1,4 +1,4 @@
-﻿namespace Sanet.MakaMek.Bots;
+﻿namespace Sanet.MakaMek.Bots.Models;
 
 /// <summary>
 /// Represents the difficulty level of a bot player

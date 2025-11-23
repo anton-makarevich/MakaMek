@@ -1,6 +1,7 @@
-﻿using Shouldly;
+﻿using Sanet.MakaMek.Bots.Models;
+using Shouldly;
 
-namespace Sanet.MakaMek.Bots.Tests;
+namespace Sanet.MakaMek.Bots.Tests.Models;
 
 public class BotDifficultyTests
 {
