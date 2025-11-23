@@ -77,7 +77,7 @@ public class Bot : IBot
                 await Task.Delay(thinkingDelay);
             }
 
-            await _currentDecisionEngine.MakeDecision();
+            await _currentDecisionEngine.MakeDecision(Player);
         }
         catch (Exception ex)
         {

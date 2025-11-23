@@ -12,22 +12,20 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 public class DeploymentEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
-    private readonly IPlayer _player;
     private readonly BotDifficulty _difficulty;
 
-    public DeploymentEngine(IClientGame clientGame, IPlayer player, BotDifficulty difficulty)
+    public DeploymentEngine(IClientGame clientGame, BotDifficulty difficulty)
     {
         _clientGame = clientGame;
-        _player = player;
         _difficulty = difficulty;
     }
 
-    public async Task MakeDecision()
+    public async Task MakeDecision(IPlayer player)
     {
         try
         {
             // 1. Find undeployed units
-            var undeployedUnits = _player.Units.Where(u => !u.IsDeployed).ToList();
+            var undeployedUnits = player.Units.Where(u => !u.IsDeployed).ToList();
             if (undeployedUnits.Count == 0)
             {
                 // No units to deploy, skip turn
@@ -53,7 +51,7 @@ public class DeploymentEngine : IBotDecisionEngine
             var deployCommand = new DeployUnitCommand
             {
                 GameOriginId = _clientGame.Id,
-                PlayerId = _player.Id,
+                PlayerId = player.Id,
                 UnitId = unit.Id,
                 Position = selectedHex.ToData(),
                 Direction = (int)selectedDirection
@@ -64,7 +62,7 @@ public class DeploymentEngine : IBotDecisionEngine
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation
-            Console.WriteLine($"DeploymentEngine error for player {_player.Name}: {ex.Message}");
+            Console.WriteLine($"DeploymentEngine error for player {player.Name}: {ex.Message}");
         }
     }
 

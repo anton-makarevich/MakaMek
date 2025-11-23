@@ -14,22 +14,20 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 public class MovementEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
-    private readonly IPlayer _player;
     private readonly BotDifficulty _difficulty;
 
-    public MovementEngine(IClientGame clientGame, IPlayer player, BotDifficulty difficulty)
+    public MovementEngine(IClientGame clientGame, BotDifficulty difficulty)
     {
         _clientGame = clientGame;
-        _player = player;
         _difficulty = difficulty;
     }
 
-    public async Task MakeDecision()
+    public async Task MakeDecision(IPlayer player)
     {
         try
         {
             // 1. Find unmoved units
-            var unmovedUnits = _player.AliveUnits.Where(u => u.MovementTypeUsed == null).ToList();
+            var unmovedUnits = player.AliveUnits.Where(u => u.MovementTypeUsed == null).ToList();
             if (!unmovedUnits.Any())
             {
                 // No units to move, skip turn
@@ -50,7 +48,7 @@ public class MovementEngine : IBotDecisionEngine
             var movementPoints = unit.GetMovementPoints(movementType);
 
             // 4. Find a random valid destination
-            var prohibitedHexes = GetProhibitedHexes();
+            var prohibitedHexes = GetProhibitedHexes(player);
             var reachableHexes = _clientGame.BattleMap
                 .GetReachableHexes(unit.Position, movementPoints, prohibitedHexes)
                 .ToList();
@@ -58,7 +56,7 @@ public class MovementEngine : IBotDecisionEngine
             if (!reachableHexes.Any())
             {
                 // No reachable hexes, stand still
-                await MoveUnit(unit, movementType, []);
+                await MoveUnit(player, unit, movementType, []);
                 return;
             }
 
@@ -72,27 +70,27 @@ public class MovementEngine : IBotDecisionEngine
             if (path == null)
             {
                 // No path found, stand still
-                await MoveUnit(unit, movementType, []);
+                await MoveUnit(player, unit, movementType, []);
                 return;
             }
 
             // 7. Convert path to command format
             var pathData = path.Select(segment => segment.ToData()).ToList();
-            await MoveUnit(unit, movementType, pathData);
+            await MoveUnit(player, unit, movementType, pathData);
         }
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation
-            Console.WriteLine($"MovementEngine error for player {_player.Name}: {ex.Message}");
+            Console.WriteLine($"MovementEngine error for player {player.Name}: {ex.Message}");
         }
     }
 
-    private async Task MoveUnit(IUnit unit, MovementType movementType, List<PathSegmentData> path)
+    private async Task MoveUnit(IPlayer player, IUnit unit, MovementType movementType, List<PathSegmentData> path)
     {
         var moveCommand = new MoveUnitCommand
         {
             GameOriginId = _clientGame.Id,
-            PlayerId = _player.Id,
+            PlayerId = player.Id,
             UnitId = unit.Id,
             MovementType = movementType,
             MovementPath = path
@@ -101,11 +99,11 @@ public class MovementEngine : IBotDecisionEngine
         await _clientGame.MoveUnit(moveCommand);
     }
 
-    private List<HexCoordinates> GetProhibitedHexes()
+    private List<HexCoordinates> GetProhibitedHexes(IPlayer player)
     {
         // Get hexes with enemy units - these will be excluded from pathfinding
         return _clientGame.Players
-            .Where(p => p.Id != _player.Id)
+            .Where(p => p.Id != player.Id)
             .SelectMany(p => p.AliveUnits)
             .Where(u => u.Position != null)
             .Select(u => u.Position!.Coordinates)

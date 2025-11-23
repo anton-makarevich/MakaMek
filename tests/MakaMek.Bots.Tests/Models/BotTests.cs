@@ -35,6 +35,8 @@ public class BotTests : IDisposable
         
         // Configure mock provider to return appropriate engines for different phases
         var movementEngine = Substitute.For<IBotDecisionEngine>();
+        // Engine's MakeDecision now accepts IPlayer parameter
+        movementEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
         
         _sut = new Bot(_player, _clientGame, BotDifficulty.Easy, _decisionEngineProvider);

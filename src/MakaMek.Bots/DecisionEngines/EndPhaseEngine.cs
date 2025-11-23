@@ -11,38 +11,36 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 public class EndPhaseEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
-    private readonly IPlayer _player;
     private readonly BotDifficulty _difficulty;
 
-    public EndPhaseEngine(IClientGame clientGame, IPlayer player, BotDifficulty difficulty)
+    public EndPhaseEngine(IClientGame clientGame, BotDifficulty difficulty)
     {
         _clientGame = clientGame;
-        _player = player;
         _difficulty = difficulty;
     }
 
-    public async Task MakeDecision()
+    public async Task MakeDecision(IPlayer player)
     {
         try
         {
             // 1. Handle shutdown units (attempt restart)
-            await HandleShutdownUnits();
+            await HandleShutdownUnits(player);
 
             // 2. Handle overheated units (shutdown if heat > 25)
-            await HandleOverheatedUnits();
+            await HandleOverheatedUnits(player);
 
             // 3. End turn
-            await EndTurn();
+            await EndTurn(player);
         }
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation
-            Console.WriteLine($"EndPhaseEngine error for player {_player.Name}: {ex.Message}");
+            Console.WriteLine($"EndPhaseEngine error for player {player.Name}: {ex.Message}");
 
             // Always try to end turn even if other actions failed
             try
             {
-                await EndTurn();
+                await EndTurn(player);
             }
             catch
             {
@@ -51,9 +49,9 @@ public class EndPhaseEngine : IBotDecisionEngine
         }
     }
 
-    private async Task HandleShutdownUnits()
+    private async Task HandleShutdownUnits(IPlayer player)
     {
-        var shutdownUnits = _player.AliveUnits.Where(u => u.IsShutdown).ToList();
+        var shutdownUnits = player.AliveUnits.Where(u => u.IsShutdown).ToList();
 
         foreach (var unit in shutdownUnits)
         {
@@ -61,7 +59,7 @@ public class EndPhaseEngine : IBotDecisionEngine
             var startupCommand = new StartupUnitCommand
             {
                 GameOriginId = _clientGame.Id,
-                PlayerId = _player.Id,
+                PlayerId = player.Id,
                 UnitId = unit.Id
             };
 
@@ -69,9 +67,9 @@ public class EndPhaseEngine : IBotDecisionEngine
         }
     }
 
-    private async Task HandleOverheatedUnits()
+    private async Task HandleOverheatedUnits(IPlayer player)
     {
-        var overheatedUnits = _player.AliveUnits.Where(u => u.CurrentHeat > 25 && !u.IsShutdown).ToList();
+        var overheatedUnits = player.AliveUnits.Where(u => u.CurrentHeat > 25 && !u.IsShutdown).ToList();
 
         foreach (var unit in overheatedUnits)
         {
@@ -79,7 +77,7 @@ public class EndPhaseEngine : IBotDecisionEngine
             var shutdownCommand = new ShutdownUnitCommand
             {
                 GameOriginId = _clientGame.Id,
-                PlayerId = _player.Id,
+                PlayerId = player.Id,
                 UnitId = unit.Id
             };
 
@@ -87,12 +85,12 @@ public class EndPhaseEngine : IBotDecisionEngine
         }
     }
 
-    private async Task EndTurn()
+    private async Task EndTurn(IPlayer player)
     {
         var endTurnCommand = new TurnEndedCommand
         {
             GameOriginId = _clientGame.Id,
-            PlayerId = _player.Id
+            PlayerId = player.Id
         };
 
         await _clientGame.EndTurn(endTurnCommand);

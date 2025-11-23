@@ -23,7 +23,7 @@ public class EndPhaseEngineTests
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Player");
         
-        _sut = new EndPhaseEngine(_clientGame, _player, BotDifficulty.Easy);
+        _sut = new EndPhaseEngine(_clientGame, BotDifficulty.Easy);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class EndPhaseEngineTests
         _player.AliveUnits.Returns([]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.Received(1).EndTurn(Arg.Is<TurnEndedCommand>(cmd =>
@@ -49,7 +49,7 @@ public class EndPhaseEngineTests
         _player.AliveUnits.Returns([shutdownUnit]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.Received(1).StartupUnit(Arg.Is<StartupUnitCommand>(cmd =>
@@ -68,7 +68,7 @@ public class EndPhaseEngineTests
         _player.AliveUnits.Returns([overheatedUnit]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.Received(1).ShutdownUnit(Arg.Is<ShutdownUnitCommand>(cmd =>
@@ -87,7 +87,7 @@ public class EndPhaseEngineTests
         _player.AliveUnits.Returns([normalUnit]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.DidNotReceive().ShutdownUnit(Arg.Any<ShutdownUnitCommand>());
@@ -101,7 +101,7 @@ public class EndPhaseEngineTests
         _player.AliveUnits.Returns((IReadOnlyList<IUnit>?)null!); // This will cause an exception
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert - Should still attempt to end turn even if other operations fail
         await _clientGame.Received(1).EndTurn(Arg.Any<TurnEndedCommand>());
@@ -118,7 +118,7 @@ public class EndPhaseEngineTests
         _player.AliveUnits.Returns([shutdownUnit, overheatedUnit, normalUnit]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.Received(1).StartupUnit(Arg.Is<StartupUnitCommand>(cmd =>

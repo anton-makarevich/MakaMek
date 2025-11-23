@@ -13,6 +13,7 @@ namespace Sanet.MakaMek.Bots.Models;
 public class BotManager : IBotManager
 {
     private readonly Dictionary<Guid, IBot> _bots = new(); // Key: PlayerId
+    private IDecisionEngineProvider? _sharedDecisionEngineProvider;
 
     public IClientGame? ClientGame { get; private set; }
 
@@ -24,6 +25,10 @@ public class BotManager : IBotManager
         Clear();
 
         ClientGame = clientGame;
+        
+        // Create shared decision engine provider for all bots
+        // Using Medium difficulty as default - can be made configurable later
+        _sharedDecisionEngineProvider = new DecisionEngineProvider(clientGame, BotDifficulty.Medium);
     }
 
     public void AddBot(IPlayer player, BotDifficulty difficulty = BotDifficulty.Easy)
@@ -49,18 +54,13 @@ public class BotManager : IBotManager
             PilotData = u.Pilot!.ToData()
         }).ToList());
 
-        // Create decision engines for the bot
-        var decisionEngines = new Dictionary<PhaseNames, IBotDecisionEngine>
+        if (_sharedDecisionEngineProvider == null)
         {
-            { PhaseNames.Deployment, new DeploymentEngine(ClientGame, player, difficulty) },
-            { PhaseNames.Movement, new MovementEngine(ClientGame, player, difficulty) },
-            { PhaseNames.WeaponsAttack, new WeaponsEngine(ClientGame, player, difficulty) },
-            { PhaseNames.End, new EndPhaseEngine(ClientGame, player, difficulty) }
-        };
-        var decisionEngineProvider = new DecisionEngineProvider(decisionEngines);
+            throw new InvalidOperationException("BotManager must be initialized before adding bots");
+        }
 
         // BotManager tracks which players are bots
-        var bot = new Bot(player, ClientGame, difficulty, decisionEngineProvider);
+        var bot = new Bot(player, ClientGame, difficulty, _sharedDecisionEngineProvider);
         _bots.Add(player.Id, bot);
     }
 

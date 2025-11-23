@@ -1,4 +1,6 @@
 using Sanet.MakaMek.Bots.DecisionEngines;
+using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 
 namespace Sanet.MakaMek.Bots.Services;
@@ -10,9 +12,16 @@ public class DecisionEngineProvider : IDecisionEngineProvider
 {
     private readonly Dictionary<PhaseNames, IBotDecisionEngine> _decisionEngines;
 
-    public DecisionEngineProvider(Dictionary<PhaseNames, IBotDecisionEngine> decisionEngines)
+    public DecisionEngineProvider(IClientGame clientGame, BotDifficulty difficulty)
     {
-        _decisionEngines = decisionEngines;
+        // Initialize decision engines for each phase (shared across all bots)
+        _decisionEngines = new Dictionary<PhaseNames, IBotDecisionEngine>
+        {
+            { PhaseNames.Deployment, new DeploymentEngine(clientGame, difficulty) },
+            { PhaseNames.Movement, new MovementEngine(clientGame, difficulty) },
+            { PhaseNames.WeaponsAttack, new WeaponsEngine(clientGame, difficulty) },
+            { PhaseNames.End, new EndPhaseEngine(clientGame, difficulty) }
+        };
     }
 
     public IBotDecisionEngine? GetEngineForPhase(PhaseNames phase)
