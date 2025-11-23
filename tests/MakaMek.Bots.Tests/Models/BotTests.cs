@@ -20,6 +20,7 @@ public class BotTests : IDisposable
     private readonly Subject<IGameCommand> _commandSubject;
     private readonly IDecisionEngineProvider _decisionEngineProvider;
     private readonly Bot _sut;
+    private readonly IBotDecisionEngine _movementEngine = Substitute.For<IBotDecisionEngine>();
 
     public BotTests()
     {
@@ -34,10 +35,10 @@ public class BotTests : IDisposable
         _clientGame.Id.Returns(Guid.NewGuid());
         
         // Configure mock provider to return appropriate engines for different phases
-        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        
         // Engine's MakeDecision now accepts IPlayer parameter
-        movementEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
-        _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+        _movementEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
+        _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(_movementEngine);
         
         _sut = new Bot(_player, _clientGame, BotDifficulty.Easy, _decisionEngineProvider);
     }
@@ -65,10 +66,7 @@ public class BotTests : IDisposable
             GameOriginId = _clientGame.Id,
             Phase = PhaseNames.Movement
         });
-
-        // Give some time for async processing
-        Thread.Sleep(100);
-
+        
         // Assert 
         bot.DecisionEngine.ShouldBe(movementEngine);
     }
@@ -97,6 +95,12 @@ public class BotTests : IDisposable
     public void OnCommandReceived_WhenChangeActivePlayerCommandForThisBot_ShouldMakeDecision()
     {
         // Arrange
+        var phaseCommand = new ChangePhaseCommand
+        {
+            GameOriginId = _clientGame.Id,
+            Phase = PhaseNames.Movement
+        };
+        _commandSubject.OnNext(phaseCommand);
         var activePlayerCommand = new ChangeActivePlayerCommand
         {
             GameOriginId = _clientGame.Id,
@@ -107,8 +111,8 @@ public class BotTests : IDisposable
         // Act
         _commandSubject.OnNext(activePlayerCommand);
         
-        // Assert - Bot should handle the command without throwing
-        _sut.ShouldNotBeNull();
+        // Assert
+        _movementEngine.Received(1).MakeDecision(_player);
     }
 
     [Fact]
