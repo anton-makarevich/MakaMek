@@ -89,9 +89,6 @@ public class BotTests : IDisposable
         // Act
         _commandSubject.OnNext(activePlayerCommand);
         
-        // Give some time for async processing
-        Thread.Sleep(100);
-        
         // Assert - Bot should handle the command without throwing
         _sut.ShouldNotBeNull();
     }
