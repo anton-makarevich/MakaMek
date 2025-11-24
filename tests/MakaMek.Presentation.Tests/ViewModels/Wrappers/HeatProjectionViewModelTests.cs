@@ -148,23 +148,42 @@ public class HeatProjectionViewModelTests
     public void SettingAttacker_UpdatesAllProperties()
     {
         // Arrange
-        var currentHeatChanged = false;
-        var dissipationChanged = false;
+        var currentHeatChangedCount = 0;
+        var dissipationChangedCount = 0;
 
         _sut.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(HeatProjectionViewModel.CurrentHeat))
-                currentHeatChanged = true;
+                currentHeatChangedCount++;
             if (args.PropertyName == nameof(HeatProjectionViewModel.HeatDissipation))
-                dissipationChanged = true;
+                dissipationChangedCount++;
         };
 
         // Act
         _sut.Unit = _attacker;
 
         // Assert
-        currentHeatChanged.ShouldBeTrue();
-        dissipationChanged.ShouldBeTrue();
+        currentHeatChangedCount.ShouldBe(1, "CurrentHeat should be notified exactly once");
+        dissipationChangedCount.ShouldBe(1, "HeatDissipation should be notified exactly once");
+    }
+
+    [Fact]
+    public void SettingUnit_ToSameValue_DoesNotTriggerNotifications()
+    {
+        // Arrange
+        _sut.Unit = _attacker;
+        
+        var notificationCount = 0;
+        _sut.PropertyChanged += (_, args) =>
+        {
+            notificationCount++;
+        };
+
+        // Act - Set to the same value
+        _sut.Unit = _attacker;
+
+        // Assert
+        notificationCount.ShouldBe(0, "No notifications should be raised when setting to the same value");
     }
 
     [Fact]

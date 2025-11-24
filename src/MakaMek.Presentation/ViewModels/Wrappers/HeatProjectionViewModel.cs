@@ -27,9 +27,8 @@ public class HeatProjectionViewModel : BindableBase
         get;
         set
         {
+            if (value == field) return;
             SetProperty(ref field, value);
-            NotifyPropertyChanged(nameof(CurrentHeat));
-            NotifyPropertyChanged(nameof(HeatDissipation));
             UpdateProjectedHeat();
         }
     }
