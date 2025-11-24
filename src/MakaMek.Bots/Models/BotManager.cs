@@ -73,7 +73,7 @@ public class BotManager : IBotManager
         return _bots.ContainsKey(playerId);
     }
 
-    public IDecisionEngineProvider? DecisionEngineProvide => _sharedDecisionEngineProvider;
+    public IDecisionEngineProvider? DecisionEngineProvider => _sharedDecisionEngineProvider;
 
     public void Clear()
     {

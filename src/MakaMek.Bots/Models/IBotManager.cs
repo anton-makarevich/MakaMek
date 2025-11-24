@@ -44,6 +44,6 @@ public interface IBotManager
     /// <returns>True if the player is a bot, false otherwise</returns>
     bool IsBot(Guid playerId);
 
-    IDecisionEngineProvider? DecisionEngineProvide { get; }
+    IDecisionEngineProvider? DecisionEngineProvider { get; }
 }
 

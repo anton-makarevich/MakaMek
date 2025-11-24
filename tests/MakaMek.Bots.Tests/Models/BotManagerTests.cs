@@ -187,14 +187,14 @@ public class BotManagerTests : IDisposable
     public void Initialize_ShouldRecreateDecisionEngineProvider()
     {
         _sut.Initialize(_clientGame);
-        var originalProvider = _sut.DecisionEngineProvide;
+        var originalProvider = _sut.DecisionEngineProvider;
         
         _sut.Initialize(_clientGame);
         
-        _sut.DecisionEngineProvide.ShouldNotBeSameAs(originalProvider);
+        _sut.DecisionEngineProvider.ShouldNotBeSameAs(originalProvider);
     }
 
-    private IPlayer CreateBotPlayer()
+    private static IPlayer CreateBotPlayer()
     {
         var player = Substitute.For<IPlayer>();
         player.Id.Returns(Guid.NewGuid());
