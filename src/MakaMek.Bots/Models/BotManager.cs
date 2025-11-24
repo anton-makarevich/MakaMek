@@ -25,14 +25,14 @@ public class BotManager : IBotManager
         ClientGame = clientGame;
         
         // Create shared decision engine provider for all bots
-        _sharedDecisionEngineProvider = new DecisionEngineProvider(clientGame);
+        _sharedDecisionEngineProvider ??= new DecisionEngineProvider(clientGame);
     }
 
     public void AddBot(IPlayer player)
     {
         if (ClientGame == null || _sharedDecisionEngineProvider == null)
         {
-            throw new InvalidOperationException("BotManager must be initialized with a ClientGame before adding bots");
+            throw new InvalidOperationException("BotManager must be initialized before adding bots");
         }
 
         // Ensure player has correct control type
@@ -72,6 +72,8 @@ public class BotManager : IBotManager
     {
         return _bots.ContainsKey(playerId);
     }
+
+    public IDecisionEngineProvider? DecisionEngineProvide => _sharedDecisionEngineProvider;
 
     public void Clear()
     {

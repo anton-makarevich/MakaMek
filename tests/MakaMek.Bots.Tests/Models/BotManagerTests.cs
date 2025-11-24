@@ -182,6 +182,17 @@ public class BotManagerTests : IDisposable
         // Assert
         _sut.Bots.ShouldBeEmpty();
     }
+    
+    [Fact]
+    public void Initialize_ShouldNotRewriteSharedDecisionEngineProvider()
+    {
+        _sut.Initialize(_clientGame);
+        var originalProvider = _sut.DecisionEngineProvide;
+        
+        _sut.Initialize(_clientGame);
+        
+        _sut.DecisionEngineProvide.ShouldBeSameAs(originalProvider);
+    }
 
     private IPlayer CreateBotPlayer()
     {

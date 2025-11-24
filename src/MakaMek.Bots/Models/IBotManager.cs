@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Game;
+﻿using Sanet.MakaMek.Bots.Services;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
 namespace Sanet.MakaMek.Bots.Models;
@@ -42,5 +43,7 @@ public interface IBotManager
     /// <param name="playerId">The ID of the player to check</param>
     /// <returns>True if the player is a bot, false otherwise</returns>
     bool IsBot(Guid playerId);
+
+    IDecisionEngineProvider? DecisionEngineProvide { get; }
 }
 
