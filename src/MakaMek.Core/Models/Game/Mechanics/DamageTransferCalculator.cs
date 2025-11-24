@@ -27,7 +27,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         // If there are accumulated hit locations from previous clusters, clone the unit and apply them first
         if (accumulatedHitLocations is not { Count: > 0 }) // No accumulated damage, calculate normally
             return CalculateDamageDistribution(unit, initialLocation, totalDamage, hitDirection);
-        var clonedUnit = CloneUnit(unit);
+        var clonedUnit = unit.CloneUnit(_mechFactory);
         // Apply accumulated damage to the cloned unit
         clonedUnit.ApplyDamage(accumulatedHitLocations.ToList(), hitDirection);
         // Calculate damage distribution on the updated clone
@@ -39,15 +39,10 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         PartLocation initialLocation,
         int totalDamage)
     {
-        var clonedUnit = CloneUnit(unit);
+        var clonedUnit = unit.CloneUnit(_mechFactory);
         return CalculateDamageDistribution(clonedUnit, initialLocation, totalDamage, HitDirection.Front, true);
     }
-    
-    private Unit CloneUnit(IUnit unit)
-    {
-        var data = unit.ToData();
-        return _mechFactory.Create(data);
-    }
+
     
     private List<LocationDamageData> CalculateDamageDistribution(IUnit unit, PartLocation initialLocation, int totalDamage,
         HitDirection hitDirection, bool isExplosion = false)

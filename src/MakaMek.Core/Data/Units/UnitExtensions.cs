@@ -3,89 +3,104 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Core.Data.Units;
 
 public static class UnitExtensions
 {
-    /// <summary>
-    /// Converts a Unit to a UnitData object for serialization or storage
-    /// </summary>
-    /// <param name="unit">The unit to convert</param>
-    /// <returns>A UnitData object representing the unit</returns>
-    public static UnitData ToData(this IUnit unit)
+    /// <param name="unit">The unit to clone</param>
+    extension(IUnit unit)
     {
-        // Create armor values dictionary
-        var armorValues = new Dictionary<PartLocation, ArmorLocation>();
-        foreach (var part in unit.Parts.Values)
+        /// <summary>
+        /// Creates a deep copy of the unit by converting it to data and recreating it
+        /// </summary>
+        /// <param name="mechFactory">The factory to use for creating the cloned unit</param>
+        /// <returns>A new unit instance with the same state as the original</returns>
+        public Unit CloneUnit(IMechFactory mechFactory)
         {
-            var armorLocation = part switch
-            {
-                SideTorso sideTorso => new ArmorLocation
-                {
-                    FrontArmor = sideTorso.MaxArmor,
-                    RearArmor = sideTorso.MaxRearArmor
-                },
-                CenterTorso centerTorso => new ArmorLocation
-                {
-                    FrontArmor = centerTorso.MaxArmor,
-                    RearArmor = centerTorso.MaxRearArmor
-                },
-                _ => new ArmorLocation { FrontArmor = part.MaxArmor, RearArmor = 0 }
-            };
-
-            armorValues[part.Location] = armorLocation;
+            var data = unit.ToData();
+            return mechFactory.Create(data);
         }
 
-        // Get engine data
-        var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
-        var engineRating = engine?.Rating ?? 0;
-        var engineType = engine?.Type.ToString() ?? "Fusion";
-
-        // Create component-centric equipment list
-        var equipment = new List<ComponentData>();
-        var processedComponents = new HashSet<Component>();
-
-        foreach (var part in unit.Parts.Values)
+        /// <summary>
+        /// Converts a Unit to a UnitData object for serialization or storage
+        /// </summary>
+        /// <returns>A UnitData object representing the unit</returns>
+        public UnitData ToData()
         {
-            // Filter out automatically added components
-            var filteredComponents = part.Components
-                .Where(c => c.IsRemovable && !processedComponents.Contains(c))
-                .ToList();
-
-            foreach (var component in filteredComponents)
+            // Create armor values dictionary
+            var armorValues = new Dictionary<PartLocation, ArmorLocation>();
+            foreach (var part in unit.Parts.Values)
             {
-                // Mark component as processed to avoid duplicates for multi-location components
-                processedComponents.Add(component);
+                var armorLocation = part switch
+                {
+                    SideTorso sideTorso => new ArmorLocation
+                    {
+                        FrontArmor = sideTorso.MaxArmor,
+                        RearArmor = sideTorso.MaxRearArmor
+                    },
+                    CenterTorso centerTorso => new ArmorLocation
+                    {
+                        FrontArmor = centerTorso.MaxArmor,
+                        RearArmor = centerTorso.MaxRearArmor
+                    },
+                    _ => new ArmorLocation { FrontArmor = part.MaxArmor, RearArmor = 0 }
+                };
 
-                equipment.Add(component.ToData());
+                armorValues[part.Location] = armorLocation;
             }
-        }
 
-        // Serialize part states only for damaged/destroyed/blown-off parts
-        var partStates = new List<UnitPartStateData>();
-        foreach (var part in unit.Parts.Values)
-        {
-            if (part.IsPristine) continue;
+            // Get engine data
+            var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
+            var engineRating = engine?.Rating ?? 0;
+            var engineType = engine?.Type.ToString() ?? "Fusion";
+
+            // Create component-centric equipment list
+            var equipment = new List<ComponentData>();
+            var processedComponents = new HashSet<Component>();
+
+            foreach (var part in unit.Parts.Values)
+            {
+                // Filter out automatically added components
+                var filteredComponents = part.Components
+                    .Where(c => c.IsRemovable && !processedComponents.Contains(c))
+                    .ToList();
+
+                foreach (var component in filteredComponents)
+                {
+                    // Mark component as processed to avoid duplicates for multi-location components
+                    processedComponents.Add(component);
+
+                    equipment.Add(component.ToData());
+                }
+            }
+
+            // Serialize part states only for damaged/destroyed/blown-off parts
+            var partStates = new List<UnitPartStateData>();
+            foreach (var part in unit.Parts.Values)
+            {
+                if (part.IsPristine) continue;
             
-            var partState = part.ToData();
+                var partState = part.ToData();
 
-            partStates.Add(partState);
+                partStates.Add(partState);
+            }
+
+            return new UnitData
+            {
+                Id = unit.Id,
+                Chassis = unit.Chassis,
+                Model = unit.Model,
+                Mass = unit.Tonnage,
+                EngineRating = engineRating,
+                EngineType = engineType,
+                ArmorValues = armorValues,
+                Equipment = equipment,
+                AdditionalAttributes = new Dictionary<string, string>(),
+                Quirks = new Dictionary<string, string>(),
+                UnitPartStates = partStates.Count > 0 ? partStates : null
+            };
         }
-
-        return new UnitData
-        {
-            Id = unit.Id,
-            Chassis = unit.Chassis,
-            Model = unit.Model,
-            Mass = unit.Tonnage,
-            EngineRating = engineRating,
-            EngineType = engineType,
-            ArmorValues = armorValues,
-            Equipment = equipment,
-            AdditionalAttributes = new Dictionary<string, string>(),
-            Quirks = new Dictionary<string, string>(),
-            UnitPartStates = partStates.Count > 0 ? partStates : null
-        };
     }
 }
