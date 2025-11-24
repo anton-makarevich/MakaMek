@@ -67,13 +67,6 @@ public class Bot : IBot
 
         try
         {
-            // Optional: Add thinking delay to make bot feel more natural
-            var thinkingDelay = GetThinkingDelay();
-            if (thinkingDelay > 0)
-            {
-                await Task.Delay(thinkingDelay);
-            }
-
             await _currentDecisionEngine.MakeDecision(Player);
         }
         catch (Exception ex)
@@ -82,13 +75,6 @@ public class Bot : IBot
             Console.WriteLine($"Bot {Player.Name} decision error: {ex.Message}");
             // TODO: Consider taking a safe default action to prevent game stuck 
         }
-    }
-
-    private int GetThinkingDelay()
-    {
-        // Add a small delay to make bot decisions feel more natural
-        // Adjust based on difficulty level or randomly
-        return 0;
     }
     
     public IBotDecisionEngine? DecisionEngine => _currentDecisionEngine;

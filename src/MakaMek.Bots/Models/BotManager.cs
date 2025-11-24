@@ -30,7 +30,7 @@ public class BotManager : IBotManager
 
     public void AddBot(IPlayer player)
     {
-        if (ClientGame == null)
+        if (ClientGame == null || _sharedDecisionEngineProvider == null)
         {
             throw new InvalidOperationException("BotManager must be initialized with a ClientGame before adding bots");
         }
@@ -50,11 +50,6 @@ public class BotManager : IBotManager
             UnitId = u.Id,
             PilotData = u.Pilot!.ToData()
         }).ToList());
-
-        if (_sharedDecisionEngineProvider == null)
-        {
-            throw new InvalidOperationException("BotManager must be initialized before adding bots");
-        }
 
         // BotManager tracks which players are bots
         var bot = new Bot(player, ClientGame, _sharedDecisionEngineProvider);
