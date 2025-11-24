@@ -335,4 +335,124 @@ public class UnitExtensionsTests
         centerTorsoState.CurrentFrontArmor.ShouldBe(0);
         centerTorsoState.CurrentStructure.ShouldBe(centerTorso.CurrentStructure);
     }
+
+    [Fact]
+    public void CloneUnit_CreatesCopyWithSameBasicProperties()
+    {
+        // Arrange
+        var originalMech = _mechFactory.Create(_originalUnitData);
+
+        // Act
+        var clonedMech = originalMech.CloneUnit(_mechFactory);
+
+        // Assert
+        clonedMech.ShouldNotBeNull();
+        clonedMech.ShouldNotBeSameAs(originalMech); // Should be a different instance
+        clonedMech.Id.ShouldBe(originalMech.Id);
+        clonedMech.Chassis.ShouldBe(originalMech.Chassis);
+        clonedMech.Model.ShouldBe(originalMech.Model);
+        clonedMech.Tonnage.ShouldBe(originalMech.Tonnage);
+    }
+
+    [Fact]
+    public void CloneUnit_CreatesCopyWithSameArmorValues()
+    {
+        // Arrange
+        var originalMech = _mechFactory.Create(_originalUnitData);
+
+        // Act
+        var clonedMech = originalMech.CloneUnit(_mechFactory);
+
+        // Assert
+        foreach (var location in originalMech.Parts.Keys)
+        {
+            var originalPart = originalMech.Parts[location];
+            var clonedPart = clonedMech.Parts[location];
+
+            clonedPart.CurrentArmor.ShouldBe(originalPart.CurrentArmor);
+            clonedPart.CurrentStructure.ShouldBe(originalPart.CurrentStructure);
+
+            if (originalPart is Torso originalTorso && clonedPart is Torso clonedTorso)
+            {
+                clonedTorso.CurrentRearArmor.ShouldBe(originalTorso.CurrentRearArmor);
+            }
+        }
+    }
+
+    [Fact]
+    public void CloneUnit_CreatesCopyWithDamagedState()
+    {
+        // Arrange
+        var originalMech = _mechFactory.Create(_originalUnitData);
+        
+        // Damage the original mech
+        var centerTorso = originalMech.Parts[PartLocation.CenterTorso];
+        centerTorso.ApplyDamage(10, HitDirection.Front);
+
+        // Act
+        var clonedMech = originalMech.CloneUnit(_mechFactory);
+
+        // Assert
+        var clonedCenterTorso = clonedMech.Parts[PartLocation.CenterTorso];
+        clonedCenterTorso.CurrentArmor.ShouldBe(centerTorso.CurrentArmor);
+        clonedCenterTorso.CurrentStructure.ShouldBe(centerTorso.CurrentStructure);
+    }
+
+    [Fact]
+    public void CloneUnit_CreatesIndependentCopy()
+    {
+        // Arrange
+        var originalMech = _mechFactory.Create(_originalUnitData);
+        var clonedMech = originalMech.CloneUnit(_mechFactory);
+
+        // Get original armor values
+        var originalCenterTorso = originalMech.Parts[PartLocation.CenterTorso];
+        var originalArmor = originalCenterTorso.CurrentArmor;
+
+        // Act - Damage the cloned mech
+        var clonedCenterTorso = clonedMech.Parts[PartLocation.CenterTorso];
+        clonedCenterTorso.ApplyDamage(5, HitDirection.Front);
+
+        // Assert - Original should be unchanged
+        originalCenterTorso.CurrentArmor.ShouldBe(originalArmor);
+        clonedCenterTorso.CurrentArmor.ShouldBe(originalArmor - 5);
+    }
+
+    [Fact]
+    public void CloneUnit_PreservesBlownOffState()
+    {
+        // Arrange
+        var originalMech = _mechFactory.Create(_originalUnitData);
+        
+        // Blow off the right arm
+        originalMech.Parts[PartLocation.RightArm].BlowOff();
+
+        // Act
+        var clonedMech = originalMech.CloneUnit(_mechFactory);
+
+        // Assert
+        var clonedRightArm = clonedMech.Parts[PartLocation.RightArm];
+        clonedRightArm.IsBlownOff.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CloneUnit_PreservesDestroyedState()
+    {
+        // Arrange
+        var originalMech = _mechFactory.Create(_originalUnitData);
+        
+        // Destroy the left arm
+        var leftArm = originalMech.Parts[PartLocation.LeftArm];
+        leftArm.ApplyDamage(leftArm.MaxArmor + leftArm.MaxStructure, HitDirection.Front);
+
+        // Act
+        var clonedMech = originalMech.CloneUnit(_mechFactory);
+
+        // Assert
+        var clonedLeftArm = clonedMech.Parts[PartLocation.LeftArm];
+        clonedLeftArm.IsDestroyed.ShouldBeTrue();
+        clonedLeftArm.CurrentArmor.ShouldBe(0);
+        clonedLeftArm.CurrentStructure.ShouldBe(0);
+    }
 }
+
