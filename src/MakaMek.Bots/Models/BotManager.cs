@@ -1,8 +1,9 @@
-﻿using Sanet.MakaMek.Core.Data.Units;
+﻿using Sanet.MakaMek.Bots.Services;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace Sanet.MakaMek.Bots;
+namespace Sanet.MakaMek.Bots.Models;
 
 /// <summary>
 /// Manages the lifecycle of bot players in the game
@@ -21,13 +22,16 @@ public class BotManager : IBotManager
         Clear();
 
         ClientGame = clientGame;
+        
+        // Create shared decision engine provider for all bots
+        DecisionEngineProvider = new DecisionEngineProvider(clientGame);
     }
 
-    public void AddBot(IPlayer player, BotDifficulty difficulty = BotDifficulty.Easy)
+    public void AddBot(IPlayer player)
     {
-        if (ClientGame == null)
+        if (ClientGame == null || DecisionEngineProvider == null)
         {
-            throw new InvalidOperationException("BotManager must be initialized with a ClientGame before adding bots");
+            throw new InvalidOperationException("BotManager must be initialized before adding bots");
         }
 
         // Ensure player has correct control type
@@ -47,7 +51,7 @@ public class BotManager : IBotManager
         }).ToList());
 
         // BotManager tracks which players are bots
-        var bot = new Bot(player, ClientGame, difficulty);
+        var bot = new Bot(player, ClientGame, DecisionEngineProvider);
         _bots.Add(player.Id, bot);
     }
 
@@ -67,6 +71,8 @@ public class BotManager : IBotManager
     {
         return _bots.ContainsKey(playerId);
     }
+
+    public IDecisionEngineProvider? DecisionEngineProvider { get; private set; }
 
     public void Clear()
     {

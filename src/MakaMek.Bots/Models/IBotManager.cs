@@ -1,7 +1,8 @@
-﻿using Sanet.MakaMek.Core.Models.Game;
+﻿using Sanet.MakaMek.Bots.Services;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace Sanet.MakaMek.Bots;
+namespace Sanet.MakaMek.Bots.Models;
 
 /// <summary>
 /// Manages the lifecycle of bot players in the game
@@ -23,8 +24,7 @@ public interface IBotManager
     /// Adds a new bot player to the game
     /// </summary>
     /// <param name="player">The player to add as a bot</param>
-    /// <param name="difficulty">The difficulty level of the bot</param>
-    void AddBot(IPlayer player, BotDifficulty difficulty = BotDifficulty.Easy);
+    void AddBot(IPlayer player);
 
     /// <summary>
     /// Removes a bot player from the game
@@ -43,5 +43,7 @@ public interface IBotManager
     /// <param name="playerId">The ID of the player to check</param>
     /// <returns>True if the player is a bot, false otherwise</returns>
     bool IsBot(Guid playerId);
+
+    IDecisionEngineProvider? DecisionEngineProvider { get; }
 }
 

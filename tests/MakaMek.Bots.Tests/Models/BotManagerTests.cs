@@ -1,13 +1,14 @@
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using NSubstitute;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Shouldly;
-using System.Reactive.Subjects;
-using System.Reactive.Linq;
-using Sanet.MakaMek.Core.Data.Units;
 
-namespace Sanet.MakaMek.Bots.Tests;
+namespace Sanet.MakaMek.Bots.Tests.Models;
 
 public class BotManagerTests : IDisposable
 {
@@ -83,12 +84,11 @@ public class BotManagerTests : IDisposable
         var player = CreateBotPlayer();
         
         // Act
-        _sut.AddBot(player, BotDifficulty.Medium);
+        _sut.AddBot(player);
         
         // Assert
         _sut.Bots.Count.ShouldBe(1);
         _sut.Bots[0].Player.ShouldBe(player);
-        _sut.Bots[0].Difficulty.ShouldBe(BotDifficulty.Medium);
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class BotManagerTests : IDisposable
         var player1 = CreateBotPlayer();
         var player2 = CreateBotPlayer();
         _sut.AddBot(player1);
-        _sut.AddBot(player2, BotDifficulty.Hard);
+        _sut.AddBot(player2);
         _sut.Bots.Count.ShouldBe(2);
         
         // Act
@@ -182,8 +182,19 @@ public class BotManagerTests : IDisposable
         // Assert
         _sut.Bots.ShouldBeEmpty();
     }
+    
+    [Fact]
+    public void Initialize_ShouldRecreateDecisionEngineProvider()
+    {
+        _sut.Initialize(_clientGame);
+        var originalProvider = _sut.DecisionEngineProvider;
+        
+        _sut.Initialize(_clientGame);
+        
+        _sut.DecisionEngineProvider.ShouldNotBeSameAs(originalProvider);
+    }
 
-    private IPlayer CreateBotPlayer()
+    private static IPlayer CreateBotPlayer()
     {
         var player = Substitute.For<IPlayer>();
         player.Id.Returns(Guid.NewGuid());

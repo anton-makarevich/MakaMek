@@ -27,7 +27,7 @@ public class DeploymentEngineTests
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Player");
         
-        _sut = new DeploymentEngine(_clientGame, _player, BotDifficulty.Easy);
+        _sut = new DeploymentEngine(_clientGame);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class DeploymentEngineTests
         _clientGame.Players.Returns([_player]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.DidNotReceive().DeployUnit(Arg.Any<DeployUnitCommand>());
@@ -57,7 +57,7 @@ public class DeploymentEngineTests
         _clientGame.BattleMap.Returns((BattleMap?)null);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.DidNotReceive().DeployUnit(Arg.Any<DeployUnitCommand>());
@@ -73,7 +73,7 @@ public class DeploymentEngineTests
         _battleMap.Height.Returns(0);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.DidNotReceive().DeployUnit(Arg.Any<DeployUnitCommand>());
@@ -96,7 +96,7 @@ public class DeploymentEngineTests
         _clientGame.Players.Returns([_player]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.Received(1).DeployUnit(Arg.Is<DeployUnitCommand>(cmd =>
@@ -112,7 +112,7 @@ public class DeploymentEngineTests
         _player.Units.Returns((IReadOnlyList<Unit>?)null!); // This will cause an exception
         
         // Act & Assert
-        await Should.NotThrowAsync(async () => await _sut.MakeDecision());
+        await Should.NotThrowAsync(async () => await _sut.MakeDecision(_player));
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class DeploymentEngineTests
         _clientGame.Players.Returns([_player]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.Received(1).DeployUnit(Arg.Is<DeployUnitCommand>(cmd =>

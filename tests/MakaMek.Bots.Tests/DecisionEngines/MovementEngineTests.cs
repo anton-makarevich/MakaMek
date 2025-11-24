@@ -1,8 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Bots.DecisionEngines;
-using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -29,7 +27,7 @@ public class MovementEngineTests
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Player");
         
-        _sut = new MovementEngine(_clientGame, _player, BotDifficulty.Easy);
+        _sut = new MovementEngine(_clientGame);
     }
 
     [Fact]
@@ -40,7 +38,7 @@ public class MovementEngineTests
         _player.AliveUnits.Returns([movedUnit]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.DidNotReceive().MoveUnit(Arg.Any<MoveUnitCommand>());
@@ -54,7 +52,7 @@ public class MovementEngineTests
         _player.AliveUnits.Returns([undeployedUnit]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.DidNotReceive().MoveUnit(Arg.Any<MoveUnitCommand>());
@@ -69,7 +67,7 @@ public class MovementEngineTests
         _clientGame.BattleMap.Returns((BattleMap?)null);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.DidNotReceive().MoveUnit(Arg.Any<MoveUnitCommand>());
@@ -88,7 +86,7 @@ public class MovementEngineTests
             .Returns([]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
@@ -120,7 +118,7 @@ public class MovementEngineTests
             .Returns([pathSegment]);
         
         // Act
-        await _sut.MakeDecision();
+        await _sut.MakeDecision(_player);
         
         // Assert
         await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
@@ -133,10 +131,10 @@ public class MovementEngineTests
     public async Task MakeDecision_WhenExceptionThrown_ShouldNotThrow()
     {
         // Arrange
-        _player.AliveUnits.Returns((IReadOnlyList<Unit>?)null!); // This will cause an exception
+        _player.AliveUnits.Returns((IReadOnlyList<IUnit>?)null!); // This will cause an exception
         
         // Act & Assert
-        await Should.NotThrowAsync(async () => await _sut.MakeDecision());
+        await Should.NotThrowAsync(async () => await _sut.MakeDecision(_player));
     }
 
     private IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true)

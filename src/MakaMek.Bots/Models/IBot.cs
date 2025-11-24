@@ -1,6 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace Sanet.MakaMek.Bots;
+namespace Sanet.MakaMek.Bots.Models;
 
 /// <summary>
 /// Represents a bot player that can make automated decisions in the game
@@ -11,10 +11,4 @@ public interface IBot : IDisposable
     /// Gets the player associated with this bot
     /// </summary>
     IPlayer Player { get; }
-    
-    /// <summary>
-    /// Gets the difficulty level of this bot
-    /// </summary>
-    BotDifficulty Difficulty { get; }
 }
-

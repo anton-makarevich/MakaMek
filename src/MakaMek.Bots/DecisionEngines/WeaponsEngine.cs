@@ -13,22 +13,18 @@ namespace Sanet.MakaMek.Bots.DecisionEngines;
 public class WeaponsEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
-    private readonly IPlayer _player;
-    private readonly BotDifficulty _difficulty;
 
-    public WeaponsEngine(IClientGame clientGame, IPlayer player, BotDifficulty difficulty)
+    public WeaponsEngine(IClientGame clientGame)
     {
         _clientGame = clientGame;
-        _player = player;
-        _difficulty = difficulty;
     }
 
-    public async Task MakeDecision()
+    public async Task MakeDecision(IPlayer player)
     {
         try
         {
             // 1. Find units that haven't attacked
-            var unitsToAttack = _player.AliveUnits.Where(u => !u.HasDeclaredWeaponAttack).ToList();
+            var unitsToAttack = player.AliveUnits.Where(u => !u.HasDeclaredWeaponAttack).ToList();
             if (!unitsToAttack.Any())
             {
                 // No units to attack with, skip turn
@@ -45,7 +41,7 @@ public class WeaponsEngine : IBotDecisionEngine
             }
 
             // 3. Find potential targets
-            var potentialTargets = GetPotentialTargets();
+            var potentialTargets = GetPotentialTargets(player);
             if (!potentialTargets.Any())
             {
                 // No targets available, skip attack
@@ -75,7 +71,7 @@ public class WeaponsEngine : IBotDecisionEngine
             var attackCommand = new WeaponAttackDeclarationCommand
             {
                 GameOriginId = _clientGame.Id,
-                PlayerId = _player.Id,
+                PlayerId = player.Id,
                 UnitId = attackingUnit.Id,
                 WeaponTargets = weaponTargets
             };
@@ -85,15 +81,15 @@ public class WeaponsEngine : IBotDecisionEngine
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation
-            Console.WriteLine($"WeaponsEngine error for player {_player.Name}: {ex.Message}");
+            Console.WriteLine($"WeaponsEngine error for player {player.Name}: {ex.Message}");
         }
     }
 
-    private List<IUnit> GetPotentialTargets()
+    private List<IUnit> GetPotentialTargets(IPlayer player)
     {
         // Find enemy units that are deployed and alive
         return _clientGame.Players
-            .Where(p => p.Id != _player.Id)
+            .Where(p => p.Id != player.Id)
             .SelectMany(p => p.AliveUnits)
             .Where(u => u.Position != null)
             .ToList();
