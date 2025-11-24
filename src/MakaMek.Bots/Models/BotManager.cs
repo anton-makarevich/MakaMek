@@ -11,7 +11,6 @@ namespace Sanet.MakaMek.Bots.Models;
 public class BotManager : IBotManager
 {
     private readonly Dictionary<Guid, IBot> _bots = new(); // Key: PlayerId
-    private IDecisionEngineProvider? _sharedDecisionEngineProvider;
 
     public IClientGame? ClientGame { get; private set; }
 
@@ -25,12 +24,12 @@ public class BotManager : IBotManager
         ClientGame = clientGame;
         
         // Create shared decision engine provider for all bots
-        _sharedDecisionEngineProvider = new DecisionEngineProvider(clientGame);
+        DecisionEngineProvider = new DecisionEngineProvider(clientGame);
     }
 
     public void AddBot(IPlayer player)
     {
-        if (ClientGame == null || _sharedDecisionEngineProvider == null)
+        if (ClientGame == null || DecisionEngineProvider == null)
         {
             throw new InvalidOperationException("BotManager must be initialized before adding bots");
         }
@@ -52,7 +51,7 @@ public class BotManager : IBotManager
         }).ToList());
 
         // BotManager tracks which players are bots
-        var bot = new Bot(player, ClientGame, _sharedDecisionEngineProvider);
+        var bot = new Bot(player, ClientGame, DecisionEngineProvider);
         _bots.Add(player.Id, bot);
     }
 
@@ -73,7 +72,7 @@ public class BotManager : IBotManager
         return _bots.ContainsKey(playerId);
     }
 
-    public IDecisionEngineProvider? DecisionEngineProvider => _sharedDecisionEngineProvider;
+    public IDecisionEngineProvider? DecisionEngineProvider { get; private set; }
 
     public void Clear()
     {
