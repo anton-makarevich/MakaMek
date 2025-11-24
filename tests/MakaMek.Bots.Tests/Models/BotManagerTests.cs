@@ -184,14 +184,14 @@ public class BotManagerTests : IDisposable
     }
     
     [Fact]
-    public void Initialize_ShouldNotRewriteSharedDecisionEngineProvider()
+    public void Initialize_ShouldRecreateDecisionEngineProvider()
     {
         _sut.Initialize(_clientGame);
         var originalProvider = _sut.DecisionEngineProvide;
         
         _sut.Initialize(_clientGame);
         
-        _sut.DecisionEngineProvide.ShouldBeSameAs(originalProvider);
+        _sut.DecisionEngineProvide.ShouldNotBeSameAs(originalProvider);
     }
 
     private IPlayer CreateBotPlayer()

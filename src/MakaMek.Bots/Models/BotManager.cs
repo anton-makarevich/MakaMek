@@ -25,7 +25,7 @@ public class BotManager : IBotManager
         ClientGame = clientGame;
         
         // Create shared decision engine provider for all bots
-        _sharedDecisionEngineProvider ??= new DecisionEngineProvider(clientGame);
+        _sharedDecisionEngineProvider = new DecisionEngineProvider(clientGame);
     }
 
     public void AddBot(IPlayer player)
