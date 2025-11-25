@@ -2,6 +2,7 @@ using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Map;
@@ -115,7 +116,8 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -621,7 +623,8 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         sut.AttachHandlers();
 
         // Assert
@@ -658,7 +661,8 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         sut.AttachHandlers();
 
         // Act
@@ -694,7 +698,8 @@ public class StartNewGameViewModelTests
                 _mapFactory,
                 _cachingService,
                 _mapPreviewRenderer,
-                _hashService);
+                _hashService,
+                Substitute.For<IBotManager>());
             sut.AttachHandlers();
 
             // Assert
@@ -734,7 +739,8 @@ public class StartNewGameViewModelTests
                 _mapFactory,
                 _cachingService,
                 _mapPreviewRenderer,
-                _hashService);
+                _hashService,
+                Substitute.For<IBotManager>());
             sut.AttachHandlers();
 
             // Assert

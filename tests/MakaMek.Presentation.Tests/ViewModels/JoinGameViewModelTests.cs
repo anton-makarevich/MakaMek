@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -97,7 +98,8 @@ public class JoinGameViewModelTests
             _transportFactory,
             _mapFactory,
             _cachingService,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         _sut.AttachHandlers();
     }
 
@@ -472,7 +474,8 @@ public class JoinGameViewModelTests
             _transportFactory,
             _mapFactory,
             cachingService,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         sut.AttachHandlers();
 
         // Act
@@ -504,7 +507,8 @@ public class JoinGameViewModelTests
             _transportFactory,
             _mapFactory,
             cachingService,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
 
         // Assert - should be able to add default player even when not connected
         sut.IsConnected.ShouldBeFalse();

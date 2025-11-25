@@ -13,10 +13,19 @@
         <StackPanel Classes="verticalSpaced"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch">
-        <Button Content="Add Player" Command="{Binding AddPlayerCommand}"
-                Classes="primary"
-                HorizontalAlignment="Center"
-                IsEnabled="{Binding CanAddPlayer}"/>
+        <!-- Add Player and Add Bot Buttons -->
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="10">
+            <Button Content="Add Player"
+                    Command="{Binding AddPlayerCommand}"
+                    Classes="primary"
+                    IsEnabled="{Binding CanAddPlayer}"/>
+            <Button Content="Add Bot"
+                    Command="{Binding AddBotCommand}"
+                    Classes="primary"
+                    IsEnabled="{Binding CanAddPlayer}"/>
+        </StackPanel>
         <ItemsControl
             ItemsSource="{Binding Players}">
             <ItemsControl.ItemTemplate>

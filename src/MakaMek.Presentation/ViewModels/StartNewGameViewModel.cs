@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -22,7 +23,6 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly IGameManager _gameManager;
-    private readonly IMechFactory _mechFactory;
     private readonly IBattleMapFactory _mapFactory;
 
     public StartNewGameViewModel(
@@ -40,7 +40,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IBattleMapFactory mapFactory,
         IFileCachingService cachingService,
         IMapPreviewRenderer mapPreviewRenderer,
-        IHashService hashService)
+        IHashService hashService,
+        IBotManager botManager)
         : base(rulesProvider,
             unitsLoader,
             commandPublisher,
@@ -51,13 +52,15 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             dispatcherService,
             gameFactory,
             cachingService,
-            hashService)
+            hashService,
+            botManager,
+            mechFactory)
     {
         _gameManager = gameManager;
-        _mechFactory = mechFactory;
         _mapFactory = mapFactory;
         MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
+        AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
     }
 
     public async Task InitializeLobbyAndSubscribe()
@@ -75,6 +78,10 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _heatEffectsCalculator,
             _mapFactory,
             _hashService);
+
+        // Initialize BotManager with the ClientGame
+        _botManager.Initialize(_localGame);
+
         // Update server IP initially if needed
         NotifyPropertyChanged(nameof(ServerIpAddress));
     }
@@ -202,7 +209,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     }
     
     // Override the base AddPlayer to add additional notification
-    protected override Task AddPlayer(PlayerData? playerData = null)
+    protected override Task AddPlayer(
+        PlayerData? playerData = null,
+        PlayerControlType controlType = PlayerControlType.Human)
     {
         var result = base.AddPlayer(playerData);
         NotifyPropertyChanged(nameof(CanStartGame)); // CanStartGame might be false until units are added
