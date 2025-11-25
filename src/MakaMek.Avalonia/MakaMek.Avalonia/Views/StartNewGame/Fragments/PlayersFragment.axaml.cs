@@ -7,6 +7,9 @@ namespace Sanet.MakaMek.Avalonia.Views.StartNewGame.Fragments
         public PlayersFragment()
         {
             InitializeComponent();
+#if !DEBUG
+            AddBotButton.IsVisible = false;
+#endif
         }
     }
 }
