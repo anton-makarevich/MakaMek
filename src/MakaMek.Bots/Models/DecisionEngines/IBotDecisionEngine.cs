@@ -1,6 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace Sanet.MakaMek.Bots.DecisionEngines;
+namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
 /// <summary>
 /// Represents a decision engine that makes decisions for a bot during a specific game phase

@@ -1,9 +1,8 @@
-﻿using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+﻿using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace Sanet.MakaMek.Bots.DecisionEngines;
+namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
 /// <summary>
 /// Decision engine for the end phase
