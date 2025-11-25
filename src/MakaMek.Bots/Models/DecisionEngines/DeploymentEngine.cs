@@ -22,17 +22,14 @@ public class DeploymentEngine : IBotDecisionEngine
         try
         {
             // 1. Find undeployed units
-            var undeployedUnits = player.Units.Where(u => !u.IsDeployed).ToList();
-            if (undeployedUnits.Count == 0)
+            var undeployedUnit = player.Units.FirstOrDefault(u => !u.IsDeployed);
+            if (undeployedUnit == null)
             {
                 // No units to deploy, skip turn
                 return;
             }
 
-            // 2. Select first undeployed unit (simple strategy)
-            var unit = undeployedUnits.First();
-
-            // 3. Get valid deployment hexes from map
+            // 2. Get valid deployment hexes from map
             var validHexes = GetValidDeploymentHexes();
             if (validHexes.Count == 0)
             {
@@ -40,16 +37,16 @@ public class DeploymentEngine : IBotDecisionEngine
                 return;
             }
 
-            // 4. Select random hex and direction
+            // 3. Select random hex and direction
             var selectedHex = validHexes[Random.Shared.Next(validHexes.Count)];
-            var selectedDirection = (HexDirection)Random.Shared.Next(0, 6);
+            var selectedDirection = GetRandomDirection();
 
-            // 5. Create and send deploy command
+            // 4. Create and send deploy command
             var deployCommand = new DeployUnitCommand
             {
                 GameOriginId = _clientGame.Id,
                 PlayerId = player.Id,
-                UnitId = unit.Id,
+                UnitId = undeployedUnit.Id,
                 Position = selectedHex.ToData(),
                 Direction = (int)selectedDirection
             };
@@ -63,39 +60,70 @@ public class DeploymentEngine : IBotDecisionEngine
         }
     }
 
-    private List<HexCoordinates> GetValidDeploymentHexes()
+    /// <summary>
+    /// Gets the deployment area (edges of the map). Can be overridden for custom deployment zones.
+    /// </summary>
+    protected virtual HashSet<HexCoordinates> GetDeploymentArea()
     {
-        var validHexes = new List<HexCoordinates>();
+        var deploymentArea = new HashSet<HexCoordinates>();
 
         if (_clientGame.BattleMap == null)
-            return validHexes;
+            return deploymentArea;
 
-        // For Phase 1, use simple deployment strategy:
-        // Deploy on the first two rows of the map (basic deployment zone)
-        for (int q = 1; q <= _clientGame.BattleMap.Width; q++)
+        var width = _clientGame.BattleMap.Width;
+        var height = _clientGame.BattleMap.Height;
+
+        // Add first and last rows
+        for (var q = 1; q <= width; q++)
         {
-            for (int r = 1; r <= Math.Min(2, _clientGame.BattleMap.Height); r++)
-            {
-                var coordinates = new HexCoordinates(q, r);
-                var hex = _clientGame.BattleMap.GetHex(coordinates);
-
-                // Check if hex exists and is not occupied
-                if (hex != null && !IsHexOccupied(coordinates))
-                {
-                    validHexes.Add(coordinates);
-                }
-            }
+            deploymentArea.Add(new HexCoordinates(q, 1));
+            deploymentArea.Add(new HexCoordinates(q, height));
         }
 
-        return validHexes;
+        // Add first and last columns (excluding corners already added)
+        for (var r = 2; r < height; r++)
+        {
+            deploymentArea.Add(new HexCoordinates(1, r));
+            deploymentArea.Add(new HexCoordinates(width, r));
+        }
+
+        return deploymentArea;
     }
 
-    private bool IsHexOccupied(HexCoordinates coordinates)
+    private List<HexCoordinates> GetValidDeploymentHexes()
     {
-        // Check if any unit is already deployed at this position
-        return _clientGame.Players
+        if (_clientGame.BattleMap == null)
+            return [];
+
+        // Get deployment area (edges of the map)
+        var deploymentArea = GetDeploymentArea();
+
+        // Get occupied hexes using HashSet for efficient lookups
+        var occupiedHexes = _clientGame.Players
             .SelectMany(p => p.Units)
-            .Any(u => u.Position?.Coordinates == coordinates);
+            .Where(u => u is { IsDeployed: true, Position: not null })
+            .Select(u => u.Position!.Coordinates)
+            .ToHashSet();
+
+        // Return unoccupied hexes in deployment area
+        return deploymentArea
+            .Where(hex => !occupiedHexes.Contains(hex))
+            .ToList();
+    }
+
+    private static HexDirection GetRandomDirection()
+    {
+        var directions = new[]
+        {
+            HexDirection.Top,
+            HexDirection.TopRight,
+            HexDirection.BottomRight,
+            HexDirection.Bottom,
+            HexDirection.BottomLeft,
+            HexDirection.TopLeft
+        };
+
+        return directions[Random.Shared.Next(directions.Length)];
     }
 }
 
