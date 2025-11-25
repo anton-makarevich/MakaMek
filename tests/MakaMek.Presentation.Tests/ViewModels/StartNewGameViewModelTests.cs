@@ -174,6 +174,18 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
+    public void AddBotCommand_ShouldAddBotPlayer_WhenLessThanFourPlayers()
+    {
+        var initialPlayerCount = _sut.Players.Count;
+
+        _sut.AddBotCommand!.Execute(null);
+
+        _sut.Players.Count.ShouldBe(initialPlayerCount + 1);
+        _sut.Players.Last().Player.ControlType.ShouldBe(PlayerControlType.Bot);
+        _sut.CanAddPlayer.ShouldBeTrue();
+    }
+
+    [Fact]
     public void AddPlayer_ShouldNotAddPlayer_WhenFourPlayersAlreadyAdded()
     {
         for (var i = 0; i < 4; i++)
