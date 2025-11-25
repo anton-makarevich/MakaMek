@@ -80,8 +80,6 @@ public abstract class NewGameViewModel : BaseViewModel
 
         RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
     }
-    
-    public IBotManager BotManager => _botManager;
 
     // Common command handlers with template method pattern
     internal void HandleServerCommand(IGameCommand command)
