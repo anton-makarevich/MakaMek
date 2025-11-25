@@ -213,7 +213,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         PlayerData? playerData = null,
         PlayerControlType controlType = PlayerControlType.Human)
     {
-        var result = base.AddPlayer(playerData);
+        var result = base.AddPlayer(playerData, controlType);
         NotifyPropertyChanged(nameof(CanStartGame)); // CanStartGame might be false until units are added
         return result;
     }
