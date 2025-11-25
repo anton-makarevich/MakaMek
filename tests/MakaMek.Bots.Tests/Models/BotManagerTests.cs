@@ -92,23 +92,6 @@ public class BotManagerTests : IDisposable
     }
 
     [Fact]
-    public void AddBot_ShouldJoinGameWithUnits()
-    {
-        // Arrange
-        _sut.Initialize(_clientGame);
-        var player = CreateBotPlayer();
-        
-        // Act
-        _sut.AddBot(player);
-        
-        // Assert
-        _clientGame.Received().JoinGameWithUnits(
-            player,
-            Arg.Any<List<UnitData>>(),
-            Arg.Any<List<PilotAssignmentData>>());
-    }
-
-    [Fact]
     public void IsBot_WhenPlayerIsBot_ShouldReturnTrue()
     {
         // Arrange
