@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -43,6 +44,7 @@ public class JoinGameViewModelTests
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
     private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
+    private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ClientGame _clientGame;
 
     public JoinGameViewModelTests()
@@ -97,7 +99,8 @@ public class JoinGameViewModelTests
             _transportFactory,
             _mapFactory,
             _cachingService,
-            _hashService);
+            _hashService,
+            _botManager);
         _sut.AttachHandlers();
     }
 
@@ -472,7 +475,8 @@ public class JoinGameViewModelTests
             _transportFactory,
             _mapFactory,
             cachingService,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         sut.AttachHandlers();
 
         // Act
@@ -504,7 +508,8 @@ public class JoinGameViewModelTests
             _transportFactory,
             _mapFactory,
             cachingService,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
 
         // Assert - should be able to add default player even when not connected
         sut.IsConnected.ShouldBeFalse();
@@ -528,5 +533,66 @@ public class JoinGameViewModelTests
         // Assert
         _sut.IsConnected.ShouldBeTrue();
         _sut.Players.First().CanJoin.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AddBotCommand_ShouldAddBotPlayer_WhenConnected()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+        var initialPlayerCount = _sut.Players.Count;
+
+        // Act
+        await ((AsyncCommand)_sut.AddBotCommand!).ExecuteAsync();
+
+        // Assert
+        _sut.Players.Count.ShouldBe(initialPlayerCount + 1);
+        _sut.Players.Last().Player.ControlType.ShouldBe(PlayerControlType.Bot);
+        _sut.CanAddPlayer.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task PublishJoinCommand_ForBotPlayer_AddsBot_ToBotManager()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+
+        // Add a bot player using AddBotCommand
+        await ((AsyncCommand)_sut.AddBotCommand!).ExecuteAsync();
+        var botPlayerVm = _sut.Players.Last();
+        await botPlayerVm.AddUnit(_sut.AvailableUnits.First());
+
+        // Verify the player is a bot
+        botPlayerVm.Player.ControlType.ShouldBe(PlayerControlType.Bot);
+
+        // Act
+        botPlayerVm.JoinGameCommand.Execute(null);
+
+        // Assert
+        _botManager.Received(1).AddBot(botPlayerVm.Player);
+    }
+
+    [Fact]
+    public async Task PublishJoinCommand_ForHumanPlayer_DoesNotAddBot_ToBotManager()
+    {
+        // Arrange
+        _sut.ServerIp = "http://localhost:5000";
+        ConnectAndAckLobby();
+
+        // Add a human player using AddPlayerCommand
+        await ((AsyncCommand)_sut.AddPlayerCommand!).ExecuteAsync();
+        var humanPlayerVm = _sut.Players.Last();
+        await humanPlayerVm.AddUnit(_sut.AvailableUnits.First());
+
+        // Verify the player is human
+        humanPlayerVm.Player.ControlType.ShouldBe(PlayerControlType.Human);
+
+        // Act
+        humanPlayerVm.JoinGameCommand.Execute(null);
+
+        // Assert
+        _botManager.DidNotReceive().AddBot(Arg.Any<IPlayer>());
     }
 }

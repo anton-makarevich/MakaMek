@@ -1,5 +1,6 @@
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -72,7 +73,8 @@ public class MainMenuViewModelTests
             Substitute.For<IBattleMapFactory>(),
             Substitute.For<IFileCachingService>(),
             Substitute.For<IMapPreviewRenderer>(),
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns(startVm);
 
         // Act
@@ -112,7 +114,8 @@ public class MainMenuViewModelTests
             Substitute.For<ITransportFactory>(),
             Substitute.For<IBattleMapFactory>(),
             Substitute.For<IFileCachingService>(),
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         _navigationService.GetNewViewModel<JoinGameViewModel>().Returns(joinVm);
 
         // Act

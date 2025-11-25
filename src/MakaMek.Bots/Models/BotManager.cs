@@ -40,16 +40,6 @@ public class BotManager : IBotManager
             throw new ArgumentException("Player must have ControlType.Bot", nameof(player));
         }
 
-        // Join the game with the bot's units
-        ClientGame.JoinGameWithUnits(player,
-            player.Units.Select(u => u.ToData())
-                .ToList(),
-            player.Units.Select(u => new PilotAssignmentData
-        {
-            UnitId = u.Id,
-            PilotData = u.Pilot!.ToData()
-        }).ToList());
-
         // BotManager tracks which players are bots
         var bot = new Bot(player, ClientGame, DecisionEngineProvider);
         _bots.Add(player.Id, bot);

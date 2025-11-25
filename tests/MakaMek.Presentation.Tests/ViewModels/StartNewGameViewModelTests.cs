@@ -2,6 +2,7 @@ using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Map;
@@ -52,6 +53,7 @@ public class StartNewGameViewModelTests
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly IMapPreviewRenderer _mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
+    private readonly IBotManager _botManager = Substitute.For<IBotManager>();
 
     public StartNewGameViewModelTests()
     {
@@ -115,7 +117,8 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _hashService);
+            _hashService,
+            _botManager);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -168,6 +171,18 @@ public class StartNewGameViewModelTests
 
         _sut.Players.Count.ShouldBe(initialPlayerCount + 1);
         _sut.Players.Last().Player.ControlType.ShouldBe(PlayerControlType.Human);
+        _sut.CanAddPlayer.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AddBotCommand_ShouldAddBotPlayer_WhenLessThanFourPlayers()
+    {
+        var initialPlayerCount = _sut.Players.Count;
+
+        _sut.AddBotCommand!.Execute(null);
+
+        _sut.Players.Count.ShouldBe(initialPlayerCount + 1);
+        _sut.Players.Last().Player.ControlType.ShouldBe(PlayerControlType.Bot);
         _sut.CanAddPlayer.ShouldBeTrue();
     }
 
@@ -308,6 +323,48 @@ public class StartNewGameViewModelTests
         _commandPublisher.Received().PublishCommand(Arg.Any<JoinGameCommand>());
         localPlayerVm.Player.Status = PlayerStatus.Joined;
         _sut.CanStartGame.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task PublishJoinCommand_ForBotPlayer_AddsBot_ToBotManager()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+
+        // Add a bot player using AddBotCommand
+        _sut.AddBotCommand!.Execute(null);
+        var botPlayerVm = _sut.Players.Last();
+        await botPlayerVm.AddUnit(_sut.AvailableUnits.First());
+
+        // Verify the player is a bot
+        botPlayerVm.Player.ControlType.ShouldBe(PlayerControlType.Bot);
+
+        // Act
+        botPlayerVm.JoinGameCommand.Execute(null);
+
+        // Assert
+        _botManager.Received(1).AddBot(botPlayerVm.Player);
+    }
+
+    [Fact]
+    public async Task PublishJoinCommand_ForHumanPlayer_DoesNotAddBot_ToBotManager()
+    {
+        // Arrange
+        await _sut.InitializeLobbyAndSubscribe();
+
+        // Add a human player using AddPlayerCommand
+        _sut.AddPlayerCommand!.Execute(null);
+        var humanPlayerVm = _sut.Players.Last();
+        await humanPlayerVm.AddUnit(_sut.AvailableUnits.First());
+
+        // Verify the player is human
+        humanPlayerVm.Player.ControlType.ShouldBe(PlayerControlType.Human);
+
+        // Act
+        humanPlayerVm.JoinGameCommand.Execute(null);
+
+        // Assert
+        _botManager.DidNotReceive().AddBot(Arg.Any<IPlayer>());
     }
 
     [Theory]
@@ -621,7 +678,8 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         sut.AttachHandlers();
 
         // Assert
@@ -658,7 +716,8 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _hashService);
+            _hashService,
+            Substitute.For<IBotManager>());
         sut.AttachHandlers();
 
         // Act
@@ -694,7 +753,8 @@ public class StartNewGameViewModelTests
                 _mapFactory,
                 _cachingService,
                 _mapPreviewRenderer,
-                _hashService);
+                _hashService,
+                Substitute.For<IBotManager>());
             sut.AttachHandlers();
 
             // Assert
@@ -734,7 +794,8 @@ public class StartNewGameViewModelTests
                 _mapFactory,
                 _cachingService,
                 _mapPreviewRenderer,
-                _hashService);
+                _hashService,
+                Substitute.For<IBotManager>());
             sut.AttachHandlers();
 
             // Assert

@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -16,6 +17,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
 
@@ -37,10 +39,13 @@ public abstract class NewGameViewModel : BaseViewModel
     protected readonly IGameFactory _gameFactory;
     protected readonly IHashService _hashService;
     private readonly IFileCachingService _cachingService;
+    protected readonly IBotManager _botManager;
+    protected readonly IMechFactory _mechFactory;
 
     protected ClientGame? _localGame;
 
     public ICommand? AddPlayerCommand { get; protected set; }
+    public ICommand? AddBotCommand { get; protected set; }
     public ICommand RemovePlayerCommand { get; }
 
     private const string DefaultPlayerCacheKey = "DefaultPlayer";
@@ -55,7 +60,9 @@ public abstract class NewGameViewModel : BaseViewModel
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
         IFileCachingService cachingService,
-        IHashService hashService)
+        IHashService hashService,
+        IBotManager botManager,
+        IMechFactory mechFactory)
     {
         _rulesProvider = rulesProvider;
         _unitsLoader = unitsLoader;
@@ -68,6 +75,8 @@ public abstract class NewGameViewModel : BaseViewModel
         _gameFactory = gameFactory;
         _cachingService = cachingService;
         _hashService = hashService;
+        _botManager = botManager;
+        _mechFactory = mechFactory;
 
         RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
     }
@@ -95,6 +104,11 @@ public abstract class NewGameViewModel : BaseViewModel
             UnitId = unit.Id ?? Guid.NewGuid(),
             PilotData = playerVm.GetPilotDataForUnit(unit.Id ?? Guid.NewGuid())?? PilotData.CreateDefaultPilot("MechWarrior","")
         }).ToList();
+        
+        if (playerVm.Player.ControlType == PlayerControlType.Bot)
+        {
+            _botManager.AddBot(playerVm.Player);
+        }
 
         _localGame.JoinGameWithUnits(playerVm.Player, playerVm.Units.ToList(), pilotAssignments);
     }
@@ -171,7 +185,7 @@ public abstract class NewGameViewModel : BaseViewModel
     }
 
     // Common player creation logic with template method pattern
-    protected virtual Task AddPlayer(PlayerData? playerData = null)
+    protected virtual Task AddPlayer(PlayerData? playerData = null, PlayerControlType controlType = PlayerControlType.Human)
     {
         if (!CanAddPlayer) return Task.CompletedTask;
         var isDefaultPlayer = playerData != null;
@@ -180,7 +194,7 @@ public abstract class NewGameViewModel : BaseViewModel
         playerData ??= PlayerData.CreateDefault() with { Tint = GetNextTint() };
 
         // Create Local Player Object
-        var newPlayer = new Player(playerData.Value, PlayerControlType.Human, Guid.NewGuid());
+        var newPlayer = new Player(playerData.Value, controlType, Guid.NewGuid());
 
         // Create Local ViewModel Wrapper with customizable callbacks
         var playerViewModel = CreatePlayerViewModel(newPlayer, isDefaultPlayer);

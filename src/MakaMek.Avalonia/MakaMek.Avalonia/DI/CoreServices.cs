@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Sanet.MakaMek.Avalonia.Services;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -79,6 +80,7 @@ public static class CoreServices
         services.AddSingleton<IGameManager, GameManager>();
         services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
         services.AddSingleton<IHashService, HashService>();
+        services.AddSingleton<IBotManager, BotManager>();
     }
     public static void RegisterViewModels(this IServiceCollection services)
     {

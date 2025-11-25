@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -19,11 +20,8 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public class JoinGameViewModel : NewGameViewModel
 {
-    private readonly IMechFactory _mechFactory;
     private readonly ITransportFactory _transportFactory;
     private readonly IBattleMapFactory _mapFactory;
-    private string _serverIp = string.Empty;
-    private bool _isConnected; // Track connection status
 
     public JoinGameViewModel(
         IRulesProvider rulesProvider,
@@ -39,7 +37,8 @@ public class JoinGameViewModel : NewGameViewModel
         ITransportFactory transportFactory,
         IBattleMapFactory mapFactory,
         IFileCachingService cachingService,
-        IHashService hashService)
+        IHashService hashService,
+        IBotManager botManager)
         : base(rulesProvider,
             unitsLoader,
             commandPublisher,
@@ -50,13 +49,15 @@ public class JoinGameViewModel : NewGameViewModel
             dispatcherService,
             gameFactory,
             cachingService,
-            hashService)
+            hashService,
+            botManager,
+            mechFactory)
     {
-        _mechFactory = mechFactory;
         _transportFactory = transportFactory;
         _mapFactory = mapFactory;
 
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
+        AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
     }
 
@@ -119,35 +120,34 @@ public class JoinGameViewModel : NewGameViewModel
         // Refresh bindings
         NotifyPropertyChanged(nameof(Players));
     }
-    
+
     public string ServerIp
     {
-        get => _serverIp;
+        get;
         set
         {
-            SetProperty(ref _serverIp, value);
+            SetProperty(ref field, value);
             (ConnectCommand as AsyncCommand)?.RaiseCanExecuteChanged();
             NotifyPropertyChanged(nameof(CanConnect));
             NotifyPropertyChanged(nameof(ServerAddress));
             NotifyPropertyChanged(nameof(CanAddPlayer));
         }
-    }
-    
+    } = string.Empty;
+
     public string ServerAddress => $"http://{ServerIp}:2439/makamekhub";
-    
+
     public bool IsConnected
     {
-        get => _isConnected;
+        get;
         private set
         {
-            SetProperty(ref _isConnected, value);
+            SetProperty(ref field, value);
             // Update UI based on connection status
             foreach (var player in _players)
             {
                 player.RefreshStatus();
             }
         }
-        
     }
 
     public ICommand ConnectCommand { get; private set; }
@@ -182,6 +182,10 @@ public class JoinGameViewModel : NewGameViewModel
                 _heatEffectsCalculator,
                 _mapFactory,
                 _hashService);
+
+            // Initialize BotManager with the ClientGame
+            _botManager.Initialize(_localGame);
+
             IsConnected = true;
             _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
             {

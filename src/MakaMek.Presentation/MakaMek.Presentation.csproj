@@ -19,6 +19,7 @@
     </ItemGroup>
     
     <ItemGroup>
+      <ProjectReference Include="..\MakaMek.Bots\MakaMek.Bots.csproj" />
       <ProjectReference Include="..\MakaMek.Core\MakaMek.Core.csproj" />
     </ItemGroup>
 

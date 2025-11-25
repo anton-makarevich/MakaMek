@@ -88,6 +88,27 @@ public class ClientGameTests
                 false)
         ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
+    
+    /// <summary>
+    /// Waits for a command to be published to the mock command publisher with retry logic.
+    /// This helps avoid race conditions in async tests.
+    /// </summary>
+    private async Task<T?> WaitForPublishedCommand<T>(
+        ICommandPublisher publisher, 
+        int maxAttempts = 50, 
+        int delayMs = 10) where T : struct
+    {
+        for (var i = 0; i < maxAttempts; i++)
+        {
+            var calls = publisher.ReceivedCalls().ToList();
+            if (calls.Count > 0)
+            {
+                return (T)calls.First().GetArguments()[0]!;
+            }
+            await Task.Delay(delayMs);
+        }
+        return null;
+    }
 
     [Fact]
     public void IsDisposed_ShouldBeFalse_ByDefault()
@@ -2708,14 +2729,14 @@ public class ClientGameTests
         // Act
         var deployTask = _sut.DeployUnit(deployCommand);
 
-        // Simulate server response
-        var capturedCommand = (DeployUnitCommand)_commandPublisher.ReceivedCalls() 
-            .First().GetArguments()[0]!;
+        // Wait for the command to be published (with retry to avoid race condition)
+        DeployUnitCommand? capturedCommand = await WaitForPublishedCommand<DeployUnitCommand>(_commandPublisher);
 
-        capturedCommand.IdempotencyKey.ShouldNotBeNull();
+        capturedCommand.ShouldNotBeNull("Command should have been published");
+        capturedCommand.Value.IdempotencyKey.ShouldNotBeNull();
 
         // Simulate server rebroadcast - change GameOriginId to simulate server rebroadcast
-        var rebroadcastCommand = capturedCommand with { GameOriginId = Guid.NewGuid() };
+        var rebroadcastCommand = capturedCommand.Value with { GameOriginId = Guid.NewGuid() };
         _sut.HandleCommand(rebroadcastCommand);
 
         // Assert - wait for the task to complete with a timeout
@@ -2770,15 +2791,16 @@ public class ClientGameTests
         // Act
         var deployTask = _sut.DeployUnit(deployCommand);
 
-        // Get the idempotency key from the published command
-        var capturedCommand = (DeployUnitCommand)_commandPublisher.ReceivedCalls()
-            .First().GetArguments()[0]!;
+        // Wait for the command to be published (with retry to avoid race condition)
+        var capturedCommand = await WaitForPublishedCommand<DeployUnitCommand>(_commandPublisher);
+
+        capturedCommand.ShouldNotBeNull("Command should have been published");
 
         // Simulate server error response - this should complete the task
         _sut.HandleCommand(new ErrorCommand
         {
             GameOriginId = Guid.NewGuid(),
-            IdempotencyKey = capturedCommand.IdempotencyKey!.Value,
+            IdempotencyKey = capturedCommand.Value.IdempotencyKey!.Value,
             ErrorCode = ErrorCode.DuplicateCommand
         });
 

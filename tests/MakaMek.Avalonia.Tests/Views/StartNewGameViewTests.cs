@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -50,7 +51,8 @@ namespace MakaMek.Avalonia.Tests.Views
                 Substitute.For<IBattleMapFactory>(),
                 cachingService,
                 Substitute.For<IMapPreviewRenderer>(),
-                Substitute.For<IHashService>());
+                Substitute.For<IHashService>(),
+                Substitute.For<IBotManager>());
 
             // Act
             view.DataContext = viewModel;
