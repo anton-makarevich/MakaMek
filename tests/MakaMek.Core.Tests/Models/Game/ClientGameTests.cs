@@ -2708,14 +2708,25 @@ public class ClientGameTests
         // Act
         var deployTask = _sut.DeployUnit(deployCommand);
 
-        // Simulate server response
-        var capturedCommand = (DeployUnitCommand)_commandPublisher.ReceivedCalls() 
-            .First().GetArguments()[0]!;
+        // Wait for the command to be published (with retry to avoid race condition)
+        DeployUnitCommand? capturedCommand = null;
+        const int maxAttempts = 50; // 50 attempts * 10ms = 500ms max wait
+        for (var i = 0; i < maxAttempts; i++)
+        {
+            var calls = _commandPublisher.ReceivedCalls().ToList();
+            if (calls.Count > 0)
+            {
+                capturedCommand = (DeployUnitCommand)calls.First().GetArguments()[0]!;
+                break;
+            }
+            await Task.Delay(10);
+        }
 
-        capturedCommand.IdempotencyKey.ShouldNotBeNull();
+        capturedCommand.ShouldNotBeNull("Command should have been published");
+        capturedCommand.Value.IdempotencyKey.ShouldNotBeNull();
 
         // Simulate server rebroadcast - change GameOriginId to simulate server rebroadcast
-        var rebroadcastCommand = capturedCommand with { GameOriginId = Guid.NewGuid() };
+        var rebroadcastCommand = capturedCommand.Value with { GameOriginId = Guid.NewGuid() };
         _sut.HandleCommand(rebroadcastCommand);
 
         // Assert - wait for the task to complete with a timeout
