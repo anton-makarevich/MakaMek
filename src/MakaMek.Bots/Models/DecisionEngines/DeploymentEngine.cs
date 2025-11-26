@@ -2,6 +2,7 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
@@ -29,19 +30,32 @@ public class DeploymentEngine : IBotDecisionEngine
                 return;
             }
 
-            // 2. Get valid deployment hexes from map
-            var validHexes = GetValidDeploymentHexes();
+            // 2. Get occupied hexes and enemy units (cached for efficiency)
+            var occupiedHexes = _clientGame.Players
+                .SelectMany(p => p.Units)
+                .Where(u => u is { IsDeployed: true, Position: not null })
+                .Select(u => u.Position!.Coordinates)
+                .ToHashSet();
+
+            var deployedEnemyUnits = _clientGame.Players
+                .Where(p => p.Id != player.Id)
+                .SelectMany(p => p.Units)
+                .Where(u => u is { IsDeployed: true, Position: not null })
+                .ToList();
+
+            // 3. Get valid deployment hexes from map
+            var validHexes = GetValidDeploymentHexes(occupiedHexes);
             if (validHexes.Count == 0)
             {
                 // No valid deployment hexes available
                 return;
             }
 
-            // 3. Select random hex and direction
+            // 4. Select random hex and calculate strategic direction
             var selectedHex = validHexes[Random.Shared.Next(validHexes.Count)];
-            var selectedDirection = GetRandomDirection();
+            var selectedDirection = GetDeploymentDirection(selectedHex, deployedEnemyUnits);
 
-            // 4. Create and send deploy command
+            // 5. Create and send deploy command
             var deployCommand = new DeployUnitCommand
             {
                 GameOriginId = _clientGame.Id,
@@ -90,7 +104,7 @@ public class DeploymentEngine : IBotDecisionEngine
         return deploymentArea;
     }
 
-    private List<HexCoordinates> GetValidDeploymentHexes()
+    private List<HexCoordinates> GetValidDeploymentHexes(HashSet<HexCoordinates> occupiedHexes)
     {
         if (_clientGame.BattleMap == null)
             return [];
@@ -98,32 +112,61 @@ public class DeploymentEngine : IBotDecisionEngine
         // Get deployment area (edges of the map)
         var deploymentArea = GetDeploymentArea();
 
-        // Get occupied hexes using HashSet for efficient lookups
-        var occupiedHexes = _clientGame.Players
-            .SelectMany(p => p.Units)
-            .Where(u => u is { IsDeployed: true, Position: not null })
-            .Select(u => u.Position!.Coordinates)
-            .ToHashSet();
-
         // Return unoccupied hexes in deployment area
         return deploymentArea
             .Where(hex => !occupiedHexes.Contains(hex))
             .ToList();
     }
 
-    private static HexDirection GetRandomDirection()
+    private HexDirection GetDeploymentDirection(HexCoordinates deployPosition, List<IUnit> deployedEnemyUnits)
     {
-        var directions = new[]
-        {
-            HexDirection.Top,
-            HexDirection.TopRight,
-            HexDirection.BottomRight,
-            HexDirection.Bottom,
-            HexDirection.BottomLeft,
-            HexDirection.TopLeft
-        };
+        HexCoordinates target;
 
-        return directions[Random.Shared.Next(directions.Length)];
+        // Determine target: nearest enemy or map center
+        if (deployedEnemyUnits.Count > 0)
+        {
+            // Find nearest enemy unit
+            var nearestEnemy = deployedEnemyUnits
+                .MinBy(enemy => deployPosition.DistanceTo(enemy.Position!.Coordinates));
+            target = nearestEnemy!.Position!.Coordinates;
+        }
+        else
+        {
+            // Face toward map center
+            if (_clientGame.BattleMap == null)
+                return HexDirection.Top; // Fallback
+
+            var centerQ = _clientGame.BattleMap.Width / 2;
+            var centerR = _clientGame.BattleMap.Height / 2;
+            target = new HexCoordinates(centerQ, centerR);
+        }
+
+        // If already at target (edge case), default to Top
+        if (deployPosition.Equals(target))
+        {
+            throw new InvalidOperationException(
+                $"Cannot deploy at target position {deployPosition}");
+        }
+
+        // Get line of sight to target
+        var lineSegments = deployPosition.LineTo(target);
+        
+        // Skip the first segment (current position) and get the first adjacent hex
+        if (lineSegments.Count < 2)
+        {
+            // Should not happen, but fallback to Top
+            return HexDirection.Top;
+        }
+
+        var firstSegment = lineSegments[1];
+        
+        // If segment has two options (equal-distance hexes), randomly select one
+        var adjacentHex = firstSegment.SecondOption != null && Random.Shared.Next(2) == 0
+            ? firstSegment.SecondOption
+            : firstSegment.MainOption;
+
+        // Get direction to the adjacent hex
+        return deployPosition.GetDirectionToNeighbour(adjacentHex);
     }
 }
 

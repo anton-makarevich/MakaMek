@@ -222,6 +222,131 @@ public class DeploymentEngineTests
         result.Contains(hex).ShouldBe(shouldBeIncluded);
     }
 
+    [Fact]
+    public async Task MakeDecision_WhenEnemyDeployed_ShouldFaceNearestEnemy()
+    {
+        // Arrange
+        var undeployedUnit = CreateMockUnit(isDeployed: false);
+        _player.Units.Returns([undeployedUnit]);
+        
+        // Deploy enemy at position (3, 3)
+        var enemyUnit = CreateMockUnit(isDeployed: true, new HexCoordinates(3, 3));
+        var enemyPlayer = Substitute.For<IPlayer>();
+        enemyPlayer.Id.Returns(Guid.NewGuid());
+        enemyPlayer.Units.Returns([enemyUnit]);
+        
+        _battleMap.Width.Returns(5);
+        _battleMap.Height.Returns(5);
+        _clientGame.Players.Returns([_player, enemyPlayer]);
+        
+        // Act
+        await _sut.MakeDecision(_player);
+        
+        // Assert
+        var receivedCalls = _clientGame.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == nameof(_clientGame.DeployUnit))
+            .ToList();
+        
+        receivedCalls.Count.ShouldBe(1);
+        var command = (DeployUnitCommand)receivedCalls[0].GetArguments()[0]!;
+        
+        var deployPos = new HexCoordinates(command.Position);
+        var enemyPos = new HexCoordinates(3, 3);
+        var directionHex = deployPos.Neighbor((HexDirection)command.Direction);
+        var lineToEnemy = deployPos.LineTo(enemyPos);
+        
+        // The direction should point to one of the hexes in the line of sight
+        lineToEnemy.Any(segment => 
+            segment.MainOption.Equals(directionHex) || 
+            (segment.SecondOption != null && segment.SecondOption.Equals(directionHex)))
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task MakeDecision_WhenNoEnemyDeployed_ShouldFaceMapCenter()
+    {
+        // Arrange
+        var undeployedUnit = CreateMockUnit(isDeployed: false);
+        _player.Units.Returns([undeployedUnit]);
+        
+        _battleMap.Width.Returns(5);
+        _battleMap.Height.Returns(5);
+        _clientGame.Players.Returns([_player]);
+        
+        // Act
+        await _sut.MakeDecision(_player);
+        
+        // Assert
+        var receivedCalls = _clientGame.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == nameof(_clientGame.DeployUnit))
+            .ToList();
+        
+        receivedCalls.Count.ShouldBe(1);
+        var command = (DeployUnitCommand)receivedCalls[0].GetArguments()[0]!;
+        
+        var deployPos = new HexCoordinates(command.Position);
+        var mapCenter = new HexCoordinates(2, 2); // 5/2 = 2 (integer division)
+        var directionHex = deployPos.Neighbor((HexDirection)command.Direction);
+        var lineToCenter = deployPos.LineTo(mapCenter);
+        
+        // The direction should point to one of the hexes in the line of sight
+        lineToCenter.Any(segment => 
+            segment.MainOption.Equals(directionHex) || 
+            (segment.SecondOption != null && segment.SecondOption.Equals(directionHex)))
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task MakeDecision_WhenMultipleEnemiesDeployed_ShouldFaceNearestOne()
+    {
+        // Arrange
+        var undeployedUnit = CreateMockUnit(isDeployed: false);
+        _player.Units.Returns([undeployedUnit]);
+        
+        // Deploy two enemies at different distances
+        var nearEnemy = CreateMockUnit(isDeployed: true, new HexCoordinates(2, 2));
+        var farEnemy = CreateMockUnit(isDeployed: true, new HexCoordinates(5, 5));
+        
+        var enemyPlayer = Substitute.For<IPlayer>();
+        enemyPlayer.Id.Returns(Guid.NewGuid());
+        enemyPlayer.Units.Returns([nearEnemy, farEnemy]);
+        
+        _battleMap.Width.Returns(5);
+        _battleMap.Height.Returns(5);
+        _clientGame.Players.Returns([_player, enemyPlayer]);
+        
+        // Act
+        await _sut.MakeDecision(_player);
+        
+        // Assert
+        var receivedCalls = _clientGame.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == nameof(_clientGame.DeployUnit))
+            .ToList();
+        
+        receivedCalls.Count.ShouldBe(1);
+        var command = (DeployUnitCommand)receivedCalls[0].GetArguments()[0]!;
+        
+        var deployPos = new HexCoordinates(command.Position);
+        var nearEnemyPos = new HexCoordinates(2, 2);
+        var farEnemyPos = new HexCoordinates(5, 5);
+        
+        // Calculate distances
+        var distanceToNear = deployPos.DistanceTo(nearEnemyPos);
+        var distanceToFar = deployPos.DistanceTo(farEnemyPos);
+        
+        // Determine which enemy is actually nearest
+        var nearestEnemyPos = distanceToNear <= distanceToFar ? nearEnemyPos : farEnemyPos;
+        
+        // Verify the direction points toward the nearest enemy
+        var directionHex = deployPos.Neighbor((HexDirection)command.Direction);
+        var lineToNearest = deployPos.LineTo(nearestEnemyPos);
+        
+        lineToNearest.Any(segment => 
+            segment.MainOption.Equals(directionHex) || 
+            (segment.SecondOption != null && segment.SecondOption.Equals(directionHex)))
+            .ShouldBeTrue();
+    }
+
     private IUnit CreateMockUnit(bool isDeployed, HexCoordinates? coordinates = null)
     {
         var unit = Substitute.For<IUnit>();
