@@ -53,8 +53,8 @@ public static class BattleMapExtensions
         /// <returns>The center hex coordinate</returns>
         public HexCoordinates GetCenterHexCoordinate()
         {
-            var centerQ = map.Width / 2;
-            var centerR = map.Height / 2;
+            var centerQ = (map.Width + 1) / 2;
+            var centerR = (map.Height + 1) / 2;
             return new HexCoordinates(centerQ, centerR);
         }
     }

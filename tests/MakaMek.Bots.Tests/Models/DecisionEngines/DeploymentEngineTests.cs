@@ -239,7 +239,7 @@ public class DeploymentEngineTests
         var command = (DeployUnitCommand)receivedCalls[0].GetArguments()[0]!;
         
         var deployPos = new HexCoordinates(command.Position);
-        var mapCenter = new HexCoordinates(2, 2); // 5/2 = 2 (integer division)
+        var mapCenter = new HexCoordinates(3, 3); // (5+1)/2 = 3
         var directionHex = deployPos.Neighbor((HexDirection)command.Direction);
         var lineToCenter = deployPos.LineTo(mapCenter);
         

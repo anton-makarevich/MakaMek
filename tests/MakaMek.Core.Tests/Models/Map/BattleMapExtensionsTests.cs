@@ -80,12 +80,13 @@ public class BattleMapExtensionsTests
     }
 
     [Theory]
-    [InlineData(5, 5, 2, 2)]   // Odd-sized map
-    [InlineData(4, 4, 2, 2)]   // Even-sized map
-    [InlineData(10, 10, 5, 5)] // Larger even-sized map
-    [InlineData(9, 9, 4, 4)]   // Larger odd-sized map
-    [InlineData(1, 1, 0, 0)]   // Smallest map
-    [InlineData(6, 8, 3, 4)]   // Rectangular map
+    [InlineData(5, 5, 3, 3)]   // Odd-sized map
+    [InlineData(4, 4, 2, 2)]   // Even-sized map (rounds down)
+    [InlineData(10, 10, 5, 5)] // Larger even-sized map (rounds down)
+    [InlineData(9, 9, 5, 5)]   // Larger odd-sized map
+    [InlineData(1, 1, 1, 1)]   // Smallest map
+    [InlineData(6, 8, 3, 4)]   // Rectangular map (rounds down)
+    [InlineData(3, 3, 2, 2)]   // 3x3 map
     public void GetCenterHexCoordinate_ShouldReturnCorrectCenter(int width, int height, int expectedQ, int expectedR)
     {
         // Arrange
@@ -102,14 +103,14 @@ public class BattleMapExtensionsTests
     [Fact]
     public void GetCenterHexCoordinate_ShouldUseIntegerDivision()
     {
-        // Arrange - 5x5 map should have center at (2, 2) not (2.5, 2.5)
+        // Arrange - 5x5 map should have center at (3, 3) using (5+1)/2 = 3
         var map = new BattleMap(5, 5);
         
         // Act
         var center = map.GetCenterHexCoordinate();
         
         // Assert
-        center.ShouldBe(new HexCoordinates(2, 2));
+        center.ShouldBe(new HexCoordinates(3, 3));
     }
 
     [Theory]
