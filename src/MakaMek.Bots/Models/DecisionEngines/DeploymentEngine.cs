@@ -79,29 +79,9 @@ public class DeploymentEngine : IBotDecisionEngine
     /// </summary>
     protected virtual HashSet<HexCoordinates> GetDeploymentArea()
     {
-        var deploymentArea = new HashSet<HexCoordinates>();
-
-        if (_clientGame.BattleMap == null)
-            return deploymentArea;
-
-        var width = _clientGame.BattleMap.Width;
-        var height = _clientGame.BattleMap.Height;
-
-        // Add first and last rows
-        for (var q = 1; q <= width; q++)
-        {
-            deploymentArea.Add(new HexCoordinates(q, 1));
-            deploymentArea.Add(new HexCoordinates(q, height));
-        }
-
-        // Add first and last columns (excluding corners already added)
-        for (var r = 2; r < height; r++)
-        {
-            deploymentArea.Add(new HexCoordinates(1, r));
-            deploymentArea.Add(new HexCoordinates(width, r));
-        }
-
-        return deploymentArea;
+        return _clientGame.BattleMap == null ? [] :
+            // Use extension method and convert to HashSet for efficient lookups
+            _clientGame.BattleMap.GetEdgeHexCoordinates().ToHashSet();
     }
 
     private List<HexCoordinates> GetValidDeploymentHexes(HashSet<HexCoordinates> occupiedHexes)
@@ -136,9 +116,7 @@ public class DeploymentEngine : IBotDecisionEngine
             if (_clientGame.BattleMap == null)
                 return HexDirection.Top; // Fallback
 
-            var centerQ = _clientGame.BattleMap.Width / 2;
-            var centerR = _clientGame.BattleMap.Height / 2;
-            target = new HexCoordinates(centerQ, centerR);
+            target = _clientGame.BattleMap.GetCenterHexCoordinate();
         }
 
         // If already at target (edge case), default to Top

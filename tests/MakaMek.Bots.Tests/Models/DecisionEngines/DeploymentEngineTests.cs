@@ -176,52 +176,6 @@ public class DeploymentEngineTests
         await _clientGame.Received(1).DeployUnit(Arg.Any<DeployUnitCommand>());
     }
 
-    [Theory]
-    [InlineData(3, 3, 8)]  // 3x3 map has 8 edge hexes (perimeter)
-    [InlineData(5, 5, 16)] // 5x5 map has 16 edge hexes
-    [InlineData(10, 10, 36)] // 10x10 map has 36 edge hexes
-    public void GetDeploymentArea_ShouldReturnCorrectNumberOfEdgeHexes(int width, int height, int expectedCount)
-    {
-        // Arrange
-        _battleMap.Width.Returns(width);
-        _battleMap.Height.Returns(height);
-        
-        // Act - use reflection to call protected method
-        var method = typeof(DeploymentEngine).GetMethod("GetDeploymentArea", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var result = (HashSet<HexCoordinates>)method!.Invoke(_sut, null)!;
-        
-        // Assert
-        result.Count.ShouldBe(expectedCount);
-    }
-
-    [Theory]
-    [InlineData(1, 1, true)]   // Top-left corner
-    [InlineData(5, 1, true)]   // Top-right corner
-    [InlineData(1, 5, true)]   // Bottom-left corner
-    [InlineData(5, 5, true)]   // Bottom-right corner
-    [InlineData(3, 1, true)]   // Top edge
-    [InlineData(3, 5, true)]   // Bottom edge
-    [InlineData(1, 3, true)]   // Left edge
-    [InlineData(5, 3, true)]   // Right edge
-    [InlineData(3, 3, false)]  // Center (not edge)
-    [InlineData(2, 2, false)]  // Interior (not edge)
-    public void GetDeploymentArea_ShouldIncludeOnlyEdgeHexes(int q, int r, bool shouldBeIncluded)
-    {
-        // Arrange
-        _battleMap.Width.Returns(5);
-        _battleMap.Height.Returns(5);
-        
-        // Act
-        var method = typeof(DeploymentEngine).GetMethod("GetDeploymentArea", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var result = (HashSet<HexCoordinates>)method!.Invoke(_sut, null)!;
-        
-        // Assert
-        var hex = new HexCoordinates(q, r);
-        result.Contains(hex).ShouldBe(shouldBeIncluded);
-    }
-
     [Fact]
     public async Task MakeDecision_WhenEnemyDeployed_ShouldFaceNearestEnemy()
     {
