@@ -1,5 +1,5 @@
 using NSubstitute;
-using Sanet.MakaMek.Bots.DecisionEngines;
+using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;

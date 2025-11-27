@@ -1,4 +1,4 @@
-using Sanet.MakaMek.Bots.DecisionEngines;
+using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 
 namespace Sanet.MakaMek.Bots.Services;

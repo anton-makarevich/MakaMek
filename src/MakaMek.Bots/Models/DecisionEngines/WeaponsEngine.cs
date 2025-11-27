@@ -5,7 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
-namespace Sanet.MakaMek.Bots.DecisionEngines;
+namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
 /// <summary>
 /// Decision engine for the weapons phase
