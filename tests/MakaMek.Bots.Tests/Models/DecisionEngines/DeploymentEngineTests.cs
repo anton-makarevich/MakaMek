@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
@@ -31,7 +32,7 @@ public class DeploymentEngineTests
     }
 
     [Fact]
-    public async Task MakeDecision_WhenNoUndeployedUnits_ShouldNotDeployAnything()
+    public async Task MakeDecision_WhenNoUndeployedUnits_ShouldThrowBotDecisionException()
     {
         // Arrange
         var deployedUnit = CreateMockUnit(isDeployed: true);
@@ -41,14 +42,17 @@ public class DeploymentEngineTests
         _clientGame.Players.Returns([_player]);
         
         // Act
-        await _sut.MakeDecision(_player);
+        var exception = await Should.ThrowAsync<BotDecisionException>(
+            async () => await _sut.MakeDecision(_player));
         
         // Assert
-        await _clientGame.DidNotReceive().DeployUnit(Arg.Any<DeployUnitCommand>());
+        exception.Message.ShouldContain("no undeployed units");
+        exception.DecisionEngineType.ShouldBe(nameof(DeploymentEngine));
+        exception.PlayerId.ShouldBe(_player.Id);
     }
 
     [Fact]
-    public async Task MakeDecision_WhenNoBattleMap_ShouldNotDeployAnything()
+    public async Task MakeDecision_WhenNoBattleMap_ShouldThrowBotDecisionException()
     {
         // Arrange
         var undeployedUnit = CreateMockUnit(isDeployed: false);
@@ -56,14 +60,17 @@ public class DeploymentEngineTests
         _clientGame.BattleMap.Returns((BattleMap?)null);
         
         // Act
-        await _sut.MakeDecision(_player);
+        var exception = await Should.ThrowAsync<BotDecisionException>(
+            async () => await _sut.MakeDecision(_player));
         
         // Assert
-        await _clientGame.DidNotReceive().DeployUnit(Arg.Any<DeployUnitCommand>());
+        exception.Message.ShouldContain("no valid deployment hexes");
+        exception.DecisionEngineType.ShouldBe(nameof(DeploymentEngine));
+        exception.PlayerId.ShouldBe(_player.Id);
     }
 
     [Fact]
-    public async Task MakeDecision_WhenNoValidHexes_ShouldNotDeployAnything()
+    public async Task MakeDecision_WhenNoValidHexes_ShouldThrowBotDecisionException()
     {
         // Arrange
         var undeployedUnit = CreateMockUnit(isDeployed: false);
@@ -72,10 +79,13 @@ public class DeploymentEngineTests
         _battleMap.Height.Returns(0);
         
         // Act
-        await _sut.MakeDecision(_player);
+        var exception = await Should.ThrowAsync<BotDecisionException>(
+            async () => await _sut.MakeDecision(_player));
         
         // Assert
-        await _clientGame.DidNotReceive().DeployUnit(Arg.Any<DeployUnitCommand>());
+        exception.Message.ShouldContain("no valid deployment hexes");
+        exception.DecisionEngineType.ShouldBe(nameof(DeploymentEngine));
+        exception.PlayerId.ShouldBe(_player.Id);
     }
 
     [Fact]
@@ -301,6 +311,28 @@ public class DeploymentEngineTests
             .ShouldBeTrue();
     }
 
+
+    [Fact]
+    public async Task MakeDecision_WhenDeployingAtMapCenter_ShouldThrowBotDecisionException()
+    {
+        // Arrange - Create a 1x1 map where the only hex is the center
+        var undeployedUnit = CreateMockUnit(isDeployed: false);
+        _player.Units.Returns([undeployedUnit]);
+        
+        _battleMap.Width.Returns(1);
+        _battleMap.Height.Returns(1);
+        _clientGame.Players.Returns([_player]);
+        
+        // Act - The only valid deployment hex (1,1) is also the map center
+        var exception = await Should.ThrowAsync<BotDecisionException>(
+            async () => await _sut.MakeDecision(_player));
+        
+        // Assert
+        exception.Message.ShouldContain("cannot deploy at target position");
+        exception.DecisionEngineType.ShouldBe(nameof(DeploymentEngine));
+        exception.PlayerId.ShouldBe(_player.Id);
+    }
+    
     private IUnit CreateMockUnit(bool isDeployed, HexCoordinates? coordinates = null)
     {
         var unit = Substitute.For<IUnit>();

@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+﻿using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -26,8 +27,10 @@ public class DeploymentEngine : IBotDecisionEngine
             var undeployedUnit = player.Units.FirstOrDefault(u => !u.IsDeployed);
             if (undeployedUnit == null)
             {
-                // No units to deploy, skip turn
-                return;
+                throw new BotDecisionException(
+                    $"No undeployed units available for player {player.Name}",
+                    nameof(DeploymentEngine),
+                    player.Id);
             }
 
             // 2. Get occupied hexes and enemy units (cached for efficiency)
@@ -47,13 +50,15 @@ public class DeploymentEngine : IBotDecisionEngine
             var validHexes = GetValidDeploymentHexes(occupiedHexes);
             if (validHexes.Count == 0)
             {
-                // No valid deployment hexes available
-                return;
+                throw new BotDecisionException(
+                    "No valid deployment hexes available on the map",
+                    nameof(DeploymentEngine),
+                    player.Id);
             }
 
             // 4. Select random hex and calculate strategic direction
             var selectedHex = validHexes[Random.Shared.Next(validHexes.Count)];
-            var selectedDirection = GetDeploymentDirection(selectedHex, deployedEnemyUnits);
+            var selectedDirection = GetDeploymentDirection(selectedHex, deployedEnemyUnits, player);
 
             // 5. Create and send deploy command
             var deployCommand = new DeployUnitCommand
@@ -67,9 +72,15 @@ public class DeploymentEngine : IBotDecisionEngine
 
             await _clientGame.DeployUnit(deployCommand);
         }
+        catch (BotDecisionException ex)
+        {
+            // Rethrow BotDecisionException to let caller handle decision failures
+            Console.WriteLine($"DeploymentEngine error for player {player.Name}: {ex.Message}");
+            throw;
+        }
         catch (Exception ex)
         {
-            // Log error but don't throw - graceful degradation
+            // Log error but don't throw - graceful degradation for unexpected errors
             Console.WriteLine($"DeploymentEngine error for player {player.Name}: {ex.Message}");
         }
     }
@@ -98,7 +109,7 @@ public class DeploymentEngine : IBotDecisionEngine
             .ToList();
     }
 
-    private HexDirection GetDeploymentDirection(HexCoordinates deployPosition, List<IUnit> deployedEnemyUnits)
+    private HexDirection GetDeploymentDirection(HexCoordinates deployPosition, List<IUnit> deployedEnemyUnits, IPlayer player)
     {
         HexCoordinates target;
 
@@ -114,16 +125,23 @@ public class DeploymentEngine : IBotDecisionEngine
         {
             // Face toward map center
             if (_clientGame.BattleMap == null)
-                return HexDirection.Top; // Fallback
+            {
+                throw new BotDecisionException(
+                    "Battle map is null when calculating deployment direction",
+                    nameof(DeploymentEngine),
+                    player.Id);
+            }
 
             target = _clientGame.BattleMap.GetCenterHexCoordinate();
         }
 
-        // If already at target (edge case), default to Top
+        // If already at target (edge case), throw exception
         if (deployPosition.Equals(target))
         {
-            throw new InvalidOperationException(
-                $"Cannot deploy at target position {deployPosition}");
+            throw new BotDecisionException(
+                $"Cannot deploy at target position {deployPosition}",
+                nameof(DeploymentEngine),
+                player.Id);
         }
 
         // Get line of sight to target
