@@ -5,7 +5,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 
-namespace Sanet.MakaMek.Bots.DecisionEngines;
+namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
 /// <summary>
 /// Decision engine for the movement phase

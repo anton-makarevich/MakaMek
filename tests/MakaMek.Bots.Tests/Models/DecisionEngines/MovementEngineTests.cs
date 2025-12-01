@@ -1,5 +1,5 @@
 using NSubstitute;
-using Sanet.MakaMek.Bots.DecisionEngines;
+using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -7,7 +7,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Shouldly;
 
-namespace Sanet.MakaMek.Bots.Tests.DecisionEngines;
+namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
 
 public class MovementEngineTests
 {

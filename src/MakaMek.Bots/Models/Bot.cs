@@ -1,5 +1,5 @@
 ﻿using AsyncAwaitBestPractices;
-using Sanet.MakaMek.Bots.DecisionEngines;
+using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
