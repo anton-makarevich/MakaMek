@@ -88,7 +88,7 @@ public class DeploymentEngine : IBotDecisionEngine
     /// <summary>
     /// Gets the deployment area (edges of the map). Can be overridden for custom deployment zones.
     /// </summary>
-    protected virtual HashSet<HexCoordinates> GetDeploymentArea()
+    private HashSet<HexCoordinates> GetDeploymentArea()
     {
         return _clientGame.BattleMap == null ? [] :
             // Use extension method and convert to HashSet for efficient lookups
@@ -97,9 +97,6 @@ public class DeploymentEngine : IBotDecisionEngine
 
     private List<HexCoordinates> GetValidDeploymentHexes(HashSet<HexCoordinates> occupiedHexes)
     {
-        if (_clientGame.BattleMap == null)
-            return [];
-
         // Get deployment area (edges of the map)
         var deploymentArea = GetDeploymentArea();
 
@@ -124,18 +121,10 @@ public class DeploymentEngine : IBotDecisionEngine
         else
         {
             // Face toward map center
-            if (_clientGame.BattleMap == null)
-            {
-                throw new BotDecisionException(
-                    "Battle map is null when calculating deployment direction",
-                    nameof(DeploymentEngine),
-                    player.Id);
-            }
-
-            target = _clientGame.BattleMap.GetCenterHexCoordinate();
+            target = _clientGame.BattleMap!.GetCenterHexCoordinate();
         }
 
-        // If already at target (edge case), throw exception
+        // If already at target (edge case, for unrealistic one hex maps), throw exception
         if (deployPosition.Equals(target))
         {
             throw new BotDecisionException(
@@ -146,13 +135,6 @@ public class DeploymentEngine : IBotDecisionEngine
 
         // Get line of sight to target
         var lineSegments = deployPosition.LineTo(target);
-        
-        // Skip the first segment (current position) and get the first adjacent hex
-        if (lineSegments.Count < 2)
-        {
-            // Should not happen, but fallback to Top
-            return HexDirection.Top;
-        }
 
         var firstSegment = lineSegments[1];
         
