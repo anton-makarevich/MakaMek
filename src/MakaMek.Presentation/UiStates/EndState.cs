@@ -29,7 +29,8 @@ public class EndState : IUiState
 
     private bool IsActivePlayer => _viewModel.Game?.ActivePlayer != null && 
                                   _viewModel.Game is { } clientGame &&
-                                  clientGame.LocalPlayers.Any(p => p == _viewModel.Game.ActivePlayer.Id);
+                                  clientGame.LocalPlayers.Any(p => p == _viewModel.Game.ActivePlayer.Id) &&
+                                  _viewModel.Game.ActivePlayer.ControlType == Core.Models.Game.Players.PlayerControlType.Human;
 
     private bool CanActivePlayerAct => _viewModel.Game?.CanActivePlayerAct ?? false;
 

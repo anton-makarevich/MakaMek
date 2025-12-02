@@ -40,7 +40,7 @@ public class DeploymentState : IUiState
 
     public void  HandleUnitSelection(IUnit? unit)
     {
-        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
+        if (_viewModel.Game is { CanActivePlayerAct: false } || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
         if (_currentSubState != SubState.SelectingUnit) return;
         
         if (unit == null) return;
@@ -52,14 +52,14 @@ public class DeploymentState : IUiState
 
     public void HandleHexSelection(Hex hex)
     {
-        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
+        if (_viewModel.Game is { CanActivePlayerAct: false } || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
         if (_currentSubState is SubState.SelectingHex 
                              or SubState.SelectingDirection) HandleHexForDeployment(hex);
     }
 
     public void HandleFacingSelection(HexDirection direction)
     {
-        if (_viewModel.Game is { CanActivePlayerAct: false }) return;
+        if (_viewModel.Game is { CanActivePlayerAct: false } || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
         if (_currentSubState != SubState.SelectingDirection) return;
         _builder.SetDirection(direction);
         _viewModel.HideDirectionSelector();
@@ -133,7 +133,8 @@ public class DeploymentState : IUiState
             if (_viewModel.Game is not { } clientGame)
                 return false;
             return clientGame is { CanActivePlayerAct:true, UnitsToPlayCurrentStep: > 0 }
-                   && clientGame.LocalPlayers.Contains(clientGame.ActivePlayer!.Id);
+                   && clientGame.LocalPlayers.Contains(clientGame.ActivePlayer!.Id)
+                   && clientGame.ActivePlayer.ControlType == Core.Models.Game.Players.PlayerControlType.Human;
         }
     }
 }
