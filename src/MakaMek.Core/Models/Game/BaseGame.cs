@@ -136,9 +136,10 @@ public abstract class BaseGame : IGame
     internal void OnPlayerJoined(JoinGameCommand joinGameCommand)
     {
         if (!ValidateJoinCommand(joinGameCommand)) return;
+        var controlType = GetLocalPlayerControlType(joinGameCommand.PlayerId) ?? PlayerControlType.Remote;
         var player = new Player(joinGameCommand.PlayerId,
             joinGameCommand.PlayerName,
-            PlayerControlType.Remote,
+            controlType,
             joinGameCommand.Tint);
 
         // Create units from unit data
@@ -489,4 +490,6 @@ public abstract class BaseGame : IGame
     }
 
     public abstract void HandleCommand(IGameCommand command);
+
+    protected abstract PlayerControlType? GetLocalPlayerControlType(Guid playerId);
 }
