@@ -2928,6 +2928,8 @@ public class ClientGameTests
         _sut.HandleCommand(joinCommand);
 
         // Assert
+        _sut.LocalPlayers.ShouldContain(player.Id);
+        _sut.LocalPlayers.Count.ShouldBe(1);
         var joinedPlayer = _sut.Players.FirstOrDefault(p => p.Id == player.Id);
         joinedPlayer.ShouldNotBeNull();
         joinedPlayer.ControlType.ShouldBe(controlType);
