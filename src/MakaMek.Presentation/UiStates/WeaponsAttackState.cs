@@ -17,8 +17,9 @@ public class WeaponsAttackState : IUiState
     private readonly Dictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges = new();
     // Removed _weaponTargets - now using Unit.WeaponAttackState
     private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
-    private readonly ClientGame _game;
     private readonly Lock _stateLock = new();
+
+    public ClientGame Game { get; }
 
     public WeaponsAttackStep CurrentStep { get; private set; } = WeaponsAttackStep.SelectingUnit;
 
@@ -31,8 +32,7 @@ public class WeaponsAttackState : IUiState
         _ => string.Empty
     };
 
-    public bool IsActionRequired => _viewModel.Game 
-        is {CanActivePlayerAct:true, ActivePlayer.ControlType: Core.Models.Game.Players.PlayerControlType.Human };
+    public bool IsActionRequired => this.CanHumanPlayerAct();
 
     public bool CanExecutePlayerAction => CurrentStep is WeaponsAttackStep.ActionSelection or WeaponsAttackStep.TargetSelection;
 
@@ -54,8 +54,7 @@ public class WeaponsAttackState : IUiState
 
     public void ExecutePlayerAction()
     {
-        if (_game is { CanActivePlayerAct: false } 
-            || _game.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
+        if (!this.CanHumanPlayerAct()) return;
         if (CurrentStep == WeaponsAttackStep.ActionSelection || CurrentStep == WeaponsAttackStep.TargetSelection)
         {
             ConfirmWeaponSelections();
@@ -64,9 +63,9 @@ public class WeaponsAttackState : IUiState
 
     public WeaponsAttackState(BattleMapViewModel viewModel)
     {
-        _game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
+        Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
-        if (_game.ActivePlayer == null)
+        if (Game.ActivePlayer == null)
         {
             throw new InvalidOperationException("Active player is null"); 
         }
@@ -76,7 +75,7 @@ public class WeaponsAttackState : IUiState
     {
         lock (_stateLock)
         {
-            if (_game is { CanActivePlayerAct: false } || _game.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
+            if (!this.CanHumanPlayerAct()) return;
             if (unit == null) return;
             if (unit.IsDestroyed) return;
 
@@ -130,14 +129,14 @@ public class WeaponsAttackState : IUiState
 
     private void HandleUnitSelectionFromHex(Hex hex)
     {
-        if (_game is { CanActivePlayerAct: false } || _game.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
+        if (!this.CanHumanPlayerAct()) return;
         var unit = _viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
         if (unit == null) return;
         lock (_stateLock)
         {
             if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
             {
-                if (unit.Owner != _game.ActivePlayer || unit.HasDeclaredWeaponAttack)
+                if (unit.Owner != Game.ActivePlayer || unit.HasDeclaredWeaponAttack)
                     return;
 
                 if (Attacker is not null)
@@ -152,7 +151,7 @@ public class WeaponsAttackState : IUiState
 
             if (CurrentStep == WeaponsAttackStep.TargetSelection)
             {
-                if (unit.Owner == _game.ActivePlayer) return;
+                if (unit.Owner == Game.ActivePlayer) return;
                 if (!IsHexInWeaponRange(hex.Coordinates)) return;
 
                 _viewModel.SelectedUnit = null;
@@ -170,7 +169,7 @@ public class WeaponsAttackState : IUiState
 
     public void HandleFacingSelection(HexDirection direction)
     {
-        if (_game is { CanActivePlayerAct: false } || _game.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
+        if (!this.CanHumanPlayerAct()) return;
         if (CurrentStep != WeaponsAttackStep.WeaponsConfiguration 
             || Attacker is not Mech mech 
             || !_availableDirections.Contains(direction)) return;
@@ -181,8 +180,8 @@ public class WeaponsAttackState : IUiState
             // Send command to server
             var command = new WeaponConfigurationCommand
             {
-                GameOriginId = _game.Id,
-                PlayerId = _game.ActivePlayer!.Id,
+                GameOriginId = Game.Id,
+                PlayerId = Game.ActivePlayer!.Id,
                 UnitId = mech.Id,
                 Configuration = new WeaponConfiguration
                 {
@@ -191,7 +190,7 @@ public class WeaponsAttackState : IUiState
                 }
             };
 
-            _game.ConfigureUnitWeapons(command);
+            Game.ConfigureUnitWeapons(command);
 
             // Return to action selection after rotation
             CurrentStep = WeaponsAttackStep.ActionSelection;
@@ -372,9 +371,9 @@ public class WeaponsAttackState : IUiState
                 }
 
                 // Filter out hexes without line of sight
-                if (_game.BattleMap != null)
+                if (Game.BattleMap != null)
                 {
-                    weaponHexes.RemoveWhere(h => !_game.BattleMap.HasLineOfSight(unitPosition.Coordinates, h));
+                    weaponHexes.RemoveWhere(h => !Game.BattleMap.HasLineOfSight(unitPosition.Coordinates, h));
                 }
 
                 _weaponRanges[weapon] = weaponHexes;
@@ -399,7 +398,7 @@ public class WeaponsAttackState : IUiState
         // If there are no weapons, just clear all
         if (weapons.Count == 0)
         {
-            allPossibleHexes = _game.BattleMap?.GetHexes()
+            allPossibleHexes = Game.BattleMap?.GetHexes()
                 .Where(h=>h.IsHighlighted)
                 .Select(h=>h.Coordinates)??[];
         }
@@ -461,7 +460,7 @@ public class WeaponsAttackState : IUiState
                 _viewModel.ShowAimedShotLocationSelector,
                 _viewModel.HideAimedShotLocationSelector,
                 localizationService: _viewModel.LocalizationService,
-                toHitCalculator: _game.ToHitCalculator,
+                toHitCalculator: Game.ToHitCalculator,
                 remainingAmmoShots: Attacker.GetRemainingAmmoShots(weapon)
             );
             _weaponViewModels[weapon] = viewModel;
@@ -507,18 +506,18 @@ public class WeaponsAttackState : IUiState
             var isPrimaryTarget = SelectedTarget == PrimaryTarget || PrimaryTarget==null;
 
             // Get modifiers breakdown, passing the primary target information
-            if (_game.BattleMap == null || Attacker == null) continue;
+            if (Game.BattleMap == null || Attacker == null) continue;
             // Calculate base breakdown without aimed shot
-            var baseBreakdown = _game.ToHitCalculator.GetModifierBreakdown(
-                Attacker, SelectedTarget, weapon, _game.BattleMap, isPrimaryTarget, vm.AimedShotTarget);
+            var baseBreakdown = Game.ToHitCalculator.GetModifierBreakdown(
+                Attacker, SelectedTarget, weapon, Game.BattleMap, isPrimaryTarget, vm.AimedShotTarget);
 
             // Set the appropriate breakdown based on current aimed shot target
             vm.ModifiersBreakdown = baseBreakdown;
 
             if (!vm.IsAimedShotAvailable) continue;
             // Use optimized method to add aimed shot modifiers to existing breakdown
-            vm.AimedHeadModifiersBreakdown = _game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
-            vm.AimedOtherModifiersBreakdown = _game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.CenterTorso);
+            vm.AimedHeadModifiersBreakdown = Game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
+            vm.AimedOtherModifiersBreakdown = Game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.CenterTorso);
         }
 
         // Update the view model's collection
@@ -635,13 +634,13 @@ public class WeaponsAttackState : IUiState
         // Create and send the command
         var command = new WeaponAttackDeclarationCommand
         {
-            GameOriginId = _game.Id,
-            PlayerId = _game.ActivePlayer!.Id,
+            GameOriginId = Game.Id,
+            PlayerId = Game.ActivePlayer!.Id,
             UnitId = Attacker.Id,
             WeaponTargets = weaponTargetsData
         };
         
-        _game.DeclareWeaponAttack(command);
+        Game.DeclareWeaponAttack(command);
         
         // Reset state after sending command
         ClearWeaponRangeHighlights();

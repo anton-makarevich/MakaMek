@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 
@@ -18,4 +19,9 @@ public interface IUiState
     /// Executes the primary player action for the current state
     /// </summary>
     void ExecutePlayerAction() { }
+    
+    /// <summary>
+    /// The game instance for this state. Null for states that don't require a game (e.g., IdleState).
+    /// </summary>
+    ClientGame? Game => null;
 }

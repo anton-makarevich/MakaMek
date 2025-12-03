@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -12,6 +13,8 @@ public class EndState : IUiState
 {
     private readonly BattleMapViewModel _viewModel;
     private readonly ILocalizationService _localizationService;
+
+    public ClientGame? Game => _viewModel.Game;
 
     public EndState(BattleMapViewModel viewModel)
     {
@@ -27,10 +30,7 @@ public class EndState : IUiState
 
     public string PlayerActionLabel => _localizationService.GetString("EndPhase_PlayerActionLabel");
 
-    private bool IsActivePlayer => _viewModel.Game?.ActivePlayer != null && 
-                                  _viewModel.Game is { } clientGame &&
-                                  clientGame.LocalPlayers.Any(p => p == _viewModel.Game.ActivePlayer.Id) &&
-                                  _viewModel.Game.ActivePlayer.ControlType == Core.Models.Game.Players.PlayerControlType.Human;
+    private bool IsActivePlayer => this.IsActiveHumanPlayer();
 
     private bool CanActivePlayerAct => _viewModel.Game?.CanActivePlayerAct ?? false;
 
