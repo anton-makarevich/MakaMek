@@ -133,6 +133,11 @@ public class ServerGame : BaseGame, IDisposable
         _currentPhase.HandleCommand(command);
     }
 
+    protected override PlayerControlType? GetLocalPlayerControlType(Guid playerId)
+    {
+        return null;
+    }
+
     protected override void OnPlayerLeft(PlayerLeftCommand command)
     {
         base.OnPlayerLeft(command);

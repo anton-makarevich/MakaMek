@@ -1779,4 +1779,262 @@ public class WeaponsAttackStateTests
         _sut.PrimaryTarget.ShouldBe(target);
         attacker.WeaponAttackState.PrimaryTarget.ShouldBe(target);
     }
+    
+    [Fact]
+    public void CanExecutePlayerAction_ReturnsFalse_WhenInSelectingUnitStep()
+    {
+        // Arrange - initial state is SelectingUnit
+        
+        // Act
+        var result = _sut.CanExecutePlayerAction;
+        
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.SelectingUnit);
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanExecutePlayerAction_ReturnsTrue_WhenInActionSelectionStep()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        
+        // Act
+        _sut.HandleUnitSelection(attacker);
+        var result = _sut.CanExecutePlayerAction;
+        
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanExecutePlayerAction_ReturnsTrue_WhenInTargetSelectionStep()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+        
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+        
+        // Act
+        var result = _sut.CanExecutePlayerAction;
+        
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CanExecutePlayerAction_ReturnsFalse_WhenInWeaponsConfigurationStep()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
+        
+        _sut.HandleUnitSelection(attacker);
+        var torsoRotationAction = _sut.GetAvailableActions().First(a => a.Label == "Turn Torso");
+        torsoRotationAction.OnExecute();
+        
+        // Act
+        var result = _sut.CanExecutePlayerAction;
+        
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.WeaponsConfiguration);
+        result.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void ExecutePlayerAction_CallsConfirmWeaponSelections_WhenInActionSelectionStepAndPlayerIsHuman()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        
+        _sut.HandleUnitSelection(attacker);
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        _game.ActivePlayer!.ControlType.ShouldBe(PlayerControlType.Human);
+        
+        // Act
+        _sut.ExecutePlayerAction();
+        
+        // Assert - ConfirmWeaponSelections should publish a command
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+            cmd.PlayerId == _player.Id &&
+            cmd.UnitId == attacker.Id &&
+            cmd.WeaponTargets.Count == 0 // Skip attack since no weapons selected
+        ));
+    }
+
+    [Fact]
+    public void ExecutePlayerAction_CallsConfirmWeaponSelections_WhenInTargetSelectionStepAndPlayerIsHuman()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+        
+        var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        target.Deploy(targetPosition);
+        
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+        
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
+        _game.ActivePlayer!.ControlType.ShouldBe(PlayerControlType.Human);
+        
+        // Act
+        _sut.ExecutePlayerAction();
+        
+        // Assert - ConfirmWeaponSelections should publish a command
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+            cmd.PlayerId == _player.Id &&
+            cmd.UnitId == attacker.Id
+        ));
+    }
+
+    [Fact]
+    public void ExecutePlayerAction_DoesNothing_WhenInSelectingUnitStep()
+    {
+        // Arrange - initial state is SelectingUnit
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.SelectingUnit);
+        
+        // Act
+        _sut.ExecutePlayerAction();
+        
+        // Assert - no command should be published
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackDeclarationCommand>());
+    }
+
+    [Fact]
+    public void ExecutePlayerAction_DoesNothing_WhenInWeaponsConfigurationStep()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        attacker.AssignPilot(_pilot);
+        
+        _sut.HandleUnitSelection(attacker);
+        var torsoRotationAction = _sut.GetAvailableActions().First(a => a.Label == "Turn Torso");
+        torsoRotationAction.OnExecute();
+        
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.WeaponsConfiguration);
+        
+        // Act
+        _sut.ExecutePlayerAction();
+        
+        // Assert - no command should be published
+        _commandPublisher.Received(1).PublishCommand(Arg.Any<IClientCommand>()); // join command only
+    }
+
+    [Fact]
+    public void ExecutePlayerAction_DoesNothing_WhenCanActivePlayerActIsFalse()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        
+        _sut.HandleUnitSelection(attacker);
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        
+        // Change active player to make CanActivePlayerAct false
+        var otherPlayer = _game.Players.First(p => p.Id != _player.Id);
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = otherPlayer.Id,
+            UnitsToPlay = 1
+        });
+        
+        _game.CanActivePlayerAct.ShouldBeFalse();
+        
+        // Act
+        _sut.ExecutePlayerAction();
+        
+        // Assert - no command should be published
+        _commandPublisher.Received(1).PublishCommand(Arg.Any<IClientCommand>()); // join command only
+    }
+
+    [Fact]
+    public void ExecutePlayerAction_ExecutesSkipAttack_WhenNoWeaponsSelectedInActionSelection()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        
+        _sut.HandleUnitSelection(attacker);
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
+        _game.ActivePlayer!.ControlType.ShouldBe(PlayerControlType.Human);
+        
+        // Act
+        _sut.ExecutePlayerAction();
+        
+        // Assert - should publish command with empty weapon targets (skip attack)
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+            cmd.PlayerId == _player.Id &&
+            cmd.UnitId == attacker.Id &&
+            cmd.WeaponTargets.Count == 0
+        ));
+    }
+
+    [Fact]
+    public void ExecutePlayerAction_ExecutesAttackDeclaration_WhenWeaponsSelectedInTargetSelection()
+    {
+        // Arrange
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        attacker.Deploy(attackerPosition);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(),[1]).ShouldBeTrue();
+        attacker.AssignPilot(_pilot);
+        
+        var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        target.Deploy(targetPosition);
+        
+        _sut.HandleUnitSelection(attacker);
+        var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
+        selectTargetAction.OnExecute();
+        _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
+        _sut.HandleUnitSelection(target);
+        
+        // Select a weapon
+        var weapon = attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()).First();
+        var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
+        weaponSelection.IsSelected = true;
+        
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
+        _game.ActivePlayer!.ControlType.ShouldBe(PlayerControlType.Human);
+        
+        // Act
+        _sut.ExecutePlayerAction();
+        
+        // Assert - should publish command with weapon targets
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+            cmd.PlayerId == _player.Id &&
+            cmd.UnitId == attacker.Id &&
+            cmd.WeaponTargets.Count == 1 &&
+            cmd.WeaponTargets[0].TargetId == target.Id
+        ));
+    }
 }

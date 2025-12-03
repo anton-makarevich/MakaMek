@@ -27,7 +27,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> _pendingCommands = new();
     private bool _isDisposed;
     private readonly TimeSpan _ackTimeout;
-    private readonly List<Guid> _localPlayers = [];
+    private readonly ConcurrentDictionary<Guid, PlayerControlType> _localPlayers = new();
 
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
@@ -50,7 +50,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         _ackTimeout = TimeSpan.FromMilliseconds(ackTimeoutMilliseconds);
     }
 
-    public IReadOnlyList<Guid> LocalPlayers => _localPlayers;
+    public IReadOnlyList<Guid> LocalPlayers => _localPlayers.Keys.ToList();
 
     public bool IsDisposed => _isDisposed;
 
@@ -91,7 +91,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 if (phaseCommand.Phase == PhaseNames.End)
                 {
                     _playersEndedTurn.Clear();
-                     ActivePlayer = AlivePlayers.FirstOrDefault(p => LocalPlayers.Contains(p.Id));
+                     ActivePlayer = AlivePlayers.FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
                 }
                 break;
             case ChangeActivePlayerCommand changeActivePlayerCommand:
@@ -136,7 +136,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                     // Set the next local player who hasn't ended their turn as active
                     ActivePlayer = Players
                         .Where(p => _playersEndedTurn.Contains(p.Id) == false)
-                        .FirstOrDefault(p => LocalPlayers.Any(lp => lp == p.Id));
+                        .FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
                 }
                 break;
             case PilotConsciousnessRollCommand consciousnessRollCommand:
@@ -175,8 +175,13 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         _commandSubject.OnNext(command);
     }
 
+    protected override PlayerControlType? GetLocalPlayerControlType(Guid playerId)
+    {
+        return _localPlayers.TryGetValue(playerId, out var controlType) ? controlType : null;
+    }
+
     public bool CanActivePlayerAct => ActivePlayer != null 
-                                      && LocalPlayers.Contains(ActivePlayer.Id) 
+                                      && _localPlayers.ContainsKey(ActivePlayer.Id) 
                                       && ActivePlayer.CanAct
                                       && _pendingCommands.IsEmpty;
 
@@ -255,7 +260,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             PilotAssignments = pilotAssignments
         };
         player.Status = PlayerStatus.Joining;
-        _localPlayers.Add(player.Id);
+        _localPlayers.TryAdd(player.Id, player.ControlType);
         return SendClientCommand(joinCommand);
     }
     
@@ -291,7 +296,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     /// <param name="playerId">The ID of the player leaving</param>
     public void LeaveGame(Guid playerId)
     {
-        if (!LocalPlayers.Contains(playerId))
+        if (!_localPlayers.ContainsKey(playerId))
         {
             return;
         }

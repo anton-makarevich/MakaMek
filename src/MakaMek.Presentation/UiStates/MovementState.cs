@@ -46,7 +46,8 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_viewModel.Game is { CanActivePlayerAct: false }) return;
+            if (_viewModel.Game is { CanActivePlayerAct: false } 
+                || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
             if (unit == null) return;
             if (unit.Status == UnitStatus.Destroyed) return;
             if (unit.HasMoved) return;
@@ -63,7 +64,7 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_viewModel.Game is { CanActivePlayerAct: false }) return;
+            if (_viewModel.Game is { CanActivePlayerAct: false } || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
             if (_selectedUnit == null) return;
             if (CurrentMovementStep != MovementStep.SelectingMovementType) return;
             _selectedMovementType = movementType;
@@ -357,7 +358,7 @@ public class MovementState : IUiState
     };
 
     public bool IsActionRequired =>
-        _viewModel.Game is { CanActivePlayerAct: true } &&
+        _viewModel.Game is { CanActivePlayerAct: true } && _viewModel.Game.ActivePlayer?.ControlType == Core.Models.Game.Players.PlayerControlType.Human &&
         CurrentMovementStep != MovementStep.Completed;
     
     public bool CanExecutePlayerAction => CurrentMovementStep == MovementStep.ConfirmMovement;

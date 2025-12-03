@@ -426,6 +426,7 @@ public class BattleMapViewModel : BaseViewModel
 
     public bool AreUnitsToDeployVisible => Game is not null
                                            && Game.CanActivePlayerAct
+                                           && Game.ActivePlayer?.ControlType == PlayerControlType.Human
                                            && CurrentState is DeploymentState
                                            && UnitsToDeploy.Count > 0
                                            && SelectedUnit == null;

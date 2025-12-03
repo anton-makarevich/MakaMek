@@ -1508,6 +1508,11 @@ public class BaseGameTests : BaseGame
 
     public override void HandleCommand(IGameCommand command)
     {
-        throw new NotImplementedException();
+        // No-op for tests unless mocked
+    }
+
+    protected override PlayerControlType? GetLocalPlayerControlType(Guid playerId)
+    {
+        return null;
     }
 }

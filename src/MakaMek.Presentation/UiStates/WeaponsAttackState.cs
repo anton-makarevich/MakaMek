@@ -31,7 +31,8 @@ public class WeaponsAttackState : IUiState
         _ => string.Empty
     };
 
-    public bool IsActionRequired => _viewModel.Game is {CanActivePlayerAct:true};
+    public bool IsActionRequired => _viewModel.Game 
+        is {CanActivePlayerAct:true, ActivePlayer.ControlType: Core.Models.Game.Players.PlayerControlType.Human };
 
     public bool CanExecutePlayerAction => CurrentStep is WeaponsAttackStep.ActionSelection or WeaponsAttackStep.TargetSelection;
 
@@ -53,7 +54,8 @@ public class WeaponsAttackState : IUiState
 
     public void ExecutePlayerAction()
     {
-        if (_game is { CanActivePlayerAct: false }) return;
+        if (_game is { CanActivePlayerAct: false } 
+            || _game.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
         if (CurrentStep == WeaponsAttackStep.ActionSelection || CurrentStep == WeaponsAttackStep.TargetSelection)
         {
             ConfirmWeaponSelections();
@@ -74,7 +76,7 @@ public class WeaponsAttackState : IUiState
     {
         lock (_stateLock)
         {
-            if (_game is { CanActivePlayerAct: false }) return;
+            if (_game is { CanActivePlayerAct: false } || _game.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
             if (unit == null) return;
             if (unit.IsDestroyed) return;
 
@@ -128,7 +130,7 @@ public class WeaponsAttackState : IUiState
 
     private void HandleUnitSelectionFromHex(Hex hex)
     {
-        if (_game is { CanActivePlayerAct: false }) return;
+        if (_game is { CanActivePlayerAct: false } || _game.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
         var unit = _viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
         if (unit == null) return;
         lock (_stateLock)
@@ -168,7 +170,7 @@ public class WeaponsAttackState : IUiState
 
     public void HandleFacingSelection(HexDirection direction)
     {
-        if (_game is { CanActivePlayerAct: false }) return;
+        if (_game is { CanActivePlayerAct: false } || _game.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
         if (CurrentStep != WeaponsAttackStep.WeaponsConfiguration 
             || Attacker is not Mech mech 
             || !_availableDirections.Contains(direction)) return;

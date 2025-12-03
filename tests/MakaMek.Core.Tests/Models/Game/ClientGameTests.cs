@@ -2901,4 +2901,37 @@ public class ClientGameTests
             cmd.NewFacing == HexDirection.Bottom &&
             cmd.MovementTypeAfterStandup == MovementType.Walk));
     }
+    [Theory]
+    [InlineData(PlayerControlType.Human)]
+    [InlineData(PlayerControlType.Bot)]
+    public void HandleCommand_ShouldSetCorrectControlType_WhenLocalPlayerJoins(PlayerControlType controlType)
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1", controlType);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        
+        // Join game locally first to register control type
+        _sut.JoinGameWithUnits(player, [unitData], []);
+
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+
+        // Act
+        _sut.HandleCommand(joinCommand);
+
+        // Assert
+        _sut.LocalPlayers.ShouldContain(player.Id);
+        _sut.LocalPlayers.Count.ShouldBe(1);
+        var joinedPlayer = _sut.Players.FirstOrDefault(p => p.Id == player.Id);
+        joinedPlayer.ShouldNotBeNull();
+        joinedPlayer.ControlType.ShouldBe(controlType);
+    }
 }
