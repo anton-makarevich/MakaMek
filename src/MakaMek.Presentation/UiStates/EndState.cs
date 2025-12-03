@@ -14,7 +14,7 @@ public class EndState : IUiState
     private readonly BattleMapViewModel _viewModel;
     private readonly ILocalizationService _localizationService;
 
-    public ClientGame? Game => _viewModel.Game;
+    public IClientGame? Game => _viewModel.Game;
 
     public EndState(BattleMapViewModel viewModel)
     {

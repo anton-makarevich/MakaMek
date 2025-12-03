@@ -23,7 +23,7 @@ public class MovementState : IUiState
     private readonly Lock _stateLock = new();
     private bool _isPostStandupMovement;
 
-    public ClientGame? Game => _viewModel.Game;
+    public IClientGame? Game => _viewModel.Game;
 
     public MovementState(BattleMapViewModel viewModel)
     {

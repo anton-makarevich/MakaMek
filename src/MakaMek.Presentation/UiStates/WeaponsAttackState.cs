@@ -19,7 +19,7 @@ public class WeaponsAttackState : IUiState
     private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly Lock _stateLock = new();
 
-    public ClientGame Game { get; }
+    public IClientGame Game { get; }
 
     public WeaponsAttackStep CurrentStep { get; private set; } = WeaponsAttackStep.SelectingUnit;
 

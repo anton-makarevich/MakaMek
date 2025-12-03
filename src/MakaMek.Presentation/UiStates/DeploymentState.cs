@@ -14,7 +14,7 @@ public class DeploymentState : IUiState
     private readonly ILocalizationService _localizationService;
     private Hex? _selectedHex;
     
-    public ClientGame? Game => _viewModel.Game;
+    public IClientGame? Game => _viewModel.Game;
     
     private enum SubState
     {
