@@ -15,18 +15,20 @@ namespace Sanet.MakaMek.Bots.Models;
 public class Bot : IBot
 {
     private readonly IDecisionEngineProvider _decisionEngineProvider;
+    private readonly IClientGame _clientGame;
     private IBotDecisionEngine? _currentDecisionEngine;
     private IDisposable? _commandSubscription;
     private bool _isDisposed;
 
-    public IPlayer Player { get; }
+    public Guid PlayerId { get; }
 
     public Bot(
-        IPlayer player,
+        Guid playerId,
         IClientGame clientGame,
         IDecisionEngineProvider decisionEngineProvider)
     {
-        Player = player;
+        PlayerId = playerId;
+        _clientGame = clientGame;
         _decisionEngineProvider = decisionEngineProvider;
 
         // Subscribe to game commands
@@ -40,7 +42,7 @@ public class Bot : IBot
         switch (command)
         {
             case ChangeActivePlayerCommand activePlayerCmd:
-                if (activePlayerCmd.PlayerId == Player.Id)
+                if (activePlayerCmd.PlayerId == PlayerId)
                 {
                     MakeDecisionAsync().SafeFireAndForget();
                 }
@@ -65,15 +67,23 @@ public class Bot : IBot
     {
         if (_currentDecisionEngine == null) return;
 
+        // Get the current Player instance from the game's Players collection
+        var player = _clientGame.Players.FirstOrDefault(p => p.Id == PlayerId);
+        if (player == null)
+        {
+            Console.WriteLine($"Bot with PlayerId {PlayerId} not found in game players");
+            return;
+        }
+
         try
         {
-            await _currentDecisionEngine.MakeDecision(Player);
+            await _currentDecisionEngine.MakeDecision(player);
         }
         catch (Exception ex)
         {
             // Graceful degradation: log error but don't break the game
-            Console.WriteLine($"Bot {Player.Name} decision error: {ex.Message}");
-            // TODO: Consider taking a safe default action to prevent game stuck 
+            Console.WriteLine($"Bot {player.Name} decision error: {ex.Message}");
+            // TODO: Consider taking a safe default action to prevent game stuck
         }
     }
     

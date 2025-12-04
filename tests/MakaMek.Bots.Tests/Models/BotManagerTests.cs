@@ -82,13 +82,13 @@ public class BotManagerTests : IDisposable
         // Arrange
         _sut.Initialize(_clientGame);
         var player = CreateBotPlayer();
-        
+
         // Act
         _sut.AddBot(player);
-        
+
         // Assert
         _sut.Bots.Count.ShouldBe(1);
-        _sut.Bots[0].Player.ShouldBe(player);
+        _sut.Bots[0].PlayerId.ShouldBe(player.Id);
     }
 
     [Fact]

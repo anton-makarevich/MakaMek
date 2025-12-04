@@ -28,26 +28,29 @@ public class BotTests : IDisposable
         _player = Substitute.For<IPlayer>();
         _commandSubject = new Subject<IGameCommand>();
         _decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
-        
+
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Bot");
         _clientGame.Commands.Returns(_commandSubject.AsObservable());
         _clientGame.Id.Returns(Guid.NewGuid());
-        
+
+        // Setup Players collection to return the player
+        _clientGame.Players.Returns(new List<IPlayer> { _player });
+
         // Configure mock provider to return appropriate engines for different phases
-        
+
         // Engine's MakeDecision now accepts IPlayer parameter
         _movementEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(_movementEngine);
-        
-        _sut = new Bot(_player, _clientGame, _decisionEngineProvider);
+
+        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider);
     }
 
     [Fact]
     public void Constructor_ShouldInitializeProperties()
     {
         // Assert
-        _sut.Player.ShouldBe(_player);
+        _sut.PlayerId.ShouldBe(_player.Id);
     }
 
     [Fact]
@@ -57,16 +60,16 @@ public class BotTests : IDisposable
         var decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
         var movementEngine = Substitute.For<IBotDecisionEngine>();
         decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
-        
+
         // Act - Create a new bot and send a command
-        using var bot = new Bot(_player, _clientGame, decisionEngineProvider);
+        using var bot = new Bot(_player.Id, _clientGame, decisionEngineProvider);
         _commandSubject.OnNext(new ChangePhaseCommand
         {
             GameOriginId = _clientGame.Id,
             Phase = PhaseNames.Movement
         });
-        
-        // Assert 
+
+        // Assert
         bot.DecisionEngine.ShouldBe(movementEngine);
     }
 
