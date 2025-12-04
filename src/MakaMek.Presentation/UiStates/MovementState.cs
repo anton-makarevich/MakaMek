@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -21,6 +22,8 @@ public class MovementState : IUiState
     private Dictionary<HexDirection, List<PathSegment>> _possibleDirections = [];
     private readonly Lock _stateLock = new();
     private bool _isPostStandupMovement;
+
+    public IClientGame? Game => _viewModel.Game;
 
     public MovementState(BattleMapViewModel viewModel)
     {
@@ -46,8 +49,7 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_viewModel.Game is { CanActivePlayerAct: false } 
-                || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
+            if (!this.CanHumanPlayerAct()) return;
             if (unit == null) return;
             if (unit.Status == UnitStatus.Destroyed) return;
             if (unit.HasMoved) return;
@@ -64,7 +66,7 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_viewModel.Game is { CanActivePlayerAct: false } || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
+            if (!this.CanHumanPlayerAct()) return;
             if (_selectedUnit == null) return;
             if (CurrentMovementStep != MovementStep.SelectingMovementType) return;
             _selectedMovementType = movementType;
@@ -358,7 +360,7 @@ public class MovementState : IUiState
     };
 
     public bool IsActionRequired =>
-        _viewModel.Game is { CanActivePlayerAct: true } && _viewModel.Game.ActivePlayer?.ControlType == Core.Models.Game.Players.PlayerControlType.Human &&
+        this.CanHumanPlayerAct() &&
         CurrentMovementStep != MovementStep.Completed;
     
     public bool CanExecutePlayerAction => CurrentMovementStep == MovementStep.ConfirmMovement;

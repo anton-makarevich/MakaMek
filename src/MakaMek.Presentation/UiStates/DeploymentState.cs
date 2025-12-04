@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
@@ -12,6 +13,8 @@ public class DeploymentState : IUiState
     private readonly DeploymentCommandBuilder _builder;
     private readonly ILocalizationService _localizationService;
     private Hex? _selectedHex;
+    
+    public IClientGame? Game => _viewModel.Game;
     
     private enum SubState
     {
@@ -40,7 +43,7 @@ public class DeploymentState : IUiState
 
     public void  HandleUnitSelection(IUnit? unit)
     {
-        if (_viewModel.Game is { CanActivePlayerAct: false } || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
+        if (!this.CanHumanPlayerAct()) return;
         if (_currentSubState != SubState.SelectingUnit) return;
         
         if (unit == null) return;
@@ -52,14 +55,14 @@ public class DeploymentState : IUiState
 
     public void HandleHexSelection(Hex hex)
     {
-        if (_viewModel.Game is { CanActivePlayerAct: false } || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
+        if (!this.CanHumanPlayerAct()) return;
         if (_currentSubState is SubState.SelectingHex 
                              or SubState.SelectingDirection) HandleHexForDeployment(hex);
     }
 
     public void HandleFacingSelection(HexDirection direction)
     {
-        if (_viewModel.Game is { CanActivePlayerAct: false } || _viewModel.Game?.ActivePlayer?.ControlType != Core.Models.Game.Players.PlayerControlType.Human) return;
+        if (!this.CanHumanPlayerAct()) return;
         if (_currentSubState != SubState.SelectingDirection) return;
         _builder.SetDirection(direction);
         _viewModel.HideDirectionSelector();
@@ -133,8 +136,8 @@ public class DeploymentState : IUiState
             if (_viewModel.Game is not { } clientGame)
                 return false;
             return clientGame is { CanActivePlayerAct:true, UnitsToPlayCurrentStep: > 0 }
-                   && clientGame.LocalPlayers.Contains(clientGame.ActivePlayer!.Id)
-                   && clientGame.ActivePlayer.ControlType == Core.Models.Game.Players.PlayerControlType.Human;
+                   && this.IsActiveHumanPlayer();
         }
     }
 }
+
