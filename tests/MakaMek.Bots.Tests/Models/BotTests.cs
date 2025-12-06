@@ -132,8 +132,8 @@ public class BotTests : IDisposable
         // Act
         _commandSubject.OnNext(activePlayerCommand);
         
-        // Assert - Bot should handle the command without throwing
-        _sut.ShouldNotBeNull();
+        // Assert
+        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
     }
 
     [Fact]
@@ -168,11 +168,11 @@ public class BotTests : IDisposable
     }
 
     [Fact]
-    public void OnCommandReceived_WhenPlayerNotFound_ShouldWriteToConsole()
+    public async Task OnCommandReceived_WhenPlayerNotFound_ShouldWriteToConsole()
     {
         // Arrange
         var originalOut = Console.Out;
-        using var stringWriter = new StringWriter();
+        await using var stringWriter = new StringWriter();
         Console.SetOut(stringWriter);
 
         var clientGame = Substitute.For<IClientGame>();
@@ -198,7 +198,7 @@ public class BotTests : IDisposable
                 Phase = PhaseNames.Movement
             });
 
-            // Act - Trigger decision making when player is not found
+            // Act - Trigger decision-making when player is not found
             commandSubject.OnNext(new ChangeActivePlayerCommand
             {
                 GameOriginId = clientGame.Id,
@@ -206,11 +206,20 @@ public class BotTests : IDisposable
                 UnitsToPlay = 1
             });
 
-            // Give async operation time to complete
-            Thread.Sleep(100);
+            // Give async operation time to complete - poll with timeout
+            string output;
+            var timeout = TimeSpan.FromSeconds(1);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            while (stopwatch.Elapsed < timeout)
+            {
+                output = stringWriter.ToString();
+                if (output.Contains($"Bot with PlayerId {playerId} not found"))
+                    break;
+                await Task.Delay(10);
+            }
 
             // Assert
-            var output = stringWriter.ToString();
+            output = stringWriter.ToString();
             output.ShouldContain($"Bot with PlayerId {playerId} not found in game players");
         }
         finally
