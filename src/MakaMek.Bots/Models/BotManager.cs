@@ -41,7 +41,7 @@ public class BotManager : IBotManager
         }
 
         // BotManager tracks which players are bots
-        var bot = new Bot(player, ClientGame, DecisionEngineProvider);
+        var bot = new Bot(player.Id, ClientGame, DecisionEngineProvider);
         _bots.Add(player.Id, bot);
     }
 

@@ -1,6 +1,4 @@
-﻿using Sanet.MakaMek.Core.Models.Game.Players;
-
-namespace Sanet.MakaMek.Bots.Models;
+﻿namespace Sanet.MakaMek.Bots.Models;
 
 /// <summary>
 /// Represents a bot player that can make automated decisions in the game
@@ -8,7 +6,7 @@ namespace Sanet.MakaMek.Bots.Models;
 public interface IBot : IDisposable
 {
     /// <summary>
-    /// Gets the player associated with this bot
+    /// Gets the ID of the player associated with this bot
     /// </summary>
-    IPlayer Player { get; }
+    Guid PlayerId { get; }
 }

@@ -28,26 +28,29 @@ public class BotTests : IDisposable
         _player = Substitute.For<IPlayer>();
         _commandSubject = new Subject<IGameCommand>();
         _decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
-        
+
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Bot");
         _clientGame.Commands.Returns(_commandSubject.AsObservable());
         _clientGame.Id.Returns(Guid.NewGuid());
-        
+
+        // Setup Players collection to return the player
+        _clientGame.Players.Returns(new List<IPlayer> { _player });
+
         // Configure mock provider to return appropriate engines for different phases
-        
+
         // Engine's MakeDecision now accepts IPlayer parameter
         _movementEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(_movementEngine);
-        
-        _sut = new Bot(_player, _clientGame, _decisionEngineProvider);
+
+        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider);
     }
 
     [Fact]
     public void Constructor_ShouldInitializeProperties()
     {
         // Assert
-        _sut.Player.ShouldBe(_player);
+        _sut.PlayerId.ShouldBe(_player.Id);
     }
 
     [Fact]
@@ -57,16 +60,16 @@ public class BotTests : IDisposable
         var decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
         var movementEngine = Substitute.For<IBotDecisionEngine>();
         decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
-        
+
         // Act - Create a new bot and send a command
-        using var bot = new Bot(_player, _clientGame, decisionEngineProvider);
+        using var bot = new Bot(_player.Id, _clientGame, decisionEngineProvider);
         _commandSubject.OnNext(new ChangePhaseCommand
         {
             GameOriginId = _clientGame.Id,
             Phase = PhaseNames.Movement
         });
-        
-        // Assert 
+
+        // Assert
         bot.DecisionEngine.ShouldBe(movementEngine);
     }
 
@@ -129,8 +132,8 @@ public class BotTests : IDisposable
         // Act
         _commandSubject.OnNext(activePlayerCommand);
         
-        // Assert - Bot should handle the command without throwing
-        _sut.ShouldNotBeNull();
+        // Assert
+        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
     }
 
     [Fact]
@@ -162,6 +165,69 @@ public class BotTests : IDisposable
             GameOriginId = _clientGame.Id, 
             Phase = PhaseNames.Movement 
         });
+    }
+
+    [Fact]
+    public async Task OnCommandReceived_WhenPlayerNotFound_ShouldWriteToConsole()
+    {
+        // Arrange
+        var originalOut = Console.Out;
+        await using var stringWriter = new StringWriter();
+        Console.SetOut(stringWriter);
+
+        var clientGame = Substitute.For<IClientGame>();
+        var commandSubject = new Subject<IGameCommand>();
+        var decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
+        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        var playerId = Guid.NewGuid();
+
+        clientGame.Commands.Returns(commandSubject.AsObservable());
+        clientGame.Id.Returns(Guid.NewGuid());
+        clientGame.Players.Returns(new List<IPlayer>()); // Empty player list
+
+        decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+
+        try
+        {
+            using var bot = new Bot(playerId, clientGame, decisionEngineProvider);
+
+            // Set up the decision engine
+            commandSubject.OnNext(new ChangePhaseCommand
+            {
+                GameOriginId = clientGame.Id,
+                Phase = PhaseNames.Movement
+            });
+
+            // Act - Trigger decision-making when player is not found
+            commandSubject.OnNext(new ChangeActivePlayerCommand
+            {
+                GameOriginId = clientGame.Id,
+                PlayerId = playerId,
+                UnitsToPlay = 1
+            });
+
+            // Give async operation time to complete - poll with timeout
+            string output;
+            var timeout = TimeSpan.FromSeconds(1);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            while (stopwatch.Elapsed < timeout)
+            {
+                output = stringWriter.ToString();
+                if (output.Contains($"Bot with PlayerId {playerId} not found"))
+                    break;
+                await Task.Delay(10);
+            }
+
+            // Assert
+            output = stringWriter.ToString();
+            output.ShouldContain($"Bot with PlayerId {playerId} not found in game players");
+        }
+        finally
+        {
+            // Restore original console output
+            Console.SetOut(originalOut);
+            commandSubject.Dispose();
+        }
     }
 
     public void Dispose()
