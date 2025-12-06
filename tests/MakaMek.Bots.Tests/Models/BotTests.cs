@@ -167,6 +167,60 @@ public class BotTests : IDisposable
         });
     }
 
+    [Fact]
+    public void OnCommandReceived_WhenPlayerNotFound_ShouldWriteToConsole()
+    {
+        // Arrange
+        var originalOut = Console.Out;
+        using var stringWriter = new StringWriter();
+        Console.SetOut(stringWriter);
+
+        var clientGame = Substitute.For<IClientGame>();
+        var commandSubject = new Subject<IGameCommand>();
+        var decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
+        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        var playerId = Guid.NewGuid();
+
+        clientGame.Commands.Returns(commandSubject.AsObservable());
+        clientGame.Id.Returns(Guid.NewGuid());
+        clientGame.Players.Returns(new List<IPlayer>()); // Empty player list
+
+        decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+
+        try
+        {
+            using var bot = new Bot(playerId, clientGame, decisionEngineProvider);
+
+            // Set up the decision engine
+            commandSubject.OnNext(new ChangePhaseCommand
+            {
+                GameOriginId = clientGame.Id,
+                Phase = PhaseNames.Movement
+            });
+
+            // Act - Trigger decision making when player is not found
+            commandSubject.OnNext(new ChangeActivePlayerCommand
+            {
+                GameOriginId = clientGame.Id,
+                PlayerId = playerId,
+                UnitsToPlay = 1
+            });
+
+            // Give async operation time to complete
+            Thread.Sleep(100);
+
+            // Assert
+            var output = stringWriter.ToString();
+            output.ShouldContain($"Bot with PlayerId {playerId} not found in game players");
+        }
+        finally
+        {
+            // Restore original console output
+            Console.SetOut(originalOut);
+            commandSubject.Dispose();
+        }
+    }
+
     public void Dispose()
     {
         _sut.Dispose();

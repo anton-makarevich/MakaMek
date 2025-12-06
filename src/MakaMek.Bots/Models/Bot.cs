@@ -44,7 +44,7 @@ public class Bot : IBot
             case ChangeActivePlayerCommand activePlayerCmd:
                 if (activePlayerCmd.PlayerId == PlayerId)
                 {
-                    MakeDecisionAsync().SafeFireAndForget();
+                    MakeDecision().SafeFireAndForget();
                 }
                 break;
 
@@ -63,7 +63,7 @@ public class Bot : IBot
         _currentDecisionEngine = _decisionEngineProvider.GetEngineForPhase(phase);
     }
 
-    private async Task MakeDecisionAsync()
+    private async Task MakeDecision()
     {
         if (_currentDecisionEngine == null) return;
 
@@ -75,16 +75,7 @@ public class Bot : IBot
             return;
         }
 
-        try
-        {
-            await _currentDecisionEngine.MakeDecision(player);
-        }
-        catch (Exception ex)
-        {
-            // Graceful degradation: log error but don't break the game
-            Console.WriteLine($"Bot {player.Name} decision error: {ex.Message}");
-            // TODO: Consider taking a safe default action to prevent game stuck
-        }
+        await _currentDecisionEngine.MakeDecision(player);
     }
     
     public IBotDecisionEngine? DecisionEngine => _currentDecisionEngine;
