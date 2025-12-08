@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+﻿using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -191,7 +192,12 @@ public class MovementEngine : IBotDecisionEngine
         // Find any unit that hasn't moved yet
         var unmovedUnit = player.AliveUnits.FirstOrDefault(u => !u.HasMoved);
         if (unmovedUnit == null)
-            return;
+        {
+            throw new BotDecisionException(
+                $"No unmoved units available for player {player.Name}",
+                nameof(MovementEngine),
+                player.Id);
+        }
 
         // Send a StandingStill movement command
         await MoveUnit(player, unmovedUnit, MovementType.StandingStill, []);
