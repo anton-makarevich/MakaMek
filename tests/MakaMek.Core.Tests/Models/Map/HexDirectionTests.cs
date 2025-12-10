@@ -34,6 +34,7 @@ public class HexDirectionTests
     [InlineData(HexDirection.Top, -1, HexDirection.TopLeft)] // Rotate 1 hexside counter-clockwise
     [InlineData(HexDirection.Top, -2, HexDirection.BottomLeft)] // Rotate 3 hexsides counter-clockwise
     [InlineData(HexDirection.Top, -3, HexDirection.Bottom)] // Starting from TopRight, rotate -2
+    [InlineData(HexDirection.Top, 7, HexDirection.TopRight)] // Should be same as 1
     public void Rotate_ReturnsCorrectDirection(HexDirection startDirection, int hexsides, HexDirection expectedDirection)
     {
         // Act
