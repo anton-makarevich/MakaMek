@@ -69,19 +69,6 @@ public class DeploymentState : IUiState
         CompleteDeployment();
     }
 
-    private static IEnumerable<HexDirection> GetAllDirections()
-    {
-        return
-        [
-            HexDirection.Top,
-            HexDirection.TopRight,
-            HexDirection.BottomRight,
-            HexDirection.Bottom,
-            HexDirection.BottomLeft,
-            HexDirection.TopLeft
-        ];
-    }
-
     private void HandleHexForDeployment(Hex hex)
     {
         if (IsHexOccupied(hex))
@@ -91,7 +78,7 @@ public class DeploymentState : IUiState
         _builder.SetPosition(hex.Coordinates);
         _currentSubState = SubState.SelectingDirection;
         
-        _viewModel.ShowDirectionSelector(_selectedHex.Coordinates, GetAllDirections());
+        _viewModel.ShowDirectionSelector(_selectedHex.Coordinates, HexDirectionExtensions.AllDirections);
     }
 
     private bool IsHexOccupied(Hex hex)

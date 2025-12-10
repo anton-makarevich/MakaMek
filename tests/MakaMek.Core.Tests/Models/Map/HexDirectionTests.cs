@@ -34,6 +34,7 @@ public class HexDirectionTests
     [InlineData(HexDirection.Top, -1, HexDirection.TopLeft)] // Rotate 1 hexside counter-clockwise
     [InlineData(HexDirection.Top, -2, HexDirection.BottomLeft)] // Rotate 3 hexsides counter-clockwise
     [InlineData(HexDirection.Top, -3, HexDirection.Bottom)] // Starting from TopRight, rotate -2
+    [InlineData(HexDirection.Top, 7, HexDirection.TopRight)] // Should be same as 1
     public void Rotate_ReturnsCorrectDirection(HexDirection startDirection, int hexsides, HexDirection expectedDirection)
     {
         // Act
@@ -41,5 +42,30 @@ public class HexDirectionTests
 
         // Assert
         result.ShouldBe(expectedDirection);
+    }
+    
+    [Fact]
+    public void AllDirections_ContainsAllEnumValues()
+    {
+        // Arrange - Get all enum values dynamically
+        var allEnumValues = Enum.GetValues<HexDirection>();
+        
+        // Act
+        var allDirections = HexDirectionExtensions.AllDirections;
+        
+        // Assert - Verify same count
+        allDirections.Length.ShouldBe(allEnumValues.Length, 
+            "AllDirections array should contain the same number of elements as the HexDirection enum");
+        
+        // Assert - Verify all enum values are present in AllDirections
+        foreach (var enumValue in allEnumValues)
+        {
+            allDirections.ShouldContain(enumValue, 
+                $"AllDirections should contain {enumValue}");
+        }
+        
+        // Assert - Verify no duplicates in AllDirections
+        allDirections.Distinct().Count().ShouldBe(allDirections.Length,
+            "AllDirections should not contain duplicate values");
     }
 }

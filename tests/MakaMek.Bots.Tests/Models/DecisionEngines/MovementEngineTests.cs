@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
@@ -31,35 +32,39 @@ public class MovementEngineTests
     }
 
     [Fact]
-    public async Task MakeDecision_WhenNoUnmovedUnits_ShouldNotMoveAnything()
+    public async Task MakeDecision_WhenNoUnmovedUnits_ShouldThrowBotDecisionException()
     {
         // Arrange
         var movedUnit = CreateMockUnit(hasMoved: true);
         _player.AliveUnits.Returns([movedUnit]);
         
-        // Act
-        await _sut.MakeDecision(_player);
-        
-        // Assert
-        await _clientGame.DidNotReceive().MoveUnit(Arg.Any<MoveUnitCommand>());
+        // Act & Assert
+        var exception = await Should.ThrowAsync<BotDecisionException>(async () => await _sut.MakeDecision(_player));
+        exception.DecisionEngineType.ShouldBe(nameof(MovementEngine));
+        exception.PlayerId.ShouldBe(_player.Id);
     }
 
     [Fact]
-    public async Task MakeDecision_WhenUnitNotDeployed_ShouldNotMoveAnything()
+    public async Task MakeDecision_WhenUnitIsImmobile_ShouldSendStandingStillCommand()
     {
         // Arrange
-        var undeployedUnit = CreateMockUnit(hasMoved: false, isDeployed: false);
-        _player.AliveUnits.Returns([undeployedUnit]);
+        var immobileUnit = CreateMockUnit(hasMoved: false, isImmobile: true);
+        _player.AliveUnits.Returns([immobileUnit]);
+        _clientGame.Players.Returns([_player]);
         
         // Act
         await _sut.MakeDecision(_player);
         
-        // Assert
-        await _clientGame.DidNotReceive().MoveUnit(Arg.Any<MoveUnitCommand>());
+        // Assert - immobile units can still send StandingStill command (matching UI behavior)
+        await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.PlayerId == _player.Id &&
+            cmd.UnitId == immobileUnit.Id &&
+            cmd.MovementType == MovementType.StandingStill &&
+            cmd.MovementPath.Count == 0));
     }
 
     [Fact]
-    public async Task MakeDecision_WhenNoBattleMap_ShouldNotMoveAnything()
+    public async Task MakeDecision_WhenNoBattleMap_ShouldSendStandingStillCommand()
     {
         // Arrange
         var unit = CreateMockUnit(hasMoved: false, isDeployed: true);
@@ -70,11 +75,15 @@ public class MovementEngineTests
         await _sut.MakeDecision(_player);
         
         // Assert
-        await _clientGame.DidNotReceive().MoveUnit(Arg.Any<MoveUnitCommand>());
+        await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.PlayerId == _player.Id &&
+            cmd.UnitId == unit.Id &&
+            cmd.MovementType == MovementType.StandingStill &&
+            cmd.MovementPath.Count == 0));
     }
 
     [Fact]
-    public async Task MakeDecision_WhenNoReachableHexes_ShouldStandStill()
+    public async Task MakeDecision_WhenNoReachableHexes_ShouldSendStandingStillCommand()
     {
         // Arrange
         var unit = CreateMockUnit(hasMoved: false, isDeployed: true);
@@ -92,7 +101,7 @@ public class MovementEngineTests
         await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.PlayerId == _player.Id &&
             cmd.UnitId == unit.Id &&
-            cmd.MovementType == MovementType.Walk &&
+            cmd.MovementType == MovementType.StandingStill &&
             cmd.MovementPath.Count == 0));
     }
 
@@ -124,25 +133,18 @@ public class MovementEngineTests
         await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.PlayerId == _player.Id &&
             cmd.UnitId == unit.Id &&
-            cmd.MovementType == MovementType.Walk));
+            (cmd.MovementType == MovementType.Walk || cmd.MovementType == MovementType.Run)));
     }
 
-    [Fact]
-    public async Task MakeDecision_WhenExceptionThrown_ShouldNotThrow()
-    {
-        // Arrange
-        _player.AliveUnits.Returns((IReadOnlyList<IUnit>?)null!); // This will cause an exception
-        
-        // Act & Assert
-        await Should.NotThrowAsync(async () => await _sut.MakeDecision(_player));
-    }
-
-    private IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true)
+    private IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true, bool isImmobile = false)
     {
         var unit = Substitute.For<IUnit>();
         unit.Id.Returns(Guid.NewGuid());
-        unit.MovementTypeUsed.Returns(hasMoved ? MovementType.Walk : null);
+        unit.HasMoved.Returns(hasMoved);
+        unit.IsImmobile.Returns(isImmobile);
+        unit.IsDeployed.Returns(isDeployed);
         unit.GetMovementPoints(MovementType.Walk).Returns(4);
+        unit.GetMovementPoints(MovementType.Run).Returns(6);
         
         if (isDeployed)
         {
@@ -157,3 +159,4 @@ public class MovementEngineTests
         return unit;
     }
 }
+
