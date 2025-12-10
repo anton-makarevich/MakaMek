@@ -77,16 +77,7 @@ public class MovementEngine : IBotDecisionEngine
     private async Task AttemptStandup(IPlayer player, Mech mech)
     {
         // Select random facing direction
-        var directions = new[]
-        {
-            HexDirection.Top,
-            HexDirection.TopRight,
-            HexDirection.BottomRight,
-            HexDirection.Bottom,
-            HexDirection.BottomLeft,
-            HexDirection.TopLeft
-        };
-        var newFacing = directions[Random.Shared.Next(directions.Length)];
+        var newFacing = HexDirectionExtensions.AllDirections[Random.Shared.Next(HexDirectionExtensions.AllDirections.Length)];
 
         var command = new TryStandupCommand
         {
@@ -150,16 +141,7 @@ public class MovementEngine : IBotDecisionEngine
         var targetCoordinates = reachableHexes[Random.Shared.Next(reachableHexes.Count)];
 
         // Select random facing
-        var directions = new[]
-        {
-            HexDirection.Top,
-            HexDirection.TopRight,
-            HexDirection.BottomRight,
-            HexDirection.Bottom,
-            HexDirection.BottomLeft,
-            HexDirection.TopLeft
-        };
-        var targetFacing = directions[Random.Shared.Next(directions.Length)];
+        var targetFacing = HexDirectionExtensions.AllDirections[Random.Shared.Next(HexDirectionExtensions.AllDirections.Length)];
 
         return new HexPosition(targetCoordinates, targetFacing);
     }
