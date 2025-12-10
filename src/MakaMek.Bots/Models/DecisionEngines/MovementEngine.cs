@@ -40,11 +40,14 @@ public class MovementEngine : IBotDecisionEngine
                 return;
             }
 
+            // Cache occupied hexes for this decision cycle (won't change during this invocation)
+            var occupiedHexes = GetOccupiedHexes(unmovedUnit);
+
             // Select movement type (prefer Walk for Easy difficulty)
             var movementType = SelectMovementType(unmovedUnit);
 
             // Get a random valid destination
-            var destination = GetRandomDestination(unmovedUnit, movementType);
+            var destination = GetRandomDestination(unmovedUnit, movementType, occupiedHexes);
             if (destination == null)
             {
                 // No valid destination, just stand still
@@ -53,7 +56,7 @@ public class MovementEngine : IBotDecisionEngine
             }
 
             // Find path to destination
-            var path = FindPath(unmovedUnit, destination, movementType);
+            var path = FindPath(unmovedUnit, destination, movementType, occupiedHexes);
             if (path == null || path.Count == 0)
             {
                 // No valid path, just stand still
@@ -113,7 +116,19 @@ public class MovementEngine : IBotDecisionEngine
             : MovementType.Walk;
     }
 
-    private HexPosition? GetRandomDestination(IUnit unit, MovementType movementType)
+    /// <summary>
+    /// Gets the coordinates of all occupied hexes (deployed units except the specified moving unit)
+    /// </summary>
+    private List<HexCoordinates> GetOccupiedHexes(IUnit movingUnit)
+    {
+        return _clientGame.Players
+            .SelectMany(p => p.Units)
+            .Where(u => u is { IsDeployed: true, Position: not null } && u.Id != movingUnit.Id)
+            .Select(u => u.Position!.Coordinates)
+            .ToList();
+    }
+
+    private HexPosition? GetRandomDestination(IUnit unit, MovementType movementType, List<HexCoordinates> occupiedHexes)
     {
         if (_clientGame.BattleMap == null || unit.Position == null)
             return null;
@@ -121,13 +136,6 @@ public class MovementEngine : IBotDecisionEngine
         var movementPoints = unit.GetMovementPoints(movementType);
         if (movementPoints <= 0)
             return null;
-
-        // Get occupied hexes (all units except the moving unit)
-        var occupiedHexes = _clientGame.Players
-            .SelectMany(p => p.Units)
-            .Where(u => u is { IsDeployed: true, Position: not null } && u.Id != unit.Id)
-            .Select(u => u.Position!.Coordinates)
-            .ToList();
 
         // Get reachable hexes
         var reachableHexes = _clientGame.BattleMap
@@ -156,19 +164,12 @@ public class MovementEngine : IBotDecisionEngine
         return new HexPosition(targetCoordinates, targetFacing);
     }
 
-    private List<PathSegment>? FindPath(IUnit unit, HexPosition destination, MovementType movementType)
+    private List<PathSegment>? FindPath(IUnit unit, HexPosition destination, MovementType movementType, List<HexCoordinates> occupiedHexes)
     {
         if (_clientGame.BattleMap == null || unit.Position == null)
             return null;
 
         var movementPoints = unit.GetMovementPoints(movementType);
-
-        // Get occupied hexes (all units except the moving unit)
-        var occupiedHexes = _clientGame.Players
-            .SelectMany(p => p.Units)
-            .Where(u => u is { IsDeployed: true, Position: not null } && u.Id != unit.Id)
-            .Select(u => u.Position!.Coordinates)
-            .ToList();
 
         return _clientGame.BattleMap.FindPath(unit.Position, destination, movementPoints, occupiedHexes);
     }
