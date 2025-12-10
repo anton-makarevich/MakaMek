@@ -67,9 +67,16 @@ public class MovementEngine : IBotDecisionEngine
             // Move the unit
             await MoveUnit(player, unmovedUnit, movementType, path);
         }
-        catch
+        catch (BotDecisionException ex)
         {
-            // If anything fails, skip turn to avoid blocking the game
+            // Rethrow BotDecisionException to let caller handle decision failures
+            Console.WriteLine($"MovementEngine error for player {player.Name}: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't throw - graceful degradation for unexpected errors
+            Console.WriteLine($"MovementEngine error for player {player.Name}: {ex.Message}, skipping turn");
             await SkipTurn(player);
         }
     }
