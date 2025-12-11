@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Data.Game;
+﻿using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -23,43 +24,39 @@ public class WeaponsEngine : IBotDecisionEngine
     {
         try
         {
-            // 1. Find units that haven't attacked
-            var unitsToAttack = player.AliveUnits.Where(u => !u.HasDeclaredWeaponAttack).ToList();
-            if (!unitsToAttack.Any())
+            // Find units that haven't attacked and can fire weapons
+            var unitToAttack = player.AliveUnits
+                .FirstOrDefault(u => u is { HasDeclaredWeaponAttack: false, CanFireWeapons: true });
+
+            if (unitToAttack == null)
             {
                 // No units to attack with, skip turn
+                await SkipTurn(player);
                 return;
             }
 
-            // 2. Select first unit that can attack (simple strategy)
-            var attackingUnit = unitsToAttack.First();
-
-            if (attackingUnit.Position == null || !attackingUnit.CanFireWeapons)
+            // Find potential targets
+            var potentialTargets = GetPotentialTargets(unitToAttack, player.Id);
+            if (potentialTargets.Count == 0)
             {
-                // Unit not deployed or can't fire weapons
+                // No targets available, declare attack with empty weapon list
+                await DeclareWeaponAttack(player, unitToAttack, []);
                 return;
             }
 
-            // 3. Find potential targets
-            var potentialTargets = GetPotentialTargets(player);
-            if (!potentialTargets.Any())
-            {
-                // No targets available, skip attack
-                return;
-            }
-
-            // 4. Select random target
+            // Select random target
             var target = potentialTargets[Random.Shared.Next(potentialTargets.Count)];
 
-            // 5. Get weapons that can reach the target
-            var weaponsInRange = GetWeaponsInRange(attackingUnit, target);
-            if (!weaponsInRange.Any())
+            // Get weapons in range of the target
+            var weaponsInRange = GetWeaponsInRange(unitToAttack, target);
+            if (weaponsInRange.Count == 0)
             {
-                // No weapons in range, skip attack
+                // No weapons in range, declare attack with empty weapon list
+                await DeclareWeaponAttack(player, unitToAttack, []);
                 return;
             }
 
-            // 6. Create weapon target data for all weapons in range
+            // Create weapon target data for all weapons in range
             var weaponTargets = weaponsInRange.Select(weapon => new WeaponTargetData
             {
                 Weapon = weapon.ToData(),
@@ -67,45 +64,90 @@ public class WeaponsEngine : IBotDecisionEngine
                 IsPrimaryTarget = true
             }).ToList();
 
-            // 7. Declare weapon attack
-            var attackCommand = new WeaponAttackDeclarationCommand
-            {
-                GameOriginId = _clientGame.Id,
-                PlayerId = player.Id,
-                UnitId = attackingUnit.Id,
-                WeaponTargets = weaponTargets
-            };
-
-            await _clientGame.DeclareWeaponAttack(attackCommand);
+            // Declare weapon attack
+            await DeclareWeaponAttack(player, unitToAttack, weaponTargets);
+        }
+        catch (BotDecisionException ex)
+        {
+            // Rethrow BotDecisionException to let caller handle decision failures
+            Console.WriteLine($"WeaponsEngine error for player {player.Name}: {ex.Message}");
+            throw;
         }
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation
             Console.WriteLine($"WeaponsEngine error for player {player.Name}: {ex.Message}");
+            // If anything fails, skip turn to avoid blocking the game
+            await SkipTurn(player);
         }
     }
 
-    private List<IUnit> GetPotentialTargets(IPlayer player)
+    private List<IUnit> GetPotentialTargets(IUnit attackingUnit, Guid playerId)
     {
-        // Find enemy units that are deployed and alive
-        return _clientGame.Players
-            .Where(p => p.Id != player.Id)
+        if (_clientGame.BattleMap == null)
+            return [];
+
+        // Validate attacking unit has a position
+        if (attackingUnit.Position == null)
+            return [];
+
+        var attackerPosition = attackingUnit.Position.Coordinates;
+
+        // Get all enemy units that are deployed and alive
+        var enemies = _clientGame.Players
+            .Where(p => p.Id != playerId)
             .SelectMany(p => p.AliveUnits)
-            .Where(u => u.Position != null)
+            .Where(u => u is { IsDeployed: true, Position: not null })
+            .ToList();
+
+        // Filter by line of sight using the attacking unit's position
+        return enemies
+            .Where(enemy => _clientGame.BattleMap.HasLineOfSight(
+                attackerPosition,
+                enemy.Position!.Coordinates))
             .ToList();
     }
 
-    private List<Weapon> GetWeaponsInRange(IUnit attackingUnit, IUnit target)
+    private static List<Weapon> GetWeaponsInRange(IUnit attackingUnit, IUnit target)
     {
         if (attackingUnit.Position == null || target.Position == null)
             return [];
 
+        // Calculate distance once and cache it
         var distance = attackingUnit.Position.Coordinates.DistanceTo(target.Position.Coordinates);
 
-        // Get all functional weapons that can reach the target
+        // Get all available weapons that are in range
         return attackingUnit.GetAvailableComponents<Weapon>()
             .Where(weapon => distance >= weapon.MinimumRange && distance <= weapon.LongRange)
             .ToList();
+    }
+
+    private async Task DeclareWeaponAttack(IPlayer player, IUnit unit, List<WeaponTargetData> weaponTargets)
+    {
+        var command = new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = _clientGame.Id,
+            PlayerId = player.Id,
+            UnitId = unit.Id,
+            WeaponTargets = weaponTargets
+        };
+
+        await _clientGame.DeclareWeaponAttack(command);
+    }
+
+    private async Task SkipTurn(IPlayer player)
+    {
+        // Find any unit that hasn't declared attack yet
+        var unit = player.AliveUnits.FirstOrDefault(u => !u.HasDeclaredWeaponAttack);
+        if (unit == null)
+        {
+            throw new BotDecisionException(
+                $"No units available for player {player.Name}",
+                nameof(WeaponsEngine),
+                player.Id);
+        }
+        // Send weapon attack declaration with empty weapon list
+        await DeclareWeaponAttack(player, unit, []);
     }
 }
 
