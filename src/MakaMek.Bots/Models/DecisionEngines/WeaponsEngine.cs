@@ -36,7 +36,7 @@ public class WeaponsEngine : IBotDecisionEngine
             }
 
             // Find potential targets
-            var potentialTargets = GetPotentialTargets(player);
+            var potentialTargets = GetPotentialTargets(unitToAttack, player.Id);
             if (potentialTargets.Count == 0)
             {
                 // No targets available, declare attack with empty weapon list
@@ -82,29 +82,25 @@ public class WeaponsEngine : IBotDecisionEngine
         }
     }
 
-    private List<IUnit> GetPotentialTargets(IPlayer player)
+    private List<IUnit> GetPotentialTargets(IUnit attackingUnit, Guid playerId)
     {
         if (_clientGame.BattleMap == null)
             return [];
 
+        // Validate attacking unit has a position
+        if (attackingUnit.Position == null)
+            return [];
+
+        var attackerPosition = attackingUnit.Position.Coordinates;
+
         // Get all enemy units that are deployed and alive
         var enemies = _clientGame.Players
-            .Where(p => p.Id != player.Id)
+            .Where(p => p.Id != playerId)
             .SelectMany(p => p.AliveUnits)
             .Where(u => u is { IsDeployed: true, Position: not null })
             .ToList();
 
-        // Filter by line of sight - only check if we have units that can attack
-        var attackers = player.AliveUnits
-            .Where(u => u is { HasDeclaredWeaponAttack: false, CanFireWeapons: true, Position: not null })
-            .ToList();
-
-        if (attackers.Count == 0)
-            return [];
-
-        // For simplicity, use the first attacker's position for LOS check
-        var attackerPosition = attackers[0].Position!.Coordinates;
-
+        // Filter by line of sight using the attacking unit's position
         return enemies
             .Where(enemy => _clientGame.BattleMap.HasLineOfSight(
                 attackerPosition,
@@ -112,7 +108,7 @@ public class WeaponsEngine : IBotDecisionEngine
             .ToList();
     }
 
-    private List<Weapon> GetWeaponsInRange(IUnit attackingUnit, IUnit target)
+    private static List<Weapon> GetWeaponsInRange(IUnit attackingUnit, IUnit target)
     {
         if (attackingUnit.Position == null || target.Position == null)
             return [];
