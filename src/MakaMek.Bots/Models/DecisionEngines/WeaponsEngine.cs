@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Data.Game;
+﻿using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -66,8 +67,16 @@ public class WeaponsEngine : IBotDecisionEngine
             // Declare weapon attack
             await DeclareWeaponAttack(player, unitToAttack, weaponTargets);
         }
-        catch
+        catch (BotDecisionException ex)
         {
+            // Rethrow BotDecisionException to let caller handle decision failures
+            Console.WriteLine($"WeaponsEngine error for player {player.Name}: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't throw - graceful degradation
+            Console.WriteLine($"WeaponsEngine error for player {player.Name}: {ex.Message}");
             // If anything fails, skip turn to avoid blocking the game
             await SkipTurn(player);
         }
@@ -134,11 +143,15 @@ public class WeaponsEngine : IBotDecisionEngine
     {
         // Find any unit that hasn't declared attack yet
         var unit = player.AliveUnits.FirstOrDefault(u => !u.HasDeclaredWeaponAttack);
-        if (unit != null)
+        if (unit == null)
         {
-            // Send weapon attack declaration with empty weapon list
-            await DeclareWeaponAttack(player, unit, []);
+            throw new BotDecisionException(
+                $"No units available for player {player.Name}",
+                nameof(WeaponsEngine),
+                player.Id);
         }
+        // Send weapon attack declaration with empty weapon list
+        await DeclareWeaponAttack(player, unit, []);
     }
 }
 
