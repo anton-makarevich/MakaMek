@@ -35,14 +35,7 @@ public class EndPhaseEngine : IBotDecisionEngine
             Console.WriteLine($"EndPhaseEngine error for player {player.Name}: {ex.Message}");
 
             // Always try to end turn even if other actions failed
-            try
-            {
-                await EndTurn(player);
-            }
-            catch
-            {
-                // If we can't end turn, there's nothing more we can do
-            }
+            await EndTurn(player);
         }
     }
 
@@ -66,7 +59,8 @@ public class EndPhaseEngine : IBotDecisionEngine
 
     private async Task HandleOverheatedUnits(IPlayer player)
     {
-        var overheatedUnits = player.AliveUnits.Where(u => u.CurrentHeat > 25 && !u.IsShutdown).ToList();
+        var overheatedUnits = player.AliveUnits
+            .Where(u => u is { CurrentHeat: > 25, IsShutdown: false }).ToList();
 
         foreach (var unit in overheatedUnits)
         {
