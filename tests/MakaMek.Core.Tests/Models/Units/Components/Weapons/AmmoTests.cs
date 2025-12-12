@@ -1,6 +1,8 @@
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Models.Units;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 
@@ -190,6 +192,34 @@ public class AmmoTests
 
         // Assert
         damage.ShouldBe(0);
+    }
+
+    [Fact]
+    public void IsAvailable_ShouldBeTrue_IfShotsAreAvailable()
+    {
+        // Arrange
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var part = new Arm("LeftArm", PartLocation.LeftArm, 10, 12);
+        var sut = CreateAmmo(definition, 1);
+        part.TryAddComponent(sut).ShouldBeTrue();
+
+        // Act & Assert
+        sut.IsAvailable.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsAvailable_ShouldBeFalse_IfShotsAreNotAvailable()
+    {
+        // Arrange
+        var definition = CreateTestWeaponDefinition("AC20", MakaMekComponent.ISAmmoAC20, 20);
+        var part = new Arm("LeftArm", PartLocation.LeftArm, 10, 12);
+        var sut = CreateAmmo(definition, 1);
+        part.TryAddComponent(sut).ShouldBeTrue();
+        sut.UseShot();
+
+        // Act & Assert
+        sut.RemainingShots.ShouldBe(0);
+        sut.IsAvailable.ShouldBeFalse();
     }
     
     private static WeaponDefinition CreateTestWeaponDefinition(string name, MakaMekComponent ammoComponentType, int damage)
