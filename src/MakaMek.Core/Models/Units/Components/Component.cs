@@ -37,7 +37,7 @@ public abstract class Component : IManufacturedItem
 
     public bool IsActive { get; private set; } = true;
 
-    public bool IsAvailable => IsActive
+    public virtual bool IsAvailable => IsActive
                                && !IsDestroyed
                                && IsMounted
                                && !SlotAssignments.Any(a => a.UnitPart.IsDestroyed);

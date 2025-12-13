@@ -47,8 +47,6 @@ public sealed class Ammo : Component
         return true;
     }
 
-
-
     public override void Hit()
     {
         base.Hit();
@@ -72,4 +70,6 @@ public sealed class Ammo : Component
     {
         return new AmmoStateData(RemainingShots);
     }
+
+    public override bool IsAvailable => base.IsAvailable && RemainingShots > 0;
 }

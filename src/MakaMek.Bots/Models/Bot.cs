@@ -1,7 +1,7 @@
-﻿using AsyncAwaitBestPractices;
+﻿using System.Reactive.Linq;
+using AsyncAwaitBestPractices;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
-using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -17,7 +17,9 @@ public class Bot : IBot
     private readonly IDecisionEngineProvider _decisionEngineProvider;
     private readonly IClientGame _clientGame;
     private IBotDecisionEngine? _currentDecisionEngine;
-    private IDisposable? _commandSubscription;
+    private IDisposable? _activePlayerSubscription;
+    private IDisposable? _phaseSubscription;
+    private IDisposable? _gameEndSubscription;
     private bool _isDisposed;
 
     public Guid PlayerId { get; }
@@ -31,31 +33,33 @@ public class Bot : IBot
         _clientGame = clientGame;
         _decisionEngineProvider = decisionEngineProvider;
 
-        // Subscribe to game commands
-        _commandSubscription = clientGame.Commands.Subscribe(OnCommandReceived);
+        // Subscribe to active player changes (works for both server-driven and client-driven phases)
+        _activePlayerSubscription = clientGame.ActivePlayerChanges.Subscribe(OnActivePlayerChanged);
+
+        // Subscribe to phase changes to update decision engine
+        _phaseSubscription = clientGame.PhaseChanges.Subscribe(OnPhaseChanged);
+
+        // Subscribe to game end events
+        _gameEndSubscription = clientGame.Commands
+            .OfType<GameEndedCommand>()
+            .Subscribe(_ => Dispose());
     }
 
-    private void OnCommandReceived(IGameCommand command)
+    private void OnActivePlayerChanged(IPlayer? activePlayer)
     {
         if (_isDisposed) return;
 
-        switch (command)
+        // Check if this bot is now the active player
+        if (activePlayer?.Id == PlayerId)
         {
-            case ChangeActivePlayerCommand activePlayerCmd:
-                if (activePlayerCmd.PlayerId == PlayerId)
-                {
-                    MakeDecision().SafeFireAndForget();
-                }
-                break;
-
-            case ChangePhaseCommand phaseCmd:
-                UpdateDecisionEngine(phaseCmd.Phase);
-                break;
-
-            case GameEndedCommand:
-                Dispose();
-                break;
+            MakeDecision().SafeFireAndForget();
         }
+    }
+
+    private void OnPhaseChanged(PhaseNames phase)
+    {
+        if (_isDisposed) return;
+        UpdateDecisionEngine(phase);
     }
 
     private void UpdateDecisionEngine(PhaseNames phase)
@@ -77,7 +81,7 @@ public class Bot : IBot
 
         await _currentDecisionEngine.MakeDecision(player);
     }
-    
+
     public IBotDecisionEngine? DecisionEngine => _currentDecisionEngine;
 
     public void Dispose()
@@ -85,8 +89,14 @@ public class Bot : IBot
         if (_isDisposed) return;
         _isDisposed = true;
 
-        _commandSubscription?.Dispose();
-        _commandSubscription = null;
+        _activePlayerSubscription?.Dispose();
+        _activePlayerSubscription = null;
+
+        _phaseSubscription?.Dispose();
+        _phaseSubscription = null;
+
+        _gameEndSubscription?.Dispose();
+        _gameEndSubscription = null;
     }
 }
 

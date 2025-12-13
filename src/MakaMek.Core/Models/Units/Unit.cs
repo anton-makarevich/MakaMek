@@ -579,6 +579,11 @@ public abstract class Unit : IUnit
     {
         return GetAllComponents<T>().Any(c => c is { IsActive: true, IsAvailable: true });
     }
+
+    /// <summary>
+    /// Determines if the unit has any ammunition-carrying weapons with remaining ammo
+    /// </summary>
+    public bool HasAmmo => HasAvailableComponent<Ammo>();
     
     /// <summary>
     /// Gets all ammo components compatible with the specified weapon
