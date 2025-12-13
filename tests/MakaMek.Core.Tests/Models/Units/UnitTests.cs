@@ -492,9 +492,9 @@ public class UnitTests
         var lrm15 = new Lrm15();
         rightArm.TryAddComponent(lrm15).ShouldBeTrue();
         
-        var rightTorso = sut.Parts[PartLocation.LeftArm];
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         var ammo = Lrm15.CreateAmmo();
-        rightTorso.TryAddComponent(ammo);
+        leftArm.TryAddComponent(ammo);
         
         // Act & Assert
         sut.HasAmmo.ShouldBeTrue();
@@ -510,9 +510,9 @@ public class UnitTests
         var lrm15 = new Lrm15();
         rightArm.TryAddComponent(lrm15).ShouldBeTrue();
         
-        var rightTorso = sut.Parts[PartLocation.LeftArm];
+        var leftArm = sut.Parts[PartLocation.LeftArm];
         var ammo = Lrm15.CreateAmmo();
-        rightTorso.TryAddComponent(ammo);
+        leftArm.TryAddComponent(ammo);
     
         // Deplete all ammo
         while (ammo.RemainingShots > 0)
