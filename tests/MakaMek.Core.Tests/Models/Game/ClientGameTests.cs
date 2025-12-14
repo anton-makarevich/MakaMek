@@ -1589,16 +1589,26 @@ public class ClientGameTests
             PlayerId = localPlayer1.Id,
             Timestamp = DateTime.UtcNow
         });
-        
-        // Act - Change to End phase
+
+        // Act - Change to End phase (two-stage protocol)
         clientGame.HandleCommand(new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
             Phase = PhaseNames.End
         });
-        
-        // Assert
+
+        // Phase should be set, but ActivePlayer not yet (waiting for StartPhaseCommand)
         clientGame.TurnPhase.ShouldBe(PhaseNames.End);
+        clientGame.ActivePlayer.ShouldBeNull();
+
+        // Now send StartPhaseCommand to complete phase initialization
+        clientGame.HandleCommand(new StartPhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.End
+        });
+
+        // Assert - ActivePlayer should now be set
         clientGame.ActivePlayer.ShouldNotBeNull();
         clientGame.ActivePlayer!.Id.ShouldBe(localPlayer1.Id); // The first local player should be active
         
