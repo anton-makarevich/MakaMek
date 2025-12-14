@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -458,6 +459,70 @@ public class UnitTests
 
         // Assert
         components.ShouldBeEmpty();
+    }
+    
+        [Fact]
+    public void HasAmmo_ShouldReturnFalse_WhenNoWeapons()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+
+        // Act & Assert
+        sut.HasAmmo.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void HasAmmo_ShouldReturnFalse_WhenOnlyEnergyWeapons()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var rightArm = sut.Parts[PartLocation.RightArm];
+        rightArm.TryAddComponent(new MediumLaser()).ShouldBeTrue();
+        
+        // Act & Assert
+        sut.HasAmmo.ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void HasAmmo_ShouldReturnTrue_WhenAmmoWeaponHasAmmo()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var rightArm = sut.Parts[PartLocation.RightArm];
+        var lrm15 = new Lrm15();
+        rightArm.TryAddComponent(lrm15).ShouldBeTrue();
+        
+        var leftArm = sut.Parts[PartLocation.LeftArm];
+        var ammo = Lrm15.CreateAmmo();
+        leftArm.TryAddComponent(ammo);
+        
+        // Act & Assert
+        sut.HasAmmo.ShouldBeTrue();
+        ammo.RemainingShots.ShouldBeGreaterThan(0);
+    }
+    
+    [Fact]
+    public void HasAmmo_ShouldReturnFalse_WhenAmmoWeaponHasNoAmmo()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var rightArm = sut.Parts[PartLocation.RightArm];
+        var lrm15 = new Lrm15();
+        rightArm.TryAddComponent(lrm15).ShouldBeTrue();
+        
+        var leftArm = sut.Parts[PartLocation.LeftArm];
+        var ammo = Lrm15.CreateAmmo();
+        leftArm.TryAddComponent(ammo);
+    
+        // Deplete all ammo
+        while (ammo.RemainingShots > 0)
+        {
+            ammo.UseShot();
+        }
+    
+        // Act & Assert
+        sut.HasAmmo.ShouldBeFalse();
+        ammo.RemainingShots.ShouldBe(0);
     }
     
     [Fact]
