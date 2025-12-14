@@ -35,6 +35,7 @@ public class BattleMapExtensionsTests
     [InlineData(3, 3, false)]  // Center (not edge)
     [InlineData(2, 2, false)]  // Interior (not edge)
     [InlineData(4, 4, false)]  // Interior (not edge)
+    [InlineData(6, 3, false)]  // Out of bounds (not edge)
     public void GetEdgeHexCoordinates_ShouldIncludeOnlyEdgeHexes(int q, int r, bool shouldBeIncluded)
     {
         // Arrange

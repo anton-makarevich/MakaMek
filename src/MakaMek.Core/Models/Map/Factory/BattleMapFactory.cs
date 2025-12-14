@@ -35,8 +35,8 @@ public class BattleMapFactory : IBattleMapFactory
     public BattleMap CreateFromData(IList<HexData> hexData)
     {
         var map = new BattleMap(
-            hexData.Max(h => h.Coordinates.Q) + 1,
-            hexData.Max(h => h.Coordinates.R) + 1);
+            hexData.Max(h => h.Coordinates.Q),
+            hexData.Max(h => h.Coordinates.R));
         
         foreach (var hex in hexData)
         {
