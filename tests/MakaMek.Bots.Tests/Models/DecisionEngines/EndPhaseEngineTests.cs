@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Shouldly;
 
 namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
 
@@ -148,7 +149,7 @@ public class EndPhaseEngineTests
             SpecificData = new EngineStateData(EngineType.Fusion, engineRating)
         };
         var centerTorso = new CenterTorso("CenterTorso", 31, 10, 6);
-        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]);
+        centerTorso.TryAddComponent(new Engine(engineData), [0, 1, 2, 7, 8, 9]).ShouldBeTrue();
         return
         [
             new Head("Head", 9, 3),
