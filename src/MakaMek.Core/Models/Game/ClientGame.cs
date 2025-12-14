@@ -140,14 +140,14 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 // Record that this player has ended their turn
                 _playersEndedTurn.Add(turnEndedCommand.PlayerId);
 
-                // If we're in the End phase and the player who just ended their turn was the active player
+                // If we're in the End phase, and the player who just ended their turn was the active player
                 if (TurnPhase == PhaseNames.End &&
                     ActivePlayer != null &&
                     turnEndedCommand.PlayerId == ActivePlayer.Id)
                 {
                     // Set the next local player who hasn't ended their turn as active
-                    ActivePlayer = Players
-                        .Where(p => _playersEndedTurn.Contains(p.Id) == false)
+                    ActivePlayer = AlivePlayers
+                        .Where(p => !_playersEndedTurn.Contains(p.Id))
                         .FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
                 }
                 break;
