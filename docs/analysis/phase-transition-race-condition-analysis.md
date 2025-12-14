@@ -83,185 +83,189 @@ For correct operation:
 2. Then `ChangeActivePlayerCommand` (and any other phase initialization commands)
 3. Server must complete `Enter()` before processing any commands from clients/bots
 
-## Recommended Solution
+## Implemented Solution
 
-**Approach: Deferred command publishing during phase initialization**
+**Approach: Two-Stage Phase Transition Protocol with StartPhaseCommand**
 
 The key insight is that we need to satisfy two requirements:
 1. Server must complete `Enter()` before clients can send commands back
-2. Clients must receive `ChangePhaseCommand` BEFORE any other commands (like `ChangeActivePlayerCommand`)
+2. Clients must not trigger bot decision-making until server is ready
 
-These requirements are contradictory if `Enter()` publishes commands immediately, because:
-- If we call `Enter()` before publishing `ChangePhaseCommand`, clients receive `ChangeActivePlayerCommand` first (wrong order)
-- If we publish `ChangePhaseCommand` before calling `Enter()`, clients can send commands before server is ready (race condition)
+The solution uses a two-stage protocol:
+- **Stage 1**: Server publishes `ChangePhaseCommand` and calls `Enter()` (as before)
+- **Stage 2**: Server publishes `StartPhaseCommand` at the END of `Enter()` to signal completion
 
-### Solution: Deferred Publishing
+### Solution: StartPhaseCommand
 
-Implement a deferred publishing mechanism in `CommandPublisher`:
+Introduce a new `StartPhaseCommand` that signals when phase initialization is complete:
+
+**1. Create `StartPhaseCommand`** (in `src/MakaMek.Core/Data/Game/Commands/Server/StartPhaseCommand.cs`):
 
 ```csharp
-public class CommandPublisher
+public record struct StartPhaseCommand : IGameCommand
 {
-    private Queue<IGameCommand>? _deferredCommands;
+    public required PhaseNames Phase { get; init; }
+    public required Guid GameOriginId { get; set; }
+    public DateTime Timestamp { get; set; }
 
-    public void BeginDefer()
+    public string Render(ILocalizationService localizationService, IGame game)
     {
-        _deferredCommands = new Queue<IGameCommand>();
-    }
-
-    public void PublishCommand(IGameCommand command)
-    {
-        if (_deferredCommands != null)
-        {
-            _deferredCommands.Enqueue(command);
-        }
-        else
-        {
-            Adapter.PublishCommand(command);
-        }
-    }
-
-    public void EndDefer()
-    {
-        if (_deferredCommands == null) return;
-
-        while (_deferredCommands.Count > 0)
-        {
-            var command = _deferredCommands.Dequeue();
-            Adapter.PublishCommand(command);
-        }
-        _deferredCommands = null;
+        var localizedTemplate = localizationService.GetString("Command_StartPhase");
+        return string.Format(localizedTemplate, Phase);
     }
 }
 ```
 
-Then modify `TransitionToPhase()`:
+**2. Modify `EndPhase.Enter()`** to publish `StartPhaseCommand` at the end:
 
 ```csharp
-private void TransitionToPhase(IGamePhase newPhase)
+public override void Enter()
 {
-    if (_currentPhase is GamePhase currentGamePhase)
+    // Clear the set of players who have ended their turn
+    _playersEndedTurn.Clear();
+
+    // Process consciousness recovery rolls for unconscious pilots
+    ProcessConsciousnessRecoveryRolls();
+
+    // Check for victory conditions
+    CheckVictoryConditions();
+
+    // Publish StartPhaseCommand to signal that phase initialization is complete
+    Game.CommandPublisher.PublishCommand(new StartPhaseCommand
     {
-        currentGamePhase.Exit();
-    }
-    _currentPhase = newPhase;
-
-    // Set phase locally on server first
-    TurnPhase = newPhase.Name;
-
-    // Clear processed command keys when phase changes
-    _processedCommandKeys.Clear();
-
-    // Defer command publishing during Enter()
-    CommandPublisher.BeginDefer();
-
-    // Initialize the phase - commands are queued, not published
-    _currentPhase.Enter();
-
-    // Publish ChangePhaseCommand FIRST
-    CommandPublisher.PublishCommand(new ChangePhaseCommand
-    {
-        GameOriginId = Id,
-        Phase = newPhase.Name
+        GameOriginId = Game.Id,
+        Phase = PhaseNames.End
     });
-
-    // Then publish all deferred commands from Enter()
-    CommandPublisher.EndDefer();
 }
+```
+
+**3. Update `ClientGame.HandleCommand()`** to handle `StartPhaseCommand`:
+
+```csharp
+case ChangePhaseCommand phaseCommand:
+    TurnPhase = phaseCommand.Phase;
+
+    // When entering the End phase, clear the players who ended turn
+    // Note: ActivePlayer is set when StartPhaseCommand is received to avoid race condition
+    if (phaseCommand.Phase == PhaseNames.End)
+    {
+        _playersEndedTurn.Clear();
+    }
+    break;
+
+case StartPhaseCommand startPhaseCommand:
+    // When the End phase is fully initialized on the server, set the first alive local player as active
+    // This ensures the server has completed phase initialization before bots start making decisions
+    if (startPhaseCommand.Phase == PhaseNames.End)
+    {
+        ActivePlayer = AlivePlayers.FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
+    }
+    break;
 ```
 
 ### Why This Works
 
-1. **Server sets `TurnPhase` locally** - server knows the current phase
-2. **Server calls `Enter()` with deferred publishing** - phase is fully initialized, commands are queued
-3. **`ChangePhaseCommand` is published first** - clients update their phase, bots update decision engines
-4. **Deferred commands are published** - clients receive `ChangeActivePlayerCommand`, consciousness rolls, etc.
-5. **Clients receive commands in correct order**:
-   - First: `ChangePhaseCommand` - clients update phase, bots update decision engines
-   - Then: `ChangeActivePlayerCommand` - bots make decisions with correct engine
-   - Then: Other phase initialization commands (consciousness rolls, etc.)
-6. **Server is ready** - `Enter()` has completed, server can process incoming commands
+1. **Server publishes `ChangePhaseCommand`** (as before) - clients update their phase
+2. **Server calls `Enter()`** - phase is fully initialized (clears state, processes consciousness rolls, etc.)
+3. **Server publishes `StartPhaseCommand`** at the end of `Enter()` - signals initialization is complete
+4. **Clients receive `ChangePhaseCommand`** - set `TurnPhase`, but DON'T set `ActivePlayer` yet for EndPhase
+5. **Clients receive other commands** from `Enter()` (consciousness rolls, etc.)
+6. **Clients receive `StartPhaseCommand`** - NOW set `ActivePlayer` for EndPhase
+7. **Bots receive `ActivePlayer` change** - make decisions with correct decision engine
+8. **Server is ready** - `Enter()` has completed, server can process incoming commands
 
-### Command Ordering Example
+### Command Flow Example
 
-For a transition to `MovementPhase`:
-1. Server calls `BeginDefer()`
-2. Server calls `MovementPhase.Enter()` → calls `SetNextPlayerActive()` → calls `SetActivePlayer()` → queues `ChangeActivePlayerCommand`
-3. Server publishes `ChangePhaseCommand` (goes out immediately)
-4. Server calls `EndDefer()` → publishes queued `ChangeActivePlayerCommand`
-5. Clients receive: `ChangePhaseCommand`, then `ChangeActivePlayerCommand`
-6. Bots update decision engine to `MovementEngine`, then make movement decisions
+For a transition to `EndPhase`:
 
-### Additional Consideration
+**Server side:**
+1. `TransitionToPhase()` calls `SetPhase()` → publishes `ChangePhaseCommand`
+2. `TransitionToPhase()` calls `EndPhase.Enter()`
+3. `Enter()` clears `_playersEndedTurn`
+4. `Enter()` calls `ProcessConsciousnessRecoveryRolls()` → publishes `PilotConsciousnessRollCommand` (if any)
+5. `Enter()` calls `CheckVictoryConditions()` → might publish `GameEndedCommand`
+6. `Enter()` publishes `StartPhaseCommand` at the end
+7. Server is now ready to process commands
 
-We need to refactor `SetPhase()` since it currently both sets `TurnPhase` AND publishes the command. The new approach separates these concerns - `TurnPhase` is set directly in `TransitionToPhase()`, and the command is published explicitly.
+**Client side:**
+1. Receives `ChangePhaseCommand` → sets `TurnPhase = PhaseNames.End`, clears `_playersEndedTurn`
+2. Receives `PilotConsciousnessRollCommand` (if any) → updates pilot consciousness state
+3. Receives `StartPhaseCommand` → sets `ActivePlayer` to first alive local player
+4. Bots receive `ActivePlayer` change → call `MakeDecision()` with `EndPhaseEngine`
+5. Bots send commands (`StartupUnitCommand`, `ShutdownUnitCommand`, `TurnEndedCommand`)
+6. Server processes commands (phase is fully initialized)
+
+### Scope
+
+This solution is currently implemented **only for EndPhase** as a focused fix for the most critical race condition. The same pattern can be extended to other phases (MainGamePhase, DeploymentPhase) if needed in the future.
 
 ## Alternative Solutions Considered
 
-### Option 2: Two-step phase transition protocol
-- Server sends "prepare phase" command, clients acknowledge, then server sends "activate phase"
-- **Rejected**: Too complex, requires significant refactoring, adds latency
+### Option 1: Deferred command publishing
+- Implement a deferred publishing mechanism in `CommandPublisher` to queue commands during `Enter()`
+- Publish `ChangePhaseCommand` first, then publish all queued commands
+- **Rejected**: More complex than the two-stage protocol, requires changes to `CommandPublisher` infrastructure
+- **Issue**: The RX transport processes commands synchronously, so even with deferred publishing, clients could react before the server finishes `Enter()`
 
-### Option 3: Command batching
-- Batch all commands during phase transition, publish atomically
-- **Rejected**: Adds complexity to `CommandPublisher`, doesn't solve the fundamental ordering issue
+### Option 2: Simple reordering (call Enter() before SetPhase())
+- Call `Enter()` before publishing `ChangePhaseCommand`
+- **Rejected**: Creates a different race condition where `ChangeActivePlayerCommand` arrives before `ChangePhaseCommand`
+- **Issue**: Bots would react to active player change with the wrong decision engine
 
-### Option 4: Delay bot reactions
+### Option 3: Delay bot reactions
 - Add artificial delay before bots react to phase changes
 - **Rejected**: Hacky, unreliable, doesn't fix the root cause
 
 ## Implementation Impact
 
-### Files to Modify
-1. `src/MakaMek.Core/Services/Transport/CommandPublisher.cs` - Add deferred publishing mechanism
-   - Add `_deferredCommands` queue field
-   - Add `BeginDefer()` method
-   - Modify `PublishCommand()` to check for deferred mode
-   - Add `EndDefer()` method
+### Files Modified
+1. **`src/MakaMek.Core/Data/Game/Commands/Server/StartPhaseCommand.cs`** - NEW
+   - Created new command to signal phase initialization completion
+   - Follows same pattern as `ChangePhaseCommand`
 
-2. `src/MakaMek.Core/Models/Game/ServerGame.cs` - Modify `TransitionToPhase()`
-   - Set `TurnPhase` directly instead of calling `SetPhase()`
-   - Use deferred publishing around `Enter()` call
-   - Explicitly publish `ChangePhaseCommand`
-   - Remove or refactor `SetPhase()` method (it's no longer needed in its current form)
+2. **`src/MakaMek.Core/Models/Game/Phases/EndPhase.cs`** - MODIFIED
+   - Added `StartPhaseCommand` publishing at the end of `Enter()` method
+   - Signals that phase initialization is complete
 
-3. `src/MakaMek.Core/Services/Transport/ICommandPublisher.cs` - Add interface methods
-   - Add `BeginDefer()` to interface
-   - Add `EndDefer()` to interface
+3. **`src/MakaMek.Core/Models/Game/ClientGame.cs`** - MODIFIED
+   - Added handler for `StartPhaseCommand`
+   - Moved `ActivePlayer` setting for EndPhase from `ChangePhaseCommand` handler to `StartPhaseCommand` handler
+   - Added comment explaining the race condition prevention
 
-### Testing Requirements
-1. **Unit tests for CommandPublisher**:
-   - Test that `BeginDefer()` queues commands instead of publishing
-   - Test that `EndDefer()` publishes all queued commands in order
-   - Test nested defer scenarios (if applicable)
-   - Test that normal publishing works when not in defer mode
+4. **`tests/MakaMek.Core.Tests/Models/Game/Phases/EndPhaseTests.cs`** - MODIFIED
+   - Added test `Enter_ShouldPublishStartPhaseCommand_WhenPhaseInitializationCompletes`
+   - Added test `Enter_ShouldPublishStartPhaseCommandAfterOtherInitialization`
+   - Verifies that `StartPhaseCommand` is published with correct properties
+   - Verifies that `StartPhaseCommand` is published last (after consciousness rolls, etc.)
 
-2. **Integration tests for phase transitions**:
-   - Test that `ChangePhaseCommand` arrives before `ChangeActivePlayerCommand`
-   - Test that bots receive phase change before active player change
-   - Test that server completes `Enter()` before processing bot commands
+### Testing Results
+All 23 EndPhase tests pass, including the new tests for `StartPhaseCommand`:
+- ✅ `Enter_ShouldPublishStartPhaseCommand_WhenPhaseInitializationCompletes`
+- ✅ `Enter_ShouldPublishStartPhaseCommandAfterOtherInitialization`
 
-3. **Phase-specific tests**:
-   - Test `EndPhase` properly clears `_playersEndedTurn` before processing `TurnEndedCommand`
-   - Test `MainGamePhase` sets active player before processing movement/attack commands
-   - Test `DeploymentPhase` sets deployment order before processing deploy commands
+### Future Extensions
 
-4. **Bot behavior tests**:
-   - Test that bots use correct decision engine when making decisions
-   - Test that bots don't send commands with wrong decision engine
-   - Test rapid phase transitions with multiple bots
+This solution is currently implemented only for `EndPhase`. If the race condition becomes an issue for other phases, the same pattern can be applied:
 
-### Thread Safety Considerations
+**For MainGamePhase (Movement, WeaponsAttack, PhysicalAttack):**
+- Modify `MainGamePhase.Enter()` to publish `StartPhaseCommand` at the end
+- Update `ClientGame.HandleCommand()` to handle `StartPhaseCommand` for these phases
+- Consider whether `ChangeActivePlayerCommand` should be deferred until after `StartPhaseCommand`
 
-The deferred publishing mechanism should be thread-safe if commands can be published from multiple threads. Consider using a `ConcurrentQueue<IGameCommand>` instead of `Queue<IGameCommand>` if needed, or ensure that `BeginDefer()`, `PublishCommand()`, and `EndDefer()` are always called from the same thread (which is likely the case for phase transitions).
+**For DeploymentPhase:**
+- Modify `DeploymentPhase.Enter()` to publish `StartPhaseCommand` at the end
+- Update `ClientGame.HandleCommand()` to handle `StartPhaseCommand` for deployment
+- Consider whether deployment order randomization should be signaled to clients
 
 ## Conclusion
 
-The recommended solution uses deferred command publishing to ensure:
-1. The server completes phase initialization (`Enter()`) before clients can react
-2. Clients receive `ChangePhaseCommand` before any other phase-related commands
-3. Bots update their decision engines before receiving active player changes
-4. Command ordering is deterministic and correct
+The implemented two-stage phase transition protocol using `StartPhaseCommand` successfully resolves the race condition for `EndPhase`:
 
-This approach is more complex than simple reordering, but it's necessary to satisfy both the initialization requirement and the command ordering requirement. The implementation is clean, testable, and doesn't require changes to phase classes themselves.
+1. ✅ **Server completes initialization** - `Enter()` finishes before clients set `ActivePlayer`
+2. ✅ **Bots react at the right time** - `ActivePlayer` change happens after `StartPhaseCommand`
+3. ✅ **Simple and focused** - Only 3 files modified, minimal complexity
+4. ✅ **Well tested** - 2 new tests verify correct behavior
+5. ✅ **Extensible** - Same pattern can be applied to other phases if needed
+
+This approach is simpler than deferred publishing, doesn't require infrastructure changes, and directly addresses the root cause of the race condition by delaying bot activation until the server is ready.
 

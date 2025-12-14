@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Map;
@@ -721,5 +722,57 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Assert
         singlePlayerGame.IsGameOver.ShouldBeFalse();
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<GameEndedCommand>());
+    }
+
+    [Fact]
+    public void Enter_ShouldPublishStartPhaseCommand_WhenPhaseInitializationCompletes()
+    {
+        // Arrange
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(
+            Arg.Is<StartPhaseCommand>(cmd =>
+                cmd.Phase == PhaseNames.End &&
+                cmd.GameOriginId == Game.Id));
+    }
+
+    [Fact]
+    public void Enter_ShouldPublishStartPhaseCommandAfterOtherInitialization()
+    {
+        // Arrange
+        var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
+        var pilot = unit.Pilot;
+        pilot!.KnockUnconscious(0);
+
+        var consciousnessCommand = new PilotConsciousnessRollCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PilotId = pilot.Id,
+            UnitId = unit.Id,
+            IsRecoveryAttempt = true,
+            ConsciousnessNumber = 4,
+            DiceResults = [7, 2],
+            IsSuccessful = true
+        };
+        MockConsciousnessCalculator.MakeRecoveryConsciousnessRoll(pilot).Returns(consciousnessCommand);
+
+        var publishedCommands = new List<IGameCommand>();
+        CommandPublisher.PublishCommand(Arg.Do<IGameCommand>(cmd => publishedCommands.Add(cmd)));
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        // Verify that StartPhaseCommand is published last
+        publishedCommands.Count.ShouldBeGreaterThan(0);
+        publishedCommands.Last().ShouldBeOfType<StartPhaseCommand>();
+
+        var startPhaseCommand = (StartPhaseCommand)publishedCommands.Last();
+        startPhaseCommand.Phase.ShouldBe(PhaseNames.End);
+        startPhaseCommand.GameOriginId.ShouldBe(Game.Id);
     }
 }

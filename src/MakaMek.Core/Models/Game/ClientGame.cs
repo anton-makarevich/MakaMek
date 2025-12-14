@@ -99,11 +99,19 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             case ChangePhaseCommand phaseCommand:
                 TurnPhase = phaseCommand.Phase;
 
-                // When entering the End phase, clear the players who ended turn and set the first alive local player as active
+                // When entering the End phase, clear the players who ended turn
+                // Note: ActivePlayer is set when StartPhaseCommand is received to avoid race condition
                 if (phaseCommand.Phase == PhaseNames.End)
                 {
                     _playersEndedTurn.Clear();
-                     ActivePlayer = AlivePlayers.FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
+                }
+                break;
+            case StartPhaseCommand startPhaseCommand:
+                // When the End phase is fully initialized on the server, set the first alive local player as active
+                // This ensures the server has completed phase initialization before bots start making decisions
+                if (startPhaseCommand.Phase == PhaseNames.End)
+                {
+                    ActivePlayer = AlivePlayers.FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
                 }
                 break;
             case ChangeActivePlayerCommand changeActivePlayerCommand:

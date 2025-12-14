@@ -20,6 +20,13 @@ public class EndPhase(ServerGame game) : GamePhase(game)
 
         // Check for victory conditions
         CheckVictoryConditions();
+
+        // Publish StartPhaseCommand to signal that phase initialization is complete
+        Game.CommandPublisher.PublishCommand(new StartPhaseCommand
+        {
+            GameOriginId = Game.Id,
+            Phase = PhaseNames.End
+        });
     }
 
     public override void HandleCommand(IGameCommand command)
