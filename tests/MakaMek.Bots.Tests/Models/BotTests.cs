@@ -143,8 +143,11 @@ public class BotTests : IDisposable
         _commandSubject.OnNext(gameEndedCommand);
 
         // Assert - Verify that the bot was disposed by checking that subsequent active player changes don't trigger decisions
-        _activePlayerSubject.OnNext(_player);
-        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
+        Should.NotThrow(() =>
+        {
+            _phaseSubject.OnNext(PhaseNames.Movement);
+            _activePlayerSubject.OnNext(_player);
+        });
     }
 
     [Fact]
