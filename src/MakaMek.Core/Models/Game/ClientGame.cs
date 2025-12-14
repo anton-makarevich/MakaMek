@@ -57,7 +57,19 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     public override void HandleCommand(IGameCommand command)
     {
         if (!ShouldHandleCommand(command)) return;
-        
+
+        // IMPORTANT: Complete pending commands BEFORE processing command-specific logic.
+        // This prevents race conditions where ActivePlayer changes trigger bot decision-making
+        // before _pendingCommands is cleared, causing CanActivePlayerAct to incorrectly return false.
+        // When we receive a re-broadcasted command, the server has already processed it successfully,
+        // so completing the pending task (removing from _pendingCommands) before applying state changes
+        // is semantically correct and ensures proper synchronization.
+        if (command is IClientCommand { IdempotencyKey: not null } clientCommand)
+        {
+            // Complete the pending task with success
+            CompletePendingCommand(clientCommand.IdempotencyKey.Value, true);
+        }
+
         // Handle specific command types
         switch (command)
         {
@@ -86,7 +98,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 break;
             case ChangePhaseCommand phaseCommand:
                 TurnPhase = phaseCommand.Phase;
-                
+
                 // When entering End phase, clear the players who ended turn and set first alive local player as active
                 if (phaseCommand.Phase == PhaseNames.End)
                 {
@@ -159,13 +171,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 if (errorCommand.IdempotencyKey.HasValue)
                     CompletePendingCommand(errorCommand.IdempotencyKey.Value, false);
                 break;
-        }
-
-        // Check if this is a re-broadcasted client command with IdempotencyKey
-        if (command is IClientCommand { IdempotencyKey: not null } clientCommand)
-        {
-            // Complete the pending task with success
-            CompletePendingCommand(clientCommand.IdempotencyKey.Value, true);
         }
 
         // Log the command
