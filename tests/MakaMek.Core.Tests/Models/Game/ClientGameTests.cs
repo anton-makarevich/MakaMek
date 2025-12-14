@@ -1623,13 +1623,22 @@ public class ClientGameTests
         var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2", PlayerControlType.Human);
         var localPlayer3 = new Player(Guid.NewGuid(), "LocalPlayer3", PlayerControlType.Human);
         
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        var player1Unit = unitData with { Id = Guid.NewGuid() };
+        var player2Unit = unitData with { Id = Guid.NewGuid() };
+        var player3Unit = unitData with { Id = Guid.NewGuid() };
+        
         // Create a new client game with local players
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
-        var clientGame = new ClientGame(
+        var mechFactory = new MechFactory(
+            rulesProvider,
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var sut = new ClientGame(
             rulesProvider, 
-            Substitute.For<IMechFactory>(),
+            mechFactory,
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
             Substitute.For<IPilotingSkillCalculator>(),
@@ -1637,51 +1646,51 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
             _hashService);
-        clientGame.JoinGameWithUnits(localPlayer1,[],[]);
-        clientGame.JoinGameWithUnits(localPlayer2,[],[]);
-        clientGame.JoinGameWithUnits(localPlayer3,[],[]);
-        clientGame.SetBattleMap(battleMap);
+        sut.JoinGameWithUnits(localPlayer1,[player1Unit],[]);
+        sut.JoinGameWithUnits(localPlayer2,[player2Unit],[]);
+        sut.JoinGameWithUnits(localPlayer3,[player3Unit],[]);
+        sut.SetBattleMap(battleMap);
         
         // Add the local players to the game
-        clientGame.HandleCommand(new JoinGameCommand
+        sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = localPlayer1.Id,
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer1.Name,
-            Units = [],
+            Units = [player1Unit],
             Tint = "#FF0000",
             PilotAssignments = []
         });
         
-        clientGame.HandleCommand(new JoinGameCommand
+        sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = localPlayer2.Id,
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer2.Name,
-            Units = [],
+            Units = [player2Unit],
             Tint = "#00FF00",
             PilotAssignments = []
         });
         
-        clientGame.HandleCommand(new JoinGameCommand
+        sut.HandleCommand(new JoinGameCommand
         {
             PlayerId = localPlayer3.Id,
             GameOriginId = Guid.NewGuid(),
             PlayerName = localPlayer3.Name,
-            Units = [],
+            Units = [player3Unit],
             Tint = "#0000FF",
             PilotAssignments = []
         });
         
         // Set the game to End phase
-        clientGame.HandleCommand(new ChangePhaseCommand
+        sut.HandleCommand(new ChangePhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
             Phase = PhaseNames.End
         });
         
         // Set the first local player as active
-        clientGame.HandleCommand(new ChangeActivePlayerCommand
+        sut.HandleCommand(new ChangeActivePlayerCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = localPlayer1.Id,
@@ -1689,11 +1698,11 @@ public class ClientGameTests
         });
         
         // Verify initial state
-        clientGame.ActivePlayer.ShouldNotBeNull();
-        clientGame.ActivePlayer!.Id.ShouldBe(localPlayer1.Id);
+        sut.ActivePlayer.ShouldNotBeNull();
+        sut.ActivePlayer!.Id.ShouldBe(localPlayer1.Id);
         
         // Act - End turn for the first player
-        clientGame.HandleCommand(new TurnEndedCommand
+        sut.HandleCommand(new TurnEndedCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = localPlayer1.Id,
@@ -1701,11 +1710,11 @@ public class ClientGameTests
         });
         
         // Assert - Second player should now be active
-        clientGame.ActivePlayer.ShouldNotBeNull();
-        clientGame.ActivePlayer!.Id.ShouldBe(localPlayer2.Id);
+        sut.ActivePlayer.ShouldNotBeNull();
+        sut.ActivePlayer!.Id.ShouldBe(localPlayer2.Id);
         
         // Act - End turn for the second player
-        clientGame.HandleCommand(new TurnEndedCommand
+        sut.HandleCommand(new TurnEndedCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = localPlayer2.Id,
@@ -1713,11 +1722,11 @@ public class ClientGameTests
         });
         
         // Assert - Third player should now be active
-        clientGame.ActivePlayer.ShouldNotBeNull();
-        clientGame.ActivePlayer!.Id.ShouldBe(localPlayer3.Id);
+        sut.ActivePlayer.ShouldNotBeNull();
+        sut.ActivePlayer!.Id.ShouldBe(localPlayer3.Id);
         
         // Act - End turn for the third player
-        clientGame.HandleCommand(new TurnEndedCommand
+        sut.HandleCommand(new TurnEndedCommand
         {
             GameOriginId = Guid.NewGuid(),
             PlayerId = localPlayer3.Id,
@@ -1725,7 +1734,7 @@ public class ClientGameTests
         });
         
         // Assert - No more local players who haven't ended their turn, so ActivePlayer should be null
-        clientGame.ActivePlayer.ShouldBeNull();
+        sut.ActivePlayer.ShouldBeNull();
     }
 
     [Fact]
