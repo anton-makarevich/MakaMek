@@ -136,11 +136,15 @@ public class BotTests : IDisposable
             Reason = GameEndReason.Victory
         };
 
-        // Act
+        // Set up decision engine first
+        _phaseSubject.OnNext(PhaseNames.Movement);
+
+        // Act - Send GameEndedCommand through Commands observable
         _commandSubject.OnNext(gameEndedCommand);
 
-        // Assert - Bot should handle the command without throwing
-        _sut.ShouldNotBeNull();
+        // Assert - Verify that the bot was disposed by checking that subsequent active player changes don't trigger decisions
+        _activePlayerSubject.OnNext(_player);
+        _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
     }
 
     [Fact]
