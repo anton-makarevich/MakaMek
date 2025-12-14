@@ -17,8 +17,6 @@ public class HeatPhase(ServerGame game) : GamePhase(game)
 
     public override void Enter()
     {
-        base.Enter();
-        
         // Initialize a heat resolution process
         _playersInOrder = Game.InitiativeOrder.ToList();
         _currentPlayerIndex = 0;

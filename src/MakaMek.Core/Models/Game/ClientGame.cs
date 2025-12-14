@@ -99,7 +99,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             case ChangePhaseCommand phaseCommand:
                 TurnPhase = phaseCommand.Phase;
 
-                // When entering End phase, clear the players who ended turn and set first alive local player as active
+                // When entering the End phase, clear the players who ended turn and set the first alive local player as active
                 if (phaseCommand.Phase == PhaseNames.End)
                 {
                     _playersEndedTurn.Clear();

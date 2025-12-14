@@ -26,8 +26,6 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
     public override void Enter()
     {
-        base.Enter();
-        
         // Clear any accumulated damage data from previous phases
         _accumulatedDamageData.Clear();
         

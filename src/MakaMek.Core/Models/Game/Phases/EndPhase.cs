@@ -55,27 +55,24 @@ public class EndPhase(ServerGame game) : GamePhase(game)
         Game.OnTurnEnded(turnEndedCommand);
         Game.CommandPublisher.PublishCommand(broadcastCommand);
 
-        if (HaveAllPlayersEndedTurn())
-        {
-            // All players have ended their turns, start a new turn
-            Game.IncrementTurn();
+        if (!HaveAllPlayersEndedTurn()) return;
+        // All players have ended their turns, start a new turn
+        Game.IncrementTurn();
 
-            // Transition to the next phase using the phase manager
-            Game.TransitionToNextPhase(Name);
-        }
+        // Transition to the next phase using the phase manager
+        Game.TransitionToNextPhase(Name);
     }
 
     private void HandleShutdownUnitCommand(ShutdownUnitCommand shutdownUnitCommand)
     {
         // Verify the player is in the game
         var player = Game.Players.FirstOrDefault(p => p.Id == shutdownUnitCommand.PlayerId);
-        if (player == null) return;
 
         // Find the unit to shut down
-        var unit = player.Units.FirstOrDefault(u => u.Id == shutdownUnitCommand.UnitId);
+        var unit = player?.Units.FirstOrDefault(u => u.Id == shutdownUnitCommand.UnitId);
         if (unit == null || unit.IsDestroyed || unit.IsShutdown) return;
 
-        // Create server shutdown command for voluntary shutdown
+        // Create a server shutdown command for voluntary shutdown
         var serverShutdownCommand = new UnitShutdownCommand
         {
             GameOriginId = Game.Id,
