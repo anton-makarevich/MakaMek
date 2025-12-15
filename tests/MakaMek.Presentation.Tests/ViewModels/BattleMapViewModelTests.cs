@@ -1604,8 +1604,14 @@ public class BattleMapViewModelTests
         _sut.WeaponAttacks.ShouldNotBeNull();
         _sut.WeaponAttacks.Count.ShouldBe(1, "Weapon attacks should persist between WeaponsAttack and WeaponAttackResolution phases");
 
-        // Act - Transition to End phase
+        // Act - Transition to End phase (two-stage protocol)
         game.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = PhaseNames.End
+        });
+
+        game.HandleCommand(new StartPhaseCommand
         {
             GameOriginId = Guid.NewGuid(),
             Phase = PhaseNames.End

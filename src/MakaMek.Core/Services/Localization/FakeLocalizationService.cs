@@ -16,6 +16,7 @@ public class FakeLocalizationService: ILocalizationService
             "Command_DiceRolled" => "{0} rolled {1}",
             "Command_UpdatePlayerStatus" => "{0}'s status is {1}",
             "Command_ChangePhase" => "Game changed phase to {0}",
+            "Command_StartPhase" => "Phase {0} started",
             "Command_ChangeActivePlayer" => "{0}'s turn",
             "Command_ChangeActivePlayerUnits" => "{0}'s turn to play {1} units",
             "Command_WeaponConfiguration_TorsoRotation" => "{0}'s {1} rotates torso to face {2}",

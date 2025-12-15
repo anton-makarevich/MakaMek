@@ -565,5 +565,15 @@ public class EndStateTests
             GameOriginId = Guid.NewGuid(),
             Phase = phase
         });
+
+        // For EndPhase, also send StartPhaseCommand to complete the two-stage phase transition
+        if (phase == PhaseNames.End)
+        {
+            _game.HandleCommand(new StartPhaseCommand
+            {
+                GameOriginId = Guid.NewGuid(),
+                Phase = phase
+            });
+        }
     }
 }

@@ -103,7 +103,7 @@ public class ServerGame : BaseGame, IDisposable
         if (command is not IClientCommand and not RequestGameLobbyStatusCommand) return;
         if (!ShouldHandleCommand(command)) return;
 
-        // Check for duplicate commands using idempotency key
+        // Check for duplicate commands using an idempotency key
         if (command is IClientCommand { IdempotencyKey: not null } clientCommand)
         {
             if (!_processedCommandKeys.TryAdd(clientCommand.IdempotencyKey.Value,0))
@@ -162,7 +162,7 @@ public class ServerGame : BaseGame, IDisposable
         };
         CommandPublisher.PublishCommand(endCommand);
 
-        // Mark game as over (will exit Start() loop)
+        // Mark the game as over (will exit Start() loop)
         IsGameOver = true;
     }
 
