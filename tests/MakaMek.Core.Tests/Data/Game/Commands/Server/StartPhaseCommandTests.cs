@@ -18,7 +18,8 @@ public class StartPhaseCommandTests
         return new StartPhaseCommand
         {
             GameOriginId = _gameId,
-            Phase = PhaseNames.Movement
+            Phase = PhaseNames.Movement,
+            Timestamp = DateTime.UtcNow
         };
     }
 
