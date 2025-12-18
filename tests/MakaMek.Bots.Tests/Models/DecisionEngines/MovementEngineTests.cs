@@ -6,6 +6,8 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Shouldly;
 
 namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
@@ -136,15 +138,96 @@ public class MovementEngineTests
             (cmd.MovementType == MovementType.Walk || cmd.MovementType == MovementType.Run)));
     }
 
-    private IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true, bool isImmobile = false)
+    [Fact]
+    public async Task MakeDecision_ShouldSelectLrmBoatFirst()
+    {
+        // Arrange
+        var lrmBoat = CreateMockUnit(hasMoved: false, id: Guid.NewGuid());
+        ConfigureLrmBoat(lrmBoat);
+        var scout = CreateMockUnit(hasMoved: false, id: Guid.NewGuid());
+        ConfigureScout(scout);
+        
+        _player.AliveUnits.Returns([lrmBoat, scout]);
+        
+        // Mock map and reachable hexes to avoid null checks failing
+        var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (new HexCoordinates(2, 2), 1) };
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
+            .Returns(reachableHexes);
+        
+        // Act
+        await _sut.MakeDecision(_player);
+        
+        // Assert
+        // Should move LRM Boat (Priority 90) over Scout (Priority 20 + Initiative Adjustment)
+        await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == lrmBoat.Id));
+    }
+
+    [Fact]
+    public async Task MakeDecision_WhenWeLostInitiative_ShouldDelayBrawlers()
+    {
+        // Arrange
+        // We move first (Lost Initiative) -> EnemyUnitsRemaining > 0 (simulated by existing logic finding enemies)
+        var enemy = CreateMockUnit(hasMoved: false, id: Guid.NewGuid());
+        var enemyPlayer = Substitute.For<IPlayer>();
+        enemyPlayer.Id.Returns(Guid.NewGuid());
+        enemyPlayer.AliveUnits.Returns([enemy]);
+        _clientGame.Players.Returns([_player, enemyPlayer]);
+
+        var brawler = CreateMockUnit(hasMoved: false, id: Guid.NewGuid());
+        ConfigureBrawler(brawler); 
+        var trooper = CreateMockUnit(hasMoved: false, id: Guid.NewGuid());
+        // Trooper default priority 50. Brawler 30.
+        // Lost Initiative: Brawler penalty -30 if enemies remain.
+        // Brawler Final: 0. Trooper Final: 50.
+        
+        _player.AliveUnits.Returns([brawler, trooper]);
+        
+        var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (new HexCoordinates(2, 2), 1) };
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
+            .Returns(reachableHexes);
+
+        // Act
+        await _sut.MakeDecision(_player);
+
+        // Assert
+        // Should move Trooper (Higher Priority)
+        await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == trooper.Id));
+    }
+
+    private void ConfigureLrmBoat(IUnit unit)
+    {
+        // Mock 20 LRM tubes
+        var lrm20 = new Lrm20();
+        unit.GetAvailableComponents<Weapon>().Returns([lrm20]);
+    }
+
+    private void ConfigureScout(IUnit unit)
+    {
+        unit.GetAvailableComponents<Weapon>().Returns([]);
+        unit.GetMovementPoints(MovementType.Walk).Returns(7);
+        unit.GetMovementPoints(MovementType.Jump).Returns(0);
+    }
+    
+    private void ConfigureBrawler(IUnit unit)
+    {
+        unit.GetAvailableComponents<Weapon>().Returns([]);
+        unit.GetMovementPoints(MovementType.Walk).Returns(3);
+        unit.GetMovementPoints(MovementType.Jump).Returns(0);
+    }
+
+    private IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true, bool isImmobile = false, Guid? id = null)
     {
         var unit = Substitute.For<IUnit>();
-        unit.Id.Returns(Guid.NewGuid());
+        unit.Id.Returns(id ?? Guid.NewGuid());
         unit.HasMoved.Returns(hasMoved);
         unit.IsImmobile.Returns(isImmobile);
         unit.IsDeployed.Returns(isDeployed);
         unit.GetMovementPoints(MovementType.Walk).Returns(4);
         unit.GetMovementPoints(MovementType.Run).Returns(6);
+        unit.GetAvailableComponents<Weapon>().Returns([]);
+        
+        // Mock status
+        unit.Status.Returns(isImmobile ? UnitStatus.Immobile : UnitStatus.Active);
         
         if (isDeployed)
         {
