@@ -28,7 +28,7 @@ public class MovementEngine : IBotDecisionEngine
         {
             // 1. Get all friendly units that haven't moved
             var myUnitsToMove = player.AliveUnits
-                .Where(u => !u.HasMoved && !u.IsImmobile)
+                .Where(u => u is { HasMoved: false, IsImmobile: false })
                 .ToList();
 
             if (myUnitsToMove.Count == 0)
@@ -44,19 +44,8 @@ public class MovementEngine : IBotDecisionEngine
                 .SelectMany(p => p.AliveUnits)
                 .Count(u => !u.HasMoved && !u.Status.HasFlag(UnitStatus.Destroyed));
 
-            var totalMyUnits = player.AliveUnits.Count;
-            var unitsRemainingRatio = (double)myUnitsToMove.Count / totalMyUnits;
-            var phase = unitsRemainingRatio switch
-            {
-                > 0.7 => PhaseState.Early,
-                < 0.3 => PhaseState.Late,
-                _ => PhaseState.Mid
-            };
-
             var state = new MovementPhaseState(
-                EnemyUnitsRemaining: enemyUnitsToMoveCount,
-                FriendlyUnitsRemaining: myUnitsToMove.Count,
-                Phase: phase
+                EnemyUnitsRemaining: enemyUnitsToMoveCount
             );
 
             // 3. Calculate Priorities
