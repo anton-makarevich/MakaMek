@@ -1,5 +1,7 @@
-﻿using Sanet.MakaMek.Bots.Exceptions;
+﻿using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -24,48 +26,45 @@ public class MovementEngine : IBotDecisionEngine
     {
         try
         {
-            // Find unmoved units
-            var unmovedUnit = player.AliveUnits.FirstOrDefault(u => u is { HasMoved: false, IsImmobile: false });
-            if (unmovedUnit == null)
+            // 1. Get all friendly units that haven't moved
+            var myUnitsToMove = player.AliveUnits
+                .Where(u => u is { HasMoved: false, IsImmobile: false })
+                .ToList();
+
+            if (myUnitsToMove.Count == 0)
             {
-                // No units to move, skip turn
+                // No units to move, skip turn (or safeguard if called when no moves left)
                 await SkipTurn(player);
                 return;
             }
 
-            // Handle prone mechs - try to stand up
-            if (unmovedUnit is Mech { IsProne: true } mech && mech.CanStandup())
-            {
-                await AttemptStandup(player, mech);
-                return;
-            }
+            // 2. Analyze Phase State
+            var enemyUnitsToMoveCount = _clientGame.Players
+                .Where(p => p.Id != player.Id)
+                .SelectMany(p => p.AliveUnits)
+                .Count(u => !u.HasMoved && !u.Status.HasFlag(UnitStatus.Destroyed));
 
-            // Cache occupied hexes for this decision cycle (won't change during this invocation)
-            var occupiedHexes = GetOccupiedHexes(unmovedUnit);
+            var state = new MovementPhaseState(
+                EnemyUnitsRemaining: enemyUnitsToMoveCount
+            );
 
-            // Select movement type (prefer Walk for Easy difficulty)
-            var movementType = SelectMovementType(unmovedUnit);
+            // 3. Calculate Priorities
+            var scoredUnits = myUnitsToMove.Select(u => new
+                {
+                    Unit = u,
+                    Priority = CalculateUnitPriority(u, state)
+                })
+                .OrderByDescending(u => u.Priority)
+                .ThenByDescending(u => u.Unit.Id) // Deterministic tie-breaker
+                .ToList();
 
-            // Get a random valid destination
-            var destination = GetRandomDestination(unmovedUnit, movementType, occupiedHexes);
-            if (destination == null)
-            {
-                // No valid destination, just stand still
-                await MoveUnit(player, unmovedUnit, MovementType.StandingStill, []);
-                return;
-            }
+            var bestCandidate = scoredUnits.First();
+            var unitToMove = bestCandidate.Unit;
 
-            // Find path to destination
-            var path = FindPath(unmovedUnit, destination, movementType, occupiedHexes);
-            if (path == null || path.Count == 0)
-            {
-                // No valid path, just stand still
-                await MoveUnit(player, unmovedUnit, MovementType.StandingStill, []);
-                return;
-            }
+            Console.WriteLine($"[MovementEngine] Selected {unitToMove.Name} (Role: {unitToMove.GetTacticalRole()}, Priority: {bestCandidate.Priority})");
 
-            // Move the unit
-            await MoveUnit(player, unmovedUnit, movementType, path);
+            // 4. Execute Move for selected unit
+            await ExecuteMoveForUnit(player, unitToMove);
         }
         catch (BotDecisionException ex)
         {
@@ -79,6 +78,88 @@ public class MovementEngine : IBotDecisionEngine
             Console.WriteLine($"MovementEngine error for player {player.Name}: {ex.Message}, skipping turn");
             await SkipTurn(player);
         }
+    }
+
+    private double CalculateUnitPriority(IUnit unit, MovementPhaseState state)
+    {
+        double priority = 0;
+
+        // 1. Role Score
+        var role = unit.GetTacticalRole();
+        
+        // Handle Fallen/Prone units
+        if (unit is Mech { IsProne: true })
+        {
+            return 0; // Always last
+        }
+
+        priority += role switch
+        {
+            UnitTacticalRole.LrmBoat => 90,
+            UnitTacticalRole.Scout => 20,
+            UnitTacticalRole.Jumper => 25,
+            UnitTacticalRole.Brawler => 30,
+            _ => 50 // Default for others
+        };
+
+        // Check for 0 movement options (if detectable easily, for now relying on roles)
+        // If we want to strictly follow "Units with 0 movement options: 80", we'd need to check reachability.
+        // Skipping expensive check for now as per "0 for now will be introduced later" for situation modifier, 
+        // effectively treating "0 options" as a situation.
+
+        // 2. Initiative Modifier
+        if (state.EnemyUnitsRemaining == 0)
+        {
+            // We are moving last/late (no enemies left to move)
+            priority += 30;
+        }
+        else
+        {
+            // Enemies still have moves
+            if (role == UnitTacticalRole.Brawler)
+            {
+                priority -= 30;
+            }
+        }
+
+        return priority;
+    }
+
+    private async Task ExecuteMoveForUnit(IPlayer player, IUnit unit)
+    {
+        // Handle prone mechs - try to stand up
+        if (unit is Mech { IsProne: true } mech && mech.CanStandup())
+        {
+            await AttemptStandup(player, mech);
+            return;
+        }
+
+        // Cache occupied hexes for this decision cycle (won't change during this invocation)
+        var occupiedHexes = GetOccupiedHexes(unit);
+
+        // Select movement type (prefer Walk for Easy difficulty)
+        var movementType = SelectMovementType(unit);
+
+        // Get a random valid destination
+        var destination = GetRandomDestination(unit, movementType, occupiedHexes);
+        if (destination == null)
+        {
+            // No valid destination, just stand still
+            await MoveUnit(player, unit, MovementType.StandingStill, []);
+            return;
+        }
+
+        // Find path to destination
+        var path = FindPath(unit, destination, movementType, occupiedHexes);
+        if (path == null || path.Count == 0)
+        {
+            // No valid path, just stand still
+            await MoveUnit(player, unit, MovementType.StandingStill, []);
+            return;
+        }
+
+        // Move the unit
+        await MoveUnit(player, unit, movementType, path);
     }
 
     private async Task AttemptStandup(IPlayer player, Mech mech)
@@ -179,7 +260,7 @@ public class MovementEngine : IBotDecisionEngine
 
     private async Task SkipTurn(IPlayer player)
     {
-        // Find any unit that hasn't moved yet
+        // Find any unit that hasn't moved yet (fallback)
         var unmovedUnit = player.AliveUnits.FirstOrDefault(u => !u.HasMoved);
         if (unmovedUnit == null)
         {

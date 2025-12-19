@@ -3,6 +3,8 @@ using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
@@ -453,6 +455,101 @@ public class UnitExtensionsTests
         clonedLeftArm.IsDestroyed.ShouldBeTrue();
         clonedLeftArm.CurrentArmor.ShouldBe(0);
         clonedLeftArm.CurrentStructure.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void GetTacticalRole_WhenUnitHas20PlusLRMTubes_ReturnsLrmBoat()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        
+        // Let's rely on creating real objects since they are data classes mostly.
+        var lrm20 = new Lrm20();
+        unit.GetAvailableComponents<Weapon>().Returns([lrm20]);
+        
+        // Act
+        var result = unit.GetTacticalRole();
+
+        // Assert
+        result.ShouldBe(UnitTacticalRole.LrmBoat);
+    }
+
+    [Fact]
+    public void GetTacticalRole_WhenUnitHasHighWalkMP_ReturnsScout()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        unit.GetAvailableComponents<Weapon>().Returns([]);
+        unit.GetMovementPoints(MovementType.Walk).Returns(6);
+
+        // Act
+        var result = unit.GetTacticalRole();
+
+        // Assert
+        result.ShouldBe(UnitTacticalRole.Scout);
+    }
+    
+    [Fact]
+    public void GetTacticalRole_WhenUnitHasTwoLrm10_ReturnsLrmBoat()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        var lrm101 = new Lrm10();
+        var lrm102 = new Lrm10();
+        unit.GetAvailableComponents<Weapon>().Returns([lrm101, lrm102]);
+
+        // Act
+        var result = unit.GetTacticalRole();
+
+        // Assert
+        result.ShouldBe(UnitTacticalRole.LrmBoat);
+    }
+
+    [Fact]
+    public void GetTacticalRole_WhenUnitHasLowWalkMP_ReturnsBrawler()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        unit.GetAvailableComponents<Weapon>().Returns([]);
+        unit.GetMovementPoints(MovementType.Walk).Returns(3);
+
+        // Act
+        var result = unit.GetTacticalRole();
+
+        // Assert
+        result.ShouldBe(UnitTacticalRole.Brawler);
+    }
+    
+    [Fact]
+    public void GetTacticalRole_WhenUnitHasJumpJets_ReturnsJumper()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        unit.GetAvailableComponents<Weapon>().Returns([]);
+        unit.GetMovementPoints(MovementType.Walk).Returns(4); // Not Scout (>6), Not Brawler (<4)
+        unit.GetMovementPoints(MovementType.Jump).Returns(4); // Has Jump MP
+
+        // Act
+        var result = unit.GetTacticalRole();
+
+        // Assert
+        result.ShouldBe(UnitTacticalRole.Jumper);
+    }
+
+    [Fact]
+    public void GetTacticalRole_WhenUnitHasAverageWalkMP_ReturnsTrooper()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        unit.GetAvailableComponents<Weapon>().Returns([]);
+        unit.GetMovementPoints(MovementType.Walk).Returns(4); // Not Scout (>6), Not Brawler (<4)
+        unit.GetMovementPoints(MovementType.Jump).Returns(0); // No Jump
+
+        // Act
+        var result = unit.GetTacticalRole();
+
+        // Assert
+        result.ShouldBe(UnitTacticalRole.Trooper);
     }
 }
 

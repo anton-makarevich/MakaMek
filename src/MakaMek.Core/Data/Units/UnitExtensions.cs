@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils;
 
@@ -101,6 +102,43 @@ public static class UnitExtensions
                 Quirks = new Dictionary<string, string>(),
                 UnitPartStates = partStates.Count > 0 ? partStates : null
             };
+        }
+        
+        public UnitTacticalRole GetTacticalRole()
+        {
+            // 1. Check for LRM Boat
+            // Logic: Has 20+ LRM tubes
+            var lrmTubes = unit.GetAvailableComponents<Weapon>()
+                .Where(w => w.Type == WeaponType.Missile && w.Name.Contains("LRM"))
+                .Sum(w => w.Clusters * w.ClusterSize);
+
+            if (lrmTubes >= 20)
+            {
+                return UnitTacticalRole.LrmBoat;
+            }
+
+            var walkMp = unit.GetMovementPoints(MovementType.Walk);
+            var jumpMp = unit.GetMovementPoints(MovementType.Jump);
+
+            // 2. Scout
+            if (walkMp >= 6)
+            {
+                return UnitTacticalRole.Scout;
+            }
+
+            // 3. Brawler / Trooper
+            if (walkMp < 4)
+            {
+                return UnitTacticalRole.Brawler;
+            }
+        
+            // Default to Trooper/Skirmisher for 4-5 MP
+            if (jumpMp > 0)
+            {
+                return UnitTacticalRole.Jumper;
+            }
+
+            return UnitTacticalRole.Trooper;
         }
     }
 }
