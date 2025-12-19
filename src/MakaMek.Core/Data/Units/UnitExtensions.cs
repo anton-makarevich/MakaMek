@@ -120,13 +120,13 @@ public static class UnitExtensions
             var walkMp = unit.GetMovementPoints(MovementType.Walk);
             var jumpMp = unit.GetMovementPoints(MovementType.Jump);
 
-            // 3. Scout
+            // 2. Scout
             if (walkMp >= 6)
             {
                 return UnitTacticalRole.Scout;
             }
 
-            // 4. Brawler / Trooper
+            // 3. Brawler / Trooper
             if (walkMp < 4)
             {
                 return UnitTacticalRole.Brawler;

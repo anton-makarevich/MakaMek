@@ -457,7 +457,7 @@ public class UnitExtensionsTests
         clonedLeftArm.CurrentStructure.ShouldBe(0);
     }
     
-        [Fact]
+    [Fact]
     public void GetTacticalRole_WhenUnitHas20PlusLRMTubes_ReturnsLrmBoat()
     {
         // Arrange
