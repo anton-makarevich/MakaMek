@@ -123,6 +123,9 @@ public static class BattleMapExtensions
                         oppositePosition,
                         movementPoints,
                         prohibitedHexes);
+                    
+                    // Create a set of existing positions for O(1) lookup
+                    var existingPositions = new HashSet<HexPosition>(results.Select(r => r.position));
 
                     foreach (var (coordinates, cost) in backwardReachable)
                     {
@@ -133,7 +136,7 @@ public static class BattleMapExtensions
                             var position = new HexPosition(coordinates, adjustedFacing);
                             
                             // Only add if not already present from forward movement
-                            if (!results.Any(r => r.position.Equals(position)))
+                            if (existingPositions.Add(position))
                             {
                                 results.Add((position, cost));
                             }

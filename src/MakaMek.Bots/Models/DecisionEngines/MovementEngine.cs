@@ -48,7 +48,7 @@ public class MovementEngine : IBotDecisionEngine
             var friendlyPositions = player.AliveUnits
                 .Where(u => u is { IsDeployed: true, Position: not null })
                 .Select(u => u.Position!.Coordinates)
-                .ToList();
+                .ToHashSet();
 
             // 3. Analyze Phase State
             var enemyUnitsToMoveCount = enemyUnits.Count(u => !u.HasMoved);
@@ -141,7 +141,7 @@ public class MovementEngine : IBotDecisionEngine
         IPlayer player, 
         IUnit unit, 
         IReadOnlyList<IUnit> enemyUnits,
-        IReadOnlyList<HexCoordinates> friendlyPositions)
+        IReadOnlySet<HexCoordinates> friendlyPositions)
     {
         // Handle prone mechs - try to stand up
         if (unit is Mech { IsProne: true } mech && mech.CanStandup())
@@ -193,7 +193,7 @@ public class MovementEngine : IBotDecisionEngine
                 .ToList();
 
             // Evaluate each position
-            foreach (var (position, cost) in validPositions)
+            foreach (var (position, _) in validPositions)
             {
                 var hexesTraveled = unit.Position.Coordinates.DistanceTo(position.Coordinates);
                 var score = evaluator.EvaluatePosition(
