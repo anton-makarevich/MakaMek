@@ -38,17 +38,26 @@ public class MovementEngine : IBotDecisionEngine
                 return;
             }
 
-            // 2. Analyze Phase State
-            var enemyUnitsToMoveCount = _clientGame.Players
+            // 2. Calculate enemy units and friendly positions once (static during this decision)
+            var enemyUnits = _clientGame.Players
                 .Where(p => p.Id != player.Id)
                 .SelectMany(p => p.AliveUnits)
-                .Count(u => !u.HasMoved && !u.Status.HasFlag(UnitStatus.Destroyed));
+                .Where(u => !u.Status.HasFlag(UnitStatus.Destroyed))
+                .ToList();
+
+            var friendlyPositions = player.AliveUnits
+                .Where(u => u is { IsDeployed: true, Position: not null })
+                .Select(u => u.Position!.Coordinates)
+                .ToList();
+
+            // 3. Analyze Phase State
+            var enemyUnitsToMoveCount = enemyUnits.Count(u => !u.HasMoved);
 
             var state = new MovementPhaseState(
                 EnemyUnitsRemaining: enemyUnitsToMoveCount
             );
 
-            // 3. Calculate Priorities
+            // 4. Calculate Priorities
             var scoredUnits = myUnitsToMove.Select(u => new
                 {
                     Unit = u,
@@ -63,8 +72,8 @@ public class MovementEngine : IBotDecisionEngine
 
             Console.WriteLine($"[MovementEngine] Selected {unitToMove.Name} (Role: {unitToMove.GetTacticalRole()}, Priority: {bestCandidate.Priority})");
 
-            // 4. Execute Move for selected unit
-            await ExecuteMoveForUnit(player, unitToMove);
+            // 5. Execute Move for selected unit
+            await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions);
         }
         catch (BotDecisionException ex)
         {
@@ -125,7 +134,14 @@ public class MovementEngine : IBotDecisionEngine
         return priority;
     }
 
-    private async Task ExecuteMoveForUnit(IPlayer player, IUnit unit)
+    /// <summary>
+    /// Executes movement for a unit using intelligent position evaluation
+    /// </summary>
+    private async Task ExecuteMoveForUnit(
+        IPlayer player, 
+        IUnit unit, 
+        IReadOnlyList<IUnit> enemyUnits,
+        IReadOnlyList<HexCoordinates> friendlyPositions)
     {
         // Handle prone mechs - try to stand up
         if (unit is Mech { IsProne: true } mech && mech.CanStandup())
@@ -134,32 +150,103 @@ public class MovementEngine : IBotDecisionEngine
             return;
         }
 
-        // Cache occupied hexes for this decision cycle (won't change during this invocation)
+        if (_clientGame.BattleMap == null || unit.Position == null)
+        {
+            await MoveUnit(player, unit, MovementType.StandingStill, []);
+            return;
+        }
+
+        // Get occupied hexes (exclude the moving unit itself)
         var occupiedHexes = GetOccupiedHexes(unit);
 
-        // Select movement type (prefer Walk for Easy difficulty)
-        var movementType = SelectMovementType(unit);
-
-        // Get a random valid destination
-        var destination = GetRandomDestination(unit, movementType, occupiedHexes);
-        if (destination == null)
+        // Determine available movement types for this unit
+        var availableMovementTypes = new List<MovementType> { MovementType.Walk };
+        
+        if (unit is Mech mechUnit)
         {
-            // No valid destination, just stand still
+            if (mechUnit.CanRun)
+                availableMovementTypes.Add(MovementType.Run);
+            if (mechUnit.CanJump)
+                availableMovementTypes.Add(MovementType.Jump);
+        }
+        else if (unit.GetMovementPoints(MovementType.Run) > 0)
+        {
+            availableMovementTypes.Add(MovementType.Run);
+        }
+
+        // Evaluate all candidate positions with all available movement types
+        var evaluator = new PositionEvaluator(_clientGame);
+        var candidateScores = new List<PositionScore>();
+
+        foreach (var movementType in availableMovementTypes)
+        {
+            // Get all reachable positions for this movement type
+            var reachablePositions = _clientGame.BattleMap.GetReachablePositions(
+                unit,
+                movementType,
+                occupiedHexes);
+
+            // Filter out positions occupied by friendly units
+            var validPositions = reachablePositions
+                .Where(p => !friendlyPositions.Contains(p.position.Coordinates) || 
+                           p.position.Coordinates == unit.Position.Coordinates)
+                .ToList();
+
+            // Evaluate each position
+            foreach (var (position, cost) in validPositions)
+            {
+                var hexesTraveled = unit.Position.Coordinates.DistanceTo(position.Coordinates);
+                var score = evaluator.EvaluatePosition(
+                    position,
+                    movementType,
+                    hexesTraveled,
+                    unit,
+                    enemyUnits);
+                
+                candidateScores.Add(score);
+            }
+        }
+
+        // If no valid positions, stand still
+        if (candidateScores.Count == 0)
+        {
             await MoveUnit(player, unit, MovementType.StandingStill, []);
             return;
         }
 
-        // Find path to destination
-        var path = FindPath(unit, destination, movementType, occupiedHexes);
+        // Select the position with the best combined score
+        var bestPosition = candidateScores
+            .OrderByDescending(s => s.GetCombinedScore())
+            .First();
+
+        Console.WriteLine($"[MovementEngine] {unit.Name} moving to {bestPosition.Position.Coordinates} " +
+                         $"using {bestPosition.MovementType} (Offensive: {bestPosition.OffensiveIndex:F1}, " +
+                         $"Defensive: {bestPosition.DefensiveIndex:F1}, Combined: {bestPosition.GetCombinedScore():F1})");
+
+        // Find path to the selected position
+        var path = FindPath(unit, bestPosition.Position, bestPosition.MovementType, occupiedHexes);
+        
         if (path == null || path.Count == 0)
         {
-            // No valid path, just stand still
+            // If we can't find a path (shouldn't happen), stand still
             await MoveUnit(player, unit, MovementType.StandingStill, []);
             return;
         }
 
-        // Move the unit
-        await MoveUnit(player, unit, movementType, path);
+        // Execute the move
+        await MoveUnit(player, unit, bestPosition.MovementType, path);
+    }
+
+    /// <summary>
+    /// Gets the coordinates of all occupied hexes (deployed units except the specified moving unit)
+    /// </summary>
+    private List<HexCoordinates> GetOccupiedHexes(IUnit movingUnit)
+    {
+        return _clientGame.Players
+            .SelectMany(p => p.Units)
+            .Where(u => u is { IsDeployed: true, Position: not null } && u.Id != movingUnit.Id)
+            .Select(u => u.Position!.Coordinates)
+            .ToList();
     }
 
     private async Task AttemptStandup(IPlayer player, Mech mech)
@@ -177,61 +264,6 @@ public class MovementEngine : IBotDecisionEngine
         };
 
         await _clientGame.TryStandupUnit(command);
-    }
-
-    private static MovementType SelectMovementType(IUnit unit)
-    {
-        // 80% Walk, 20% Run for now
-        const double walkChance = 0.8;
-
-        if (Random.Shared.NextDouble() < walkChance)
-        {
-            return MovementType.Walk;
-        }
-
-        // Check if unit can run
-        return unit.GetMovementPoints(MovementType.Run) > 0 
-            ? MovementType.Run 
-            : MovementType.Walk;
-    }
-
-    /// <summary>
-    /// Gets the coordinates of all occupied hexes (deployed units except the specified moving unit)
-    /// </summary>
-    private List<HexCoordinates> GetOccupiedHexes(IUnit movingUnit)
-    {
-        return _clientGame.Players
-            .SelectMany(p => p.Units)
-            .Where(u => u is { IsDeployed: true, Position: not null } && u.Id != movingUnit.Id)
-            .Select(u => u.Position!.Coordinates)
-            .ToList();
-    }
-
-    private HexPosition? GetRandomDestination(IUnit unit, MovementType movementType, List<HexCoordinates> occupiedHexes)
-    {
-        if (_clientGame.BattleMap == null || unit.Position == null)
-            return null;
-
-        var movementPoints = unit.GetMovementPoints(movementType);
-        if (movementPoints <= 0)
-            return null;
-
-        // Get reachable hexes
-        var reachableHexes = _clientGame.BattleMap
-            .GetReachableHexes(unit.Position, movementPoints, occupiedHexes)
-            .Select(h => h.coordinates)
-            .ToList();
-
-        if (reachableHexes.Count == 0)
-            return null;
-
-        // Select random hex
-        var targetCoordinates = reachableHexes[Random.Shared.Next(reachableHexes.Count)];
-
-        // Select random facing
-        var targetFacing = HexDirectionExtensions.AllDirections[Random.Shared.Next(HexDirectionExtensions.AllDirections.Length)];
-
-        return new HexPosition(targetCoordinates, targetFacing);
     }
 
     private List<PathSegment>? FindPath(IUnit unit, HexPosition destination, MovementType movementType, List<HexCoordinates> occupiedHexes)
