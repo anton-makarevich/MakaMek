@@ -73,7 +73,7 @@ public static class BattleMapExtensions
             IUnit unit,
             MovementType movementType,
             IReadOnlyList<HexCoordinates> prohibitedHexes,
-            IReadOnlyList<HexCoordinates> friendlyUnitsCoordinates)
+            IReadOnlySet<HexCoordinates> friendlyUnitsCoordinates)
         {
             if (unit.Position == null)
                 return new UnitReachabilityData([], []);

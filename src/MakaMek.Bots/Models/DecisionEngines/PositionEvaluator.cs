@@ -169,23 +169,32 @@ public class PositionEvaluator
     }
     
     /// <summary>
-    /// Evaluates a single position with a specific movement type and returns its score
+    /// Evaluates a single path with a specific movement type and returns its score
     /// </summary>
-    public PositionScore EvaluatePosition(
-        HexPosition position,
+    /// <param name="path">The movement path to evaluate</param>
+    /// <param name="movementType">The movement type used</param>
+    /// <param name="friendlyUnit">The friendly unit being evaluated</param>
+    /// <param name="enemyUnits">All enemy units</param>
+    /// <returns>Position score including the path</returns>
+    public PositionScore EvaluatePath(
+        List<PathSegment> path,
         MovementType movementType,
-        int hexesTraveled,
         IUnit friendlyUnit,
         IReadOnlyList<IUnit> enemyUnits)
     {
+        // Extract position and hexesTraveled from the path
+        var position = path.Count > 0 ? path[^1].To : friendlyUnit.Position!;
+        var hexesTraveled = path.Count(segment => segment.From.Coordinates != segment.To.Coordinates);
+
         var defensiveIndex = CalculateDefensiveIndex(position, hexesTraveled, enemyUnits);
         var offensiveIndex = CalculateOffensiveIndex(position, movementType, friendlyUnit, enemyUnits);
-        
+
         return new PositionScore
         {
             Position = position,
             MovementType = movementType,
             HexesTraveled = hexesTraveled,
+            Path = path,
             DefensiveIndex = defensiveIndex,
             OffensiveIndex = offensiveIndex
         };

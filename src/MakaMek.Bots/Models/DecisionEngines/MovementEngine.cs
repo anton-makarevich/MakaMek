@@ -180,62 +180,117 @@ public class MovementEngine : IBotDecisionEngine
 
         foreach (var movementType in availableMovementTypes)
         {
-            // Get all reachable positions for this movement type
-            var reachablePositions = new List<(HexPosition position, int cost)>(); 
-                // _clientGame.BattleMap.GetReachablePositions(
-                // unit,
-                // movementType,
-                // occupiedHexes);
+            // Get all reachable hexes for this movement type
+            var reachabilityData = _clientGame.BattleMap.GetReachableHexesForUnit(
+                unit,
+                movementType,
+                occupiedHexes,
+                friendlyPositions);
 
-            // Filter out positions occupied by friendly units
-            var validPositions = reachablePositions
-                .Where(p => !friendlyPositions.Contains(p.position.Coordinates) || 
-                           p.position.Coordinates == unit.Position.Coordinates)
-                .ToList();
+            var reachablePaths = new List<List<PathSegment>>();
 
-            // Evaluate each position
-            foreach (var (position, _) in validPositions)
+            if (movementType == MovementType.Jump)
             {
-                var hexesTraveled = unit.Position.Coordinates.DistanceTo(position.Coordinates);
-                var score = evaluator.EvaluatePosition(
-                    position,
+                // For jumping, try all reachable hexes with all possible facing directions
+                foreach (var hex in reachabilityData.ForwardReachableHexes)
+                {
+                    foreach (var direction in HexDirectionExtensions.AllDirections)
+                    {
+                        var targetPos = new HexPosition(hex, direction);
+                        var path = _clientGame.BattleMap.FindJumpPath(
+                            unit.Position,
+                            targetPos,
+                            unit.GetMovementPoints(movementType));
+
+                        if (path != null)
+                        {
+                            reachablePaths.Add(path);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // For walk/run, try forward movement for forward reachable hexes
+                foreach (var hex in reachabilityData.ForwardReachableHexes)
+                {
+                    foreach (var direction in HexDirectionExtensions.AllDirections)
+                    {
+                        var targetPos = new HexPosition(hex, direction);
+                        var path = _clientGame.BattleMap.FindPath(
+                            unit.Position,
+                            targetPos,
+                            unit.GetMovementPoints(movementType),
+                            occupiedHexes);
+
+                        if (path != null)
+                        {
+                            reachablePaths.Add(path);
+                        }
+                    }
+                }
+
+                // Try backward movement for backward reachable hexes
+                foreach (var hex in reachabilityData.BackwardReachableHexes)
+                {
+                    foreach (var direction in HexDirectionExtensions.AllDirections)
+                    {
+                        var targetPos = new HexPosition(hex, direction);
+                        var oppositeStartPos = unit.Position.GetOppositeDirectionPosition();
+                        var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
+
+                        var path = _clientGame.BattleMap.FindPath(
+                            oppositeStartPos,
+                            oppositeTargetPos,
+                            unit.GetMovementPoints(movementType),
+                            occupiedHexes);
+
+                        if (path != null)
+                        {
+                            // Swap directions in path segments
+                            path = path.Select(segment => new PathSegment(
+                                segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
+                                segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
+                                segment.Cost
+                            )).ToList();
+
+                            reachablePaths.Add(path);
+                        }
+                    }
+                }
+            }
+
+            // Evaluate each path
+            foreach (var path in reachablePaths)
+            {
+                var score = evaluator.EvaluatePath(
+                    path,
                     movementType,
-                    hexesTraveled,
                     unit,
                     enemyUnits);
-                
+
                 candidateScores.Add(score);
             }
         }
 
-        // If no valid positions, stand still
+        // If no valid paths, stand still
         if (candidateScores.Count == 0)
         {
             await MoveUnit(player, unit, MovementType.StandingStill, []);
             return;
         }
 
-        // Select the position with the best combined score
-        var bestPosition = candidateScores
+        // Select the path with the best combined score
+        var bestScore = candidateScores
             .OrderByDescending(s => s.GetCombinedScore())
             .First();
 
-        Console.WriteLine($"[MovementEngine] {unit.Name} moving to {bestPosition.Position.Coordinates} " +
-                         $"using {bestPosition.MovementType} (Offensive: {bestPosition.OffensiveIndex:F1}, " +
-                         $"Defensive: {bestPosition.DefensiveIndex:F1}, Combined: {bestPosition.GetCombinedScore():F1})");
+        Console.WriteLine($"[MovementEngine] {unit.Name} moving to {bestScore.Position.Coordinates} " +
+                         $"using {bestScore.MovementType} (Offensive: {bestScore.OffensiveIndex:F1}, " +
+                         $"Defensive: {bestScore.DefensiveIndex:F1}, Combined: {bestScore.GetCombinedScore():F1})");
 
-        // Find path to the selected position
-        var path = FindPath(unit, bestPosition.Position, bestPosition.MovementType, occupiedHexes);
-        
-        if (path == null || path.Count == 0)
-        {
-            // If we can't find a path (shouldn't happen), stand still
-            await MoveUnit(player, unit, MovementType.StandingStill, []);
-            return;
-        }
-
-        // Execute the move
-        await MoveUnit(player, unit, bestPosition.MovementType, path);
+        // Execute the move using the stored path (no need to recalculate)
+        await MoveUnit(player, unit, bestScore.MovementType, bestScore.Path);
     }
 
     /// <summary>
@@ -265,16 +320,6 @@ public class MovementEngine : IBotDecisionEngine
         };
 
         await _clientGame.TryStandupUnit(command);
-    }
-
-    private List<PathSegment>? FindPath(IUnit unit, HexPosition destination, MovementType movementType, List<HexCoordinates> occupiedHexes)
-    {
-        if (_clientGame.BattleMap == null || unit.Position == null)
-            return null;
-
-        var movementPoints = unit.GetMovementPoints(movementType);
-
-        return _clientGame.BattleMap.FindPath(unit.Position, destination, movementPoints, occupiedHexes);
     }
 
     private async Task MoveUnit(IPlayer player, IUnit unit, MovementType movementType, List<PathSegment> path)

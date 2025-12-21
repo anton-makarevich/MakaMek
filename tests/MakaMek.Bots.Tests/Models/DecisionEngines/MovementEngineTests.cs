@@ -88,17 +88,15 @@ public class MovementEngineTests
     public async Task MakeDecision_WhenNoReachableHexes_ShouldSendStandingStillCommand()
     {
         // Arrange
-        var unit = CreateMockUnit(hasMoved: false, isDeployed: true);
+        var unit = CreateMockUnit(hasMoved: false, isDeployed: true); 
         _player.AliveUnits.Returns([unit]);
         _clientGame.Players.Returns([_player]);
-        
-        // Mock no reachable hexes
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
-            .Returns([]);
-        
+        unit.GetMovementPoints(MovementType.Walk).Returns(0);
+        unit.GetMovementPoints(MovementType.Jump).Returns(0);
+
         // Act
         await _sut.MakeDecision(_player);
-        
+
         // Assert
         await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.PlayerId == _player.Id &&
@@ -114,7 +112,7 @@ public class MovementEngineTests
         var unit = CreateMockUnit(hasMoved: false, isDeployed: true);
         _player.AliveUnits.Returns([unit]);
         _clientGame.Players.Returns([_player]);
-        
+
         // Mock reachable hexes
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)>
         {
@@ -127,10 +125,10 @@ public class MovementEngineTests
         var pathSegment = new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 1);
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
             .Returns([pathSegment]);
-        
+
         // Act
         await _sut.MakeDecision(_player);
-        
+
         // Assert
         await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.PlayerId == _player.Id &&
@@ -149,7 +147,7 @@ public class MovementEngineTests
         
         _player.AliveUnits.Returns([lrmBoat, scout]);
         
-        // Mock map and reachable hexes to avoid null checks failing
+        // Mock a map and reachable hexes to avoid null checks failing
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (new HexCoordinates(2, 2), 1) };
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
             .Returns(reachableHexes);

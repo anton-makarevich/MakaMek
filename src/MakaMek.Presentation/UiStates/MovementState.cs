@@ -17,7 +17,7 @@ public class MovementState : IUiState
     private IUnit? _selectedUnit;
     private UnitReachabilityData? _reachabilityData;
     private readonly IReadOnlyList<HexCoordinates> _prohibitedHexes;
-    private readonly IReadOnlyList<HexCoordinates> _friendlyUnitsCoordinates;
+    private readonly IReadOnlySet<HexCoordinates> _friendlyUnitsCoordinates;
     private MovementType? _selectedMovementType;
     private int _movementPoints;
     private Dictionary<HexDirection, List<PathSegment>> _possibleDirections = [];
@@ -48,7 +48,7 @@ public class MovementState : IUiState
         _friendlyUnitsCoordinates = _viewModel.Units
             .Where(u=>u.Owner?.Id == _viewModel.Game.ActivePlayer?.Id && u.Position!=null)
             .Select(u => u.Position!.Coordinates)
-            .ToList();
+            .ToHashSet();
     }
 
     public void HandleUnitSelection(IUnit? unit)
