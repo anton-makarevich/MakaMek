@@ -1,4 +1,9 @@
+using NSubstitute;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map.Factory;
+using Sanet.MakaMek.Core.Models.Map.Terrains;
+using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Utils.Generators;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Map;
@@ -129,5 +134,119 @@ public class BattleMapExtensionsTests
         
         // Assert
         edgeHexes.ShouldNotContain(center, "Center should not be on the edge for larger maps");
+    }
+    
+    [Fact]
+    public void GetReachableHexesForUnit_ShouldReturnCorrectData_ForJumpingUnit()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+        unit.GetMovementPoints(MovementType.Jump).Returns(3);
+        
+        // Act
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Jump, [], []);
+        
+        // Assert
+        reachabilityData.ForwardReachableHexes.ShouldNotBeEmpty();
+        reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
+        reachabilityData.AllReachableHexes.Count.ShouldBe(36);
+    }
+    
+    [Fact]
+    public void GetReachableHexesForUnit_ShouldNotIncludeFriendlyUnits()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+        unit.GetMovementPoints(MovementType.Jump).Returns(3);
+        List<HexCoordinates> friendlyUnitsCoordinates = [new(5, 6), new(6, 6)];
+        
+        // Act
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Jump, [], friendlyUnitsCoordinates);
+        
+        // Assert
+        foreach (var hex in friendlyUnitsCoordinates)
+        {
+            reachabilityData.AllReachableHexes.ShouldNotContain(hex);
+        }
+    }
+    
+    [Fact]
+    public void GetReachableHexesForUnit_ShouldNotIncludeProhibitedHexes()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var unit = Substitute.For<IUnit>(); 
+        unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+        unit.GetMovementPoints(MovementType.Jump).Returns(3);
+        List<HexCoordinates> prohibitedHexes = [new(5, 6), new(6, 6)];
+        
+        // Act
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Jump, prohibitedHexes, []);
+        
+        // Assert
+        foreach (var hex in prohibitedHexes)
+        {
+            reachabilityData.AllReachableHexes.ShouldNotContain(hex);
+        }
+    }
+    
+    [Fact]
+    public void GetReachableHexesForUnit_ShouldNotIncludeStartHex()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+        unit.GetMovementPoints(MovementType.Jump).Returns(3);       
+        
+        // Act
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Jump, [], []);
+        
+        // Assert
+        reachabilityData.AllReachableHexes.ShouldNotContain(new HexCoordinates(5, 5));
+    }
+    
+    [Fact]
+    public void GetReachableHexesForUnit_ShouldNotIncludeBackwardHexes_WhenUnitCannotMoveBackward()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+        unit.GetMovementPoints(MovementType.Run).Returns(3);
+        unit.CanMoveBackward(MovementType.Run).Returns(false);
+        
+        // Act
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Run, [], []);
+        
+        // Assert
+        reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void GetReachableHexesForUnit_ShouldIncludeBackwardHexes_WhenUnitCanMoveBackward()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+        unit.GetMovementPoints(MovementType.Walk).Returns(3);
+        unit.CanMoveBackward(MovementType.Walk).Returns(true);
+        
+        // Act
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, [], []);
+        
+        // Assert
+        reachabilityData.BackwardReachableHexes.ShouldNotBeEmpty();
     }
 }

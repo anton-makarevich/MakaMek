@@ -222,7 +222,7 @@ public class BattleMap(int width, int height) : IBattleMap
         return start.GetCoordinatesInRange(movementPoints)
             .Where(coordinates =>
             {
-                // Skip if hex doesn't exist on map or is prohibited
+                // Skip if hex doesn't exist on a map or is prohibited
                 var hex = GetHex(coordinates);
                 return hex != null && 
                        !prohibited.Contains(coordinates) &&
