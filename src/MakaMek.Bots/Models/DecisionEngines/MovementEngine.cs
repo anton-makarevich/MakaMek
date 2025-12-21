@@ -181,10 +181,11 @@ public class MovementEngine : IBotDecisionEngine
         foreach (var movementType in availableMovementTypes)
         {
             // Get all reachable positions for this movement type
-            var reachablePositions = _clientGame.BattleMap.GetReachablePositions(
-                unit,
-                movementType,
-                occupiedHexes);
+            var reachablePositions = new List<(HexPosition position, int cost)>(); 
+                // _clientGame.BattleMap.GetReachablePositions(
+                // unit,
+                // movementType,
+                // occupiedHexes);
 
             // Filter out positions occupied by friendly units
             var validPositions = reachablePositions

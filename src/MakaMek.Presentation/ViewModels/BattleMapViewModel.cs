@@ -120,7 +120,7 @@ public class BattleMapViewModel : BaseViewModel
             yesAction,
             noAction);
 
-        // If user didn't select "Yes", cancel the operation
+        // If the user didn't select "Yes", cancel the operation
         if (selectedAction != yesAction)
         {
             return;
@@ -233,7 +233,7 @@ public class BattleMapViewModel : BaseViewModel
                 ProcessMechStandUp(standUpCommand);
                 break;
             case GameEndedCommand gameEndedCommand:
-                // Server ended the game - navigate to appropriate screen
+                // Server ended the game - navigate to the appropriate screen
                 ProcessGameEnded(gameEndedCommand).SafeFireAndForget();
                 break;
         }
@@ -400,11 +400,11 @@ public class BattleMapViewModel : BaseViewModel
         NotifyPropertyChanged(nameof(IsPlayerActionButtonVisible));
         NotifyPropertyChanged(nameof(PlayerActionLabel));
 
-        // Update heat projection when attacker changes
+        // Update heat projection when the attacker changes
         HeatProjection.Unit = Attacker;
     }
 
-    internal void HighlightHexes(List<HexCoordinates> coordinates, bool isHighlighted)
+    internal void HighlightHexes(IReadOnlyList<HexCoordinates> coordinates, bool isHighlighted)
     {
         var hexesToHighlight = Game?.BattleMap?.GetHexes().Where(h => coordinates.Contains(h.Coordinates)).ToList();
         if (hexesToHighlight == null) return;
@@ -455,7 +455,7 @@ public class BattleMapViewModel : BaseViewModel
 
             UpdateSelectedUnitEvents();
 
-            // Update heat projection for selected unit
+            // Update heat projection for a selected unit
             SelectedUnitHeatProjection.Unit = value;
         }
     }
@@ -613,13 +613,13 @@ public class BattleMapViewModel : BaseViewModel
             }
         }
 
-        // For other reasons navigate back to menu
+        // For other reasons navigate back to a menu
         return GoToMainMenu();
     }
     
     private async Task GoToMainMenu()
     {
-        // Dispose the game
+        // Dispose of the game
         if (Game != null)
         {
             Game.Dispose();
