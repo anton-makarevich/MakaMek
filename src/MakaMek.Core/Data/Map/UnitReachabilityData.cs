@@ -3,7 +3,7 @@
 namespace Sanet.MakaMek.Core.Data.Map;
 
 /// <summary>
-/// Contains the reachable hexes for a unit based on movement type and available movement points
+/// Contains the reachable hexes for a unit
 /// </summary>
 public readonly record struct UnitReachabilityData(
     IReadOnlyList<HexCoordinates> ForwardReachableHexes,
