@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -14,9 +15,9 @@ public class MovementState : IUiState
     private readonly BattleMapViewModel _viewModel;
     private readonly MoveUnitCommandBuilder _builder;
     private IUnit? _selectedUnit;
-    private List<HexCoordinates> _forwardReachableHexes = [];
-    private List<HexCoordinates> _backwardReachableHexes = [];
-    private readonly List<HexCoordinates> _prohibitedHexes;
+    private UnitReachabilityData? _reachabilityData;
+    private readonly IReadOnlyList<HexCoordinates> _prohibitedHexes;
+    private readonly IReadOnlySet<HexCoordinates> _friendlyUnitsCoordinates;
     private MovementType? _selectedMovementType;
     private int _movementPoints;
     private Dictionary<HexDirection, List<PathSegment>> _possibleDirections = [];
@@ -43,6 +44,11 @@ public class MovementState : IUiState
             .Where(u=>u.Owner?.Id != _viewModel.Game.ActivePlayer?.Id && u.Position!=null)
             .Select(u => u.Position!.Coordinates)
             .ToList();
+        
+        _friendlyUnitsCoordinates = _viewModel.Units
+            .Where(u=>u.Owner?.Id == _viewModel.Game.ActivePlayer?.Id && u.Position!=null)
+            .Select(u => u.Position!.Coordinates)
+            .ToHashSet();
     }
 
     public void HandleUnitSelection(IUnit? unit)
@@ -82,7 +88,7 @@ public class MovementState : IUiState
         var movementType = _selectedMovementType.Value;
         if (movementType == MovementType.StandingStill)
         {
-            // For standing still, we create a single path segment with same From and To positions
+            // For standing still, we create a single path segment with the same From and To positions
             var path = new List<PathSegment>();
             _builder.SetMovementPath(path);
             CompleteMovement();
@@ -95,53 +101,14 @@ public class MovementState : IUiState
         // Get reachable hexes and highlight them
         if (_selectedUnit?.Position != null && _viewModel.Game?.BattleMap != null)
         {
-            if (movementType == MovementType.Jump)
-            {
-                // For jumping, we use the simplified method that ignores terrain and facing
-                var reachableHexes = _viewModel.Game.BattleMap
-                    .GetJumpReachableHexes(
-                        _selectedUnit.Position.Coordinates,
-                        _movementPoints,
-                        _prohibitedHexes)
-                    .Where(hex => !_viewModel.Units
-                        .Any(u => u.Owner?.Id == _viewModel.Game.ActivePlayer?.Id && u.Position?.Coordinates == hex))
-                    .ToList();
-                
-                // For jumping, there's no forward/backward distinction
-                _forwardReachableHexes = reachableHexes;
-                _backwardReachableHexes = [];
-            }
-            else
-            {
-                // Get forward reachable hexes
-                _forwardReachableHexes = _viewModel.Game.BattleMap
-                    .GetReachableHexes(_selectedUnit.Position, _movementPoints, _prohibitedHexes)
-                    .Select(x => x.coordinates)
-                    .Where(hex => !_viewModel.Units
-                        .Any(u => u != _selectedUnit 
-                            && u.Owner?.Id == _viewModel.Game.ActivePlayer?.Id 
-                            && u.Position?.Coordinates == hex))
-                    .ToList();
-
-                // Get backward reachable hexes if unit can move backward
-                _backwardReachableHexes = [];
-                if (_selectedUnit.CanMoveBackward(movementType))
-                {
-                    var oppositePosition = _selectedUnit.Position.GetOppositeDirectionPosition();
-                    _backwardReachableHexes = _viewModel.Game.BattleMap
-                        .GetReachableHexes(oppositePosition, _movementPoints, _prohibitedHexes)
-                        .Select(x => x.coordinates)
-                        .Where(hex => !_viewModel.Units
-                            .Any(u => u != _selectedUnit 
-                                && u.Owner?.Id == _viewModel.Game.ActivePlayer?.Id 
-                                && u.Position?.Coordinates == hex))
-                        .ToList();
-                }
-            }
-
-            // Highlight all reachable hexes
-            var allReachableHexes = _forwardReachableHexes.Union(_backwardReachableHexes).ToList();
-            _viewModel.HighlightHexes(allReachableHexes, true);
+            _reachabilityData = _viewModel.Game.BattleMap.GetReachableHexesForUnit(
+                _selectedUnit,
+                movementType,
+                _prohibitedHexes,
+                _friendlyUnitsCoordinates
+            );
+            
+            _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes, true);
         }
 
         _viewModel.NotifyStateChanged();
@@ -166,7 +133,7 @@ public class MovementState : IUiState
             // Check if this is a standup direction selection
             if (CurrentMovementStep == MovementStep.SelectingStandingUpDirection)
             {
-                // This is a standup with direction selection - send the standup command immediately
+                // This is standup with direction selection - send the standup command immediately
                 CompleteStandupAttempt(direction);
                 return;
             }
@@ -214,12 +181,12 @@ public class MovementState : IUiState
             _selectedUnit = null;
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
-            if (_forwardReachableHexes.Count > 0 || _backwardReachableHexes.Count > 0)
+            if (_reachabilityData is { } data 
+                && (data.ForwardReachableHexes.Count > 0 
+                    || data.BackwardReachableHexes.Count > 0))
             {
-                var allReachableHexes = _forwardReachableHexes.Union(_backwardReachableHexes).ToList();
-                _viewModel.HighlightHexes(allReachableHexes, false);
-                _forwardReachableHexes = [];
-                _backwardReachableHexes = [];
+                _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes,false);
+                _reachabilityData = null;
             }
             CurrentMovementStep=MovementStep.SelectingUnit;
             _viewModel.NotifyStateChanged();
@@ -230,8 +197,8 @@ public class MovementState : IUiState
     {
         if (_selectedUnit?.Position == null || _viewModel.Game == null) return;
 
-        var isForwardReachable = _forwardReachableHexes.Contains(hex.Coordinates);
-        var isBackwardReachable = _backwardReachableHexes.Contains(hex.Coordinates);
+        var isForwardReachable = _reachabilityData?.IsForwardReachable(hex.Coordinates) ?? false;
+        var isBackwardReachable = _reachabilityData?.IsBackwardReachable(hex.Coordinates) ?? false;
 
         // Reset selection if clicked outside reachable hexes during target hex selection
         // BUT NOT if the unit is in post-standup movement state (must complete declared movement)
@@ -241,16 +208,14 @@ public class MovementState : IUiState
             return;
         }
 
-        if (!isForwardReachable && !isBackwardReachable) return;
-
         CurrentMovementStep = MovementStep.SelectingDirection;
         
         _possibleDirections = [];
-        var availableDirections = Enum.GetValues<HexDirection>();
+        var availableDirections = HexDirectionExtensions.AllDirections;
 
         if (_selectedMovementType == MovementType.Jump)
         {
-            // For jumping, we can face any direction and calculate path ignoring terrain
+            // For jumping, we can face any direction and calculate a path ignoring terrain
             foreach (var direction in availableDirections)
             {
                 var targetPos = new HexPosition(hex.Coordinates, direction);
@@ -294,15 +259,15 @@ public class MovementState : IUiState
                         _movementPoints,
                         _prohibitedHexes);
 
-                    // If path found, swap all directions in path segments
+                    // If a path found, swap all directions in path segments
                     path = path?.Select(segment => new PathSegment(
-                        new HexPosition(segment.From.Coordinates, segment.From.Facing.GetOppositeDirection()),
-                        new HexPosition(segment.To.Coordinates, segment.To.Facing.GetOppositeDirection()),
+                        segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
+                        segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
                         segment.Cost
                     )).ToList();
                 }
 
-                if (path is { Count: 0 }) // target equals current position with unchanged facing
+                if (path is { Count: 0 }) // target equals the current position with unchanged facing
                 {
                     path.Add(new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0));
                 }
@@ -337,10 +302,9 @@ public class MovementState : IUiState
             }
 
             _builder.Reset();
-            var allReachableHexes = _forwardReachableHexes.Union(_backwardReachableHexes).ToList();
-            _viewModel.HighlightHexes(allReachableHexes,false);
-            _forwardReachableHexes = [];
-            _backwardReachableHexes = [];
+            if (_reachabilityData != null)
+                _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes,false);
+            _reachabilityData = null;
             _selectedUnit = null;
             _isPostStandupMovement = false; // Reset post-standup state when movement is completed
             CurrentMovementStep = MovementStep.Completed;
@@ -614,13 +578,13 @@ public class MovementState : IUiState
             _possibleDirections[direction] = pathSegments;
         }
 
-        // Generate possible directions by rotating from current facing
+        // Generate possible directions by rotating from the current facing
         for (var steps = 1; steps <= maxRotateSteps; steps++)
         {
             var rotatedDirectionCw = currentFacing.Rotate(steps);
             AddToPossibleDirections(rotatedDirectionCw, steps);
         
-            if (steps == 3) break; // We don't want to duplicate opposite direction
+            if (steps == 3) break; // We don't want to duplicate an opposite direction
         
             var rotatedDirectionCcw = currentFacing.Rotate(-steps);
             AddToPossibleDirections(rotatedDirectionCcw, steps);

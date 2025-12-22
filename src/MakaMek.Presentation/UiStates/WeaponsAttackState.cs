@@ -107,7 +107,7 @@ public class WeaponsAttackState : IUiState
 
     public void HandleHexSelection(Hex hex)
     {
-        // Handle cancellation when direction selector is shown (torso rotation step)
+        // Handle cancellation when a direction selector is shown (torso rotation step)
         if (CurrentStep == WeaponsAttackStep.WeaponsConfiguration)
         {
             CancelTorsoRotation();
@@ -226,7 +226,7 @@ public class WeaponsAttackState : IUiState
         // Hide the direction selector
         _viewModel.HideDirectionSelector();
 
-        // Return to action selection step
+        // Return to an action selection step
         CurrentStep = WeaponsAttackStep.ActionSelection;
         _viewModel.NotifyStateChanged();
     }
@@ -242,7 +242,7 @@ public class WeaponsAttackState : IUiState
             SelectedTarget = null;
             _viewModel.IsWeaponSelectionVisible = false;
 
-            // Return to action selection step
+            // Return to an action selection step
             CurrentStep = WeaponsAttackStep.ActionSelection;
             _viewModel.NotifyStateChanged();
         }
@@ -342,11 +342,7 @@ public class WeaponsAttackState : IUiState
             foreach (var weapon in weapons)
             {
                 var maxRange = weapon.LongRange;
-                var facing = part.Location switch
-                {
-                    PartLocation.LeftLeg or PartLocation.RightLeg => unitPosition.Facing,
-                    _ => Attacker is Mech mech ? mech.TorsoDirection : unitPosition.Facing
-                };
+                var facing = weapon.Facing;
                 if (facing == null)
                 {
                     continue;
@@ -354,7 +350,7 @@ public class WeaponsAttackState : IUiState
 
                 var weaponHexes = new HashSet<HexCoordinates>();
                 // For arms, we need to check both forward and side arcs
-                if (part.Location is PartLocation.LeftArm or PartLocation.RightArm)
+                if (part.Location.IsArm())
                 {
                     var forwardHexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, FiringArc.Front, maxRange);
                     var sideArc = part.Location == PartLocation.LeftArm ? FiringArc.Left : FiringArc.Right;
@@ -370,7 +366,7 @@ public class WeaponsAttackState : IUiState
                     weaponHexes.UnionWith(hexes);
                 }
 
-                // Filter out hexes without line of sight
+                // Filter out hexes without the line of sight
                 if (Game.BattleMap != null)
                 {
                     weaponHexes.RemoveWhere(h => !Game.BattleMap.HasLineOfSight(unitPosition.Coordinates, h));
@@ -467,7 +463,7 @@ public class WeaponsAttackState : IUiState
         }
 
         // Update the view model's collection
-        UpdateViewModelWeaponItems();
+        UpdateViewModelWeaponItems();   
     }
 
     private void UpdateWeaponViewModels()
@@ -475,11 +471,8 @@ public class WeaponsAttackState : IUiState
         if (Attacker == null || SelectedTarget?.Position == null) return;
 
         var targetCoords = SelectedTarget.Position.Coordinates;
-        foreach (var kvp in _weaponViewModels)
+        foreach (var (weapon, vm) in _weaponViewModels)
         {
-            var weapon = kvp.Key;
-            var vm = kvp.Value;
-
             // Only process available weapons
             if (!weapon.IsAvailable)
             {
@@ -493,7 +486,7 @@ public class WeaponsAttackState : IUiState
             vm.IsSelected = isSelected;
             var isWeaponAvailable = Attacker != null && weapon.IsAvailableForAttack();
             vm.IsEnabled = (Attacker?.WeaponAttackState.IsWeaponAssigned(weapon) != true || target == SelectedTarget) 
-                           && isInRange && isWeaponAvailable;
+                                                && isInRange && isWeaponAvailable;
             vm.Target = target;
 
             vm.ModifiersBreakdown = null;
@@ -511,11 +504,11 @@ public class WeaponsAttackState : IUiState
             var baseBreakdown = Game.ToHitCalculator.GetModifierBreakdown(
                 Attacker, SelectedTarget, weapon, Game.BattleMap, isPrimaryTarget, vm.AimedShotTarget);
 
-            // Set the appropriate breakdown based on current aimed shot target
+            // Set the appropriate breakdown based on the current aimed shot target
             vm.ModifiersBreakdown = baseBreakdown;
 
             if (!vm.IsAimedShotAvailable) continue;
-            // Use optimized method to add aimed shot modifiers to existing breakdown
+            // Add aimed shot modifiers to the existing breakdown
             vm.AimedHeadModifiersBreakdown = Game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
             vm.AimedOtherModifiersBreakdown = Game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.CenterTorso);
         }
@@ -604,16 +597,14 @@ public class WeaponsAttackState : IUiState
         if (Attacker == null)
             return;
         
-        // Create weapon target data list
+        // Create a weapon target data list
         var weaponTargetsData = new List<WeaponTargetData>();
         
         // Only process weapon targets if there are any (otherwise this is a Skip Attack)
         if (Attacker.WeaponAttackState.SelectedWeapons.Any())
         {
-            foreach (var weaponTarget in Attacker.WeaponAttackState.WeaponTargets)
+            foreach (var (weapon, target) in Attacker.WeaponAttackState.WeaponTargets)
             {
-                var weapon = weaponTarget.Key;
-                var target = weaponTarget.Value;
                 var isPrimaryTarget = target == PrimaryTarget;
 
                 // Get aimed shot target from weapon view model using O(1) dictionary lookup

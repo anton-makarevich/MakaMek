@@ -26,10 +26,10 @@ public class TorsoTests
         HitDirection direction)
     {
         // Arrange
-        var torso = new TestTorso("Test Torso", PartLocation.LeftTorso, maxArmor, maxRearArmor, maxStructure);
+        var sut = new TestTorso("Test Torso", PartLocation.LeftTorso, maxArmor, maxRearArmor, maxStructure);
 
         // Act
-        var excessDamage = torso.ApplyDamage(damage, direction);
+        var excessDamage = sut.ApplyDamage(damage, direction);
 
         // Assert
         excessDamage.ShouldBe(expectedExcess);
@@ -38,43 +38,43 @@ public class TorsoTests
         {
             if (damage <= maxRearArmor)
             {
-                torso.CurrentRearArmor.ShouldBe(maxRearArmor - damage);
-                torso.CurrentArmor.ShouldBe(maxArmor);
-                torso.CurrentStructure.ShouldBe(maxStructure);
+                sut.CurrentRearArmor.ShouldBe(maxRearArmor - damage);
+                sut.CurrentArmor.ShouldBe(maxArmor);
+                sut.CurrentStructure.ShouldBe(maxStructure);
             }
             else
             {
-                torso.CurrentRearArmor.ShouldBe(0);
+                sut.CurrentRearArmor.ShouldBe(0);
                 var remainingDamage = damage - maxRearArmor;
                 if (remainingDamage < maxStructure)
                 {
-                    torso.CurrentStructure.ShouldBe(maxStructure - remainingDamage);
+                    sut.CurrentStructure.ShouldBe(maxStructure - remainingDamage);
                 }
                 else
                 {
-                    torso.CurrentStructure.ShouldBe(0);
+                    sut.CurrentStructure.ShouldBe(0);
                 }
             }
         }
-        else // Rear
+        else
         {
             if (damage <= maxArmor)
             {
-                torso.CurrentArmor.ShouldBe(maxArmor - damage);
-                torso.CurrentRearArmor.ShouldBe(maxRearArmor);
-                torso.CurrentStructure.ShouldBe(maxStructure);
+                sut.CurrentArmor.ShouldBe(maxArmor - damage);
+                sut.CurrentRearArmor.ShouldBe(maxRearArmor);
+                sut.CurrentStructure.ShouldBe(maxStructure);
             }
             else
             {
-                torso.CurrentArmor.ShouldBe(0);
+                sut.CurrentArmor.ShouldBe(0);
                 var remainingDamage = damage - maxArmor;
                 if (remainingDamage < maxStructure)
                 {
-                    torso.CurrentStructure.ShouldBe(maxStructure - remainingDamage);
+                    sut.CurrentStructure.ShouldBe(maxStructure - remainingDamage);
                 }
                 else
                 {
-                    torso.CurrentStructure.ShouldBe(0);
+                    sut.CurrentStructure.ShouldBe(0);
                 }
             }
         }
@@ -88,82 +88,82 @@ public class TorsoTests
     public void ApplyDamage_HandlesRearArmor(int damage, int maxArmor, int maxRearArmor, int maxStructure, int expectedExcess)
     {
         // Arrange
-        var torso = new TestTorso("Test Torso", PartLocation.CenterTorso, maxArmor, maxRearArmor, maxStructure);
+        var sut = new TestTorso("Test Torso", PartLocation.CenterTorso, maxArmor, maxRearArmor, maxStructure);
 
         // Act
-        var excessDamage = torso.ApplyDamage(damage, HitDirection.Rear);
+        var excessDamage = sut.ApplyDamage(damage, HitDirection.Rear);
 
         // Assert
         excessDamage.ShouldBe(expectedExcess);
 
         if (damage <= maxRearArmor)
         {
-            torso.CurrentRearArmor.ShouldBe(maxRearArmor - damage);
-            torso.CurrentStructure.ShouldBe(maxStructure);
+            sut.CurrentRearArmor.ShouldBe(maxRearArmor - damage);
+            sut.CurrentStructure.ShouldBe(maxStructure);
         }
         else if (damage < maxRearArmor + maxStructure)
         {
-            torso.CurrentRearArmor.ShouldBe(0);
-            torso.CurrentStructure.ShouldBe(maxStructure - (damage - maxRearArmor));
+            sut.CurrentRearArmor.ShouldBe(0);
+            sut.CurrentStructure.ShouldBe(maxStructure - (damage - maxRearArmor));
         }
         // Rear hits must not affect front armor
-        torso.CurrentArmor.ShouldBe(maxArmor);
+        sut.CurrentArmor.ShouldBe(maxArmor);
     }
 
     [Fact]
     public void Rotate_ShouldSetNewFacing()
     {
         // Arrange
-        var torso = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
+        var sut = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
         
         // Act
-        torso.Rotate(HexDirection.TopRight);
+        sut.Rotate(HexDirection.TopRight);
 
         // Assert
-        torso.Facing.ShouldBe(HexDirection.TopRight);
+        sut.Facing.ShouldBe(HexDirection.TopRight);
     }
 
     [Fact]
     public void ResetRotation_WhenUnitNotSet_ShouldNotThrow()
     {
         // Arrange
-        var torso = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
+        var sut = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
         
         // Act & Assert
-        Should.NotThrow(() => torso.ResetRotation());
+        Should.NotThrow(() => sut.ResetRotation());
     }
 
     [Fact]
     public void ResetRotation_WhenUnitSet_ShouldMatchUnitFacing()
     {
         // Arrange
-        var torso = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { torso });
+        var sut = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
+        var mech = new Mech("Test", "TST-1A", 4, [sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
         mech.Deploy(position);
         
         // Set different rotation
-        torso.Rotate(HexDirection.Bottom);
-        torso.Facing.ShouldBe(HexDirection.Bottom, "Torso should be rotated before reset");
+        sut.Rotate(HexDirection.Bottom);
+        sut.Facing.ShouldBe(HexDirection.Bottom, "Torso should be rotated before reset");
 
         // Act
-        torso.ResetRotation();
+        sut.ResetRotation();
 
         // Assert
-        torso.Facing.ShouldBe(HexDirection.TopRight, "Torso should match unit facing after reset");
+        sut.Facing.ShouldBe(HexDirection.TopRight, "Torso should match unit facing after reset");
     }
 
     [Fact]
     public void BlowOff_ShouldReturnFalse()
     {
-        var torso = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
+        var sut = new TestTorso("Test Torso", PartLocation.LeftTorso, 10, 3, 5);
         
         // Act
-        var isBlownOff = torso.BlowOff();
+        var isBlownOff = sut.BlowOff();
         
         // Assert
         isBlownOff.ShouldBeFalse();
-        torso.IsBlownOff.ShouldBeFalse();
+        sut.IsBlownOff.ShouldBeFalse();
     }
     
     [Fact]
@@ -171,13 +171,13 @@ public class TorsoTests
     {
         // Arrange
         var unit = new UnitPartTests.TestUnit();
-        var torso = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10)
+        var sut = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10)
             {
                 Unit = unit
             };
 
         // Act
-        torso.ApplyDamage(5, HitDirection.Rear);
+        sut.ApplyDamage(5, HitDirection.Rear);
 
         // Assert
         var uiEvent = unit.DequeueNotification();
@@ -193,13 +193,13 @@ public class TorsoTests
     {
         // Arrange
         var unit = new UnitPartTests.TestUnit();
-        var torso = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10)
+        var sut = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10)
         {
             Unit = unit
         };
 
         // Act
-        torso.ApplyDamage(15, HitDirection.Rear);
+        sut.ApplyDamage(15, HitDirection.Rear);
 
         // Assert
         unit.Notifications.Count.ShouldBe(2); //10 armor damage + 5 structure damage
@@ -215,24 +215,24 @@ public class TorsoTests
     public void ApplyDamage_WithRearArmor_ShouldSetIsPristineToFalse()
     {
         // Arrange
-        var torso = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10);
+        var sut = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10);
 
         // Act
-        torso.ApplyDamage(1, HitDirection.Rear);
+        sut.ApplyDamage(1, HitDirection.Rear);
 
         // Assert
-        torso.IsPristine.ShouldBeFalse();
+        sut.IsPristine.ShouldBeFalse();
     }
     
     [Fact]
     public void ToData_ShouldIncludeRearArmor()
     {
         // Arrange
-        var torso = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10);
-        torso.ApplyDamage(5, HitDirection.Rear);
+        var sut = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10);
+        sut.ApplyDamage(5, HitDirection.Rear);
         
         // Act
-        var data = torso.ToData();
+        var data = sut.ToData();
         
         // Assert
         data.CurrentRearArmor.ShouldBe(5);

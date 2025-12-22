@@ -2336,14 +2336,14 @@ public class MechTests
     public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartHasNoStructure()
     {
         // Arrange - This tests lines 579-580 (null check for part with no structure)
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
-        var leftArm = mech.Parts[PartLocation.LeftArm];
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var leftArm = sut.Parts[PartLocation.LeftArm];
 
         // Destroy the left arm by reducing structure to 0
         leftArm.ApplyDamage(leftArm.CurrentArmor + leftArm.CurrentStructure, HitDirection.Front);
         
         // Act
-        var result = mech.CalculateCriticalHitsData(PartLocation.LeftArm,
+        var result = sut.CalculateCriticalHitsData(PartLocation.LeftArm,
             _diceRoller,
             _damageTransferCalculator);
 
@@ -2356,10 +2356,10 @@ public class MechTests
     public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartNotFound()
     {
         // Arrange - This tests lines 579-580 (null check when part is not found)
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act
-        var result = mech.CalculateCriticalHitsData((PartLocation)999,
+        var result = sut.CalculateCriticalHitsData((PartLocation)999,
             _diceRoller,
             _damageTransferCalculator); // Invalid location
 
@@ -2372,14 +2372,14 @@ public class MechTests
     public void CalculateCriticalHitsData_ShouldProceed_WhenPartHasStructure()
     {
         // Arrange 
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Setup dice roller to return valid critical hit roll
         _diceRoller.Roll2D6().Returns([new DiceResult(4), new DiceResult(4)]); // Roll of 8
         _diceRoller.RollD6().Returns(new DiceResult(3)); // Slot roll
 
         // Act
-        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso,
+        var result = sut.CalculateCriticalHitsData(PartLocation.CenterTorso,
             _diceRoller,
             _damageTransferCalculator);
 
@@ -2392,19 +2392,58 @@ public class MechTests
     public void CalculateCriticalHitsData_ShouldReturnNull_WhenPartStructureIsZero()
     {
         // Arrange - This specifically tests the CurrentStructure > 0 condition in lines 579-580
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
-        var centerTorso = mech.Parts[PartLocation.CenterTorso];
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var centerTorso = sut.Parts[PartLocation.CenterTorso];
 
         // Destroy the center torso by applying enough damage to reduce structure to 0
         centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure, HitDirection.Front);
         
         // Act
-        var result = mech.CalculateCriticalHitsData(PartLocation.CenterTorso,
+        var result = sut.CalculateCriticalHitsData(PartLocation.CenterTorso,
             _diceRoller,
             _damageTransferCalculator);
 
         // Assert
         result.ShouldBeNull(); // Should return null when the structure is exactly 0
         _diceRoller.DidNotReceive().Roll2D6(); // Should not roll dice when structure is 0
+    }
+    
+    [Fact]
+    public void Facing_ShouldMatchTorsoFacing_WhenTorsoIsRotated()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        // Act
+        sut.RotateTorso(HexDirection.TopRight);
+
+        // Assert
+        sut.Facing.ShouldBe(HexDirection.TopRight);
+    }
+    
+    [Fact]
+    public void Facing_ShouldMatchPositionFacing_WhenTorsoNotRotated()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
+        sut.Deploy(position);
+
+        // Assert
+        sut.Facing.ShouldBe(position.Facing);
+    }
+    
+    [Fact]
+    public void Facing_ShouldBeNull_WhenNotDeployed()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+
+        // Assert
+        sut.Facing.ShouldBeNull();
     }
 }

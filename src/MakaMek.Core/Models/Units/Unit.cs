@@ -168,6 +168,7 @@ public abstract class Unit : IUnit
 
     // Location and facing
     public virtual HexPosition? Position { get; protected set; }
+    public virtual HexDirection? Facing => Position?.Facing;
 
     public bool IsDeployed => Position != null;
 

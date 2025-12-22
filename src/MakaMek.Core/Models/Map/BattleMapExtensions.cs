@@ -1,3 +1,6 @@
+using Sanet.MakaMek.Core.Data.Map;
+using Sanet.MakaMek.Core.Models.Units;
+
 namespace Sanet.MakaMek.Core.Models.Map;
 
 /// <summary>
@@ -19,13 +22,13 @@ public static class BattleMapExtensions
             var width = map.Width;
             var height = map.Height;
 
-            // Add first row
+            // Add the first row
             for (var q = 1; q <= width; q++)
             {
                 edgeHexes.Add(new HexCoordinates(q, 1));
             }
 
-            // Add last row (only if different from first row)
+            // Add the last row (only if different from the first row)
             if (height > 1)
             {
                 for (var q = 1; q <= width; q++)
@@ -56,6 +59,62 @@ public static class BattleMapExtensions
             var centerQ = (map.Width + 1) / 2;
             var centerR = (map.Height + 1) / 2;
             return new HexCoordinates(centerQ, centerR);
+        }
+
+        /// <summary>
+        /// Gets all reachable coordinates for a unit with a given movement type.
+        /// </summary>
+        /// <param name="unit">The unit to calculate reachable coordinates for</param>
+        /// <param name="movementType">The movement type to use</param>
+        /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through (e.g., occupied by enemy units)</param>
+        /// <param name="friendlyUnitsCoordinates">Hexes occupied by friendly units (unit can pass but not stop there)</param>
+        /// <returns>List of coordinates that could be reached by a unit using a specified movement type</returns>
+        public UnitReachabilityData GetReachableHexesForUnit(
+            IUnit unit,
+            MovementType movementType,
+            IReadOnlyList<HexCoordinates> prohibitedHexes,
+            IReadOnlySet<HexCoordinates> friendlyUnitsCoordinates)
+        {
+            if (unit.Position == null)
+                return new UnitReachabilityData([], []);
+
+            var movementPoints = unit.GetMovementPoints(movementType);
+            if (movementPoints <= 0)
+                return new UnitReachabilityData([], []);
+
+            if (movementType == MovementType.Jump)
+            {
+                // For jumping, we use the simplified method that ignores terrain and facing
+                var reachableHexes = map
+                    .GetJumpReachableHexes(
+                        unit.Position.Coordinates,
+                        movementPoints,
+                        prohibitedHexes)
+                    .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
+                    .ToList();
+
+                // For jumping, there's no forward/backward distinction
+                return new UnitReachabilityData(reachableHexes, []);
+            }
+
+            // Get forward reachable hexes
+            var forwardReachableHexes = map
+                .GetReachableHexes(unit.Position, movementPoints, prohibitedHexes)
+                .Select(x => x.coordinates)
+                .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
+                .ToList();
+
+            // Get backward reachable hexes if the unit can move backward
+            if (!unit.CanMoveBackward(movementType))
+                return new UnitReachabilityData(forwardReachableHexes, []);
+            var oppositePosition = unit.Position.GetOppositeDirectionPosition();
+            var backwardReachableHexes = map
+                .GetReachableHexes(oppositePosition, movementPoints, prohibitedHexes)
+                .Select(x => x.coordinates)
+                .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
+                .ToList();
+
+            return new UnitReachabilityData(forwardReachableHexes, backwardReachableHexes);
         }
     }
 }

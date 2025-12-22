@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
@@ -40,4 +41,7 @@ public abstract class Weapon : Component
     /// Indicates whether this weapon is capable of making aimed shots
     /// </summary>
     public virtual bool IsAimShotCapable => true;
+    
+       
+    public HexDirection? Facing => FirstMountPart?.Facing;
 }

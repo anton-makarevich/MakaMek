@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Models.Map;
+
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
 using Components.Internal.Actuators;
@@ -15,4 +17,7 @@ public class Leg : UnitPart
     }
 
     internal override bool CanBeBlownOff => true;
+
+    // Legs always face the direction of movement
+    public override HexDirection? Facing => Unit?.Position?.Facing;
 }

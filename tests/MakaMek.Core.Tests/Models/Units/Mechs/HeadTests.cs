@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Map;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
@@ -100,5 +101,40 @@ public class HeadTests
 
         // Assert
         pilot.Injuries.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void Facing_ShouldBeNull_WhenNotDeployed()
+    {
+        var sut = new Head("Head",  8, 3);
+        
+        sut.Facing.ShouldBeNull();
+    }
+    
+    [Fact]
+    public void Facing_ShouldMatchUnitFacing_WhenDeployed()
+    {
+        var sut = new Head("Head",  8, 3);
+        var mech = new Mech("Test", "TST-1A", 4, [sut]);
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
+        mech.Deploy(position);
+        
+        sut.Facing.ShouldBe(position.Facing);
+    }
+    
+    [Fact]
+    public void Facing_ShouldChange_WhenTorsoIsRotated()
+    {
+        var sut = new Head("Head",  8, 3);
+        var torso = new CenterTorso("CenterTorso", 10, 2, 6);
+        var mech = new Mech("Test", "TST-1A", 4, [sut, torso]);
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
+        mech.Deploy(position);
+        
+        sut.Facing.ShouldBe(position.Facing);
+        
+        mech.RotateTorso(HexDirection.Top);
+        
+        sut.Facing.ShouldBe(HexDirection.Top);
     }
 }

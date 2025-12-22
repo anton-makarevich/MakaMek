@@ -2335,6 +2335,28 @@ public class UnitTests
         // Assert
         unit.CurrentHeat.ShouldBe(initialHeat + 15, "Should apply only 15 points of external heat (capped)");
     }
+    
+    [Fact]
+    public void Facing_ShouldBeNull_WhenNotDeployed()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Assert
+        sut.Facing.ShouldBeNull();
+    }
+    
+    [Fact]
+    public void Facing_ShouldMatchPositionFacing_WhenDeployed()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
+        sut.Deploy(position);
+        
+        // Assert
+        sut.Facing.ShouldBe(position.Facing);
+    }
 
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)
