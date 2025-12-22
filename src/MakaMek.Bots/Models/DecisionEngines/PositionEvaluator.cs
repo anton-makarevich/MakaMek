@@ -185,7 +185,7 @@ public class PositionEvaluator
     {
         // Extract position and hexesTraveled from the path
         var position = path.Count > 0 ? path[^1].To : friendlyUnit.Position!;
-        var hexesTraveled = path.Count(segment => segment.From.Coordinates != segment.To.Coordinates);
+        var hexesTraveled = path.Sum(s=>s.Cost);
 
         var defensiveIndex = CalculateDefensiveIndex(position, hexesTraveled, enemyUnits);
         var offensiveIndex = CalculateOffensiveIndex(position, movementType, friendlyUnit, enemyUnits);
@@ -194,7 +194,6 @@ public class PositionEvaluator
         {
             Position = position,
             MovementType = movementType,
-            HexesTraveled = hexesTraveled,
             Path = path,
             DefensiveIndex = defensiveIndex,
             OffensiveIndex = offensiveIndex

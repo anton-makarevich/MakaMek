@@ -72,7 +72,7 @@ public class MovementEngine : IBotDecisionEngine
 
             Console.WriteLine($"[MovementEngine] Selected {unitToMove.Name} (Role: {unitToMove.GetTacticalRole()}, Priority: {bestCandidate.Priority})");
 
-            // 5. Execute Move for selected unit
+            // 5. Execute Move for a selected unit
             await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions);
         }
         catch (BotDecisionException ex)
@@ -322,7 +322,7 @@ public class MovementEngine : IBotDecisionEngine
         await _clientGame.TryStandupUnit(command);
     }
 
-    private async Task MoveUnit(IPlayer player, IUnit unit, MovementType movementType, List<PathSegment> path)
+    private async Task MoveUnit(IPlayer player, IUnit unit, MovementType movementType, IReadOnlyList<PathSegment> path)
     {
         var command = new MoveUnitCommand
         {

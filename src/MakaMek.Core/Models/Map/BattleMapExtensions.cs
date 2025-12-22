@@ -66,7 +66,7 @@ public static class BattleMapExtensions
         /// </summary>
         /// <param name="unit">The unit to calculate reachable coordinates for</param>
         /// <param name="movementType">The movement type to use</param>
-        /// <param name="prohibitedHexes">Hexes that cannot be entered (occupied by other units)</param>
+        /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through (e.g., occupied by enemy units)</param>
         /// <param name="friendlyUnitsCoordinates">Hexes occupied by friendly units (unit can pass but not stop there)</param>
         /// <returns>List of coordinates that could be reached by a unit using a specified movement type</returns>
         public UnitReachabilityData GetReachableHexesForUnit(

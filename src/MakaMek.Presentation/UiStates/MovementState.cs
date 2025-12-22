@@ -181,9 +181,9 @@ public class MovementState : IUiState
             _selectedUnit = null;
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
-            if (_reachabilityData != null 
-                && (_reachabilityData.Value.ForwardReachableHexes.Count > 0 
-                    || _reachabilityData.Value.BackwardReachableHexes.Count > 0))
+            if (_reachabilityData is { } data 
+                && (data.ForwardReachableHexes.Count > 0 
+                    || data.BackwardReachableHexes.Count > 0))
             {
                 _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes,false);
                 _reachabilityData = null;

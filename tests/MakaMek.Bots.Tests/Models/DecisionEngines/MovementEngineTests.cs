@@ -93,6 +93,7 @@ public class MovementEngineTests
         _clientGame.Players.Returns([_player]);
         unit.GetMovementPoints(MovementType.Walk).Returns(0);
         unit.GetMovementPoints(MovementType.Jump).Returns(0);
+        unit.GetMovementPoints(MovementType.Run).Returns(0);
 
         // Act
         await _sut.MakeDecision(_player);

@@ -17,16 +17,11 @@ public readonly record struct PositionScore
     /// The movement type used to reach this position
     /// </summary>
     public required MovementType MovementType { get; init; }
-
-    /// <summary>
-    /// The number of hexes traveled to reach this position
-    /// </summary>
-    public required int HexesTraveled { get; init; }
-
+    
     /// <summary>
     /// The path to reach this position
     /// </summary>
-    public required List<PathSegment> Path { get; init; }
+    public required IReadOnlyList<PathSegment> Path { get; init; }
 
     /// <summary>
     /// Defensive threat index - lower is better (less vulnerable to enemy fire)
@@ -45,8 +40,8 @@ public readonly record struct PositionScore
     /// <returns>Combined tactical score</returns>
     public double GetCombinedScore()
     {
-        // Normalize and combine (can be enhanced with strategy coefficients later)
-        // Offensive is positive contribution, defensive is negative
+        // Offensive is a positive contribution, defensive is negative
+        // TODO: Normalize and combine, can be enhanced with strategy coefficients later
         return OffensiveIndex - DefensiveIndex;
     }
 }
