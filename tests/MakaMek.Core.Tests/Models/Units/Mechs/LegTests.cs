@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Map;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -6,22 +7,52 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 
 public class LegTests
 {
-    [Fact]
-    public void Leg_ShouldBeInitializedCorrectly()
+    [Theory]
+    [InlineData(PartLocation.LeftLeg)]
+    [InlineData(PartLocation.RightLeg)]
+    public void Leg_ShouldBeInitializedCorrectly(PartLocation location)
     {
-        var leftLeg = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
-        var rightLeg = new Leg("RightLeg", PartLocation.RightLeg, 8, 4);
+        var sut = new Leg("Leg", location, 8, 4);
 
-        leftLeg.Location.ShouldBe(PartLocation.LeftLeg);
-        leftLeg.MaxArmor.ShouldBe(8);
-        leftLeg.MaxStructure.ShouldBe(4);
-        leftLeg.CanBeBlownOff.ShouldBeTrue();
-        leftLeg.TotalSlots.ShouldBe(6);
-
-        rightLeg.Location.ShouldBe(PartLocation.RightLeg);
-        rightLeg.MaxArmor.ShouldBe(8);
-        rightLeg.MaxStructure.ShouldBe(4);
-        rightLeg.CanBeBlownOff.ShouldBeTrue();
-        rightLeg.TotalSlots.ShouldBe(6);
+        sut.Location.ShouldBe(location);
+        sut.MaxArmor.ShouldBe(8);
+        sut.MaxStructure.ShouldBe(4);
+        sut.CanBeBlownOff.ShouldBeTrue();
+        sut.TotalSlots.ShouldBe(6);
+    }
+    
+    [Fact]
+    public void Facing_ShouldMatchUnitPositionFacing()
+    {
+        var sut = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
+        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
+        mech.Deploy(position);
+        
+        sut.Facing.ShouldBe(position.Facing);
+    }
+    
+    [Fact]
+    public void Facing_ShouldNotChangeWhenRotated()
+    {
+        var sut = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
+        var centerTorso = new CenterTorso("Center Torso", 15, 10, 15);
+        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { centerTorso, sut });
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
+        mech.Deploy(position);
+        
+        sut.Facing.ShouldBe(position.Facing);
+        
+        mech.RotateTorso(HexDirection.Top);
+        
+        sut.Facing.ShouldBe(HexDirection.TopRight);
+    }
+    
+    [Fact]
+    public void Facing_ShouldBeNull_WhenNotDeployed()
+    {
+        var sut = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
+        
+        sut.Facing.ShouldBeNull();
     }
 }

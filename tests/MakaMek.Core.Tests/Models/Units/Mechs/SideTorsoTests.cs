@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Shouldly;
@@ -6,26 +7,45 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 
 public class SideTorsoTests
 {
-    [Fact]
-    public void SideTorso_ShouldBeInitializedCorrectly()
+    [Theory]
+    [InlineData(PartLocation.LeftTorso)]
+    [InlineData(PartLocation.RightTorso)]
+    public void SideTorso_ShouldBeInitializedCorrectly(PartLocation location)
     {
-        var leftTorso = new SideTorso("Left Torso", PartLocation.LeftTorso, 8, 2, 5);
-        var rightTorso = new SideTorso("Right Torso", PartLocation.RightTorso, 8, 2, 5);
+        var sut = new SideTorso("Left Torso", location, 8, 2, 5);
 
-        leftTorso.Location.ShouldBe(PartLocation.LeftTorso);
-        leftTorso.MaxArmor.ShouldBe(8);
-        leftTorso.MaxRearArmor.ShouldBe(2);
-        leftTorso.MaxStructure.ShouldBe(5);
-        leftTorso.CurrentRearArmor.ShouldBe(2);
-        leftTorso.CanBeBlownOff.ShouldBeFalse();
-        leftTorso.TotalSlots.ShouldBe(12);
+        sut.Location.ShouldBe(location);
+        sut.MaxArmor.ShouldBe(8);
+        sut.MaxRearArmor.ShouldBe(2);
+        sut.MaxStructure.ShouldBe(5);
+        sut.CurrentRearArmor.ShouldBe(2);
+        sut.CanBeBlownOff.ShouldBeFalse();
+        sut.TotalSlots.ShouldBe(12);
+    }
+    
+    [Fact]
+    public void Facing_ShouldMatchUnitPositionFacing()
+    {
+        var sut = new SideTorso("LeftTorso", PartLocation.LeftTorso, 8, 2, 5);
+        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
+        mech.Deploy(position);
+        
+        sut.Facing.ShouldBe(position.Facing);
+    }
 
-        rightTorso.Location.ShouldBe(PartLocation.RightTorso);
-        rightTorso.MaxArmor.ShouldBe(8);
-        rightTorso.MaxRearArmor.ShouldBe(2);
-        rightTorso.MaxStructure.ShouldBe(5);
-        rightTorso.CurrentRearArmor.ShouldBe(2);
-        rightTorso.CanBeBlownOff.ShouldBeFalse();
-        rightTorso.TotalSlots.ShouldBe(12);
+    [Fact]
+    public void Facing_ShouldChange_WhenTorsoIsRotated()
+    {
+        var sut = new SideTorso("LeftTorso", PartLocation.LeftTorso, 8, 2, 5);
+        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
+        mech.Deploy(position);
+        
+        sut.Facing.ShouldBe(position.Facing);
+        
+        mech.RotateTorso(HexDirection.Top);
+        
+        sut.Facing.ShouldBe(HexDirection.Top);
     }
 }

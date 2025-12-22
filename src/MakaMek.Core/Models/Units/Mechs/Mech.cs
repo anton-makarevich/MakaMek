@@ -58,6 +58,8 @@ public class Mech : Unit
         };
     }
 
+    public override HexDirection? Facing => TorsoDirection?? Position?.Facing;
+
     public bool CanRotateTorso=> PossibleTorsoRotation > 0 && !HasUsedTorsoTwist;
 
     public void RotateTorso(HexDirection newFacing)

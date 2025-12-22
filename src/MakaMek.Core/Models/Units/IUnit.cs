@@ -74,6 +74,7 @@ public interface IUnit
     bool IsMinimumMovement { get; }
 
     HexPosition? Position { get; }
+    HexDirection? Facing { get; }
     bool IsDeployed { get; }
     int CurrentHeat { get; }
     int HeatDissipation { get; }

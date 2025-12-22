@@ -252,7 +252,7 @@ public abstract class UnitPart
                                       && CurrentArmor == MaxArmor 
                                       && CurrentStructure == MaxStructure;
 
-    public virtual HexDirection? Facing => Unit?.Position?.Facing;
+    public virtual HexDirection? Facing => Unit?.Facing;
 
     /// <summary>
     /// Blows off this part as a result of a critical hit
