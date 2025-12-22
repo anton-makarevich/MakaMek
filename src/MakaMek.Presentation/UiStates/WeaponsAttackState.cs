@@ -350,7 +350,7 @@ public class WeaponsAttackState : IUiState
 
                 var weaponHexes = new HashSet<HexCoordinates>();
                 // For arms, we need to check both forward and side arcs
-                if (part.Location is PartLocation.LeftArm or PartLocation.RightArm)
+                if (part.Location.IsArm())
                 {
                     var forwardHexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, FiringArc.Front, maxRange);
                     var sideArc = part.Location == PartLocation.LeftArm ? FiringArc.Left : FiringArc.Right;
@@ -463,7 +463,7 @@ public class WeaponsAttackState : IUiState
         }
 
         // Update the view model's collection
-        UpdateViewModelWeaponItems();
+        UpdateViewModelWeaponItems();   
     }
 
     private void UpdateWeaponViewModels()
@@ -471,11 +471,8 @@ public class WeaponsAttackState : IUiState
         if (Attacker == null || SelectedTarget?.Position == null) return;
 
         var targetCoords = SelectedTarget.Position.Coordinates;
-        foreach (var kvp in _weaponViewModels)
+        foreach (var (weapon, vm) in _weaponViewModels)
         {
-            var weapon = kvp.Key;
-            var vm = kvp.Value;
-
             // Only process available weapons
             if (!weapon.IsAvailable)
             {
@@ -489,7 +486,7 @@ public class WeaponsAttackState : IUiState
             vm.IsSelected = isSelected;
             var isWeaponAvailable = Attacker != null && weapon.IsAvailableForAttack();
             vm.IsEnabled = (Attacker?.WeaponAttackState.IsWeaponAssigned(weapon) != true || target == SelectedTarget) 
-                           && isInRange && isWeaponAvailable;
+                                                && isInRange && isWeaponAvailable;
             vm.Target = target;
 
             vm.ModifiersBreakdown = null;
@@ -511,7 +508,7 @@ public class WeaponsAttackState : IUiState
             vm.ModifiersBreakdown = baseBreakdown;
 
             if (!vm.IsAimedShotAvailable) continue;
-            // Use an optimized method to add aimed shot modifiers to the existing breakdown
+            // Add aimed shot modifiers to the existing breakdown
             vm.AimedHeadModifiersBreakdown = Game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
             vm.AimedOtherModifiersBreakdown = Game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.CenterTorso);
         }

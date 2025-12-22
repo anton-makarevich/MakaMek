@@ -21,7 +21,7 @@ public interface IToHitCalculator
         PartLocation? aimedShotTarget = null);
 
     /// <summary>
-    /// Gets detailed breakdown of all modifiers affecting the attack, including aimed shot modifiers
+    /// Gets a detailed breakdown of all modifiers affecting the attack, including aimed shot modifiers
     /// </summary>
     ToHitBreakdown GetModifierBreakdown(IUnit attacker,
         IUnit target,
