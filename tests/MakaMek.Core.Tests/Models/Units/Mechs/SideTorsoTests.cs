@@ -27,7 +27,7 @@ public class SideTorsoTests
     public void Facing_ShouldMatchUnitPositionFacing()
     {
         var sut = new SideTorso("LeftTorso", PartLocation.LeftTorso, 8, 2, 5);
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
+        var mech = new Mech("Test", "TST-1A", 4, (List<UnitPart>)[sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
         mech.Deploy(position);
         
@@ -38,7 +38,7 @@ public class SideTorsoTests
     public void Facing_ShouldChange_WhenTorsoIsRotated()
     {
         var sut = new SideTorso("LeftTorso", PartLocation.LeftTorso, 8, 2, 5);
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
+        var mech = new Mech("Test", "TST-1A", 4, (List<UnitPart>)[sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
         mech.Deploy(position);
         

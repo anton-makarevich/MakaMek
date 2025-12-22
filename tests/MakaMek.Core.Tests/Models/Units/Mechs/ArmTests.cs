@@ -32,7 +32,7 @@ public class ArmTests
     public void Facing_ShouldMatchUnitFacing_WhenDeployed()
     {
         var sut = new Arm("Left Arm", PartLocation.LeftArm, 4, 3);
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
+        var mech = new Mech("Test", "TST-1A", 4, [sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         mech.Deploy(position);
         

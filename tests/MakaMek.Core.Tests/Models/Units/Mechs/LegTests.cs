@@ -25,7 +25,7 @@ public class LegTests
     public void Facing_ShouldMatchUnitPositionFacing()
     {
         var sut = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
+        var mech = new Mech("Test", "TST-1A", 4, (List<UnitPart>)[sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
         mech.Deploy(position);
         
@@ -37,7 +37,7 @@ public class LegTests
     {
         var sut = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
         var centerTorso = new CenterTorso("Center Torso", 15, 10, 15);
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { centerTorso, sut });
+        var mech = new Mech("Test", "TST-1A", 4, (List<UnitPart>)[centerTorso, sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
         mech.Deploy(position);
         

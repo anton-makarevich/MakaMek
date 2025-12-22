@@ -31,7 +31,7 @@ public class CenterTorsoTests
     public void Facing_ShouldMatchUnitFacing_WhenDeployed()
     {
         var sut = new CenterTorso("CenterTorso", 10, 2, 6);
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
+        var mech = new Mech("Test", "TST-1A", 4, (List<UnitPart>)[sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
         mech.Deploy(position);
         
@@ -42,7 +42,7 @@ public class CenterTorsoTests
     public void Facing_ShouldChange_WhenTorsoIsRotated()
     {
         var sut = new CenterTorso("CenterTorso", 10, 2, 6);
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
+        var mech = new Mech("Test", "TST-1A", 4, (List<UnitPart>)[sut]);
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
         mech.Deploy(position);
         
