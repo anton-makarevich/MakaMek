@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Bots.Models.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;

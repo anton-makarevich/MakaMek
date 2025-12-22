@@ -1,4 +1,6 @@
-namespace Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Map;
+
+namespace Sanet.MakaMek.Bots.Models.Map;
 
 /// <summary>
 /// Extension methods for FiringArc enum
@@ -6,7 +8,7 @@ namespace Sanet.MakaMek.Core.Models.Map;
 public static class FiringArcExtensions
 {
     /// <summary>
-    /// Gets the threat multiplier for a given firing arc.
+    /// Gets the threat multiplier for a given firing arc for bot evaluation.
     /// Rear hits are weighted more heavily as they typically hit weaker armor.
     /// Side hits are also weighted higher than front hits.
     /// </summary>
