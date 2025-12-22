@@ -20,7 +20,7 @@ public class MovementState : IUiState
     private readonly IReadOnlySet<HexCoordinates> _friendlyUnitsCoordinates;
     private MovementType? _selectedMovementType;
     private int _movementPoints;
-    private Dictionary<HexDirection, List<PathSegment>> _possibleDirections = [];
+    private Dictionary<HexDirection, MovementPath> _possibleDirections = [];
     private readonly Lock _stateLock = new();
     private bool _isPostStandupMovement;
 
@@ -88,8 +88,8 @@ public class MovementState : IUiState
         var movementType = _selectedMovementType.Value;
         if (movementType == MovementType.StandingStill)
         {
-            // For standing still, we create a single path segment with the same From and To positions
-            var path = new List<PathSegment>();
+            // For standing still, we create an empty movement path
+            var path = new MovementPath(Array.Empty<PathSegment>());
             _builder.SetMovementPath(path);
             CompleteMovement();
             return;
@@ -142,7 +142,7 @@ public class MovementState : IUiState
 
             var path = _possibleDirections[direction];
             _builder.SetMovementPath(path);
-            _viewModel.ShowDirectionSelector(path.Last().To.Coordinates, [direction]);
+            _viewModel.ShowDirectionSelector(path.Destination.Coordinates, [direction]);
             _viewModel.ShowMovementPath(path);
             CurrentMovementStep = MovementStep.ConfirmMovement;
             _viewModel.NotifyStateChanged();
@@ -155,7 +155,7 @@ public class MovementState : IUiState
         var direction = _viewModel.AvailableDirections?.FirstOrDefault();
         if (direction == null) return; 
         var path = _possibleDirections[direction.Value];
-        if (_viewModel.MovementPath == null || _viewModel.MovementPath.Last().To != path.Last().To) return;
+        if (_viewModel.MovementPath == null || _viewModel.MovementPath.Last().To != path.Destination) return;
         
         CompleteMovement();
     }
@@ -235,7 +235,7 @@ public class MovementState : IUiState
             foreach (var direction in availableDirections)
             {
                 var targetPos = new HexPosition(hex.Coordinates, direction);
-                List<PathSegment>? path = null;
+                MovementPath? path = null;
 
                 if (isForwardReachable)
                 {
@@ -259,17 +259,13 @@ public class MovementState : IUiState
                         _movementPoints,
                         _prohibitedHexes);
 
-                    // If a path found, swap all directions in path segments
-                    path = path?.Select(segment => new PathSegment(
-                        segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
-                        segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
-                        segment.Cost
-                    )).ToList();
+                    // If a path found, use Reverse() method
+                    path = path?.ReverseFacing();
                 }
 
-                if (path is { Count: 0 }) // target equals the current position with unchanged facing
+                if (path is { Segments.Count: 0 }) // target equals the current position with unchanged facing
                 {
-                    path.Add(new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0));
+                    path = new MovementPath([new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0)]);
                 }
                 
                 if (path != null)
@@ -571,10 +567,9 @@ public class MovementState : IUiState
 
         void AddToPossibleDirections(HexDirection direction, int cost)
         {
-            var pathSegments = new List<PathSegment>
-            {
-                new(mech.Position, mech.Position with { Facing = direction }, cost)
-            };
+            var pathSegments = new MovementPath([
+                new PathSegment(mech.Position, mech.Position with { Facing = direction }, cost)
+            ]);
             _possibleDirections[direction] = pathSegments;
         }
 

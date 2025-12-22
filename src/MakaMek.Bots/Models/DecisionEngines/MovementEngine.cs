@@ -152,7 +152,7 @@ public class MovementEngine : IBotDecisionEngine
 
         if (_clientGame.BattleMap == null || unit.Position == null)
         {
-            await MoveUnit(player, unit, MovementType.StandingStill, []);
+            await MoveUnit(player, unit, MovementType.StandingStill, new MovementPath(Array.Empty<PathSegment>()));
             return;
         }
 
@@ -187,7 +187,7 @@ public class MovementEngine : IBotDecisionEngine
                 occupiedHexes,
                 friendlyPositions);
 
-            var reachablePaths = new List<List<PathSegment>>();
+            var reachablePaths = new List<MovementPath>();
 
             if (movementType == MovementType.Jump)
             {
@@ -247,13 +247,8 @@ public class MovementEngine : IBotDecisionEngine
 
                         if (path != null)
                         {
-                            // Swap directions in path segments
-                            path = path.Select(segment => new PathSegment(
-                                segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
-                                segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
-                                segment.Cost
-                            )).ToList();
-
+                            // Use Reverse() method for backward movement
+                            path = path.ReverseFacing();
                             reachablePaths.Add(path);
                         }
                     }
@@ -276,7 +271,7 @@ public class MovementEngine : IBotDecisionEngine
         // If no valid paths, stand still
         if (candidateScores.Count == 0)
         {
-            await MoveUnit(player, unit, MovementType.StandingStill, []);
+            await MoveUnit(player, unit, MovementType.StandingStill, new MovementPath(Array.Empty<PathSegment>()));
             return;
         }
 
@@ -322,7 +317,7 @@ public class MovementEngine : IBotDecisionEngine
         await _clientGame.TryStandupUnit(command);
     }
 
-    private async Task MoveUnit(IPlayer player, IUnit unit, MovementType movementType, IReadOnlyList<PathSegment> path)
+    private async Task MoveUnit(IPlayer player, IUnit unit, MovementType movementType, MovementPath path)
     {
         var command = new MoveUnitCommand
         {
@@ -330,7 +325,7 @@ public class MovementEngine : IBotDecisionEngine
             PlayerId = player.Id,
             UnitId = unit.Id,
             MovementType = movementType,
-            MovementPath = path.Select(s => s.ToData()).ToList()
+            MovementPath = path.ToData()
         };
 
         await _clientGame.MoveUnit(command);
@@ -349,7 +344,7 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Send a StandingStill movement command
-        await MoveUnit(player, unmovedUnit, MovementType.StandingStill, []);
+        await MoveUnit(player, unmovedUnit, MovementType.StandingStill, new MovementPath(Array.Empty<PathSegment>()));
     }
 }
 

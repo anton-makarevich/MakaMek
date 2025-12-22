@@ -17,7 +17,7 @@ public interface IBattleMap
     /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
-    List<PathSegment>? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IEnumerable<HexCoordinates>? prohibitedHexes = null);
+    MovementPath? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IEnumerable<HexCoordinates>? prohibitedHexes = null);
 
     /// <summary>
     /// Gets all valid hexes that can be reached with given movement points, considering facing
@@ -49,7 +49,7 @@ public interface IBattleMap
     /// <returns>List of hex data objects representing the map</returns>
     List<HexData> ToData();
 
-    List<PathSegment>? FindJumpPath(HexPosition from, HexPosition to, int movementPoints);
+    MovementPath? FindJumpPath(HexPosition from, HexPosition to, int movementPoints);
 
     /// <summary>
     /// Gets hexes along the line of sight between two coordinates, including terrain information

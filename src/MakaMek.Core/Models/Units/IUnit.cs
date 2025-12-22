@@ -252,7 +252,7 @@ public interface IUnit
     /// <returns>Components of the specified type at the specified location containing the given slot</returns>
     T? GetMountedComponentAtLocation<T>(PartLocation? location, int slot) where T : Component;
 
-    void Move(MovementType movementType, List<PathSegmentData> movementPath);
+    void Move(MovementType movementType, MovementPath movementPath);
 
     /// <summary>
     /// Fires a weapon based on the provided weapon data and consumes ammo if required.

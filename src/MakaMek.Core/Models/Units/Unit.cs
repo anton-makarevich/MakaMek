@@ -651,18 +651,17 @@ public abstract class Unit : IUnit
            c.MountedAtFirstLocationSlots.Contains(slot));
     }
 
-    public void Move(MovementType movementType, List<PathSegmentData> movementPath)
+    public void Move(MovementType movementType, MovementPath movementPath)
     {
         if (Position == null)
         {
             throw new InvalidOperationException("Unit is not deployed.");
         } 
-        var position = movementType==MovementType.StandingStill || movementPath.Count == 0
+        var position = movementType==MovementType.StandingStill || movementPath.Segments.Count == 0
             ? Position
-            :new HexPosition(movementPath.Last().To);
-        var distance = Position.Coordinates.DistanceTo(position.Coordinates);
-        DistanceCovered = distance;
-        SpendMovementPoints(movementPath.Sum(s=>s.Cost));
+            : movementPath.Destination;
+        DistanceCovered = movementPath.DistanceCovered;
+        SpendMovementPoints(movementPath.TotalCost);
         MovementTypeUsed = movementType;
         Position = position; 
     }

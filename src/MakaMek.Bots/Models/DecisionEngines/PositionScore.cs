@@ -21,7 +21,7 @@ public readonly record struct PositionScore
     /// <summary>
     /// The path to reach this position
     /// </summary>
-    public required IReadOnlyList<PathSegment> Path { get; init; }
+    public required MovementPath Path { get; init; }
 
     /// <summary>
     /// Defensive threat index - lower is better (less vulnerable to enemy fire)

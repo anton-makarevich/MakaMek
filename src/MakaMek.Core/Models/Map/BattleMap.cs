@@ -36,7 +36,7 @@ public class BattleMap(int width, int height) : IBattleMap
     /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
-    public List<PathSegment>? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IEnumerable<HexCoordinates>? prohibitedHexes = null)
+    public MovementPath? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IEnumerable<HexCoordinates>? prohibitedHexes = null)
     {
         // If start and target are in the same hex, just return turning segments
         if (start.Coordinates == target.Coordinates)
@@ -52,7 +52,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
                 currentPos = step;
             }
-            return segments;
+            return new MovementPath(segments);
         }
 
         var frontier = new PriorityQueue<(HexPosition pos, List<HexPosition> path, int cost), int>();
@@ -86,7 +86,7 @@ public class BattleMap(int width, int height) : IBattleMap
 
                     segments.Add(new PathSegment(from, to, segmentCost));
                 }
-                return segments;
+                return new MovementPath(segments);
             }
 
             // For each adjacent hex
@@ -364,7 +364,7 @@ public class BattleMap(int width, int height) : IBattleMap
         return GetHexes().Select(hex => hex.ToData()).ToList();
     }
 
-    public List<PathSegment>? FindJumpPath(HexPosition from, HexPosition to, int movementPoints)
+    public MovementPath? FindJumpPath(HexPosition from, HexPosition to, int movementPoints)
     {
         if (!IsOnMap(from.Coordinates) || !IsOnMap(to.Coordinates))
             return null;
@@ -410,7 +410,7 @@ public class BattleMap(int width, int height) : IBattleMap
             remainingDistance--;
         }
 
-        return path;
+        return new MovementPath(path);
     }
 
     /// <summary>

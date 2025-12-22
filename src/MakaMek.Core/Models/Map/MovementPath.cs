@@ -35,4 +35,17 @@ public class MovementPath
     public IReadOnlyList<PathSegmentData> ToData() => Segments.Select(s => s.ToData()).ToList();
     
     public int TurnsTaken => Segments.Count(s => s.From.Coordinates == s.To.Coordinates);
+    
+    /// <summary>
+    /// Creates a new MovementPath with all facings reversed (for backward movement)
+    /// </summary>
+    public MovementPath ReverseFacing()
+    {
+        var reversedSegments = Segments.Select(segment => new PathSegment(
+            segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
+            segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
+            segment.Cost
+        )).ToList();
+        return new MovementPath(reversedSegments);
+    }
 }

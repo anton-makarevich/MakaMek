@@ -56,4 +56,70 @@ public class MovementPathTests
         sut.Hexes.Count.ShouldBe(2);
         sut.TurnsTaken.ShouldBe(1);
     }
+    
+    [Fact]
+    public void ReverseFacing_ShouldReverseAllFacings_AndMaintainCosts()
+    {
+        // Arrange - Create a path with multiple segments including turns and movement
+        IReadOnlyList<PathSegment> segments =
+        [
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
+                1 // Turn cost
+            ),
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
+                new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight),
+                1 // Movement cost
+            ),
+            new(
+                new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight),
+                new HexPosition(new HexCoordinates(2, 2), HexDirection.TopRight),
+                2 // Movement cost 
+            )
+        ];
+        
+        var originalPath = new MovementPath(segments);
+        
+        // Act
+        var reversedPath = originalPath.ReverseFacing();
+        
+        // Assert
+        reversedPath.Segments.Count.ShouldBe(originalPath.Segments.Count, 
+            "Reversed path should have same number of segments");
+        
+        // Verify all facings are opposite
+        for (int i = 0; i < originalPath.Segments.Count; i++)
+        {
+            var original = originalPath.Segments[i];
+            var reversed = reversedPath.Segments[i];
+            
+            reversed.From.Facing.ShouldBe(original.From.Facing.GetOppositeDirection(),
+                $"Segment {i} From facing should be opposite");
+            reversed.To.Facing.ShouldBe(original.To.Facing.GetOppositeDirection(),
+                $"Segment {i} To facing should be opposite");
+            
+            // Coordinates should remain the same
+            reversed.From.Coordinates.ShouldBe(original.From.Coordinates,
+                $"Segment {i} From coordinates should remain the same");
+            reversed.To.Coordinates.ShouldBe(original.To.Coordinates,
+                $"Segment {i} To coordinates should remain the same");
+            
+            // Costs should remain the same
+            reversed.Cost.ShouldBe(original.Cost,
+                $"Segment {i} cost should remain the same");
+        }
+        
+        // Verify the total cost is preserved
+        reversedPath.TotalCost.ShouldBe(originalPath.TotalCost,
+            "Total cost should be preserved");
+        
+        // Verify start and destination are reversed (with opposite facings)
+        reversedPath.Start.Coordinates.ShouldBe(originalPath.Start.Coordinates);
+        reversedPath.Start.Facing.ShouldBe(originalPath.Start.Facing.GetOppositeDirection());
+        
+        reversedPath.Destination.Coordinates.ShouldBe(originalPath.Destination.Coordinates);
+        reversedPath.Destination.Facing.ShouldBe(originalPath.Destination.Facing.GetOppositeDirection());
+    }
 }

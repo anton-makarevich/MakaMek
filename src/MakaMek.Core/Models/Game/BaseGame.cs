@@ -195,7 +195,7 @@ public abstract class BaseGame : IGame
         var unit = player.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId);
         unit?.Move(
             moveCommand.MovementType,
-            moveCommand.MovementPath);
+            new MovementPath(moveCommand.MovementPath));
     }
     
     internal void OnWeaponConfiguration(WeaponConfigurationCommand configCommand)

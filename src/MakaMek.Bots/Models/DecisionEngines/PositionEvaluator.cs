@@ -177,14 +177,14 @@ public class PositionEvaluator
     /// <param name="enemyUnits">All enemy units</param>
     /// <returns>Position score including the path</returns>
     public PositionScore EvaluatePath(
-        List<PathSegment> path,
+        MovementPath path,
         MovementType movementType,
         IUnit friendlyUnit,
         IReadOnlyList<IUnit> enemyUnits)
     {
         // Extract position and hexesTraveled from the path
-        var position = path.Count > 0 ? path[^1].To : friendlyUnit.Position!;
-        var hexesTraveled = path.First().From.Coordinates.DistanceTo(position.Coordinates);
+        var position = path.Destination;
+        var hexesTraveled = path.DistanceCovered;
 
         var defensiveIndex = CalculateDefensiveIndex(position, hexesTraveled, enemyUnits);
         var offensiveIndex = CalculateOffensiveIndex(position, movementType, friendlyUnit, enemyUnits);
