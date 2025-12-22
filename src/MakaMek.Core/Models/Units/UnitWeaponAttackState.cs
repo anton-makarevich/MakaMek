@@ -145,7 +145,7 @@ public class UnitWeaponAttackState
             return;
         }
 
-        // If primary target is already set and still valid, keep it
+        // If the primary target is already set and still valid, keep it
         if (PrimaryTarget != null && targets.Contains(PrimaryTarget))
         {
             return;
@@ -159,7 +159,7 @@ public class UnitWeaponAttackState
         }
 
         var attackerPosition = attacker.Position;
-        var facing = attacker is Mech mech ? mech.TorsoDirection : attackerPosition.Facing;
+        var facing = attacker.Facing;
 
         if (facing == null)
         {
