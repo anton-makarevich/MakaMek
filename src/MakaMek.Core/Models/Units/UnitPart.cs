@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
 namespace Sanet.MakaMek.Core.Models.Units;
@@ -250,6 +251,8 @@ public abstract class UnitPart
     public virtual bool IsPristine => !IsBlownOff 
                                       && CurrentArmor == MaxArmor 
                                       && CurrentStructure == MaxStructure;
+
+    public virtual HexDirection? Facing => Unit?.Position?.Facing;
 
     /// <summary>
     /// Blows off this part as a result of a critical hit

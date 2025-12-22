@@ -8,35 +8,37 @@ public abstract class Torso : UnitPart
 {
     public int MaxRearArmor { get; }
     public int CurrentRearArmor { get; private set; }
-    public HexDirection Facing { get; private set; }
 
     public override bool IsPristine => base.IsPristine && CurrentRearArmor == MaxRearArmor;
     
     internal override bool CanBeBlownOff => false;
+    
+    private HexDirection? _facingOverride;
 
     protected Torso(string name, PartLocation location, int maxArmor, int maxRearArmor, int maxStructure) 
         : base(name, location, maxArmor, maxStructure, 12)
     {
         MaxRearArmor = maxRearArmor;
         CurrentRearArmor = maxRearArmor;
-        ResetRotation(); // Initialize facing to match unit's facing
+        ResetRotation(); // Initialize facing to match the unit's leg facing
     }
+    
+    public override HexDirection? Facing => _facingOverride ?? Unit?.Position?.Facing;
 
     public void Rotate(HexDirection newFacing)
     {
-        Facing = newFacing;
+        _facingOverride = newFacing;
     }
 
     public void ResetRotation()
     {
-        if (Unit?.Position != null)
-            Facing = Unit.Position.Facing;
+        _facingOverride = null;
     }
 
     protected override int ReduceArmor(int damage, HitDirection direction)
     {
         if (direction != HitDirection.Rear) return base.ReduceArmor(damage, direction);
-        // First reduce rear armor
+        // First, reduce rear armor
         var remainingDamage = damage;
         if (CurrentRearArmor <= 0) return damage;
         if (CurrentRearArmor >= remainingDamage)

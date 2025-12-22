@@ -67,15 +67,12 @@ public class PositionEvaluator
                     continue;
 
                 // Determine weapon facing (torso for torso/arm weapons, legs for leg weapons)
-                var weaponFacing = enemy is Core.Models.Units.Mechs.Mech mech && 
-                                   (weaponLocation == PartLocation.LeftArm || weaponLocation == PartLocation.RightArm ||
-                                    weaponLocation == PartLocation.LeftTorso || weaponLocation == PartLocation.RightTorso ||
-                                    weaponLocation == PartLocation.CenterTorso)
-                    ? mech.TorsoDirection ?? enemy.Position.Facing
-                    : enemy.Position.Facing;
+                var weaponFacing = weapon.Facing;
+                if (weaponFacing == null)
+                    continue;
 
                 // Check firing arc
-                var isInArc = IsWeaponInArc(enemy.Position.Coordinates, weaponFacing, weaponLocation.Value, position.Coordinates);
+                var isInArc = IsWeaponInArc(enemy.Position.Coordinates, weaponFacing.Value, weaponLocation.Value, position.Coordinates);
                 if (!isInArc)
                     continue;
 
@@ -147,13 +144,15 @@ public class PositionEvaluator
                     continue;
 
                 // Determine weapon facing from the position (assume only forward facing for now)
-                var weaponFacing =  position.Facing;
+                var weaponFacing =  weapon.Facing;
+                if (weaponFacing == null)
+                    continue;
 
-                var isInArc = IsWeaponInArc(position.Coordinates, weaponFacing, weaponLocation.Value, enemy.Position.Coordinates);
+                var isInArc = IsWeaponInArc(position.Coordinates, weaponFacing.Value, weaponLocation.Value, enemy.Position.Coordinates);
                 if (!isInArc)
                     continue;
 
-                // Calculate hit probability with movement type affecting attacker movement modifier
+                // Calculate hit probability with a movement type affecting the attacker movement modifier
                 var hitProbability = CalculateHitProbabilityAsAttacker(friendlyUnit, enemy, weapon, position, movementType);
 
                 // Determine which arc of the enemy would be hit (bonus for rear/side shots)
