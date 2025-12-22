@@ -574,7 +574,7 @@ public class BattleMapViewModelTests
         };
 
         // Act
-        _sut.ShowMovementPath(path);
+        _sut.ShowMovementPath(new MovementPath(path));
 
         // Assert
         _sut.MovementPath.ShouldNotBeNull();
@@ -593,10 +593,10 @@ public class BattleMapViewModelTests
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
                 1)
         };
-        _sut.ShowMovementPath(path);
+        _sut.ShowMovementPath(new MovementPath(path));
 
         // Act
-        _sut.ShowMovementPath([]);
+        _sut.ShowMovementPath(new MovementPath(Array.Empty<PathSegment>()));
 
         // Assert
         _sut.MovementPath.ShouldBeNull();
@@ -621,7 +621,7 @@ public class BattleMapViewModelTests
         };
 
         // Act
-        _sut.ShowMovementPath(path);
+        _sut.ShowMovementPath(new MovementPath(path));
 
         // Assert
         propertyChanged.ShouldBeTrue();
@@ -638,7 +638,7 @@ public class BattleMapViewModelTests
                 new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
                 1)
         };
-        _sut.ShowMovementPath(path);
+        _sut.ShowMovementPath(new MovementPath(path));
         var propertyChanged = false;
         _sut.PropertyChanged += (_, e) =>
         {

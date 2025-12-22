@@ -76,8 +76,8 @@ public class BattleMapTests
 
         // Assert
         path.ShouldNotBeNull();
-        path.Count.ShouldBe(7); // Should include direction changes
-        path.Select(p => (p.To.Coordinates, p.To.Facing)).ShouldBe([
+        path.Segments.Count.ShouldBe(7); // Should include direction changes
+        path.Segments.Select(p => (p.To.Coordinates, p.To.Facing)).ShouldBe([
             (new HexCoordinates(1, 1), HexDirection.TopRight),
             (new HexCoordinates(1, 1), HexDirection.BottomRight),
             (new HexCoordinates(2, 1), HexDirection.BottomRight),
@@ -235,10 +235,10 @@ public class BattleMapTests
 
         path.ShouldNotBeNull("A valid path should exist to reach (7,8)");
 
-        path.Count.ShouldBeLessThanOrEqualTo(maxMp + 1,
+        path.Segments.Count.ShouldBeLessThanOrEqualTo(maxMp + 1,
             "Path length should not exceed maxMP + 1 (including start position)");
 
-        var pathCoords = path.Select(p => p.To.Coordinates).Distinct().ToList();
+        var pathCoords = path.Segments.Select(p => p.To.Coordinates).Distinct().ToList();
         pathCoords.ShouldContain(new HexCoordinates(8, 5), "Path should go through (8,5)");
         pathCoords.ShouldContain(new HexCoordinates(7, 6), "Path should go through (7,6)");
         pathCoords.ShouldContain(new HexCoordinates(7, 7), "Path should go through (7,7)");
@@ -290,7 +290,7 @@ public class BattleMapTests
 
         // Assert
         path.ShouldNotBeNull();
-        var pathCoordinates = path.Select(p => p.To.Coordinates).ToList();
+        var pathCoordinates = path.Segments.Select(p => p.To.Coordinates).ToList();
         foreach (var prohibitedHex in prohibitedHexes)
         {
             pathCoordinates.ShouldNotContain(prohibitedHex);
@@ -336,7 +336,7 @@ public class BattleMapTests
         path.ShouldNotBeNull("A path should exist within 9 movement points");
         
         // The path should go through clear terrain to avoid heavy woods
-        var pathCoords = path.Select(p => p.To.Coordinates).Distinct().ToList();
+        var pathCoords = path.Segments.Select(p => p.To.Coordinates).Distinct().ToList();
         pathCoords.ShouldContain(new HexCoordinates(2, 1), "Path should go through clear terrain at (2,1)");
         pathCoords.ShouldContain(new HexCoordinates(2, 2), "Path should go through clear terrain at (2,2)");
         pathCoords.ShouldContain(new HexCoordinates(2, 3), "Path should go through clear terrain at (2,3)");
@@ -345,15 +345,15 @@ public class BattleMapTests
             "Path should avoid all heavy woods hexes");
 
         // Verify path costs
-        var totalCost = path.Sum(s => s.Cost);
+        var totalCost = path.Segments.Sum(s => s.Cost);
         totalCost.ShouldBe(9, "Total path cost should be 9 MP (5 MP for movement + 4 MP for turns)");
         
         // Verify movement costs
-        var movementSegments = path.Where(s => s.From.Coordinates != s.To.Coordinates).ToList();
+        var movementSegments = path.Segments.Where(s => s.From.Coordinates != s.To.Coordinates).ToList();
         movementSegments.ShouldAllBe(s => s.Cost == 1, "All movement segments should cost 1 MP as they go through clear terrain");
         
         // Verify turning costs
-        var turnSegments = path.Where(s => s.From.Coordinates == s.To.Coordinates).ToList();
+        var turnSegments = path.Segments.Where(s => s.From.Coordinates == s.To.Coordinates).ToList();
         turnSegments.Count.ShouldBe(4, "Should have 4 turns");
         turnSegments.ShouldAllBe(s => s.Cost==1, 
             "All turn segments should cost 1 MP");
@@ -451,18 +451,18 @@ public class BattleMapTests
         if (shouldFindPath)
         {
             path.ShouldNotBeNull("Path should be found within movement points");
-            path.Count.ShouldBe(from.Coordinates.DistanceTo(to.Coordinates),
+            path.Segments.Count.ShouldBe(from.Coordinates.DistanceTo(to.Coordinates),
                 "Path should have one segment per hex traversed");
             
             // Verify each segment costs 1 MP
-            foreach (var pathSegment in path)
+            foreach (var pathSegment in path.Segments)
             {
                 pathSegment.Cost.ShouldBe(1);
             }
             // Verify path leads to target
-            path.Last().To.Coordinates.ShouldBe(to.Coordinates,
+            path.Segments.Last().To.Coordinates.ShouldBe(to.Coordinates,
                 "Path should end at target coordinates");
-            path.Last().To.Facing.ShouldBe(to.Facing,
+            path.Segments.Last().To.Facing.ShouldBe(to.Facing,
                 "Path should end with target facing");
         }
         else
@@ -484,8 +484,8 @@ public class BattleMapTests
 
         // Assert
         path.ShouldNotBeNull("Path should be found regardless of terrain");
-        path.Count.ShouldBe(1, "Path should have one segment for adjacent hex");
-        path[0].Cost.ShouldBe(1, "Cost should be 1 regardless of terrain");
+        path.Segments.Count.ShouldBe(1, "Path should have one segment for adjacent hex");
+        path.Segments[0].Cost.ShouldBe(1, "Cost should be 1 regardless of terrain");
     }
 
     [Fact]
@@ -546,11 +546,11 @@ public class BattleMapTests
 
         // Assert
         path.ShouldNotBeNull();
-        path.Count.ShouldBe(3); // Should take 3 turns to rotate 180 degrees
-        path.All(segment => segment.From.Coordinates == hex.Coordinates).ShouldBeTrue(); // All segments in same hex
-        path.All(segment => segment.To.Coordinates == hex.Coordinates).ShouldBeTrue();
-        path.All(segment => segment.Cost == 1).ShouldBeTrue(); // Each turn costs 1
-        path.Last().To.Facing.ShouldBe(HexDirection.Bottom); // Should end facing target direction
+        path.Segments.Count.ShouldBe(3); // Should take 3 turns to rotate 180 degrees
+        path.Segments.All(segment => segment.From.Coordinates == hex.Coordinates).ShouldBeTrue(); // All segments in same hex
+        path.Segments.All(segment => segment.To.Coordinates == hex.Coordinates).ShouldBeTrue();
+        path.Segments.All(segment => segment.Cost == 1).ShouldBeTrue(); // Each turn costs 1
+        path.Segments.Last().To.Facing.ShouldBe(HexDirection.Bottom); // Should end facing target direction
     }
 
     [Fact]
@@ -584,7 +584,7 @@ public class BattleMapTests
 
         // Assert
         path.ShouldNotBeNull();
-        path.Count.ShouldBe(0); // No segments needed when already facing the right direction
+        path.Segments.Count.ShouldBe(0); // No segments needed when already facing the right direction
     }
 
     [Fact]

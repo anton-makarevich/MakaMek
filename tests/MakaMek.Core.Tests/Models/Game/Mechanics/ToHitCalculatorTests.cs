@@ -71,7 +71,7 @@ public class ToHitCalculatorTests
         _attacker = _mechFactory.Create(attackerData);
         _attacker.AssignPilot(new MechWarrior("John", "Doe"));
         _attacker.Deploy(attackerPosition);
-        _attacker.Move(MovementType.StandingStill, []);
+        _attacker.Move(MovementType.StandingStill, new MovementPath(Array.Empty<PathSegment>()));
         _attacker.Parts.Values.FirstOrDefault(p=>p.Location == PartLocation.RightArm)!.TryAddComponent(_weapon);
 
         // Setup target
@@ -79,7 +79,7 @@ public class ToHitCalculatorTests
         _target = _mechFactory.Create(targetData);
         var targetStartPosition = new HexPosition(new HexCoordinates(targetEndPosition.Coordinates.Q-1, targetEndPosition.Coordinates.R), HexDirection.Bottom);
         _target.Deploy(targetStartPosition);
-        _target.Move(MovementType.Walk, [new PathSegment(targetStartPosition, targetEndPosition, 1).ToData()]);
+        _target.Move(MovementType.Walk, new MovementPath([new PathSegment(targetStartPosition, targetEndPosition, 1).ToData()]));
     }
 
     [Fact]

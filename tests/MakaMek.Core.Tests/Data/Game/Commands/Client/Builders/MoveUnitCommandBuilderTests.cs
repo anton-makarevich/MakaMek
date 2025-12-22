@@ -58,7 +58,7 @@ public class MoveUnitCommandBuilderTests
     public void CanBuild_ReturnsFalse_WhenOnlyMovementPathSet()
     {
         // Arrange
-        _builder.SetMovementPath([]);
+        _builder.SetMovementPath(new MovementPath(Array.Empty<PathSegment>()));
         
         // Act & Assert
         _builder.CanBuild.ShouldBeFalse();
@@ -69,8 +69,8 @@ public class MoveUnitCommandBuilderTests
     {
         // Arrange
         _builder.SetUnit(_unit);
-        _builder.SetMovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
-            new HexPosition(1,2,HexDirection.Bottom), 1)]);
+        _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
+            new HexPosition(1,2,HexDirection.Bottom), 1)]));
         
         // Act & Assert
         _builder.CanBuild.ShouldBeFalse();
@@ -93,10 +93,10 @@ public class MoveUnitCommandBuilderTests
         // Arrange
         _builder.SetUnit(_unit);
         _builder.SetMovementType(MovementType.Walk);
-        _builder.SetMovementPath([new PathSegment(
+        _builder.SetMovementPath(new MovementPath([new PathSegment(
             new HexPosition(1,1,HexDirection.Bottom),
             new HexPosition(1,2,HexDirection.Bottom), 
-            1)]);
+            1)]));
         
         // Act & Assert
         _builder.CanBuild.ShouldBeTrue();
@@ -111,7 +111,7 @@ public class MoveUnitCommandBuilderTests
         var pathSegment = new PathSegment(startPos, endPos, 1);
         _builder.SetUnit(_unit);
         _builder.SetMovementType(MovementType.Walk);
-        _builder.SetMovementPath([pathSegment]);
+        _builder.SetMovementPath(new MovementPath([pathSegment]));
         
         // Act 
         var command = _builder.Build();
@@ -168,8 +168,8 @@ public class MoveUnitCommandBuilderTests
     public void Build_ReturnsNull_WhenOnlyDirectionSet()
     {
         // Arrange
-        _builder.SetMovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
-        new HexPosition(1,2,HexDirection.Bottom), 2)]);
+        _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
+        new HexPosition(1,2,HexDirection.Bottom), 2)]));
         
         // Act
         var result = _builder.Build();
@@ -190,7 +190,7 @@ public class MoveUnitCommandBuilderTests
         
         _builder.SetUnit(_unit);
         _builder.SetMovementType(MovementType.Walk);
-        _builder.SetMovementPath([turnSegment, moveSegment]);
+        _builder.SetMovementPath(new MovementPath([turnSegment, moveSegment]));
         
         // Act
         var result = _builder.Build();
@@ -212,8 +212,8 @@ public class MoveUnitCommandBuilderTests
         // Arrange
         _builder.SetUnit(_unit);
         _builder.SetMovementType(MovementType.Walk);
-        _builder.SetMovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
-        new HexPosition(1,2,HexDirection.Bottom),2)]);
+        _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
+        new HexPosition(1,2,HexDirection.Bottom),2)]));
         
         // Act
         _builder.Reset();
