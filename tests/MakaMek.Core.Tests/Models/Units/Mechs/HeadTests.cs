@@ -126,8 +126,8 @@ public class HeadTests
     public void Facing_ShouldChange_WhenTorsoIsRotated()
     {
         var sut = new Head("Head",  8, 3);
-        var totso = new CenterTorso("CenterTorso", 10, 2, 6);
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut, totso });
+        var torso = new CenterTorso("CenterTorso", 10, 2, 6);
+        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut, torso });
         var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
         mech.Deploy(position);
         

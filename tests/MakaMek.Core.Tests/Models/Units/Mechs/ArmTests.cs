@@ -12,7 +12,7 @@ public class ArmTests
     [InlineData(PartLocation.RightArm)]
     public void Arm_ShouldBeInitializedCorrectly(PartLocation location)
     {
-        var sut = new Arm("Left Arm", location, 4, 3);
+        var sut = new Arm("Arm", location, 4, 3);
 
         sut.Location.ShouldBe(location);
         sut.MaxArmor.ShouldBe(4);

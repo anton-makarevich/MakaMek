@@ -39,7 +39,7 @@ public class CenterTorsoTests
     }
     
     [Fact]
-    public void Facing_ShouldNotChangeWhenRotated()
+    public void Facing_ShouldChange_WhenTorsoIsRotated()
     {
         var sut = new CenterTorso("CenterTorso", 10, 2, 6);
         var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { sut });
