@@ -9,11 +9,13 @@ public readonly record struct UnitReachabilityData(
     IReadOnlyList<HexCoordinates> ForwardReachableHexes,
     IReadOnlyList<HexCoordinates> BackwardReachableHexes)
 {
+    private readonly Lazy<IReadOnlyList<HexCoordinates>> _allReachableHexes = 
+        new(() => ForwardReachableHexes.Union(BackwardReachableHexes).ToList());
+    
     /// <summary>
     /// All reachable hexes (union of forward and backward)
     /// </summary>
-    public IReadOnlyList<HexCoordinates> AllReachableHexes => 
-        ForwardReachableHexes.Union(BackwardReachableHexes).ToList();
+    public IReadOnlyList<HexCoordinates> AllReachableHexes => _allReachableHexes.Value;
     
     /// <summary>
     /// Checks if a hex is reachable (either forward or backward)

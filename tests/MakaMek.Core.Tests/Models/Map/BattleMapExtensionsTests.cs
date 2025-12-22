@@ -257,4 +257,39 @@ public class BattleMapExtensionsTests
         // Assert
         reachabilityData.BackwardReachableHexes.ShouldNotBeEmpty();
     }
+    
+    [Fact]
+    public void GetReachableHexesForUnit_ShouldReturnEmptyData_WhenUnitHasNoMovementPoints()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+        unit.GetMovementPoints(MovementType.Walk).Returns(0);
+        
+        // Act
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, [],
+        new HashSet<HexCoordinates>());
+        
+        // Assert
+        reachabilityData.AllReachableHexes.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void GetReachableHexesForUnit_ShouldReturnEmptyData_WhenUnitHasNoPosition()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns((HexPosition?)null);
+        
+        // Act
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, [],
+        new HashSet<HexCoordinates>());
+        
+        // Assert
+        reachabilityData.AllReachableHexes.ShouldBeEmpty();
+    }
 }
