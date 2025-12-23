@@ -533,15 +533,15 @@ public class BattleMapViewModel : BaseViewModel
         AvailableDirections = null;
     }
 
-    public void ShowMovementPath(List<PathSegment> path)
+    public void ShowMovementPath(MovementPath path)
     {
         HideMovementPath();
-        if (path.Count < 1)
+        if (path.Segments.Count < 1)
         {
             return;
         }
 
-        var segments = path.Select(p=> new PathSegmentViewModel(p)).ToList();
+        var segments = path.Segments.Select(p=> new PathSegmentViewModel(p)).ToList();
         MovementPath = segments;
     }
 

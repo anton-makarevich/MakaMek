@@ -649,13 +649,13 @@ public class HeatPhaseTests : GamePhaseTestsBase
     {
         var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
         unit.Deploy(deployPosition);
-        unit.Move(movementType, [new PathSegmentData
+        unit.Move(movementType, new MovementPath([new PathSegmentData
             {
                 From = deployPosition.ToData(),
                 To = deployPosition.ToData(),
                 Cost = 0
             }
-        ]);
+        ]));
     }
 
     private void SetupUnitWithWeaponFired(IUnit unit)

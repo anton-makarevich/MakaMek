@@ -174,7 +174,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         // Add a unit to the player
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
         unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom));
-        unit.Move(MovementType.Walk, [new PathSegmentData
+        unit.Move(MovementType.Walk, new MovementPath([new PathSegmentData
             {
                 From = new HexPositionData
                 {
@@ -190,7 +190,7 @@ public class EndPhaseTests : GamePhaseTestsBase
                 },
                 Cost = 1
             }
-        ]);
+        ]));
         
         unit.MovementTypeUsed.ShouldBe(MovementType.Walk);
         

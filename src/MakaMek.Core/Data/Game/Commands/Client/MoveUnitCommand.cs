@@ -32,6 +32,6 @@ public record struct MoveUnitCommand: IClientUnitCommand
 
     public required Guid UnitId { get; init; }
     public required MovementType MovementType { get; init; }
-    public required List<PathSegmentData> MovementPath { get; init; }
+    public required IReadOnlyList<PathSegmentData> MovementPath { get; init; }
     public Guid PlayerId { get; init; }
 }

@@ -328,8 +328,8 @@ public class MovementStateTests
         _unit1.Deploy(new HexPosition(1, 2, HexDirection.Bottom));
         var newPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
         _unit1.Move(MovementType.Walk,
-            [new PathSegment(new HexPosition(1, 2, HexDirection.Bottom), newPosition, 1)
-                .ToData()]);
+            new MovementPath([new PathSegment(new HexPosition(1, 2, HexDirection.Bottom), newPosition, 1)
+                .ToData()]));
 
         // Act
         _sut.HandleHexSelection(hex);

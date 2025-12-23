@@ -135,7 +135,7 @@ public class MechTests
         mech.Deploy(deployPosition);
 
         // Act
-        mech.Move(MovementType.Walk, [new PathSegment(deployPosition, newCoordinates, 0).ToData()]);
+        mech.Move(MovementType.Walk, new MovementPath([new PathSegment(deployPosition, newCoordinates, 0).ToData()]));
 
         // Assert
         mech.Position.ShouldBe(newCoordinates);
@@ -154,7 +154,7 @@ public class MechTests
         mech.Deploy(position);
 
         // Act
-        mech.Move(MovementType.Walk, [new PathSegment(position, position, 0).ToData()]);
+        mech.Move(MovementType.Walk, new MovementPath([new PathSegment(position, position, 0).ToData()]));
 
         // Assert
         mech.Position.ShouldBe(position);
@@ -173,7 +173,7 @@ public class MechTests
         mech.Deploy(deployPosition);
 
         // Act
-        mech.Move(MovementType.Walk, []);
+        mech.Move(MovementType.Walk, new MovementPath(Array.Empty<PathSegment>()));
 
         // Assert
         mech.Position.ShouldBe(deployPosition);
@@ -192,7 +192,7 @@ public class MechTests
     
         // Act
         var act = () => mech.Move(MovementType.Walk,
-            [new PathSegment(new HexPosition(1, 1, HexDirection.Bottom), newCoordinates, 1).ToData()]);
+            new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Bottom), newCoordinates, 1).ToData()]));
     
         // Assert
         var ex = Should.Throw<InvalidOperationException>(act);
@@ -207,7 +207,7 @@ public class MechTests
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
         mech.Deploy(deployPosition);
-        mech.Move(MovementType.Walk, [new PathSegment(deployPosition, newCoordinates, 1).ToData()]);
+        mech.Move(MovementType.Walk, new MovementPath([new PathSegment(deployPosition, newCoordinates, 1).ToData()]));
 
         // Act
         mech.ResetTurnState();

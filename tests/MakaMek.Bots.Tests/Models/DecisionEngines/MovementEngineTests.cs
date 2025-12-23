@@ -125,7 +125,7 @@ public class MovementEngineTests
         // Mock path finding
         var pathSegment = new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 1);
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
-            .Returns([pathSegment]);
+            .Returns(new MovementPath([pathSegment]));
 
         // Act
         await _sut.MakeDecision(_player);

@@ -7,7 +7,7 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
 {
     private Guid? _unitId;
     private MovementType? _movementType;
-    private List<PathSegment>? _movementPath;
+    private MovementPath? _movementPath;
 
     public override bool CanBuild => 
         _unitId != null 
@@ -24,7 +24,7 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
         _movementType = movementType;
     }
 
-    public void SetMovementPath(List<PathSegment> movementPath)
+    public void SetMovementPath(MovementPath movementPath)
     {
         _movementPath = movementPath;
     }
@@ -40,7 +40,7 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
             PlayerId = PlayerId,
             UnitId = _unitId.Value,
             MovementType = _movementType.Value,
-            MovementPath = _movementPath.Select(s => s.ToData()).ToList()
+            MovementPath = _movementPath.ToData()
         };
     }
 
