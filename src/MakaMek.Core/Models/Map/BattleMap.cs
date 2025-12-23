@@ -10,6 +10,7 @@ public class BattleMap(int width, int height) : IBattleMap
 {
     private readonly Dictionary<HexCoordinates, Hex> _hexes = new();
     private readonly LineOfSightCache _losCache = new();
+    private readonly MovementPathCache _movementPathCache = new();
 
     public int Width { get; } = width;
     public int Height { get; } = height;
@@ -38,6 +39,18 @@ public class BattleMap(int width, int height) : IBattleMap
     /// </summary>
     public MovementPath? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IEnumerable<HexCoordinates>? prohibitedHexes = null)
     {
+        var prohibited = prohibitedHexes?.ToHashSet() ?? [];
+        var useCache = prohibited.Count == 0;
+
+        if (useCache)
+        {
+            var cachedPath = _movementPathCache.Get(start, target, false);
+            if (cachedPath != null)
+            {
+                return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
+            }
+        }
+
         // If start and target are in the same hex, just return turning segments
         if (start.Coordinates == target.Coordinates)
         {
@@ -52,12 +65,13 @@ public class BattleMap(int width, int height) : IBattleMap
                 segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
                 currentPos = step;
             }
-            return new MovementPath(segments);
+            var path = new MovementPath(segments);
+            if (useCache) _movementPathCache.Add(path);
+            return path;
         }
 
         var frontier = new PriorityQueue<(HexPosition pos, List<HexPosition> path, int cost), int>();
         var visited = new Dictionary<(HexCoordinates coords, HexDirection facing), int>();
-        var prohibited = prohibitedHexes?.ToHashSet() ?? [];
         
         frontier.Enqueue((start, [start], 0), 0);
         visited[(start.Coordinates, start.Facing)] = 0;
@@ -86,7 +100,9 @@ public class BattleMap(int width, int height) : IBattleMap
 
                     segments.Add(new PathSegment(from, to, segmentCost));
                 }
-                return new MovementPath(segments);
+                var result = new MovementPath(segments);
+                if (useCache) _movementPathCache.Add(result);
+                return result;
             }
 
             // For each adjacent hex
@@ -369,6 +385,12 @@ public class BattleMap(int width, int height) : IBattleMap
         if (!IsOnMap(from.Coordinates) || !IsOnMap(to.Coordinates))
             return null;
 
+        var cachedPath = _movementPathCache.Get(from, to, true);
+        if (cachedPath != null)
+        {
+            return cachedPath.TotalCost <= movementPoints ? cachedPath : null;
+        }
+
         var distance = from.Coordinates.DistanceTo(to.Coordinates);
         if (distance > movementPoints)
             return null;
@@ -410,7 +432,9 @@ public class BattleMap(int width, int height) : IBattleMap
             remainingDistance--;
         }
 
-        return new MovementPath(path);
+        var result = new MovementPath(path, true);
+        _movementPathCache.Add(result);
+        return result;
     }
 
     /// <summary>

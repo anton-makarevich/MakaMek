@@ -911,4 +911,61 @@ public class BattleMapTests
         }
         return map;
     }
+    [Fact]
+    public void FindPath_ShouldCacheResult()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+
+        // Act 1
+        var path1 = map.FindPath(start, target, 10);
+        path1.ShouldNotBeNull();
+        
+        // Act 2
+        var path2 = map.FindPath(start, target, 10);
+        
+        // Assert
+        path2.ShouldBeSameAs(path1);
+    }
+
+    [Fact]
+    public void FindPath_WithProhibitedHexes_ShouldNotCache()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+        var prohibited = new[] { new HexCoordinates(5, 5) }; // Prohibited hex (irrelevant to path but triggers cache bypass)
+        
+        // Act 1
+        var path1 = map.FindPath(start, target, 10, prohibited);
+        path1.ShouldNotBeNull();
+        
+        // Act 2
+        var path2 = map.FindPath(start, target, 10, prohibited);
+        
+        // Assert
+        path2.ShouldNotBeSameAs(path1);
+    }
+    
+    [Fact]
+    public void FindJumpPath_ShouldCacheResult()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom);
+
+        // Act 1
+        var path1 = map.FindJumpPath(start, target, 5);
+        path1.ShouldNotBeNull();
+        
+        // Act 2
+        var path2 = map.FindJumpPath(start, target, 5);
+        
+        // Assert
+        path2.ShouldBeSameAs(path1);
+    }
 }
