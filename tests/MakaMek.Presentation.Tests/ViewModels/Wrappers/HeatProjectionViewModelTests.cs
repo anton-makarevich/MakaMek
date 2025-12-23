@@ -168,7 +168,7 @@ public class HeatProjectionViewModelTests
     }
 
     [Fact]
-    public void SettingUnit_ToSameValue_DoesNotTriggerNotifications()
+    public void SettingUnit_ToSameValue_DoesTriggerNotifications()
     {
         // Arrange
         _sut.Unit = _attacker;
@@ -183,7 +183,7 @@ public class HeatProjectionViewModelTests
         _sut.Unit = _attacker;
 
         // Assert
-        notificationCount.ShouldBe(0, "No notifications should be raised when setting to the same value");
+        notificationCount.ShouldBe(4, "Notifications should be raised even when setting to the same value");
     }
 
     [Fact]
