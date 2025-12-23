@@ -7,18 +7,19 @@ public class MovementPath : IEquatable<MovementPath>
     public MovementPath(IEnumerable<PathSegment> segments, bool isJump = false)
     {
         Segments = segments.ToList();
-        Start = Segments.Count == 0 ? null : Segments[0].From;
-        Destination = Segments.Count == 0 ? null : Segments[^1].To;
+        if (Segments.Count > 0)
+        {
+            Start = Segments[0].From;
+            Destination = Segments[^1].To;
+        }
         IsJump = isJump;
     }
-    
-    public MovementPath(IEnumerable<PathSegmentData> segments, bool isJump = false)
+
+    public MovementPath(IEnumerable<PathSegmentData> segments, bool isJump = false) : this(
+        segments.Select(s => new PathSegment(s)), isJump)
     {
-        Segments = segments.Select(s => new PathSegment(s)).ToList();
-        Start = Segments.Count == 0 ? null : Segments[0].From;
-        Destination = Segments.Count == 0 ? null : Segments[^1].To;
-        IsJump = isJump;
     }
+
 
     /// <summary>
     /// Constructor for cache lookups
