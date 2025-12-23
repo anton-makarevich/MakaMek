@@ -124,8 +124,7 @@ public static class BattleMapExtensions
         /// <param name="targetHex">The target hex coordinates</param>
         /// <param name="movementType">The type of movement (Jump, Walk, Run)</param>
         /// <param name="movementPoints">Available movement points</param>
-        /// <param name="isForwardReachable">Whether the target hex is reachable via forward movement</param>
-        /// <param name="isBackwardReachable">Whether the target hex is reachable via backward movement</param>
+        /// <param name="reachabilityData">Reachability data containing forward and backward reachable hexes</param>
         /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through</param>
         /// <returns>Dictionary mapping each valid facing direction to the path that reaches that facing</returns>
         public Dictionary<HexDirection, MovementPath> GetPathsToHexWithAllFacings(
@@ -133,12 +132,15 @@ public static class BattleMapExtensions
             HexCoordinates targetHex,
             MovementType movementType,
             int movementPoints,
-            bool isForwardReachable,
-            bool isBackwardReachable,
+            UnitReachabilityData reachabilityData,
             IEnumerable<HexCoordinates>? prohibitedHexes = null)
         {
             var possibleDirections = new Dictionary<HexDirection, MovementPath>();
             var availableDirections = HexDirectionExtensions.AllDirections;
+
+            // Determine if the target hex is reachable
+            var isForwardReachable = reachabilityData.IsForwardReachable(targetHex);
+            var isBackwardReachable = reachabilityData.IsBackwardReachable(targetHex);
 
             if (movementType == MovementType.Jump)
             {

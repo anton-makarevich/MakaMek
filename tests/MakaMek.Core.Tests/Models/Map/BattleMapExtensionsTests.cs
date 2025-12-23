@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
@@ -301,6 +302,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7); // 2 hexes away
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -308,8 +310,7 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Jump,
             movementPoints: 3,
-            isForwardReachable: true,
-            isBackwardReachable: false);
+            reachabilityData);
 
         // Assert
         paths.Count.ShouldBe(6); // Should have paths for all 6 directions
@@ -329,6 +330,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 9); // 4 hexes away
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -336,8 +338,7 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Jump,
             movementPoints: 3, // Not enough to reach
-            isForwardReachable: true,
-            isBackwardReachable: false);
+            reachabilityData);
 
         // Assert
         paths.ShouldBeEmpty();
@@ -351,6 +352,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7); // 2 hexes away in the forward direction
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -358,8 +360,7 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 5,
-            isForwardReachable: true,
-            isBackwardReachable: false);
+            reachabilityData);
 
         // Assert
         paths.ShouldNotBeEmpty();
@@ -377,6 +378,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 3); // 2 hexes away in the backward direction
+        var reachabilityData = new UnitReachabilityData([], [targetHex]);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -384,8 +386,7 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 5,
-            isForwardReachable: false,
-            isBackwardReachable: true);
+            reachabilityData);
 
         // Assert
         paths.ShouldNotBeEmpty();
@@ -396,28 +397,6 @@ public class BattleMapExtensionsTests
     }
 
     [Fact]
-    public void GetPathsToHexWithAllFacings_ShouldTryForwardFirst_ThenBackward()
-    {
-        // Arrange
-        var map = new BattleMapFactory()
-            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
-        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
-        var targetHex = new HexCoordinates(5, 7);
-
-        // Act - Both forward and backward are marked as reachable
-        var paths = map.GetPathsToHexWithAllFacings(
-            startPosition,
-            targetHex,
-            MovementType.Walk,
-            movementPoints: 5,
-            isForwardReachable: true,
-            isBackwardReachable: true);
-
-        // Assert - Should find paths (preferring forward movement)
-        paths.ShouldNotBeEmpty();
-    }
-
-    [Fact]
     public void GetPathsToHexWithAllFacings_ShouldReturnEmptyDictionary_WhenNeitherForwardNorBackward()
     {
         // Arrange
@@ -425,6 +404,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7);
+        var reachabilityData = new UnitReachabilityData([], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -432,8 +412,7 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 5,
-            isForwardReachable: false,
-            isBackwardReachable: false);
+            reachabilityData);
 
         // Assert
         paths.ShouldBeEmpty();
@@ -447,6 +426,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 5); // Same hex
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -454,8 +434,7 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 5,
-            isForwardReachable: true,
-            isBackwardReachable: false);
+            reachabilityData);
 
         // Assert
         paths.ShouldNotBeEmpty();
@@ -464,7 +443,8 @@ public class BattleMapExtensionsTests
         paths[HexDirection.Top].Segments.Count.ShouldBe(0);
 
         // Paths for other facings should have turning segments
-        paths[HexDirection.TopRight].Segments.Count.ShouldBeGreaterThan(0);
+        paths[HexDirection.TopRight].Segments.Count.ShouldBe(1);
+        paths[HexDirection.TopRight].TurnsTaken.ShouldBe(1);
     }
 
     [Fact]
@@ -476,6 +456,7 @@ public class BattleMapExtensionsTests
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7);
         var prohibitedHexes = new List<HexCoordinates> { new(5, 6) }; // Block the direct path
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
 
         // Act
         var paths = map.GetPathsToHexWithAllFacings(
@@ -483,8 +464,7 @@ public class BattleMapExtensionsTests
             targetHex,
             MovementType.Walk,
             movementPoints: 5,
-            isForwardReachable: true,
-            isBackwardReachable: false,
+            reachabilityData,
             prohibitedHexes);
 
         // Assert - Should either find alternate paths or return empty if no path exists
@@ -492,9 +472,9 @@ public class BattleMapExtensionsTests
         foreach (var path in paths.Values)
         {
             // Verify that prohibited hexes are not in the path
-            foreach (var segment in path.Segments)
+            foreach (var hex in path.Hexes)
             {
-                prohibitedHexes.ShouldNotContain(segment.To.Coordinates);
+                prohibitedHexes.ShouldNotContain(hex);
             }
         }
     }

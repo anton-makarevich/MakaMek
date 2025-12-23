@@ -189,54 +189,18 @@ public class MovementEngine : IBotDecisionEngine
 
             var reachablePaths = new List<MovementPath>();
 
-            // For jumping, process forward reachable hexes only
-            if (movementType == MovementType.Jump)
+            // Process all reachable hexes (both forward and backward)
+            foreach (var hex in reachabilityData.AllReachableHexes)
             {
-                foreach (var hex in reachabilityData.ForwardReachableHexes)
-                {
-                    var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
-                        unit.Position,
-                        hex,
-                        movementType,
-                        unit.GetMovementPoints(movementType),
-                        isForwardReachable: true,
-                        isBackwardReachable: false,
-                        occupiedHexes);
+                var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
+                    unit.Position,
+                    hex,
+                    movementType,
+                    unit.GetMovementPoints(movementType),
+                    reachabilityData,
+                    occupiedHexes);
 
-                    reachablePaths.AddRange(paths.Values);
-                }
-            }
-            else
-            {
-                // For walk/run, process forward reachable hexes
-                foreach (var hex in reachabilityData.ForwardReachableHexes)
-                {
-                    var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
-                        unit.Position,
-                        hex,
-                        movementType,
-                        unit.GetMovementPoints(movementType),
-                        isForwardReachable: true,
-                        isBackwardReachable: false,
-                        occupiedHexes);
-
-                    reachablePaths.AddRange(paths.Values);
-                }
-
-                // Process backward reachable hexes
-                foreach (var hex in reachabilityData.BackwardReachableHexes)
-                {
-                    var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
-                        unit.Position,
-                        hex,
-                        movementType,
-                        unit.GetMovementPoints(movementType),
-                        isForwardReachable: false,
-                        isBackwardReachable: true,
-                        occupiedHexes);
-
-                    reachablePaths.AddRange(paths.Values);
-                }
+                reachablePaths.AddRange(paths.Values);
             }
 
             // Evaluate each path

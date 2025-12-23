@@ -200,16 +200,14 @@ public class MovementState : IUiState
 
     private void HandleTargetHexSelection(Hex hex)
     {
-        if (_selectedUnit?.Position == null 
+        if (_selectedUnit?.Position == null
             || _viewModel.Game == null
-            || _selectedMovementType == null) return;
-
-        var isForwardReachable = _reachabilityData?.IsForwardReachable(hex.Coordinates) ?? false;
-        var isBackwardReachable = _reachabilityData?.IsBackwardReachable(hex.Coordinates) ?? false;
+            || _selectedMovementType == null
+            || _reachabilityData == null) return;
 
         // Reset selection if clicked outside reachable hexes during target hex selection
         // BUT NOT if the unit is in post-standup movement state (must complete declared movement)
-        if (!isForwardReachable && !isBackwardReachable)
+        if (!_reachabilityData.Value.IsHexReachable(hex.Coordinates))
         {
             ResetUnitSelection();
             return;
@@ -223,8 +221,7 @@ public class MovementState : IUiState
             hex.Coordinates,
             _selectedMovementType.Value,
             _movementPoints,
-            isForwardReachable,
-            isBackwardReachable,
+            _reachabilityData.Value,
             _prohibitedHexes) ?? [];
 
         // Show direction selector if there are any possible directions
