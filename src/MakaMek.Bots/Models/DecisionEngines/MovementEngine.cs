@@ -33,8 +33,8 @@ public class MovementEngine : IBotDecisionEngine
 
             if (myUnitsToMove.Count == 0)
             {
-                // No units to move, skip turn (or safeguard if called when no moves left)
-                await SkipTurn(player);
+                // No units to move
+                Console.WriteLine($"[MovementEngine] No units to move for player {player.Name}, skipping...");
                 return;
             }
 
