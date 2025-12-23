@@ -141,6 +141,11 @@ public class MovementState : IUiState
             if (CurrentMovementStep != MovementStep.SelectingDirection) return;
 
             var path = _possibleDirections[direction];
+            if (path.Destination == null)
+            {
+                Console.WriteLine("Path destination is null, cannot confirm movement");
+                return;
+            }
             _builder.SetMovementPath(path);
             _viewModel.ShowDirectionSelector(path.Destination.Coordinates, [direction]);
             _viewModel.ShowMovementPath(path);

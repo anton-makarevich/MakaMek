@@ -183,8 +183,13 @@ public class PositionEvaluator
         IReadOnlyList<IUnit> enemyUnits)
     {
         // Extract position and hexesTraveled from the path
-        var position = path.Destination;
+        var position = path.Destination?? friendlyUnit.Position;
         var hexesTraveled = path.DistanceCovered;
+
+        if (position == null)
+        {
+            throw new InvalidOperationException("Path destination is null");
+        }
 
         var defensiveIndex = CalculateDefensiveIndex(position, hexesTraveled, enemyUnits);
         var offensiveIndex = CalculateOffensiveIndex(position, movementType, friendlyUnit, enemyUnits);
