@@ -157,7 +157,7 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Get occupied hexes (exclude the moving unit itself)
-        var occupiedHexes = GetOccupiedHexes(unit);
+        var occupiedHexes = GetOccupiedHexes(unit).ToHashSet();
 
         // Determine available movement types for this unit
         var availableMovementTypes = new List<MovementType> { MovementType.Walk };

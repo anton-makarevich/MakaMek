@@ -254,7 +254,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
 
         // Create prohibited hexes - block two adjacent hexes
-        var prohibitedHexes = new List<HexCoordinates>
+        var prohibitedHexes = new HashSet<HexCoordinates>
         {
             new(2, 1), // Hex above start
             new(3, 2)  // Hex to the right of start
@@ -279,10 +279,10 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
         
         // Create prohibited hexes that block the direct path
-        var prohibitedHexes = new[]
+        var prohibitedHexes = new HashSet<HexCoordinates>
         {
-            new HexCoordinates(2, 2),
-            new HexCoordinates(3, 2)
+            new(2, 2),
+            new(3, 2)
         };
 
         // Act
@@ -400,13 +400,13 @@ public class BattleMapTests
         const int movementPoints = 2;
 
         // Prohibit some adjacent hexes
-        var prohibitedHexes = start.GetAdjacentCoordinates().Take(3).ToList();
+        var prohibitedHexes = start.GetAdjacentCoordinates().Take(3).ToHashSet();
 
         // Act
         var reachableHexes = map.GetJumpReachableHexes(start, movementPoints, prohibitedHexes).ToList();
 
         // Assert
-        prohibitedHexes.ForEach(coordinates => reachableHexes.ShouldNotContain(coordinates));
+        prohibitedHexes.ToList().ForEach(coordinates => reachableHexes.ShouldNotContain(coordinates));
         reachableHexes.All(h => h.DistanceTo(start) <= movementPoints).ShouldBeTrue();
     }
 
@@ -850,7 +850,7 @@ public class BattleMapTests
         var map = new BattleMap(3, 3);
         
         // Add hexes with different terrains and levels
-        var hex1 = new Hex(new HexCoordinates(1, 1), 0);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
         hex1.AddTerrain(new ClearTerrain());
         map.AddHex(hex1);
         
@@ -896,21 +896,7 @@ public class BattleMapTests
         hexData4.TerrainTypes.ShouldContain(MakaMekTerrains.LightWoods);
         hexData4.TerrainTypes.ShouldContain(MakaMekTerrains.HeavyWoods);
     }
-
-    private BattleMap CreateTestMap()
-    {
-        var map = new BattleMap(5, 5);
-        for (var q = 1; q <= 5; q++)
-        {
-            for (var r = 1; r <= 5; r++)
-            {
-                var hex = new Hex(new HexCoordinates(q, r));
-                hex.AddTerrain(new ClearTerrain());
-                map.AddHex(hex);
-            }
-        }
-        return map;
-    }
+    
     [Fact]
     public void FindPath_ShouldCacheResult()
     {
@@ -937,7 +923,7 @@ public class BattleMapTests
         var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
-        var prohibited = new[] { new HexCoordinates(5, 5) }; // Prohibited hex (irrelevant to path but triggers cache bypass)
+        var prohibited = new HashSet<HexCoordinates> { new HexCoordinates(5, 5) }; // Prohibited hex (irrelevant to a path but triggers cache bypass)
         
         // Act 1
         var path1 = map.FindPath(start, target, 10, prohibited);

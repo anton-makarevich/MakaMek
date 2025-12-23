@@ -72,7 +72,7 @@ public static class BattleMapExtensions
         public UnitReachabilityData GetReachableHexesForUnit(
             IUnit unit,
             MovementType movementType,
-            IReadOnlyList<HexCoordinates> prohibitedHexes,
+            IReadOnlySet<HexCoordinates> prohibitedHexes,
             IReadOnlySet<HexCoordinates> friendlyUnitsCoordinates)
         {
             if (unit.Position == null)
@@ -133,7 +133,7 @@ public static class BattleMapExtensions
             MovementType movementType,
             int movementPoints,
             UnitReachabilityData reachabilityData,
-            IEnumerable<HexCoordinates>? prohibitedHexes = null)
+            IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
         {
             var possibleDirections = new Dictionary<HexDirection, MovementPath>();
             var availableDirections = HexDirectionExtensions.AllDirections;
