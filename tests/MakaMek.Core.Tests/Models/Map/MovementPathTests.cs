@@ -185,7 +185,7 @@ public class MovementPathTests
     }
     
     [Fact]
-    public void IsEqual_ShouldReturnTrue_WhenPathsAreIdentical()
+    public void Equals_ShouldReturnTrue_WhenPathsAreIdentical()
     {
         // Arrange
         var segments = new List<PathSegment>
@@ -200,7 +200,7 @@ public class MovementPathTests
         var path2 = new MovementPath(segments);
         
         // Act & Assert
-        path1.ShouldBe(path2);
+        path1.Equals(path2).ShouldBeTrue();
     }
     
     [Fact]
@@ -227,6 +227,6 @@ public class MovementPathTests
         var path2 = new MovementPath(segments2);
         
         // Act & Assert
-        path1.ShouldNotBe(path2);
+        path1.Equals(path2).ShouldBeFalse();
     }
 }
