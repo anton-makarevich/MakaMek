@@ -122,4 +122,15 @@ public class MovementPathTests
         reversedPath.Destination.Coordinates.ShouldBe(originalPath.Destination.Coordinates);
         reversedPath.Destination.Facing.ShouldBe(originalPath.Destination.Facing.GetOppositeDirection());
     }
+    
+    [Fact]
+    public void Destination_And_Start_ShouldBeNull_WhenCreatedWithEmptySegments()
+    {
+        // Arrange
+        var sut = new MovementPath(Array.Empty<PathSegment>());
+        
+        // Assert
+        sut.Start.ShouldBeNull();
+        sut.Destination.ShouldBeNull();
+    }
 }

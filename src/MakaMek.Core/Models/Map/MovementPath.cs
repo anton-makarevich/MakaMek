@@ -20,14 +20,17 @@ public class MovementPath
     
     public int HexesTraveled => Hexes.Count;
     
-    public int DistanceCovered => Start.Coordinates.DistanceTo(Destination.Coordinates);
+    public int DistanceCovered => Start == null || Destination == null 
+        ? 0 
+        : Start.Coordinates.DistanceTo(Destination.Coordinates);
     
-    public HexPosition Start => Segments[0].From;
+    public HexPosition? Start => Segments.Count == 0 ? null : Segments[0].From;
     
-    public HexPosition Destination => Segments[^1].To;
+    public HexPosition? Destination => Segments.Count == 0 ? null : Segments[^1].To;
     
-    public IReadOnlyList<HexCoordinates> Hexes => 
-        new List<HexCoordinates> { Start.Coordinates }
+    public IReadOnlyList<HexCoordinates> Hexes => Start == null 
+        ? []
+        : new List<HexCoordinates> { Start.Coordinates }
             .Concat(Segments.Select(s => s.To.Coordinates).ToList())
             .Distinct()
             .ToList();
