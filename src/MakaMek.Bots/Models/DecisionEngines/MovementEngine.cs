@@ -157,7 +157,7 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Get occupied hexes (exclude the moving unit itself)
-        var occupiedHexes = GetOccupiedHexes(unit).ToHashSet();
+        var occupiedHexes = GetOccupiedHexes(unit);
 
         // Determine available movement types for this unit
         var availableMovementTypes = new List<MovementType> { MovementType.Walk };
@@ -239,13 +239,13 @@ public class MovementEngine : IBotDecisionEngine
     /// <summary>
     /// Gets the coordinates of all occupied hexes (deployed units except the specified moving unit)
     /// </summary>
-    private List<HexCoordinates> GetOccupiedHexes(IUnit movingUnit)
+    private IReadOnlySet<HexCoordinates> GetOccupiedHexes(IUnit movingUnit)
     {
         return _clientGame.Players
             .SelectMany(p => p.Units)
             .Where(u => u is { IsDeployed: true, Position: not null } && u.Id != movingUnit.Id)
             .Select(u => u.Position!.Coordinates)
-            .ToList();
+            .ToHashSet();
     }
 
     private async Task AttemptStandup(IPlayer player, Mech mech)

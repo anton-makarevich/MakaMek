@@ -38,10 +38,10 @@ public class BattleMapTests
     }
 
     [Theory]
-    [InlineData(-1, 0)]  // Left of map
-    [InlineData(2, 0)]   // Right of map
-    [InlineData(0, -1)]  // Above map
-    [InlineData(0, 2)]   // Below map
+    [InlineData(-1, 0)]  // Left of the map
+    [InlineData(2, 0)]   // Right of the map
+    [InlineData(0, -1)]  // Above the map
+    [InlineData(0, 2)]   // Below the map
     public void AddHex_OutsideMapBoundaries_ThrowsException(int q, int r)
     {
         // Arrange
@@ -383,7 +383,7 @@ public class BattleMapTests
         reachableHexes.All(h => h.DistanceTo(start) <= movementPoints).ShouldBeTrue(
             "All hexes should be within movement range");
         
-        // Verify we have correct number of hexes at each distance
+        // Verify we have the correct number of hexes at each distance
         reachableHexes.Count(h => h.DistanceTo(start) == 1).ShouldBe(6, 
             "Should have 6 hexes at distance 1");
         reachableHexes.Count(h => h.DistanceTo(start) == 2).ShouldBe(12, 
@@ -406,7 +406,11 @@ public class BattleMapTests
         var reachableHexes = map.GetJumpReachableHexes(start, movementPoints, prohibitedHexes).ToList();
 
         // Assert
-        prohibitedHexes.ToList().ForEach(coordinates => reachableHexes.ShouldNotContain(coordinates));
+        foreach (var coordinates in prohibitedHexes)
+        {
+            reachableHexes.ShouldNotContain(coordinates);
+        }
+
         reachableHexes.All(h => h.DistanceTo(start) <= movementPoints).ShouldBeTrue();
     }
 
@@ -459,10 +463,10 @@ public class BattleMapTests
             {
                 pathSegment.Cost.ShouldBe(1);
             }
-            // Verify path leads to target
-            path.Segments.Last().To.Coordinates.ShouldBe(to.Coordinates,
+            // Verify the path leads to the target
+            path.Segments[^1].To.Coordinates.ShouldBe(to.Coordinates,
                 "Path should end at target coordinates");
-            path.Segments.Last().To.Facing.ShouldBe(to.Facing,
+            path.Segments[^1].To.Facing.ShouldBe(to.Facing,
                 "Path should end with target facing");
         }
         else
@@ -547,10 +551,10 @@ public class BattleMapTests
         // Assert
         path.ShouldNotBeNull();
         path.Segments.Count.ShouldBe(3); // Should take 3 turns to rotate 180 degrees
-        path.Segments.All(segment => segment.From.Coordinates == hex.Coordinates).ShouldBeTrue(); // All segments in same hex
+        path.Segments.All(segment => segment.From.Coordinates == hex.Coordinates).ShouldBeTrue(); // All segments in the same hex
         path.Segments.All(segment => segment.To.Coordinates == hex.Coordinates).ShouldBeTrue();
         path.Segments.All(segment => segment.Cost == 1).ShouldBeTrue(); // Each turn costs 1
-        path.Segments.Last().To.Facing.ShouldBe(HexDirection.Bottom); // Should end facing target direction
+        path.Segments.Last().To.Facing.ShouldBe(HexDirection.Bottom); // Should end facing the target direction
     }
 
     [Fact]
@@ -664,7 +668,7 @@ public class BattleMapTests
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 4);
         
-        // Set terrain with total factor of 3 (HeavyWoods=2, LightWoods=1)
+        // Set terrain with a total factor of 3 (HeavyWoods=2, LightWoods=1)
         var hex1 = map.GetHex(new HexCoordinates(1, 2))!;
         hex1.RemoveTerrain(MakaMekTerrains.Clear);
         hex1.AddTerrain(new HeavyWoodsTerrain());
@@ -685,7 +689,7 @@ public class BattleMapTests
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 4);
         
-        // Set terrain with total factor of 4 (HeavyWoods=2 each)
+        // Set terrain with a total factor of 4 (HeavyWoods=2 each)
         var hex1 = map.GetHex(new HexCoordinates(1, 2))!;
         hex1.RemoveTerrain(MakaMekTerrains.Clear);
         hex1.AddTerrain(new HeavyWoodsTerrain());
@@ -752,7 +756,7 @@ public class BattleMapTests
 
         // Assert
         // LOS should be blocked because the line passes through multiple heavy woods hexes
-        // Each heavy woods has intervening factor of 2, and total intervening factor >= 3 blocks LOS
+        // Each heavy woods has an intervening factor of 2, and total intervening factor >= 3 blocks LOS
         hasLos.ShouldBeFalse($"LOS should be blocked by heavy woods cluster between {attacker} and {target}");
     }
 
@@ -831,7 +835,7 @@ public class BattleMapTests
         var initialLos = map.HasLineOfSight(from, to);
         initialLos.ShouldBeTrue("Should have LOS with no obstacles");
 
-        // Add heavy forest but don't clear cache
+        // Add heavy forest but don't clear the cache
         map.GetHex(new HexCoordinates(3, 3))!.AddTerrain(new HeavyWoodsTerrain());
         map.GetHex(new HexCoordinates(4, 2))!.AddTerrain(new HeavyWoodsTerrain());
 
