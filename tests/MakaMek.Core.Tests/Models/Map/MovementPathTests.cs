@@ -183,4 +183,50 @@ public class MovementPathTests
         // Assert
         data.ShouldBe(segments);
     }
+    
+    [Fact]
+    public void IsEqual_ShouldReturnTrue_WhenPathsAreIdentical()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                1)
+        };
+        
+        var path1 = new MovementPath(segments);
+        var path2 = new MovementPath(segments);
+        
+        // Act & Assert
+        path1.ShouldBe(path2);
+    }
+    
+    [Fact]
+    public void IsEqual_ShouldReturnFalse_WhenPathsAreDifferent()
+    {
+        // Arrange
+        var segments1 = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                1)
+        };
+        
+        var segments2 = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom),
+                1)
+        };
+        
+        var path1 = new MovementPath(segments1);
+        var path2 = new MovementPath(segments2);
+        
+        // Act & Assert
+        path1.ShouldNotBe(path2);
+    }
 }
