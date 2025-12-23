@@ -554,7 +554,7 @@ public class BattleMapTests
         path.Segments.All(segment => segment.From.Coordinates == hex.Coordinates).ShouldBeTrue(); // All segments in the same hex
         path.Segments.All(segment => segment.To.Coordinates == hex.Coordinates).ShouldBeTrue();
         path.Segments.All(segment => segment.Cost == 1).ShouldBeTrue(); // Each turn costs 1
-        path.Segments.Last().To.Facing.ShouldBe(HexDirection.Bottom); // Should end facing the target direction
+        path.Segments[^1].To.Facing.ShouldBe(HexDirection.Bottom); // Should end facing the target direction
     }
 
     [Fact]

@@ -204,7 +204,7 @@ public class MovementPathTests
     }
     
     [Fact]
-    public void IsEqual_ShouldReturnFalse_WhenPathsAreDifferent()
+    public void Equals_ShouldReturnFalse_WhenPathsAreDifferent()
     {
         // Arrange
         var segments1 = new List<PathSegment>
@@ -228,5 +228,62 @@ public class MovementPathTests
         
         // Act & Assert
         path1.Equals(path2).ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void Equals_ShouldReturnFalse_WhenPathsAreTheSame_ButMovementTypeIsDifferent()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                1)
+        };
+        
+        
+        var path1 = new MovementPath(segments);
+        var path2 = new MovementPath(segments,true);
+        
+        // Act & Assert
+        path1.Equals(path2).ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void Equals_ShouldReturnFalse_WhenComparingWithRandomObject()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                1)
+        };
+        
+        var path = new MovementPath(segments);
+        
+        // Act & Assert
+        path.Equals(new object()).ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void Equals_ShouldReturnTrue_WhenComparingWithSameInstance_AsObject()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                1)
+        };
+        
+        var path = new MovementPath(segments);
+        object pathAsObject = new MovementPath(path.ToData());
+        
+        // Act & Assert
+        path.Equals(pathAsObject).ShouldBeTrue();
     }
 }

@@ -85,8 +85,7 @@ public class MovementPath : IEquatable<MovementPath>
     {
         if (obj is null) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
-        return Equals((MovementPath)obj);
+        return obj.GetType() == GetType() && Equals((MovementPath)obj);
     }
 
     public override int GetHashCode()
