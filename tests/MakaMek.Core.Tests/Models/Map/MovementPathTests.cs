@@ -132,5 +132,55 @@ public class MovementPathTests
         // Assert
         sut.Start.ShouldBeNull();
         sut.Destination.ShouldBeNull();
+        sut.Hexes.ShouldBeEmpty();
+        sut.TurnsTaken.ShouldBe(0);
+        sut.DistanceCovered.ShouldBe(0);
+        sut.HexesTraveled.ShouldBe(0);
+        sut.TotalCost.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void ToData_ShouldConvertAllSegmentsToData()
+    {
+        // Arrange
+        IReadOnlyList<PathSegmentData> segments =
+        [
+            new()
+            {
+                From = new HexPositionData
+                {
+                    Coordinates = new HexCoordinateData(1, 1),
+                    Facing = 0
+                },
+                To = new HexPositionData
+                {
+                    Coordinates = new HexCoordinateData(1, 2),
+                    Facing = 0
+                },
+                Cost = 1
+            },
+            new()
+            {
+                From = new HexPositionData
+                {
+                    Coordinates = new HexCoordinateData(1, 2),
+                    Facing = 0
+                },
+                To = new HexPositionData
+                {
+                    Coordinates = new HexCoordinateData(1, 2),
+                    Facing = 1
+                },
+                Cost = 1
+            }
+        ];
+        
+        var sut = new MovementPath(segments.Select(s => new PathSegment(s)).ToList());
+        
+        // Act
+        var data = sut.ToData();
+        
+        // Assert
+        data.ShouldBe(segments);
     }
 }

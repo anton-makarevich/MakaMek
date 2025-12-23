@@ -4,6 +4,7 @@ namespace Sanet.MakaMek.Core.Models.Map;
 
 public class MovementPath
 {
+    private IReadOnlyList<HexCoordinates>? _hexes;
     public MovementPath(IEnumerable<PathSegment> segments)
     {
         Segments = segments.ToList();
@@ -30,8 +31,8 @@ public class MovementPath
     
     public IReadOnlyList<HexCoordinates> Hexes => Start == null 
         ? []
-        : new List<HexCoordinates> { Start.Coordinates }
-            .Concat(Segments.Select(s => s.To.Coordinates).ToList())
+        : _hexes ??= new List<HexCoordinates> { Start.Coordinates }
+            .Concat(Segments.Select(s => s.To.Coordinates))
             .Distinct()
             .ToList();
     
