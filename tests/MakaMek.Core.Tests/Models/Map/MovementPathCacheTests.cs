@@ -51,7 +51,7 @@ public class MovementPathCacheTests
         
         _sut.Add(path);
         
-        // Invalidate something not in path
+        // Invalidate something not in the path
         _sut.Invalidate(new HexCoordinates(5, 5));
         _sut.Get(start, dest, false).ShouldBe(path);
         
@@ -105,9 +105,24 @@ public class MovementPathCacheTests
         var dest = new HexPosition(2, 2, HexDirection.Bottom);
         
         var path1 = new MovementPath(new List<PathSegment> { new(start, dest, 1) });
-        var path2 = new MovementPath(new List<PathSegment> { new(start, dest, 100) }); // Different cost/segments but same endpoints
+        var path2 = new MovementPath(new List<PathSegment> { new(start, dest, 100) }); // Different cost/segments but the same endpoints
         
         path1.Equals(path2).ShouldBeTrue("Paths with same endpoints should be equal in this model");
         path1.GetHashCode().ShouldBe(path2.GetHashCode());
+    }
+    
+    [Fact]
+    public void Clear_ShouldRemoveAllPaths()
+    {
+        var start = new HexPosition(1, 1, HexDirection.Top);
+        var dest = new HexPosition(2, 2, HexDirection.Bottom);
+        
+        var segments = new List<PathSegment> { new(start, dest, 1) };
+        var path = new MovementPath(segments);
+        
+        _sut.Add(path);
+        
+        _sut.Clear();
+        _sut.Get(start, dest, false).ShouldBeNull();
     }
 }
