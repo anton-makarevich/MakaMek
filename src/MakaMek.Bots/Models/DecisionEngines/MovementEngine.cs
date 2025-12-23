@@ -33,8 +33,8 @@ public class MovementEngine : IBotDecisionEngine
 
             if (myUnitsToMove.Count == 0)
             {
-                // No units to move, skip turn (or safeguard if called when no moves left)
-                await SkipTurn(player);
+                // No units to move
+                Console.WriteLine($"[MovementEngine] No units to move for player {player.Name}, skipping...");
                 return;
             }
 
@@ -189,70 +189,18 @@ public class MovementEngine : IBotDecisionEngine
 
             var reachablePaths = new List<MovementPath>();
 
-            if (movementType == MovementType.Jump)
+            // Process all reachable hexes (both forward and backward)
+            foreach (var hex in reachabilityData.AllReachableHexes)
             {
-                // For jumping, try all reachable hexes with all possible facing directions
-                foreach (var hex in reachabilityData.ForwardReachableHexes)
-                {
-                    foreach (var direction in HexDirectionExtensions.AllDirections)
-                    {
-                        var targetPos = new HexPosition(hex, direction);
-                        var path = _clientGame.BattleMap.FindJumpPath(
-                            unit.Position,
-                            targetPos,
-                            unit.GetMovementPoints(movementType));
+                var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
+                    unit.Position,
+                    hex,
+                    movementType,
+                    unit.GetMovementPoints(movementType),
+                    reachabilityData,
+                    occupiedHexes);
 
-                        if (path != null)
-                        {
-                            reachablePaths.Add(path);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // For walk/run, try forward movement for forward reachable hexes
-                foreach (var hex in reachabilityData.ForwardReachableHexes)
-                {
-                    foreach (var direction in HexDirectionExtensions.AllDirections)
-                    {
-                        var targetPos = new HexPosition(hex, direction);
-                        var path = _clientGame.BattleMap.FindPath(
-                            unit.Position,
-                            targetPos,
-                            unit.GetMovementPoints(movementType),
-                            occupiedHexes);
-
-                        if (path != null)
-                        {
-                            reachablePaths.Add(path);
-                        }
-                    }
-                }
-
-                // Try backward movement for backward reachable hexes
-                foreach (var hex in reachabilityData.BackwardReachableHexes)
-                {
-                    foreach (var direction in HexDirectionExtensions.AllDirections)
-                    {
-                        var targetPos = new HexPosition(hex, direction);
-                        var oppositeStartPos = unit.Position.GetOppositeDirectionPosition();
-                        var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
-
-                        var path = _clientGame.BattleMap.FindPath(
-                            oppositeStartPos,
-                            oppositeTargetPos,
-                            unit.GetMovementPoints(movementType),
-                            occupiedHexes);
-
-                        if (path != null)
-                        {
-                            // Use Reverse() method for backward movement
-                            path = path.ReverseFacing();
-                            reachablePaths.Add(path);
-                        }
-                    }
-                }
+                reachablePaths.AddRange(paths.Values);
             }
 
             // Evaluate each path

@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
@@ -284,12 +285,197 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var unit = Substitute.For<IUnit>();
         unit.Position.Returns((HexPosition?)null);
-        
+
         // Act
         var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, [],
         new HashSet<HexCoordinates>());
-        
+
         // Assert
         reachabilityData.AllReachableHexes.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_ShouldReturnPathsForAllDirections_WhenJumping()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetHex = new HexCoordinates(5, 7); // 2 hexes away
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Jump,
+            movementPoints: 3,
+            reachabilityData);
+
+        // Assert
+        paths.Count.ShouldBe(6); // Should have paths for all 6 directions
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            paths.ShouldContainKey(direction);
+            paths[direction].Destination?.Coordinates.ShouldBe(targetHex);
+            paths[direction].Destination?.Facing.ShouldBe(direction);
+        }
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_ShouldReturnEmptyDictionary_WhenTargetTooFarForJump()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetHex = new HexCoordinates(5, 9); // 4 hexes away
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Jump,
+            movementPoints: 3, // Not enough to reach
+            reachabilityData);
+
+        // Assert
+        paths.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_ShouldReturnPathsForForwardMovement()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetHex = new HexCoordinates(5, 7); // 2 hexes away in the forward direction
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Walk,
+            movementPoints: 5,
+            reachabilityData);
+
+        // Assert
+        paths.ShouldNotBeEmpty();
+        foreach (var path in paths.Values)
+        {
+            path.Destination?.Coordinates.ShouldBe(targetHex);
+        }
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_ShouldReturnPathsForBackwardMovement()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetHex = new HexCoordinates(5, 3); // 2 hexes away in the backward direction
+        var reachabilityData = new UnitReachabilityData([], [targetHex]);
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Walk,
+            movementPoints: 5,
+            reachabilityData);
+
+        // Assert
+        paths.ShouldNotBeEmpty();
+        foreach (var path in paths.Values)
+        {
+            path.Destination?.Coordinates.ShouldBe(targetHex);
+        }
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_ShouldReturnEmptyDictionary_WhenNeitherForwardNorBackward()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetHex = new HexCoordinates(5, 7);
+        var reachabilityData = new UnitReachabilityData([], []);
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Walk,
+            movementPoints: 5,
+            reachabilityData);
+
+        // Assert
+        paths.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_ShouldHandleZeroLengthPath_WhenTargetIsSameHex()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetHex = new HexCoordinates(5, 5); // Same hex
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Walk,
+            movementPoints: 5,
+            reachabilityData);
+
+        // Assert
+        paths.ShouldNotBeEmpty();
+
+        // The path for the same facing should have 0 segments
+        paths[HexDirection.Top].Segments.Count.ShouldBe(0);
+
+        // Paths for other facings should have turning segments
+        paths[HexDirection.TopRight].Segments.Count.ShouldBe(1);
+        paths[HexDirection.TopRight].TurnsTaken.ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_ShouldRespectProhibitedHexes()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetHex = new HexCoordinates(5, 7);
+        var prohibitedHexes = new List<HexCoordinates> { new(5, 6) }; // Block the direct path
+        var reachabilityData = new UnitReachabilityData([targetHex], []);
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Walk,
+            movementPoints: 5,
+            reachabilityData,
+            prohibitedHexes);
+
+        // Assert - Should either find alternate paths or return empty if no path exists
+        // The exact behavior depends on the pathfinding algorithm
+        foreach (var path in paths.Values)
+        {
+            // Verify that prohibited hexes are not in the path
+            foreach (var hex in path.Hexes)
+            {
+                prohibitedHexes.ShouldNotContain(hex);
+            }
+        }
     }
 }

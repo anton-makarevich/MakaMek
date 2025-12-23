@@ -200,85 +200,29 @@ public class MovementState : IUiState
 
     private void HandleTargetHexSelection(Hex hex)
     {
-        if (_selectedUnit?.Position == null || _viewModel.Game == null) return;
-
-        var isForwardReachable = _reachabilityData?.IsForwardReachable(hex.Coordinates) ?? false;
-        var isBackwardReachable = _reachabilityData?.IsBackwardReachable(hex.Coordinates) ?? false;
+        if (_selectedUnit?.Position == null
+            || _viewModel.Game == null
+            || _selectedMovementType == null
+            || _reachabilityData == null) return;
 
         // Reset selection if clicked outside reachable hexes during target hex selection
         // BUT NOT if the unit is in post-standup movement state (must complete declared movement)
-        if (!isForwardReachable && !isBackwardReachable)
+        if (!_reachabilityData.Value.IsHexReachable(hex.Coordinates))
         {
             ResetUnitSelection();
             return;
         }
 
         CurrentMovementStep = MovementStep.SelectingDirection;
-        
-        _possibleDirections = [];
-        var availableDirections = HexDirectionExtensions.AllDirections;
 
-        if (_selectedMovementType == MovementType.Jump)
-        {
-            // For jumping, we can face any direction and calculate a path ignoring terrain
-            foreach (var direction in availableDirections)
-            {
-                var targetPos = new HexPosition(hex.Coordinates, direction);
-                var path = _viewModel.Game.BattleMap?.FindJumpPath(
-                    _selectedUnit.Position,
-                    targetPos,
-                    _movementPoints);
-
-                if (path != null)
-                {
-                    _possibleDirections[direction] = path;
-                }
-            }
-        }
-        else
-        {
-            foreach (var direction in availableDirections)
-            {
-                var targetPos = new HexPosition(hex.Coordinates, direction);
-                MovementPath? path = null;
-
-                if (isForwardReachable)
-                {
-                    // Try forward movement
-                    path = _viewModel.Game?.BattleMap?.FindPath(
-                        _selectedUnit.Position,
-                        targetPos,
-                        _movementPoints,
-                        _prohibitedHexes);
-                }
-
-                if (path == null && isBackwardReachable)
-                {
-                    // Try backward movement
-                    var oppositeStartPos = _selectedUnit.Position.GetOppositeDirectionPosition();
-                    var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
-                    
-                    path = _viewModel.Game?.BattleMap?.FindPath(
-                        oppositeStartPos,
-                        oppositeTargetPos,
-                        _movementPoints,
-                        _prohibitedHexes);
-
-                    // If a path found, use Reverse() method
-                    path = path?.ReverseFacing();
-                }
-
-                if (path is { Segments.Count: 0 }) // target equals the current position with unchanged facing
-                {
-                    path = new MovementPath([new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0)]);
-                }
-                
-                if (path != null)
-                {
-                    _possibleDirections[direction] = path;
-                }
-            }
-        }
+        // Use the extension method to find all possible paths to the target hex
+        _possibleDirections = _viewModel.Game.BattleMap?.GetPathsToHexWithAllFacings(
+            _selectedUnit.Position,
+            hex.Coordinates,
+            _selectedMovementType.Value,
+            _movementPoints,
+            _reachabilityData.Value,
+            _prohibitedHexes) ?? [];
 
         // Show direction selector if there are any possible directions
         if (_possibleDirections.Count != 0)

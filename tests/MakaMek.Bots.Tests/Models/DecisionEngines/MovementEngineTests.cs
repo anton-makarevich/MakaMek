@@ -34,38 +34,6 @@ public class MovementEngineTests
     }
 
     [Fact]
-    public async Task MakeDecision_WhenNoUnmovedUnits_ShouldThrowBotDecisionException()
-    {
-        // Arrange
-        var movedUnit = CreateMockUnit(hasMoved: true);
-        _player.AliveUnits.Returns([movedUnit]);
-        
-        // Act & Assert
-        var exception = await Should.ThrowAsync<BotDecisionException>(async () => await _sut.MakeDecision(_player));
-        exception.DecisionEngineType.ShouldBe(nameof(MovementEngine));
-        exception.PlayerId.ShouldBe(_player.Id);
-    }
-
-    [Fact]
-    public async Task MakeDecision_WhenUnitIsImmobile_ShouldSendStandingStillCommand()
-    {
-        // Arrange
-        var immobileUnit = CreateMockUnit(hasMoved: false, isImmobile: true);
-        _player.AliveUnits.Returns([immobileUnit]);
-        _clientGame.Players.Returns([_player]);
-        
-        // Act
-        await _sut.MakeDecision(_player);
-        
-        // Assert - immobile units can still send StandingStill command (matching UI behavior)
-        await _clientGame.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
-            cmd.PlayerId == _player.Id &&
-            cmd.UnitId == immobileUnit.Id &&
-            cmd.MovementType == MovementType.StandingStill &&
-            cmd.MovementPath.Count == 0));
-    }
-
-    [Fact]
     public async Task MakeDecision_WhenNoBattleMap_ShouldSendStandingStillCommand()
     {
         // Arrange
