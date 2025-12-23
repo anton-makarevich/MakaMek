@@ -189,69 +189,53 @@ public class MovementEngine : IBotDecisionEngine
 
             var reachablePaths = new List<MovementPath>();
 
+            // For jumping, process forward reachable hexes only
             if (movementType == MovementType.Jump)
             {
-                // For jumping, try all reachable hexes with all possible facing directions
                 foreach (var hex in reachabilityData.ForwardReachableHexes)
                 {
-                    foreach (var direction in HexDirectionExtensions.AllDirections)
-                    {
-                        var targetPos = new HexPosition(hex, direction);
-                        var path = _clientGame.BattleMap.FindJumpPath(
-                            unit.Position,
-                            targetPos,
-                            unit.GetMovementPoints(movementType));
+                    var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
+                        unit.Position,
+                        hex,
+                        movementType,
+                        unit.GetMovementPoints(movementType),
+                        isForwardReachable: true,
+                        isBackwardReachable: false,
+                        occupiedHexes);
 
-                        if (path != null)
-                        {
-                            reachablePaths.Add(path);
-                        }
-                    }
+                    reachablePaths.AddRange(paths.Values);
                 }
             }
             else
             {
-                // For walk/run, try forward movement for forward reachable hexes
+                // For walk/run, process forward reachable hexes
                 foreach (var hex in reachabilityData.ForwardReachableHexes)
                 {
-                    foreach (var direction in HexDirectionExtensions.AllDirections)
-                    {
-                        var targetPos = new HexPosition(hex, direction);
-                        var path = _clientGame.BattleMap.FindPath(
-                            unit.Position,
-                            targetPos,
-                            unit.GetMovementPoints(movementType),
-                            occupiedHexes);
+                    var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
+                        unit.Position,
+                        hex,
+                        movementType,
+                        unit.GetMovementPoints(movementType),
+                        isForwardReachable: true,
+                        isBackwardReachable: false,
+                        occupiedHexes);
 
-                        if (path != null)
-                        {
-                            reachablePaths.Add(path);
-                        }
-                    }
+                    reachablePaths.AddRange(paths.Values);
                 }
 
-                // Try backward movement for backward reachable hexes
+                // Process backward reachable hexes
                 foreach (var hex in reachabilityData.BackwardReachableHexes)
                 {
-                    foreach (var direction in HexDirectionExtensions.AllDirections)
-                    {
-                        var targetPos = new HexPosition(hex, direction);
-                        var oppositeStartPos = unit.Position.GetOppositeDirectionPosition();
-                        var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
+                    var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
+                        unit.Position,
+                        hex,
+                        movementType,
+                        unit.GetMovementPoints(movementType),
+                        isForwardReachable: false,
+                        isBackwardReachable: true,
+                        occupiedHexes);
 
-                        var path = _clientGame.BattleMap.FindPath(
-                            oppositeStartPos,
-                            oppositeTargetPos,
-                            unit.GetMovementPoints(movementType),
-                            occupiedHexes);
-
-                        if (path != null)
-                        {
-                            // Use Reverse() method for backward movement
-                            path = path.ReverseFacing();
-                            reachablePaths.Add(path);
-                        }
-                    }
+                    reachablePaths.AddRange(paths.Values);
                 }
             }
 

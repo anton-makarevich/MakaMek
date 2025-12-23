@@ -116,5 +116,88 @@ public static class BattleMapExtensions
 
             return new UnitReachabilityData(forwardReachableHexes, backwardReachableHexes);
         }
+
+        /// <summary>
+        /// Finds all possible paths from a start position to a target hex, considering all possible facing directions.
+        /// </summary>
+        /// <param name="startPosition">The starting position with facing</param>
+        /// <param name="targetHex">The target hex coordinates</param>
+        /// <param name="movementType">The type of movement (Jump, Walk, Run)</param>
+        /// <param name="movementPoints">Available movement points</param>
+        /// <param name="isForwardReachable">Whether the target hex is reachable via forward movement</param>
+        /// <param name="isBackwardReachable">Whether the target hex is reachable via backward movement</param>
+        /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through</param>
+        /// <returns>Dictionary mapping each valid facing direction to the path that reaches that facing</returns>
+        public Dictionary<HexDirection, MovementPath> GetPathsToHexWithAllFacings(
+            HexPosition startPosition,
+            HexCoordinates targetHex,
+            MovementType movementType,
+            int movementPoints,
+            bool isForwardReachable,
+            bool isBackwardReachable,
+            IEnumerable<HexCoordinates>? prohibitedHexes = null)
+        {
+            var possibleDirections = new Dictionary<HexDirection, MovementPath>();
+            var availableDirections = HexDirectionExtensions.AllDirections;
+
+            if (movementType == MovementType.Jump)
+            {
+                // For jumping, we can face any direction and calculate a path ignoring terrain
+                foreach (var direction in availableDirections)
+                {
+                    var targetPos = new HexPosition(targetHex, direction);
+                    var path = map.FindJumpPath(
+                        startPosition,
+                        targetPos,
+                        movementPoints);
+
+                    if (path != null)
+                    {
+                        possibleDirections[direction] = path;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var direction in availableDirections)
+                {
+                    var targetPos = new HexPosition(targetHex, direction);
+                    MovementPath? path = null;
+
+                    if (isForwardReachable)
+                    {
+                        // Try forward movement
+                        path = map.FindPath(
+                            startPosition,
+                            targetPos,
+                            movementPoints,
+                            prohibitedHexes);
+                    }
+
+                    if (path == null && movementType == MovementType.Walk && isBackwardReachable)
+                    {
+                        // Try backward movement
+                        var oppositeStartPos = startPosition.GetOppositeDirectionPosition();
+                        var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
+
+                        path = map.FindPath(
+                            oppositeStartPos,
+                            oppositeTargetPos,
+                            movementPoints,
+                            prohibitedHexes);
+
+                        // If a path found, use Reverse() method
+                        path = path?.ReverseFacing();
+                    }
+
+                    if (path != null)
+                    {
+                        possibleDirections[direction] = path;
+                    }
+                }
+            }
+
+            return possibleDirections;
+        }
     }
 }
