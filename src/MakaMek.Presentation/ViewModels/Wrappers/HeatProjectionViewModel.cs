@@ -27,7 +27,6 @@ public class HeatProjectionViewModel : BindableBase
         get;
         set
         {
-            if (value == field) return;
             SetProperty(ref field, value);
             UpdateProjectedHeat();
         }
