@@ -1,5 +1,4 @@
 using NSubstitute;
-using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
@@ -8,7 +7,6 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
-using Shouldly;
 
 namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
 
@@ -87,12 +85,12 @@ public class MovementEngineTests
         {
             (new HexCoordinates(2, 2), 1)
         };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
             .Returns(reachableHexes);
         
         // Mock path finding
         var pathSegment = new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), 1);
-        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
             .Returns(new MovementPath([pathSegment]));
 
         // Act
@@ -118,7 +116,7 @@ public class MovementEngineTests
         
         // Mock a map and reachable hexes to avoid null checks failing
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (new HexCoordinates(2, 2), 1) };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
             .Returns(reachableHexes);
         
         // Act
@@ -150,7 +148,7 @@ public class MovementEngineTests
         _player.AliveUnits.Returns([brawler, trooper]);
         
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (new HexCoordinates(2, 2), 1) };
-        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IEnumerable<HexCoordinates>>())
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
             .Returns(reachableHexes);
 
         // Act

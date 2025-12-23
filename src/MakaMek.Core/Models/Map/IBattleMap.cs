@@ -17,7 +17,7 @@ public interface IBattleMap
     /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
-    MovementPath? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IEnumerable<HexCoordinates>? prohibitedHexes = null);
+    MovementPath? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
 
     /// <summary>
     /// Gets all valid hexes that can be reached with given movement points, considering facing
@@ -25,7 +25,7 @@ public interface IBattleMap
     IEnumerable<(HexCoordinates coordinates, int cost)> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
-        IEnumerable<HexCoordinates>? prohibitedHexes = null);
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
 
     /// <summary>
     /// Gets all valid hexes that can be reached with jumping movement, where each hex costs 1 MP
@@ -34,10 +34,10 @@ public interface IBattleMap
     IEnumerable<HexCoordinates> GetJumpReachableHexes(
         HexCoordinates start,
         int movementPoints,
-        IEnumerable<HexCoordinates>? prohibitedHexes = null);
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
 
     /// <summary>
-    /// Checks if there is line of sight between two hexes
+    /// Checks if there is a line of sight between two hexes
     /// </summary>
     bool HasLineOfSight(HexCoordinates from, HexCoordinates to);
 

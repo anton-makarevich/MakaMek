@@ -151,7 +151,7 @@ public class BattleMapExtensionsTests
         var reachabilityData = map.GetReachableHexesForUnit(
             unit,
             MovementType.Jump, 
-            [],
+            new HashSet<HexCoordinates>(),
             new HashSet<HexCoordinates>());
         
         // Assert
@@ -165,14 +165,25 @@ public class BattleMapExtensionsTests
     {
         // Arrange
         var map = new BattleMapFactory()
-            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+            .GenerateMap(10,
+                10,
+                new SingleTerrainGenerator(10,
+                    10,
+                    new ClearTerrain()));
         var unit = Substitute.For<IUnit>();
-        unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+        unit.Position.Returns(new HexPosition(new HexCoordinates(5,
+                5),
+            HexDirection.Top));
         unit.GetMovementPoints(MovementType.Jump).Returns(3);
-        HashSet<HexCoordinates> friendlyUnitsCoordinates = [new(5, 6), new(6, 6)];
+        HashSet<HexCoordinates> friendlyUnitsCoordinates = [new(5,
+            6), new(6,
+            6)];
         
         // Act
-        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Jump, [], friendlyUnitsCoordinates);
+        var reachabilityData = map.GetReachableHexesForUnit(unit,
+            MovementType.Jump,
+            new HashSet<HexCoordinates>(),
+            friendlyUnitsCoordinates);
         
         // Assert
         foreach (var hex in friendlyUnitsCoordinates)
@@ -190,7 +201,7 @@ public class BattleMapExtensionsTests
         var unit = Substitute.For<IUnit>(); 
         unit.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
         unit.GetMovementPoints(MovementType.Jump).Returns(3);
-        List<HexCoordinates> prohibitedHexes = [new(5, 6), new(6, 6)];
+        HashSet<HexCoordinates> prohibitedHexes = [new(5, 6), new(6, 6)];
         
         // Act
         var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Jump, prohibitedHexes,
@@ -214,7 +225,8 @@ public class BattleMapExtensionsTests
         unit.GetMovementPoints(MovementType.Jump).Returns(3);       
         
         // Act
-        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Jump, [],
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Jump,
+            new HashSet<HexCoordinates>(),
             new HashSet<HexCoordinates>());
         
         // Assert
@@ -233,8 +245,9 @@ public class BattleMapExtensionsTests
         unit.CanMoveBackward(MovementType.Run).Returns(false);
         
         // Act
-        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Run, [],
-        new HashSet<HexCoordinates>());
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Run, 
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
         
         // Assert
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
@@ -252,8 +265,9 @@ public class BattleMapExtensionsTests
         unit.CanMoveBackward(MovementType.Walk).Returns(true);
         
         // Act
-        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, [],
-        new HashSet<HexCoordinates>());
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, 
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
         
         // Assert
         reachabilityData.BackwardReachableHexes.ShouldNotBeEmpty();
@@ -270,8 +284,9 @@ public class BattleMapExtensionsTests
         unit.GetMovementPoints(MovementType.Walk).Returns(0);
         
         // Act
-        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, [],
-        new HashSet<HexCoordinates>());
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, 
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
         
         // Assert
         reachabilityData.AllReachableHexes.ShouldBeEmpty();
@@ -287,8 +302,9 @@ public class BattleMapExtensionsTests
         unit.Position.Returns((HexPosition?)null);
 
         // Act
-        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, [],
-        new HashSet<HexCoordinates>());
+        var reachabilityData = map.GetReachableHexesForUnit(unit, MovementType.Walk, 
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
 
         // Assert
         reachabilityData.AllReachableHexes.ShouldBeEmpty();
@@ -455,7 +471,7 @@ public class BattleMapExtensionsTests
             .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
         var targetHex = new HexCoordinates(5, 7);
-        var prohibitedHexes = new List<HexCoordinates> { new(5, 6) }; // Block the direct path
+        var prohibitedHexes = new HashSet<HexCoordinates> { new(5, 6) }; // Block the direct path
         var reachabilityData = new UnitReachabilityData([targetHex], []);
 
         // Act

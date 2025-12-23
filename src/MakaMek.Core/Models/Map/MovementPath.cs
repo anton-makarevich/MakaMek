@@ -2,17 +2,34 @@
 
 namespace Sanet.MakaMek.Core.Models.Map;
 
-public class MovementPath
+public class MovementPath : IEquatable<MovementPath>
 {
-    private IReadOnlyList<HexCoordinates>? _hexes;
-    public MovementPath(IEnumerable<PathSegment> segments)
+    public MovementPath(IEnumerable<PathSegment> segments, bool isJump = false)
     {
         Segments = segments.ToList();
+        if (Segments.Count > 0)
+        {
+            Start = Segments[0].From;
+            Destination = Segments[^1].To;
+        }
+        IsJump = isJump;
     }
-    
-    public MovementPath(IEnumerable<PathSegmentData> segments)
+
+    public MovementPath(IEnumerable<PathSegmentData> segments, bool isJump = false) : this(
+        segments.Select(s => new PathSegment(s)), isJump)
     {
-        Segments = segments.Select(s => new PathSegment(s)).ToList();
+    }
+
+
+    /// <summary>
+    /// Constructor for cache lookups
+    /// </summary>
+    internal MovementPath(HexPosition start, HexPosition destination, bool isJump)
+    {
+        Start = start;
+        Destination = destination;
+        IsJump = isJump;
+        Segments = new List<PathSegment>();
     }
 
     public IReadOnlyList<PathSegment> Segments { get; }
@@ -25,13 +42,15 @@ public class MovementPath
         ? 0 
         : Start.Coordinates.DistanceTo(Destination.Coordinates);
     
-    public HexPosition? Start => Segments.Count == 0 ? null : Segments[0].From;
+    public HexPosition? Start { get; }
     
-    public HexPosition? Destination => Segments.Count == 0 ? null : Segments[^1].To;
+    public HexPosition? Destination { get; }
+
+    private bool IsJump { get; }
     
     public IReadOnlyList<HexCoordinates> Hexes => Start == null 
         ? []
-        : _hexes ??= new List<HexCoordinates> { Start.Coordinates }
+        : field ??= new List<HexCoordinates> { Start.Coordinates }
             .Concat(Segments.Select(s => s.To.Coordinates))
             .Distinct()
             .ToList();
@@ -50,6 +69,27 @@ public class MovementPath
             segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
             segment.Cost
         )).ToList();
-        return new MovementPath(reversedSegments);
+        return new MovementPath(reversedSegments, IsJump);
+    }
+
+    public bool Equals(MovementPath? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return EqualityComparer<HexPosition?>.Default.Equals(Start, other.Start) 
+               && EqualityComparer<HexPosition?>.Default.Equals(Destination, other.Destination) 
+               && IsJump == other.IsJump;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is null) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        return obj.GetType() == GetType() && Equals((MovementPath)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Start, Destination, IsJump);
     }
 }

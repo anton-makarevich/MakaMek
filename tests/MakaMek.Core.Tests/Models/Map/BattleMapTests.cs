@@ -38,10 +38,10 @@ public class BattleMapTests
     }
 
     [Theory]
-    [InlineData(-1, 0)]  // Left of map
-    [InlineData(2, 0)]   // Right of map
-    [InlineData(0, -1)]  // Above map
-    [InlineData(0, 2)]   // Below map
+    [InlineData(-1, 0)]  // Left of the map
+    [InlineData(2, 0)]   // Right of the map
+    [InlineData(0, -1)]  // Above the map
+    [InlineData(0, 2)]   // Below the map
     public void AddHex_OutsideMapBoundaries_ThrowsException(int q, int r)
     {
         // Arrange
@@ -254,7 +254,7 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
 
         // Create prohibited hexes - block two adjacent hexes
-        var prohibitedHexes = new List<HexCoordinates>
+        var prohibitedHexes = new HashSet<HexCoordinates>
         {
             new(2, 1), // Hex above start
             new(3, 2)  // Hex to the right of start
@@ -279,10 +279,10 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
         
         // Create prohibited hexes that block the direct path
-        var prohibitedHexes = new[]
+        var prohibitedHexes = new HashSet<HexCoordinates>
         {
-            new HexCoordinates(2, 2),
-            new HexCoordinates(3, 2)
+            new(2, 2),
+            new(3, 2)
         };
 
         // Act
@@ -383,7 +383,7 @@ public class BattleMapTests
         reachableHexes.All(h => h.DistanceTo(start) <= movementPoints).ShouldBeTrue(
             "All hexes should be within movement range");
         
-        // Verify we have correct number of hexes at each distance
+        // Verify we have the correct number of hexes at each distance
         reachableHexes.Count(h => h.DistanceTo(start) == 1).ShouldBe(6, 
             "Should have 6 hexes at distance 1");
         reachableHexes.Count(h => h.DistanceTo(start) == 2).ShouldBe(12, 
@@ -400,13 +400,17 @@ public class BattleMapTests
         const int movementPoints = 2;
 
         // Prohibit some adjacent hexes
-        var prohibitedHexes = start.GetAdjacentCoordinates().Take(3).ToList();
+        var prohibitedHexes = start.GetAdjacentCoordinates().Take(3).ToHashSet();
 
         // Act
         var reachableHexes = map.GetJumpReachableHexes(start, movementPoints, prohibitedHexes).ToList();
 
         // Assert
-        prohibitedHexes.ForEach(coordinates => reachableHexes.ShouldNotContain(coordinates));
+        foreach (var coordinates in prohibitedHexes)
+        {
+            reachableHexes.ShouldNotContain(coordinates);
+        }
+
         reachableHexes.All(h => h.DistanceTo(start) <= movementPoints).ShouldBeTrue();
     }
 
@@ -459,10 +463,10 @@ public class BattleMapTests
             {
                 pathSegment.Cost.ShouldBe(1);
             }
-            // Verify path leads to target
-            path.Segments.Last().To.Coordinates.ShouldBe(to.Coordinates,
+            // Verify the path leads to the target
+            path.Segments[^1].To.Coordinates.ShouldBe(to.Coordinates,
                 "Path should end at target coordinates");
-            path.Segments.Last().To.Facing.ShouldBe(to.Facing,
+            path.Segments[^1].To.Facing.ShouldBe(to.Facing,
                 "Path should end with target facing");
         }
         else
@@ -547,10 +551,10 @@ public class BattleMapTests
         // Assert
         path.ShouldNotBeNull();
         path.Segments.Count.ShouldBe(3); // Should take 3 turns to rotate 180 degrees
-        path.Segments.All(segment => segment.From.Coordinates == hex.Coordinates).ShouldBeTrue(); // All segments in same hex
+        path.Segments.All(segment => segment.From.Coordinates == hex.Coordinates).ShouldBeTrue(); // All segments in the same hex
         path.Segments.All(segment => segment.To.Coordinates == hex.Coordinates).ShouldBeTrue();
         path.Segments.All(segment => segment.Cost == 1).ShouldBeTrue(); // Each turn costs 1
-        path.Segments.Last().To.Facing.ShouldBe(HexDirection.Bottom); // Should end facing target direction
+        path.Segments[^1].To.Facing.ShouldBe(HexDirection.Bottom); // Should end facing the target direction
     }
 
     [Fact]
@@ -664,7 +668,7 @@ public class BattleMapTests
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 4);
         
-        // Set terrain with total factor of 3 (HeavyWoods=2, LightWoods=1)
+        // Set terrain with a total factor of 3 (HeavyWoods=2, LightWoods=1)
         var hex1 = map.GetHex(new HexCoordinates(1, 2))!;
         hex1.RemoveTerrain(MakaMekTerrains.Clear);
         hex1.AddTerrain(new HeavyWoodsTerrain());
@@ -685,7 +689,7 @@ public class BattleMapTests
         var from = new HexCoordinates(1, 1);
         var to = new HexCoordinates(1, 4);
         
-        // Set terrain with total factor of 4 (HeavyWoods=2 each)
+        // Set terrain with a total factor of 4 (HeavyWoods=2 each)
         var hex1 = map.GetHex(new HexCoordinates(1, 2))!;
         hex1.RemoveTerrain(MakaMekTerrains.Clear);
         hex1.AddTerrain(new HeavyWoodsTerrain());
@@ -752,7 +756,7 @@ public class BattleMapTests
 
         // Assert
         // LOS should be blocked because the line passes through multiple heavy woods hexes
-        // Each heavy woods has intervening factor of 2, and total intervening factor >= 3 blocks LOS
+        // Each heavy woods has an intervening factor of 2, and total intervening factor >= 3 blocks LOS
         hasLos.ShouldBeFalse($"LOS should be blocked by heavy woods cluster between {attacker} and {target}");
     }
 
@@ -831,7 +835,7 @@ public class BattleMapTests
         var initialLos = map.HasLineOfSight(from, to);
         initialLos.ShouldBeTrue("Should have LOS with no obstacles");
 
-        // Add heavy forest but don't clear cache
+        // Add heavy forest but don't clear the cache
         map.GetHex(new HexCoordinates(3, 3))!.AddTerrain(new HeavyWoodsTerrain());
         map.GetHex(new HexCoordinates(4, 2))!.AddTerrain(new HeavyWoodsTerrain());
 
@@ -850,7 +854,7 @@ public class BattleMapTests
         var map = new BattleMap(3, 3);
         
         // Add hexes with different terrains and levels
-        var hex1 = new Hex(new HexCoordinates(1, 1), 0);
+        var hex1 = new Hex(new HexCoordinates(1, 1));
         hex1.AddTerrain(new ClearTerrain());
         map.AddHex(hex1);
         
@@ -896,19 +900,62 @@ public class BattleMapTests
         hexData4.TerrainTypes.ShouldContain(MakaMekTerrains.LightWoods);
         hexData4.TerrainTypes.ShouldContain(MakaMekTerrains.HeavyWoods);
     }
-
-    private BattleMap CreateTestMap()
+    
+    [Fact]
+    public void FindPath_ShouldCacheResult()
     {
-        var map = new BattleMap(5, 5);
-        for (var q = 1; q <= 5; q++)
-        {
-            for (var r = 1; r <= 5; r++)
-            {
-                var hex = new Hex(new HexCoordinates(q, r));
-                hex.AddTerrain(new ClearTerrain());
-                map.AddHex(hex);
-            }
-        }
-        return map;
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+
+        // Act 1
+        var path1 = map.FindPath(start, target, 10);
+        path1.ShouldNotBeNull();
+        
+        // Act 2
+        var path2 = map.FindPath(start, target, 10);
+        
+        // Assert
+        path2.ShouldBeSameAs(path1);
+    }
+
+    [Fact]
+    public void FindPath_WithProhibitedHexes_ShouldNotCache()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+        var prohibited = new HashSet<HexCoordinates> { new HexCoordinates(5, 5) }; // Prohibited hex (irrelevant to a path but triggers cache bypass)
+        
+        // Act 1
+        var path1 = map.FindPath(start, target, 10, prohibited);
+        path1.ShouldNotBeNull();
+        
+        // Act 2
+        var path2 = map.FindPath(start, target, 10, prohibited);
+        
+        // Assert
+        path2.ShouldNotBeSameAs(path1);
+    }
+    
+    [Fact]
+    public void FindJumpPath_ShouldCacheResult()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom);
+
+        // Act 1
+        var path1 = map.FindJumpPath(start, target, 5);
+        path1.ShouldNotBeNull();
+        
+        // Act 2
+        var path2 = map.FindJumpPath(start, target, 5);
+        
+        // Assert
+        path2.ShouldBeSameAs(path1);
     }
 }

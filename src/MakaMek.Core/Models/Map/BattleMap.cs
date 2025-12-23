@@ -10,6 +10,7 @@ public class BattleMap(int width, int height) : IBattleMap
 {
     private readonly Dictionary<HexCoordinates, Hex> _hexes = new();
     private readonly LineOfSightCache _losCache = new();
+    private readonly MovementPathCache _movementPathCache = new();
 
     public int Width { get; } = width;
     public int Height { get; } = height;
@@ -36,8 +37,20 @@ public class BattleMap(int width, int height) : IBattleMap
     /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
-    public MovementPath? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IEnumerable<HexCoordinates>? prohibitedHexes = null)
+    public MovementPath? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
     {
+        prohibitedHexes??= new HashSet<HexCoordinates>();
+        var useCache = prohibitedHexes.Count == 0;
+
+        if (useCache)
+        {
+            var cachedPath = _movementPathCache.Get(start, target, false);
+            if (cachedPath != null)
+            {
+                return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
+            }
+        }
+
         // If start and target are in the same hex, just return turning segments
         if (start.Coordinates == target.Coordinates)
         {
@@ -52,12 +65,13 @@ public class BattleMap(int width, int height) : IBattleMap
                 segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
                 currentPos = step;
             }
-            return new MovementPath(segments);
+            var path = new MovementPath(segments);
+            if (useCache) _movementPathCache.Add(path);
+            return path;
         }
 
         var frontier = new PriorityQueue<(HexPosition pos, List<HexPosition> path, int cost), int>();
         var visited = new Dictionary<(HexCoordinates coords, HexDirection facing), int>();
-        var prohibited = prohibitedHexes?.ToHashSet() ?? [];
         
         frontier.Enqueue((start, [start], 0), 0);
         visited[(start.Coordinates, start.Facing)] = 0;
@@ -86,14 +100,16 @@ public class BattleMap(int width, int height) : IBattleMap
 
                     segments.Add(new PathSegment(from, to, segmentCost));
                 }
-                return new MovementPath(segments);
+                var result = new MovementPath(segments);
+                if (useCache) _movementPathCache.Add(result);
+                return result;
             }
 
             // For each adjacent hex
             foreach (var nextCoord in current.Coordinates.GetAdjacentCoordinates())
             {
                 var hex = GetHex(nextCoord);
-                if (hex == null || prohibited.Contains(nextCoord))
+                if (hex == null || prohibitedHexes.Contains(nextCoord))
                     continue;
 
                 // Get required facing for movement
@@ -150,12 +166,12 @@ public class BattleMap(int width, int height) : IBattleMap
     public IEnumerable<(HexCoordinates coordinates, int cost)> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
-        IEnumerable<HexCoordinates>? prohibitedHexes = null)
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
     {
         var visited = new Dictionary<(HexCoordinates coords, HexDirection facing), int>();
         var bestCosts = new Dictionary<HexCoordinates, int>();
         var toVisit = new Queue<HexPosition>();
-        var prohibited = prohibitedHexes?.ToHashSet() ?? [];
+        prohibitedHexes ??= new HashSet<HexCoordinates>();
         
         visited[(start.Coordinates, start.Facing)] = 0;
         bestCosts[start.Coordinates] = 0;
@@ -169,12 +185,12 @@ public class BattleMap(int width, int height) : IBattleMap
             // For each adjacent hex
             foreach (var neighborCoord in current.Coordinates.GetAdjacentCoordinates())
             {
-                // Skip if hex doesn't exist on map or is prohibited
+                // Skip if hex doesn't exist on a map or is prohibited
                 var neighborHex = GetHex(neighborCoord);
-                if (neighborHex == null || prohibited.Contains(neighborCoord))
+                if (neighborHex == null || prohibitedHexes.Contains(neighborCoord))
                     continue;
 
-                // Get required facing to move to this hex
+                // Get the required facing to move to this hex
                 var requiredFacing = current.Coordinates.GetDirectionToNeighbour(neighborCoord);
                 
                 // Calculate turning cost from current facing
@@ -214,9 +230,9 @@ public class BattleMap(int width, int height) : IBattleMap
     public IEnumerable<HexCoordinates> GetJumpReachableHexes(
         HexCoordinates start,
         int movementPoints,
-        IEnumerable<HexCoordinates>? prohibitedHexes = null)
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
     {
-        var prohibited = prohibitedHexes?.ToHashSet() ?? [];
+        prohibitedHexes ??= new HashSet<HexCoordinates>();
         
         // Get all hexes within range using the existing method
         return start.GetCoordinatesInRange(movementPoints)
@@ -225,20 +241,20 @@ public class BattleMap(int width, int height) : IBattleMap
                 // Skip if hex doesn't exist on a map or is prohibited
                 var hex = GetHex(coordinates);
                 return hex != null && 
-                       !prohibited.Contains(coordinates) &&
+                       !prohibitedHexes.Contains(coordinates) &&
                        coordinates != start;
             });
     }
 
     /// <summary>
-    /// Checks if there is line of sight between two hexes
+    /// Checks if there is a line of sight between two hexes
     /// </summary>
     public bool HasLineOfSight(HexCoordinates from, HexCoordinates to)
     {
         if (!IsOnMap(from) || !IsOnMap(to))
             return false;
 
-        // If same hex, always has LOS
+        // If the same hex, always has LOS
         if (from == to)
             return true;
 
@@ -251,7 +267,7 @@ public class BattleMap(int width, int height) : IBattleMap
         // Get all hexes along the line, resolving any divided line segments
         var hexLine = ResolveHexesAlongTheLine(from, to);
 
-        // Remove first and last hex (attacker and target positions)
+        // Remove the first and last hex (attacker and target positions)
         hexLine = hexLine.Skip(1).SkipLast(1).ToList();
 
         if (!hexLine.Any())
@@ -279,7 +295,7 @@ public class BattleMap(int width, int height) : IBattleMap
             distance++;
         }
         
-        // Calculate total intervening factor, handling nulls properly
+        // Calculate a total intervening factor, handling nulls properly
         var totalInterveningFactor = 0;
         foreach (var coordinates in hexLine)
         {
@@ -307,7 +323,7 @@ public class BattleMap(int width, int height) : IBattleMap
         // Get all possible segments in the line of sight
         var segments = from.LineTo(to);
         
-        // If no divided segments, just return main options
+        // If no divided segments, just return the main options
         if (segments.All(s => s.SecondOption == null))
         {
             var path = segments.Select(s => s.MainOption).ToList();
@@ -323,7 +339,7 @@ public class BattleMap(int width, int height) : IBattleMap
         var secondaryOptionsFactor = dividedSegments
             .Sum(s => GetHex(s.SecondOption!)?.GetTerrains().Sum(t => t.InterveningFactor) ?? 0);
 
-        // Choose whether to use secondary options based on which gives better defense
+        // Choose whether to use secondary options based on which gives the better defense
         var useSecondaryOptions = secondaryOptionsFactor > mainOptionsFactor;
 
         // Build the final path using the chosen option for divided segments
@@ -369,6 +385,12 @@ public class BattleMap(int width, int height) : IBattleMap
         if (!IsOnMap(from.Coordinates) || !IsOnMap(to.Coordinates))
             return null;
 
+        var cachedPath = _movementPathCache.Get(from, to, true);
+        if (cachedPath != null)
+        {
+            return cachedPath.TotalCost <= movementPoints ? cachedPath : null;
+        }
+
         var distance = from.Coordinates.DistanceTo(to.Coordinates);
         if (distance > movementPoints)
             return null;
@@ -387,7 +409,7 @@ public class BattleMap(int width, int height) : IBattleMap
 
             
 
-            // Add path segment with cost 1 (each hex costs 1 MP for jumping)
+            // Add a path segment with cost 1 (each hex costs 1 MP for jumping)
             HexPosition nextPosition;
             if (remainingDistance == 1)
                 nextPosition = to;
@@ -410,7 +432,9 @@ public class BattleMap(int width, int height) : IBattleMap
             remainingDistance--;
         }
 
-        return new MovementPath(path);
+        var result = new MovementPath(path, true);
+        _movementPathCache.Add(result);
+        return result;
     }
 
     /// <summary>
