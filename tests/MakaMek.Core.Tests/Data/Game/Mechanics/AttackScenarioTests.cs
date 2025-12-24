@@ -80,7 +80,7 @@ public class AttackScenarioTests
     }
     
     [Fact]
-    public void FromUnits_WithNullMovementType_ThrowsException()
+    public void FromUnits_WithNullMovementPath_ThrowsException()
     {
         // Arrange
         var attacker = Substitute.For<IUnit>();
@@ -95,6 +95,25 @@ public class AttackScenarioTests
         // Act & Assert
         Should.Throw<InvalidOperationException>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
             .Message.ShouldBe("Attacker's Movement Type is undefined");
+    }
+    
+    [Fact]
+    public void FromUnits_WithNullTargetMovementPath_ThrowsException()
+    {
+        // Arrange
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        var pilot = Substitute.For<IPilot>();
+        
+        attacker.Pilot.Returns(pilot);
+        attacker.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        attacker.MovementTaken.Returns(new MovementPath(Array.Empty<PathSegment>(), MovementType.Walk));
+        target.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom));
+        target.MovementTaken.Returns((MovementPath?)null);
+        
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
+            .Message.ShouldBe("Target's Movement Type is undefined");
     }
     
     [Fact]
