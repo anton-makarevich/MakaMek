@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Exceptions;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Map;
 
@@ -37,8 +38,17 @@ public class BattleMap(int width, int height) : IBattleMap
     /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
-    public MovementPath? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
+    public MovementPath? FindPath(HexPosition start,
+        HexPosition target,
+        MovementType movementType,
+        int maxMovementPoints,
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
     {
+        if (movementType == MovementType.Jump)
+        {
+            return FindJumpPath(start, target, maxMovementPoints);
+        }
+        
         prohibitedHexes??= new HashSet<HexCoordinates>();
         var useCache = prohibitedHexes.Count == 0;
 
@@ -65,7 +75,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
                 currentPos = step;
             }
-            var path = new MovementPath(segments);
+            var path = new MovementPath(segments, movementType);
             if (useCache) _movementPathCache.Add(path);
             return path;
         }
@@ -100,7 +110,7 @@ public class BattleMap(int width, int height) : IBattleMap
 
                     segments.Add(new PathSegment(from, to, segmentCost));
                 }
-                var result = new MovementPath(segments);
+                var result = new MovementPath(segments, movementType);
                 if (useCache) _movementPathCache.Add(result);
                 return result;
             }
@@ -380,7 +390,7 @@ public class BattleMap(int width, int height) : IBattleMap
         return GetHexes().Select(hex => hex.ToData()).ToList();
     }
 
-    public MovementPath? FindJumpPath(HexPosition from, HexPosition to, int movementPoints)
+    private MovementPath? FindJumpPath(HexPosition from, HexPosition to, int movementPoints)
     {
         if (!IsOnMap(from.Coordinates) || !IsOnMap(to.Coordinates))
             return null;
@@ -432,7 +442,7 @@ public class BattleMap(int width, int height) : IBattleMap
             remainingDistance--;
         }
 
-        var result = new MovementPath(path, true);
+        var result = new MovementPath(path, MovementType.Jump);
         _movementPathCache.Add(result);
         return result;
     }

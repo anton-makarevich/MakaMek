@@ -190,7 +190,7 @@ public abstract class Unit : IUnit
     }
 
     // Heat management
-    public int CurrentHeat { get; protected set; }
+    public int CurrentHeat { get; private set; }
     public int HeatDissipation => GetAvailableComponents<HeatSink>().Sum(hs => hs.HeatDissipation)
                                   + EngineHeatSinks; // Engine heat sinks
 
@@ -206,15 +206,15 @@ public abstract class Unit : IUnit
         var weaponHeatSources = new List<WeaponHeatData>();
 
         // Calculate movement heat
-        if (MovementTypeUsed.HasValue)
+        if (MovementTaken!=null)
         {
-            var movementHeatPoints = rulesProvider.GetMovementHeatPoints(MovementTypeUsed.Value, MovementPointsSpent);
+            var movementHeatPoints = rulesProvider.GetMovementHeatPoints(MovementTaken.MovementType, MovementPointsSpent);
 
             if (movementHeatPoints > 0)
             {
                 movementHeatSources.Add(new MovementHeatData
                 {
-                    MovementType = MovementTypeUsed.Value,
+                    MovementType = MovementTaken.MovementType,
                     MovementPointsSpent = MovementPointsSpent,
                     HeatPoints = movementHeatPoints
                 });
@@ -281,7 +281,7 @@ public abstract class Unit : IUnit
     // Parts management
     public IReadOnlyDictionary<PartLocation, UnitPart> Parts => _parts;
     public Guid Id { get; private set; } = Guid.Empty;
-    public IPilot? Pilot { get; protected set; }
+    public IPilot? Pilot { get; private set; }
 
     /// <summary>
     /// Assigns a pilot to this unit
@@ -322,10 +322,9 @@ public abstract class Unit : IUnit
 
     // Movement tracking
     public int MovementPointsSpent { get; private set; }
-    public MovementType? MovementTypeUsed { get; private set; }
-    public int DistanceCovered { get; private set; }
+    public MovementPath? MovementTaken { get; private set; }
 
-    public bool HasMoved => MovementTypeUsed.HasValue;
+    public bool HasMoved => MovementTaken!=null;
 
     // Damage tracking
     public int TotalPhaseDamage { get; private set; }
@@ -343,7 +342,7 @@ public abstract class Unit : IUnit
     /// <summary>
     /// Indicates whether this unit has applied heat for the current turn
     /// </summary>
-    public bool HasAppliedHeat { get; protected set; }
+    public bool HasAppliedHeat { get; private set; }
 
     /// <summary>
     /// Collection of weapon targeting data for the current attack declaration
@@ -351,10 +350,9 @@ public abstract class Unit : IUnit
     private readonly List<WeaponTargetData> _weaponTargets = [];
 
     private void ResetMovement()
-    { 
+    {
         MovementPointsSpent = 0;
-        MovementTypeUsed = null;
-        DistanceCovered = 0;
+        MovementTaken = null;
     }
     
     /// <summary>
@@ -401,7 +399,7 @@ public abstract class Unit : IUnit
     /// <summary>
     /// Declares weapon attacks against target units
     /// </summary>
-    /// <param name="weaponTargets">The weapon target data containing weapon locations, slots and target IDs</param>
+    /// <param name="weaponTargets">The weapon target data containing weapon locations, slots, and target IDs</param>
     public void DeclareWeaponAttack(List<WeaponTargetData> weaponTargets)
     {
         if (!IsDeployed)
@@ -651,18 +649,17 @@ public abstract class Unit : IUnit
            c.MountedAtFirstLocationSlots.Contains(slot));
     }
 
-    public void Move(MovementType movementType, MovementPath movementPath)
+    public void Move(MovementPath movementPath)
     {
         if (Position == null)
         {
             throw new InvalidOperationException("Unit is not deployed.");
         } 
-        var position = movementType==MovementType.StandingStill || movementPath.Segments.Count == 0
+        var position = movementPath.MovementType==MovementType.StandingStill || movementPath.Segments.Count == 0
             ? Position
             : movementPath.Destination;
-        DistanceCovered = movementPath.DistanceCovered;
+        MovementTaken = movementPath;
         SpendMovementPoints(movementPath.TotalCost);
-        MovementTypeUsed = movementType;
         Position = position; 
     }
     

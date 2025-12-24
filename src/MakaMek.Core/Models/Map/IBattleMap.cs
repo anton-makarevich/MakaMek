@@ -1,4 +1,5 @@
 ﻿using Sanet.MakaMek.Core.Data.Map;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Map;
 
@@ -17,7 +18,7 @@ public interface IBattleMap
     /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
-    MovementPath? FindPath(HexPosition start, HexPosition target, int maxMovementPoints, IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
+    MovementPath? FindPath(HexPosition start, HexPosition target, MovementType movementType, int maxMovementPoints, IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
 
     /// <summary>
     /// Gets all valid hexes that can be reached with given movement points, considering facing
@@ -49,15 +50,13 @@ public interface IBattleMap
     /// <returns>List of hex data objects representing the map</returns>
     List<HexData> ToData();
 
-    MovementPath? FindJumpPath(HexPosition from, HexPosition to, int movementPoints);
-
     /// <summary>
     /// Gets hexes along the line of sight between two coordinates, including terrain information
     /// </summary>
     IReadOnlyList<Hex> GetHexesAlongLineOfSight(HexCoordinates from, HexCoordinates to);
 
     /// <summary>
-    /// Clears the line of sight cache. Should be called at the end of each turn.
+    /// Clears the line of sight cache.
     /// </summary>
     void ClearLosCache();
 
