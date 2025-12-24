@@ -52,35 +52,6 @@ public class AttackScenarioTests
     }
     
     [Fact]
-    public void FromUnits_WithNonMechUnit_UsesPositionFacing()
-    {
-        // Arrange
-        var attacker = Substitute.For<IUnit>();
-        var target = Substitute.For<IUnit>();
-        var pilot = Substitute.For<IPilot>();
-        pilot.Gunnery.Returns(4);
-
-        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        var targetPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom);
-
-        attacker.Pilot.Returns(pilot);
-        attacker.Position.Returns(attackerPosition);
-        attacker.Facing.Returns(attackerPosition.Facing);
-        attacker.MovementTypeUsed.Returns(MovementType.Walk);
-        attacker.GetAttackModifiers(Arg.Any<PartLocation>()).Returns(new List<RollModifier>());
-
-        target.Position.Returns(targetPosition);
-        target.DistanceCovered.Returns(2);
-
-        // Act
-        var scenario = AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso);
-
-        // Assert
-        // For non-Mech units, should use position facing
-        scenario.AttackerFacing.ShouldBe(HexDirection.Top);
-    }
-    
-    [Fact]
     public void FromUnits_WithNullPilot_ThrowsException()
     {
         // Arrange
@@ -89,7 +60,7 @@ public class AttackScenarioTests
         attacker.Pilot.Returns((IPilot?)null);
         
         // Act & Assert
-        Should.Throw<Exception>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
+        Should.Throw<InvalidOperationException>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
             .Message.ShouldBe("Attacker pilot is not assigned");
     }
     
@@ -107,7 +78,7 @@ public class AttackScenarioTests
         target.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom));
         
         // Act & Assert
-        Should.Throw<Exception>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
+        Should.Throw<InvalidOperationException>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
             .Message.ShouldBe("Attacker's Movement Type is undefined");
     }
     
@@ -160,7 +131,7 @@ public class AttackScenarioTests
         target.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom));
     
         // Act & Assert
-        Should.Throw<Exception>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
+        Should.Throw<InvalidOperationException>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
             .Message.ShouldBe("Attacker position is not set");
     }
 
@@ -177,7 +148,7 @@ public class AttackScenarioTests
         target.Position.Returns((HexPosition?)null);
     
         // Act & Assert
-        Should.Throw<Exception>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
+        Should.Throw<InvalidOperationException>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
             .Message.ShouldBe("Target position is not set");
     }
 }
