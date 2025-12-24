@@ -1,7 +1,10 @@
 ﻿# ToHitCalculator and PositionEvaluator Integration Analysis
 
 **Date:** 2025-12-23  
-**Status:** Analysis Complete - No Implementation
+**Status:** Analysis Complete
+
+**Date:** 2025-12-24
+**Status:** AttackScenario option is implemented with minor changes in v0.47.22
 
 ## Executive Summary
 

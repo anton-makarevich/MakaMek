@@ -146,5 +146,39 @@ public class AttackScenarioTests
         scenario.IsPrimaryTarget.ShouldBeFalse();
         scenario.AimedShotTarget.ShouldBe(PartLocation.LeftLeg);
     }
+    
+    [Fact]
+    public void FromUnits_WithNullAttackerPosition_ThrowsException()
+    {
+        // Arrange
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        var pilot = Substitute.For<IPilot>();
+    
+        attacker.Pilot.Returns(pilot);
+        attacker.Position.Returns((HexPosition?)null);
+        target.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom));
+    
+        // Act & Assert
+        Should.Throw<Exception>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
+            .Message.ShouldBe("Attacker position is not set");
+    }
+
+    [Fact]
+    public void FromUnits_WithNullTargetPosition_ThrowsException()
+    {
+        // Arrange
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        var pilot = Substitute.For<IPilot>();
+    
+        attacker.Pilot.Returns(pilot);
+        attacker.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        target.Position.Returns((HexPosition?)null);
+    
+        // Act & Assert
+        Should.Throw<Exception>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
+            .Message.ShouldBe("Target position is not set");
+    }
 }
 

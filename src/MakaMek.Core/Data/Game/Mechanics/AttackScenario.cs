@@ -74,13 +74,13 @@ public record AttackScenario
         PartLocation? aimedShotTarget = null)
     {
         if (attacker.Pilot is null)
-            throw new Exception("Attacker pilot is not assigned");
+            throw new InvalidOperationException("Attacker pilot is not assigned");
         if (attacker.Position is null)
-            throw new Exception("Attacker position is not set");
+            throw new InvalidOperationException("Attacker position is not set");
         if (target.Position is null)
-            throw new Exception("Target position is not set");
+            throw new InvalidOperationException("Target position is not set");
         if (attacker.MovementTypeUsed is null)
-            throw new Exception("Attacker's Movement Type is undefined");
+            throw new InvalidOperationException("Attacker's Movement Type is undefined");
             
         return new AttackScenario
         {
