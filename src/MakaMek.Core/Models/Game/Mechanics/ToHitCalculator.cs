@@ -5,12 +5,11 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
 /// <summary>
-/// Classic BattleTech implementation of to-hit calculator using GATOR system
+/// Classic BattleTech implementation of to-hit calculator using the GATOR system
 /// </summary>
 public class ToHitCalculator : IToHitCalculator
 {
@@ -41,12 +40,22 @@ public class ToHitCalculator : IToHitCalculator
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null)
     {
-        if (attacker.Pilot is null)
-        {
-            throw new Exception("Attacker pilot is not assigned");
-        }
-        var hasLos = map.HasLineOfSight(attacker.Position!.Coordinates, target.Position!.Coordinates);
-        var distance = attacker.Position!.Coordinates.DistanceTo(target.Position!.Coordinates);
+        var weaponLocation = weapon.FirstMountPartLocation ??
+            throw new Exception($"Weapon {weapon.Name} is not mounted");
+        var scenario = AttackScenario.FromUnits(attacker, target, weaponLocation, isPrimaryTarget, aimedShotTarget);
+        return GetModifierBreakdown(scenario, weapon, map);
+    }
+
+    public int GetToHitNumber(AttackScenario scenario, Weapon weapon, IBattleMap map)
+    {
+        var breakdown = GetModifierBreakdown(scenario, weapon, map);
+        return breakdown.Total;
+    }
+
+    public ToHitBreakdown GetModifierBreakdown(AttackScenario scenario, Weapon weapon, IBattleMap map)
+    {
+        var hasLos = map.HasLineOfSight(scenario.AttackerPosition.Coordinates, scenario.TargetPosition.Coordinates);
+        var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
         var range = weapon.GetRangeBracket(distance);
         var rangeValue = range switch
         {
@@ -57,26 +66,28 @@ public class ToHitCalculator : IToHitCalculator
             WeaponRange.OutOfRange => weapon.LongRange+1,
             _ => throw new ArgumentException($"Unknown weapon range: {range}")
         };
-        var weaponLocation = weapon.FirstMountPartLocation ?? throw new Exception($"Weapon {weapon.Name} is not mounted");
-        var otherModifiers = GetDetailedOtherModifiers(attacker, target,weaponLocation, isPrimaryTarget, aimedShotTarget);
-        var terrainModifiers = GetTerrainModifiers(attacker, target, map);
+
+        var otherModifiers = GetDetailedOtherModifiers(scenario);
+        var terrainModifiers = GetTerrainModifiers(
+            scenario.AttackerPosition.Coordinates,
+            scenario.TargetPosition.Coordinates,
+            map);
 
         return new ToHitBreakdown
         {
             GunneryBase = new GunneryRollModifier
             {
-                Value = attacker.Pilot.Gunnery
+                Value = scenario.AttackerGunnery
             },
             AttackerMovement = new AttackerMovementModifier
             {
-                Value = _rules.GetAttackerMovementModifier(attacker.MovementTypeUsed ??
-                    throw new Exception("Attacker's Movement Type is undefined")),
-                MovementType = attacker.MovementTypeUsed.Value
+                Value = _rules.GetAttackerMovementModifier(scenario.AttackerMovementType),
+                MovementType = scenario.AttackerMovementType
             },
             TargetMovement = new TargetMovementModifier
             {
-                Value = _rules.GetTargetMovementModifier(target.DistanceCovered),
-                HexesMoved = target.DistanceCovered
+                Value = _rules.GetTargetMovementModifier(scenario.TargetHexesMoved),
+                HexesMoved = scenario.TargetHexesMoved
             },
             OtherModifiers = otherModifiers,
             RangeModifier = new RangeRollModifier
@@ -120,52 +131,42 @@ public class ToHitCalculator : IToHitCalculator
         };
     }
 
-    private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(IUnit attacker, IUnit target, PartLocation weaponLocation, bool isPrimaryTarget = true, PartLocation? aimedShotTarget = null)
+    private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(AttackScenario scenario)
     {
         List<RollModifier> modifiers = [];
-        // Unit specific modifiers
-        // Depend on the unit type
-        modifiers.AddRange(attacker.GetAttackModifiers(weaponLocation));
 
-        // Add aimed shot modifier if applicable
-        if (aimedShotTarget.HasValue)
+        // Add unit-specific modifiers from the scenario (heat, prone, sensors, arm actuators, etc.)
+        modifiers.AddRange(scenario.AttackerModifiers);
+
+        // Add an aimed shot modifier if applicable
+        if (scenario.AimedShotTarget.HasValue)
         {
             modifiers.Add(new AimedShotModifier
             {
-                TargetLocation = aimedShotTarget.Value,
-                Value = _rules.GetAimedShotModifier(aimedShotTarget.Value)
+                TargetLocation = scenario.AimedShotTarget.Value,
+                Value = _rules.GetAimedShotModifier(scenario.AimedShotTarget.Value)
             });
         }
 
-        // Add secondary target modifier if not primary
-        if (!isPrimaryTarget && attacker is { Position: not null } && target is { Position: not null })
+        // Add a secondary target modifier if not primary
+        if (scenario is not { IsPrimaryTarget: false, AttackerFacing: not null }) return modifiers;
+        var isInFrontArc = scenario.AttackerPosition.Coordinates.IsInFiringArc(
+            scenario.TargetPosition.Coordinates,
+            scenario.AttackerFacing.Value,
+            FiringArc.Front);
+
+        modifiers.Add(new SecondaryTargetModifier
         {
-            var attackerPosition = attacker.Position;
-            var facing = attacker is Mech mech ? mech.TorsoDirection : attackerPosition.Facing;
-
-            if (facing != null)
-            {
-                var isInFrontArc = attackerPosition.Coordinates.IsInFiringArc(
-                    target.Position.Coordinates,
-                    facing.Value,
-                    FiringArc.Front);
-
-                modifiers.Add(new SecondaryTargetModifier
-                {
-                    IsInFrontArc = isInFrontArc,
-                    Value = _rules.GetSecondaryTargetModifier(isInFrontArc)
-                });
-            }
-        }
+            IsInFrontArc = isInFrontArc,
+            Value = _rules.GetSecondaryTargetModifier(isInFrontArc)
+        });
 
         return modifiers;
     }
 
-    private IReadOnlyList<TerrainRollModifier> GetTerrainModifiers(IUnit attacker, IUnit target, IBattleMap map)
+    private IReadOnlyList<TerrainRollModifier> GetTerrainModifiers(HexCoordinates attackerPosition, HexCoordinates targetPosition, IBattleMap map)
     {
-        var hexes = map.GetHexesAlongLineOfSight(
-            attacker.Position!.Coordinates,
-            target.Position!.Coordinates);
+        var hexes = map.GetHexesAlongLineOfSight(attackerPosition, targetPosition);
 
         return hexes
             .Skip(1) // Skip attacker's hex

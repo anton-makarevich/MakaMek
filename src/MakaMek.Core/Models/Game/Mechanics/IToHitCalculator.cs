@@ -38,4 +38,24 @@ public interface IToHitCalculator
     /// <param name="aimedShotTarget">The body part being targeted for the aimed shot</param>
     /// <returns>A new ToHitBreakdown with the aimed shot modifier added</returns>
     ToHitBreakdown AddAimedShotModifier(ToHitBreakdown existingBreakdown, PartLocation aimedShotTarget);
+
+    /// <summary>
+    /// Gets the total to-hit number for a weapon attack using an attack scenario.
+    /// This method supports both actual attacks and hypothetical scenarios (for bot evaluation).
+    /// </summary>
+    /// <param name="scenario">The attack scenario containing all attack parameters</param>
+    /// <param name="weapon">The weapon being fired</param>
+    /// <param name="map">The battle map for line of sight and terrain calculations</param>
+    /// <returns>The total to-hit number (2-13, where 13 is impossible)</returns>
+    int GetToHitNumber(AttackScenario scenario, Weapon weapon, IBattleMap map);
+
+    /// <summary>
+    /// Gets a detailed breakdown of all modifiers affecting the attack using an attack scenario.
+    /// This method supports both actual attacks and hypothetical scenarios (for bot evaluation).
+    /// </summary>
+    /// <param name="scenario">The attack scenario containing all attack parameters</param>
+    /// <param name="weapon">The weapon being fired</param>
+    /// <param name="map">The battle map for line of sight and terrain calculations</param>
+    /// <returns>Detailed breakdown of all modifiers</returns>
+    ToHitBreakdown GetModifierBreakdown(AttackScenario scenario, Weapon weapon, IBattleMap map);
 }
