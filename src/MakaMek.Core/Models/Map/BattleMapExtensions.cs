@@ -136,69 +136,33 @@ public static class BattleMapExtensions
             IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
         {
             var possibleDirections = new Dictionary<HexDirection, MovementPath>();
-            var availableDirections = HexDirectionExtensions.AllDirections;
-
-            // Determine if the target hex is reachable
             var isForwardReachable = reachabilityData.IsForwardReachable(targetHex);
             var isBackwardReachable = reachabilityData.IsBackwardReachable(targetHex);
-
-            if (movementType == MovementType.Jump)
+    
+            foreach (var direction in HexDirectionExtensions.AllDirections)
             {
-                // For jumping, we can face any direction and calculate a path ignoring terrain
-                foreach (var direction in availableDirections)
-                {
-                    var targetPos = new HexPosition(targetHex, direction);
-                    var path = map.FindPath(
-                        startPosition,
-                        targetPos,
-                        movementType,
-                        movementPoints);
+                var targetPos = new HexPosition(targetHex, direction);
+                MovementPath? path = null;
 
-                    if (path != null)
-                    {
-                        possibleDirections[direction] = path;
-                    }
+                // Try forward movement (or Jump, which ignores reachability)
+                if (movementType == MovementType.Jump || isForwardReachable)
+                {
+                    path = map.FindPath(startPosition, targetPos, movementType, movementPoints, prohibitedHexes);
                 }
-            }
-            else
-            {
-                foreach (var direction in availableDirections)
+
+                // Try backward movement for Walk only
+                if (path == null && movementType == MovementType.Walk && isBackwardReachable)
                 {
-                    var targetPos = new HexPosition(targetHex, direction);
-                    MovementPath? path = null;
+                    var oppositeStartPos = startPosition.GetOppositeDirectionPosition();
+                    var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
+            
+                    path = map.FindPath(oppositeStartPos, oppositeTargetPos, movementType, movementPoints, prohibitedHexes)
+                        ?.ReverseFacing();
+                }
 
-                    if (isForwardReachable)
-                    {
-                        // Try forward movement
-                        path = map.FindPath(
-                            startPosition,
-                            targetPos,
-                            movementType,
-                            movementPoints,
-                            prohibitedHexes);
-                    }
-
-                    if (path == null && movementType == MovementType.Walk && isBackwardReachable)
-                    {
-                        // Try backward movement
-                        var oppositeStartPos = startPosition.GetOppositeDirectionPosition();
-                        var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
-
-                        path = map.FindPath(
-                            oppositeStartPos,
-                            oppositeTargetPos,
-                            movementType,
-                            movementPoints,
-                            prohibitedHexes);
-
-                        // If a path found, use Reverse() method
-                        path = path?.ReverseFacing();
-                    }
-
-                    if (path != null)
-                    {
-                        possibleDirections[direction] = path;
-                    }
+                if (path != null)
+                {
+                    possibleDirections[direction] = path;
                 }
             }
 
