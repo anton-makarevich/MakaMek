@@ -65,7 +65,7 @@ public abstract class BaseGame : IGame
             ActivePlayer = null;
             UnitsToPlayCurrentStep = 0;
 
-            // Reset phase damage tracking for all units when phase changes
+            // Reset phase damage tracking for all units when the phase changes
             foreach (var player in AlivePlayers)
             {
                 foreach (var unit in player.AliveUnits)
@@ -147,7 +147,7 @@ public abstract class BaseGame : IGame
         {
             var unit = _mechFactory.Create(unitData);
 
-            // Find and assign pilot for this unit
+            // Find and assign a pilot for this unit
             var pilotAssignment = joinGameCommand.PilotAssignments.FirstOrDefault(pa => pa.UnitId == unitData.Id);
             if (pilotAssignment.UnitId != Guid.Empty)
             {
@@ -168,7 +168,7 @@ public abstract class BaseGame : IGame
         var player = Players.FirstOrDefault(p => p.Id == command.PlayerId);
         if (player == null) return; // Player already removed - idempotent
 
-        // Mark player as left by setting status
+        // Mark the player as left by setting status
         player.Status = PlayerStatus.NotJoined;
         _players.Remove(player);
     }
@@ -193,9 +193,7 @@ public abstract class BaseGame : IGame
         var player = _players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         if (player == null) return;
         var unit = player.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId);
-        unit?.Move(
-            moveCommand.MovementType,
-            new MovementPath(moveCommand.MovementPath));
+        unit?.Move(new MovementPath(moveCommand.MovementPath, moveCommand.MovementType));
     }
     
     internal void OnWeaponConfiguration(WeaponConfigurationCommand configCommand)

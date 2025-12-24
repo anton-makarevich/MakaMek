@@ -1,26 +1,38 @@
 ﻿using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Map;
 
 public class MovementPath : IEquatable<MovementPath>
 {
-    public MovementPath(IEnumerable<PathSegment> segments, bool isJump = false)
+    public MovementPath(IEnumerable<PathSegment> segments, MovementType movementType)
     {
         Segments = segments.ToList();
         if (Segments.Count > 0)
         {
             Start = Segments[0].From;
             Destination = Segments[^1].To;
+
         }
-        IsJump = isJump;
+
+        Hexes = Start == null
+            ? []
+            : new List<HexCoordinates> { Start.Coordinates }
+                .Concat(Segments.Select(s => s.To.Coordinates))
+                .Distinct()
+                .ToList();
+        HexesTraveled = Math.Max(0, Hexes.Count - 1);
+        MovementType = movementType;
+        IsJump = movementType == MovementType.Jump;
+        TotalCost = Segments.Sum(s => s.Cost);
+        TurnsTaken = Segments.Count(s => s.From.Facing != s.To.Facing);
     }
 
-    public MovementPath(IEnumerable<PathSegmentData> segments, bool isJump = false) : this(
-        segments.Select(s => new PathSegment(s)), isJump)
+    public MovementPath(IEnumerable<PathSegmentData> segments, MovementType movementType) : this(
+        segments.Select(s => new PathSegment(s)), movementType)
     {
     }
-
-
+    
     /// <summary>
     /// Constructor for cache lookups
     /// </summary>
@@ -29,15 +41,16 @@ public class MovementPath : IEquatable<MovementPath>
         Start = start;
         Destination = destination;
         IsJump = isJump;
-        Segments = new List<PathSegment>();
+        Segments = [];
+        Hexes = [];
     }
 
     public IReadOnlyList<PathSegment> Segments { get; }
     
-    public int TotalCost => Segments.Sum(s => s.Cost);
-    
-    public int HexesTraveled => Hexes.Count;
-    
+    public int TotalCost { get; }
+
+    public int HexesTraveled { get; }
+
     public int DistanceCovered => Start == null || Destination == null 
         ? 0 
         : Start.Coordinates.DistanceTo(Destination.Coordinates);
@@ -45,19 +58,16 @@ public class MovementPath : IEquatable<MovementPath>
     public HexPosition? Start { get; }
     
     public HexPosition? Destination { get; }
+    
+    public MovementType MovementType { get; }
 
     private bool IsJump { get; }
     
-    public IReadOnlyList<HexCoordinates> Hexes => Start == null 
-        ? []
-        : field ??= new List<HexCoordinates> { Start.Coordinates }
-            .Concat(Segments.Select(s => s.To.Coordinates))
-            .Distinct()
-            .ToList();
+    public IReadOnlyList<HexCoordinates> Hexes { get; } 
     
     public IReadOnlyList<PathSegmentData> ToData() => Segments.Select(s => s.ToData()).ToList();
     
-    public int TurnsTaken => Segments.Count(s => s.From.Coordinates == s.To.Coordinates);
+    public int TurnsTaken { get; }
     
     /// <summary>
     /// Creates a new MovementPath with all facings reversed (for backward movement)
@@ -69,7 +79,7 @@ public class MovementPath : IEquatable<MovementPath>
             segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
             segment.Cost
         )).ToList();
-        return new MovementPath(reversedSegments, IsJump);
+        return new MovementPath(reversedSegments, MovementType);
     }
 
     public bool Equals(MovementPath? other)

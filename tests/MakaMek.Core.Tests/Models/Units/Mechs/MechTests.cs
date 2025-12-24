@@ -126,61 +126,23 @@ public class MechTests
     }
 
     [Fact]
-    public void Move_ShouldUpdatePosition()
+    public void Move_ShouldUpdatePosition_AndTrackMovement()
     {
         // Arrange
         var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
+        var path = new MovementPath([new PathSegment(deployPosition, newCoordinates, 1)], MovementType.Walk);
         mech.Deploy(deployPosition);
 
         // Act
-        mech.Move(MovementType.Walk, new MovementPath([new PathSegment(deployPosition, newCoordinates, 0).ToData()]));
+        mech.Move(path);
 
         // Assert
         mech.Position.ShouldBe(newCoordinates);
         mech.HasMoved.ShouldBeTrue();
-        mech.MovementTypeUsed.ShouldBe(MovementType.Walk);
-        mech.DistanceCovered.ShouldBe(1);
-        mech.MovementPointsSpent.ShouldBe(0);
-    }
-    
-    [Fact]
-    public void Move_ShouldNotUpdateDistanceCovered_WhenMovingToSamePosition()
-    {
-        // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
-        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        mech.Deploy(position);
-
-        // Act
-        mech.Move(MovementType.Walk, new MovementPath([new PathSegment(position, position, 0).ToData()]));
-
-        // Assert
-        mech.Position.ShouldBe(position);
-        mech.HasMoved.ShouldBeTrue();
-        mech.MovementTypeUsed.ShouldBe(MovementType.Walk);
-        mech.DistanceCovered.ShouldBe(0);
-        mech.MovementPointsSpent.ShouldBe(0);
-    }
-    
-    [Fact]
-    public void Move_ShouldKeepPosition_WhenNoPathSegments()
-    {
-        // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
-        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        mech.Deploy(deployPosition);
-
-        // Act
-        mech.Move(MovementType.Walk, new MovementPath(Array.Empty<PathSegment>()));
-
-        // Assert
-        mech.Position.ShouldBe(deployPosition);
-        mech.HasMoved.ShouldBeTrue();
-        mech.MovementTypeUsed.ShouldBe(MovementType.Walk);
-        mech.DistanceCovered.ShouldBe(0);
-        mech.MovementPointsSpent.ShouldBe(0);
+        mech.MovementTaken.ShouldBe(path);
+        mech.MovementPointsSpent.ShouldBe(path.TotalCost);
     }
 
     [Fact]
@@ -191,8 +153,9 @@ public class MechTests
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
     
         // Act
-        var act = () => mech.Move(MovementType.Walk,
-            new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Bottom), newCoordinates, 1).ToData()]));
+        var act = () => mech.Move(new MovementPath([
+            new PathSegment(new HexPosition(1, 1, HexDirection.Bottom), newCoordinates, 1)],
+            MovementType.Walk));
     
         // Assert
         var ex = Should.Throw<InvalidOperationException>(act);
@@ -207,7 +170,7 @@ public class MechTests
         var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var newCoordinates = new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft);
         mech.Deploy(deployPosition);
-        mech.Move(MovementType.Walk, new MovementPath([new PathSegment(deployPosition, newCoordinates, 1).ToData()]));
+        mech.Move(new MovementPath([new PathSegment(deployPosition, newCoordinates, 1)], MovementType.Walk));
 
         // Act
         mech.ResetTurnState();
@@ -215,8 +178,7 @@ public class MechTests
         // Assert
         mech.Position.ShouldBe(newCoordinates);
         mech.HasMoved.ShouldBeFalse();
-        mech.MovementTypeUsed.ShouldBeNull();
-        mech.DistanceCovered.ShouldBe(0);
+        mech.MovementTaken.ShouldBeNull();
         mech.MovementPointsSpent.ShouldBe(0);
     }
 

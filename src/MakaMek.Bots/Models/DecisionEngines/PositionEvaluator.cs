@@ -225,7 +225,7 @@ public class PositionEvaluator
         var attackerModifiers = attacker.GetAttackModifiers(weaponLocation);
 
         // Determine attacker's movement type (use actual if available, otherwise assume it will walk for now)
-        var attackerMovementType = attacker.MovementTypeUsed ?? MovementType.Walk;
+        var attackerMovementType = attacker.MovementTaken?.MovementType ?? MovementType.Walk;
 
         // Create a hypothetical attack scenario
         var scenario = AttackScenario.FromHypothetical(
@@ -269,12 +269,12 @@ public class PositionEvaluator
         // Create a hypothetical attack scenario
         var scenario = AttackScenario.FromHypothetical(
             attackerGunnery: attacker.Pilot.Gunnery,
-            attackerPosition: attackerPosition,
-            attackerMovementType: movementType,
+            attackerPosition: attackerPosition, // Hypothetical position from which to attack
+            attackerMovementType: movementType, // Hypothetical movement type to be used
             targetPosition: target.Position,
-            targetHexesMoved: target.DistanceCovered,
+            targetHexesMoved: target.MovementTaken?.HexesTraveled??0,
             attackerModifiers: attackerModifiers,
-            attackerFacing: attackerPosition.Facing);
+            attackerFacing: attacker.Facing);
 
         // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)
         var toHitNumber = _game.ToHitCalculator.GetToHitNumber(scenario, weapon, _game.BattleMap);

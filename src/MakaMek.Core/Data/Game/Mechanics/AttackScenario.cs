@@ -79,16 +79,18 @@ public record AttackScenario
             throw new InvalidOperationException("Attacker position is not set");
         if (target.Position is null)
             throw new InvalidOperationException("Target position is not set");
-        if (attacker.MovementTypeUsed is null)
+        if (attacker.MovementTaken is null)
             throw new InvalidOperationException("Attacker's Movement Type is undefined");
+        if (target.MovementTaken is null)
+            throw new InvalidOperationException("Target's Movement Type is undefined");
             
         return new AttackScenario
         {
             AttackerGunnery = attacker.Pilot.Gunnery,
             AttackerPosition = attacker.Position,
             TargetPosition = target.Position,
-            AttackerMovementType = attacker.MovementTypeUsed.Value,
-            TargetHexesMoved = target.DistanceCovered,
+            AttackerMovementType = attacker.MovementTaken.MovementType,
+            TargetHexesMoved = target.MovementTaken.HexesTraveled,
             AttackerModifiers = attacker.GetAttackModifiers(weaponLocation),
             AttackerFacing = attacker.Facing,
             IsPrimaryTarget = isPrimaryTarget,

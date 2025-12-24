@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Utils.Generators;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Map;
@@ -72,7 +73,7 @@ public class BattleMapTests
         }
 
         // Act
-        var path = map.FindPath(start, target, 10);
+        var path = map.FindPath(start, target, MovementType.Walk, 10);
 
         // Assert
         path.ShouldNotBeNull();
@@ -231,6 +232,7 @@ public class BattleMapTests
         var path = map.FindPath(
             start,
             new HexPosition(targetHex, HexDirection.Bottom),
+            MovementType.Walk,
             maxMp);
 
         path.ShouldNotBeNull("A valid path should exist to reach (7,8)");
@@ -286,7 +288,7 @@ public class BattleMapTests
         };
 
         // Act
-        var path = map.FindPath(start, target, 10, prohibitedHexes);
+        var path = map.FindPath(start, target, MovementType.Walk, 10, prohibitedHexes);
 
         // Assert
         path.ShouldNotBeNull();
@@ -330,7 +332,7 @@ public class BattleMapTests
         }
 
         // Act
-        var path = map.FindPath(start, target, 9);
+        var path = map.FindPath(start, target, MovementType.Walk, 9);
 
         // Assert
         path.ShouldNotBeNull("A path should exist within 9 movement points");
@@ -449,7 +451,7 @@ public class BattleMapTests
         var to = new HexPosition(new HexCoordinates(toQ, toR), HexDirection.Bottom);
 
         // Act
-        var path = map.FindJumpPath(from, to, mp);
+        var path = map.FindPath(from, to, MovementType.Jump, mp);
 
         // Assert
         if (shouldFindPath)
@@ -484,7 +486,7 @@ public class BattleMapTests
         var to = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
 
         // Act
-        var path = map.FindJumpPath(from, to, 1);
+        var path = map.FindPath(from, to, MovementType.Jump, 1);
 
         // Assert
         path.ShouldNotBeNull("Path should be found regardless of terrain");
@@ -501,7 +503,7 @@ public class BattleMapTests
         var invalidTo = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
 
         // Act
-        var path = map.FindJumpPath(from, invalidTo, 5);
+        var path = map.FindPath(from, invalidTo, MovementType.Jump, 5);
 
         // Assert
         path.ShouldBeNull("Path should be null for invalid target position");
@@ -546,7 +548,7 @@ public class BattleMapTests
         var target = new HexPosition(hex.Coordinates, HexDirection.Bottom);
 
         // Act
-        var path = map.FindPath(start, target, 3);
+        var path = map.FindPath(start, target, MovementType.Walk, 3);
 
         // Assert
         path.ShouldNotBeNull();
@@ -568,7 +570,7 @@ public class BattleMapTests
         var target = new HexPosition(hex.Coordinates, HexDirection.Bottom);
 
         // Act
-        var path = map.FindPath(start, target, 2); // Only 2 movement points for 3 turns
+        var path = map.FindPath(start, target, MovementType.Walk, 2); // Only 2 movement points for 3 turns
 
         // Assert
         path.ShouldBeNull();
@@ -584,7 +586,7 @@ public class BattleMapTests
         var position = new HexPosition(hex.Coordinates, HexDirection.Top);
 
         // Act
-        var path = map.FindPath(position, position, 3);
+        var path = map.FindPath(position, position, MovementType.Jump, 3);
 
         // Assert
         path.ShouldNotBeNull();
@@ -910,11 +912,11 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
 
         // Act 1
-        var path1 = map.FindPath(start, target, 10);
+        var path1 = map.FindPath(start, target, MovementType.Walk, 10);
         path1.ShouldNotBeNull();
         
         // Act 2
-        var path2 = map.FindPath(start, target, 10);
+        var path2 = map.FindPath(start, target, MovementType.Walk, 10);
         
         // Assert
         path2.ShouldBeSameAs(path1);
@@ -930,11 +932,11 @@ public class BattleMapTests
         var prohibited = new HashSet<HexCoordinates> { new HexCoordinates(5, 5) }; // Prohibited hex (irrelevant to a path but triggers cache bypass)
         
         // Act 1
-        var path1 = map.FindPath(start, target, 10, prohibited);
+        var path1 = map.FindPath(start, target, MovementType.Walk, 10, prohibited);
         path1.ShouldNotBeNull();
         
         // Act 2
-        var path2 = map.FindPath(start, target, 10, prohibited);
+        var path2 = map.FindPath(start, target, MovementType.Walk, 10, prohibited);
         
         // Assert
         path2.ShouldNotBeSameAs(path1);
@@ -949,11 +951,11 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(1, 3), HexDirection.Bottom);
 
         // Act 1
-        var path1 = map.FindJumpPath(start, target, 5);
+        var path1 = map.FindPath(start, target, MovementType.Jump, 5);
         path1.ShouldNotBeNull();
         
         // Act 2
-        var path2 = map.FindJumpPath(start, target, 5);
+        var path2 = map.FindPath(start, target, MovementType.Jump, 5);
         
         // Assert
         path2.ShouldBeSameAs(path1);

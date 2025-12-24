@@ -24,6 +24,7 @@ public class MovementEngine : IBotDecisionEngine
 
     public async Task MakeDecision(IPlayer player)
     {
+        IUnit? unitToMove = null;
         try
         {
             // 1. Get all friendly units that haven't moved
@@ -68,7 +69,7 @@ public class MovementEngine : IBotDecisionEngine
                 .ToList();
 
             var bestCandidate = scoredUnits.First();
-            var unitToMove = bestCandidate.Unit;
+            unitToMove = bestCandidate.Unit;
 
             Console.WriteLine($"[MovementEngine] Selected {unitToMove.Name} (Role: {unitToMove.GetTacticalRole()}, Priority: {bestCandidate.Priority})");
 
@@ -85,7 +86,7 @@ public class MovementEngine : IBotDecisionEngine
         {
             // Log error but don't throw - graceful degradation for unexpected errors
             Console.WriteLine($"MovementEngine error for player {player.Name}: {ex.Message}, skipping turn");
-            await SkipTurn(player);
+            await SkipTurn(player, unitToMove);
         }
     }
 
@@ -152,7 +153,7 @@ public class MovementEngine : IBotDecisionEngine
 
         if (_clientGame.BattleMap == null || unit.Position == null)
         {
-            await MoveUnit(player, unit, MovementType.StandingStill, new MovementPath(Array.Empty<PathSegment>()));
+            await SkipTurn(player, unit);
             return;
         }
 
@@ -219,7 +220,7 @@ public class MovementEngine : IBotDecisionEngine
         // If no valid paths, stand still
         if (candidateScores.Count == 0)
         {
-            await MoveUnit(player, unit, MovementType.StandingStill, new MovementPath(Array.Empty<PathSegment>()));
+            await SkipTurn(player, unit);
             return;
         }
 
@@ -233,7 +234,7 @@ public class MovementEngine : IBotDecisionEngine
                          $"Defensive: {bestScore.DefensiveIndex:F1}, Combined: {bestScore.GetCombinedScore():F1})");
 
         // Execute the move using the stored path (no need to recalculate)
-        await MoveUnit(player, unit, bestScore.MovementType, bestScore.Path);
+        await MoveUnit(player, unit, bestScore.Path);
     }
 
     /// <summary>
@@ -250,7 +251,7 @@ public class MovementEngine : IBotDecisionEngine
 
     private async Task AttemptStandup(IPlayer player, Mech mech)
     {
-        // Select random facing direction
+        // Select a random facing direction
         var newFacing = HexDirectionExtensions.AllDirections[Random.Shared.Next(HexDirectionExtensions.AllDirections.Length)];
 
         var command = new TryStandupCommand
@@ -265,24 +266,24 @@ public class MovementEngine : IBotDecisionEngine
         await _clientGame.TryStandupUnit(command);
     }
 
-    private async Task MoveUnit(IPlayer player, IUnit unit, MovementType movementType, MovementPath path)
+    private async Task MoveUnit(IPlayer player, IUnit unit, MovementPath path)
     {
         var command = new MoveUnitCommand
         {
             GameOriginId = _clientGame.Id,
             PlayerId = player.Id,
             UnitId = unit.Id,
-            MovementType = movementType,
+            MovementType = path.MovementType,
             MovementPath = path.ToData()
         };
 
         await _clientGame.MoveUnit(command);
     }
 
-    private async Task SkipTurn(IPlayer player)
+    private async Task SkipTurn(IPlayer player, IUnit? unit)
     {
         // Find any unit that hasn't moved yet (fallback)
-        var unmovedUnit = player.AliveUnits.FirstOrDefault(u => !u.HasMoved);
+        var unmovedUnit = unit ?? player.AliveUnits.FirstOrDefault(u => !u.HasMoved);
         if (unmovedUnit == null)
         {
             throw new BotDecisionException(
@@ -292,7 +293,7 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Send a StandingStill movement command
-        await MoveUnit(player, unmovedUnit, MovementType.StandingStill, new MovementPath(Array.Empty<PathSegment>()));
+        await MoveUnit(player, unmovedUnit, new MovementPath(Array.Empty<PathSegment>(), MovementType.StandingStill));
     }
 }
 

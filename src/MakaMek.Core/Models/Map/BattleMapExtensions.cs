@@ -148,9 +148,10 @@ public static class BattleMapExtensions
                 foreach (var direction in availableDirections)
                 {
                     var targetPos = new HexPosition(targetHex, direction);
-                    var path = map.FindJumpPath(
+                    var path = map.FindPath(
                         startPosition,
                         targetPos,
+                        movementType,
                         movementPoints);
 
                     if (path != null)
@@ -172,6 +173,7 @@ public static class BattleMapExtensions
                         path = map.FindPath(
                             startPosition,
                             targetPos,
+                            movementType,
                             movementPoints,
                             prohibitedHexes);
                     }
@@ -185,6 +187,7 @@ public static class BattleMapExtensions
                         path = map.FindPath(
                             oppositeStartPos,
                             oppositeTargetPos,
+                            movementType,
                             movementPoints,
                             prohibitedHexes);
 

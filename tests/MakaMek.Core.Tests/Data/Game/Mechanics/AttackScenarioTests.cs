@@ -20,20 +20,35 @@ public class AttackScenarioTests
         var pilot = Substitute.For<IPilot>();
         pilot.Gunnery.Returns(4);
         
+        var movementPath = new MovementPath([
+                new PathSegment(
+                    new HexPosition(1, 1, HexDirection.Top),
+                    new HexPosition(1, 2, HexDirection.Top),
+                    1),
+                new PathSegment(
+                    new HexPosition(1, 2, HexDirection.Top),
+                    new HexPosition(1, 3, HexDirection.Top),
+                    1),
+                new PathSegment(
+                    new HexPosition(1, 3, HexDirection.Top),
+                    new HexPosition(1, 4, HexDirection.Top),
+                    1)
+            ], MovementType.Walk);
+        
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var targetPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom);
         
         attacker.Pilot.Returns(pilot);
         attacker.Position.Returns(attackerPosition);
         attacker.Facing.Returns(attackerPosition.Facing);
-        attacker.MovementTypeUsed.Returns(MovementType.Run);
+        attacker.MovementTaken.Returns(movementPath);
         attacker.GetAttackModifiers(PartLocation.RightArm).Returns(new List<RollModifier>
         {
             new HeatRollModifier { Value = 2, HeatLevel = 15 }
         });
         
         target.Position.Returns(targetPosition);
-        target.DistanceCovered.Returns(3);
+        target.MovementTaken.Returns(movementPath);
         
         // Act
         var scenario = AttackScenario.FromUnits(attacker, target, PartLocation.RightArm, isPrimaryTarget: true, aimedShotTarget: PartLocation.Head);
@@ -42,7 +57,7 @@ public class AttackScenarioTests
         scenario.AttackerGunnery.ShouldBe(4);
         scenario.AttackerPosition.ShouldBe(attackerPosition);
         scenario.TargetPosition.ShouldBe(targetPosition);
-        scenario.AttackerMovementType.ShouldBe(MovementType.Run);
+        scenario.AttackerMovementType.ShouldBe(MovementType.Walk);
         scenario.TargetHexesMoved.ShouldBe(3);
         scenario.AttackerModifiers.Count.ShouldBe(1);
         scenario.AttackerModifiers[0].ShouldBeOfType<HeatRollModifier>();
@@ -65,7 +80,7 @@ public class AttackScenarioTests
     }
     
     [Fact]
-    public void FromUnits_WithNullMovementType_ThrowsException()
+    public void FromUnits_WithNullMovementPath_ThrowsException()
     {
         // Arrange
         var attacker = Substitute.For<IUnit>();
@@ -74,12 +89,31 @@ public class AttackScenarioTests
         
         attacker.Pilot.Returns(pilot);
         attacker.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
-        attacker.MovementTypeUsed.Returns((MovementType?)null);
+        attacker.MovementTaken.Returns((MovementPath?)null);
         target.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom));
         
         // Act & Assert
         Should.Throw<InvalidOperationException>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
             .Message.ShouldBe("Attacker's Movement Type is undefined");
+    }
+    
+    [Fact]
+    public void FromUnits_WithNullTargetMovementPath_ThrowsException()
+    {
+        // Arrange
+        var attacker = Substitute.For<IUnit>();
+        var target = Substitute.For<IUnit>();
+        var pilot = Substitute.For<IPilot>();
+        
+        attacker.Pilot.Returns(pilot);
+        attacker.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        attacker.MovementTaken.Returns(new MovementPath(Array.Empty<PathSegment>(), MovementType.Walk));
+        target.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom));
+        target.MovementTaken.Returns((MovementPath?)null);
+        
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => AttackScenario.FromUnits(attacker, target, PartLocation.CenterTorso))
+            .Message.ShouldBe("Target's Movement Type is undefined");
     }
     
     [Fact]
