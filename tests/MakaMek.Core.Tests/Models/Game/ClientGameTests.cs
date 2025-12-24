@@ -101,9 +101,10 @@ public class ClientGameTests
         for (var i = 0; i < maxAttempts; i++)
         {
             var calls = publisher.ReceivedCalls().ToList();
-            if (calls.Count > 0)
+            var matchingCalls = calls.Select(c => c.GetArguments()[0]).OfType<T>().ToList();
+            if (matchingCalls.Count != 0)
             {
-                return (T)calls.First().GetArguments()[0]!;
+                return matchingCalls.First();
             }
             await Task.Delay(delayMs);
         }
@@ -2714,18 +2715,11 @@ public class ClientGameTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
 
-        await _sut.JoinGameWithUnits(player, [unitData],[]);
-        var joinCommand = new JoinGameCommand
-        {
-            PlayerId = player.Id,
-            PlayerName = player.Name,
-            GameOriginId = Guid.NewGuid(),
-            Tint = player.Tint,
-            Units = [unitData],
-            PilotAssignments = [],
-            IdempotencyKey = _idempotencyKey
-        };
-        _sut.HandleCommand(joinCommand);
+        var joinTask = _sut.JoinGameWithUnits(player, [unitData],[]);
+        var capturedJoinCommand = await WaitForPublishedCommand<JoinGameCommand>(_commandPublisher);
+        capturedJoinCommand.ShouldNotBeNull();
+        _sut.HandleCommand(capturedJoinCommand.Value with { GameOriginId = Guid.NewGuid() });
+        await joinTask;
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
         {
@@ -2749,7 +2743,7 @@ public class ClientGameTests
         var deployTask = _sut.DeployUnit(deployCommand);
 
         // Wait for the command to be published (with retry to avoid race condition)
-        DeployUnitCommand? capturedCommand = await WaitForPublishedCommand<DeployUnitCommand>(_commandPublisher);
+        var capturedCommand = await WaitForPublishedCommand<DeployUnitCommand>(_commandPublisher);
 
         capturedCommand.ShouldNotBeNull("Command should have been published");
         capturedCommand.Value.IdempotencyKey.ShouldNotBeNull();
