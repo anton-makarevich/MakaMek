@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
@@ -580,5 +581,133 @@ public class ToHitCalculatorTests
             .ShouldBe(fullRecalculationResult.OtherModifiers.OfType<AimedShotModifier>().Single().Value);
         optimizedResult.OtherModifiers.OfType<AimedShotModifier>().Single().TargetLocation
             .ShouldBe(fullRecalculationResult.OtherModifiers.OfType<AimedShotModifier>().Single().TargetLocation);
+    }
+
+    [Fact]
+    public void GetToHitNumber_WithAttackScenario_ReturnsCorrectValue()
+    {
+        // Arrange
+        var attackerPosition = new HexCoordinates(2, 2);
+        var targetPosition = new HexCoordinates(5, 2);
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        var scenario = AttackScenario.FromHypothetical(
+            attackerGunnery: 4,
+            attackerPosition: attackerPosition,
+            attackerMovementType: MovementType.Walk,
+            targetPosition: targetPosition,
+            targetHexesMoved: 0,
+            attackerModifiers: new List<RollModifier>());
+
+        _rules.GetAttackerMovementModifier(MovementType.Walk).Returns(0);
+        _rules.GetTargetMovementModifier(0).Returns(0);
+        _rules.GetRangeModifier(Arg.Any<WeaponRange>(), Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetTerrainToHitModifier(Arg.Any<MakaMekTerrains>()).Returns(0);
+
+        // Act
+        var result = _sut.GetToHitNumber(scenario, _weapon, map);
+
+        // Assert
+        result.ShouldBe(4); // Base gunnery only
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_WithAttackScenario_IncludesAllModifiers()
+    {
+        // Arrange
+        var attackerPosition = new HexCoordinates(2, 2);
+        var targetPosition = new HexCoordinates(5, 2);
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        var heatModifier = new HeatRollModifier { Value = 2, HeatLevel = 15 };
+        var scenario = AttackScenario.FromHypothetical(
+            attackerGunnery: 4,
+            attackerPosition: attackerPosition,
+            attackerMovementType: MovementType.Run,
+            targetPosition: targetPosition,
+            targetHexesMoved: 3,
+            attackerModifiers: new List<RollModifier> { heatModifier },
+            attackerFacing: HexDirection.Top,
+            targetFacing: HexDirection.Bottom);
+
+        _rules.GetAttackerMovementModifier(MovementType.Run).Returns(2);
+        _rules.GetTargetMovementModifier(3).Returns(1);
+        _rules.GetRangeModifier(Arg.Any<WeaponRange>(), Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetTerrainToHitModifier(Arg.Any<MakaMekTerrains>()).Returns(0);
+
+        // Act
+        var result = _sut.GetModifierBreakdown(scenario, _weapon, map);
+
+        // Assert
+        result.GunneryBase.Value.ShouldBe(4);
+        result.AttackerMovement.Value.ShouldBe(2);
+        result.AttackerMovement.MovementType.ShouldBe(MovementType.Run);
+        result.TargetMovement.Value.ShouldBe(1);
+        result.TargetMovement.HexesMoved.ShouldBe(3);
+        result.OtherModifiers.ShouldContain(m => m is HeatRollModifier);
+        result.Total.ShouldBe(9); // 4 + 2 + 1 + 2
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_WithAttackScenarioAndAimedShot_IncludesAimedShotModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexCoordinates(2, 2);
+        var targetPosition = new HexCoordinates(5, 2);
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        var scenario = AttackScenario.FromHypothetical(
+            attackerGunnery: 4,
+            attackerPosition: attackerPosition,
+            attackerMovementType: MovementType.Walk,
+            targetPosition: targetPosition,
+            targetHexesMoved: 0,
+            attackerModifiers: new List<RollModifier>(),
+            aimedShotTarget: PartLocation.Head);
+
+        _rules.GetAttackerMovementModifier(MovementType.Walk).Returns(0);
+        _rules.GetTargetMovementModifier(0).Returns(0);
+        _rules.GetRangeModifier(Arg.Any<WeaponRange>(), Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetTerrainToHitModifier(Arg.Any<MakaMekTerrains>()).Returns(0);
+        _rules.GetAimedShotModifier(PartLocation.Head).Returns(3);
+
+        // Act
+        var result = _sut.GetModifierBreakdown(scenario, _weapon, map);
+
+        // Assert
+        var aimedShotModifier = result.OtherModifiers.OfType<AimedShotModifier>().ShouldHaveSingleItem();
+        aimedShotModifier.TargetLocation.ShouldBe(PartLocation.Head);
+        aimedShotModifier.Value.ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_WithAttackScenarioAndSecondaryTarget_IncludesSecondaryTargetModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexCoordinates(2, 2);
+        var targetPosition = new HexCoordinates(5, 2);
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+
+        var scenario = AttackScenario.FromHypothetical(
+            attackerGunnery: 4,
+            attackerPosition: attackerPosition,
+            attackerMovementType: MovementType.Walk,
+            targetPosition: targetPosition,
+            targetHexesMoved: 0,
+            attackerModifiers: new List<RollModifier>(),
+            attackerFacing: HexDirection.Top,
+            isPrimaryTarget: false);
+
+        _rules.GetAttackerMovementModifier(MovementType.Walk).Returns(0);
+        _rules.GetTargetMovementModifier(0).Returns(0);
+        _rules.GetRangeModifier(Arg.Any<WeaponRange>(), Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetTerrainToHitModifier(Arg.Any<MakaMekTerrains>()).Returns(0);
+        _rules.GetSecondaryTargetModifier(Arg.Any<bool>()).Returns(1);
+
+        // Act
+        var result = _sut.GetModifierBreakdown(scenario, _weapon, map);
+
+        // Assert
+        result.OtherModifiers.OfType<SecondaryTargetModifier>().ShouldHaveSingleItem();
     }
 }

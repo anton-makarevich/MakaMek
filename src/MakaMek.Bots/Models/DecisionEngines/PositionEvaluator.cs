@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Bots.Models.Map;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -54,7 +55,6 @@ public class PositionEvaluator
                 .SelectMany(p => p.GetComponents<Weapon>())
                 .Where(w => w.IsAvailable);
 
-            // TODO: evaluate how to use IHitCalculator for that
             foreach (var weapon in weapons)
             {
                 // Check if weapon can fire at this range
@@ -76,8 +76,7 @@ public class PositionEvaluator
                 if (!isInArc)
                     continue;
 
-                // Create a temporary unit state to simulate the movement for to-hit calculation
-                // We need to calculate what the to-hit would be if the friendly unit were at this position
+                // Calculate hit probability using ToHitCalculator with full accuracy
                 // For defensive calculation, we're the target, so we use hexesTraveled for target movement modifier
                 var hitProbability = CalculateHitProbability(enemy, weapon, position, hexesTraveled);
 
@@ -205,59 +204,82 @@ public class PositionEvaluator
     }
 
     /// <summary>
-    /// Calculates hit probability for an enemy attacking the friendly unit at a position
+    /// Calculates hit probability for an enemy attacking the friendly unit at a hypothetical position.
+    /// Uses ToHitCalculator with AttackScenario for full accuracy including all modifiers.
     /// </summary>
     private double CalculateHitProbability(IUnit attacker, Weapon weapon, HexPosition targetPosition, int targetHexesMoved)
     {
-        if (_game.BattleMap == null || attacker.Position == null)
+        if (_game.BattleMap == null || attacker.Position == null || attacker.Pilot == null)
             return 0;
 
-        // We can't directly use ToHitCalculator because the target hasn't actually moved yet
-        // TODO: ToHitCalculator should be updated to handle this case
-        // So we need to estimate the to-hit number based on the position
-        // For simplicity, we'll use the base gunnery skill + range + movement modifiers
-        
         var distance = attacker.Position.Coordinates.DistanceTo(targetPosition.Coordinates);
         var range = weapon.GetRangeBracket(distance);
-        
+
         if (range == WeaponRange.OutOfRange)
             return 0;
 
-        // Estimate to-hit number
-        var toHitNumber = attacker.Pilot?.Gunnery ?? 4; // Default gunnery
-        toHitNumber += _game.RulesProvider.GetRangeModifier(range, weapon.LongRange, distance);
-        toHitNumber += _game.RulesProvider.GetTargetMovementModifier(targetHexesMoved);
-        
-        // Add attacker's movement modifier (enemy's last movement)
-        if (attacker.MovementTypeUsed.HasValue)
-        {
-            toHitNumber += _game.RulesProvider.GetAttackerMovementModifier(attacker.MovementTypeUsed.Value);
-        }
+        // Get weapon location for attack modifiers
+        var weaponLocation = weapon.FirstMountPartLocation ?? PartLocation.CenterTorso;
+
+        // Get current attack modifiers from the attacker (heat, prone, sensors, arm actuators, etc.)
+        var attackerModifiers = attacker.GetAttackModifiers(weaponLocation);
+
+        // Determine attacker's movement type (use actual if available, otherwise assume it will walk for now)
+        var attackerMovementType = attacker.MovementTypeUsed ?? MovementType.Walk;
+
+        // Create hypothetical attack scenario
+        var scenario = AttackScenario.FromHypothetical(
+            attackerGunnery: attacker.Pilot.Gunnery,
+            attackerPosition: attacker.Position.Coordinates,
+            attackerMovementType: attackerMovementType,
+            targetPosition: targetPosition.Coordinates,
+            targetHexesMoved: targetHexesMoved,
+            attackerModifiers: attackerModifiers,
+            attackerFacing: attacker.Position.Facing,
+            targetFacing: targetPosition.Facing);
+
+        // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)
+        var toHitNumber = _game.ToHitCalculator.GetToHitNumber(scenario, weapon, _game.BattleMap);
 
         return DiceUtils.Calculate2d6Probability(toHitNumber);
     }
 
     /// <summary>
-    /// Calculates hit probability for the friendly unit attacking from a position
+    /// Calculates hit probability for the friendly unit attacking from a hypothetical position.
+    /// Uses ToHitCalculator with AttackScenario for full accuracy including all modifiers.
     /// </summary>
     private double CalculateHitProbabilityAsAttacker(IUnit attacker, IUnit target, Weapon weapon, HexPosition attackerPosition, MovementType movementType)
     {
-        if (_game.BattleMap == null || target.Position == null)
+        if (_game.BattleMap == null || target.Position == null || attacker.Pilot == null)
             return 0;
 
         var distance = attackerPosition.Coordinates.DistanceTo(target.Position.Coordinates);
         var range = weapon.GetRangeBracket(distance);
-        
+
         if (range == WeaponRange.OutOfRange)
             return 0;
 
-        // Estimate to-hit number
-        var toHitNumber = attacker.Pilot?.Gunnery ?? 4; // Default gunnery
-        toHitNumber += _game.RulesProvider.GetRangeModifier(range, weapon.LongRange, distance);
-        toHitNumber += _game.RulesProvider.GetAttackerMovementModifier(movementType);
-        
-        // Add target's movement modifier (enemy's actual movement)
-        toHitNumber += _game.RulesProvider.GetTargetMovementModifier(target.DistanceCovered);
+        // Get weapon location for attack modifiers
+        var weaponLocation = weapon.FirstMountPartLocation ?? PartLocation.CenterTorso;
+
+        // Get current attack modifiers from the attacker (heat, prone, sensors, arm actuators, etc.)
+        // Note: Unit state (heat, damage) doesn't change during Movement and Attack phases,
+        // so we can use current state for hypothetical evaluation
+        var attackerModifiers = attacker.GetAttackModifiers(weaponLocation);
+
+        // Create hypothetical attack scenario
+        var scenario = AttackScenario.FromHypothetical(
+            attackerGunnery: attacker.Pilot.Gunnery,
+            attackerPosition: attackerPosition.Coordinates,
+            attackerMovementType: movementType,
+            targetPosition: target.Position.Coordinates,
+            targetHexesMoved: target.DistanceCovered,
+            attackerModifiers: attackerModifiers,
+            attackerFacing: attackerPosition.Facing,
+            targetFacing: target.Position.Facing);
+
+        // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)
+        var toHitNumber = _game.ToHitCalculator.GetToHitNumber(scenario, weapon, _game.BattleMap);
 
         return DiceUtils.Calculate2d6Probability(toHitNumber);
     }
