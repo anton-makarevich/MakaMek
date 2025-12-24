@@ -627,8 +627,7 @@ public class ToHitCalculatorTests
             targetPosition: targetPosition,
             targetHexesMoved: 3,
             attackerModifiers: new List<RollModifier> { heatModifier },
-            attackerFacing: HexDirection.Top,
-            targetFacing: HexDirection.Bottom);
+            attackerFacing: HexDirection.Top);
 
         _rules.GetAttackerMovementModifier(MovementType.Run).Returns(2);
         _rules.GetTargetMovementModifier(3).Returns(1);

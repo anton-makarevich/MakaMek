@@ -1,7 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
@@ -45,11 +44,6 @@ public record AttackScenario
     /// Facing the direction of the attacker (used for secondary target calculations)
     /// </summary>
     public HexDirection? AttackerFacing { get; private init; }
-    
-    /// <summary>
-    /// Facing direction of the target (used for attack direction calculations)
-    /// </summary>
-    public HexDirection? TargetFacing { get; private init; }
     
     /// <summary>
     /// Whether this is the primary target or a secondary target
@@ -96,8 +90,7 @@ public record AttackScenario
             AttackerMovementType = attacker.MovementTypeUsed.Value,
             TargetHexesMoved = target.DistanceCovered,
             AttackerModifiers = attacker.GetAttackModifiers(weaponLocation),
-            AttackerFacing = attacker is Mech mech ? mech.TorsoDirection : attacker.Position.Facing,
-            TargetFacing = target.Position.Facing,
+            AttackerFacing = attacker.Facing,
             IsPrimaryTarget = isPrimaryTarget,
             AimedShotTarget = aimedShotTarget
         };
@@ -114,7 +107,6 @@ public record AttackScenario
     /// <param name="targetHexesMoved">Number of hexes target has moved</param>
     /// <param name="attackerModifiers">Attack modifiers (heat, damage, etc.)</param>
     /// <param name="attackerFacing">Attacker's facing direction</param>
-    /// <param name="targetFacing">Target's facing direction</param>
     /// <param name="isPrimaryTarget">Whether this is the primary target</param>
     /// <param name="aimedShotTarget">Body part being targeted for aimed shot, if any</param>
     /// <returns>AttackScenario representing the hypothetical attack</returns>
@@ -126,7 +118,6 @@ public record AttackScenario
         int targetHexesMoved,
         IReadOnlyList<RollModifier> attackerModifiers,
         HexDirection? attackerFacing = null,
-        HexDirection? targetFacing = null,
         bool isPrimaryTarget = true,
         PartLocation? aimedShotTarget = null)
     {
@@ -139,7 +130,6 @@ public record AttackScenario
             TargetHexesMoved = targetHexesMoved,
             AttackerModifiers = attackerModifiers,
             AttackerFacing = attackerFacing,
-            TargetFacing = targetFacing,
             IsPrimaryTarget = isPrimaryTarget,
             AimedShotTarget = aimedShotTarget
         };

@@ -235,8 +235,7 @@ public class PositionEvaluator
             targetPosition: targetPosition,
             targetHexesMoved: targetHexesMoved,
             attackerModifiers: attackerModifiers,
-            attackerFacing: attacker.Position.Facing,
-            targetFacing: targetPosition.Facing);
+            attackerFacing: attacker.Position.Facing);
 
         // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)
         var toHitNumber = _game.ToHitCalculator.GetToHitNumber(scenario, weapon, _game.BattleMap);
@@ -275,8 +274,7 @@ public class PositionEvaluator
             targetPosition: target.Position,
             targetHexesMoved: target.DistanceCovered,
             attackerModifiers: attackerModifiers,
-            attackerFacing: attackerPosition.Facing,
-            targetFacing: target.Position.Facing);
+            attackerFacing: attackerPosition.Facing);
 
         // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)
         var toHitNumber = _game.ToHitCalculator.GetToHitNumber(scenario, weapon, _game.BattleMap);

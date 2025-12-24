@@ -25,6 +25,7 @@ public class AttackScenarioTests
         
         attacker.Pilot.Returns(pilot);
         attacker.Position.Returns(attackerPosition);
+        attacker.Facing.Returns(attackerPosition.Facing);
         attacker.MovementTypeUsed.Returns(MovementType.Run);
         attacker.GetAttackModifiers(PartLocation.RightArm).Returns(new List<RollModifier>
         {
@@ -46,7 +47,6 @@ public class AttackScenarioTests
         scenario.AttackerModifiers.Count.ShouldBe(1);
         scenario.AttackerModifiers[0].ShouldBeOfType<HeatRollModifier>();
         scenario.AttackerFacing.ShouldBe(HexDirection.Top);
-        scenario.TargetFacing.ShouldBe(HexDirection.Bottom);
         scenario.IsPrimaryTarget.ShouldBeTrue();
         scenario.AimedShotTarget.ShouldBe(PartLocation.Head);
     }
@@ -65,6 +65,7 @@ public class AttackScenarioTests
 
         attacker.Pilot.Returns(pilot);
         attacker.Position.Returns(attackerPosition);
+        attacker.Facing.Returns(attackerPosition.Facing);
         attacker.MovementTypeUsed.Returns(MovementType.Walk);
         attacker.GetAttackModifiers(Arg.Any<PartLocation>()).Returns(new List<RollModifier>());
 
@@ -131,7 +132,6 @@ public class AttackScenarioTests
             targetHexesMoved: 4,
             attackerModifiers: modifiers,
             attackerFacing: HexDirection.TopLeft,
-            targetFacing: HexDirection.BottomRight,
             isPrimaryTarget: false,
             aimedShotTarget: PartLocation.LeftLeg);
         
@@ -143,7 +143,6 @@ public class AttackScenarioTests
         scenario.TargetHexesMoved.ShouldBe(4);
         scenario.AttackerModifiers.Count.ShouldBe(2);
         scenario.AttackerFacing.ShouldBe(HexDirection.TopLeft);
-        scenario.TargetFacing.ShouldBe(HexDirection.BottomRight);
         scenario.IsPrimaryTarget.ShouldBeFalse();
         scenario.AimedShotTarget.ShouldBe(PartLocation.LeftLeg);
     }
