@@ -393,7 +393,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         var mech = _unit1 as Mech;
-        SetupUnitWithHighHeat(mech!, 25); // Heat level that triggers ammo explosion check
+        SetupUnitWithHeat(mech!, 25); // Heat level that triggers ammo explosion check
 
         var explosionCommand = new AmmoExplosionCommand
         {
@@ -426,7 +426,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         var mech = _unit1 as Mech;
-        SetupUnitWithLowHeat(mech!, 10); // Heat level below an ammo explosion threshold
+        SetupUnitWithHeat(mech!, 10); // Heat level below an ammo explosion threshold
 
         MockHeatEffectsCalculator.CheckForHeatAmmoExplosion(mech!)
             .Returns((AmmoExplosionCommand?)null);
@@ -683,17 +683,21 @@ public class HeatPhaseTests : GamePhaseTestsBase
         }
     }
 
-    private static void SetupUnitWithHighHeat(Mech mech, int heatLevel)
+    private static void SetupUnitWithHeat(Mech mech, int heatLevel)
     {
-        // Use reflection to set the current heat since there's no public setter
-        var heatProperty = typeof(Mech).GetProperty("CurrentHeat");
-        heatProperty?.SetValue(mech, heatLevel);
-    }
-
-    private static void SetupUnitWithLowHeat(Mech mech, int heatLevel)
-    {
-        // Use reflection to set the current heat since there's no public setter
-        var heatProperty = typeof(Mech).GetProperty("CurrentHeat");
-        heatProperty?.SetValue(mech, heatLevel);
+        mech.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [
+                new MovementHeatData
+                {
+                    MovementType = MovementType.Run,
+                    MovementPointsSpent = 5,
+                    HeatPoints = heatLevel
+                }
+            ],
+            WeaponHeatSources = [],
+            ExternalHeatSources = [],
+            DissipationData = default
+        });
     }
 }

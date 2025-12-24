@@ -21,6 +21,7 @@ public class MovementPath : IEquatable<MovementPath>
                 .Concat(Segments.Select(s => s.To.Coordinates))
                 .Distinct()
                 .ToList();
+        HexesTraveled = Math.Max(0, Hexes.Count - 1);
         MovementType = movementType;
         IsJump = movementType == MovementType.Jump;
         TotalCost = Segments.Sum(s => s.Cost);
@@ -31,8 +32,7 @@ public class MovementPath : IEquatable<MovementPath>
         segments.Select(s => new PathSegment(s)), movementType)
     {
     }
-
-
+    
     /// <summary>
     /// Constructor for cache lookups
     /// </summary>
@@ -48,9 +48,9 @@ public class MovementPath : IEquatable<MovementPath>
     public IReadOnlyList<PathSegment> Segments { get; }
     
     public int TotalCost { get; }
-    
-    public int HexesTraveled => Hexes.Count;
-    
+
+    public int HexesTraveled { get; }
+
     public int DistanceCovered => Start == null || Destination == null 
         ? 0 
         : Start.Coordinates.DistanceTo(Destination.Coordinates);

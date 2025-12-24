@@ -142,7 +142,7 @@ public class MechTests
         mech.Position.ShouldBe(newCoordinates);
         mech.HasMoved.ShouldBeTrue();
         mech.MovementTaken.ShouldBe(path);
-        mech.MovementPointsSpent.ShouldBe(0);
+        mech.MovementPointsSpent.ShouldBe(path.TotalCost);
     }
 
     [Fact]

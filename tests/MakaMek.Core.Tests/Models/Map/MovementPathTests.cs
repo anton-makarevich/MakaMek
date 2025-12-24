@@ -49,7 +49,7 @@ public class MovementPathTests
         // Assert
         sut.Segments.Count.ShouldBe(2);
         sut.TotalCost.ShouldBe(2);
-        sut.HexesTraveled.ShouldBe(2);
+        sut.HexesTraveled.ShouldBe(1);
         sut.DistanceCovered.ShouldBe(1);
         sut.Start!.Coordinates.ShouldBe(new HexCoordinates(1, 1));
         sut.Destination!.Coordinates.ShouldBe(new HexCoordinates(1, 2));
@@ -92,7 +92,7 @@ public class MovementPathTests
             "Reversed path should have same number of segments");
         
         // Verify all facings are opposite
-        for (int i = 0; i < originalPath.Segments.Count; i++)
+        for (var i = 0; i < originalPath.Segments.Count; i++)
         {
             var original = originalPath.Segments[i];
             var reversed = reversedPath.Segments[i];
@@ -123,6 +123,43 @@ public class MovementPathTests
         
         reversedPath.Destination!.Coordinates.ShouldBe(originalPath.Destination!.Coordinates);
         reversedPath.Destination.Facing.ShouldBe(originalPath.Destination.Facing.GetOppositeDirection());
+    }
+    
+    [Fact]
+    public void HexesTraveled_ShouldNotIncludeStartHex()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
+                1),
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight),
+                new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight),
+                1),
+            new(
+                new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight),
+                new HexPosition(new HexCoordinates(2, 2), HexDirection.TopRight),
+                1)
+        };
+        
+        var sut = new MovementPath(segments, MovementType.Walk);
+        
+        // Assert
+        sut.Hexes.Count.ShouldBe(3);   // (1,1), (2,1), (2,2)
+        sut.HexesTraveled.ShouldBe(2); // (2,1) and (2,2)
+    }
+    
+    [Fact]
+    public void HexesTravelled_ShouldNotBeNegative()
+    {
+        // Arrange
+        var sut = new MovementPath(Array.Empty<PathSegment>(), MovementType.StandingStill);
+        
+        // Assert
+        sut.HexesTraveled.ShouldBe(0);
     }
     
     [Fact]
