@@ -57,7 +57,7 @@ public class AttackScenarioTests
         scenario.AttackerGunnery.ShouldBe(4);
         scenario.AttackerPosition.ShouldBe(attackerPosition);
         scenario.TargetPosition.ShouldBe(targetPosition);
-        scenario.AttackerMovementType.ShouldBe(MovementType.Run);
+        scenario.AttackerMovementType.ShouldBe(MovementType.Walk);
         scenario.TargetHexesMoved.ShouldBe(3);
         scenario.AttackerModifiers.Count.ShouldBe(1);
         scenario.AttackerModifiers[0].ShouldBeOfType<HeatRollModifier>();

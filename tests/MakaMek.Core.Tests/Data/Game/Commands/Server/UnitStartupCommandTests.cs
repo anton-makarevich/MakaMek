@@ -34,7 +34,20 @@ public class UnitStartupCommandTests
         _unit = mechFactory.Create(unitData);
         
         // Set unit heat for testing
-        _unit.GetType().GetProperty("CurrentHeat")?.SetValue(_unit, 15);
+        _unit.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [
+                new MovementHeatData
+                {
+                    MovementType = MovementType.Run,
+                    MovementPointsSpent = 5,
+                    HeatPoints = 15
+                }
+            ],
+            WeaponHeatSources = [],
+            ExternalHeatSources = [],
+            DissipationData = default
+        });
         
         // Add unit to player
         player.AddUnit(_unit);

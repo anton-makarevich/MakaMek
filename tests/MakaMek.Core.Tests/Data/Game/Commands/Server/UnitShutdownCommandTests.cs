@@ -91,7 +91,20 @@ public class UnitShutdownCommandTests
     {
         // Arrange
         // Set unit heat for testing
-        _unit.GetType().GetProperty("CurrentHeat")?.SetValue(_unit, 30);
+        _unit.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [
+                new MovementHeatData
+                {
+                    MovementType = MovementType.Run,
+                    MovementPointsSpent = 5,
+                    HeatPoints = 30
+                }
+            ],
+            WeaponHeatSources = [],
+            ExternalHeatSources = [],
+            DissipationData = default
+        });
         var command = new UnitShutdownCommand
         {
             GameOriginId = _gameId,
