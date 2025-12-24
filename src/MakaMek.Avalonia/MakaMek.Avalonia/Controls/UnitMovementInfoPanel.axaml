@@ -67,7 +67,7 @@
 
                 <TextBlock Grid.Row="1" Grid.Column="0"
                          Classes="label"
-                         Text="{Binding MovementTypeUsed}"
+                         Text="{Binding MovementTaken.MovementType}"
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="1" Grid.Column="1"
                          Classes="label"
@@ -75,7 +75,7 @@
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="1" Grid.Column="2"
                          Classes="label"
-                         Text="{Binding DistanceCovered}"
+                         Text="{Binding MovementTaken.DistanceCovered}"
                          HorizontalAlignment="Center"/>
             </Grid>
         </Border>

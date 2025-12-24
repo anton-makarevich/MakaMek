@@ -952,14 +952,8 @@ public class UnitTests
         unit.Deploy(deployPosition);
         
         // Move the unit with the Run movement type
-        unit.Move(MovementType.Run, new MovementPath([
-            new PathSegmentData
-            {
-                From = deployPosition.ToData(),
-                To = deployPosition.ToData(), // Fixed: Using proper HexPositionData
-                Cost = 5
-            }
-        ]));
+        unit.Move(new MovementPath([
+            new PathSegment(deployPosition, deployPosition, 5)], MovementType.Run));
         
         // Act
         var heatData = unit.GetHeatData(rulesProvider);
@@ -1040,14 +1034,8 @@ public class UnitTests
         ]);
 
         // Move the unit with the Jump movement type
-        unit.Move(MovementType.Jump, new MovementPath([
-            new PathSegmentData
-            {
-                From = deployPosition.ToData(),
-                To = deployPosition.ToData(), // Fixed: Using proper HexPositionData
-                Cost = 3
-            }
-        ]));
+        unit.Move(new MovementPath([
+            new PathSegment(deployPosition, deployPosition, 3)], MovementType.Jump));
         
         // Act
         var heatData = unit.GetHeatData(rulesProvider);
@@ -2243,14 +2231,8 @@ public class UnitTests
         sut.Deploy(deployPosition);
         
         // Add movement heat
-        sut.Move(MovementType.Run, new MovementPath([
-            new PathSegmentData
-            {
-                From = deployPosition.ToData(),
-                To = deployPosition.ToData(),
-                Cost = 5
-            }
-        ]));
+        sut.Move(new MovementPath([
+            new PathSegment(deployPosition, deployPosition, 5)], MovementType.Run));
         
         // Add external heat (10 Flamers × 2 = 20, capped at 15)
         for (var i = 0; i < 10; i++)

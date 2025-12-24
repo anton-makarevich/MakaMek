@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Map;
@@ -17,7 +18,7 @@ public class MovementPathCacheTests
         {
             new(start, dest, 1)
         };
-        var path = new MovementPath(segments);
+        var path = new MovementPath(segments, MovementType.Walk);
 
         _sut.Add(path);
 
@@ -47,7 +48,7 @@ public class MovementPathCacheTests
             new(start, mid, 1),
             new(mid, dest, 1)
         };
-        var path = new MovementPath(segments);
+        var path = new MovementPath(segments, MovementType.Walk);
         
         _sut.Add(path);
         
@@ -70,7 +71,7 @@ public class MovementPathCacheTests
         {
             new(start, dest, 1)
         };
-        var path = new MovementPath(segments);
+        var path = new MovementPath(segments, MovementType.Walk);
         
         _sut.Add(path);
         
@@ -86,10 +87,10 @@ public class MovementPathCacheTests
         var dest = new HexPosition(2, 2, HexDirection.Bottom);
         
         var walkSegments = new List<PathSegment> { new(start, dest, 2) };
-        var walkPath = new MovementPath(walkSegments, isJump: false);
+        var walkPath = new MovementPath(walkSegments, MovementType.Walk);
         
         var jumpSegments = new List<PathSegment> { new(start, dest, 1) };
-        var jumpPath = new MovementPath(jumpSegments, isJump: true);
+        var jumpPath = new MovementPath(jumpSegments, MovementType.Jump);
         
         _sut.Add(walkPath);
         _sut.Add(jumpPath);
@@ -104,8 +105,8 @@ public class MovementPathCacheTests
         var start = new HexPosition(1, 1, HexDirection.Top);
         var dest = new HexPosition(2, 2, HexDirection.Bottom);
         
-        var path1 = new MovementPath(new List<PathSegment> { new(start, dest, 1) });
-        var path2 = new MovementPath(new List<PathSegment> { new(start, dest, 100) }); // Different cost/segments but the same endpoints
+        var path1 = new MovementPath([new PathSegment(start, dest, 1)], MovementType.Walk);
+        var path2 = new MovementPath([new PathSegment(start, dest, 100) ], MovementType.Walk); // Different cost/segments but the same endpoints
         
         path1.Equals(path2).ShouldBeTrue("Paths with same endpoints should be equal in this model");
         path1.GetHashCode().ShouldBe(path2.GetHashCode());
@@ -118,7 +119,7 @@ public class MovementPathCacheTests
         var dest = new HexPosition(2, 2, HexDirection.Bottom);
         
         var segments = new List<PathSegment> { new(start, dest, 1) };
-        var path = new MovementPath(segments);
+        var path = new MovementPath(segments, MovementType.Walk);
         
         _sut.Add(path);
         

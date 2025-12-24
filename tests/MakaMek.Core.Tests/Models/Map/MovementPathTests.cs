@@ -1,6 +1,7 @@
 ﻿using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Map;
@@ -43,7 +44,7 @@ public class MovementPathTests
             }
         ];
 
-        var sut = new MovementPath(segments);
+        var sut = new MovementPath(segments, MovementType.Walk);
 
         // Assert
         sut.Segments.Count.ShouldBe(2);
@@ -55,6 +56,7 @@ public class MovementPathTests
         sut.Destination.Facing.ShouldBe(HexDirection.TopRight);
         sut.Hexes.Count.ShouldBe(2);
         sut.TurnsTaken.ShouldBe(1);
+        sut.MovementType.ShouldBe(MovementType.Walk);
     }
     
     [Fact]
@@ -80,7 +82,7 @@ public class MovementPathTests
             )
         ];
         
-        var originalPath = new MovementPath(segments);
+        var originalPath = new MovementPath(segments, MovementType.Walk);
         
         // Act
         var reversedPath = originalPath.ReverseFacing();
@@ -127,7 +129,7 @@ public class MovementPathTests
     public void Destination_And_Start_ShouldBeNull_WhenCreatedWithEmptySegments()
     {
         // Arrange
-        var sut = new MovementPath(Array.Empty<PathSegment>());
+        var sut = new MovementPath(Array.Empty<PathSegment>(), MovementType.StandingStill);
         
         // Assert
         sut.Start.ShouldBeNull();
@@ -175,7 +177,7 @@ public class MovementPathTests
             }
         ];
         
-        var sut = new MovementPath(segments.Select(s => new PathSegment(s)).ToList());
+        var sut = new MovementPath(segments.Select(s => new PathSegment(s)).ToList(), MovementType.Walk);
         
         // Act
         var data = sut.ToData();
@@ -196,8 +198,8 @@ public class MovementPathTests
                 1)
         };
         
-        var path1 = new MovementPath(segments);
-        var path2 = new MovementPath(segments);
+        var path1 = new MovementPath(segments, MovementType.Walk);
+        var path2 = new MovementPath(segments, MovementType.Walk);
         
         // Act & Assert
         path1.Equals(path2).ShouldBeTrue();
@@ -223,8 +225,8 @@ public class MovementPathTests
                 1)
         };
         
-        var path1 = new MovementPath(segments1);
-        var path2 = new MovementPath(segments2);
+        var path1 = new MovementPath(segments1, MovementType.Walk);
+        var path2 = new MovementPath(segments2, MovementType.Walk);
         
         // Act & Assert
         path1.Equals(path2).ShouldBeFalse();
@@ -243,8 +245,8 @@ public class MovementPathTests
         };
         
         
-        var path1 = new MovementPath(segments);
-        var path2 = new MovementPath(segments,true);
+        var path1 = new MovementPath(segments, MovementType.Walk);
+        var path2 = new MovementPath(segments, MovementType.Jump);
         
         // Act & Assert
         path1.Equals(path2).ShouldBeFalse();
@@ -262,7 +264,7 @@ public class MovementPathTests
                 1)
         };
         
-        var path = new MovementPath(segments);
+        var path = new MovementPath(segments, MovementType.Walk);
         
         // Act & Assert
         path.Equals(new object()).ShouldBeFalse();
@@ -280,8 +282,8 @@ public class MovementPathTests
                 1)
         };
         
-        var path = new MovementPath(segments);
-        object pathAsObject = new MovementPath(path.ToData());
+        var path = new MovementPath(segments, MovementType.Walk);
+        object pathAsObject = new MovementPath(path.ToData(), MovementType.Walk);
         
         // Act & Assert
         path.Equals(pathAsObject).ShouldBeTrue();

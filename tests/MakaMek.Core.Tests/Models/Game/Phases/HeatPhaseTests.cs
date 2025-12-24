@@ -65,7 +65,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_ShouldPublishAutomaticRestart_ForPreviouslyHeatShutdownMech()
     {
-        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        // Arrange: rebuild the game to use MockHeatEffectsCalculator
         SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
 
         // Set up players and a single unit
@@ -115,7 +115,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_ShouldNotPublishAutomaticRestart_WhenMechIsNotShutdown()
     {
-        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        // Arrange: rebuild the game to use MockHeatEffectsCalculator
         SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
 
         // Set up players and a single unit
@@ -159,7 +159,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_ShouldNotPublishAutomaticRestart_WhenMechIsShutdownInSameTurn()
     {
-        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        // Arrange: rebuild the game to use MockHeatEffectsCalculator
         SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
 
         // Set up players and a single unit
@@ -204,7 +204,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_ShouldNotPublishAutomaticRestart_WhenMechIsShutdownVoluntarily()
     {
-        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        // Arrange: rebuild the game to use MockHeatEffectsCalculator
         SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
 
         // Set up players and a single unit
@@ -249,7 +249,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_ShouldNotPublishAutomaticRestart_WhenNotReturnedByCalculator()
     {
-        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        // Arrange: rebuild the game to use MockHeatEffectsCalculator
         SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
 
         // Set up players and a single unit
@@ -289,7 +289,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_ShouldPublishShutdownMech_WhenHeatShutdownCommandReturned()
     {
-        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        // Arrange: rebuild the game to use MockHeatEffectsCalculator
         SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
 
         var playerId = Guid.NewGuid();
@@ -323,7 +323,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Act
         sut.Enter();
 
-        // Assert: command published with GameOriginId set and unit is shutdown
+        // Assert: command published with GameOriginId set and the unit is shutdown
         CommandPublisher.Received().PublishCommand(
             Arg.Is<UnitShutdownCommand>(cmd => cmd.UnitId == mech.Id && cmd.GameOriginId == Game.Id));
 
@@ -335,7 +335,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_ShouldNotPublishShutdownMech_WhenHeatShutdownCommandIsNotReturned()
     {
-        // Arrange: rebuild game to use MockHeatEffectsCalculator
+        // Arrange: rebuild the game to use MockHeatEffectsCalculator
         SetGameWithRulesProvider(new ClassicBattletechRulesProvider());
 
         var playerId = Guid.NewGuid();
@@ -361,7 +361,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Act
         sut.Enter();
 
-        // Assert: command published with GameOriginId set and unit is shutdown
+        // Assert: command published with GameOriginId set and the unit is shutdown
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<UnitShutdownCommand>());
     }
 
@@ -383,7 +383,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
             Arg.Is<HeatUpdatedCommand>(cmd => 
                 cmd.UnitId == _unit1Id || cmd.UnitId == _unit2Id));
 
-        // Verify transition to next phase
+        // Verify transition to the next phase
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.Heat, Game);
         _mockNextPhase.Received(1).Enter();
     }
@@ -426,7 +426,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         var mech = _unit1 as Mech;
-        SetupUnitWithLowHeat(mech!, 10); // Heat level below ammo explosion threshold
+        SetupUnitWithLowHeat(mech!, 10); // Heat level below an ammo explosion threshold
 
         MockHeatEffectsCalculator.CheckForHeatAmmoExplosion(mech!)
             .Returns((AmmoExplosionCommand?)null);
@@ -482,7 +482,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     public void Enter_WithHeatDissipation_ShouldApplyCorrectDissipation()
     {
         // Arrange
-        // Add initial heat to unit
+        // Add initial heat to the unit
         _unit1.ApplyHeat(new HeatData
         {
             MovementHeatSources = [],
@@ -586,13 +586,13 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Setup unit with engine damage, movement and weapon heat
         SetupUnitWithEngineDamage(_unit1, 1); // 1 hit = 5 heat points
         SetupUnitWithMovement(_unit1, MovementType.Run); // 2 heat points
-        SetupUnitWithWeaponFired(_unit1); // 3 heat points from medium laser
+        SetupUnitWithWeaponFired(_unit1); // 3 heat points from a medium laser
         
         // Act
         _sut.Enter();
         
         // Assert
-        // Verify heat updated command was published with correct total heat
+        // Verify heat updated command was published with the correct total heat
         CommandPublisher.Received(1).PublishCommand(
             Arg.Is<HeatUpdatedCommand>(cmd => 
                 cmd.UnitId == _unit1Id && 
@@ -649,13 +649,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
     {
         var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
         unit.Deploy(deployPosition);
-        unit.Move(movementType, new MovementPath([new PathSegmentData
-            {
-                From = deployPosition.ToData(),
-                To = deployPosition.ToData(),
-                Cost = 0
-            }
-        ]));
+        unit.Move(new MovementPath([new PathSegment(deployPosition, deployPosition, 1)], movementType));
     }
 
     private void SetupUnitWithWeaponFired(IUnit unit)
@@ -679,7 +673,7 @@ public class HeatPhaseTests : GamePhaseTestsBase
         // Find the engine component on the unit
         var engine = unit.GetAllComponents<Engine>().FirstOrDefault();
 
-        // If engine exists, apply hits
+        // If the engine exists, apply hits
         if (engine != null)
         {
             for (var i = 0; i < hits; i++)

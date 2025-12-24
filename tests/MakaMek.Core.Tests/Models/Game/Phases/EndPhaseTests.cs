@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -12,7 +11,6 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
 
@@ -173,26 +171,13 @@ public class EndPhaseTests : GamePhaseTestsBase
         
         // Add a unit to the player
         var unit = Game.Players.First(p => p.Id == _player1Id).Units[0];
-        unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom));
-        unit.Move(MovementType.Walk, new MovementPath([new PathSegmentData
-            {
-                From = new HexPositionData
-                {
-                    Coordinates = new HexCoordinateData(1,
-                        1),
-                    Facing = 3
-                },
-                To =  new HexPositionData
-                {
-                    Coordinates = new HexCoordinateData(1,
-                        2),
-                    Facing = 3
-                },
-                Cost = 1
-            }
-        ]));
+        var deployPosition = new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1,2), HexDirection.Bottom);
+        unit.Deploy(deployPosition);
+        var movementPath = new MovementPath([new PathSegment(deployPosition, targetPosition, 1).ToData()], MovementType.Walk);
+        unit.Move(movementPath);
         
-        unit.MovementTypeUsed.ShouldBe(MovementType.Walk);
+        unit.MovementTaken.ShouldBe(movementPath);
         
         var turnEndedCommand = new TurnEndedCommand
         {
@@ -206,7 +191,7 @@ public class EndPhaseTests : GamePhaseTestsBase
         
         // Assert
         // Verify the unit's turn state was reset
-        unit.MovementTypeUsed.ShouldBeNull();
+        unit.MovementTaken.ShouldBeNull();
     }
 
     [Fact]
