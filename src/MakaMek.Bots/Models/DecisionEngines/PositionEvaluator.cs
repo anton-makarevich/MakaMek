@@ -57,7 +57,7 @@ public class PositionEvaluator
 
             foreach (var weapon in weapons)
             {
-                // Check if weapon can fire at this range
+                // Check if the weapon can fire at this range
                 if (range < weapon.MinimumRange || range > weapon.LongRange)
                     continue;
 
@@ -133,7 +133,7 @@ public class PositionEvaluator
 
             foreach (var weapon in weapons)
             {
-                // Check if weapon can fire at this range
+                // Check if the weapon can fire at this range
                 if (range < weapon.MinimumRange || range > weapon.LongRange)
                     continue;
 
@@ -227,12 +227,12 @@ public class PositionEvaluator
         // Determine attacker's movement type (use actual if available, otherwise assume it will walk for now)
         var attackerMovementType = attacker.MovementTypeUsed ?? MovementType.Walk;
 
-        // Create hypothetical attack scenario
+        // Create a hypothetical attack scenario
         var scenario = AttackScenario.FromHypothetical(
             attackerGunnery: attacker.Pilot.Gunnery,
-            attackerPosition: attacker.Position.Coordinates,
+            attackerPosition: attacker.Position,
             attackerMovementType: attackerMovementType,
-            targetPosition: targetPosition.Coordinates,
+            targetPosition: targetPosition,
             targetHexesMoved: targetHexesMoved,
             attackerModifiers: attackerModifiers,
             attackerFacing: attacker.Position.Facing,
@@ -264,15 +264,15 @@ public class PositionEvaluator
 
         // Get current attack modifiers from the attacker (heat, prone, sensors, arm actuators, etc.)
         // Note: Unit state (heat, damage) doesn't change during Movement and Attack phases,
-        // so we can use current state for hypothetical evaluation
+        // so we can use the current state for hypothetical evaluation
         var attackerModifiers = attacker.GetAttackModifiers(weaponLocation);
 
-        // Create hypothetical attack scenario
+        // Create a hypothetical attack scenario
         var scenario = AttackScenario.FromHypothetical(
             attackerGunnery: attacker.Pilot.Gunnery,
-            attackerPosition: attackerPosition.Coordinates,
+            attackerPosition: attackerPosition,
             attackerMovementType: movementType,
-            targetPosition: target.Position.Coordinates,
+            targetPosition: target.Position,
             targetHexesMoved: target.DistanceCovered,
             attackerModifiers: attackerModifiers,
             attackerFacing: attackerPosition.Facing,

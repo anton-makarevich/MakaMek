@@ -39,8 +39,8 @@ public class AttackScenarioTests
         
         // Assert
         scenario.AttackerGunnery.ShouldBe(4);
-        scenario.AttackerPosition.ShouldBe(attackerPosition.Coordinates);
-        scenario.TargetPosition.ShouldBe(targetPosition.Coordinates);
+        scenario.AttackerPosition.ShouldBe(attackerPosition);
+        scenario.TargetPosition.ShouldBe(targetPosition);
         scenario.AttackerMovementType.ShouldBe(MovementType.Run);
         scenario.TargetHexesMoved.ShouldBe(3);
         scenario.AttackerModifiers.Count.ShouldBe(1);
@@ -114,13 +114,13 @@ public class AttackScenarioTests
     public void FromHypothetical_CreatesScenarioWithProvidedValues()
     {
         // Arrange
-        var attackerPosition = new HexCoordinates(1, 1);
-        var targetPosition = new HexCoordinates(5, 5);
-        var modifiers = new List<RollModifier>
-        {
+        var attackerPosition = new HexPosition(1, 1, HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom);
+        List<RollModifier> modifiers =
+        [
             new HeatRollModifier { Value = 2, HeatLevel = 15 },
             new ProneAttackerModifier { Value = 2 }
-        } as IReadOnlyList<RollModifier>;
+        ];
         
         // Act
         var scenario = AttackScenario.FromHypothetical(

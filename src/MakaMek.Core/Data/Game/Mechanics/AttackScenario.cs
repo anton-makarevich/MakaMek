@@ -7,7 +7,7 @@ namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
 /// <summary>
 /// Represents an attack scenario with all parameters needed for to-hit calculation.
-/// Can represent both actual attacks (from current unit state) and hypothetical attacks (for bot evaluation).
+/// Can represent both actual attacks (from the current unit state) and hypothetical attacks (for bot evaluation).
 /// </summary>
 public record AttackScenario
 {
@@ -19,12 +19,12 @@ public record AttackScenario
     /// <summary>
     /// Position from which the attack is made
     /// </summary>
-    public required HexCoordinates AttackerPosition { get; init; }
+    public required HexPosition AttackerPosition { get; init; }
     
     /// <summary>
     /// Position of the target being attacked
     /// </summary>
-    public required HexCoordinates TargetPosition { get; init; }
+    public required HexPosition TargetPosition { get; init; }
     
     /// <summary>
     /// Movement type used by the attacker (affects attacker movement modifier)
@@ -44,22 +44,22 @@ public record AttackScenario
     /// <summary>
     /// Facing the direction of the attacker (used for secondary target calculations)
     /// </summary>
-    public HexDirection? AttackerFacing { get; init; }
+    public HexDirection? AttackerFacing { get; private init; }
     
     /// <summary>
     /// Facing direction of the target (used for attack direction calculations)
     /// </summary>
-    public HexDirection? TargetFacing { get; init; }
+    public HexDirection? TargetFacing { get; private init; }
     
     /// <summary>
     /// Whether this is the primary target or a secondary target
     /// </summary>
-    public bool IsPrimaryTarget { get; init; } = true;
+    public bool IsPrimaryTarget { get; private init; } = true;
     
     /// <summary>
     /// Body part being targeted for aimed shot, if any
     /// </summary>
-    public PartLocation? AimedShotTarget { get; init; }
+    public PartLocation? AimedShotTarget { get; private init; }
     
     /// <summary>
     /// Creates an AttackScenario from actual units in their current state.
@@ -71,7 +71,7 @@ public record AttackScenario
     /// <param name="isPrimaryTarget">Whether this is the primary target</param>
     /// <param name="aimedShotTarget">Body part being targeted for aimed shot, if any</param>
     /// <returns>AttackScenario representing the actual attack</returns>
-    /// <exception cref="Exception">Thrown if attacker has no pilot, no position, or no movement type set</exception>
+    /// <exception cref="Exception">Thrown if the attacker has no pilot, no position, or no movement type set</exception>
     public static AttackScenario FromUnits(
         IUnit attacker,
         IUnit target,
@@ -91,8 +91,8 @@ public record AttackScenario
         return new AttackScenario
         {
             AttackerGunnery = attacker.Pilot.Gunnery,
-            AttackerPosition = attacker.Position.Coordinates,
-            TargetPosition = target.Position.Coordinates,
+            AttackerPosition = attacker.Position,
+            TargetPosition = target.Position,
             AttackerMovementType = attacker.MovementTypeUsed.Value,
             TargetHexesMoved = target.DistanceCovered,
             AttackerModifiers = attacker.GetAttackModifiers(weaponLocation),
@@ -120,9 +120,9 @@ public record AttackScenario
     /// <returns>AttackScenario representing the hypothetical attack</returns>
     public static AttackScenario FromHypothetical(
         int attackerGunnery,
-        HexCoordinates attackerPosition,
+        HexPosition attackerPosition,
         MovementType attackerMovementType,
-        HexCoordinates targetPosition,
+        HexPosition targetPosition,
         int targetHexesMoved,
         IReadOnlyList<RollModifier> attackerModifiers,
         HexDirection? attackerFacing = null,

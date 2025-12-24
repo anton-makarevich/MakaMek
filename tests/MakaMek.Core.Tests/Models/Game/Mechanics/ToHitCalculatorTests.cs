@@ -587,8 +587,8 @@ public class ToHitCalculatorTests
     public void GetToHitNumber_WithAttackScenario_ReturnsCorrectValue()
     {
         // Arrange
-        var attackerPosition = new HexCoordinates(2, 2);
-        var targetPosition = new HexCoordinates(5, 2);
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom);
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var scenario = AttackScenario.FromHypothetical(
@@ -615,8 +615,8 @@ public class ToHitCalculatorTests
     public void GetModifierBreakdown_WithAttackScenario_IncludesAllModifiers()
     {
         // Arrange
-        var attackerPosition = new HexCoordinates(2, 2);
-        var targetPosition = new HexCoordinates(5, 2);
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom); 
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var heatModifier = new HeatRollModifier { Value = 2, HeatLevel = 15 };
@@ -652,8 +652,8 @@ public class ToHitCalculatorTests
     public void GetModifierBreakdown_WithAttackScenarioAndAimedShot_IncludesAimedShotModifier()
     {
         // Arrange
-        var attackerPosition = new HexCoordinates(2, 2);
-        var targetPosition = new HexCoordinates(5, 2);
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom);
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var scenario = AttackScenario.FromHypothetical(
@@ -684,9 +684,10 @@ public class ToHitCalculatorTests
     public void GetModifierBreakdown_WithAttackScenarioAndSecondaryTarget_IncludesSecondaryTargetModifier()
     {
         // Arrange
-        var attackerPosition = new HexCoordinates(2, 2);
-        var targetPosition = new HexCoordinates(5, 2);
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom);
+        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10,
+            new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var scenario = AttackScenario.FromHypothetical(
             attackerGunnery: 4,

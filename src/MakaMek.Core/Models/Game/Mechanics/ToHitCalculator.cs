@@ -9,7 +9,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics;
 
 /// <summary>
-/// Classic BattleTech implementation of to-hit calculator using GATOR system
+/// Classic BattleTech implementation of to-hit calculator using the GATOR system
 /// </summary>
 public class ToHitCalculator : IToHitCalculator
 {
@@ -54,8 +54,8 @@ public class ToHitCalculator : IToHitCalculator
 
     public ToHitBreakdown GetModifierBreakdown(AttackScenario scenario, Weapon weapon, IBattleMap map)
     {
-        var hasLos = map.HasLineOfSight(scenario.AttackerPosition, scenario.TargetPosition);
-        var distance = scenario.AttackerPosition.DistanceTo(scenario.TargetPosition);
+        var hasLos = map.HasLineOfSight(scenario.AttackerPosition.Coordinates, scenario.TargetPosition.Coordinates);
+        var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
         var range = weapon.GetRangeBracket(distance);
         var rangeValue = range switch
         {
@@ -68,7 +68,10 @@ public class ToHitCalculator : IToHitCalculator
         };
 
         var otherModifiers = GetDetailedOtherModifiers(scenario);
-        var terrainModifiers = GetTerrainModifiers(scenario.AttackerPosition, scenario.TargetPosition, map);
+        var terrainModifiers = GetTerrainModifiers(
+            scenario.AttackerPosition.Coordinates,
+            scenario.TargetPosition.Coordinates,
+            map);
 
         return new ToHitBreakdown
         {
@@ -147,8 +150,8 @@ public class ToHitCalculator : IToHitCalculator
 
         // Add a secondary target modifier if not primary
         if (scenario is not { IsPrimaryTarget: false, AttackerFacing: not null }) return modifiers;
-        var isInFrontArc = scenario.AttackerPosition.IsInFiringArc(
-            scenario.TargetPosition,
+        var isInFrontArc = scenario.AttackerPosition.Coordinates.IsInFiringArc(
+            scenario.TargetPosition.Coordinates,
             scenario.AttackerFacing.Value,
             FiringArc.Front);
 
