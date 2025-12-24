@@ -1,4 +1,5 @@
 ﻿using System.Reactive.Linq;
+using System.Reactive.Concurrency;
 using AsyncAwaitBestPractices;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
@@ -27,21 +28,28 @@ public class Bot : IBot
     public Bot(
         Guid playerId,
         IClientGame clientGame,
-        IDecisionEngineProvider decisionEngineProvider)
+        IDecisionEngineProvider decisionEngineProvider,
+        IScheduler? scheduler = null)
     {
         PlayerId = playerId;
         _clientGame = clientGame;
         _decisionEngineProvider = decisionEngineProvider;
+        var schedulerToUse = scheduler ?? TaskPoolScheduler.Default;
 
         // Subscribe to active player changes (works for both server-driven and client-driven phases)
-        _activePlayerSubscription = clientGame.ActivePlayerChanges.Subscribe(OnActivePlayerChanged);
+        _activePlayerSubscription = clientGame.ActivePlayerChanges
+            .ObserveOn(schedulerToUse)
+            .Subscribe(OnActivePlayerChanged);
 
-        // Subscribe to phase changes to update decision engine
-        _phaseSubscription = clientGame.PhaseChanges.Subscribe(OnPhaseChanged);
+        // Subscribe to phase changes to update the decision engine
+        _phaseSubscription = clientGame.PhaseChanges
+            .ObserveOn(schedulerToUse)
+            .Subscribe(OnPhaseChanged);
 
         // Subscribe to game end events
         _gameEndSubscription = clientGame.Commands
             .OfType<GameEndedCommand>()
+            .ObserveOn(schedulerToUse)
             .Subscribe(_ => Dispose());
     }
 
