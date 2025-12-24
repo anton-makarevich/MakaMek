@@ -22,6 +22,7 @@ public class Bot : IBot
     private IDisposable? _phaseSubscription;
     private IDisposable? _gameEndSubscription;
     private bool _isDisposed;
+    private readonly Lock _lock = new();
 
     public Guid PlayerId { get; }
 
@@ -55,7 +56,10 @@ public class Bot : IBot
 
     private void OnActivePlayerChanged(IPlayer? activePlayer)
     {
-        if (_isDisposed) return;
+        lock (_lock)
+        {
+            if (_isDisposed) return;
+        }
 
         // Check if this bot is now the active player
         if (activePlayer?.Id == PlayerId)
@@ -66,8 +70,11 @@ public class Bot : IBot
 
     private void OnPhaseChanged(PhaseNames phase)
     {
-        if (_isDisposed) return;
-        UpdateDecisionEngine(phase);
+        lock (_lock)
+        {
+            if (_isDisposed) return;
+            UpdateDecisionEngine(phase);
+        }
     }
 
     private void UpdateDecisionEngine(PhaseNames phase)
@@ -77,7 +84,14 @@ public class Bot : IBot
 
     private async Task MakeDecision()
     {
-        if (_currentDecisionEngine == null) return;
+        IBotDecisionEngine? engine;
+        lock (_lock)
+        {
+            if (_isDisposed) return;
+            engine = _currentDecisionEngine;
+        }
+
+        if (engine == null) return;
 
         // Get the current Player instance from the game's Players collection
         var player = _clientGame.Players.FirstOrDefault(p => p.Id == PlayerId);
@@ -87,15 +101,27 @@ public class Bot : IBot
             return;
         }
 
-        await _currentDecisionEngine.MakeDecision(player);
+        await engine.MakeDecision(player);
     }
 
-    public IBotDecisionEngine? DecisionEngine => _currentDecisionEngine;
+    public IBotDecisionEngine? DecisionEngine
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _currentDecisionEngine;
+            }
+        }
+    }
 
     public void Dispose()
     {
-        if (_isDisposed) return;
-        _isDisposed = true;
+        lock (_lock)
+        {
+            if (_isDisposed) return;
+            _isDisposed = true;
+        }
 
         _activePlayerSubscription?.Dispose();
         _activePlayerSubscription = null;
