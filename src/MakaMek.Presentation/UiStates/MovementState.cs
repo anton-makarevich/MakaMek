@@ -89,7 +89,7 @@ public class MovementState : IUiState
         if (movementType == MovementType.StandingStill)
         {
             // For standing still, we create an empty movement path
-            var path = new MovementPath(Array.Empty<PathSegment>());
+            var path = new MovementPath(Array.Empty<PathSegment>(), movementType);
             _builder.SetMovementPath(path);
             CompleteMovement();
             return;
@@ -512,25 +512,26 @@ public class MovementState : IUiState
         // Reset possible directions
         _possibleDirections = [];
 
-        var currentFacing = mech.Position.Facing;
+        var currentFacing = mech.Facing;
+        if (currentFacing == null) return;
 
         void AddToPossibleDirections(HexDirection direction, int cost)
         {
             var pathSegments = new MovementPath([
                 new PathSegment(mech.Position, mech.Position with { Facing = direction }, cost)
-            ]);
+            ], MovementType.Walk);
             _possibleDirections[direction] = pathSegments;
         }
 
         // Generate possible directions by rotating from the current facing
         for (var steps = 1; steps <= maxRotateSteps; steps++)
         {
-            var rotatedDirectionCw = currentFacing.Rotate(steps);
+            var rotatedDirectionCw = currentFacing.Value.Rotate(steps);
             AddToPossibleDirections(rotatedDirectionCw, steps);
         
             if (steps == 3) break; // We don't want to duplicate an opposite direction
         
-            var rotatedDirectionCcw = currentFacing.Rotate(-steps);
+            var rotatedDirectionCcw = currentFacing.Value.Rotate(-steps);
             AddToPossibleDirections(rotatedDirectionCcw, steps);
         }
 
