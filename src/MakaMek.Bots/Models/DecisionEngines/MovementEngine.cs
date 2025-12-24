@@ -24,6 +24,7 @@ public class MovementEngine : IBotDecisionEngine
 
     public async Task MakeDecision(IPlayer player)
     {
+        IUnit? unitToMove = null;
         try
         {
             // 1. Get all friendly units that haven't moved
@@ -68,7 +69,7 @@ public class MovementEngine : IBotDecisionEngine
                 .ToList();
 
             var bestCandidate = scoredUnits.First();
-            var unitToMove = bestCandidate.Unit;
+            unitToMove = bestCandidate.Unit;
 
             Console.WriteLine($"[MovementEngine] Selected {unitToMove.Name} (Role: {unitToMove.GetTacticalRole()}, Priority: {bestCandidate.Priority})");
 
@@ -85,7 +86,7 @@ public class MovementEngine : IBotDecisionEngine
         {
             // Log error but don't throw - graceful degradation for unexpected errors
             Console.WriteLine($"MovementEngine error for player {player.Name}: {ex.Message}, skipping turn");
-            await SkipTurn(player);
+            await SkipTurn(player, unitToMove);
         }
     }
 
@@ -152,7 +153,7 @@ public class MovementEngine : IBotDecisionEngine
 
         if (_clientGame.BattleMap == null || unit.Position == null)
         {
-            await SkipTurn(player);
+            await SkipTurn(player, unit);
             return;
         }
 
@@ -219,7 +220,7 @@ public class MovementEngine : IBotDecisionEngine
         // If no valid paths, stand still
         if (candidateScores.Count == 0)
         {
-            await SkipTurn(player);
+            await SkipTurn(player, unit);
             return;
         }
 
@@ -279,10 +280,10 @@ public class MovementEngine : IBotDecisionEngine
         await _clientGame.MoveUnit(command);
     }
 
-    private async Task SkipTurn(IPlayer player)
+    private async Task SkipTurn(IPlayer player, IUnit? unit)
     {
         // Find any unit that hasn't moved yet (fallback)
-        var unmovedUnit = player.AliveUnits.FirstOrDefault(u => !u.HasMoved);
+        var unmovedUnit = unit ?? player.AliveUnits.FirstOrDefault(u => !u.HasMoved);
         if (unmovedUnit == null)
         {
             throw new BotDecisionException(
