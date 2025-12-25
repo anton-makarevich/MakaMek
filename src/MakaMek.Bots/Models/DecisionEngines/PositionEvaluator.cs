@@ -42,11 +42,7 @@ public class PositionEvaluator
             if (enemy.Position == null)
                 continue;
             
-            var enemyPath = enemy.MovementTaken ??
-                            new MovementPath(new List<PathSegment>
-                            {
-                                new(enemy.Position, enemy.Position, 0)
-                            }, MovementType.StandingStill);
+            var enemyPath = enemy.MovementTaken ?? MovementPath.CreateStandingStillPath(enemy.Position);
 
             // Check line of sight
             if (!_game.BattleMap.HasLineOfSight(enemy.Position.Coordinates, position.Coordinates))
@@ -124,11 +120,7 @@ public class PositionEvaluator
             if (enemy.Position == null)
                 continue;
             
-            var enemyPath = enemy.MovementTaken ??
-                            new MovementPath(new List<PathSegment>
-                            {
-                                new(enemy.Position, enemy.Position, 0)
-                            }, MovementType.StandingStill);
+            var enemyPath = enemy.MovementTaken ?? MovementPath.CreateStandingStillPath(enemy.Position);
 
             // Check line of sight
             if (!_game.BattleMap.HasLineOfSight(position.Coordinates, enemy.Position.Coordinates))

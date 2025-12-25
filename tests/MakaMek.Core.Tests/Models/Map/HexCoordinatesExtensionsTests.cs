@@ -63,7 +63,7 @@ public class HexCoordinatesExtensionsTests
     }
 
     [Fact]
-    public void IsInWeaponFiringArc_ReturnsFalseForRearArc_WhenMountedOnLedtArm()
+    public void IsInWeaponFiringArc_ReturnsFalseForRearArc_WhenMountedOnLeftArm()
     {
         // Arrange
         var center = new HexCoordinates(5, 5);
