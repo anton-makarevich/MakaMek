@@ -208,9 +208,8 @@ public class MovementEngine : IBotDecisionEngine
             foreach (var path in reachablePaths)
             {
                 var score = evaluator.EvaluatePath(
-                    path,
-                    movementType,
                     unit,
+                    path,
                     enemyUnits);
 
                 candidateScores.Add(score);
