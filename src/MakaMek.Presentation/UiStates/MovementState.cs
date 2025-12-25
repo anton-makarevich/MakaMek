@@ -85,11 +85,13 @@ public class MovementState : IUiState
     private void HighlightReachableHexes()
     {
         if (_selectedMovementType == null) return;
+        var position = _selectedUnit?.Position;
+        if (position == null) return;
         var movementType = _selectedMovementType.Value;
         if (movementType == MovementType.StandingStill)
         {
             // For standing still, we create an empty movement path
-            var path = new MovementPath(Array.Empty<PathSegment>(), movementType);
+            var path =MovementPath.CreateStandingStillPath(position);
             _builder.SetMovementPath(path);
             CompleteMovement();
             return;
@@ -99,7 +101,7 @@ public class MovementState : IUiState
         _movementPoints = _selectedUnit?.GetMovementPoints(movementType) ?? 0;
 
         // Get reachable hexes and highlight them
-        if (_selectedUnit?.Position != null && _viewModel.Game?.BattleMap != null)
+        if (_selectedUnit != null && _viewModel.Game?.BattleMap != null)
         {
             _reachabilityData = _viewModel.Game.BattleMap.GetReachableHexesForUnit(
                 _selectedUnit,

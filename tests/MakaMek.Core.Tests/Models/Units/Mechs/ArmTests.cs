@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Shouldly;
 
@@ -58,5 +59,25 @@ public class ArmTests
         
         leftArm.Facing.ShouldBe(HexDirection.TopRight);
         rightArm.Facing.ShouldBe(HexDirection.TopRight);
+    }
+    
+    [Theory]
+    [InlineData(PartLocation.LeftArm, FiringArc.Left)]
+    [InlineData(PartLocation.RightArm, FiringArc.Right)]
+    public void GetFiringArcs_ShouldIncludeCorrectSideArc(PartLocation location, FiringArc sideArc)
+    {
+        var sut = new Arm("Arm", location, 4, 3);
+        
+        sut.GetFiringArcs(MountingOptions.Standard).ShouldBe([FiringArc.Front, sideArc]);
+    }
+    
+    [Theory]
+    [InlineData(MountingOptions.Standard)]
+    [InlineData(MountingOptions.Rear)]
+    public void GetFiringArcs_ShouldIgnoreMountingOptions(MountingOptions mountingOptions)
+    {
+        var sut = new Arm("Arm", PartLocation.LeftArm, 4, 3);
+        
+        sut.GetFiringArcs(mountingOptions).ShouldContain(FiringArc.Front);
     }
 }

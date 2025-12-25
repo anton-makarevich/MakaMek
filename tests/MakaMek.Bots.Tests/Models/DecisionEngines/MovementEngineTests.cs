@@ -47,7 +47,7 @@ public class MovementEngineTests
             cmd.PlayerId == _player.Id &&
             cmd.UnitId == unit.Id &&
             cmd.MovementType == MovementType.StandingStill &&
-            cmd.MovementPath.Count == 0));
+            cmd.MovementPath.Count == 1));
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class MovementEngineTests
             cmd.PlayerId == _player.Id &&
             cmd.UnitId == unit.Id &&
             cmd.MovementType == MovementType.StandingStill &&
-            cmd.MovementPath.Count == 0));
+            cmd.MovementPath.Count == 1));
     }
 
     [Fact]

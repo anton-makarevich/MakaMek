@@ -325,4 +325,21 @@ public class MovementPathTests
         // Act & Assert
         path.Equals(pathAsObject).ShouldBeTrue();
     }
+    
+    [Fact]
+    public void CreateStandingStillPath_ShouldCreatePathWithSingleSegment()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        
+        // Act
+        var path = MovementPath.CreateStandingStillPath(position);
+        
+        // Assert
+        path.Segments.Count.ShouldBe(1);
+        path.Segments[0].From.ShouldBe(position);
+        path.Segments[0].To.ShouldBe(position);
+        path.Segments[0].Cost.ShouldBe(0);
+        path.MovementType.ShouldBe(MovementType.StandingStill);
+    }
 }

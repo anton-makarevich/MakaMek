@@ -102,4 +102,12 @@ public class MovementPath : IEquatable<MovementPath>
     {
         return HashCode.Combine(Start, Destination, IsJump);
     }
+    
+    public static MovementPath CreateStandingStillPath(HexPosition position)
+    {
+        return new MovementPath(new List<PathSegment>
+        {
+            new(position, position, 0)
+        }, MovementType.StandingStill);
+    }
 }

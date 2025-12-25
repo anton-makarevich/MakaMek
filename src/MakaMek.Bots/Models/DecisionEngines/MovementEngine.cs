@@ -208,9 +208,8 @@ public class MovementEngine : IBotDecisionEngine
             foreach (var path in reachablePaths)
             {
                 var score = evaluator.EvaluatePath(
-                    path,
-                    movementType,
                     unit,
+                    path,
                     enemyUnits);
 
                 candidateScores.Add(score);
@@ -284,7 +283,8 @@ public class MovementEngine : IBotDecisionEngine
     {
         // Find any unit that hasn't moved yet (fallback)
         var unmovedUnit = unit ?? player.AliveUnits.FirstOrDefault(u => !u.HasMoved);
-        if (unmovedUnit == null)
+        var position = unmovedUnit?.Position;
+        if (unmovedUnit == null || position == null)
         {
             throw new BotDecisionException(
                 $"No unmoved units available for player {player.Name}",
@@ -293,7 +293,7 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Send a StandingStill movement command
-        await MoveUnit(player, unmovedUnit, new MovementPath(Array.Empty<PathSegment>(), MovementType.StandingStill));
+        await MoveUnit(player, unmovedUnit, MovementPath.CreateStandingStillPath(position));
     }
 }
 

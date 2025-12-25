@@ -236,6 +236,7 @@ public class MovementStateTests
     public void HandleMovementTypeSelection_TransitionsToHexSelection()
     {
         // Arrange
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
         _sut.HandleUnitSelection(_unit1);
         
         // Act
@@ -796,6 +797,7 @@ public class MovementStateTests
     public void GetAvailableActions_NotInMovementTypeSelection_ReturnsEmpty(MovementType type)
     {
         // Arrange
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(type); // This moves us past movement type selection
 
@@ -990,6 +992,7 @@ public class MovementStateTests
     public void GetAvailableActions_ExecutingAction_UpdatesState(string startWithLabel)
     {
         // Arrange
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
         _sut.HandleUnitSelection(_unit1);
         var actions = _sut.GetAvailableActions().ToList();
         var walkAction = actions.First(a => a.Label.StartsWith(startWithLabel));
@@ -1005,6 +1008,7 @@ public class MovementStateTests
     public void GetAvailableActions_ExecutingStandingAction_CompletesState()
     {
         // Arrange
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
         _sut.HandleUnitSelection(_unit1);
         var actions = _sut.GetAvailableActions().ToList();
         var walkAction = actions.First(a => a.Label.StartsWith("Stand"));
@@ -1277,6 +1281,7 @@ public class MovementStateTests
     public void GetAvailableActions_ProneMech_StayProneAction_CompletesMovement()
     {
         // Arrange
+        _unit1.Deploy(new HexPosition(1,1,HexDirection.Bottom));
         var proneMech = _unit1 as Mech;
         _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
             .Returns(new PsrBreakdown
