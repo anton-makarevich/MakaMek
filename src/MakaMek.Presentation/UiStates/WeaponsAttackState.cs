@@ -342,7 +342,7 @@ public class WeaponsAttackState : IUiState
             foreach (var weapon in weapons)
             {
                 var maxRange = weapon.LongRange;
-                var facing = weapon.Facing;
+                var facing = weapon.FirstMountPart?.Facing;
                 if (facing == null)
                 {
                     continue;
