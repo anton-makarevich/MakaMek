@@ -377,8 +377,8 @@ public record HexCoordinates
 
         const double epsilon = 0.0001; // Small value to handle floating point comparisons
 
-        // For side arcs, determine if hex is to the left or right of facing direction
-        // Using cross product to determine which side the hex is on
+        // For side arcs, determine if the hex is to the left or right of facing direction
+        // Using cross-product to determine which side the hex is on
         var cross = fdx * dy - dx * fdy;
 
         return arc switch
