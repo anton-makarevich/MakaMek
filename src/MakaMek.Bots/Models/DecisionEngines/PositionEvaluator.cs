@@ -23,21 +23,19 @@ public class PositionEvaluator
     /// <summary>
     /// Calculates the defensive threat index for a position.
     /// Considers enemy weapons that can target this position and their hit probabilities.
-    /// Takes into account the movement type used to reach this position for target movement modifiers.
     /// </summary>
-    /// <param name="position">The position to evaluate</param>
-    /// <param name="hexesTraveled">The number of hexes traveled to reach this position</param>
+    /// <param name="path">The position to evaluate and path to get to it</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <returns>Defensive threat index (lower is better)</returns>
     private double CalculateDefensiveIndex(
-        HexPosition position,
-        int hexesTraveled,
+        MovementPath path,
         IReadOnlyList<IUnit> enemyUnits)
     {
         if (_game.BattleMap == null)
             return 0;
 
         double defensiveIndex = 0;
+        var position = path.Destination!; // Nullability is checked before calling this method
 
         foreach (var enemy in enemyUnits)
         {
@@ -59,11 +57,6 @@ public class PositionEvaluator
             {
                 // Check if the weapon can fire at this range
                 if (range < weapon.MinimumRange || range > weapon.LongRange)
-                    continue;
-
-                // Check if target position is in weapon's firing arc
-                var weaponLocation = weapon.FirstMountPartLocation;
-                if (weaponLocation == null)
                     continue;
 
                 // Determine weapon facing (torso for torso/arm weapons, legs for leg weapons)
@@ -166,19 +159,17 @@ public class PositionEvaluator
 
         return offensiveIndex;
     }
-    
+
     /// <summary>
     /// Evaluates a single path with a specific movement type and returns its score
     /// </summary>
-    /// <param name="path">The movement path to evaluate</param>
-    /// <param name="movementType">The movement type used</param>
     /// <param name="friendlyUnit">The friendly unit being evaluated</param>
+    /// <param name="path">The movement path to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <returns>Position score including the path</returns>
     public PositionScore EvaluatePath(
-        MovementPath path,
-        MovementType movementType,
         IUnit friendlyUnit,
+        MovementPath path,
         IReadOnlyList<IUnit> enemyUnits)
     {
         // Extract position and hexesTraveled from the path
@@ -191,12 +182,12 @@ public class PositionEvaluator
         }
 
         var defensiveIndex = CalculateDefensiveIndex(position, hexesTraveled, enemyUnits);
-        var offensiveIndex = CalculateOffensiveIndex(position, movementType, friendlyUnit, enemyUnits);
+        var offensiveIndex = CalculateOffensiveIndex(position, path.MovementType, friendlyUnit, enemyUnits);
 
         return new PositionScore
         {
             Position = position,
-            MovementType = movementType,
+            MovementType = path.MovementType,
             Path = path,
             DefensiveIndex = defensiveIndex,
             OffensiveIndex = offensiveIndex

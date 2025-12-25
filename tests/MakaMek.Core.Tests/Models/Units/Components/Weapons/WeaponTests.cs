@@ -126,4 +126,36 @@ public class WeaponTests
         
         sut.Facing.ShouldBe(HexDirection.Top);
     }
+    
+    [Fact]
+    public void GetFiringArcs_ShouldReturnCorrectArcs_BasedOnMountingLocation()
+    {
+        var legWeapon = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
+        var part = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
+        part.TryAddComponent(legWeapon).ShouldBeTrue();
+        
+        var torsoWeapon = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
+        var torso = new CenterTorso("CenterTorso", 10, 2, 6);
+        torso.TryAddComponent(torsoWeapon).ShouldBeTrue();
+        
+        var armWeapon = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
+        var arm = new Arm("Arm", PartLocation.LeftArm, 8, 4);
+        arm.TryAddComponent(armWeapon).ShouldBeTrue();
+        
+        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { torso, part, arm });
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
+        mech.Deploy(position);
+        
+        legWeapon.GetFiringArcs().ShouldBe([FiringArc.Front]);
+        torsoWeapon.GetFiringArcs().ShouldBe([FiringArc.Front]);
+        armWeapon.GetFiringArcs().ShouldBe([FiringArc.Front, FiringArc.Left]);
+    }
+    
+    [Fact]
+    public void GetFiringArcs_ShouldReturnEmptyList_WhenNotMounted()
+    {
+        var sut = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
+        
+        sut.GetFiringArcs().ShouldBeEmpty();
+    }
 }

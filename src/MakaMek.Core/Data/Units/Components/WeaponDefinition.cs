@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 namespace Sanet.MakaMek.Core.Data.Units.Components;
@@ -20,9 +21,10 @@ public record WeaponDefinition(
     int ClusterSize = 1,
     int Size = 1,
     int FullAmmoRounds = 1,
-    MakaMekComponent WeaponComponentType = MakaMekComponent.MachineGun,
+    MakaMekComponent WeaponComponentType = MakaMekComponent.MachineGun, // TODO: why is that machine gun???
     MakaMekComponent? AmmoComponentType = null,
-    int ExternalHeat = 0)
+    int ExternalHeat = 0,
+    MountingOptions MountingOptions = MountingOptions.Standard)
     : ComponentDefinition(Name, Size, 1, BattleValue, true, WeaponComponentType)
 {
     /// <summary>

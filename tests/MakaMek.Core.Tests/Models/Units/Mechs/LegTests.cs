@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Models.Map;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
@@ -56,5 +57,17 @@ public class LegTests
         var sut = new Leg("LeftLeg", PartLocation.LeftLeg, 8, 4);
         
         sut.Facing.ShouldBeNull();
+    }
+    
+    [Theory]
+    [InlineData(MountingOptions.Standard, PartLocation.LeftLeg, FiringArc.Front)]
+    [InlineData(MountingOptions.Rear, PartLocation.LeftLeg, FiringArc.Rear)]
+    [InlineData(MountingOptions.Standard, PartLocation.RightLeg, FiringArc.Front)]
+    [InlineData(MountingOptions.Rear, PartLocation.RightLeg, FiringArc.Rear)]
+    public void GetFiringArcs_ShouldReturnCorrectArcs(MountingOptions mountingOptions, PartLocation location, FiringArc expectedArc)
+    {
+        var sut = new Leg("Leg", location, 8, 4);
+        
+        sut.GetFiringArcs(mountingOptions).ShouldBe([expectedArc]);
     }
 }

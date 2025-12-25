@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Models.Map;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -136,5 +137,15 @@ public class HeadTests
         mech.RotateTorso(HexDirection.Top);
         
         sut.Facing.ShouldBe(HexDirection.Top);
+    }
+    
+    [Theory]
+    [InlineData(MountingOptions.Standard, FiringArc.Front)]
+    [InlineData(MountingOptions.Rear, FiringArc.Rear)]
+    public void GetFiringArcs_ShouldReturnCorrectArcs(MountingOptions mountingOptions, FiringArc expectedArc)
+    {
+        var sut = new Head("Head",  8, 3);
+        
+        sut.GetFiringArcs(mountingOptions).ShouldBe([expectedArc]);
     }
 }

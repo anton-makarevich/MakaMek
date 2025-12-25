@@ -3,6 +3,7 @@ using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units.Components;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
 
@@ -236,5 +237,15 @@ public class TorsoTests
         
         // Assert
         data.CurrentRearArmor.ShouldBe(5);
+    }
+    
+    [Theory]
+    [InlineData(MountingOptions.Standard, FiringArc.Front)]
+    [InlineData(MountingOptions.Rear, FiringArc.Rear)]
+    public void GetFiringArcs_ShouldReturnCorrectArcs(MountingOptions mountingOptions, FiringArc expectedArc)
+    {
+        var sut = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10);
+        
+        sut.GetFiringArcs(mountingOptions).ShouldBe([expectedArc]);
     }
 }

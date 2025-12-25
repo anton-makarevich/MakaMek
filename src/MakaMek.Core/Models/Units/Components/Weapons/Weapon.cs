@@ -42,6 +42,13 @@ public abstract class Weapon : Component
     /// </summary>
     public virtual bool IsAimShotCapable => true;
     
-       
     public HexDirection? Facing => FirstMountPart?.Facing;
+
+    public IReadOnlyList<FiringArc> GetFiringArcs()
+    {
+
+        if (FirstMountPart == null)
+            return [];
+        return FirstMountPart.GetFiringArcs(WeaponDefinition.MountingOptions);
+    }
 }

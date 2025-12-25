@@ -300,4 +300,11 @@ public abstract class UnitPart
             IsBlownOff = IsBlownOff
         };
     }
+
+    public virtual IReadOnlyList<FiringArc> GetFiringArcs(MountingOptions mountingOptions)
+    {
+        return mountingOptions == MountingOptions.Rear
+            ? [FiringArc.Rear]
+            : [FiringArc.Front];
+    }
 }
