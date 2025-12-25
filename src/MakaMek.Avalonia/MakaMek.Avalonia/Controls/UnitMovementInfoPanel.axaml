@@ -75,7 +75,7 @@
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="1" Grid.Column="2"
                          Classes="label"
-                         Text="{Binding MovementTaken.DistanceCovered}"
+                         Text="{Binding MovementTaken.HexesTraveled}"
                          HorizontalAlignment="Center"/>
             </Grid>
         </Border>

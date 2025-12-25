@@ -44,6 +44,8 @@ public class ClientGameTests
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly Guid _idempotencyKey = Guid.NewGuid();
+    
+    private const int CommandAckTimeout = 300;
     public ClientGameTests()
     {
         _hashService.ComputeCommandIdempotencyKey(
@@ -72,7 +74,7 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
             _hashService,
-            200);
+            CommandAckTimeout);
     }
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,

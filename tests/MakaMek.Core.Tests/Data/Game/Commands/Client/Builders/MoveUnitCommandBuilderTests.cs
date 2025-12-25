@@ -58,7 +58,11 @@ public class MoveUnitCommandBuilderTests
     public void CanBuild_ReturnsFalse_WhenOnlyMovementPathSet()
     {
         // Arrange
-        _builder.SetMovementPath(new MovementPath(Array.Empty<PathSegment>(), MovementType.Walk));
+        _builder.SetMovementPath(new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(1,1,HexDirection.Bottom),
+                new HexPosition(1,2,HexDirection.Bottom), 1)
+        }, MovementType.Walk));
         
         // Act & Assert
         _builder.CanBuild.ShouldBeFalse();

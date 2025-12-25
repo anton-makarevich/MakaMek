@@ -455,8 +455,8 @@ public class BattleMapExtensionsTests
         // Assert
         paths.ShouldNotBeEmpty();
 
-        // The path for the same facing should have 0 segments
-        paths[HexDirection.Top].Segments.Count.ShouldBe(0);
+        // The path for the same facing should have 1 segment
+        paths[HexDirection.Top].Segments.Count.ShouldBe(1);
 
         // Paths for other facings should have turning segments
         paths[HexDirection.TopRight].Segments.Count.ShouldBe(1);

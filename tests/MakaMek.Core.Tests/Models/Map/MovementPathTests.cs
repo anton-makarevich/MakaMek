@@ -50,13 +50,20 @@ public class MovementPathTests
         sut.Segments.Count.ShouldBe(2);
         sut.TotalCost.ShouldBe(2);
         sut.HexesTraveled.ShouldBe(1);
-        sut.DistanceCovered.ShouldBe(1);
+        sut.StraightLineDistance.ShouldBe(1);
         sut.Start!.Coordinates.ShouldBe(new HexCoordinates(1, 1));
         sut.Destination!.Coordinates.ShouldBe(new HexCoordinates(1, 2));
         sut.Destination.Facing.ShouldBe(HexDirection.TopRight);
         sut.Hexes.Count.ShouldBe(2);
         sut.TurnsTaken.ShouldBe(1);
         sut.MovementType.ShouldBe(MovementType.Walk);
+    }
+    
+    [Fact]
+    public void Constructor_ShouldThrow_WhenSegmentsEmpty()
+    {
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => new MovementPath(Array.Empty<PathSegment>(), MovementType.Walk));
     }
     
     [Fact]
@@ -156,26 +163,16 @@ public class MovementPathTests
     public void HexesTravelled_ShouldNotBeNegative()
     {
         // Arrange
-        var sut = new MovementPath(Array.Empty<PathSegment>(), MovementType.StandingStill);
+        var sut = new MovementPath(new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                0)
+        }, MovementType.StandingStill);
         
         // Assert
         sut.HexesTraveled.ShouldBe(0);
-    }
-    
-    [Fact]
-    public void Destination_And_Start_ShouldBeNull_WhenCreatedWithEmptySegments()
-    {
-        // Arrange
-        var sut = new MovementPath(Array.Empty<PathSegment>(), MovementType.StandingStill);
-        
-        // Assert
-        sut.Start.ShouldBeNull();
-        sut.Destination.ShouldBeNull();
-        sut.Hexes.ShouldBeEmpty();
-        sut.TurnsTaken.ShouldBe(0);
-        sut.DistanceCovered.ShouldBe(0);
-        sut.HexesTraveled.ShouldBe(0);
-        sut.TotalCost.ShouldBe(0);
     }
     
     [Fact]

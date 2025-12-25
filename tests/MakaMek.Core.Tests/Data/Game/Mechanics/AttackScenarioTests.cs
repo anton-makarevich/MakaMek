@@ -107,7 +107,13 @@ public class AttackScenarioTests
         
         attacker.Pilot.Returns(pilot);
         attacker.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
-        attacker.MovementTaken.Returns(new MovementPath(Array.Empty<PathSegment>(), MovementType.Walk));
+        attacker.MovementTaken.Returns(new MovementPath(new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                1)
+        }, MovementType.Walk));
         target.Position.Returns(new HexPosition(new HexCoordinates(5, 5), HexDirection.Bottom));
         target.MovementTaken.Returns((MovementPath?)null);
         
