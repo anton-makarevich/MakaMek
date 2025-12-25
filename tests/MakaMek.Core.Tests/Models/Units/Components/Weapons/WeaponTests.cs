@@ -47,12 +47,7 @@ public class WeaponTests
         weapon.RequiresAmmo.ShouldBe(expected);
     }
     
-    private class TestWeapon : Weapon
-    {
-        public TestWeapon(WeaponDefinition definition) : base(definition)
-        {
-        }
-    }
+    private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
     
     private static WeaponDefinition CreateTestWeaponDefinition(WeaponType type, MakaMekComponent? ammoComponentType)
     {
@@ -70,61 +65,6 @@ public class WeaponTests
             ClusterSize: 1,
             WeaponComponentType: MakaMekComponent.MachineGun,
             AmmoComponentType: ammoComponentType);
-    }
-    
-    [Fact]
-    public void Facing_ShouldMatchFirstMountPartFacing()
-    {
-        var sut = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
-        var part = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
-        part.TryAddComponent(sut).ShouldBeTrue();
-        
-        sut.Facing.ShouldBeNull();
-        
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { part });
-        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        mech.Deploy(position);
-        
-        sut.Facing.ShouldBe(position.Facing);
-    }
-    
-    [Fact]
-    public void Facing_ShouldBeNull_WhenNotMounted()
-    {
-        var sut = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
-        
-        sut.Facing.ShouldBeNull();
-    }
-
-    [Fact]
-    public void Facing_ShouldMatchTorsoFacing_WhenMountedNotOnLegs()
-    {
-        var sut = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
-        var part = new CenterTorso("CenterTorso", 10, 2, 6);
-        part.TryAddComponent(sut).ShouldBeTrue();
-        
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { part });
-        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        mech.Deploy(position);
-        mech.RotateTorso(HexDirection.TopRight);
-        
-        sut.Facing.ShouldBe(HexDirection.TopRight);
-    }
-    
-    [Fact]
-    public void Facing_ShouldMatchPositionFacing_WhenMountedOnLegs()
-    {
-        var sut = new TestWeapon(CreateTestWeaponDefinition(WeaponType.Energy, null));
-        var part = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
-        var torso = new CenterTorso("CenterTorso", 10, 2, 6);
-        part.TryAddComponent(sut).ShouldBeTrue();
-        
-        var mech = new Mech("Test", "TST-1A", 4, new List<UnitPart> { torso, part });
-        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.Top);
-        mech.Deploy(position);
-        mech.RotateTorso(HexDirection.TopRight);
-        
-        sut.Facing.ShouldBe(HexDirection.Top);
     }
     
     [Fact]

@@ -41,8 +41,6 @@ public abstract class Weapon : Component
     /// Indicates whether this weapon is capable of making aimed shots
     /// </summary>
     public virtual bool IsAimShotCapable => true;
-    
-    public HexDirection? Facing => FirstMountPart?.Facing;
 
     public IReadOnlyList<FiringArc> GetFiringArcs()
     {
