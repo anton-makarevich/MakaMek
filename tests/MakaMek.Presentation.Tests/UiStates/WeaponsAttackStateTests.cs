@@ -119,7 +119,8 @@ public class WeaponsAttackStateTests
             RangeModifier = new RangeRollModifier
                 { Value = 0, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
             TerrainModifiers = [],
-            HasLineOfSight = true
+            HasLineOfSight = true,
+            FiringArc = FiringArc.Front
         };
         
         _toHitCalculator.GetModifierBreakdown(
@@ -1096,6 +1097,7 @@ public class WeaponsAttackStateTests
             },
             OtherModifiers = [],
             HasLineOfSight = true,
+            FiringArc = FiringArc.Front,
             AttackerMovement = new AttackerMovementModifier{MovementType = MovementType.Walk, Value = 1},
             TargetMovement = new TargetMovementModifier{HexesMoved = 3, Value = 1},
             RangeModifier = new RangeRollModifier
@@ -1108,6 +1110,7 @@ public class WeaponsAttackStateTests
             GunneryBase = new GunneryRollModifier { Value = 4 },
             OtherModifiers = [new SecondaryTargetModifier { Value = 2, IsInFrontArc = false }],
             HasLineOfSight = true,
+            FiringArc = FiringArc.Front,
             AttackerMovement = new AttackerMovementModifier{MovementType = MovementType.Walk, Value = 1},
             TargetMovement = new TargetMovementModifier{HexesMoved = 3, Value = 1},
             RangeModifier = new RangeRollModifier

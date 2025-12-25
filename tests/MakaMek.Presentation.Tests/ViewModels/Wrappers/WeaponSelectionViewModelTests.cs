@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
@@ -965,7 +966,8 @@ public class WeaponSelectionViewModelTests
                 { Value = otherModifiers, Range = WeaponRange.Medium, Distance = 5, WeaponName = "Test" },
             OtherModifiers = [],
             TerrainModifiers = [],
-            HasLineOfSight = hasLineOfSight
+            HasLineOfSight = hasLineOfSight,
+            FiringArc = FiringArc.Front
         };
     }
 

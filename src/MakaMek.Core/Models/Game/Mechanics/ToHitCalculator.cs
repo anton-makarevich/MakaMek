@@ -55,6 +55,7 @@ public class ToHitCalculator : IToHitCalculator
     public ToHitBreakdown GetModifierBreakdown(AttackScenario scenario, Weapon weapon, IBattleMap map)
     {
         var hasLos = map.HasLineOfSight(scenario.AttackerPosition.Coordinates, scenario.TargetPosition.Coordinates);
+        var arc = GetFiringArc(scenario, weapon);
         var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
         var range = weapon.GetRangeBracket(distance);
         var rangeValue = range switch
@@ -98,8 +99,29 @@ public class ToHitCalculator : IToHitCalculator
                 WeaponName = weapon.Name
             },
             TerrainModifiers = terrainModifiers,
-            HasLineOfSight = hasLos
+            HasLineOfSight = hasLos,
+            FiringArc = arc
         };
+    }
+
+    private FiringArc? GetFiringArc(AttackScenario scenario, Weapon weapon)
+    {
+        var arcs = weapon.GetFiringArcs();
+        var facing = weapon.FirstMountPart?.Facing;
+        if (facing == null)
+            return null;
+        foreach (var arc in arcs)
+        {
+            if (scenario.AttackerPosition.Coordinates.IsInFiringArc(
+                scenario.TargetPosition.Coordinates,
+                facing.Value,
+                arc))
+            {
+                return arc;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
