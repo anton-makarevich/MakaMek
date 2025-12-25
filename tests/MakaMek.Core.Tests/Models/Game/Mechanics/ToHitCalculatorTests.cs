@@ -228,7 +228,7 @@ public class ToHitCalculatorTests
         result.TargetMovement.Value.ShouldBe(0);
         result.RangeModifier.Value.ShouldBe(0);
         result.RangeModifier.Range.ShouldBe(WeaponRange.Short);
-        result.TerrainModifiers.Count.ShouldBe(2); // Hexes between units (3,2) + target hex (4,2)
+        result.TerrainModifiers.Count.ShouldBe(2); // Hexes between units (2,3) + target hex (2,4)
         result.TerrainModifiers.All(t => t.Value == 1).ShouldBeTrue();
         result.TerrainModifiers.All(t => t.TerrainId == (MakaMekTerrains.LightWoods)).ShouldBeTrue();
         result.Total.ShouldBe(6); // Base (4) + terrain (2)
