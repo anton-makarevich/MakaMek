@@ -15,7 +15,6 @@ public class WeaponsAttackState : IUiState
     private readonly BattleMapViewModel _viewModel;
     private readonly List<HexDirection> _availableDirections = [];
     private readonly Dictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges = new();
-    // Removed _weaponTargets - now using Unit.WeaponAttackState
     private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly Lock _stateLock = new();
 
@@ -350,19 +349,11 @@ public class WeaponsAttackState : IUiState
 
                 var weaponHexes = new HashSet<HexCoordinates>();
                 // For arms, we need to check both forward and side arcs
-                if (part.Location.IsArm())
+                var arcs = weapon.GetFiringArcs();
+                
+                foreach (var arc in arcs)
                 {
-                    var forwardHexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, FiringArc.Front, maxRange);
-                    var sideArc = part.Location == PartLocation.LeftArm ? FiringArc.Left : FiringArc.Right;
-                    var sideHexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, sideArc, maxRange);
-                    
-                    weaponHexes.UnionWith(forwardHexes);
-                    weaponHexes.UnionWith(sideHexes);
-                }
-                else
-                {
-                    // For torso, legs, and head weapons - only forward arc
-                    var hexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, FiringArc.Front, maxRange);
+                    var hexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, arc, maxRange);
                     weaponHexes.UnionWith(hexes);
                 }
 

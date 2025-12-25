@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
+using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 
@@ -47,6 +48,8 @@ public record ToHitBreakdown
     /// Whether there is a clear line of sight to the target
     /// </summary>
     public required bool HasLineOfSight { get; init; }
+    
+    public FiringArc? FiringArc { get; init; }
 
     /// <summary>
     /// All modifiers combined into a single list
@@ -64,7 +67,7 @@ public record ToHitBreakdown
     /// <summary>
     /// Total modifier for the attack
     /// </summary>
-    public int Total => HasLineOfSight ? 
+    public int Total => HasLineOfSight && FiringArc != null ? 
         AllModifiers.Sum(m => m.Value)
-        : ImpossibleRoll; // Cannot hit if no line of sight
+        : ImpossibleRoll; // Cannot hit if no line of sight or outside the firing arc
 }
