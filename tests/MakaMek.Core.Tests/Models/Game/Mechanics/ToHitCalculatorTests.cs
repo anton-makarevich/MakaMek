@@ -558,7 +558,7 @@ public class ToHitCalculatorTests
         // Arrange
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
-            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+            new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Damage sensors to create another modifier
