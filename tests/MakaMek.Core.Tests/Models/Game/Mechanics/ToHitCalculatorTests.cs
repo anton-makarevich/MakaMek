@@ -174,7 +174,7 @@ public class ToHitCalculatorTests
         // Arrange
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
-            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+            new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         _attacker!.UnassignPilot();
 
@@ -536,7 +536,7 @@ public class ToHitCalculatorTests
         // Arrange
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
-            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+            new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Create breakdown with existing aimed shot modifier
@@ -582,7 +582,7 @@ public class ToHitCalculatorTests
         // Arrange
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
-            new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
+            new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var baseBreakdown = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
@@ -703,7 +703,7 @@ public class ToHitCalculatorTests
     {
         // Arrange
         var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
-        var targetPosition = new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
         var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10,
             new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
