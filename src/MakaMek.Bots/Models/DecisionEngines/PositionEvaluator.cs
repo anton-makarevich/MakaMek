@@ -35,8 +35,8 @@ public class PositionEvaluator
             return 0;
 
         double defensiveIndex = 0;
-        var position = path.Destination!; // Nullability is checked before calling this method
-
+        var position = path.Destination; 
+        
         foreach (var enemy in enemyUnits)
         {
             if (enemy.Position == null)
@@ -100,12 +100,7 @@ public class PositionEvaluator
         if (_game.BattleMap == null)
             return 0;
         
-        var position = path.Destination?? friendlyUnit.Position;
-        
-        if (position == null)
-        {
-            return 0;
-        }
+        var (hexCoordinates, weaponFacing) = path.Destination;
 
         double offensiveIndex = 0;
 
@@ -123,10 +118,10 @@ public class PositionEvaluator
             var enemyPath = enemy.MovementTaken ?? MovementPath.CreateStandingStillPath(enemy.Position);
 
             // Check line of sight
-            if (!_game.BattleMap.HasLineOfSight(position.Coordinates, enemy.Position.Coordinates))
+            if (!_game.BattleMap.HasLineOfSight(hexCoordinates, enemy.Position.Coordinates))
                 continue;
 
-            var distanceToEnemy = position.Coordinates.DistanceTo(enemy.Position.Coordinates);
+            var distanceToEnemy = hexCoordinates.DistanceTo(enemy.Position.Coordinates);
 
             foreach (var weapon in weapons)
             {
@@ -135,9 +130,8 @@ public class PositionEvaluator
                     continue;
                 
                 // Determine weapon facing from the position (assume only forward facing for now)
-                var weaponFacing = position.Facing;
 
-                var isInArc = position.Coordinates.IsInWeaponFiringArc(enemy.Position.Coordinates, weapon, weaponFacing);
+                var isInArc = hexCoordinates.IsInWeaponFiringArc(enemy.Position.Coordinates, weapon, weaponFacing);
                 if (!isInArc)
                     continue;
                 
@@ -145,7 +139,7 @@ public class PositionEvaluator
                 var hitProbability = CalculateHitProbability(friendlyUnit, path, enemyPath, weapon);
 
                 // Determine which arc of the enemy would be hit (bonus for rear/side shots)
-                var targetArc = GetFiringArcFromPosition(enemy.Position, position.Coordinates);
+                var targetArc = GetFiringArcFromPosition(enemy.Position, hexCoordinates);
                 var arcBonus = targetArc.GetArcMultiplier();
 
                 // Calculate damage value
@@ -170,7 +164,7 @@ public class PositionEvaluator
         IReadOnlyList<IUnit> enemyUnits)
     {
         // Extract position and hexesTraveled from the path
-        var position = path.Destination?? friendlyUnit.Position;
+        var position = path.Destination;
 
         if (position == null)
         {
@@ -209,8 +203,6 @@ public class PositionEvaluator
             return 0;
 
         var targetPosition = targetPath.Destination;
-        if (targetPosition == null)
-            return 0;
 
         // Get current attack modifiers from the attacker (heat, prone, sensors, arm actuators, etc.)
         var attackerModifiers = attacker.GetAttackModifiers(weaponLocation.Value);
@@ -226,7 +218,7 @@ public class PositionEvaluator
             targetPosition: targetPosition,
             targetHexesMoved: targetPath.HexesTraveled,
             attackerModifiers: attackerModifiers,
-            attackerFacing: (attackerPath.Destination?? attacker.Position).Facing
+            attackerFacing: attackerPath.Destination.Facing
             );
 
         // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)

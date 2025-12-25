@@ -583,7 +583,7 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public void ShowMovementPath_WithEmptyPath_ClearsMovementPath()
+    public void ShowMovementPath_WithNull_ClearsMovementPath()
     {
         // Arrange
         var path = new List<PathSegment>
@@ -596,7 +596,33 @@ public class BattleMapViewModelTests
         _sut.ShowMovementPath(new MovementPath(path, MovementType.Walk));
 
         // Act
-        _sut.ShowMovementPath(new MovementPath(Array.Empty<PathSegment>(), MovementType.Walk));
+        _sut.ShowMovementPath(null);
+
+        // Assert
+        _sut.MovementPath.ShouldBeNull();
+    }
+    
+    [Fact]
+    public void ShowMovementPath_WithCostLessPath_ClearsMovementPath()
+    {
+        // Arrange
+        var path = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                1)
+        };
+        _sut.ShowMovementPath(new MovementPath(path, MovementType.Walk));
+
+        // Act
+        _sut.ShowMovementPath(new MovementPath(new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                0)
+        }, MovementType.Walk));
 
         // Assert
         _sut.MovementPath.ShouldBeNull();

@@ -8,16 +8,15 @@ public class MovementPath : IEquatable<MovementPath>
     public MovementPath(IEnumerable<PathSegment> segments, MovementType movementType)
     {
         Segments = segments.ToList();
-        if (Segments.Count > 0)
+        if (Segments.Count == 0)
         {
-            Start = Segments[0].From;
-            Destination = Segments[^1].To;
-
+            throw new ArgumentException("Segments cannot be empty");
         }
+        
+        Start = Segments[0].From;
+        Destination = Segments[^1].To;
 
-        Hexes = Start == null
-            ? []
-            : new List<HexCoordinates> { Start.Coordinates }
+        Hexes = new List<HexCoordinates> { Start.Coordinates }
                 .Concat(Segments.Select(s => s.To.Coordinates))
                 .Distinct()
                 .ToList();
@@ -26,6 +25,7 @@ public class MovementPath : IEquatable<MovementPath>
         IsJump = movementType == MovementType.Jump;
         TotalCost = Segments.Sum(s => s.Cost);
         TurnsTaken = Segments.Count(s => s.From.Facing != s.To.Facing);
+        StraightLineDistance = Start.Coordinates.DistanceTo(Destination.Coordinates);
     }
 
     public MovementPath(IEnumerable<PathSegmentData> segments, MovementType movementType) : this(
@@ -51,13 +51,11 @@ public class MovementPath : IEquatable<MovementPath>
 
     public int HexesTraveled { get; }
 
-    public int DistanceCovered => Start == null || Destination == null 
-        ? 0 
-        : Start.Coordinates.DistanceTo(Destination.Coordinates);
+    public int StraightLineDistance { get; }
     
-    public HexPosition? Start { get; }
+    public HexPosition Start { get; }
     
-    public HexPosition? Destination { get; }
+    public HexPosition Destination { get; }
     
     public MovementType MovementType { get; }
 

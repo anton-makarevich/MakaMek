@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -56,7 +57,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         if (player?.Units.FirstOrDefault(u => u.Id == tryStandUpCommand.UnitId) is not Mech unit) return;
 
         // Check if unit can stand up (has sufficient MP, pilot is conscious, etc.)
-        if (!unit.CanStandup())
+        if (!unit.CanStandup() || unit.Position == null)
         {
             return; // Cannot stand up
         }
@@ -81,13 +82,19 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         }
 
         if (unit.GetMovementPoints(tryStandUpCommand.MovementTypeAfterStandup) > 0) return;
+        var positionData = unit.Position.ToData();
         var moveCommand = new MoveUnitCommand
         {
             MovementType = tryStandUpCommand.MovementTypeAfterStandup,
             GameOriginId = Game.Id,
             PlayerId = tryStandUpCommand.PlayerId,
             UnitId = tryStandUpCommand.UnitId,
-            MovementPath = []
+            MovementPath = [new PathSegmentData
+            {
+                From = positionData,
+                To = positionData,
+                Cost = 0
+            }]
         };
         HandleUnitAction(moveCommand, tryStandUpCommand.PlayerId);
     }

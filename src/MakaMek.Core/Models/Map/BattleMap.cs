@@ -69,12 +69,21 @@ public class BattleMap(int width, int height) : IBattleMap
                 return null;
 
             var segments = new List<PathSegment>();
-            var currentPos = start;
-            foreach (var step in turningSteps)
+            
+            if (turningSteps.Count == 0)
             {
-                segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
-                currentPos = step;
+                segments.Add(new PathSegment(start, target, 0));
             }
+            else
+            {
+                var currentPos = start;
+                foreach (var step in turningSteps)
+                {
+                    segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
+                    currentPos = step;
+                }
+            }
+
             var path = new MovementPath(segments, movementType);
             if (useCache) _movementPathCache.Add(path);
             return path;
@@ -407,39 +416,47 @@ public class BattleMap(int width, int height) : IBattleMap
 
         // For jumping, we want the shortest path ignoring terrain and turning costs
         var path = new List<PathSegment>();
-        var currentPosition = from;
-        var remainingDistance = distance;
-
-        while (remainingDistance > 0)
+        
+        if (from == to)
         {
-            // Find the next hex in the direction of the target
-            var neighbors = currentPosition.Coordinates.GetAdjacentCoordinates()
-                .Where(IsOnMap)
-                .ToList();
+            path.Add(new PathSegment(from, to, 0));
+        }
+        else
+        {
+            var currentPosition = from;
+            var remainingDistance = distance;
 
-            
-
-            // Add a path segment with cost 1 (each hex costs 1 MP for jumping)
-            HexPosition nextPosition;
-            if (remainingDistance == 1)
-                nextPosition = to;
-            else
+            while (remainingDistance > 0)
             {
-                // Get the neighbor that's closest to the target
-                            var nextCoords = neighbors
-                                .OrderBy(n => n.DistanceTo(to.Coordinates))
-                                .First();
-                nextPosition = new HexPosition(nextCoords,
-                                    currentPosition.Coordinates.GetDirectionToNeighbour(nextCoords));
-            }
-            
-            path.Add(new PathSegment(
-                currentPosition,
-                nextPosition,
-                1));
+                // Find the next hex in the direction of the target
+                var neighbors = currentPosition.Coordinates.GetAdjacentCoordinates()
+                    .Where(IsOnMap)
+                    .ToList();
 
-            currentPosition = nextPosition;
-            remainingDistance--;
+
+
+                // Add a path segment with cost 1 (each hex costs 1 MP for jumping)
+                HexPosition nextPosition;
+                if (remainingDistance == 1)
+                    nextPosition = to;
+                else
+                {
+                    // Get the neighbor that's closest to the target
+                    var nextCoords = neighbors
+                        .OrderBy(n => n.DistanceTo(to.Coordinates))
+                        .First();
+                    nextPosition = new HexPosition(nextCoords,
+                        currentPosition.Coordinates.GetDirectionToNeighbour(nextCoords));
+                }
+
+                path.Add(new PathSegment(
+                    currentPosition,
+                    nextPosition,
+                    1));
+
+                currentPosition = nextPosition;
+                remainingDistance--;
+            }
         }
 
         var result = new MovementPath(path, MovementType.Jump);

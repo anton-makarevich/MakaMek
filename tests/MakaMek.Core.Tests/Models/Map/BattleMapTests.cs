@@ -577,7 +577,7 @@ public class BattleMapTests
     }
 
     [Fact]
-    public void FindPath_SameHex_NoTurningNeeded_ReturnsEmptyList()
+    public void FindPath_SameHex_NoTurningNeeded_ReturnsOneSegment_WithNoHexes_AndNoTurns()
     {
         // Arrange
         var map = new BattleMap(2, 2);
@@ -590,7 +590,11 @@ public class BattleMapTests
 
         // Assert
         path.ShouldNotBeNull();
-        path.Segments.Count.ShouldBe(0); // No segments needed when already facing the right direction
+        path.Segments.Count.ShouldBe(1);
+        path.Hexes.Count.ShouldBe(1);
+        path.HexesTraveled.ShouldBe(0);
+        path.TurnsTaken.ShouldBe(0);
+        path.TotalCost.ShouldBe(0);
     }
 
     [Fact]
