@@ -60,6 +60,13 @@ public class MovementPathTests
     }
     
     [Fact]
+    public void Constructor_ShouldThrow_WhenSegmentsEmpty()
+    {
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => new MovementPath(Array.Empty<PathSegment>(), MovementType.Walk));
+    }
+    
+    [Fact]
     public void ReverseFacing_ShouldReverseAllFacings_AndMaintainCosts()
     {
         // Arrange - Create a path with multiple segments including turns and movement
@@ -161,7 +168,7 @@ public class MovementPathTests
             new(
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
                 new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
-                1)
+                0)
         }, MovementType.StandingStill);
         
         // Assert

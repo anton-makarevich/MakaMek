@@ -166,11 +166,6 @@ public class PositionEvaluator
         // Extract position and hexesTraveled from the path
         var position = path.Destination;
 
-        if (position == null)
-        {
-            throw new InvalidOperationException("Path destination is null");
-        }
-
         var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits);
         var offensiveIndex = CalculateOffensiveIndex(path, friendlyUnit, enemyUnits);
 
