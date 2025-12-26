@@ -658,4 +658,15 @@ public class ServerGameTests
         // Assert - should not send an error command since keys were cleared
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ErrorCommand>());
     }
+    
+    [Fact]
+    public void SetActivePlayer_ShouldSetPhaseStepToNull_WhenPlayerIsNull()
+    {
+        // Act
+        _sut.SetActivePlayer(null, 0);
+        
+        // Assert
+        _sut.PhaseStepState.ShouldBeNull();
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
+    }
 }
