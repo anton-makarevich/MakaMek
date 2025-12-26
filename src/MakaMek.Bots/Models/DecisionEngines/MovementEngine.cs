@@ -29,13 +29,20 @@ public class MovementEngine : IBotDecisionEngine
         {
             // 1. Get all friendly units that haven't moved
             var myUnitsToMove = player.AliveUnits
-                .Where(u => u is { HasMoved: false, IsImmobile: false })
+                .Where(u => u is { HasMoved: false })
                 .ToList();
 
             if (myUnitsToMove.Count == 0)
             {
                 // No units to move
                 Console.WriteLine($"[MovementEngine] No units to move for player {player.Name}, skipping...");
+                return;
+            }
+            
+            var immobileUnit = myUnitsToMove.FirstOrDefault(u => u.IsImmobile);
+            if (immobileUnit != null)
+            {
+                await SkipTurn(player, immobileUnit);
                 return;
             }
 
