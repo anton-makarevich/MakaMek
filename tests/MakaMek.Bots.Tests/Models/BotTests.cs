@@ -49,7 +49,7 @@ public class BotTests : IDisposable
         _movementEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(_movementEngine);
 
-        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider);
+        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider,0);
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class BotTests : IDisposable
     }
 
     [Fact]
-    public void OnActivePlayerChanged_WhenActivePlayerIsThisBot_ShouldMakeDecision()
+    public async Task OnActivePlayerChanged_WhenActivePlayerIsThisBot_ShouldMakeDecision()
     {
         // Arrange - Set up the decision engine first
         _phaseSubject.OnNext(PhaseNames.Movement);
@@ -99,6 +99,8 @@ public class BotTests : IDisposable
         _phaseStepChanges.OnNext(new PhaseStepState(_player, 1));
 
         // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
         _movementEngine.Received(1).MakeDecision(_player);
     }
 
@@ -238,7 +240,7 @@ public class BotTests : IDisposable
     }
 
     [Fact]
-    public void OnActivePlayerChanged_InEndPhase_ShouldMakeDecision()
+    public async Task OnActivePlayerChanged_InEndPhase_ShouldMakeDecision()
     {
         // Arrange - Simulate End Phase (client-driven)
         var endPhaseEngine = Substitute.For<IBotDecisionEngine>();
@@ -250,6 +252,8 @@ public class BotTests : IDisposable
         _phaseStepChanges.OnNext(new PhaseStepState(_player, 0));
 
         // Assert - Bot should act in the End Phase
+        // wait for bg task to complete
+        await Task.Delay(100);
         endPhaseEngine.Received(1).MakeDecision(_player);
     }
 

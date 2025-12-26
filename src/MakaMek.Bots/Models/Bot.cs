@@ -15,6 +15,7 @@ namespace Sanet.MakaMek.Bots.Models;
 public class Bot : IBot
 {
     private readonly IDecisionEngineProvider _decisionEngineProvider;
+    private readonly int _decisionDelayMilliseconds;
     private readonly IClientGame _clientGame;
     private IBotDecisionEngine? _currentDecisionEngine;
     private IDisposable? _phaseStateSubscription;
@@ -28,12 +29,14 @@ public class Bot : IBot
     public Bot(
         Guid playerId,
         IClientGame clientGame,
-        IDecisionEngineProvider decisionEngineProvider)
+        IDecisionEngineProvider decisionEngineProvider,
+        int decisionDelayMilliseconds = 500)
     {
         PlayerId = playerId;
         _clientGame = clientGame;
         _decisionEngineProvider = decisionEngineProvider;
-        
+        _decisionDelayMilliseconds = decisionDelayMilliseconds;
+
         // Subscribe to phase changes to update the decision engine
         _phaseSubscription = clientGame.PhaseChanges
             .Subscribe(OnPhaseChanged);
@@ -95,7 +98,7 @@ public class Bot : IBot
             return;
         }
 
-        await Task.Delay(500); // Make more human-like
+        await Task.Delay(_decisionDelayMilliseconds); // Make more human-like
         await engine.MakeDecision(player);
     }
 

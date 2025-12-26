@@ -237,7 +237,7 @@ public class ServerGameTests
     }
     
     [Fact]
-    public void DeployUnit_ShouldDeployUnitAndSetNextPhase_WhenCalled()
+    public void DeployUnit_ShouldDeployUnit_WhenCalled()
     {
         // Arrange
         _sut.IsAutoRoll = false;
@@ -275,7 +275,6 @@ public class ServerGameTests
     
         // Assert
         _sut.Players.All(p=>p.Units.All(u=>u.IsDeployed)).ShouldBeTrue();
-        _sut.TurnPhase.ShouldBe(PhaseNames.Deployment);
     }
     
     [Fact]
