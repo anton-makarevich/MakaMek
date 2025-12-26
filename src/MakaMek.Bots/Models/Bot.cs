@@ -1,12 +1,9 @@
 ﻿using System.Reactive.Linq;
-using System.Reactive.Concurrency;
-using AsyncAwaitBestPractices;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
-using Sanet.MakaMek.Core.Models.Game.Players;
 
 namespace Sanet.MakaMek.Bots.Models;
 
@@ -16,13 +13,14 @@ namespace Sanet.MakaMek.Bots.Models;
 public class Bot : IBot
 {
     private readonly IDecisionEngineProvider _decisionEngineProvider;
+    private readonly int _decisionDelayMilliseconds;
     private readonly IClientGame _clientGame;
     private IBotDecisionEngine? _currentDecisionEngine;
-    private IDisposable? _activePlayerSubscription;
+    private IDisposable? _phaseStateSubscription;
     private IDisposable? _phaseSubscription;
     private IDisposable? _gameEndSubscription;
     private bool _isDisposed;
-    private readonly Lock _lock = new();
+    private readonly CancellationTokenSource _cts = new();
 
     public Guid PlayerId { get; }
 
@@ -30,51 +28,42 @@ public class Bot : IBot
         Guid playerId,
         IClientGame clientGame,
         IDecisionEngineProvider decisionEngineProvider,
-        IScheduler? scheduler = null)
+        int decisionDelayMilliseconds = 500)
     {
         PlayerId = playerId;
         _clientGame = clientGame;
         _decisionEngineProvider = decisionEngineProvider;
-        var schedulerToUse = scheduler ?? TaskPoolScheduler.Default;
-
-        // Subscribe to active player changes (works for both server-driven and client-driven phases)
-        _activePlayerSubscription = clientGame.ActivePlayerChanges
-            .ObserveOn(schedulerToUse)
-            .Subscribe(OnActivePlayerChanged);
+        _decisionDelayMilliseconds = decisionDelayMilliseconds;
 
         // Subscribe to phase changes to update the decision engine
         _phaseSubscription = clientGame.PhaseChanges
-            .ObserveOn(schedulerToUse)
             .Subscribe(OnPhaseChanged);
 
+        // Subscribe to active player changes (works for both server-driven and client-driven phases)
+        _phaseStateSubscription = clientGame.PhaseStepChanges
+            .Subscribe(OnPhaseStateChanged);
+        
         // Subscribe to game end events
         _gameEndSubscription = clientGame.Commands
             .OfType<GameEndedCommand>()
-            .ObserveOn(schedulerToUse)
             .Subscribe(_ => Dispose());
     }
 
-    private void OnActivePlayerChanged(IPlayer? activePlayer)
+    private void OnPhaseStateChanged(PhaseStepState? phaseStepState)
     {
-        lock (_lock)
-        {
-            if (_isDisposed) return;
-        }
+        if (_isDisposed) return;
 
         // Check if this bot is now the active player
-        if (activePlayer?.Id == PlayerId)
+        if (phaseStepState?.ActivePlayer.Id == PlayerId)
         {
-            MakeDecision().SafeFireAndForget();
+            Task.Run(MakeDecision, _cts.Token);
         }
     }
 
     private void OnPhaseChanged(PhaseNames phase)
     {
-        lock (_lock)
-        {
-            if (_isDisposed) return;
-            UpdateDecisionEngine(phase);
-        }
+        if (_isDisposed) return;
+        UpdateDecisionEngine(phase);
     }
 
     private void UpdateDecisionEngine(PhaseNames phase)
@@ -84,14 +73,9 @@ public class Bot : IBot
 
     private async Task MakeDecision()
     {
-        IBotDecisionEngine? engine;
-        lock (_lock)
-        {
-            if (_isDisposed) return;
-            engine = _currentDecisionEngine;
-        }
-
-        if (engine == null) return;
+        if (_isDisposed) return;
+            
+        if (_currentDecisionEngine == null) return;
 
         // Get the current Player instance from the game's Players collection
         var player = _clientGame.Players.FirstOrDefault(p => p.Id == PlayerId);
@@ -101,30 +85,22 @@ public class Bot : IBot
             return;
         }
 
-        await engine.MakeDecision(player);
+        await Task.Delay(_decisionDelayMilliseconds); // Make more human-like
+        await _currentDecisionEngine.MakeDecision(player);
     }
 
-    public IBotDecisionEngine? DecisionEngine
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return _currentDecisionEngine;
-            }
-        }
-    }
+    public IBotDecisionEngine? DecisionEngine => _currentDecisionEngine;
 
     public void Dispose()
     {
-        lock (_lock)
-        {
-            if (_isDisposed) return;
-            _isDisposed = true;
-        }
+        if (_isDisposed) return;
+        _isDisposed = true;
+        
+        _cts.Cancel();
+        _cts.Dispose();
 
-        _activePlayerSubscription?.Dispose();
-        _activePlayerSubscription = null;
+        _phaseStateSubscription?.Dispose();
+        _phaseStateSubscription = null;
 
         _phaseSubscription?.Dispose();
         _phaseSubscription = null;

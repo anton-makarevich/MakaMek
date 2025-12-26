@@ -49,7 +49,7 @@ public class InitiativePhase : GamePhase
             if (!_initiativeOrder.HasTies()) break;
             // If there are ties, prepare for reroll
             playersToRoll = _initiativeOrder.GetTiedPlayers();
-            _initiativeOrder.StartNewRoll(); // Start next roll number
+            _initiativeOrder.StartNewRoll(); // Start the next roll number
         }
 
         // All rolls are complete, proceed to movement
@@ -60,20 +60,21 @@ public class InitiativePhase : GamePhase
     public override void HandleCommand(IGameCommand command)
     {
         if (command is not RollDiceCommand rollCommand) return;
-        if (rollCommand.PlayerId != Game.ActivePlayer?.Id) return;
+        if (Game.PhaseStepState?.ActivePlayer is not { } activePlayer) return;
+        if (rollCommand.PlayerId != activePlayer.Id) return;
 
         var broadcastRollCommand = rollCommand;
         broadcastRollCommand.GameOriginId = Game.Id;
         Game.CommandPublisher.PublishCommand(broadcastRollCommand);
 
         var roll = Roll2D6();
-        _initiativeOrder.AddResult(Game.ActivePlayer, roll);
+        _initiativeOrder.AddResult(activePlayer, roll);
 
         // Publish the roll result
         Game.CommandPublisher.PublishCommand(new DiceRolledCommand
         {
             GameOriginId = Game.Id,
-            PlayerId = Game.ActivePlayer.Id,
+            PlayerId = activePlayer.Id,
             Roll = roll
         });
 

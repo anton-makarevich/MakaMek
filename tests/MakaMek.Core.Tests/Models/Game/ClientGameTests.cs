@@ -304,7 +304,7 @@ public class ClientGameTests
         _sut.HandleCommand(command);
         
         // Assert
-        _sut.ActivePlayer.ShouldBe(actualPlayer);
+        _sut.PhaseStepState?.ActivePlayer.ShouldBe(actualPlayer);
         actualPlayer!.Name.ShouldBe(player.Name);
         actualPlayer.Id.ShouldBe(player.Id);
     }
@@ -1245,7 +1245,7 @@ public class ClientGameTests
         _sut.HandleCommand(joinCommand);
         
         // Get the unit and check initial heat
-        var unit = _sut.Players.First(p => p.Id == playerId).Units.First();
+        var unit = _sut.Players.First(p => p.Id == playerId).Units[0];
         var initialHeat = unit.CurrentHeat;
         
         // Create heat data
@@ -1601,7 +1601,7 @@ public class ClientGameTests
 
         // Phase should be set, but ActivePlayer not yet (waiting for StartPhaseCommand)
         clientGame.TurnPhase.ShouldBe(PhaseNames.End);
-        clientGame.ActivePlayer.ShouldBeNull();
+        clientGame.PhaseStepState.ShouldBeNull();
 
         // Now send StartPhaseCommand to complete phase initialization
         clientGame.HandleCommand(new StartPhaseCommand
@@ -1611,8 +1611,8 @@ public class ClientGameTests
         });
 
         // Assert - ActivePlayer should now be set
-        clientGame.ActivePlayer.ShouldNotBeNull();
-        clientGame.ActivePlayer!.Id.ShouldBe(localPlayer1.Id); // The first local player should be active
+        clientGame.PhaseStepState.ShouldNotBeNull();
+        clientGame.PhaseStepState.Value.ActivePlayer.Id.ShouldBe(localPlayer1.Id); // The first local player should be active
         
         // Verify that the player can end turn again (previous end turn state was cleared)
         clientGame.HandleCommand(new TurnEndedCommand
@@ -1623,8 +1623,8 @@ public class ClientGameTests
         });
         
         // After the first local player ends turn, the second local player should become active
-        clientGame.ActivePlayer.ShouldNotBeNull();
-        clientGame.ActivePlayer!.Id.ShouldBe(localPlayer2.Id);
+        clientGame.PhaseStepState.ShouldNotBeNull();
+        clientGame.PhaseStepState.Value.ActivePlayer.Id.ShouldBe(localPlayer2.Id);
     }
     
     [Fact]
@@ -1710,8 +1710,8 @@ public class ClientGameTests
         });
         
         // Verify initial state
-        sut.ActivePlayer.ShouldNotBeNull();
-        sut.ActivePlayer!.Id.ShouldBe(localPlayer1.Id);
+        sut.PhaseStepState.ShouldNotBeNull();
+        sut.PhaseStepState.Value.ActivePlayer.Id.ShouldBe(localPlayer1.Id);
         
         // Act - End turn for the first player
         sut.HandleCommand(new TurnEndedCommand
@@ -1722,8 +1722,8 @@ public class ClientGameTests
         });
         
         // Assert - Second player should now be active
-        sut.ActivePlayer.ShouldNotBeNull();
-        sut.ActivePlayer!.Id.ShouldBe(localPlayer2.Id);
+        sut.PhaseStepState.ShouldNotBeNull();
+        sut.PhaseStepState.Value.ActivePlayer.Id.ShouldBe(localPlayer2.Id);
         
         // Act - End turn for the second player
         sut.HandleCommand(new TurnEndedCommand
@@ -1734,8 +1734,8 @@ public class ClientGameTests
         });
         
         // Assert - Third player should now be active
-        sut.ActivePlayer.ShouldNotBeNull();
-        sut.ActivePlayer!.Id.ShouldBe(localPlayer3.Id);
+        sut.PhaseStepState.ShouldNotBeNull();
+        sut.PhaseStepState.Value.ActivePlayer.Id.ShouldBe(localPlayer3.Id);
         
         // Act - End turn for the third player
         sut.HandleCommand(new TurnEndedCommand
@@ -1746,7 +1746,7 @@ public class ClientGameTests
         });
         
         // Assert - No more local players who haven't ended their turn, so ActivePlayer should be null
-        sut.ActivePlayer.ShouldBeNull();
+        sut.PhaseStepState.ShouldBeNull();
     }
 
     [Fact]
@@ -2701,7 +2701,7 @@ public class ClientGameTests
 
         // Act
         _sut.Dispose();
-        _sut.Dispose(); // Second call should be no-op
+        _sut.Dispose(); // The second call should be no-op
 
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
@@ -2846,7 +2846,7 @@ public class ClientGameTests
         // Act
         _sut.Dispose();
         
-        // Assert, task should be canceled
+        // Assert, a task should be canceled
         var totalDelay = 0;
         const int stepDelay = 20;
         while (!task.IsCanceled)
@@ -2932,7 +2932,7 @@ public class ClientGameTests
         var unitData = MechFactoryTests.CreateDummyMechData();
         unitData.Id = Guid.NewGuid();
         
-        // Join game locally first to register control type
+        // Join the game locally first to register a control type
         _sut.JoinGameWithUnits(player, [unitData], []);
 
         var joinCommand = new JoinGameCommand

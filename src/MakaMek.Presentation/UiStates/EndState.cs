@@ -42,12 +42,12 @@ public class EndState : IUiState
 
     public void HandleHexSelection(Hex hex)
     {
-        // Find unit at the selected hex
+        // Find a unit at the selected hex
         var unit = _viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
 
         // If there's a unit at this hex, select it
         _viewModel.SelectedUnit = unit ??
-                                  // If no unit at this hex, deselect current unit
+                                  // If no unit at this hex, deselect the current unit
                                   null;
     }
 
@@ -65,7 +65,7 @@ public class EndState : IUiState
 
         // Only show actions for units belonging to the active player
         var selectedUnit = _viewModel.SelectedUnit;
-        var activePlayer = _viewModel.Game.ActivePlayer;
+        var activePlayer = _viewModel.Game.PhaseStepState?.ActivePlayer;
 
         if (selectedUnit.Owner?.Id == activePlayer?.Id && !selectedUnit.IsDestroyed)
         {
@@ -101,12 +101,12 @@ public class EndState : IUiState
 
     private void ExecuteShutdownAction(IUnit unit)
     {
-        if (!IsActivePlayer || _viewModel.Game == null) return;
+        if (!IsActivePlayer || _viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
 
         var command = new ShutdownUnitCommand
         {
             GameOriginId = _viewModel.Game.Id,
-            PlayerId = _viewModel.Game.ActivePlayer!.Id,
+            PlayerId = _viewModel.Game.PhaseStepState.Value.ActivePlayer.Id,
             UnitId = unit.Id,
             Timestamp = DateTime.UtcNow
         };
@@ -127,11 +127,11 @@ public class EndState : IUiState
 
         var shutdownData = mech.CurrentShutdownData.Value;
 
-        // Can't startup in the same turn as shutdown
+        // Can't start up in the same turn as shutdown
         if (shutdownData.Turn >= _viewModel.Game.Turn)
             return (false, 0);
 
-        // Get the avoid number for current heat level
+        // Get the avoidance number for the current heat level
         var avoidNumber = _viewModel.Game.HeatEffectsCalculator.GetShutdownAvoidNumber(mech.CurrentHeat);
 
         // Check if startup is impossible (heat too high)
@@ -145,12 +145,12 @@ public class EndState : IUiState
 
     private void ExecuteStartupAction(IUnit unit)
     {
-        if (!IsActivePlayer || _viewModel.Game == null) return;
+        if (!IsActivePlayer || _viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
 
         var command = new StartupUnitCommand
         {
             GameOriginId = _viewModel.Game.Id,
-            PlayerId = _viewModel.Game.ActivePlayer!.Id,
+            PlayerId = _viewModel.Game.PhaseStepState.Value.ActivePlayer.Id,
             UnitId = unit.Id,
             Timestamp = DateTime.UtcNow
         };
@@ -166,12 +166,12 @@ public class EndState : IUiState
     /// </summary>
     public void ExecutePlayerAction()
     {
-        if (!IsActivePlayer || _viewModel.Game == null) return;
+        if (!IsActivePlayer || _viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
 
         var command = new TurnEndedCommand
         {
             GameOriginId = _viewModel.Game.Id,
-            PlayerId = _viewModel.Game.ActivePlayer!.Id,
+            PlayerId = _viewModel.Game.PhaseStepState.Value.ActivePlayer.Id,
             Timestamp = DateTime.UtcNow
         };
 

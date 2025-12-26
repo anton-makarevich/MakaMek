@@ -19,7 +19,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
 
     public PhysicalAttackPhaseTests()
     {
-        // Create mock next phase and configure the phase manager
+        // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.PhysicalAttack, Game).Returns(_mockNextPhase);
         
@@ -55,7 +55,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         _sut.Enter();
     
         // Assert
-        Game.ActivePlayer.ShouldBe(Game.Players[0]); // Player who lost initiative attacks first
+        Game.PhaseStepState!.Value.ActivePlayer.ShouldBe(Game.Players[0]); // Player who lost initiative attacks first
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(new PhysicalAttackCommand
         {
             GameOriginId = Game.Id,
-            PlayerId = Game.ActivePlayer!.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             TargetUnitId = _unit2Id,
             AttackType = PhysicalAttackType.Punch
@@ -107,7 +107,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var firstPlayer = Game.ActivePlayer!;
+        var firstPlayer = Game.PhaseStepState!.Value.ActivePlayer;
         
         // Act - First player attacks with all units
         foreach (var unit in firstPlayer.Units)
@@ -122,12 +122,12 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
             });
         }
 
-        // Second player should be active now
-        Game.ActivePlayer.ShouldNotBe(firstPlayer);
-        var secondPlayer = Game.ActivePlayer;
+        // The second player should be active now
+        Game.PhaseStepState!.Value.ActivePlayer.ShouldNotBe(firstPlayer);
+        var secondPlayer = Game.PhaseStepState.Value.ActivePlayer;
         
         // Second player attacks
-        foreach (var unit in secondPlayer!.Units)
+        foreach (var unit in secondPlayer.Units)
         {
             _sut.HandleCommand(new PhysicalAttackCommand
             {
@@ -154,7 +154,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(new WeaponAttackDeclarationCommand // Wrong command type
         {
             GameOriginId = Game.Id,
-            PlayerId = Game.ActivePlayer!.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             WeaponTargets = []
         });

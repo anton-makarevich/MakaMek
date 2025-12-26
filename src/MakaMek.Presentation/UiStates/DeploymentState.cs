@@ -34,11 +34,11 @@ public class DeploymentState : IUiState
         {
             throw new InvalidOperationException("Game is null"); 
         }
-        if (_viewModel.Game.ActivePlayer == null)
+        if (_viewModel.Game.PhaseStepState?.ActivePlayer == null)
         {
             throw new InvalidOperationException("Active player is null"); 
         }
-        _builder = new DeploymentCommandBuilder(_viewModel.Game.Id, _viewModel.Game.ActivePlayer.Id);
+        _builder = new DeploymentCommandBuilder(_viewModel.Game.Id, _viewModel.Game.PhaseStepState.Value.ActivePlayer.Id);
     }
 
     public void  HandleUnitSelection(IUnit? unit)
@@ -116,15 +116,7 @@ public class DeploymentState : IUiState
         }
     }
 
-    public bool IsActionRequired
-    {
-        get
-        {
-            if (_viewModel.Game is not { } clientGame)
-                return false;
-            return clientGame is { CanActivePlayerAct:true, UnitsToPlayCurrentStep: > 0 }
-                   && this.IsActiveHumanPlayer();
-        }
-    }
+    public bool IsActionRequired => _viewModel.Game is { CanActivePlayerAct: true, PhaseStepState.UnitsToPlay: > 0 }
+                                    && this.IsActiveHumanPlayer();
 }
 

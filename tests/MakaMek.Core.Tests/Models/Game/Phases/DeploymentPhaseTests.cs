@@ -15,7 +15,7 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
 
     public DeploymentPhaseTests()
     {
-        // Create mock next phase and configure the phase manager
+        // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.Deployment, Game).Returns(_mockNextPhase);
         
@@ -45,9 +45,9 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
         _sut.Enter();
 
         // Assert
-        Game.ActivePlayer.ShouldNotBeNull();
+        Game.PhaseStepState.ShouldNotBeNull();
         var playerNames = Game.Players.Select(p => p.Name).ToArray();
-        playerNames.ShouldContain(Game.ActivePlayer.Name);
+        playerNames.ShouldContain(Game.PhaseStepState.Value.ActivePlayer.Name);
     }
 
     [Fact]
@@ -90,11 +90,11 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
         _sut.Enter();
 
         // Deploy first player's unit
-        _sut.HandleCommand(CreateDeployCommand(Game.ActivePlayer!.Id, Game.ActivePlayer.Units[0].Id, 1, 1, 0));
+        _sut.HandleCommand(CreateDeployCommand(Game.PhaseStepState!.Value.ActivePlayer.Id, Game.PhaseStepState.Value.ActivePlayer.Units[0].Id, 1, 1, 0));
 
         // Act
         // Deploy second player's unit
-        _sut.HandleCommand(CreateDeployCommand(Game.ActivePlayer.Id, Game.ActivePlayer.Units[0].Id, 2, 2, 0));
+        _sut.HandleCommand(CreateDeployCommand(Game.PhaseStepState.Value.ActivePlayer.Id, Game.PhaseStepState.Value.ActivePlayer.Units[0].Id, 2, 2, 0));
         
         // Assert
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.Deployment, Game);
@@ -125,7 +125,7 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
         Game.HandleCommand(CreateStatusCommand(playerId, PlayerStatus.Ready));
         _sut.Enter();
 
-        var initialActivePlayer = Game.ActivePlayer;
+        var initialActivePlayer = Game.PhaseStepState!.Value.ActivePlayer;
         
         // Clear previous command publications
         CommandPublisher.ClearReceivedCalls();
@@ -134,7 +134,7 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(CreateDeployCommand(playerId, unit1.Id.Value, 1, 1, 0));
 
         // Assert
-        Game.ActivePlayer.ShouldBe(initialActivePlayer);
+        Game.PhaseStepState.Value.ActivePlayer.ShouldBe(initialActivePlayer);
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Deployment, Game);
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangePhaseCommand>());
     }
@@ -153,16 +153,17 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
         Game.HandleCommand(CreateStatusCommand(player2Id, PlayerStatus.Ready));
         _sut.Enter();
 
-        var initialActivePlayer = Game.ActivePlayer;
+        var initialActivePlayer = Game.PhaseStepState!.Value.ActivePlayer;
 
         // Clear previous command publications
         CommandPublisher.ClearReceivedCalls();
 
         // Act
-        _sut.HandleCommand(CreateDeployCommand(initialActivePlayer!.Id, initialActivePlayer.Units[0].Id, 1, 1, 0));
+        var command = CreateDeployCommand(initialActivePlayer.Id, initialActivePlayer.Units[0].Id, 1, 1, 0);
+        _sut.HandleCommand(command);
 
         // Assert
-        Game.ActivePlayer.ShouldNotBe(initialActivePlayer);
+        Game.PhaseStepState.Value.ActivePlayer.ShouldNotBe(initialActivePlayer);
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Deployment, Game);
     }
 }

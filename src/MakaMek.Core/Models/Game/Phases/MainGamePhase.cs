@@ -18,7 +18,7 @@ public abstract class MainGamePhase : GamePhase
         SetNextPlayerActive();
     }
 
-    protected void SetNextPlayerActive()
+    private void SetNextPlayerActive()
     {
         var nextStep = _turnOrder.GetNextStep();
         if (nextStep == null)
@@ -33,7 +33,7 @@ public abstract class MainGamePhase : GamePhase
 
     protected void HandleUnitAction(IGameCommand command, Guid playerId)
     {
-        if (playerId != Game.ActivePlayer?.Id) return;
+        if (playerId != Game.PhaseStepState?.ActivePlayer.Id) return;
 
         ProcessCommand(command);
         
@@ -43,7 +43,7 @@ public abstract class MainGamePhase : GamePhase
             SetNextPlayerActive();
             return;
         }
-        Game.SetActivePlayer(Game.ActivePlayer, _remainingUnits);
+        Game.SetActivePlayer(Game.PhaseStepState?.ActivePlayer, _remainingUnits);
     }
 
     protected abstract void ProcessCommand(IGameCommand command);

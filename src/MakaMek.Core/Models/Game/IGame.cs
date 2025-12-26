@@ -11,13 +11,10 @@ public interface IGame
     IReadOnlyList<IPlayer> Players { get; }
     int Turn { get; }
     PhaseNames TurnPhase { get; }
-    IPlayer? ActivePlayer { get; }
-    int UnitsToPlayCurrentStep { get; }
-
+    PhaseStepState? PhaseStepState { get; }
     IObservable<int> TurnChanges { get; }
     IObservable<PhaseNames> PhaseChanges { get; }
-    IObservable<IPlayer?> ActivePlayerChanges { get; }
-    IObservable<int> UnitsToPlayChanges { get; }
+    IObservable<PhaseStepState?> PhaseStepChanges { get; }
 
     IBattleMap? BattleMap { get; }
     void SetBattleMap(IBattleMap map);

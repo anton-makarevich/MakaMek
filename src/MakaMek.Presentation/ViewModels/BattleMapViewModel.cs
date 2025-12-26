@@ -201,10 +201,9 @@ public class BattleMapViewModel : BaseViewModel
         
         _gameSubscription = Game.TurnChanges
             .StartWith(Game.Turn)
-            .CombineLatest<int, PhaseNames, IPlayer?, int, (int Turn, PhaseNames Phase, IPlayer? Player, int UnitsToPlay)>(Game.PhaseChanges.StartWith(Game.TurnPhase),
-                Game.ActivePlayerChanges.StartWith(Game.ActivePlayer),
-                Game.UnitsToPlayChanges.StartWith(Game.UnitsToPlayCurrentStep),
-                (turn, phase, player, units) => (turn, phase, player, units))
+            .CombineLatest(Game.PhaseChanges.StartWith(Game.TurnPhase),
+                Game.PhaseStepChanges.StartWith(Game.PhaseStepState),
+                (turn, phase, state) => (turn, phase, state))
             .ObserveOn(_dispatcherService.Scheduler)
             .Subscribe(_ =>
             {
@@ -331,23 +330,23 @@ public class BattleMapViewModel : BaseViewModel
 
     private void UpdateGamePhase()
     {
-        if (Game is not { ActivePlayer: not null } clientGame)
+        if (Game?.PhaseStepState is not { } phaseState)
         {
             return;
         }
 
         switch (TurnPhaseName)
         {
-            case PhaseNames.Deployment when clientGame.ActivePlayer.Units.Any(u => !u.IsDeployed):
+            case PhaseNames.Deployment when phaseState.ActivePlayer.Units.Any(u => !u.IsDeployed):
                 TransitionToState(new DeploymentState(this));
                 ShowUnitsToDeploy();
                 break;
         
-            case PhaseNames.Movement when clientGame.UnitsToPlayCurrentStep > 0:
+            case PhaseNames.Movement when phaseState.UnitsToPlay > 0:
                 TransitionToState(new MovementState(this));
                 break;
         
-            case PhaseNames.WeaponsAttack when clientGame.UnitsToPlayCurrentStep > 0:
+            case PhaseNames.WeaponsAttack when phaseState.UnitsToPlay > 0:
                 TransitionToState(new WeaponsAttackState(this));
                 break;
         
@@ -372,12 +371,12 @@ public class BattleMapViewModel : BaseViewModel
 
     private void ShowUnitsToDeploy()
     {
-        if (Game?.ActivePlayer == null || Game?.UnitsToPlayCurrentStep < 1)
+        if (Game?.PhaseStepState == null || Game.PhaseStepState.Value.UnitsToPlay < 1)
         {
             UnitsToDeploy = [];
             return;
         }
-        UnitsToDeploy = Game?.ActivePlayer?.Units.Where(u => !u.IsDeployed).ToList()??[];
+        UnitsToDeploy = Game?.PhaseStepState?.ActivePlayer.Units.Where(u => !u.IsDeployed).ToList()??[];
     }
 
     private void TransitionToState(IUiState newState)
@@ -426,7 +425,7 @@ public class BattleMapViewModel : BaseViewModel
 
     public bool AreUnitsToDeployVisible => Game is not null
                                            && Game.CanActivePlayerAct
-                                           && Game.ActivePlayer?.ControlType == PlayerControlType.Human
+                                           && Game.PhaseStepState?.ActivePlayer.ControlType == PlayerControlType.Human
                                            && CurrentState is DeploymentState
                                            && UnitsToDeploy.Count > 0
                                            && SelectedUnit == null;
@@ -435,9 +434,9 @@ public class BattleMapViewModel : BaseViewModel
 
     public PhaseNames TurnPhaseName => Game?.TurnPhase ?? PhaseNames.Start;
     
-    public string ActivePlayerName => Game?.ActivePlayer?.Name ?? string.Empty;
+    public string ActivePlayerName => Game?.PhaseStepState?.ActivePlayer.Name ?? string.Empty;
 
-    public string ActivePlayerTint => Game?.ActivePlayer?.Tint ?? "#FFFFFF";
+    public string ActivePlayerTint => Game?.PhaseStepState?.ActivePlayer.Tint ?? "#FFFFFF";
 
     public IImageService ImageService { get; }
 

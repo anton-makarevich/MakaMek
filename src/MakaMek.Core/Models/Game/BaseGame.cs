@@ -27,15 +27,13 @@ public abstract class BaseGame : IGame
 
     private readonly Subject<int> _turnSubject = new();
     private readonly Subject<PhaseNames> _phaseSubject = new();
-    private readonly Subject<IPlayer?> _activePlayerSubject = new();
-    private readonly Subject<int> _unitsToPlaySubject = new();
+    private readonly Subject<PhaseStepState?> _phaseStepStateSubject = new();
 
     public Guid Id { get; }
 
     public IObservable<int> TurnChanges => _turnSubject.AsObservable();
     public IObservable<PhaseNames> PhaseChanges => _phaseSubject.AsObservable();
-    public IObservable<IPlayer?> ActivePlayerChanges => _activePlayerSubject.AsObservable();
-    public IObservable<int> UnitsToPlayChanges => _unitsToPlaySubject.AsObservable();
+    public IObservable<PhaseStepState?> PhaseStepChanges => _phaseStepStateSubject.AsObservable();
     public IBattleMap? BattleMap { get; protected set; }
     public IToHitCalculator ToHitCalculator { get; }
     public IPilotingSkillCalculator PilotingSkillCalculator { get; }
@@ -62,8 +60,7 @@ public abstract class BaseGame : IGame
             if (field == value) return;
             field = value;
             _phaseSubject.OnNext(value);
-            ActivePlayer = null;
-            UnitsToPlayCurrentStep = 0;
+            PhaseStepState = null;
 
             // Reset phase damage tracking for all units when the phase changes
             foreach (var player in AlivePlayers)
@@ -76,25 +73,14 @@ public abstract class BaseGame : IGame
         }
     } = PhaseNames.Start;
 
-    public virtual IPlayer? ActivePlayer
+    public virtual PhaseStepState? PhaseStepState
     {
         get;
         protected set
         {
             if (field == value) return;
             field = value;
-            _activePlayerSubject.OnNext(value);
-        }
-    }
-
-    public int UnitsToPlayCurrentStep
-    {
-        get;
-        protected set
-        {
-            if (field == value) return;
-            field = value;
-            _unitsToPlaySubject.OnNext(value);
+            _phaseStepStateSubject.OnNext(value);
         }
     }
 

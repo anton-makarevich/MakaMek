@@ -14,7 +14,7 @@ public class StartPhaseTests : GamePhaseTestsBase
 
     public StartPhaseTests()
     {
-        // Create mock next phase and configure the phase manager
+        // Create a mock next phase and configure the phase manager
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.Start, Game).Returns(_mockNextPhase);
         
@@ -81,7 +81,7 @@ public class StartPhaseTests : GamePhaseTestsBase
         // Assert
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Start, Game);
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangePhaseCommand>());
-        Game.ActivePlayer.ShouldBeNull();
+        Game.PhaseStepState.ShouldBeNull();
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class StartPhaseTests : GamePhaseTestsBase
         // Assert
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Start, Game);
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangePhaseCommand>());
-        Game.ActivePlayer.ShouldBeNull();
+        Game.PhaseStepState.ShouldBeNull();
     }
     
     [Fact]

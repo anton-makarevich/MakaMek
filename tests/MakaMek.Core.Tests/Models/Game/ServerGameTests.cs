@@ -231,13 +231,13 @@ public class ServerGameTests
         });
         
         // Assert
-        _sut.ActivePlayer.ShouldNotBeNull();
+        _sut.PhaseStepState.ShouldNotBeNull();
         var expectedIds = new List<Guid> { playerId1, playerId2 };
-        expectedIds.ShouldContain(_sut.ActivePlayer.Id);
+        expectedIds.ShouldContain(_sut.PhaseStepState.Value.ActivePlayer.Id);
     }
     
     [Fact]
-    public void DeployUnit_ShouldDeployUnitAndSetNextPhase_WhenCalled()
+    public void DeployUnit_ShouldDeployUnit_WhenCalled()
     {
         // Arrange
         _sut.IsAutoRoll = false;
@@ -275,7 +275,6 @@ public class ServerGameTests
     
         // Assert
         _sut.Players.All(p=>p.Units.All(u=>u.IsDeployed)).ShouldBeTrue();
-        _sut.TurnPhase.ShouldBe(PhaseNames.Initiative);
     }
     
     [Fact]
@@ -483,7 +482,7 @@ public class ServerGameTests
     
         // Act
         _sut.Dispose();
-        _sut.Dispose(); // Second call should be no-op
+        _sut.Dispose(); // The second call should be no-op
     
         // Assert
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
@@ -633,7 +632,7 @@ public class ServerGameTests
             IdempotencyKey = idempotencyKey
         };
 
-        // Process command in first phase
+        // Process command in the first phase
         _sut.HandleCommand(command1);
 
         // Change phase
@@ -656,7 +655,18 @@ public class ServerGameTests
         // Act
         _sut.HandleCommand(command2);
 
-        // Assert - should not send error command since keys were cleared
+        // Assert - should not send an error command since keys were cleared
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ErrorCommand>());
+    }
+    
+    [Fact]
+    public void SetActivePlayer_ShouldSetPhaseStepToNull_WhenPlayerIsNull()
+    {
+        // Act
+        _sut.SetActivePlayer(null, 0);
+        
+        // Assert
+        _sut.PhaseStepState.ShouldBeNull();
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
     }
 }

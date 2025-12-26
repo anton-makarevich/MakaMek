@@ -111,13 +111,17 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 // This ensures the server has completed phase initialization before bots start making decisions
                 if (startPhaseCommand.Phase == PhaseNames.End)
                 {
-                    ActivePlayer = AlivePlayers.FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
+                    var firstLocalPlayer = AlivePlayers.FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
+                    PhaseStepState = firstLocalPlayer != null 
+                        ? new PhaseStepState(firstLocalPlayer, 0)
+                        : null;
                 }
                 break;
             case ChangeActivePlayerCommand changeActivePlayerCommand:
                 var player = Players.FirstOrDefault(p => p.Id == changeActivePlayerCommand.PlayerId);
-                ActivePlayer = player;
-                UnitsToPlayCurrentStep = changeActivePlayerCommand.UnitsToPlay;
+                PhaseStepState = player != null 
+                    ? new PhaseStepState(player, changeActivePlayerCommand.UnitsToPlay) 
+                    : null;
                 break;
             case DeployUnitCommand deployUnitCommand:
                 OnDeployUnit(deployUnitCommand);
@@ -150,13 +154,17 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
                 // If we're in the End phase, and the player who just ended their turn was the active player
                 if (TurnPhase == PhaseNames.End &&
-                    ActivePlayer != null &&
-                    turnEndedCommand.PlayerId == ActivePlayer.Id)
+                    PhaseStepState != null &&
+                    turnEndedCommand.PlayerId == PhaseStepState.Value.ActivePlayer.Id)
                 {
                     // Set the next local player who hasn't ended their turn as active
-                    ActivePlayer = AlivePlayers
+                    var nextActivePlayer = AlivePlayers
                         .Where(p => !_playersEndedTurn.Contains(p.Id))
                         .FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
+                    
+                    PhaseStepState = nextActivePlayer != null 
+                        ? new PhaseStepState(nextActivePlayer, 0)
+                        : null;
                 }
                 break;
             case PilotConsciousnessRollCommand consciousnessRollCommand:
@@ -193,9 +201,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         return _localPlayers.TryGetValue(playerId, out var controlType) ? controlType : null;
     }
 
-    public bool CanActivePlayerAct => ActivePlayer != null 
-                                      && _localPlayers.ContainsKey(ActivePlayer.Id) 
-                                      && ActivePlayer.CanAct
+    public bool CanActivePlayerAct => PhaseStepState?.ActivePlayer is { } activePlayer
+                                      && _localPlayers.ContainsKey(activePlayer.Id) 
+                                      && activePlayer.CanAct
                                       && _pendingCommands.IsEmpty;
 
     /// <summary>
