@@ -168,16 +168,19 @@ public class ServerGame : BaseGame, IDisposable
 
     public void SetActivePlayer(IPlayer? player, int unitsToMove)
     {
-        ActivePlayer = player;
-        UnitsToPlayCurrentStep = unitsToMove;
         if (player != null)
         {
+            PhaseStepState = new PhaseStepState(player, unitsToMove);
             CommandPublisher.PublishCommand(new ChangeActivePlayerCommand
             {
                 GameOriginId = Id,
                 PlayerId = player.Id,
                 UnitsToPlay = unitsToMove
             });
+        }
+        else
+        {
+            PhaseStepState = null;
         }
     }
 

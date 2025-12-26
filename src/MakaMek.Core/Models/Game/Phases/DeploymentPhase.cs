@@ -17,7 +17,7 @@ public class DeploymentPhase(ServerGame game) : GamePhase(game)
     public override void HandleCommand(IGameCommand command)
     {
         if (command is not DeployUnitCommand deployCommand) return;
-        if (deployCommand.PlayerId != Game.ActivePlayer?.Id) return;
+        if (deployCommand.PlayerId != Game.PhaseStepState?.ActivePlayer.Id) return;
 
         var broadcastCommand = deployCommand;
         broadcastCommand.GameOriginId = Game.Id;
@@ -28,9 +28,9 @@ public class DeploymentPhase(ServerGame game) : GamePhase(game)
 
     private void HandleDeploymentProgress()
     {
-        if (Game.ActivePlayer != null && !Game.ActivePlayer.Units.All(unit => unit.IsDeployed))
+        if (Game.PhaseStepState?.ActivePlayer is { } activePlayer && activePlayer.Units.All(unit => unit.IsDeployed))
         {
-            Game.SetActivePlayer(Game.ActivePlayer, Game.ActivePlayer.Units.Count(u => !u.IsDeployed));
+            Game.SetActivePlayer(activePlayer, activePlayer.Units.Count(u => !u.IsDeployed));
             return;
         }
 
