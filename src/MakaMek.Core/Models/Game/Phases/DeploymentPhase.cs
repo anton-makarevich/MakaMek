@@ -28,7 +28,8 @@ public class DeploymentPhase(ServerGame game) : GamePhase(game)
 
     private void HandleDeploymentProgress()
     {
-        if (Game.PhaseStepState?.ActivePlayer is { } activePlayer && activePlayer.Units.All(unit => unit.IsDeployed))
+        var activePlayer = Game.Players.FirstOrDefault(p => p.Id == Game.PhaseStepState?.ActivePlayer.Id);
+        if (activePlayer!= null && !activePlayer.Units.All(unit => unit.IsDeployed))
         {
             Game.SetActivePlayer(activePlayer, activePlayer.Units.Count(u => !u.IsDeployed));
             return;

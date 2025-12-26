@@ -159,7 +159,8 @@ public class DeploymentPhaseTests : GamePhaseTestsBase
         CommandPublisher.ClearReceivedCalls();
 
         // Act
-        _sut.HandleCommand(CreateDeployCommand(initialActivePlayer.Id, initialActivePlayer.Units[0].Id, 1, 1, 0));
+        var command = CreateDeployCommand(initialActivePlayer.Id, initialActivePlayer.Units[0].Id, 1, 1, 0);
+        _sut.HandleCommand(command);
 
         // Assert
         Game.PhaseStepState.Value.ActivePlayer.ShouldNotBe(initialActivePlayer);

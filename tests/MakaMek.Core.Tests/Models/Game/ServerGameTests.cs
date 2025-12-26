@@ -275,7 +275,7 @@ public class ServerGameTests
     
         // Assert
         _sut.Players.All(p=>p.Units.All(u=>u.IsDeployed)).ShouldBeTrue();
-        _sut.TurnPhase.ShouldBe(PhaseNames.Initiative);
+        _sut.TurnPhase.ShouldBe(PhaseNames.Deployment);
     }
     
     [Fact]

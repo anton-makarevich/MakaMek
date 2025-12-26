@@ -28,30 +28,23 @@ public class Bot : IBot
     public Bot(
         Guid playerId,
         IClientGame clientGame,
-        IDecisionEngineProvider decisionEngineProvider,
-        IScheduler? scheduler = null)
+        IDecisionEngineProvider decisionEngineProvider)
     {
         PlayerId = playerId;
         _clientGame = clientGame;
         _decisionEngineProvider = decisionEngineProvider;
-        var schedulerToUse = scheduler ?? TaskPoolScheduler.Default;
-
         
-
         // Subscribe to phase changes to update the decision engine
         _phaseSubscription = clientGame.PhaseChanges
-            .ObserveOn(schedulerToUse)
             .Subscribe(OnPhaseChanged);
 
         // Subscribe to active player changes (works for both server-driven and client-driven phases)
         _phaseStateSubscription = clientGame.PhaseStepChanges
-            .ObserveOn(schedulerToUse)
             .Subscribe(OnPhaseStateChanged);
         
         // Subscribe to game end events
         _gameEndSubscription = clientGame.Commands
             .OfType<GameEndedCommand>()
-            .ObserveOn(schedulerToUse)
             .Subscribe(_ => Dispose());
     }
 
@@ -65,7 +58,7 @@ public class Bot : IBot
         // Check if this bot is now the active player
         if (phaseStepState?.ActivePlayer.Id == PlayerId)
         {
-            MakeDecision().SafeFireAndForget();
+            Task.Run(MakeDecision);
         }
     }
 
@@ -102,6 +95,7 @@ public class Bot : IBot
             return;
         }
 
+        await Task.Delay(500); // Make more human-like
         await engine.MakeDecision(player);
     }
 

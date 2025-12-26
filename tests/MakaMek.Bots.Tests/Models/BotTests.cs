@@ -1,5 +1,4 @@
 using System.Reactive.Linq;
-using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Bots.Models;
@@ -50,7 +49,7 @@ public class BotTests : IDisposable
         _movementEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(_movementEngine);
 
-        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider, Scheduler.Immediate);
+        _sut = new Bot(_player.Id, _clientGame, _decisionEngineProvider);
     }
 
     [Fact]
@@ -69,7 +68,7 @@ public class BotTests : IDisposable
         decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
 
         // Act - Create a new bot and trigger phase change
-        using var bot = new Bot(_player.Id, _clientGame, decisionEngineProvider, Scheduler.Immediate);
+        using var bot = new Bot(_player.Id, _clientGame, decisionEngineProvider);
         _phaseSubject.OnNext(PhaseNames.Movement);
 
         // Assert
@@ -204,7 +203,7 @@ public class BotTests : IDisposable
 
         try
         {
-            using var bot = new Bot(playerId, clientGame, decisionEngineProvider, Scheduler.Immediate);
+            using var bot = new Bot(playerId, clientGame, decisionEngineProvider);
 
             // Set up the decision engine
             phaseSubject.OnNext(PhaseNames.Movement);
