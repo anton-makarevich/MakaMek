@@ -201,7 +201,7 @@ public class BattleMapViewModel : BaseViewModel
         
         _gameSubscription = Game.TurnChanges
             .StartWith(Game.Turn)
-            .CombineLatest<int, PhaseNames, IPlayer?, int, (int Turn, PhaseNames Phase, IPlayer? Player, int UnitsToPlay)>(Game.PhaseChanges.StartWith(Game.TurnPhase),
+            .CombineLatest(Game.PhaseChanges.StartWith(Game.TurnPhase),
                 Game.ActivePlayerChanges.StartWith(Game.ActivePlayer),
                 Game.UnitsToPlayChanges.StartWith(Game.UnitsToPlayCurrentStep),
                 (turn, phase, player, units) => (turn, phase, player, units))
