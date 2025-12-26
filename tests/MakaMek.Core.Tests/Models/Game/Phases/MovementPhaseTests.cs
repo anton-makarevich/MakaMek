@@ -55,7 +55,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.Enter();
     
         // Assert
-        Game.ActivePlayer.ShouldBe(Game.Players[0]); // Player who lost initiative moves first
+        Game.PhaseStepState!.Value.ActivePlayer.ShouldBe(Game.Players[0]); // Player who lost initiative moves first
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id);
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id);
         unit.Deploy(new HexPosition(1,2,HexDirection.Top));
         
         // Act
@@ -71,7 +71,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         {
             MovementType = MovementType.Walk,
             GameOriginId = Game.Id,
-            PlayerId = Game.ActivePlayer!.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath =
             [
@@ -106,7 +106,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         });
     
         // Assert
-        foreach (var unit in Game.ActivePlayer!.Units)
+        foreach (var unit in Game.PhaseStepState!.Value.ActivePlayer.Units)
         {
             unit.Position.ShouldBeNull();
         }
@@ -121,14 +121,14 @@ public class MovementPhaseTests : GamePhaseTestsBase
         CommandPublisher.ClearReceivedCalls();
     
         // Move all units of the first player
-        foreach (var unit in Game.ActivePlayer!.Units)
+        foreach (var unit in Game.PhaseStepState!.Value.ActivePlayer.Units)
         {
             unit.Deploy(new HexPosition(1,2,HexDirection.Top));
             _sut.HandleCommand(new MoveUnitCommand
             {
                 MovementType = MovementType.Walk,
                 GameOriginId = Game.Id,
-                PlayerId = Game.ActivePlayer!.Id,
+                PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
                 UnitId = unit.Id,
                 MovementPath =
                 [
@@ -160,7 +160,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 {
                     MovementType = MovementType.Walk,
                     GameOriginId = Game.Id,
-                    PlayerId = Game.ActivePlayer!.Id,
+                    PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
                     UnitId = unit.Id,
                     MovementPath =
                     [
@@ -181,7 +181,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
         unit.SetProne();
@@ -240,7 +240,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
         unit.SetProne();
@@ -299,7 +299,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
         unit.SetProne();
@@ -391,7 +391,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
         unit!.SetProne();
         
@@ -426,7 +426,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         // Make sure the unit is a Mech and is prone
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
         // destroy the left leg to remove MP
@@ -489,7 +489,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
 
         // Damage the gyro to require PSR
@@ -518,7 +518,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         {
             MovementType = MovementType.Jump,
             GameOriginId = Game.Id,
-            PlayerId = Game.ActivePlayer!.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
                 new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
@@ -540,7 +540,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
 
         // Damage the gyro to require PSR
@@ -574,7 +574,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         {
             MovementType = MovementType.Jump,
             GameOriginId = Game.Id,
-            PlayerId = Game.ActivePlayer!.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
                 new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
@@ -597,7 +597,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
 
         // Damage the gyro to require PSR
@@ -631,7 +631,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         {
             MovementType = MovementType.Jump,
             GameOriginId = Game.Id,
-            PlayerId = Game.ActivePlayer!.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = _unit1Id,
             MovementPath = [
                 new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(3, 1, HexDirection.Bottom), 1)
@@ -667,7 +667,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
         unit.SetProne();
 
@@ -759,7 +759,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var unit = Game.ActivePlayer!.Units.Single(u => u.Id == _unit1Id) as Mech;
+        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
         unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
         unit.SetProne();
 

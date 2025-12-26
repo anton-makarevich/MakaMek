@@ -67,7 +67,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
     {
         _sut.Enter();
 
-        Game.ActivePlayer.ShouldNotBeNull();
+        Game.PhaseStepState.ShouldNotBeNull();
     }
 
     [Fact]
@@ -81,14 +81,14 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(new RollDiceCommand
         {
             GameOriginId = Guid.NewGuid(),
-            PlayerId = Game.ActivePlayer!.Id
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id
         });
 
         // Assert
         CommandPublisher.Received().PublishCommand(Arg.Do<DiceRolledCommand>(cmd =>
         {
             cmd.GameOriginId.ShouldBe(Game.Id);
-            cmd.PlayerId.ShouldBe(Game.ActivePlayer!.Id);
+            cmd.PlayerId.ShouldBe(Game.PhaseStepState!.Value.ActivePlayer.Id);
             cmd.Roll.ShouldBe(7);
         }));
     }
@@ -98,14 +98,14 @@ public class InitiativePhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var firstPlayer = Game.ActivePlayer;
+        var firstPlayer = Game.PhaseStepState!.Value.ActivePlayer;
 
         // First player rolls 8
         SetupDiceRolls(8);
         _sut.HandleCommand(new RollDiceCommand
         {
             GameOriginId = Guid.NewGuid(),
-            PlayerId = firstPlayer!.Id
+            PlayerId = firstPlayer.Id
         });
 
         // Second player rolls 6
@@ -129,7 +129,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         // Arrange
         Game.SetPhase(PhaseNames.Initiative);
         _sut.Enter();
-        var firstPlayer = Game.ActivePlayer;
+        var firstPlayer = Game.PhaseStepState!.Value.ActivePlayer;
         var secondPlayer = Game.Players.First(p => p != firstPlayer);
 
         // Both players roll 7
@@ -137,7 +137,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(new RollDiceCommand
         {
             GameOriginId = Guid.NewGuid(),
-            PlayerId = firstPlayer!.Id
+            PlayerId = firstPlayer.Id
         });
         _sut.HandleCommand(new RollDiceCommand
         {
@@ -150,7 +150,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
 
         // Assert
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Initiative, Game);
-        Game.ActivePlayer.ShouldBeOneOf(firstPlayer, secondPlayer); // One of tied players should be active
+        Game.PhaseStepState!.Value.ActivePlayer.ShouldBeOneOf(firstPlayer, secondPlayer); // One of tied players should be active
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
-        var activePlayer = Game.ActivePlayer;
+        var activePlayer = Game.PhaseStepState!.Value.ActivePlayer;
 
         // Act - wrong player tries to roll
         _sut.HandleCommand(new RollDiceCommand 
@@ -168,7 +168,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         });
 
         // Assert
-        Game.ActivePlayer.ShouldBe(activePlayer); // Active player shouldn't change
+        Game.PhaseStepState.Value.ActivePlayer.ShouldBe(activePlayer); // Active player shouldn't change
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<DiceRolledCommand>());
     }
 
@@ -247,7 +247,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         // Assert
         CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<DiceRolledCommand>());
         MockPhaseManager.DidNotReceive().GetNextPhase(PhaseNames.Initiative, Game);
-        Game.ActivePlayer.ShouldBe(Game.Players[0]); // The first player should be active
+        Game.PhaseStepState!.Value.ActivePlayer.ShouldBe(Game.Players[0]); // The first player should be active
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         // Arrange
         Game.IsAutoRoll = false;
         _sut.Enter();
-        var player1 = Game.ActivePlayer;
+        var player1 = Game.PhaseStepState!.Value.ActivePlayer;
         var player2 = Game.Players[1];
 
         // First round - both roll 7
@@ -266,7 +266,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(new RollDiceCommand
         {
             GameOriginId = Guid.NewGuid(),
-            PlayerId = player1!.Id
+            PlayerId = player1.Id
         });
 
         // Player 2 rolls
@@ -347,23 +347,23 @@ public class InitiativePhaseTests : GamePhaseTestsBase
 
         // Act & Assert
         // First round of rolls
-        game.ActivePlayer!.Id.ShouldBe(_player1Id);
+        game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(_player1Id);
         SetupDiceRolls(4);
         sut.HandleCommand(new RollDiceCommand { GameOriginId = Guid.NewGuid(), PlayerId = _player1Id });
 
-        game.ActivePlayer!.Id.ShouldBe(_player2Id);
+        game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(_player2Id);
         SetupDiceRolls(6);
         sut.HandleCommand(new RollDiceCommand { GameOriginId = Guid.NewGuid(), PlayerId = _player2Id });
 
-        game.ActivePlayer!.Id.ShouldBe(player3Id);
+        game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(player3Id);
         SetupDiceRolls(8);
         sut.HandleCommand(new RollDiceCommand { GameOriginId = Guid.NewGuid(), PlayerId = player3Id });
 
-        game.ActivePlayer!.Id.ShouldBe(player4Id);
+        game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(player4Id);
         SetupDiceRolls(4);
         sut.HandleCommand(new RollDiceCommand { GameOriginId = Guid.NewGuid(), PlayerId = player4Id });
 
         // After a tie is detected, should only activate players with tied rolls (player1 and player4)
-        game.ActivePlayer!.Id.ShouldBe(_player1Id);
+        game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(_player1Id);
     }
 }

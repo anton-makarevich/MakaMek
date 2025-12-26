@@ -275,7 +275,7 @@ public class WeaponsAttackStateTests
         SetPhase(PhaseNames.WeaponsAttack);
         SetActivePlayer();
         
-        // Setup attacker (player's unit)
+        // Set up attacker (player's unit)
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Deploy(attackerPosition);
@@ -314,7 +314,7 @@ public class WeaponsAttackStateTests
         SetPhase(PhaseNames.WeaponsAttack);
         SetActivePlayer();
 
-        // Setup attacker (player's unit) with a weapon
+        // Set up the attacker (player's unit) with a weapon
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Deploy(attackerPosition);
@@ -376,7 +376,7 @@ public class WeaponsAttackStateTests
         SetPhase(PhaseNames.WeaponsAttack);
         SetActivePlayer();
 
-        // Setup attacker (player's unit)
+        // Set up attacker (player's unit)
         var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
         attacker.Deploy(attackerPosition);
@@ -1062,7 +1062,7 @@ public class WeaponsAttackStateTests
         // Act - try to select a target out of range
         _sut.HandleHexSelection(_game.BattleMap.GetHexes().First(h => h.Coordinates == targetPosition.Coordinates));
 
-        // Assert - selection should be cancelled when clicking outside weapon range
+        // Assert - selection should be canceled when clicking outside weapon range
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
         _sut.SelectedTarget.ShouldBeNull();
         _sut.Attacker.ShouldBe(attacker);
@@ -1628,7 +1628,7 @@ public class WeaponsAttackStateTests
         attacker.Deploy(position);
         attacker.AssignPilot(_pilot);
 
-        // Select unit and start torso rotation
+        // Select a unit and start torso rotation
         _sut.HandleUnitSelection(attacker);
         var actions = _sut.GetAvailableActions().ToList();
         var torsoAction = actions.First(a => a.Label == "Turn Torso");
@@ -1665,7 +1665,7 @@ public class WeaponsAttackStateTests
         var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
         target.Deploy(targetPosition);
 
-        // Select attacker and enter target selection
+        // Select the attacker and enter target selection
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
@@ -1711,12 +1711,12 @@ public class WeaponsAttackStateTests
         var target2 = _battleMapViewModel.Units.Last(u => u.Owner!.Id != _player.Id);
         target2.Deploy(target2Position);
 
-        // Select attacker and enter target selection
+        // Select the attacker and enter target selection
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
         selectTargetAction.OnExecute();
 
-        // Select first target
+        // Select the first target
         _sut.HandleHexSelection(new Hex(target1Position.Coordinates));
         _sut.HandleUnitSelection(target1);
 
@@ -1756,7 +1756,7 @@ public class WeaponsAttackStateTests
             UnitsToPlay = 1
         });
 
-        // Select attacker and enter target selection
+        // Select the attacker and enter target selection
         _sut.HandleHexSelection(_game.BattleMap!.GetHexes().First(h => h.Coordinates == attackerPosition.Coordinates));
         _sut.HandleUnitSelection(attacker);
         var selectTargetAction = _sut.GetAvailableActions().First(a => a.Label == "Select Target");
@@ -1771,7 +1771,7 @@ public class WeaponsAttackStateTests
         var weaponSelection = _sut.WeaponSelectionItems.First(ws => ws.Weapon == weapon);
         weaponSelection.IsSelected = true;
 
-        // Ensure target is not primary initially
+        // Ensure the target is not primary initially
         attacker.WeaponAttackState.SetPrimaryTarget(null);
         _sut.PrimaryTarget.ShouldBeNull();
 
@@ -1866,7 +1866,7 @@ public class WeaponsAttackStateTests
         
         _sut.HandleUnitSelection(attacker);
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
-        _game.ActivePlayer!.ControlType.ShouldBe(PlayerControlType.Human);
+        _game.PhaseStepState?.ActivePlayer.ControlType.ShouldBe(PlayerControlType.Human);
         
         // Act
         _sut.ExecutePlayerAction();
@@ -1901,7 +1901,7 @@ public class WeaponsAttackStateTests
         _sut.HandleUnitSelection(target);
         
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
-        _game.ActivePlayer!.ControlType.ShouldBe(PlayerControlType.Human);
+        _game.PhaseStepState?.ActivePlayer.ControlType.ShouldBe(PlayerControlType.Human);
         
         // Act
         _sut.ExecutePlayerAction();
@@ -1987,7 +1987,7 @@ public class WeaponsAttackStateTests
         
         _sut.HandleUnitSelection(attacker);
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.ActionSelection);
-        _game.ActivePlayer!.ControlType.ShouldBe(PlayerControlType.Human);
+        _game.PhaseStepState?.ActivePlayer.ControlType.ShouldBe(PlayerControlType.Human);
         
         // Act
         _sut.ExecutePlayerAction();
@@ -2027,7 +2027,7 @@ public class WeaponsAttackStateTests
         weaponSelection.IsSelected = true;
         
         _sut.CurrentStep.ShouldBe(WeaponsAttackStep.TargetSelection);
-        _game.ActivePlayer!.ControlType.ShouldBe(PlayerControlType.Human);
+        _game.PhaseStepState?.ActivePlayer.ControlType.ShouldBe(PlayerControlType.Human);
         
         // Act
         _sut.ExecutePlayerAction();

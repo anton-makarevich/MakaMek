@@ -19,7 +19,7 @@ public class BotTests : IDisposable
     private readonly IClientGame _clientGame;
     private readonly IPlayer _player;
     private readonly Subject<IGameCommand> _commandSubject;
-    private readonly Subject<IPlayer?> _activePlayerSubject;
+    private readonly Subject<PhaseStepState?> _phaseStepChanges;
     private readonly Subject<PhaseNames> _phaseSubject;
     private readonly IDecisionEngineProvider _decisionEngineProvider;
     private readonly Bot _sut;
@@ -30,21 +30,21 @@ public class BotTests : IDisposable
         _clientGame = Substitute.For<IClientGame>();
         _player = Substitute.For<IPlayer>();
         _commandSubject = new Subject<IGameCommand>();
-        _activePlayerSubject = new Subject<IPlayer?>();
+        _phaseStepChanges = new Subject<PhaseStepState?>();
         _phaseSubject = new Subject<PhaseNames>();
         _decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
 
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Bot");
         _clientGame.Commands.Returns(_commandSubject.AsObservable());
-        _clientGame.ActivePlayerChanges.Returns(_activePlayerSubject.AsObservable());
+        _clientGame.PhaseStepChanges.Returns(_phaseStepChanges.AsObservable());
         _clientGame.PhaseChanges.Returns(_phaseSubject.AsObservable());
         _clientGame.Id.Returns(Guid.NewGuid());
 
-        // Setup Players collection to return the player
+        // Set up Players collection to return the player
         _clientGame.Players.Returns(new List<IPlayer> { _player });
 
-        // Configure mock provider to return appropriate engines for different phases
+        // Configure a mock provider to return appropriate engines for different phases
 
         // Engine's MakeDecision now accepts IPlayer parameter
         _movementEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
@@ -93,11 +93,11 @@ public class BotTests : IDisposable
     [Fact]
     public void OnActivePlayerChanged_WhenActivePlayerIsThisBot_ShouldMakeDecision()
     {
-        // Arrange - Set up decision engine first
+        // Arrange - Set up the decision engine first
         _phaseSubject.OnNext(PhaseNames.Movement);
 
         // Act
-        _activePlayerSubject.OnNext(_player);
+        _phaseStepChanges.OnNext(new PhaseStepState(_player, 1));
 
         // Assert
         _movementEngine.Received(1).MakeDecision(_player);
@@ -111,7 +111,7 @@ public class BotTests : IDisposable
         otherPlayer.Id.Returns(Guid.NewGuid());
 
         // Act
-        _activePlayerSubject.OnNext(otherPlayer);
+        _phaseStepChanges.OnNext(new PhaseStepState(otherPlayer, 1));
 
         // Assert
         _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
@@ -121,7 +121,7 @@ public class BotTests : IDisposable
     public void OnActivePlayerChanged_WhenActivePlayerIsNull_ShouldNotMakeDecision()
     {
         // Act
-        _activePlayerSubject.OnNext(null);
+        _phaseStepChanges.OnNext(null);
 
         // Assert
         _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
@@ -137,7 +137,7 @@ public class BotTests : IDisposable
             Reason = GameEndReason.Victory
         };
 
-        // Set up decision engine first
+        // Set up the decision engine first
         _phaseSubject.OnNext(PhaseNames.Movement);
 
         // Act - Send GameEndedCommand through Commands observable
@@ -147,7 +147,7 @@ public class BotTests : IDisposable
         Should.NotThrow(() =>
         {
             _phaseSubject.OnNext(PhaseNames.Movement);
-            _activePlayerSubject.OnNext(_player);
+            _phaseStepChanges.OnNext(new PhaseStepState(_player, 1));
         });
     }
 
@@ -159,7 +159,7 @@ public class BotTests : IDisposable
 
         // Assert - Should not throw when triggering observables after disposal
         _phaseSubject.OnNext(PhaseNames.Movement);
-        _activePlayerSubject.OnNext(_player);
+        _phaseStepChanges.OnNext(new PhaseStepState(_player, 1));
     }
 
     [Fact]
@@ -170,9 +170,9 @@ public class BotTests : IDisposable
 
         // Act
         _sut.Dispose();
-        _activePlayerSubject.OnNext(_player);
+        _phaseStepChanges.OnNext(new PhaseStepState(_player, 1));
 
-        // Assert - Should not make decision after disposal
+        // Assert - Should not make a decision after disposal
         _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
     }
 
@@ -186,7 +186,7 @@ public class BotTests : IDisposable
 
         var clientGame = Substitute.For<IClientGame>();
         var commandSubject = new Subject<IGameCommand>();
-        var activePlayerSubject = new Subject<IPlayer?>();
+        var phaseStepChanges = new Subject<PhaseStepState?>();
         var phaseSubject = new Subject<PhaseNames>();
         var decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
         var movementEngine = Substitute.For<IBotDecisionEngine>();
@@ -195,7 +195,7 @@ public class BotTests : IDisposable
         player.Id.Returns(playerId);
 
         clientGame.Commands.Returns(commandSubject.AsObservable());
-        clientGame.ActivePlayerChanges.Returns(activePlayerSubject.AsObservable());
+        clientGame.PhaseStepChanges.Returns(phaseStepChanges.AsObservable());
         clientGame.PhaseChanges.Returns(phaseSubject.AsObservable());
         clientGame.Id.Returns(Guid.NewGuid());
         clientGame.Players.Returns(new List<IPlayer>()); // Empty player list
@@ -209,8 +209,8 @@ public class BotTests : IDisposable
             // Set up the decision engine
             phaseSubject.OnNext(PhaseNames.Movement);
 
-            // Act - Trigger decision-making when player is not found
-            activePlayerSubject.OnNext(player);
+            // Act - Trigger decision-making when a player is not found
+            phaseStepChanges.OnNext(new PhaseStepState(player, 1));
 
             // Give async operation time to complete - poll with timeout
             string output;
@@ -233,7 +233,7 @@ public class BotTests : IDisposable
             // Restore original console output
             Console.SetOut(originalOut);
             commandSubject.Dispose();
-            activePlayerSubject.Dispose();
+            phaseStepChanges.Dispose();
             phaseSubject.Dispose();
         }
     }
@@ -248,9 +248,9 @@ public class BotTests : IDisposable
 
         // Act - Phase changes to End, then active player is set (client-driven)
         _phaseSubject.OnNext(PhaseNames.End);
-        _activePlayerSubject.OnNext(_player);
+        _phaseStepChanges.OnNext(new PhaseStepState(_player, 0));
 
-        // Assert - Bot should act in End Phase
+        // Assert - Bot should act in the End Phase
         endPhaseEngine.Received(1).MakeDecision(_player);
     }
 
@@ -258,7 +258,7 @@ public class BotTests : IDisposable
     {
         _sut.Dispose();
         _commandSubject.Dispose();
-        _activePlayerSubject.Dispose();
+        _phaseStepChanges.Dispose();
         _phaseSubject.Dispose();
     }
 }

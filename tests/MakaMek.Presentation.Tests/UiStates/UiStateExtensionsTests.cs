@@ -39,7 +39,7 @@ public class UiStateExtensionsTests
     {
         // Arrange
         _game.CanActivePlayerAct.Returns(false);
-        _game.ActivePlayer.Returns(_activePlayer);
+        _game.PhaseStepState.Returns(new PhaseStepState(_activePlayer, 0));
         _activePlayer.ControlType.Returns(PlayerControlType.Human);
 
         // Act
@@ -54,7 +54,7 @@ public class UiStateExtensionsTests
     {
         // Arrange
         _game.CanActivePlayerAct.Returns(true);
-        _game.ActivePlayer.Returns((IPlayer?)null);
+        _game.PhaseStepState.Returns((PhaseStepState?)null);
 
         // Act
         var result = _state.CanHumanPlayerAct();
@@ -68,7 +68,7 @@ public class UiStateExtensionsTests
     {
         // Arrange
         _game.CanActivePlayerAct.Returns(true);
-        _game.ActivePlayer.Returns(_activePlayer);
+        _game.PhaseStepState.Returns(new PhaseStepState(_activePlayer, 0));
         _activePlayer.ControlType.Returns(PlayerControlType.Bot);
 
         // Act
@@ -83,7 +83,7 @@ public class UiStateExtensionsTests
     {
         // Arrange
         _game.CanActivePlayerAct.Returns(true);
-        _game.ActivePlayer.Returns(_activePlayer);
+        _game.PhaseStepState.Returns(new PhaseStepState(_activePlayer, 0));
         _activePlayer.ControlType.Returns(PlayerControlType.Remote);
 
         // Act
@@ -98,7 +98,7 @@ public class UiStateExtensionsTests
     {
         // Arrange
         _game.CanActivePlayerAct.Returns(true);
-        _game.ActivePlayer.Returns(_activePlayer);
+        _game.PhaseStepState.Returns(new PhaseStepState(_activePlayer, 0));
         _activePlayer.ControlType.Returns(PlayerControlType.Human);
 
         // Act
@@ -125,7 +125,7 @@ public class UiStateExtensionsTests
     public void IsActiveHumanPlayer_WhenActivePlayerIsNull_ReturnsFalse()
     {
         // Arrange
-        _game.ActivePlayer.Returns((IPlayer?)null);
+        _game.PhaseStepState.Returns((PhaseStepState?)null);
 
         // Act
         var result = _state.IsActiveHumanPlayer();
@@ -141,7 +141,7 @@ public class UiStateExtensionsTests
         var playerId = Guid.NewGuid();
         var otherPlayerId = Guid.NewGuid();
         
-        _game.ActivePlayer.Returns(_activePlayer);
+        _game.PhaseStepState.Returns(new PhaseStepState(_activePlayer, 0));
         _activePlayer.Id.Returns(playerId);
         _activePlayer.ControlType.Returns(PlayerControlType.Human);
         _game.LocalPlayers.Returns(new List<Guid> { otherPlayerId });
@@ -159,7 +159,7 @@ public class UiStateExtensionsTests
         // Arrange
         var playerId = Guid.NewGuid();
         
-        _game.ActivePlayer.Returns(_activePlayer);
+        _game.PhaseStepState.Returns(new PhaseStepState(_activePlayer, 0));
         _activePlayer.Id.Returns(playerId);
         _activePlayer.ControlType.Returns(PlayerControlType.Bot);
         _game.LocalPlayers.Returns(new List<Guid> { playerId });
@@ -177,7 +177,7 @@ public class UiStateExtensionsTests
         // Arrange
         var playerId = Guid.NewGuid();
         
-        _game.ActivePlayer.Returns(_activePlayer);
+        _game.PhaseStepState.Returns(new PhaseStepState(_activePlayer, 0));
         _activePlayer.Id.Returns(playerId);
         _activePlayer.ControlType.Returns(PlayerControlType.Remote);
         _game.LocalPlayers.Returns(new List<Guid> { playerId });
@@ -195,7 +195,7 @@ public class UiStateExtensionsTests
         // Arrange
         var playerId = Guid.NewGuid();
         
-        _game.ActivePlayer.Returns(_activePlayer);
+        _game.PhaseStepState.Returns(new PhaseStepState(_activePlayer, 0));
         _activePlayer.Id.Returns(playerId);
         _activePlayer.ControlType.Returns(PlayerControlType.Human);
         _game.LocalPlayers.Returns(new List<Guid> { playerId });
@@ -215,7 +215,7 @@ public class UiStateExtensionsTests
         var otherPlayerId1 = Guid.NewGuid();
         var otherPlayerId2 = Guid.NewGuid();
         
-        _game.ActivePlayer.Returns(_activePlayer);
+        _game.PhaseStepState.Returns(new PhaseStepState(_activePlayer, 0));
         _activePlayer.Id.Returns(playerId);
         _activePlayer.ControlType.Returns(PlayerControlType.Human);
         _game.LocalPlayers.Returns(new List<Guid> { otherPlayerId1, playerId, otherPlayerId2 });
