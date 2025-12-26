@@ -101,7 +101,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        _movementEngine.Received(1).MakeDecision(_player);
+        await _movementEngine.Received(1).MakeDecision(_player);
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public class BotTests : IDisposable
         // Assert - Bot should act in the End Phase
         // wait for bg task to complete
         await Task.Delay(100);
-        endPhaseEngine.Received(1).MakeDecision(_player);
+        await endPhaseEngine.Received(1).MakeDecision(_player);
     }
 
     public void Dispose()
