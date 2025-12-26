@@ -6,7 +6,6 @@ using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
-using Sanet.MakaMek.Core.Models.Game.Players;
 
 namespace Sanet.MakaMek.Bots.Models;
 
@@ -18,7 +17,7 @@ public class Bot : IBot
     private readonly IDecisionEngineProvider _decisionEngineProvider;
     private readonly IClientGame _clientGame;
     private IBotDecisionEngine? _currentDecisionEngine;
-    private IDisposable? _activePlayerSubscription;
+    private IDisposable? _phaseStateSubscription;
     private IDisposable? _phaseSubscription;
     private IDisposable? _gameEndSubscription;
     private bool _isDisposed;
@@ -37,16 +36,18 @@ public class Bot : IBot
         _decisionEngineProvider = decisionEngineProvider;
         var schedulerToUse = scheduler ?? TaskPoolScheduler.Default;
 
-        // Subscribe to active player changes (works for both server-driven and client-driven phases)
-        _activePlayerSubscription = clientGame.ActivePlayerChanges
-            .ObserveOn(schedulerToUse)
-            .Subscribe(OnActivePlayerChanged);
+        
 
         // Subscribe to phase changes to update the decision engine
         _phaseSubscription = clientGame.PhaseChanges
             .ObserveOn(schedulerToUse)
             .Subscribe(OnPhaseChanged);
 
+        // Subscribe to active player changes (works for both server-driven and client-driven phases)
+        _phaseStateSubscription = clientGame.PhaseStepChanges
+            .ObserveOn(schedulerToUse)
+            .Subscribe(OnPhaseStateChanged);
+        
         // Subscribe to game end events
         _gameEndSubscription = clientGame.Commands
             .OfType<GameEndedCommand>()
@@ -54,7 +55,7 @@ public class Bot : IBot
             .Subscribe(_ => Dispose());
     }
 
-    private void OnActivePlayerChanged(IPlayer? activePlayer)
+    private void OnPhaseStateChanged(PhaseStepState? phaseStepState)
     {
         lock (_lock)
         {
@@ -62,7 +63,7 @@ public class Bot : IBot
         }
 
         // Check if this bot is now the active player
-        if (activePlayer?.Id == PlayerId)
+        if (phaseStepState?.ActivePlayer.Id == PlayerId)
         {
             MakeDecision().SafeFireAndForget();
         }
@@ -123,8 +124,8 @@ public class Bot : IBot
             _isDisposed = true;
         }
 
-        _activePlayerSubscription?.Dispose();
-        _activePlayerSubscription = null;
+        _phaseStateSubscription?.Dispose();
+        _phaseStateSubscription = null;
 
         _phaseSubscription?.Dispose();
         _phaseSubscription = null;

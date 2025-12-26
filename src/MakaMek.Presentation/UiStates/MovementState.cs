@@ -33,20 +33,20 @@ public class MovementState : IUiState
         {
             throw new InvalidOperationException("Game is null");
         }
-        if (_viewModel.Game.ActivePlayer == null)
+        if (_viewModel.Game.PhaseStepState?.ActivePlayer == null)
         {
             throw new InvalidOperationException("Active player is null");
         }
-        _builder = new MoveUnitCommandBuilder(_viewModel.Game.Id, _viewModel.Game.ActivePlayer.Id);
+        _builder = new MoveUnitCommandBuilder(_viewModel.Game.Id, _viewModel.Game.PhaseStepState.Value.ActivePlayer.Id);
 
         // Get hexes with enemy units - these will be excluded from pathfinding
         _prohibitedHexes = _viewModel.Units
-            .Where(u=>u.Owner?.Id != _viewModel.Game.ActivePlayer?.Id && u.Position!=null)
+            .Where(u=>u.Owner?.Id != _viewModel.Game.PhaseStepState?.ActivePlayer.Id && u.Position!=null)
             .Select(u => u.Position!.Coordinates)
             .ToHashSet();
         
         _friendlyUnitsCoordinates = _viewModel.Units
-            .Where(u=>u.Owner?.Id == _viewModel.Game.ActivePlayer?.Id && u.Position!=null)
+            .Where(u=>u.Owner?.Id == _viewModel.Game.PhaseStepState?.ActivePlayer.Id && u.Position!=null)
             .Select(u => u.Position!.Coordinates)
             .ToHashSet();
     }
@@ -168,7 +168,7 @@ public class MovementState : IUiState
         var unit = _viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
         if (unit == null 
             || unit == _selectedUnit
-            || unit.Owner?.Id != _viewModel.Game?.ActivePlayer?.Id) return false;
+            || unit.Owner?.Id != _viewModel.Game?.PhaseStepState?.ActivePlayer.Id) return false;
         ResetUnitSelection();
         _viewModel.SelectedUnit=unit;
         return true;
@@ -436,7 +436,7 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_viewModel.Game?.ActivePlayer == null) return;
+            if (_viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
             if (_selectedUnit?.Position == null) return;
 
             // Set the selected movement type for later use
@@ -455,7 +455,7 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_viewModel.Game?.ActivePlayer == null) return;
+            if (_viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
             if (_selectedUnit?.Position == null) return;
             if (_selectedMovementType == null) return;
 
@@ -464,7 +464,7 @@ public class MovementState : IUiState
             {
                 GameOriginId = _viewModel.Game.Id,
                 UnitId = _selectedUnit.Id,
-                PlayerId = _viewModel.Game.ActivePlayer.Id,
+                PlayerId = _viewModel.Game.PhaseStepState.Value.ActivePlayer.Id,
                 NewFacing = direction,
                 MovementTypeAfterStandup = _selectedMovementType.Value
             };
@@ -497,7 +497,7 @@ public class MovementState : IUiState
     // New method to handle prone facing change
     private void HandleProneFacingChange(Mech mech)
     {
-        if (_viewModel.Game?.ActivePlayer == null) return;
+        if (_viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
         if (mech.Position == null || !mech.IsProne) return;
 
         // Set up for prone facing change movement

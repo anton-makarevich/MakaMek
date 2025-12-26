@@ -14,15 +14,14 @@ public static class UiStateExtensions
         /// Returns false if the game is null, the active player cannot act, or the active player is not human-controlled.
         /// </summary>
         public bool CanHumanPlayerAct() 
-            => state.Game is { CanActivePlayerAct: true, ActivePlayer.ControlType: PlayerControlType.Human };
+            => state.Game is { CanActivePlayerAct: true, PhaseStepState.ActivePlayer.ControlType: PlayerControlType.Human };
 
         /// <summary>
         /// Checks if the current active player is a local human player.
         /// This is typically used for IsActionRequired property implementations.
         /// </summary>
         public bool IsActiveHumanPlayer() 
-            => state.Game?.ActivePlayer != null
-               && state.Game.LocalPlayers.Contains(state.Game.ActivePlayer.Id)
-               && state.Game.ActivePlayer.ControlType == PlayerControlType.Human;
+            => state.Game is { PhaseStepState.ActivePlayer: { Id: var playerId, ControlType: PlayerControlType.Human } }
+               && state.Game.LocalPlayers.Contains(playerId);
     }
 }

@@ -64,7 +64,7 @@ public class WeaponsAttackState : IUiState
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
-        if (Game.ActivePlayer == null)
+        if (Game.PhaseStepState?.ActivePlayer == null)
         {
             throw new InvalidOperationException("Active player is null"); 
         }
@@ -135,7 +135,7 @@ public class WeaponsAttackState : IUiState
         {
             if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
             {
-                if (unit.Owner != Game.ActivePlayer || unit.HasDeclaredWeaponAttack)
+                if (unit.Owner != Game.PhaseStepState?.ActivePlayer || unit.HasDeclaredWeaponAttack)
                     return;
 
                 if (Attacker is not null)
@@ -150,7 +150,7 @@ public class WeaponsAttackState : IUiState
 
             if (CurrentStep == WeaponsAttackStep.TargetSelection)
             {
-                if (unit.Owner == Game.ActivePlayer) return;
+                if (unit.Owner == Game.PhaseStepState?.ActivePlayer) return;
                 if (!IsHexInWeaponRange(hex.Coordinates)) return;
 
                 _viewModel.SelectedUnit = null;
@@ -180,7 +180,7 @@ public class WeaponsAttackState : IUiState
             var command = new WeaponConfigurationCommand
             {
                 GameOriginId = Game.Id,
-                PlayerId = Game.ActivePlayer!.Id,
+                PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
                 UnitId = mech.Id,
                 Configuration = new WeaponConfiguration
                 {
@@ -617,7 +617,7 @@ public class WeaponsAttackState : IUiState
         var command = new WeaponAttackDeclarationCommand
         {
             GameOriginId = Game.Id,
-            PlayerId = Game.ActivePlayer!.Id,
+            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
             UnitId = Attacker.Id,
             WeaponTargets = weaponTargetsData
         };
