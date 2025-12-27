@@ -1,8 +1,8 @@
 using System;
 using System.Reactive.Concurrency;
 using System.Threading.Tasks;
-using Avalonia.ReactiveUI;
 using Avalonia.Threading;
+using ReactiveUI.Avalonia;
 using Sanet.MakaMek.Core.Services;
 
 namespace Sanet.MakaMek.Avalonia.Services;
