@@ -22,6 +22,7 @@ public class WeaponsAttackPhase(ServerGame game) : MainGamePhase(game)
 
     private void ProcessWeaponConfiguration(WeaponConfigurationCommand configCommand)
     {
+        Game.OnWeaponConfiguration(configCommand);
         var broadcastConfig = configCommand;
         broadcastConfig.GameOriginId = Game.Id;
         Game.CommandPublisher.PublishCommand(broadcastConfig);
