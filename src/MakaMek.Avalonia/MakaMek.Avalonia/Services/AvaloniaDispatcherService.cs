@@ -45,6 +45,7 @@ public class AvaloniaDispatcherService : IDispatcherService
         if (Dispatcher.UIThread.CheckAccess())
         {
             callback();
+            return;
         }
 
         // Post the action to the UI thread's dispatcher queue
