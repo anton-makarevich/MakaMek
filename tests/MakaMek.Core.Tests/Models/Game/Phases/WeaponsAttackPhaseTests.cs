@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -61,12 +62,14 @@ public class WeaponsAttackPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         _sut.Enter();
+        var player = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit = player.Units.First(u => u.Id == _unit1Id) as Mech;
         
         // Act
         _sut.HandleCommand(new WeaponConfigurationCommand
         {
             GameOriginId = Game.Id,
-            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
+            PlayerId = player.Id,
             UnitId = _unit1Id,
             Configuration = new WeaponConfiguration
             {
@@ -80,6 +83,8 @@ public class WeaponsAttackPhaseTests : GamePhaseTestsBase
         CommandPublisher.Received(1).PublishCommand(Arg.Is<WeaponConfigurationCommand>(cmd => 
             cmd.UnitId == _unit1Id && 
             cmd.Configuration.Value == 1));
+        
+        unit!.TorsoDirection.ShouldBe(HexDirection.TopRight);
     }
 
     [Fact]

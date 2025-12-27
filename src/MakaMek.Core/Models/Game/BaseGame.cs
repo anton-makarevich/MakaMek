@@ -185,9 +185,8 @@ public abstract class BaseGame : IGame
     internal void OnWeaponConfiguration(WeaponConfigurationCommand configCommand)
     {
         var player = _players.FirstOrDefault(p => p.Id == configCommand.PlayerId);
-        if (player == null) return;
 
-        var unit = player.Units.FirstOrDefault(u => u.Id == configCommand.UnitId);
+        var unit = player?.Units.FirstOrDefault(u => u.Id == configCommand.UnitId);
         if (unit == null) return;
 
         switch (configCommand.Configuration.Type)
