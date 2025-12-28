@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Models.Map;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game;
@@ -8,10 +9,25 @@ using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
+public interface IPositionEvaluator
+{
+    /// <summary>
+    /// Evaluates a single path with a specific movement type and returns its score
+    /// </summary>
+    /// <param name="friendlyUnit">The friendly unit being evaluated</param>
+    /// <param name="path">The movement path to evaluate</param>
+    /// <param name="enemyUnits">All enemy units</param>
+    /// <returns>Position score including the path</returns>
+    PositionScore EvaluatePath(
+        IUnit friendlyUnit,
+        MovementPath path,
+        IReadOnlyList<IUnit> enemyUnits);
+}
+
 /// <summary>
 /// Evaluates tactical positions for movement decisions based on defensive and offensive potential
 /// </summary>
-public class PositionEvaluator
+public class PositionEvaluator : IPositionEvaluator
 {
     private readonly IClientGame _game;
     
@@ -163,15 +179,12 @@ public class PositionEvaluator
         MovementPath path,
         IReadOnlyList<IUnit> enemyUnits)
     {
-        // Extract position and hexesTraveled from the path
-        var position = path.Destination;
-
         var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits);
         var offensiveIndex = CalculateOffensiveIndex(path, friendlyUnit, enemyUnits);
 
         return new PositionScore
         {
-            Position = position,
+            Position = path.Destination,
             MovementType = path.MovementType,
             Path = path,
             DefensiveIndex = defensiveIndex,
