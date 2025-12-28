@@ -9,10 +9,25 @@ using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
+public interface IPositionEvaluator
+{
+    /// <summary>
+    /// Evaluates a single path with a specific movement type and returns its score
+    /// </summary>
+    /// <param name="friendlyUnit">The friendly unit being evaluated</param>
+    /// <param name="path">The movement path to evaluate</param>
+    /// <param name="enemyUnits">All enemy units</param>
+    /// <returns>Position score including the path</returns>
+    PositionScore EvaluatePath(
+        IUnit friendlyUnit,
+        MovementPath path,
+        IReadOnlyList<IUnit> enemyUnits);
+}
+
 /// <summary>
 /// Evaluates tactical positions for movement decisions based on defensive and offensive potential
 /// </summary>
-public class PositionEvaluator
+public class PositionEvaluator : IPositionEvaluator
 {
     private readonly IClientGame _game;
     

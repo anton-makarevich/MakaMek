@@ -16,10 +16,12 @@ namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 public class MovementEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
+    private readonly IPositionEvaluator _evaluator;
 
-    public MovementEngine(IClientGame clientGame)
+    public MovementEngine(IClientGame clientGame, IPositionEvaluator evaluator)
     {
         _clientGame = clientGame;
+        _evaluator = evaluator;
     }
 
     public async Task MakeDecision(IPlayer player)
@@ -183,7 +185,6 @@ public class MovementEngine : IBotDecisionEngine
         }
 
         // Evaluate all candidate positions with all available movement types
-        var evaluator = new PositionEvaluator(_clientGame);
         var candidateScores = new List<PositionScore>();
 
         foreach (var movementType in availableMovementTypes)
@@ -214,7 +215,7 @@ public class MovementEngine : IBotDecisionEngine
             // Evaluate each path
             foreach (var path in reachablePaths)
             {
-                var score = evaluator.EvaluatePath(
+                var score = _evaluator.EvaluatePath(
                     unit,
                     path,
                     enemyUnits);
