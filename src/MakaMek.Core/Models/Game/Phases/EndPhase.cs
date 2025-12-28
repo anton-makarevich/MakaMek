@@ -59,7 +59,7 @@ public class EndPhase(ServerGame game) : GamePhase(game)
         var broadcastCommand = turnEndedCommand;
         broadcastCommand.GameOriginId = Game.Id;
         // Call the OnTurnEnded method on the BaseGame class
-        Game.OnTurnEnded(turnEndedCommand);
+        Game.OnTurnEnded(turnEndedCommand.PlayerId);
         Game.CommandPublisher.PublishCommand(broadcastCommand);
 
         if (!HaveAllPlayersEndedTurn()) return;
