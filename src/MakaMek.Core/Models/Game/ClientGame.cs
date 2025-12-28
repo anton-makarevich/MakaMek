@@ -93,6 +93,10 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 // Use the validation method from BaseGame
                 if (ValidateTurnIncrementedCommand(turnIncrementedCommand))
                 {
+                    foreach (var alivePlayer in AlivePlayers)
+                    {
+                        OnTurnEnded(alivePlayer.Id);
+                    }
                     Turn = turnIncrementedCommand.TurnNumber;
                 }
                 break;
@@ -148,24 +152,18 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 OnHeatUpdate(heatUpdateCommand);
                 break;
             case TurnEndedCommand turnEndedCommand:
-                OnTurnEnded(turnEndedCommand);
                 // Record that this player has ended their turn
                 _playersEndedTurn.Add(turnEndedCommand.PlayerId);
+                
+                // Set the next local player who hasn't ended their turn as active
+                var nextActivePlayer = AlivePlayers
+                    .Where(p => !_playersEndedTurn.Contains(p.Id))
+                    .FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
 
-                // If we're in the End phase, and the player who just ended their turn was the active player
-                if (TurnPhase == PhaseNames.End &&
-                    PhaseStepState != null &&
-                    turnEndedCommand.PlayerId == PhaseStepState.Value.ActivePlayer.Id)
-                {
-                    // Set the next local player who hasn't ended their turn as active
-                    var nextActivePlayer = AlivePlayers
-                        .Where(p => !_playersEndedTurn.Contains(p.Id))
-                        .FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
-                    
-                    PhaseStepState = nextActivePlayer != null 
-                        ? new PhaseStepState(nextActivePlayer, 0)
-                        : null;
-                }
+                PhaseStepState = nextActivePlayer != null
+                    ? new PhaseStepState(nextActivePlayer, 0)
+                    : null;
+                
                 break;
             case PilotConsciousnessRollCommand consciousnessRollCommand:
                 OnPilotConsciousnessRoll(consciousnessRollCommand);

@@ -2955,4 +2955,72 @@ public class ClientGameTests
         joinedPlayer.ShouldNotBeNull();
         joinedPlayer.ControlType.ShouldBe(controlType);
     }
+
+    [Fact]
+    public void OnTurnIncremented_ShouldResetUnitsState()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+
+        // Deploy the unit
+        var deployCommand = new DeployUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            Position = new HexCoordinateData(1, 1),
+            Direction = 0,
+            UnitId = unitData.Id.Value
+        };
+        _sut.HandleCommand(deployCommand);
+
+        // Move the unit to simulate state change
+        // We use a path that starts at current position (1,1) and moves to (2,2)
+        var startPos = new HexPosition(1, 1, HexDirection.Top);
+        var endPos = new HexPosition(2, 2, HexDirection.Top);
+        var movementPath = new MovementPath(new []
+        {
+            new PathSegment(startPos, endPos, 1)
+        }, MovementType.Walk);
+        
+        var moveCommand = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            MovementType = MovementType.Walk,
+            UnitId = unitData.Id.Value,
+            MovementPath = movementPath.ToData()
+        };
+        _sut.HandleCommand(moveCommand);
+
+        var unit = _sut.Players.First().Units.First();
+        
+        // Assert initial state - MovementTaken should be set
+        unit.MovementTaken.ShouldNotBeNull();
+        unit.MovementTaken.Start.ShouldBe(startPos);
+        unit.MovementTaken.Destination.ShouldBe(endPos);
+
+        // Act - Increment Turn
+        var turnIncrementedCommand = new TurnIncrementedCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            TurnNumber = _sut.Turn + 1
+        };
+        _sut.HandleCommand(turnIncrementedCommand);
+
+        // Assert - State should be reset
+        unit.MovementTaken.ShouldBeNull();
+        _sut.Turn.ShouldBe(turnIncrementedCommand.TurnNumber);
+    }
 }
