@@ -59,19 +59,23 @@ public class WeaponsEngine : IBotDecisionEngine
             
             Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestTargetScore.Score:F1}");
 
-            // Get weapons in range of the target
-            var weaponsInRange = GetWeaponsInRange(unitToAttack, target);
-            if (weaponsInRange.Count == 0)
+            // Filter weapons that can actually hit reliably (threshold > 30%)
+            const double hitProbabilityThreshold = 0.3;
+            var weaponsToFire = bestTargetScore.ViableWeapons
+                .Where(w => w.HitProbability >= hitProbabilityThreshold)
+                .ToList();
+
+            if (weaponsToFire.Count == 0)
             {
-                // Should not happen if EvaluateTargets works correctly, but safe guard
+                // No weapons hit the threshold, declare empty attack
                 await DeclareWeaponAttack(player, unitToAttack, []);
                 return;
             }
 
-            // Create weapon target data for all weapons in range
-            var weaponTargets = weaponsInRange.Select(weapon => new WeaponTargetData
+            // Create weapon target data for selected weapons
+            var weaponTargets = weaponsToFire.Select(evaluation => new WeaponTargetData
             {
-                Weapon = weapon.ToData(),
+                Weapon = evaluation.Weapon.ToData(),
                 TargetId = target.Id,
                 IsPrimaryTarget = true
             }).ToList();
@@ -96,19 +100,7 @@ public class WeaponsEngine : IBotDecisionEngine
 
 
 
-    private static List<Weapon> GetWeaponsInRange(IUnit attackingUnit, IUnit target)
-    {
-        if (attackingUnit.Position == null || target.Position == null)
-            return [];
 
-        // Calculate distance once and cache it
-        var distance = attackingUnit.Position.Coordinates.DistanceTo(target.Position.Coordinates);
-
-        // Get all available weapons that are in range
-        return attackingUnit.GetAvailableComponents<Weapon>()
-            .Where(weapon => distance >= weapon.MinimumRange && distance <= weapon.LongRange)
-            .ToList();
-    }
 
     private async Task DeclareWeaponAttack(IPlayer player, IUnit unit, List<WeaponTargetData> weaponTargets)
     {

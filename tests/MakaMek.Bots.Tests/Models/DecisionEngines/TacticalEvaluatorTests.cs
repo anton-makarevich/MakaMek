@@ -307,6 +307,9 @@ public class TacticalEvaluatorTests
         results.Count.ShouldBe(1);
         results[0].TargetId.ShouldBe(enemy1.Id);
         results[0].Score.ShouldBeGreaterThan(0);
+        results[0].ViableWeapons.Count.ShouldBe(1);
+        results[0].ViableWeapons[0].Weapon.ShouldBe(weapon);
+        results[0].ViableWeapons[0].HitProbability.ShouldBe(DiceUtils.Calculate2d6Probability(8));
     }
 
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);

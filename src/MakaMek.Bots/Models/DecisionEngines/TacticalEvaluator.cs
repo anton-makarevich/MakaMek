@@ -201,6 +201,7 @@ public class TacticalEvaluator : ITacticalEvaluator
                 continue;
 
             double targetScoreValue = 0;
+            var viableWeapons = new List<WeaponEvaluationData>();
             var targetPath = target.MovementTaken ?? MovementPath.CreateStandingStillPath(target.Position);
 
             // Check line of sight
@@ -221,14 +222,19 @@ public class TacticalEvaluator : ITacticalEvaluator
 
                 // Calculate hit probability
                 var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon);
+                
+                if (hitProbability <= 0)
+                    continue;
 
                 // Determine which arc of the enemy would be hit (bonus for rear/side shots)
                 var targetArc = GetFiringArcFromPosition(target.Position, attackerPosition.Coordinates);
                 var arcBonus = targetArc.GetArcMultiplier();
-
-                // Calculate damage value
-                // Score = Accumulation of expected damage
-                targetScoreValue += hitProbability * weapon.Damage * arcBonus;
+                
+                viableWeapons.Add(new WeaponEvaluationData
+                {
+                    Weapon = weapon,
+                    HitProbability = hitProbability,
+                });
             }
 
             if (targetScoreValue > 0)
@@ -236,7 +242,8 @@ public class TacticalEvaluator : ITacticalEvaluator
                 results.Add(new TargetScore
                 {
                     TargetId = target.Id,
-                    Score = targetScoreValue
+                    Score = targetScoreValue,
+                    ViableWeapons = viableWeapons
                 });
             }
         }
