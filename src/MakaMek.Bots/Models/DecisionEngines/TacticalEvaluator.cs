@@ -235,6 +235,10 @@ public class TacticalEvaluator : ITacticalEvaluator
                     Weapon = weapon,
                     HitProbability = hitProbability,
                 });
+                
+                // Calculate damage value
+                // Score = Accumulation of expected damage
+                targetScoreValue += hitProbability * weapon.Damage * arcBonus;
             }
 
             if (targetScoreValue > 0)
