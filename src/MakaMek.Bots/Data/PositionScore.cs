@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 
-namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
+namespace Sanet.MakaMek.Bots.Data;
 
 /// <summary>
 /// Represents the tactical score for a candidate movement position with a specific movement type
