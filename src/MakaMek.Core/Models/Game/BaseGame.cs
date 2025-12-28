@@ -337,10 +337,10 @@ public abstract class BaseGame : IGame
     /// <summary>
     /// Handles a turn ended command by resetting the turn state for all units of the player
     /// </summary>
-    /// <param name="turnEndedCommand">The turn ended command</param>
-    internal void OnTurnEnded(TurnEndedCommand turnEndedCommand)
+    /// <param name="playerId">The id of a player who sent a turn ended command</param>
+    internal void OnTurnEnded(Guid playerId)
     {
-        var player = _players.FirstOrDefault(p => p.Id == turnEndedCommand.PlayerId);
+        var player = _players.FirstOrDefault(p => p.Id == playerId);
         if (player == null) return;
         
         // Reset the turn state for all units of the player
