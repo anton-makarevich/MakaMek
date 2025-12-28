@@ -9,29 +9,14 @@ using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
-public interface IPositionEvaluator
-{
-    /// <summary>
-    /// Evaluates a single path with a specific movement type and returns its score
-    /// </summary>
-    /// <param name="friendlyUnit">The friendly unit being evaluated</param>
-    /// <param name="path">The movement path to evaluate</param>
-    /// <param name="enemyUnits">All enemy units</param>
-    /// <returns>Position score including the path</returns>
-    PositionScore EvaluatePath(
-        IUnit friendlyUnit,
-        MovementPath path,
-        IReadOnlyList<IUnit> enemyUnits);
-}
-
 /// <summary>
-/// Evaluates tactical positions for movement decisions based on defensive and offensive potential
+/// Evaluates tactical situations for movement and weapon decisions
 /// </summary>
-public class PositionEvaluator : IPositionEvaluator
+public class TacticalEvaluator : ITacticalEvaluator
 {
     private readonly IClientGame _game;
     
-    public PositionEvaluator(IClientGame game)
+    public TacticalEvaluator(IClientGame game)
     {
         _game = game;
     }
@@ -191,6 +176,73 @@ public class PositionEvaluator : IPositionEvaluator
             OffensiveIndex = offensiveIndex
         };
     }
+    
+    /// <summary>
+    /// Evaluates potential targets for a unit
+    /// </summary>
+    public List<TargetScore> EvaluateTargets(IUnit attacker, IReadOnlyList<IUnit> potentialTargets)
+    {
+        if (_game.BattleMap == null || attacker.Position == null)
+            return [];
+
+        var results = new List<TargetScore>();
+        var attackerPosition = attacker.Position;
+        var attackerPath = attacker.MovementTaken ?? MovementPath.CreateStandingStillPath(attackerPosition);
+        
+        // Get all friendly weapons
+        var weapons = attacker.Parts.Values
+            .SelectMany(p => p.GetComponents<Weapon>())
+            .Where(w => w.IsAvailable)
+            .ToList();
+
+        foreach (var target in potentialTargets)
+        {
+            if (target.Position == null)
+                continue;
+
+            double targetScoreValue = 0;
+            var targetPath = target.MovementTaken ?? MovementPath.CreateStandingStillPath(target.Position);
+
+            // Check line of sight
+            if (!_game.BattleMap.HasLineOfSight(attackerPosition.Coordinates, target.Position.Coordinates))
+                continue;
+
+            var distanceToTarget = attackerPosition.Coordinates.DistanceTo(target.Position.Coordinates);
+
+            foreach (var weapon in weapons)
+            {
+                 // Check if the weapon can fire at this range
+                if (distanceToTarget < weapon.MinimumRange || distanceToTarget > weapon.LongRange)
+                    continue;
+
+                var isInArc = attackerPosition.Coordinates.IsInWeaponFiringArc(target.Position.Coordinates, weapon, attackerPosition.Facing);
+                if (!isInArc)
+                    continue;
+
+                // Calculate hit probability
+                var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon);
+
+                // Determine which arc of the enemy would be hit (bonus for rear/side shots)
+                var targetArc = GetFiringArcFromPosition(target.Position, attackerPosition.Coordinates);
+                var arcBonus = targetArc.GetArcMultiplier();
+
+                // Calculate damage value
+                // Score = Accumulation of expected damage
+                targetScoreValue += hitProbability * weapon.Damage * arcBonus;
+            }
+
+            if (targetScoreValue > 0)
+            {
+                results.Add(new TargetScore
+                {
+                    TargetId = target.Id,
+                    Score = targetScoreValue
+                });
+            }
+        }
+
+        return results;
+    }
 
     /// <summary>
     /// Calculates hit probability for an enemy attacking the friendly unit at a hypothetical position.
@@ -209,7 +261,7 @@ public class PositionEvaluator : IPositionEvaluator
         var weaponLocation = weapon.FirstMountPartLocation;
         if (weaponLocation == null)
             return 0;
-
+        
         var targetPosition = targetPath.Destination;
 
         // Get current attack modifiers from the attacker (heat, prone, sensors, arm actuators, etc.)

@@ -14,10 +14,12 @@ namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 public class WeaponsEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
+    private readonly ITacticalEvaluator _tacticalEvaluator;
 
-    public WeaponsEngine(IClientGame clientGame)
+    public WeaponsEngine(IClientGame clientGame, ITacticalEvaluator tacticalEvaluator)
     {
         _clientGame = clientGame;
+        _tacticalEvaluator = tacticalEvaluator;
     }
 
     public async Task MakeDecision(IPlayer player)
@@ -35,23 +37,33 @@ public class WeaponsEngine : IBotDecisionEngine
                 return;
             }
 
-            // Find potential targets
-            var potentialTargets = GetPotentialTargets(unitToAttack, player.Id);
-            if (potentialTargets.Count == 0)
+            // Find potential targets using tactical evaluator
+             var enemies = _clientGame.Players
+                .Where(p => p.Id != player.Id)
+                .SelectMany(p => p.AliveUnits)
+                .Where(u => u is { IsDeployed: true })
+                .ToList();
+
+            var targetScores = _tacticalEvaluator.EvaluateTargets(unitToAttack, enemies);
+            
+            if (targetScores.Count == 0)
             {
-                // No targets available, declare attack with empty weapon list
+                // No valid targets (no hit probability > 0), declare attack with empty weapon list
                 await DeclareWeaponAttack(player, unitToAttack, []);
                 return;
             }
 
-            // Select random target
-            var target = potentialTargets[Random.Shared.Next(potentialTargets.Count)];
+            // Select best target
+            var bestTargetScore = targetScores.MaxBy(t => t.Score);
+            var target = enemies.First(e => e.Id == bestTargetScore.TargetId);
+            
+            Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestTargetScore.Score:F1}");
 
             // Get weapons in range of the target
             var weaponsInRange = GetWeaponsInRange(unitToAttack, target);
             if (weaponsInRange.Count == 0)
             {
-                // No weapons in range, declare attack with empty weapon list
+                // Should not happen if EvaluateTargets works correctly, but safe guard
                 await DeclareWeaponAttack(player, unitToAttack, []);
                 return;
             }
@@ -82,31 +94,7 @@ public class WeaponsEngine : IBotDecisionEngine
         }
     }
 
-    private List<IUnit> GetPotentialTargets(IUnit attackingUnit, Guid playerId)
-    {
-        if (_clientGame.BattleMap == null)
-            return [];
 
-        // Validate attacking unit has a position
-        if (attackingUnit.Position == null)
-            return [];
-
-        var attackerPosition = attackingUnit.Position.Coordinates;
-
-        // Get all enemy units that are deployed and alive
-        var enemies = _clientGame.Players
-            .Where(p => p.Id != playerId)
-            .SelectMany(p => p.AliveUnits)
-            .Where(u => u is { IsDeployed: true, Position: not null })
-            .ToList();
-
-        // Filter by line of sight using the attacking unit's position
-        return enemies
-            .Where(enemy => _clientGame.BattleMap.HasLineOfSight(
-                attackerPosition,
-                enemy.Position!.Coordinates))
-            .ToList();
-    }
 
     private static List<Weapon> GetWeaponsInRange(IUnit attackingUnit, IUnit target)
     {

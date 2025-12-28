@@ -23,7 +23,7 @@ namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
 public class MovementEngineTests
 {
     private readonly IClientGame _clientGame;
-    private readonly IPositionEvaluator _positionEvaluator;
+    private readonly ITacticalEvaluator _tacticalEvaluator;
     private readonly IPlayer _player;
     private readonly IBattleMap _battleMap;
     private readonly MovementEngine _sut;
@@ -31,7 +31,7 @@ public class MovementEngineTests
     public MovementEngineTests()
     {
         _clientGame = Substitute.For<IClientGame>();
-        _positionEvaluator = Substitute.For<IPositionEvaluator>();
+        _tacticalEvaluator = Substitute.For<ITacticalEvaluator>();
         _player = Substitute.For<IPlayer>();
         _battleMap = Substitute.For<IBattleMap>();
         
@@ -40,7 +40,7 @@ public class MovementEngineTests
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Player");
         
-        _sut = new MovementEngine(_clientGame, _positionEvaluator);
+        _sut = new MovementEngine(_clientGame, _tacticalEvaluator);
     }
 
     [Fact]
@@ -212,7 +212,7 @@ public class MovementEngineTests
             OffensiveIndex = 10,
             DefensiveIndex = 5
         };
-        _positionEvaluator.EvaluatePath(unit, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(unit, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns(positionScore);
         
         MoveUnitCommand capturedCommand = default;
@@ -410,7 +410,7 @@ public class MovementEngineTests
         
         // Track which movement types were evaluated
         var evaluatedMovementTypes = new List<MovementType>();
-        _positionEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -458,7 +458,7 @@ public class MovementEngineTests
             .Returns(callInfo => new MovementPath([pathSegment], callInfo.ArgAt<MovementType>(2)));
         
         // Mock evaluator to score Jump highest
-        _positionEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -539,7 +539,7 @@ public class MovementEngineTests
         _player.AliveUnits.Returns([unit]);
         _clientGame.Players.Returns([_player]);
         
-        // Setup battle map to return valid paths
+        // Set up the battle map to return valid paths
         var targetHex = new HexCoordinates(2, 2);
         var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex, 1) };
         
@@ -556,7 +556,7 @@ public class MovementEngineTests
             .Returns(movementPath);
         
         // Mock evaluator to throw an unexpected exception (this must come AFTER battle map setup)
-        _positionEvaluator.EvaluatePath(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns(_ => throw new InvalidOperationException("Unexpected error"));
         
         MoveUnitCommand capturedCommand = default;
@@ -597,7 +597,7 @@ public class MovementEngineTests
             DefensiveIndex = 5
         };
         
-        _positionEvaluator.EvaluatePath(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns(positionScore);
     }
 
@@ -689,7 +689,7 @@ public class MovementEngineTests
         return mech;
     }
 
-    internal static List<UnitPart> CreateBasicPartsData(int engineRating = 100)
+    private static List<UnitPart> CreateBasicPartsData(int engineRating = 100)
     {
         var engineData = new ComponentData
         {

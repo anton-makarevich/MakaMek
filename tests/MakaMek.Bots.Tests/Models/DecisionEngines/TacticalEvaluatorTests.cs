@@ -13,14 +13,14 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 
 namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
 
-public class PositionEvaluatorTests
+public class TacticalEvaluatorTests
 {
     private readonly IClientGame _game;
     private readonly IBattleMap _battleMap;
     private readonly IToHitCalculator _toHitCalculator;
-    private readonly PositionEvaluator _sut;
+    private readonly TacticalEvaluator _sut;
 
-    public PositionEvaluatorTests()
+    public TacticalEvaluatorTests()
     {
         _game = Substitute.For<IClientGame>();
         _battleMap = Substitute.For<IBattleMap>();
@@ -29,7 +29,7 @@ public class PositionEvaluatorTests
         _game.BattleMap.Returns(_battleMap);
         _game.ToHitCalculator.Returns(_toHitCalculator);
         
-        _sut = new PositionEvaluator(_game);
+        _sut = new TacticalEvaluator(_game);
     }
 
     [Fact]
@@ -253,6 +253,60 @@ public class PositionEvaluatorTests
 
         // Assert
         result.OffensiveIndex.ShouldBe(0);
+    }
+    
+    [Fact]
+    public void EvaluateTargets_ShouldReturnScores_WhenTargetsAreInRange()
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.Gunnery.Returns(4);
+        unit.AssignPilot(pilot);
+        
+        // Unit at (1,1) Facing Bottom
+        var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        unit.Move(new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk));
+
+        // Enemy 1: In Range, hit prob > 0
+        var enemy1 = MovementEngineTests.CreateTestMech();
+        var enemy1Pos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
+        enemy1.Move(new MovementPath([new PathSegment(enemy1Pos, enemy1Pos, 0)], MovementType.Walk));
+        
+        // Enemy 2: In Range but hit prob 0 (e.g. obscured but technically LoS exists)
+        var enemy2 = MovementEngineTests.CreateTestMech();
+        var enemy2Pos = new HexPosition(new HexCoordinates(1, 6), HexDirection.Top);
+        enemy2.Move(new MovementPath([new PathSegment(enemy2Pos, enemy2Pos, 0)], MovementType.Walk));
+
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weapon = new TestWeapon(weaponDef);
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
+
+        var potentialTargets = new List<IUnit> { enemy1, enemy2 };
+
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        
+        // ToHit for Enemy 1 -> 8 (prob 0.4166)
+        _toHitCalculator.GetToHitNumber(
+            Arg.Is<AttackScenario>(s => s.TargetPosition.Coordinates == enemy1Pos.Coordinates), 
+            Arg.Any<Weapon>(), 
+            Arg.Any<IBattleMap>())
+            .Returns(8);
+
+        // ToHit for Enemy 2 -> 13 (impossible, prob 0)
+        _toHitCalculator.GetToHitNumber(
+            Arg.Is<AttackScenario>(s => s.TargetPosition.Coordinates == enemy2Pos.Coordinates), 
+            Arg.Any<Weapon>(), 
+            Arg.Any<IBattleMap>())
+            .Returns(13);
+
+        // Act
+        var results = _sut.EvaluateTargets(unit, potentialTargets);
+
+        // Assert
+        results.Count.ShouldBe(1);
+        results[0].TargetId.ShouldBe(enemy1.Id);
+        results[0].Score.ShouldBeGreaterThan(0);
     }
 
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
