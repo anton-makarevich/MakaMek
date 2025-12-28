@@ -652,13 +652,7 @@ public class MovementEngineTests
 
     private Mech CreateProneMech(bool canStandup)
     {
-        var mech = new Mech("Test Prone", "TST-1P", 50, CreateBasicPartsData());
-        var pilot = new MechWarrior("Test", "Pilot");
-        mech.AssignPilot(pilot);
-        
-        // Deploy and make the mech prone
-        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        mech.Deploy(position);
+        var mech = CreateTestMech();
         mech.SetProne();
         
         if (!canStandup)
@@ -671,7 +665,7 @@ public class MovementEngineTests
         return mech;
     }
 
-    private Mech CreateTestMech()
+    internal static Mech CreateTestMech()
     {
         var parts = CreateBasicPartsData(engineRating: 200);
         var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
@@ -695,7 +689,7 @@ public class MovementEngineTests
         return mech;
     }
 
-    private static List<UnitPart> CreateBasicPartsData(int engineRating = 100)
+    internal static List<UnitPart> CreateBasicPartsData(int engineRating = 100)
     {
         var engineData = new ComponentData
         {

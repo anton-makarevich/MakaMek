@@ -179,15 +179,12 @@ public class PositionEvaluator : IPositionEvaluator
         MovementPath path,
         IReadOnlyList<IUnit> enemyUnits)
     {
-        // Extract position and hexesTraveled from the path
-        var position = path.Destination;
-
         var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits);
         var offensiveIndex = CalculateOffensiveIndex(path, friendlyUnit, enemyUnits);
 
         return new PositionScore
         {
-            Position = position,
+            Position = path.Destination,
             MovementType = path.MovementType,
             Path = path,
             DefensiveIndex = defensiveIndex,
