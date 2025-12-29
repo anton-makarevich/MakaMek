@@ -56,7 +56,13 @@ public class WeaponsEngine : IBotDecisionEngine
 
             // Select best target
             var bestTargetScore = targetScores.MaxBy(t => t.Score);
-            var target = enemies.First(e => e.Id == bestTargetScore.TargetId);
+            var target = enemies.FirstOrDefault(e => e.Id == bestTargetScore.TargetId);
+            if (target == null)
+            {
+                // No valid target found, declare empty attack
+                await DeclareWeaponAttack(player, attacker, []);
+                return;
+            }
             
             Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestTargetScore.Score:F1}");
 
