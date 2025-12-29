@@ -16,9 +16,9 @@ namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 public class MovementEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
-    private readonly IPositionEvaluator _evaluator;
+    private readonly ITacticalEvaluator _evaluator;
 
-    public MovementEngine(IClientGame clientGame, IPositionEvaluator evaluator)
+    public MovementEngine(IClientGame clientGame, ITacticalEvaluator evaluator)
     {
         _clientGame = clientGame;
         _evaluator = evaluator;

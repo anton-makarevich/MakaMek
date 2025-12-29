@@ -3,8 +3,8 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
@@ -14,10 +14,14 @@ namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 public class WeaponsEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
+    private readonly ITacticalEvaluator _tacticalEvaluator;
+    
+    public const double HitProbabilityThreshold = 0.3;
 
-    public WeaponsEngine(IClientGame clientGame)
+    public WeaponsEngine(IClientGame clientGame, ITacticalEvaluator tacticalEvaluator)
     {
         _clientGame = clientGame;
+        _tacticalEvaluator = tacticalEvaluator;
     }
 
     public async Task MakeDecision(IPlayer player)
@@ -25,47 +29,67 @@ public class WeaponsEngine : IBotDecisionEngine
         try
         {
             // Find units that haven't attacked and can fire weapons
-            var unitToAttack = player.AliveUnits
+            var attacker = player.AliveUnits
                 .FirstOrDefault(u => u is { HasDeclaredWeaponAttack: false, CanFireWeapons: true });
 
-            if (unitToAttack == null)
+            if (attacker?.Position == null)
             {
                 // No units to attack with, skip turn
                 await SkipTurn(player);
                 return;
             }
 
-            // Find potential targets
-            var potentialTargets = GetPotentialTargets(unitToAttack, player.Id);
-            if (potentialTargets.Count == 0)
+            // Find potential targets using tactical evaluator
+             var enemies = _clientGame.Players
+                .Where(p => p.Id != player.Id)
+                .SelectMany(p => p.AliveUnits)
+                .Where(u => u is { IsDeployed: true })
+                .ToList();
+
+            var attackerPath = attacker.MovementTaken ?? MovementPath.CreateStandingStillPath(attacker.Position);
+            var targetScores = _tacticalEvaluator.EvaluateTargets(attacker, attackerPath, enemies);
+            
+            if (targetScores.Count == 0)
             {
-                // No targets available, declare attack with empty weapon list
-                await DeclareWeaponAttack(player, unitToAttack, []);
+                // No valid targets (no hit probability > 0), declare attack with an empty weapon list
+                await DeclareWeaponAttack(player, attacker, []);
                 return;
             }
 
-            // Select random target
-            var target = potentialTargets[Random.Shared.Next(potentialTargets.Count)];
-
-            // Get weapons in range of the target
-            var weaponsInRange = GetWeaponsInRange(unitToAttack, target);
-            if (weaponsInRange.Count == 0)
+            // Select the best target
+            var bestTargetScore = targetScores.MaxBy(t => t.Score);
+            var target = enemies.FirstOrDefault(e => e.Id == bestTargetScore.TargetId);
+            if (target == null)
             {
-                // No weapons in range, declare attack with empty weapon list
-                await DeclareWeaponAttack(player, unitToAttack, []);
+                // No valid target found, declare empty attack
+                await DeclareWeaponAttack(player, attacker, []);
+                return;
+            }
+            
+            Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestTargetScore.Score:F1}");
+
+            // Filter weapons that can actually hit reliably
+            var weaponsToFire = bestTargetScore.ViableWeapons
+                .Where(w => w.HitProbability >= HitProbabilityThreshold)
+                .ToList();
+
+            if (weaponsToFire.Count == 0)
+            {
+                // No weapons hit the threshold, declare empty attack
+                await DeclareWeaponAttack(player, attacker, []);
                 return;
             }
 
-            // Create weapon target data for all weapons in range
-            var weaponTargets = weaponsInRange.Select(weapon => new WeaponTargetData
+            // Create weapon target data for selected weapons
+            var weaponTargets = weaponsToFire.Select(evaluation => new WeaponTargetData
             {
-                Weapon = weapon.ToData(),
+                Weapon = evaluation.Weapon.ToData(),
                 TargetId = target.Id,
                 IsPrimaryTarget = true
             }).ToList();
 
             // Declare weapon attack
-            await DeclareWeaponAttack(player, unitToAttack, weaponTargets);
+            await DeclareWeaponAttack(player, attacker, weaponTargets);
         }
         catch (BotDecisionException ex)
         {
@@ -80,46 +104,6 @@ public class WeaponsEngine : IBotDecisionEngine
             // If anything fails, skip turn to avoid blocking the game
             await SkipTurn(player);
         }
-    }
-
-    private List<IUnit> GetPotentialTargets(IUnit attackingUnit, Guid playerId)
-    {
-        if (_clientGame.BattleMap == null)
-            return [];
-
-        // Validate attacking unit has a position
-        if (attackingUnit.Position == null)
-            return [];
-
-        var attackerPosition = attackingUnit.Position.Coordinates;
-
-        // Get all enemy units that are deployed and alive
-        var enemies = _clientGame.Players
-            .Where(p => p.Id != playerId)
-            .SelectMany(p => p.AliveUnits)
-            .Where(u => u is { IsDeployed: true, Position: not null })
-            .ToList();
-
-        // Filter by line of sight using the attacking unit's position
-        return enemies
-            .Where(enemy => _clientGame.BattleMap.HasLineOfSight(
-                attackerPosition,
-                enemy.Position!.Coordinates))
-            .ToList();
-    }
-
-    private static List<Weapon> GetWeaponsInRange(IUnit attackingUnit, IUnit target)
-    {
-        if (attackingUnit.Position == null || target.Position == null)
-            return [];
-
-        // Calculate distance once and cache it
-        var distance = attackingUnit.Position.Coordinates.DistanceTo(target.Position.Coordinates);
-
-        // Get all available weapons that are in range
-        return attackingUnit.GetAvailableComponents<Weapon>()
-            .Where(weapon => distance >= weapon.MinimumRange && distance <= weapon.LongRange)
-            .ToList();
     }
 
     private async Task DeclareWeaponAttack(IPlayer player, IUnit unit, List<WeaponTargetData> weaponTargets)
@@ -146,7 +130,7 @@ public class WeaponsEngine : IBotDecisionEngine
                 nameof(WeaponsEngine),
                 player.Id);
         }
-        // Send weapon attack declaration with empty weapon list
+        // Send a weapon attack declaration with an empty weapon list
         await DeclareWeaponAttack(player, unit, []);
     }
 }
