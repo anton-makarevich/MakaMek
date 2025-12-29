@@ -15,6 +15,8 @@ public class WeaponsEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
     private readonly ITacticalEvaluator _tacticalEvaluator;
+    
+    public const double HitProbabilityThreshold = 0.3;
 
     public WeaponsEngine(IClientGame clientGame, ITacticalEvaluator tacticalEvaluator)
     {
@@ -66,10 +68,9 @@ public class WeaponsEngine : IBotDecisionEngine
             
             Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestTargetScore.Score:F1}");
 
-            // Filter weapons that can actually hit reliably (threshold > 30%)
-            const double hitProbabilityThreshold = 0.3;
+            // Filter weapons that can actually hit reliably
             var weaponsToFire = bestTargetScore.ViableWeapons
-                .Where(w => w.HitProbability >= hitProbabilityThreshold)
+                .Where(w => w.HitProbability >= HitProbabilityThreshold)
                 .ToList();
 
             if (weaponsToFire.Count == 0)
@@ -129,7 +130,7 @@ public class WeaponsEngine : IBotDecisionEngine
                 nameof(WeaponsEngine),
                 player.Id);
         }
-        // Send weapon attack declaration with empty weapon list
+        // Send a weapon attack declaration with an empty weapon list
         await DeclareWeaponAttack(player, unit, []);
     }
 }

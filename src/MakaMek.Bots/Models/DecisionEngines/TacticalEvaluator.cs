@@ -56,7 +56,6 @@ public class TacticalEvaluator : ITacticalEvaluator
             return [];
 
         var results = new List<TargetScore>();
-        var attackerPosition = attacker.Position;
         
         // Get all friendly weapons
         var weapons = attacker.Parts.Values
@@ -78,7 +77,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             if (viableWeapons.Count <= 0) continue;
             
             // Determine which arc of the enemy would be hit (bonus for rear/side shots)
-            var targetArc = GetFiringArcFromPosition(target.Position, attackerPosition.Coordinates);
+            var targetArc = GetFiringArcFromPosition(target.Position, attackerPath.Destination.Coordinates);
             var arcBonus = targetArc.GetArcMultiplier();
             var targetScoreValue = viableWeapons.Sum(w => 
                 w.HitProbability * w.Weapon.Damage) * arcBonus;

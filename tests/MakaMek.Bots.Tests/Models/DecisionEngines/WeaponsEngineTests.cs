@@ -175,7 +175,7 @@ public class WeaponsEngineTests
                     Score = 10,
                     ViableWeapons =
                     [
-                        new WeaponEvaluationData { Weapon = weapon, HitProbability = 0.29 }
+                        new WeaponEvaluationData { Weapon = weapon, HitProbability = WeaponsEngine.HitProbabilityThreshold - 0.01 }
                     ]
                 }
             ]);
