@@ -196,6 +196,14 @@ public class FakeLocalizationServiceTests
     [InlineData("Attack_NoLineOfSight", "No LOS")]
     [InlineData("Attack_TargetNumber", "Target ToHit Number")]
     [InlineData("Attack_OutOfRange", "Target out of range")]
+    [InlineData("Attack_NoModifiersCalculated", "Attack modifiers not calculated")]
+    [InlineData("Attack_Targeting", "Already targeting {0}")]
+    [InlineData("Attack_NoAmmo", "No ammunition")]
+    [InlineData("Attack_WeaponDestroyed", "Weapon is destroyed")]
+    [InlineData("Attack_LocationDestroyed", "Location is destroyed")]
+    [InlineData("Attack_OutsideFiringArc", "Outside firing arc")]
+    [InlineData("Attack_ImpossibleToHit", "Impossible to hit")]
+    
     // Penalty messages
     [InlineData("Penalty_FootActuatorMovement", "{0} destroyed foot actuator(s) | -{1} MP")]
     [InlineData("Penalty_HeatMovement", "Heat ({0}) MP Penalty | -{1} MP")]
@@ -206,11 +214,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Penalty_LegDestroyed_Both", "Both legs destroyed | No movement")]
     [InlineData("Penalty_HipDestroyed_Single", "Hip destroyed | -{0} MP")]
     [InlineData("Penalty_HipDestroyed_Both", "Both hips destroyed | No movement")]
-    [InlineData("Attack_NoModifiersCalculated", "Attack modifiers not calculated")]
-    [InlineData("Attack_Targeting", "Already targeting {0}")]
-    [InlineData("Attack_NoAmmo", "No ammunition")]
-    [InlineData("Attack_WeaponDestroyed", "Weapon is destroyed")]
-    [InlineData("Attack_LocationDestroyed", "Location is destroyed")]
+    
     // Secondary target modifiers
     [InlineData("Attack_SecondaryTargetFrontArc", "Secondary target (front arc): +{0}")]
     [InlineData("Attack_SecondaryTargetOtherArc", "Secondary target (other arc): +{0}")]

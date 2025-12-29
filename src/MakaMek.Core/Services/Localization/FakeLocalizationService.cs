@@ -157,6 +157,8 @@ public class FakeLocalizationService: ILocalizationService
             "Attack_NoAmmo" => "No ammunition",
             "Attack_WeaponDestroyed" => "Weapon is destroyed",
             "Attack_LocationDestroyed" => "Location is destroyed",
+            "Attack_OutsideFiringArc" => "Outside firing arc",
+            "Attack_ImpossibleToHit" => "Impossible to hit",
             
             // Secondary target modifiers
             "Attack_SecondaryTargetFrontArc" => "Secondary target (front arc): +{0}",
