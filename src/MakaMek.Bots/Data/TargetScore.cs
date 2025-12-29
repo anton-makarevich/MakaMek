@@ -7,5 +7,5 @@ public readonly record struct TargetScore
 {
     public required Guid TargetId { get; init; }
     public required double Score { get; init; }
-    public required List<WeaponEvaluationData> ViableWeapons { get; init; }
+    public required IReadOnlyList<WeaponEvaluationData> ViableWeapons { get; init; }
 }

@@ -266,14 +266,15 @@ public class TacticalEvaluatorTests
         
         // Unit at (1,1) Facing Bottom
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
-        unit.Move(new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk));
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        unit.Move(path);
 
         // Enemy 1: In Range, hit prob > 0
         var enemy1 = MovementEngineTests.CreateTestMech();
         var enemy1Pos = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
         enemy1.Move(new MovementPath([new PathSegment(enemy1Pos, enemy1Pos, 0)], MovementType.Walk));
         
-        // Enemy 2: In Range but hit prob 0 (e.g. obscured but technically LoS exists)
+        // Enemy 2: In Range but hit prob 0 (e.g., obscured but technically LoS exists)
         var enemy2 = MovementEngineTests.CreateTestMech();
         var enemy2Pos = new HexPosition(new HexCoordinates(1, 6), HexDirection.Top);
         enemy2.Move(new MovementPath([new PathSegment(enemy2Pos, enemy2Pos, 0)], MovementType.Walk));
@@ -301,7 +302,7 @@ public class TacticalEvaluatorTests
             .Returns(13);
 
         // Act
-        var results = _sut.EvaluateTargets(unit, potentialTargets);
+        var results = _sut.EvaluateTargets(unit, path, potentialTargets);
 
         // Assert
         results.Count.ShouldBe(1);

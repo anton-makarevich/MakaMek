@@ -3,8 +3,8 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
@@ -27,10 +27,10 @@ public class WeaponsEngine : IBotDecisionEngine
         try
         {
             // Find units that haven't attacked and can fire weapons
-            var unitToAttack = player.AliveUnits
+            var attacker = player.AliveUnits
                 .FirstOrDefault(u => u is { HasDeclaredWeaponAttack: false, CanFireWeapons: true });
 
-            if (unitToAttack == null)
+            if (attacker?.Position == null)
             {
                 // No units to attack with, skip turn
                 await SkipTurn(player);
@@ -44,12 +44,13 @@ public class WeaponsEngine : IBotDecisionEngine
                 .Where(u => u is { IsDeployed: true })
                 .ToList();
 
-            var targetScores = _tacticalEvaluator.EvaluateTargets(unitToAttack, enemies);
+            var attackerPath = attacker.MovementTaken ?? MovementPath.CreateStandingStillPath(attacker.Position);
+            var targetScores = _tacticalEvaluator.EvaluateTargets(attacker, attackerPath, enemies);
             
             if (targetScores.Count == 0)
             {
-                // No valid targets (no hit probability > 0), declare attack with empty weapon list
-                await DeclareWeaponAttack(player, unitToAttack, []);
+                // No valid targets (no hit probability > 0), declare attack with an empty weapon list
+                await DeclareWeaponAttack(player, attacker, []);
                 return;
             }
 
@@ -68,7 +69,7 @@ public class WeaponsEngine : IBotDecisionEngine
             if (weaponsToFire.Count == 0)
             {
                 // No weapons hit the threshold, declare empty attack
-                await DeclareWeaponAttack(player, unitToAttack, []);
+                await DeclareWeaponAttack(player, attacker, []);
                 return;
             }
 
@@ -81,7 +82,7 @@ public class WeaponsEngine : IBotDecisionEngine
             }).ToList();
 
             // Declare weapon attack
-            await DeclareWeaponAttack(player, unitToAttack, weaponTargets);
+            await DeclareWeaponAttack(player, attacker, weaponTargets);
         }
         catch (BotDecisionException ex)
         {
@@ -97,10 +98,6 @@ public class WeaponsEngine : IBotDecisionEngine
             await SkipTurn(player);
         }
     }
-
-
-
-
 
     private async Task DeclareWeaponAttack(IPlayer player, IUnit unit, List<WeaponTargetData> weaponTargets)
     {

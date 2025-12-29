@@ -22,21 +22,93 @@ public class TacticalEvaluator : ITacticalEvaluator
     }
     
     /// <summary>
+    /// Evaluates a single path with a specific movement type and returns its score
+    /// </summary>
+    /// <param name="unit">The unit being evaluated</param>
+    /// <param name="path">The movement path for the unit to evaluate</param>
+    /// <param name="enemyUnits">All enemy units</param>
+    /// <returns>Position score including the path</returns>
+    public PositionScore EvaluatePath(
+        IUnit unit,
+        MovementPath path,
+        IReadOnlyList<IUnit> enemyUnits)
+    {
+        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits);
+        var offensiveIndex = EvaluateTargets(unit, path, enemyUnits).Sum(t => t.Score);
+
+        return new PositionScore
+        {
+            Position = path.Destination,
+            MovementType = path.MovementType,
+            Path = path,
+            DefensiveIndex = defensiveIndex,
+            OffensiveIndex = offensiveIndex
+        };
+    }
+    
+    /// <summary>
+    /// Evaluates potential targets for a unit
+    /// </summary>
+    public List<TargetScore> EvaluateTargets(
+        IUnit attacker, MovementPath attackerPath, IReadOnlyList<IUnit> potentialTargets)
+    {
+        if (_game.BattleMap == null || attacker.Position == null)
+            return [];
+
+        var results = new List<TargetScore>();
+        var attackerPosition = attacker.Position;
+        
+        // Get all friendly weapons
+        var weapons = attacker.Parts.Values
+            .SelectMany(p => p.GetComponents<Weapon>())
+            .Where(w => w.IsAvailable)
+            .ToList();
+
+        foreach (var target in potentialTargets)
+        {
+            if (target.Position == null)
+                continue;
+
+            var targetPath = target.MovementTaken ?? MovementPath.CreateStandingStillPath(target.Position);
+            var viableWeapons = EvaluateWeaponsForTarget(attacker,
+                attackerPath,
+                targetPath,
+                weapons);
+
+            if (viableWeapons.Count <= 0) continue;
+            
+            // Determine which arc of the enemy would be hit (bonus for rear/side shots)
+            var targetArc = GetFiringArcFromPosition(target.Position, attackerPosition.Coordinates);
+            var arcBonus = targetArc.GetArcMultiplier();
+            var targetScoreValue = viableWeapons.Sum(w => 
+                w.HitProbability * w.Weapon.Damage) * arcBonus;
+            results.Add(new TargetScore
+            {
+                TargetId = target.Id,
+                Score = targetScoreValue,
+                ViableWeapons = viableWeapons
+            });
+        }
+
+        return results;
+    }
+    
+    /// <summary>
     /// Calculates the defensive threat index for a position.
     /// Considers enemy weapons that can target this position and their hit probabilities.
     /// </summary>
-    /// <param name="path">The position to evaluate and path to get to it</param>
+    /// <param name="defenderPath">The position to evaluate and path to get to it</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <returns>Defensive threat index (lower is better)</returns>
     private double CalculateDefensiveIndex(
-        MovementPath path,
+        MovementPath defenderPath,
         IReadOnlyList<IUnit> enemyUnits)
     {
         if (_game.BattleMap == null)
             return 0;
 
         double defensiveIndex = 0;
-        var position = path.Destination; 
+        var position = defenderPath.Destination; 
         
         foreach (var enemy in enemyUnits)
         {
@@ -69,7 +141,7 @@ public class TacticalEvaluator : ITacticalEvaluator
 
                 // Calculate hit probability using ToHitCalculator with full accuracy
                 // For defensive calculation, we're the target
-                var hitProbability = CalculateHitProbability(enemy, enemyPath, path, weapon);
+                var hitProbability = CalculateHitProbability(enemy, enemyPath, defenderPath, weapon);
 
                 // Determine which arc of the friendly unit would be hit
                 var targetArc = GetFiringArcFromPosition(position, enemy.Position.Coordinates);
@@ -83,176 +155,50 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         return defensiveIndex;
     }
-
-    /// <summary>
-    /// Calculates the offensive potential index for a position.
-    /// Considers friendly weapons that can target enemies from this position.
-    /// Takes into account the movement type used to reach this position for attacker movement modifiers.
-    /// </summary>
-    /// <param name="path">The position to evaluate and path to get to it</param>
-    /// <param name="friendlyUnit">The friendly unit being evaluated</param>
-    /// <param name="enemyUnits">All enemy units</param>
-    /// <returns>Offensive potential index (higher is better)</returns>
-    private double CalculateOffensiveIndex(
-        MovementPath path,
-        IUnit friendlyUnit,
-        IReadOnlyList<IUnit> enemyUnits)
-    {
-        if (_game.BattleMap == null)
-            return 0;
-        
-        var (hexCoordinates, weaponFacing) = path.Destination;
-
-        double offensiveIndex = 0;
-
-        // Get all friendly weapons
-        var weapons = friendlyUnit.Parts.Values
-            .SelectMany(p => p.GetComponents<Weapon>())
-            .Where(w => w.IsAvailable)
-            .ToList();
-
-        foreach (var enemy in enemyUnits)
-        {
-            if (enemy.Position == null)
-                continue;
-            
-            var enemyPath = enemy.MovementTaken ?? MovementPath.CreateStandingStillPath(enemy.Position);
-
-            // Check line of sight
-            if (!_game.BattleMap.HasLineOfSight(hexCoordinates, enemy.Position.Coordinates))
-                continue;
-
-            var distanceToEnemy = hexCoordinates.DistanceTo(enemy.Position.Coordinates);
-
-            foreach (var weapon in weapons)
-            {
-                // Check if the weapon can fire at this range
-                if (distanceToEnemy < weapon.MinimumRange || distanceToEnemy > weapon.LongRange)
-                    continue;
-                
-                // Determine weapon facing from the position (assume only forward facing for now)
-
-                var isInArc = hexCoordinates.IsInWeaponFiringArc(enemy.Position.Coordinates, weapon, weaponFacing);
-                if (!isInArc)
-                    continue;
-                
-                // Calculate hit probability with a movement type affecting the attacker movement modifier
-                var hitProbability = CalculateHitProbability(friendlyUnit, path, enemyPath, weapon);
-
-                // Determine which arc of the enemy would be hit (bonus for rear/side shots)
-                var targetArc = GetFiringArcFromPosition(enemy.Position, hexCoordinates);
-                var arcBonus = targetArc.GetArcMultiplier();
-
-                // Calculate damage value
-                var damageValue = hitProbability * weapon.Damage * arcBonus;
-                offensiveIndex += damageValue;
-            }
-        }
-
-        return offensiveIndex;
-    }
-
-    /// <summary>
-    /// Evaluates a single path with a specific movement type and returns its score
-    /// </summary>
-    /// <param name="friendlyUnit">The friendly unit being evaluated</param>
-    /// <param name="path">The movement path to evaluate</param>
-    /// <param name="enemyUnits">All enemy units</param>
-    /// <returns>Position score including the path</returns>
-    public PositionScore EvaluatePath(
-        IUnit friendlyUnit,
-        MovementPath path,
-        IReadOnlyList<IUnit> enemyUnits)
-    {
-        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits);
-        var offensiveIndex = CalculateOffensiveIndex(path, friendlyUnit, enemyUnits);
-
-        return new PositionScore
-        {
-            Position = path.Destination,
-            MovementType = path.MovementType,
-            Path = path,
-            DefensiveIndex = defensiveIndex,
-            OffensiveIndex = offensiveIndex
-        };
-    }
     
     /// <summary>
-    /// Evaluates potential targets for a unit
+    /// Evaluates all weapons against a target and returns a list of viable weapons with hit probabilities
     /// </summary>
-    public List<TargetScore> EvaluateTargets(IUnit attacker, IReadOnlyList<IUnit> potentialTargets)
+    private List<WeaponEvaluationData> EvaluateWeaponsForTarget(
+        IUnit attacker,
+        MovementPath attackerPath,
+        MovementPath targetPath,
+        IReadOnlyList<Weapon> weapons)
     {
-        if (_game.BattleMap == null || attacker.Position == null)
-            return [];
-
-        var results = new List<TargetScore>();
-        var attackerPosition = attacker.Position;
-        var attackerPath = attacker.MovementTaken ?? MovementPath.CreateStandingStillPath(attackerPosition);
+        var viableWeapons = new List<WeaponEvaluationData>();
         
-        // Get all friendly weapons
-        var weapons = attacker.Parts.Values
-            .SelectMany(p => p.GetComponents<Weapon>())
-            .Where(w => w.IsAvailable)
-            .ToList();
+        // Check line of sight
+        if (!_game.BattleMap!.HasLineOfSight(attackerPath.Destination.Coordinates, targetPath.Destination.Coordinates))
+            return viableWeapons;
 
-        foreach (var target in potentialTargets)
+        var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPath.Destination.Coordinates);
+
+        foreach (var weapon in weapons)
         {
-            if (target.Position == null)
+            // Check if the weapon can fire at this range
+            if (distanceToTarget < weapon.MinimumRange || distanceToTarget > weapon.LongRange)
                 continue;
 
-            double targetScoreValue = 0;
-            var viableWeapons = new List<WeaponEvaluationData>();
-            var targetPath = target.MovementTaken ?? MovementPath.CreateStandingStillPath(target.Position);
-
-            // Check line of sight
-            if (!_game.BattleMap.HasLineOfSight(attackerPosition.Coordinates, target.Position.Coordinates))
+            var isInArc =
+                attackerPath.Destination.Coordinates.IsInWeaponFiringArc(targetPath.Destination.Coordinates, weapon,
+                    attackerPath.Destination.Facing);
+            if (!isInArc)
                 continue;
 
-            var distanceToTarget = attackerPosition.Coordinates.DistanceTo(target.Position.Coordinates);
+            // Calculate hit probability
+            var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon);
 
-            foreach (var weapon in weapons)
+            if (hitProbability <= 0)
+                continue;
+
+            viableWeapons.Add(new WeaponEvaluationData
             {
-                 // Check if the weapon can fire at this range
-                if (distanceToTarget < weapon.MinimumRange || distanceToTarget > weapon.LongRange)
-                    continue;
-
-                var isInArc = attackerPosition.Coordinates.IsInWeaponFiringArc(target.Position.Coordinates, weapon, attackerPosition.Facing);
-                if (!isInArc)
-                    continue;
-
-                // Calculate hit probability
-                var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon);
-                
-                if (hitProbability <= 0)
-                    continue;
-
-                // Determine which arc of the enemy would be hit (bonus for rear/side shots)
-                var targetArc = GetFiringArcFromPosition(target.Position, attackerPosition.Coordinates);
-                var arcBonus = targetArc.GetArcMultiplier();
-                
-                viableWeapons.Add(new WeaponEvaluationData
-                {
-                    Weapon = weapon,
-                    HitProbability = hitProbability,
-                });
-                
-                // Calculate damage value
-                // Score = Accumulation of expected damage
-                targetScoreValue += hitProbability * weapon.Damage * arcBonus;
-            }
-
-            if (targetScoreValue > 0)
-            {
-                results.Add(new TargetScore
-                {
-                    TargetId = target.Id,
-                    Score = targetScoreValue,
-                    ViableWeapons = viableWeapons
-                });
-            }
+                Weapon = weapon,
+                HitProbability = hitProbability,
+            });
         }
 
-        return results;
+        return viableWeapons;
     }
 
     /// <summary>
