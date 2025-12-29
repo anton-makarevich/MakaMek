@@ -56,7 +56,7 @@ public class WeaponsEngine : IBotDecisionEngine
                 return;
             }
 
-            // Select best target
+            // Select the best target
             var bestTargetScore = targetScores.MaxBy(t => t.Score);
             var target = enemies.FirstOrDefault(e => e.Id == bestTargetScore.TargetId);
             if (target == null)
