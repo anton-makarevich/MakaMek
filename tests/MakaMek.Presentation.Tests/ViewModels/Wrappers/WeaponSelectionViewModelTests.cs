@@ -309,6 +309,76 @@ public class WeaponSelectionViewModelTests
         result.ShouldBe("No ammunition");
         _localizationService.Received().GetString("Attack_NoAmmo");
     }
+    
+    [Fact]
+    public void AttackPossibilityDescription_ReturnsOutsideFiringArcMessage_WhenWeaponIsOutsideFiringArc()
+    {
+        // Arrange
+        _localizationService.GetString("Attack_OutsideFiringArc").Returns("Outside firing arc");
+        
+        _sut = new WeaponSelectionViewModel(
+            _weapon,
+            true,
+            false,
+            true,
+            null,
+            (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
+            _localizationService,
+            _toHitCalculator);
+        _sut.ModifiersBreakdown = new ToHitBreakdown
+        {
+            HasLineOfSight = true,
+            FiringArc = null,
+            GunneryBase = new GunneryRollModifier { Value = 4 },
+            AttackerMovement = new AttackerMovementModifier { Value = 1, MovementType = MovementType.StandingStill },
+            TargetMovement = new TargetMovementModifier { Value = 2, HexesMoved = 0 },
+            OtherModifiers = [],
+            RangeModifier = new RangeRollModifier
+            {
+                Value = 1,
+                Range = WeaponRange.Medium,
+                Distance = 5,
+                WeaponName = "Test"
+            },
+            TerrainModifiers = []
+        };
+
+        // Act
+        var result = _sut.AttackPossibilityDescription;
+
+        // Assert
+        result.ShouldBe("Outside firing arc");
+        _localizationService.Received().GetString("Attack_OutsideFiringArc");
+    }
+    
+    [Fact]
+    public void AttackPossibilityDescription_ReturnsImpossibleToHitMessage_WhenTargetNumberIsGreaterThan12()
+    {
+        // Arrange
+        _localizationService.GetString("Attack_ImpossibleToHit").Returns("Impossible to hit");
+        
+        _sut = new WeaponSelectionViewModel(
+            _weapon,
+            true,
+            false,
+            true,
+            null,
+            (w, s) => _selectionChangedAction?.Invoke(w, s),
+            _onShowAimedShotLocationSelector,
+            _onHideAimedShotLocationSelector,
+            _localizationService,
+            _toHitCalculator);
+        _sut.ModifiersBreakdown = CreateTestBreakdown(13);
+
+        // Act
+        var result = _sut.AttackPossibilityDescription;
+
+        // Assert
+        result.ShouldBe("Impossible to hit");
+        _localizationService.Received().GetString("Attack_ImpossibleToHit");
+    }
 
     [Fact]
     public void IsSelected_WhenDisabled_CannotBeSetToTrue()
