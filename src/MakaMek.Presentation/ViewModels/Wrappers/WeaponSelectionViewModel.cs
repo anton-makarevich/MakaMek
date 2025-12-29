@@ -87,7 +87,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// <summary>
     /// Gets or sets the remaining ammo shots for this weapon
     /// </summary>
-    public int RemainingAmmoShots { get; }
+    private int RemainingAmmoShots { get; }
 
     /// <summary>
     /// Gets whether the weapon requires ammo
@@ -95,7 +95,7 @@ public class WeaponSelectionViewModel : BindableBase
     public bool RequiresAmmo => Weapon.RequiresAmmo;
 
     /// <summary>
-    /// Gets whether the weapon has sufficient ammo to fire
+    /// Gets whether the weapon has enough ammo to fire
     /// </summary>
     public bool HasSufficientAmmo => !RequiresAmmo || RemainingAmmoShots > 0;
 
@@ -152,7 +152,7 @@ public class WeaponSelectionViewModel : BindableBase
             // Check if a weapon is in range
             if (!IsInRange)
                 return _localizationService.GetString("Attack_OutOfRange");
-            // Check if weapon is targeting different target
+            // Check if a weapon is targeting a different target
             if (!IsEnabled && Target != null)
                 return string.Format(_localizationService.GetString("Attack_Targeting"), Target.Name);
             // Check if we have modifiers breakdown
@@ -198,7 +198,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// </summary>
     public PartLocation? AimedShotTarget
     {
-        // Expose aimed target only when the weapon is actually selected to fire
+        // Expose the aimed target only when the weapon is actually selected to fire
         get => IsSelected? field:null;
         set
         {
