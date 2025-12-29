@@ -164,10 +164,13 @@ public class TacticalEvaluator : ITacticalEvaluator
         MovementPath targetPath,
         IReadOnlyList<Weapon> weapons)
     {
+        if (_game.BattleMap == null)
+            return [];
+        
         var viableWeapons = new List<WeaponEvaluationData>();
         
         // Check line of sight
-        if (!_game.BattleMap!.HasLineOfSight(attackerPath.Destination.Coordinates, targetPath.Destination.Coordinates))
+        if (!_game.BattleMap.HasLineOfSight(attackerPath.Destination.Coordinates, targetPath.Destination.Coordinates))
             return viableWeapons;
 
         var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPath.Destination.Coordinates);
