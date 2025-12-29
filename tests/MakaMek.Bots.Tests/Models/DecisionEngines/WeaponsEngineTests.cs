@@ -34,7 +34,7 @@ public class WeaponsEngineTests
     }
 
     [Fact]
-    public async Task MakeDecision_WhenNoAttacker_ShouldSkipTurnAndDeclareEmptyAttack()
+    public async Task MakeDecision_NoUnitCanFire_ShouldSkipTurnAndDeclareEmptyAttack()
     {
         var unit = CreateMockUnit(canFireWeapons: false, hasDeclaredWeaponAttack: false, position: null);
         _player.AliveUnits.Returns([unit]);
