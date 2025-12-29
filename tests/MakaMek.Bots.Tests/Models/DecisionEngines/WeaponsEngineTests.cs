@@ -295,6 +295,28 @@ public class WeaponsEngineTests
         capturedCommand.UnitId.ShouldBe(attacker.Id);
         capturedCommand.WeaponTargets.Count.ShouldBe(0);
     }
+    
+    [Fact]
+    public async Task MakeDecision_WhenAttackerHasMovementPath_ShouldUseActualPath()
+    {
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var pathPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Top);
+        var movementPath = MovementPath.CreateStandingStillPath(pathPosition); 
+        var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false, position: position);
+        attacker.MovementTaken.Returns(movementPath);
+    
+        _player.AliveUnits.Returns([attacker]);
+        _clientGame.Players.Returns([_player]);
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+            .Returns([]);
+    
+        await _sut.MakeDecision(_player);
+    
+        _tacticalEvaluator.Received(1).EvaluateTargets(
+            attacker, 
+            Arg.Is<MovementPath>(p => p == movementPath), 
+            Arg.Any<IReadOnlyList<IUnit>>());
+    }
 
     private static IUnit CreateMockUnit(
         bool canFireWeapons,
