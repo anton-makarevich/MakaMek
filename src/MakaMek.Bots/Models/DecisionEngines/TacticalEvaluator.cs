@@ -210,7 +210,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         MovementPath targetPath,
         Weapon weapon)
     {
-        if (_game.BattleMap == null || attacker.Position == null || attacker.Pilot == null)
+        if (_game.BattleMap == null || attacker.Pilot == null)
             return 0;
         
         // Get weapon location for attack modifiers
@@ -229,7 +229,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         // Create a hypothetical attack scenario
         var scenario = AttackScenario.FromHypothetical(
             attackerGunnery: attacker.Pilot.Gunnery,
-            attackerPosition: attacker.Position,
+            attackerPosition: attackerPath.Destination,
             attackerMovementType: attackerMovementType,
             targetPosition: targetPosition,
             targetHexesMoved: targetPath.HexesTraveled,
