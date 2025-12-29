@@ -87,7 +87,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// <summary>
     /// Gets or sets the remaining ammo shots for this weapon
     /// </summary>
-    public int RemainingAmmoShots { get; }
+    private int RemainingAmmoShots { get; }
 
     /// <summary>
     /// Gets whether the weapon requires ammo
@@ -95,7 +95,7 @@ public class WeaponSelectionViewModel : BindableBase
     public bool RequiresAmmo => Weapon.RequiresAmmo;
 
     /// <summary>
-    /// Gets whether the weapon has sufficient ammo to fire
+    /// Gets whether the weapon has enough ammo to fire
     /// </summary>
     public bool HasSufficientAmmo => !RequiresAmmo || RemainingAmmoShots > 0;
 
@@ -140,19 +140,19 @@ public class WeaponSelectionViewModel : BindableBase
     {
         get
         {
-            // Check if weapon is destroyed
+            // Check if a weapon is destroyed
             if (Weapon.IsDestroyed)
                 return _localizationService.GetString("Attack_WeaponDestroyed");
-            // Check if weapon's location is destroyed
+            // Check if a weapon's location is destroyed
             if (Weapon.FirstMountPart?.IsDestroyed == true)
                 return _localizationService.GetString("Attack_LocationDestroyed");
-            // Check if weapon is out of ammo
+            // Check if a weapon is out of ammo
             if (RequiresAmmo && RemainingAmmoShots <= 0)
                 return _localizationService.GetString("Attack_NoAmmo");
-            // Check if weapon is in range
+            // Check if a weapon is in range
             if (!IsInRange)
                 return _localizationService.GetString("Attack_OutOfRange");
-            // Check if weapon is targeting different target
+            // Check if a weapon is targeting a different target
             if (!IsEnabled && Target != null)
                 return string.Format(_localizationService.GetString("Attack_Targeting"), Target.Name);
             // Check if we have modifiers breakdown
@@ -161,6 +161,12 @@ public class WeaponSelectionViewModel : BindableBase
             // Check line of sight
             if (!ModifiersBreakdown.HasLineOfSight)
                 return _localizationService.GetString("Attack_NoLineOfSight");
+            // Check if the weapon is outside the firing arc
+            if (ModifiersBreakdown.FiringArc == null)
+                return _localizationService.GetString("Attack_OutsideFiringArc");
+            // Check if the target number is impossible
+            if (ModifiersBreakdown.Total > 12)
+                return _localizationService.GetString("Attack_ImpossibleToHit");
             // Unavailable for some other reason
             if (!IsEnabled)
                 return Weapon.GetWeaponRestrictionReason(_localizationService);
@@ -192,7 +198,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// </summary>
     public PartLocation? AimedShotTarget
     {
-        // Expose aimed target only when the weapon is actually selected to fire
+        // Expose the aimed target only when the weapon is actually selected to fire
         get => IsSelected? field:null;
         set
         {
