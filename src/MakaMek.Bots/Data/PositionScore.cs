@@ -32,16 +32,4 @@ public readonly record struct PositionScore
     /// Offensive potential index - higher is better (more damage potential)
     /// </summary>
     public required double OffensiveIndex { get; init; }
-
-    /// <summary>
-    /// Combined score using basic normalization.
-    /// Higher is better overall (maximizes offense while minimizing defense).
-    /// </summary>
-    /// <returns>Combined tactical score</returns>
-    public double GetCombinedScore()
-    {
-        // Offensive is a positive contribution, defensive is negative
-        // TODO: Normalize and combine, can be enhanced with strategy coefficients later
-        return OffensiveIndex - DefensiveIndex;
-    }
 }

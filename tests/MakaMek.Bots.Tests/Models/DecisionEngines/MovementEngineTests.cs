@@ -510,20 +510,21 @@ public class MovementEngineTests
         var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
         var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
         var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 2);
-        _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition1, Arg.Any<MovementType>(), 
+        _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition1, MovementType.Walk, 
                 Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
             .Returns(callInfo => new MovementPath([pathSegment1], callInfo.ArgAt<MovementType>(2)));
         _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition2, Arg.Any<MovementType>(), 
                 Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
             .Returns(callInfo => new MovementPath([pathSegment2], callInfo.ArgAt<MovementType>(2)));
         
-        // Mock evaluator to score Jump highest
+        // Mock evaluator to score options according to test data
         _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
-                var offensiveIndex = path.Destination == targetPosition1 ? offensiveIndex1 : offensiveIndex2;
-                var defensiveIndex = path.Destination == targetPosition1 ? defensiveIndex1 : defensiveIndex2;
+                
+                var offensiveIndex = path.Destination.Coordinates.ToData() == targetHex1.ToData() ? offensiveIndex1 : offensiveIndex2;
+                var defensiveIndex = path.Destination.Coordinates.ToData() == targetHex1.ToData() ? defensiveIndex1 : defensiveIndex2;
                 return new PositionScore
                 {
                     Position = path.Destination,
