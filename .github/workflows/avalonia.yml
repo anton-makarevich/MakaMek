@@ -3,7 +3,23 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/MakaMek.Avalonia/**'
+      - 'src/MakaMek.Presentation/**'
+      - 'src/MakaMek.Bots/**'
+      - 'src/MakaMek.Core/**'
+      - 'src/MakaMek.SourceGenerators/**'
+      - 'tests/MakaMek.Avalonia.Tests/**'
+      - '.github/workflows/avalonia.yml'
   pull_request:
+    paths:
+      - 'src/MakaMek.Avalonia/**'
+      - 'src/MakaMek.Presentation/**'
+      - 'src/MakaMek.Bots/**'
+      - 'src/MakaMek.Core/**'
+      - 'src/MakaMek.SourceGenerators/**'
+      - 'tests/MakaMek.Avalonia.Tests/**'
+      - '.github/workflows/avalonia.yml'
 
   workflow_dispatch:
 env:

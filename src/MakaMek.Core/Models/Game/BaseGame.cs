@@ -80,7 +80,8 @@ public abstract class BaseGame : IGame
         {
             if (field == value) return;
             field = value;
-            _phaseStepStateSubject.OnNext(value);
+            if (TurnPhase != PhaseNames.Initiative)
+                _phaseStepStateSubject.OnNext(value);
         }
     }
 

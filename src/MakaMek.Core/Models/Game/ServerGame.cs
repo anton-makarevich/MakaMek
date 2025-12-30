@@ -170,7 +170,7 @@ public class ServerGame : BaseGame, IDisposable
     {
         if (player != null)
         {
-            PhaseStepState = new PhaseStepState(player, unitsToMove);
+            PhaseStepState = new PhaseStepState(TurnPhase, player, unitsToMove);
             CommandPublisher.PublishCommand(new ChangeActivePlayerCommand
             {
                 GameOriginId = Id,

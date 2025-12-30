@@ -35,6 +35,7 @@ public class BotTests : IDisposable
 
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Bot");
+        _clientGame.TurnPhase.Returns(PhaseNames.Movement);
         _clientGame.Commands.Returns(_commandSubject.AsObservable());
         _clientGame.PhaseStepChanges.Returns(_phaseStepChanges.AsObservable());
         _clientGame.PhaseChanges.Returns(_phaseSubject.AsObservable());
@@ -96,12 +97,28 @@ public class BotTests : IDisposable
         _phaseSubject.OnNext(PhaseNames.Movement);
 
         // Act
-        _phaseStepChanges.OnNext(new PhaseStepState(_player, 1));
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
 
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
         await _movementEngine.Received(1).MakeDecision(_player);
+    }
+    
+    [Fact]
+    public async Task OnActivePlayerChanged_WhenPhaseMismatch_ShouldNotMakeDecision()
+    {
+        // Arrange - Set up the decision engine first
+        _clientGame.TurnPhase.Returns(PhaseNames.Initiative);
+        _phaseSubject.OnNext(PhaseNames.Movement);
+
+        // Act
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
+
+        // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
+        await _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
     }
 
     [Fact]
@@ -112,7 +129,7 @@ public class BotTests : IDisposable
         otherPlayer.Id.Returns(Guid.NewGuid());
 
         // Act
-        _phaseStepChanges.OnNext(new PhaseStepState(otherPlayer, 1));
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, otherPlayer, 1));
 
         // Assert
         _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
@@ -148,7 +165,7 @@ public class BotTests : IDisposable
         Should.NotThrow(() =>
         {
             _phaseSubject.OnNext(PhaseNames.Movement);
-            _phaseStepChanges.OnNext(new PhaseStepState(_player, 1));
+            _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
         });
     }
 
@@ -160,7 +177,7 @@ public class BotTests : IDisposable
 
         // Assert - Should not throw when triggering observables after disposal
         _phaseSubject.OnNext(PhaseNames.Movement);
-        _phaseStepChanges.OnNext(new PhaseStepState(_player, 1));
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
     }
 
     [Fact]
@@ -171,7 +188,7 @@ public class BotTests : IDisposable
 
         // Act
         _sut.Dispose();
-        _phaseStepChanges.OnNext(new PhaseStepState(_player, 1));
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
 
         // Assert - Should not make a decision after disposal
         _movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
@@ -196,6 +213,7 @@ public class BotTests : IDisposable
         player.Id.Returns(playerId);
 
         clientGame.Commands.Returns(commandSubject.AsObservable());
+        clientGame.TurnPhase.Returns(PhaseNames.Movement);
         clientGame.PhaseStepChanges.Returns(phaseStepChanges.AsObservable());
         clientGame.PhaseChanges.Returns(phaseSubject.AsObservable());
         clientGame.Id.Returns(Guid.NewGuid());
@@ -211,7 +229,7 @@ public class BotTests : IDisposable
             phaseSubject.OnNext(PhaseNames.Movement);
 
             // Act - Trigger decision-making when a player is not found
-            phaseStepChanges.OnNext(new PhaseStepState(player, 1));
+            phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, player, 1));
 
             // Give async operation time to complete - poll with timeout
             string output;
@@ -246,10 +264,11 @@ public class BotTests : IDisposable
         var endPhaseEngine = Substitute.For<IBotDecisionEngine>();
         endPhaseEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.End).Returns(endPhaseEngine);
+        _clientGame.TurnPhase.Returns(PhaseNames.End);
 
         // Act - Phase changes to End, then active player is set (client-driven)
         _phaseSubject.OnNext(PhaseNames.End);
-        _phaseStepChanges.OnNext(new PhaseStepState(_player, 0));
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.End, _player, 0));
 
         // Assert - Bot should act in the End Phase
         // wait for bg task to complete

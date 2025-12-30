@@ -60,7 +60,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
         // IMPORTANT: Complete pending commands BEFORE processing command-specific logic.
         // This prevents race conditions where ActivePlayer changes trigger bot decision-making
-        // before _pendingCommands is cleared, causing CanActivePlayerAct to incorrectly return false.
+        // before '_pendingCommands' is cleared, causing CanActivePlayerAct to incorrectly return false.
         // When we receive a re-broadcasted command, the server has already processed it successfully,
         // so completing the pending task (removing from _pendingCommands) before applying state changes
         // is semantically correct and ensures proper synchronization.
@@ -117,14 +117,14 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 {
                     var firstLocalPlayer = AlivePlayers.FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
                     PhaseStepState = firstLocalPlayer != null 
-                        ? new PhaseStepState(firstLocalPlayer, 0)
+                        ? new PhaseStepState(TurnPhase, firstLocalPlayer, 0)
                         : null;
                 }
                 break;
             case ChangeActivePlayerCommand changeActivePlayerCommand:
                 var player = Players.FirstOrDefault(p => p.Id == changeActivePlayerCommand.PlayerId);
                 PhaseStepState = player != null 
-                    ? new PhaseStepState(player, changeActivePlayerCommand.UnitsToPlay) 
+                    ? new PhaseStepState(TurnPhase, player, changeActivePlayerCommand.UnitsToPlay) 
                     : null;
                 break;
             case DeployUnitCommand deployUnitCommand:
@@ -161,7 +161,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                     .FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
 
                 PhaseStepState = nextActivePlayer != null
-                    ? new PhaseStepState(nextActivePlayer, 0)
+                    ? new PhaseStepState(TurnPhase, nextActivePlayer, 0)
                     : null;
                 
                 break;

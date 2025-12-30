@@ -28,7 +28,7 @@ public class Bot : IBot
         Guid playerId,
         IClientGame clientGame,
         IDecisionEngineProvider decisionEngineProvider,
-        int decisionDelayMilliseconds = 500)
+        int decisionDelayMilliseconds = 1000)
     {
         PlayerId = playerId;
         _clientGame = clientGame;
@@ -53,8 +53,9 @@ public class Bot : IBot
     {
         if (_isDisposed) return;
 
-        // Check if this bot is now the active player
-        if (phaseStepState?.ActivePlayer.Id == PlayerId)
+        // Check if this bot is now the active player and the phase matches
+        if (_clientGame.TurnPhase == phaseStepState?.Phase
+            && phaseStepState.Value.ActivePlayer.Id == PlayerId)
         {
             Task.Run(MakeDecision, _cts.Token);
         }

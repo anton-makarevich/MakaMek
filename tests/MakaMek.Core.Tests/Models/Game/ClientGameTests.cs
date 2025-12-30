@@ -1749,6 +1749,56 @@ public class ClientGameTests
         sut.PhaseStepState.ShouldBeNull();
     }
 
+    [Theory]
+    [InlineData(PhaseNames.Deployment, true)]
+    [InlineData(PhaseNames.Initiative, false)]
+    [InlineData(PhaseNames.Movement, true)]
+    [InlineData(PhaseNames.WeaponsAttack, true)]
+    [InlineData(PhaseNames.WeaponAttackResolution, true)]
+    [InlineData(PhaseNames.PhysicalAttack, true)]
+    [InlineData(PhaseNames.Heat, true)]
+    [InlineData(PhaseNames.End, true)]
+    public void PhaseStepState_ShouldPublishChanges_WhenSet(PhaseNames phase, bool shouldPublish)
+    {
+        // Arrange
+        var player1 = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        // Join the game
+        _sut.JoinGameWithUnits(player1, [],[]);
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player1.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player1.Name,
+            Units = [],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        
+        _sut.HandleCommand(new ChangePhaseCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Phase = phase
+        });
+        
+        var stateChanged = false;
+        _sut.PhaseStepChanges.Subscribe(state =>
+        {
+            stateChanged = state.HasValue;
+        });
+        
+        // Act - Set PhaseStepState via ActivePlayer command
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player1.Id,
+            UnitsToPlay = 0
+        });
+        
+        // Assert
+        //await Task.Delay(100);
+        stateChanged.ShouldBe(shouldPublish);
+    }
+    
     [Fact]
     public void HandleCommand_ShouldUpdateTurn_WhenTurnIncrementedCommandIsReceived()
     {
@@ -2986,13 +3036,12 @@ public class ClientGameTests
         _sut.HandleCommand(deployCommand);
 
         // Move the unit to simulate state change
-        // We use a path that starts at current position (1,1) and moves to (2,2)
+        // We use a path that starts at the current position (1,1) and moves to (2,2)
         var startPos = new HexPosition(1, 1, HexDirection.Top);
         var endPos = new HexPosition(2, 2, HexDirection.Top);
-        var movementPath = new MovementPath(new []
-        {
+        var movementPath = new MovementPath([
             new PathSegment(startPos, endPos, 1)
-        }, MovementType.Walk);
+        ], MovementType.Walk);
         
         var moveCommand = new MoveUnitCommand
         {
