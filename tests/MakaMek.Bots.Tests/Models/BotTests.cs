@@ -264,10 +264,11 @@ public class BotTests : IDisposable
         var endPhaseEngine = Substitute.For<IBotDecisionEngine>();
         endPhaseEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
         _decisionEngineProvider.GetEngineForPhase(PhaseNames.End).Returns(endPhaseEngine);
+        _clientGame.TurnPhase.Returns(PhaseNames.End);
 
         // Act - Phase changes to End, then active player is set (client-driven)
         _phaseSubject.OnNext(PhaseNames.End);
-        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 0));
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.End, _player, 0));
 
         // Assert - Bot should act in the End Phase
         // wait for bg task to complete

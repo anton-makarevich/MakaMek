@@ -9,8 +9,6 @@ on:
       - 'src/MakaMek.Core/**'
       - 'src/MakaMek.SourceGenerators/**'
       - 'tests/MakaMek.Presentation.Tests/**'
-      - 'tests/MakaMek.Core.Tests/**'
-      - 'src/MakaMek.Avalonia/MakaMek.Avalonia/Resources/Units/Mechs/**'
       - '.github/workflows/presentation.yml'
   pull_request:
     paths:
@@ -19,8 +17,6 @@ on:
       - 'src/MakaMek.Core/**'
       - 'src/MakaMek.SourceGenerators/**'
       - 'tests/MakaMek.Presentation.Tests/**'
-      - 'tests/MakaMek.Core.Tests/**'
-      - 'src/MakaMek.Avalonia/MakaMek.Avalonia/Resources/Units/Mechs/**'
       - '.github/workflows/presentation.yml'
 
   workflow_dispatch:
