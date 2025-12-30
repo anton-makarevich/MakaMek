@@ -212,15 +212,23 @@ public class MovementEngine : IBotDecisionEngine
                 reachablePaths.AddRange(paths.Values);
             }
 
-            // Evaluate each path
-            foreach (var path in reachablePaths)
+            // Evaluate each path in parallel batches
+            const int batchSize = 20;
+            var pathBatches = reachablePaths
+                .Select((path, index) => new { path, index })
+                .GroupBy(x => x.index / batchSize)
+                .Select(g => g.Select(x => x.path).ToList())
+                .ToList();
+
+            foreach (var batch in pathBatches)
             {
-                var score = await _evaluator.EvaluatePath(
+                var batchTasks = batch.Select(path => _evaluator.EvaluatePath(
                     unit,
                     path,
-                    enemyUnits);
-
-                candidateScores.Add(score);
+                    enemyUnits));
+                
+                var batchScores = await Task.WhenAll(batchTasks);
+                candidateScores.AddRange(batchScores);
             }
         }
 
