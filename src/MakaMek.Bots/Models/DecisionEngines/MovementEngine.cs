@@ -213,7 +213,7 @@ public class MovementEngine : IBotDecisionEngine
                 reachablePaths.AddRange(paths.Values);
             }
 
-            // Evaluate each path with controlled concurrency for thread safety
+            // Evaluate each path with controlled concurrency
             const int maxConcurrency = 20;
             var scores = new ConcurrentBag<PositionScore>();
             
