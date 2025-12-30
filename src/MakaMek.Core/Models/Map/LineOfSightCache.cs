@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace Sanet.MakaMek.Core.Models.Map;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace Sanet.MakaMek.Core.Models.Map;
 /// </summary>
 public class LineOfSightCache
 {
-    private readonly Dictionary<(HexCoordinates from, HexCoordinates to), List<HexCoordinates>> _cache = new();
+    private readonly ConcurrentDictionary<(HexCoordinates from, HexCoordinates to), List<HexCoordinates>> _cache = new();
 
     public void AddPath(HexCoordinates from, HexCoordinates to, List<HexCoordinates> path)
     {
