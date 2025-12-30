@@ -3,7 +3,19 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/MakaMek.Bots/**'
+      - 'src/MakaMek.Core/**'
+      - 'src/MakaMek.SourceGenerators/**'
+      - 'tests/MakaMek.Bots.Tests/**'
+      - '.github/workflows/bots.yml'
   pull_request:
+    paths:
+      - 'src/MakaMek.Bots/**'
+      - 'src/MakaMek.Core/**'
+      - 'src/MakaMek.SourceGenerators/**'
+      - 'tests/MakaMek.Bots.Tests/**'
+      - '.github/workflows/bots.yml'
 
   workflow_dispatch:
 env:

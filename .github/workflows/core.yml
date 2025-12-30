@@ -3,8 +3,17 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/MakaMek.Core/**'
+      - 'src/MakaMek.SourceGenerators/**'
+      - 'tests/MakaMek.Core.Tests/**'
+      - '.github/workflows/core.yml'
   pull_request:
-
+    paths:
+      - 'src/MakaMek.Core/**'
+      - 'src/MakaMek.SourceGenerators/**'
+      - 'tests/MakaMek.Core.Tests/**'
+      - '.github/workflows/core.yml'
   workflow_dispatch:
 env:
   NuGetDirectory: ${{ github.workspace }}/nuget
