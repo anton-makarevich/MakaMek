@@ -28,7 +28,7 @@ public class Bot : IBot
         Guid playerId,
         IClientGame clientGame,
         IDecisionEngineProvider decisionEngineProvider,
-        int decisionDelayMilliseconds = 500)
+        int decisionDelayMilliseconds = 1000)
     {
         PlayerId = playerId;
         _clientGame = clientGame;
