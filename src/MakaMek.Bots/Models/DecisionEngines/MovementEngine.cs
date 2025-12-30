@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using System.Collections.Concurrent;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
@@ -212,24 +213,18 @@ public class MovementEngine : IBotDecisionEngine
                 reachablePaths.AddRange(paths.Values);
             }
 
-            // Evaluate each path in parallel batches
-            const int batchSize = 20;
-            var pathBatches = reachablePaths
-                .Select((path, index) => new { path, index })
-                .GroupBy(x => x.index / batchSize)
-                .Select(g => g.Select(x => x.path).ToList())
-                .ToList();
-
-            foreach (var batch in pathBatches)
-            {
-                var batchTasks = batch.Select(path => _evaluator.EvaluatePath(
-                    unit,
-                    path,
-                    enemyUnits));
-                
-                var batchScores = await Task.WhenAll(batchTasks);
-                candidateScores.AddRange(batchScores);
-            }
+            // Evaluate each path with controlled concurrency for thread safety
+            const int maxConcurrency = 20;
+            var scores = new ConcurrentBag<PositionScore>();
+            
+            await Parallel.ForEachAsync(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency }, 
+                async (path, _) =>
+                {
+                    var score = await _evaluator.EvaluatePath(unit, path, enemyUnits);
+                    scores.Add(score);
+                });
+            
+            candidateScores.AddRange(scores);
         }
 
         // If no valid paths, stand still
