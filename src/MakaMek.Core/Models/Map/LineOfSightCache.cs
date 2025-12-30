@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace Sanet.MakaMek.Core.Models.Map;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace Sanet.MakaMek.Core.Models.Map;
 /// </summary>
 public class LineOfSightCache
 {
-    private readonly Dictionary<(HexCoordinates from, HexCoordinates to), List<HexCoordinates>> _cache = new();
+    private readonly ConcurrentDictionary<(HexCoordinates from, HexCoordinates to), List<HexCoordinates>> _cache = new();
 
     public void AddPath(HexCoordinates from, HexCoordinates to, List<HexCoordinates> path)
     {
@@ -16,9 +18,12 @@ public class LineOfSightCache
     public bool TryGetPath(HexCoordinates from, HexCoordinates to, out List<HexCoordinates>? path)
     {
         // Try to get a direct path
-        if (_cache.TryGetValue((from, to), out path))
+        if (_cache.TryGetValue((from, to), out var directPath))
+        {
+            path = directPath.ToList();
             return true;
-
+        }
+        
         // Try to get a reversed path
         if (_cache.TryGetValue((to, from), out var reversedPath))
         {

@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using System.Collections.Concurrent;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
@@ -212,16 +213,27 @@ public class MovementEngine : IBotDecisionEngine
                 reachablePaths.AddRange(paths.Values);
             }
 
-            // Evaluate each path
-            foreach (var path in reachablePaths)
-            {
-                var score = _evaluator.EvaluatePath(
-                    unit,
-                    path,
-                    enemyUnits);
+            // Evaluate each path with controlled concurrency
+            const int maxConcurrency = 20;
+            var scores = new ConcurrentBag<PositionScore>();
 
-                candidateScores.Add(score);
-            }
+            await Parallel.ForEachAsync(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency },
+                async (path, _) =>
+                {
+                    try
+                    {
+                        var score = await _evaluator.EvaluatePath(unit, path, enemyUnits);
+                        scores.Add(score);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log and continue - don't let one bad path evaluation stop all evaluations
+                        Console.WriteLine(
+                            $"[MovementEngine] Failed to evaluate path to {path.Destination.Coordinates}: {ex.Message}");
+                    }
+                });
+            
+            candidateScores.AddRange(scores);
         }
 
         // If no valid paths, stand still
