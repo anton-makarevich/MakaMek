@@ -621,7 +621,7 @@ public class MovementEngineTests
         
         // Mock evaluator to throw an unexpected exception (this must come AFTER battle map setup)
         _tacticalEvaluator.EvaluatePath(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
-            .Returns(_ => throw new InvalidOperationException("Unexpected error"));
+            .Returns<Task<PositionScore>>(_ => throw new InvalidOperationException("Unexpected error"));
         
         MoveUnitCommand capturedCommand = default;
         var commandCaptured = false;

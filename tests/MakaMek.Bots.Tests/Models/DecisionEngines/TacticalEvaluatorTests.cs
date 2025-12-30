@@ -33,7 +33,7 @@ public class TacticalEvaluatorTests
     }
 
     [Fact]
-    public void EvaluatePath_WhenNoBattleMap_ShouldReturnZeroIndices()
+    public async Task EvaluatePath_WhenNoBattleMap_ShouldReturnZeroIndices()
     {
         // Arrange
         _game.BattleMap.Returns((IBattleMap?)null);
@@ -41,7 +41,7 @@ public class TacticalEvaluatorTests
         var path = MovementPath.CreateStandingStillPath(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
 
         // Act
-        var result = _sut.EvaluatePath(unit, path,[]);
+        var result = await _sut.EvaluatePath(unit, path,[]);
 
         // Assert
         result.DefensiveIndex.ShouldBe(0);
@@ -49,7 +49,7 @@ public class TacticalEvaluatorTests
     }
 
     [Fact]
-    public void EvaluatePath_WhenEnemyVisible_ShouldCalculateDefensiveIndex()
+    public async Task EvaluatePath_WhenEnemyVisible_ShouldCalculateDefensiveIndex()
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
@@ -79,7 +79,7 @@ public class TacticalEvaluatorTests
             .Returns(toHitNumber);
 
         // Act
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         result.DefensiveIndex.ShouldBeGreaterThan(0);
@@ -91,7 +91,7 @@ public class TacticalEvaluatorTests
     }
     
     [Fact]
-    public void EvaluatePath_WhenEnemyNotVisible_ShouldNotAffectDefensiveIndex()
+    public async Task EvaluatePath_WhenEnemyNotVisible_ShouldNotAffectDefensiveIndex()
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
@@ -116,14 +116,14 @@ public class TacticalEvaluatorTests
         _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(false);
 
         // Act
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         result.DefensiveIndex.ShouldBe(0);
     }
     
     [Fact]
-    public void EvaluatePath_WhenWeaponOutOfRange_ShouldIgnore()
+    public async Task EvaluatePath_WhenWeaponOutOfRange_ShouldIgnore()
     {
         // Arrange
         var unit = Substitute.For<IUnit>();
@@ -147,7 +147,7 @@ public class TacticalEvaluatorTests
         _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
 
         // Act
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         result.DefensiveIndex.ShouldBe(0);
@@ -156,7 +156,7 @@ public class TacticalEvaluatorTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void EvaluatePath_ShouldCalculateOffensiveIndex_WhenEnemyVisible(bool hasLos)
+    public async Task EvaluatePath_ShouldCalculateOffensiveIndex_WhenEnemyVisible(bool hasLos)
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -196,7 +196,7 @@ public class TacticalEvaluatorTests
             .Returns(toHitNumber);
         
         // Act
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         if (hasLos)
@@ -210,7 +210,7 @@ public class TacticalEvaluatorTests
     }
 
     [Fact]
-    public void EvaluatePath_WhenWeaponOutOfArc_ShouldIgnore()
+    public async Task EvaluatePath_WhenWeaponOutOfArc_ShouldIgnore()
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -249,14 +249,14 @@ public class TacticalEvaluatorTests
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(toHitNumber);
         
-        var result = _sut.EvaluatePath(unit, path, enemies);
+        var result = await _sut.EvaluatePath(unit, path, enemies);
 
         // Assert
         result.OffensiveIndex.ShouldBe(0);
     }
     
     [Fact]
-    public void EvaluateTargets_ShouldReturnScores_WhenTargetsAreInRange()
+    public async Task EvaluateTargets_ShouldReturnScores_WhenTargetsAreInRange()
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -302,7 +302,7 @@ public class TacticalEvaluatorTests
             .Returns(13);
 
         // Act
-        var results = _sut.EvaluateTargets(unit, path, potentialTargets);
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets);
 
         // Assert
         results.Count.ShouldBe(1);
