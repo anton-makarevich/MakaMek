@@ -13,7 +13,7 @@ public interface ITacticalEvaluator
     /// <param name="path">The movement path to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <returns>Position score including the path</returns>
-    PositionScore EvaluatePath(
+    Task<PositionScore> EvaluatePath(
         IUnit unit,
         MovementPath path,
         IReadOnlyList<IUnit> enemyUnits);
@@ -25,7 +25,7 @@ public interface ITacticalEvaluator
     /// <param name="attackerPath">Movement path of the attacker to get to the position</param>
     /// <param name="potentialTargets">List of potential targets available</param>
     /// <returns>List of scores for each target</returns>
-    List<TargetScore> EvaluateTargets(
+    Task<IReadOnlyList<TargetScore>> EvaluateTargets(
         IUnit attacker,
         MovementPath attackerPath,
         IReadOnlyList<IUnit> potentialTargets);
