@@ -233,12 +233,13 @@ public class MovementEngine : IBotDecisionEngine
 
         // Select the path with the best combined score
         var bestScore = candidateScores
-            .OrderByDescending(s => s.GetCombinedScore())
-            .First();
+            .OrderBy(s => s.DefensiveIndex)
+            .ThenByDescending(s => s.OffensiveIndex)
+            .First(); // TODO: for different difficulty levels we can take random of first N
 
         Console.WriteLine($"[MovementEngine] {unit.Name} moving to {bestScore.Position.Coordinates} " +
                          $"using {bestScore.MovementType} (Offensive: {bestScore.OffensiveIndex:F1}, " +
-                         $"Defensive: {bestScore.DefensiveIndex:F1}, Combined: {bestScore.GetCombinedScore():F1})");
+                         $"Defensive: {bestScore.DefensiveIndex:F1})");
 
         // Execute the move using the stored path (no need to recalculate)
         await MoveUnit(player, unit, bestScore.Path);
@@ -247,7 +248,7 @@ public class MovementEngine : IBotDecisionEngine
     /// <summary>
     /// Gets the coordinates of all occupied hexes (deployed units except the specified moving unit)
     /// </summary>
-    private IReadOnlySet<HexCoordinates> GetOccupiedHexes(IUnit movingUnit)
+    private HashSet<HexCoordinates> GetOccupiedHexes(IUnit movingUnit)
     {
         return _clientGame.Players
             .SelectMany(p => p.Units)

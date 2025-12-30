@@ -322,7 +322,7 @@ public class MovementEngineTests
     }
 
     [Fact]
-    public async Task MakeDecision_WhenProneMech_ShouldMoveLast()
+    public async Task MakeDecision_WhenProneMech_ShouldMoveLast()// TODO:or first?
     {
         // Arrange
         // Create a real prone mech with destroyed gyro (can't stand up but not immobile)
@@ -484,7 +484,71 @@ public class MovementEngineTests
         commandCaptured.ShouldBeTrue();
         capturedCommand.MovementType.ShouldBe(MovementType.Jump);
     }
-
+    
+    [Theory]
+    [InlineData(10, 5, 20, 10, 1)]
+    [InlineData(10, 5, 20, 5, 2)]
+    public async Task ExecuteMoveForUnit_ShouldSelectOptimalPath(
+        int offensiveIndex1,
+        int defensiveIndex1,
+        int offensiveIndex2,
+        int defensiveIndex2,
+        int optimalOption)
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        _player.AliveUnits.Returns([mech]);
+        _clientGame.Players.Returns([_player]);
+        
+        var targetHex1 = new HexCoordinates(2, 2);
+        var targetHex2 = new HexCoordinates(3, 3);
+        var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 2) };
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns(reachableHexes);
+        
+        var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
+        var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 2);
+        _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition1, MovementType.Walk, 
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns(callInfo => new MovementPath([pathSegment1], callInfo.ArgAt<MovementType>(2)));
+        _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition2, Arg.Any<MovementType>(), 
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns(callInfo => new MovementPath([pathSegment2], callInfo.ArgAt<MovementType>(2)));
+        
+        // Mock evaluator to score options according to test data
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+            .Returns(callInfo =>
+            {
+                var path = callInfo.ArgAt<MovementPath>(1);
+                
+                var offensiveIndex = path.Destination.Coordinates.ToData() == targetHex1.ToData() ? offensiveIndex1 : offensiveIndex2;
+                var defensiveIndex = path.Destination.Coordinates.ToData() == targetHex1.ToData() ? defensiveIndex1 : defensiveIndex2;
+                return new PositionScore
+                {
+                    Position = path.Destination,
+                    MovementType = path.MovementType,
+                    Path = path,
+                    OffensiveIndex = offensiveIndex,
+                    DefensiveIndex = defensiveIndex
+                };
+            });
+        
+        MoveUnitCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
+        
+        // Act
+        await _sut.MakeDecision(_player);
+        
+        // Assert
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.MovementPath.Count.ShouldBe(1);
+        capturedCommand.MovementPath[0].To.Coordinates
+            .ShouldBe(optimalOption == 1 ? targetHex1.ToData() : targetHex2.ToData());
+    }
+    
     [Fact]
     public async Task ExecuteMoveForUnit_WhenNoCandidateScores_ShouldSkipTurn()
     {
@@ -601,28 +665,28 @@ public class MovementEngineTests
             .Returns(positionScore);
     }
 
-    private void ConfigureLrmBoat(IUnit unit)
+    private static void ConfigureLrmBoat(IUnit unit)
     {
         // Mock 20 LRM tubes
         var lrm20 = new Lrm20();
         unit.GetAvailableComponents<Weapon>().Returns([lrm20]);
     }
 
-    private void ConfigureScout(IUnit unit)
+    private static void ConfigureScout(IUnit unit)
     {
         unit.GetAvailableComponents<Weapon>().Returns([]);
         unit.GetMovementPoints(MovementType.Walk).Returns(7);
         unit.GetMovementPoints(MovementType.Jump).Returns(0);
     }
     
-    private void ConfigureBrawler(IUnit unit)
+    private static void ConfigureBrawler(IUnit unit)
     {
         unit.GetAvailableComponents<Weapon>().Returns([]);
         unit.GetMovementPoints(MovementType.Walk).Returns(3);
         unit.GetMovementPoints(MovementType.Jump).Returns(0);
     }
 
-    private IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true, bool isImmobile = false, Guid? id = null)
+    private static IUnit CreateMockUnit(bool hasMoved, bool isDeployed = true, bool isImmobile = false, Guid? id = null)
     {
         var unit = Substitute.For<IUnit>();
         unit.Id.Returns(id ?? Guid.NewGuid());
@@ -650,7 +714,7 @@ public class MovementEngineTests
         return unit;
     }
 
-    private Mech CreateProneMech(bool canStandup)
+    private static Mech CreateProneMech(bool canStandup)
     {
         var mech = CreateTestMech();
         mech.SetProne();
