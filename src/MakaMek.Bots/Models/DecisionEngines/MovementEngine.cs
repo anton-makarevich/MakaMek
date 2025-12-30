@@ -215,7 +215,7 @@ public class MovementEngine : IBotDecisionEngine
             // Evaluate each path
             foreach (var path in reachablePaths)
             {
-                var score = _evaluator.EvaluatePath(
+                var score = await _evaluator.EvaluatePath(
                     unit,
                     path,
                     enemyUnits);
