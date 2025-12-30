@@ -1,5 +1,6 @@
-﻿using Sanet.MakaMek.Core.Models.Game.Players;
+﻿using Sanet.MakaMek.Core.Models.Game.Phases;
+using Sanet.MakaMek.Core.Models.Game.Players;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
-public record struct PhaseStepState(IPlayer ActivePlayer, int UnitsToPlay);
+public record struct PhaseStepState(PhaseNames Phase, IPlayer ActivePlayer, int UnitsToPlay);
