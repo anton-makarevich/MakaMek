@@ -216,12 +216,21 @@ public class MovementEngine : IBotDecisionEngine
             // Evaluate each path with controlled concurrency
             const int maxConcurrency = 20;
             var scores = new ConcurrentBag<PositionScore>();
-            
-            await Parallel.ForEachAsync(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency }, 
+
+            await Parallel.ForEachAsync(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency },
                 async (path, _) =>
                 {
-                    var score = await _evaluator.EvaluatePath(unit, path, enemyUnits);
-                    scores.Add(score);
+                    try
+                    {
+                        var score = await _evaluator.EvaluatePath(unit, path, enemyUnits);
+                        scores.Add(score);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log and continue - don't let one bad path evaluation stop all evaluations
+                        Console.WriteLine(
+                            $"[MovementEngine] Failed to evaluate path to {path.Destination.Coordinates}: {ex.Message}");
+                    }
                 });
             
             candidateScores.AddRange(scores);

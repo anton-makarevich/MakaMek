@@ -18,9 +18,12 @@ public class LineOfSightCache
     public bool TryGetPath(HexCoordinates from, HexCoordinates to, out List<HexCoordinates>? path)
     {
         // Try to get a direct path
-        if (_cache.TryGetValue((from, to), out path))
+        if (_cache.TryGetValue((from, to), out var directPath))
+        {
+            path = directPath.ToList();
             return true;
-
+        }
+        
         // Try to get a reversed path
         if (_cache.TryGetValue((to, from), out var reversedPath))
         {

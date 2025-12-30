@@ -49,11 +49,11 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <summary>
     /// Evaluates potential targets for a unit
     /// </summary>
-    public Task<IReadOnlyList<TargetScore>> EvaluateTargets(
+    public ValueTask<IReadOnlyList<TargetScore>> EvaluateTargets(
         IUnit attacker, MovementPath attackerPath, IReadOnlyList<IUnit> potentialTargets)
     {
         if (_game.BattleMap == null || attacker.Position == null)
-            return Task.FromResult<IReadOnlyList<TargetScore>>([]);
+            return ValueTask.FromResult<IReadOnlyList<TargetScore>>([]);
 
         var results = new List<TargetScore>();
         
@@ -89,7 +89,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             });
         }
 
-        return Task.FromResult<IReadOnlyList<TargetScore>>(results);
+        return ValueTask.FromResult<IReadOnlyList<TargetScore>>(results);
     }
     
     /// <summary>
