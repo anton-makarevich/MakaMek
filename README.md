@@ -19,11 +19,11 @@ Complete as of v0.46.5. Allows to complete games locally and over the LAN.
 - LAN multiplayer with SignalR (only Desktop app can host the game, mobile clients could connect, WEB can neither host nor connect)
 - Single-player combat with up to 4 players on a single device
 - Complete Turn flow implementation with all major phases including initiative, movement, attack declaration and resolution, heat and end phase
-- Critical hits, aimed shots, destruction of units, locations, and components
+- Critical hits, aimed shots, destruction of units, locations and components
 - Optional rule where flamers apply both damage and heat to the targets  
 - Basic pilots implementation, unconsciousness, piloting skill rolls and falling
 - Heat effects, shutdown, ammo explosion, restart, pilot damage and to hit modifiers
-- Hex map generator (and previewer) with the simplest terrain types (clear, light, and heavy wood) ([MegaMek](https://megamek.org/)'s assets) without levels 
+- Hex map generator (and previewer) with the simplest terrain types (clear, light and heavy wood) ([MegaMek](https://megamek.org/)'s assets) without levels 
 - Cross-platform support (Windows, Linux, macOS, Web, Android, iOS)
 - Prototype UI built with AvaloniaUI
 - Importing mechs defined in MegaMek's MTF format (Level 1 equipment only), 173 mech variants are supported at the moment
@@ -33,10 +33,17 @@ In progress (v 0.47.0 +). Combat against AI opponents
 - [Bot Player System - Product Requirements Document (PRD)](docs/architecture/bot-player-system-prd.md) - Detailed requirements and specifications for the Bot Player System
 - [Bot Player System - Implementation Roadmap](docs/architecture/bot-player-system-implementation-roadmap.md) - High-level plan for implementing the bot player system
 
+#### Implemented
+- Bot player framework with a decision engine for each game phase
+- Basic movement and weapon targeting decisions
+- Tactical evaluation for movement and weapon decisions
+- Basic heat management and shutdown decisions
+- Basic end phase decisions (pilot damage, unit restart, etc.)
+
 ### Future Phases
 - Support of map Levels and extended terrain types
 - Support of advanced tech rules (Clan, LosTech equipment and more)
-- Support for vehicles, battle armor, and infantry
+- Support for vehicles, battle armor and infantry
 - Multiplayer over the Internet (WebSockets/SignalR)
 - Tools for creating and managing custom units and maps, compatible with common community data formats
 - Monogame version with 3D graphics and possible VR/AR support
@@ -55,6 +62,7 @@ MakaMek/
 │   ├── MakaMek.Core/         # Core game engine and logic
 │   ├── MakaMek.Presentation/ # Presentation layer (ViewModels and UI states)
 │   ├── MakaMek.Avalonia/     # UI implementation with AvaloniaUI
+│   ├── MakaMek.Bots/         # Bot framework 
 │   └── MakaMek.Tools/        # Tools and utilities
 ├── tests/                    # Unit tests
 ├── data/                     # Data files (e.g., unit definitions)
@@ -82,7 +90,7 @@ MakaMek/
 ### Prerequisites
 
 - .NET 10 SDK
-- Your favorite IDE (Visual Studio, Rider, or VS Code)
+- Your favorite IDE (Visual Studio, Rider or VS Code)
 
 ### Building
 
