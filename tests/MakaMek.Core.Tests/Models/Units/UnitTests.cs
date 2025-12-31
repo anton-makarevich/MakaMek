@@ -2339,6 +2339,96 @@ public class UnitTests
         // Assert
         sut.Facing.ShouldBe(position.Facing);
     }
+    
+    [Fact]
+    public void GetProjectedHeatValue_EqualsCurrentHeat_WhenNoWeaponsSelected()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData { WeaponName = "Test", HeatPoints = 5 }],
+            ExternalHeatSources = [],
+            DissipationData = new HeatDissipationData
+            {
+                HeatSinks = 0,
+                EngineHeatSinks = 0,
+                DissipationPoints = 0
+            }
+        });
+        
+        // Act
+        var projectedHeat = sut.GetProjectedHeatValue(_rulesProvider);
+        
+        // Assert
+        projectedHeat.ShouldBe(sut.CurrentHeat);
+        projectedHeat.ShouldBe(5);
+    }
+
+    [Fact]
+    public void GetProjectedHeatValue_IncludesSelectedWeaponsHeat()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var target = CreateTestUnit();
+        var weapon1 = new MediumLaser();
+        var weapon2 = new MediumLaser();
+        var leftArm = sut.Parts[PartLocation.LeftArm];
+        var rightArm = sut.Parts[PartLocation.RightArm];
+        leftArm.TryAddComponent(weapon1);
+        rightArm.TryAddComponent(weapon2);
+    
+        sut.WeaponAttackState.SetWeaponTarget(weapon1, target, sut);
+        sut.WeaponAttackState.SetWeaponTarget(weapon2, target, sut);
+    
+        sut.GetProjectedHeatValue(_rulesProvider).ShouldBe(6); // 3 + 3 = 6 heat
+    }
+    
+    [Fact]
+    public void GetProjectedHeat_UsesDeclaredWeaponHeat_WhenAttacksAreDeclared()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        var target = CreateTestUnit();
+        var weapon1 = new MediumLaser();
+        var weapon2 = new MediumLaser();
+        var leftArm = sut.Parts[PartLocation.LeftArm];
+        var rightArm = sut.Parts[PartLocation.RightArm];
+        leftArm.TryAddComponent(weapon1);
+        rightArm.TryAddComponent(weapon2);
+    
+        var weapon1Slot = weapon1.SlotAssignments[0].FirstSlot;
+        var weapon2Slot = weapon2.SlotAssignments[0].FirstSlot;
+    
+        sut.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = "Medium Laser",
+                    Type = MakaMekComponent.MediumLaser,
+                    Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, weapon1Slot, 1)]
+                },
+                TargetId = target.Id,
+                IsPrimaryTarget = true
+            },
+            new WeaponTargetData
+            {
+                Weapon = new ComponentData
+                {
+                    Name = "Medium Laser",
+                    Type = MakaMekComponent.MediumLaser,
+                    Assignments = [new LocationSlotAssignment(PartLocation.RightArm, weapon2Slot, 1)]
+                },
+                TargetId = target.Id,
+                IsPrimaryTarget = true
+            }
+        ]);
+    
+        sut.GetProjectedHeatValue(_rulesProvider).ShouldBe(6);
+    }
 
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)

@@ -278,17 +278,17 @@ public class MechTests
     public void StandUp_RemovesProneStatus()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
-        mech.SetProne();
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        sut.SetProne();
 
         // Act
-        mech.StandUp(HexDirection.Bottom);
+        sut.StandUp(HexDirection.Bottom);
 
         // Assert
-        (mech.Status & UnitStatus.Prone).ShouldNotBe(UnitStatus.Prone);
-        mech.IsProne.ShouldBeFalse();
-        mech.Position!.Facing.ShouldBe(HexDirection.Bottom);
+        (sut.Status & UnitStatus.Prone).ShouldNotBe(UnitStatus.Prone);
+        sut.IsProne.ShouldBeFalse();
+        sut.Position!.Facing.ShouldBe(HexDirection.Bottom);
     }
 
     [Theory]
@@ -306,11 +306,11 @@ public class MechTests
         // Arrange
         var parts = CreateBasicPartsData();
         var torsos = parts.OfType<Torso>().ToList();
-        var mech = new Mech("Test", "TST-1A", 50, parts, possibleRotation);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), unitFacing));
+        var sut = new Mech("Test", "TST-1A", 50, parts, possibleRotation);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), unitFacing));
 
         // Act
-        mech.RotateTorso(targetFacing);
+        sut.RotateTorso(targetFacing);
 
         // Assert
         foreach (var torso in torsos)
@@ -324,11 +324,11 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, parts);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
         // Assert
-        mech.HasUsedTorsoTwist.ShouldBeFalse();
+        sut.HasUsedTorsoTwist.ShouldBeFalse();
     }
 
     [Fact]
@@ -336,14 +336,14 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, parts);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
         // Act
-        mech.RotateTorso(HexDirection.TopRight);
+        sut.RotateTorso(HexDirection.TopRight);
 
         // Assert
-        mech.HasUsedTorsoTwist.ShouldBeTrue();
+        sut.HasUsedTorsoTwist.ShouldBeTrue();
     }
 
     [Theory]
@@ -354,11 +354,11 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, parts, possibleRotation);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        var sut = new Mech("Test", "TST-1A", 50, parts, possibleRotation);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
         // Act & Assert
-        mech.CanRotateTorso.ShouldBe(expected);
+        sut.CanRotateTorso.ShouldBe(expected);
     }
 
     [Fact]
@@ -366,24 +366,24 @@ public class MechTests
     {
         // Arrange
         var parts = CreateBasicPartsData();
-        var mech = new Mech("Test", "TST-1A", 50, parts);
-        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
         // Act
-        mech.RotateTorso(HexDirection.TopRight);
+        sut.RotateTorso(HexDirection.TopRight);
 
         // Assert
-        mech.CanRotateTorso.ShouldBeFalse();
+        sut.CanRotateTorso.ShouldBeFalse();
     }
 
     [Fact]
     public void Constructor_ShouldSetDefaultPossibleTorsoRotation()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Assert
-        mech.PossibleTorsoRotation.ShouldBe(1);
+        sut.PossibleTorsoRotation.ShouldBe(1);
     }
 
     [Theory]
@@ -394,49 +394,49 @@ public class MechTests
     public void Constructor_ShouldSetSpecifiedPossibleTorsoRotation(int rotation)
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(), rotation);
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData(), rotation);
 
         // Assert
-        mech.PossibleTorsoRotation.ShouldBe(rotation);
+        sut.PossibleTorsoRotation.ShouldBe(rotation);
     }
 
     [Fact]
     public void Constructor_DoesNotAssignPilot()
     {
         // Arrange & Act
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Assert
-        mech.Pilot.ShouldBeNull();
+        sut.Pilot.ShouldBeNull();
     }
 
     [Fact]
     public void AssignPilot_WithValidPilot_AssignsPilotSuccessfully()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = new MechWarrior("John", "Doe");
 
         // Act
-        mech.AssignPilot(pilot);
+        sut.AssignPilot(pilot);
 
         // Assert
-        mech.Pilot.ShouldBe(pilot);
+        sut.Pilot.ShouldBe(pilot);
     }
 
     [Fact]
     public void AssignPilot_WithValidPilot_SetsBidirectionalRelationship()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = new MechWarrior("John", "Doe");
 
         // Act
-        mech.AssignPilot(pilot);
+        sut.AssignPilot(pilot);
 
         // Assert
-        mech.Pilot.ShouldBe(pilot);
-        pilot.AssignedTo.ShouldBe(mech);
+        sut.Pilot.ShouldBe(pilot);
+        pilot.AssignedTo.ShouldBe(sut);
     }
 
     [Fact]
@@ -463,35 +463,35 @@ public class MechTests
     public void AssignPilot_WhenUnitAlreadyHasPilot_UnassignsPreviousPilot()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot1 = new MechWarrior("John", "Doe");
         var pilot2 = new MechWarrior("Jane", "Smith");
 
         // Initially assign pilot1
-        mech.AssignPilot(pilot1);
+        sut.AssignPilot(pilot1);
 
         // Act - assign pilot2
-        mech.AssignPilot(pilot2);
+        sut.AssignPilot(pilot2);
 
         // Assert
-        mech.Pilot.ShouldBe(pilot2);
+        sut.Pilot.ShouldBe(pilot2);
         pilot1.AssignedTo.ShouldBeNull();
-        pilot2.AssignedTo.ShouldBe(mech);
+        pilot2.AssignedTo.ShouldBe(sut);
     }
 
     [Fact]
     public void UnassignPilot_WithAssignedPilot_RemovesBidirectionalRelationship()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
         var pilot = new MechWarrior("John", "Doe");
-        mech.AssignPilot(pilot);
+        sut.AssignPilot(pilot);
 
         // Act
-        mech.UnassignPilot();
+        sut.UnassignPilot();
 
         // Assert
-        mech.Pilot.ShouldBeNull();
+        sut.Pilot.ShouldBeNull();
         pilot.AssignedTo.ShouldBeNull();
     }
 
@@ -499,11 +499,11 @@ public class MechTests
     public void UnassignPilot_WithNoPilot_DoesNotThrow()
     {
         // Arrange
-        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
 
         // Act & Assert - should not throw
-        mech.UnassignPilot();
-        mech.Pilot.ShouldBeNull();
+        sut.UnassignPilot();
+        sut.Pilot.ShouldBeNull();
     }
 
     [Fact]
@@ -894,6 +894,47 @@ public class MechTests
 
         var originalJumpMp = jumpJets.JumpMp;
         sut.GetMovementPoints(MovementType.Jump).ShouldBe(originalJumpMp, "Jump MP should not be affected by heat");
+    }
+    
+    [Fact]
+    public void GetProjectedHeatValue_IncludesEngineHeat_WhenEngineIsDamaged()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        var engine = sut.GetAllComponents<Engine>().First();
+        engine.Hit();
+    
+        sut.GetProjectedHeatValue(Substitute.For<IRulesProvider>()).ShouldBe(5);
+    }
+    
+    [Fact]
+    public void GetProjectedHeatValue_CombinesAllHeatSources_WhenMultipleSourcesPresent()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.ApplyHeat(new HeatData
+        {
+            MovementHeatSources = [],
+            WeaponHeatSources = [new WeaponHeatData { WeaponName = "Test", HeatPoints = 5 }],
+            DissipationData = new HeatDissipationData
+            {
+                HeatSinks = 0,
+                EngineHeatSinks = 0,
+                DissipationPoints = 0
+            },
+            ExternalHeatSources = []
+        });
+        sut.ResetTurnState();
+    
+        var weapon = new MediumLaser();
+        var leftArm = sut.Parts[PartLocation.LeftArm];
+        leftArm.TryAddComponent(weapon);
+        sut.WeaponAttackState.SetWeaponTarget(weapon, Substitute.For<IUnit>(), sut);
+    
+        var engine = sut.GetAllComponents<Engine>().First();
+        engine.Hit();
+    
+        sut.GetProjectedHeatValue(Substitute.For<IRulesProvider>()).ShouldBe(13);
     }
 
     [Fact]
