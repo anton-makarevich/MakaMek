@@ -1,4 +1,5 @@
 ﻿using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
@@ -16,8 +17,6 @@ public class WeaponsEngine : IBotDecisionEngine
     private readonly IClientGame _clientGame;
     private readonly ITacticalEvaluator _tacticalEvaluator;
     
-    public const double HitProbabilityThreshold = 0.3;
-
     public WeaponsEngine(IClientGame clientGame, ITacticalEvaluator tacticalEvaluator)
     {
         _clientGame = clientGame;
@@ -68,25 +67,20 @@ public class WeaponsEngine : IBotDecisionEngine
             
             Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestTargetScore.Score:F1}");
 
-            // Filter weapons that can actually hit reliably
-            var weaponsToFire = bestTargetScore.ViableWeapons
-                .Where(w => w.HitProbability >= HitProbabilityThreshold)
-                .ToList();
-
-            if (weaponsToFire.Count == 0)
-            {
-                // No weapons hit the threshold, declare empty attack
-                await DeclareWeaponAttack(player, attacker, []);
-                return;
-            }
-
-            // Create weapon target data for selected weapons
-            var weaponTargets = weaponsToFire.Select(evaluation => new WeaponTargetData
+            var weaponTargets = SelectWeapons(attacker, bestTargetScore, target)
+                .Select(evaluation => new WeaponTargetData
             {
                 Weapon = evaluation.Weapon.ToData(),
                 TargetId = target.Id,
                 IsPrimaryTarget = true
             }).ToList();
+
+            if (weaponTargets.Count == 0)
+            {
+                // No suitable weapons selected, declare empty attack
+                await DeclareWeaponAttack(player, attacker, []);
+                return;
+            }
 
             // Declare weapon attack
             await DeclareWeaponAttack(player, attacker, weaponTargets);
@@ -132,6 +126,43 @@ public class WeaponsEngine : IBotDecisionEngine
         }
         // Send a weapon attack declaration with an empty weapon list
         await DeclareWeaponAttack(player, unit, []);
+    }
+
+    private List<WeaponEvaluationData> SelectWeapons(IUnit attacker, TargetScore bestTargetScore, IUnit target)
+    {
+        var initialProjectedHeat = attacker.GetProjectedHeatValue(_clientGame.RulesProvider);
+        var heatDissipation = attacker.HeatDissipation;
+        var heatThreshold = GetHeatSelectionThreshold();
+
+        var sortedWeapons = bestTargetScore.ViableWeapons
+            .Where(w => w.HitProbability > 0)
+            .OrderByDescending(w => w.HitProbability)
+            .ThenByDescending(w => w.Weapon.Damage)
+            .ToList();
+
+        if (sortedWeapons.Count == 0)
+            return [];
+
+        var selectedWeapons = new List<WeaponEvaluationData>();
+        var selectedHeat = 0;
+
+        foreach (var evaluation in sortedWeapons)
+        {
+            var nextSelectedHeat = selectedHeat + evaluation.Weapon.Heat;
+            if (initialProjectedHeat + nextSelectedHeat - heatDissipation > heatThreshold)
+                return selectedWeapons;
+            
+            selectedWeapons.Add(evaluation);
+            selectedHeat = nextSelectedHeat;
+        }
+
+        return selectedWeapons;
+    }
+
+    private static int GetHeatSelectionThreshold()
+    {
+        // TODO: Calculate based on risk assessment (hit probability, damage, and heat penalty risks).
+        return 5;
     }
 }
 

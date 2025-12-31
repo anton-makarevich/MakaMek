@@ -146,10 +146,12 @@ public class WeaponsEngineTests
     }
 
     [Fact]
-    public async Task MakeDecision_WhenNoWeaponsMeetThreshold_ShouldDeclareEmptyAttack()
+    public async Task MakeDecision_WhenAllWeaponsHaveZeroHitProbability_ShouldDeclareEmptyAttack()
     {
         var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
             position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        attacker.GetProjectedHeatValue(_clientGame.RulesProvider).Returns(0);
+        attacker.HeatDissipation.Returns(0);
         _player.AliveUnits.Returns([attacker]);
 
         var enemy = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
@@ -175,7 +177,7 @@ public class WeaponsEngineTests
                     Score = 10,
                     ViableWeapons =
                     [
-                        new WeaponEvaluationData { Weapon = weapon, HitProbability = WeaponsEngine.HitProbabilityThreshold - 0.01 }
+                        new WeaponEvaluationData { Weapon = weapon, HitProbability = 0 }
                     ]
                 }
             ]);
@@ -196,10 +198,12 @@ public class WeaponsEngineTests
     }
 
     [Fact]
-    public async Task MakeDecision_WhenWeaponsMeetThreshold_ShouldDeclareWeaponAttackWithSelectedWeapons()
+    public async Task MakeDecision_WhenWeaponsFitHeatBudget_ShouldSelectWeaponsSortedByProbabilityThenDamage()
     {
         var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
             position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        attacker.GetProjectedHeatValue(_clientGame.RulesProvider).Returns(0);
+        attacker.HeatDissipation.Returns(0);
         _player.AliveUnits.Returns([attacker]);
 
         var enemy = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
@@ -214,11 +218,13 @@ public class WeaponsEngineTests
 
         var enemyId = enemy.Id;
 
-        var belowThresholdWeapon = new TestWeapon(new WeaponDefinition("Below", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var highProbHighDamage = new TestWeapon(new WeaponDefinition("HighProbHighDamage", 10, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
-        var atThresholdWeapon = new TestWeapon(new WeaponDefinition("At", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var highProbLowDamage = new TestWeapon(new WeaponDefinition("HighProbLowDamage", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
-        var aboveThresholdWeapon = new TestWeapon(new WeaponDefinition("Above", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var midProb = new TestWeapon(new WeaponDefinition("MidProb", 20, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+            WeaponComponentType: MakaMekComponent.MachineGun));
+        var zeroProb = new TestWeapon(new WeaponDefinition("ZeroProb", 999, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
@@ -229,9 +235,71 @@ public class WeaponsEngineTests
                     Score = 10,
                     ViableWeapons =
                     [
-                        new WeaponEvaluationData { Weapon = belowThresholdWeapon, HitProbability = 0.2 },
-                        new WeaponEvaluationData { Weapon = atThresholdWeapon, HitProbability = 0.3 },
-                        new WeaponEvaluationData { Weapon = aboveThresholdWeapon, HitProbability = 0.8 },
+                        new WeaponEvaluationData { Weapon = midProb, HitProbability = 0.6 },
+                        new WeaponEvaluationData { Weapon = highProbLowDamage, HitProbability = 0.9 },
+                        new WeaponEvaluationData { Weapon = zeroProb, HitProbability = 0 },
+                        new WeaponEvaluationData { Weapon = highProbHighDamage, HitProbability = 0.9 },
+                    ]
+                }
+            ]);
+
+        WeaponAttackDeclarationCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.DeclareWeaponAttack(Arg.Do<WeaponAttackDeclarationCommand>(cmd =>
+        {
+            capturedCommand = cmd;
+            commandCaptured = true;
+        }));
+
+        await _sut.MakeDecision(_player);
+
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.UnitId.ShouldBe(attacker.Id);
+        capturedCommand.WeaponTargets.Count.ShouldBe(3);
+        capturedCommand.WeaponTargets.All(wt => wt.TargetId == enemy.Id).ShouldBeTrue();
+        capturedCommand.WeaponTargets.All(wt => wt.IsPrimaryTarget).ShouldBeTrue();
+        capturedCommand.WeaponTargets.Select(wt => wt.Weapon.Name).ShouldBe(["HighProbHighDamage", "HighProbLowDamage", "MidProb"]);
+    }
+
+    [Fact]
+    public async Task MakeDecision_WhenHeatBudgetPreventsAllWeapons_ShouldSelectOnlyWeaponsWithinBudget()
+    {
+        var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        attacker.GetProjectedHeatValue(_clientGame.RulesProvider).Returns(4);
+        attacker.HeatDissipation.Returns(1);
+        _player.AliveUnits.Returns([attacker]);
+
+        var enemy = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+            isDeployed: true,
+            name: "Enemy");
+        var enemyPlayer = Substitute.For<IPlayer>();
+        enemyPlayer.Id.Returns(Guid.NewGuid());
+        enemyPlayer.AliveUnits.Returns([enemy]);
+
+        _clientGame.Players.Returns([_player, enemyPlayer]);
+
+        var enemyId = enemy.Id;
+
+        var lowHeat = new TestWeapon(new WeaponDefinition("LowHeat", 5, 0, 0, 3, 6, 9, WeaponType.Energy, 100,
+            WeaponComponentType: MakaMekComponent.MachineGun));
+        var someHeat = new TestWeapon(new WeaponDefinition("SomeHeat", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+            WeaponComponentType: MakaMekComponent.MachineGun));
+        var tooMuchHeat = new TestWeapon(new WeaponDefinition("TooMuchHeat", 50, 2, 0, 3, 6, 9, WeaponType.Energy, 100,
+            WeaponComponentType: MakaMekComponent.MachineGun));
+
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+            .Returns([
+                new TargetScore
+                {
+                    TargetId = enemyId,
+                    Score = 10,
+                    ViableWeapons =
+                    [
+                        new WeaponEvaluationData { Weapon = tooMuchHeat, HitProbability = 0.9 },
+                        new WeaponEvaluationData { Weapon = lowHeat, HitProbability = 0.8 },
+                        new WeaponEvaluationData { Weapon = someHeat, HitProbability = 0.7 },
                     ]
                 }
             ]);
@@ -249,9 +317,7 @@ public class WeaponsEngineTests
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
         capturedCommand.WeaponTargets.Count.ShouldBe(2);
-        capturedCommand.WeaponTargets.All(wt => wt.TargetId == enemy.Id).ShouldBeTrue();
-        capturedCommand.WeaponTargets.All(wt => wt.IsPrimaryTarget).ShouldBeTrue();
-        capturedCommand.WeaponTargets.Select(wt => wt.Weapon.Name).ShouldBe(["At", "Above"]);
+        capturedCommand.WeaponTargets.Select(wt => wt.Weapon.Name).ShouldBe(["TooMuchHeat", "LowHeat"]);
     }
 
     [Fact]
