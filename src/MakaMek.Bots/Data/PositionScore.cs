@@ -33,5 +33,5 @@ public readonly record struct PositionScore
     /// </summary>
     public required double OffensiveIndex { get; init; }
     
-    public required bool IsEnemyInRearArc { get; init; }
+    public required int EnemiesInRearArc { get; init; }
 }

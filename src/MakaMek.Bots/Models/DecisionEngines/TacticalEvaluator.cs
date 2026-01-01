@@ -43,7 +43,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             Path = path,
             DefensiveIndex = defensiveIndex.Score,
             OffensiveIndex = offensiveIndex,
-            IsEnemyInRearArc = defensiveIndex.IsEnemyInRearArc
+            EnemiesInRearArc = defensiveIndex.EnemiesInRearArc
         };
     }
     
@@ -104,9 +104,9 @@ public class TacticalEvaluator : ITacticalEvaluator
         MovementPath defenderPath,
         IReadOnlyList<IUnit> enemyUnits)
     {
-        var isEnemyInRearArc = false;
+        var enemiesInRearArc = 0;
         if (_game.BattleMap == null)
-            return new PathDefensiveScore(0, isEnemyInRearArc);
+            return new PathDefensiveScore(0, enemiesInRearArc);
 
         double defensiveIndex = 0;
         var position = defenderPath.Destination; 
@@ -131,8 +131,8 @@ public class TacticalEvaluator : ITacticalEvaluator
             
             // Determine which arc of the friendly unit would be hit
             var targetArc = GetFiringArcFromPosition(position, enemy.Position.Coordinates);
-            if (targetArc == FiringArc.Rear && !isEnemyInRearArc)
-                isEnemyInRearArc = true;
+            if (targetArc == FiringArc.Rear)
+                enemiesInRearArc++;
             var arcMultiplier = targetArc.GetArcMultiplier();
             
             foreach (var weapon in weapons)
@@ -156,7 +156,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             }
         }
 
-        return new PathDefensiveScore(defensiveIndex, isEnemyInRearArc);
+        return new PathDefensiveScore(defensiveIndex, enemiesInRearArc);
     }
     
     /// <summary>
