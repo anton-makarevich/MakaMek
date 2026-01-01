@@ -32,4 +32,6 @@ public readonly record struct PositionScore
     /// Offensive potential index - higher is better (more damage potential)
     /// </summary>
     public required double OffensiveIndex { get; init; }
+    
+    public required bool IsEnemyInRearArc { get; init; }
 }
