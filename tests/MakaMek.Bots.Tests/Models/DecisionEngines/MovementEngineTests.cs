@@ -612,7 +612,7 @@ public class MovementEngineTests
         // Act
         await _sut.MakeDecision(_player);
 
-        // Assert - should pick path 2 (EnemiesInRearArc 0)
+        // Assert - should pick path 2 as it includes more hexes
         commandCaptured.ShouldBeTrue();
         capturedCommand.MovementPath[^1].To.Coordinates.ShouldBe(targetHex2.ToData());
     }

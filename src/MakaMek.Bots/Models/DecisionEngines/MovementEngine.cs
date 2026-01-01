@@ -255,7 +255,7 @@ public class MovementEngine : IBotDecisionEngine
 
         Console.WriteLine($"[MovementEngine] {unit.Name} moving to {bestScore.Position.Coordinates} " +
                          $"using {bestScore.MovementType} (Offensive: {bestScore.OffensiveIndex:F1}, " +
-                         $"Defensive: {bestScore.DefensiveIndex:F1})");
+                         $"Defensive: {bestScore.DefensiveIndex:F1}, EnemiesInRearArc: {bestScore.EnemiesInRearArc})");
 
         // Execute the move using the stored path (no need to recalculate)
         await MoveUnit(player, unit, bestScore.Path);
