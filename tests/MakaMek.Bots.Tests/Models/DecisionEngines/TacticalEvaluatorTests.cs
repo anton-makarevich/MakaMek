@@ -313,5 +313,44 @@ public class TacticalEvaluatorTests
         results[0].ViableWeapons[0].HitProbability.ShouldBe(DiceUtils.Calculate2d6Probability(8));
     }
 
+    [Fact]
+    public async Task EvaluatePath_WhenEnemyInRearArc_ShouldCorrectlyCountEnemiesInRearArc_EvenIfNoLoS()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        
+        // Bot moves from (0715) facing Top to (0616) facing BottomRight
+        var startPosition = new HexPosition(new HexCoordinates(7, 15), HexDirection.Top);
+        unit.Position.Returns(startPosition);
+        var destinationPosition = new HexPosition(new HexCoordinates(6, 16), HexDirection.BottomRight);
+        var path = MovementPath.CreateStandingStillPath(destinationPosition);
+        
+        // Enemy at (0112) facing BottomRight - should be in the rear arc of destination position
+        var enemy = MovementEngineTests.CreateTestMech();
+        var enemyPosition = new HexPosition(new HexCoordinates(1, 12), HexDirection.BottomRight);
+        enemy.Move(new MovementPath(new List<PathSegment>
+        {
+            new(enemyPosition, enemyPosition, 0)
+        }, MovementType.Walk));
+        
+        var enemies = new List<IUnit> { enemy };
+
+        // Enemy should be counted even if there is no LoS
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(false);
+        
+        // Setup ToHit
+        const int toHitNumber = 8;
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(toHitNumber);
+
+        // Act
+        var result = await _sut.EvaluatePath(unit, path, enemies);
+
+        // Assert
+        // The enemy at (0112) should be correctly identified as being in the rear arc
+        // of a unit at (0616) facing BottomRight
+        result.EnemiesInRearArc.ShouldBe(1, "Enemy at (0112) should be in rear arc of unit at (0616) facing BottomRight");
+    }
+
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
 }
