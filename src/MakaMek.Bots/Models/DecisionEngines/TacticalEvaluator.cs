@@ -118,6 +118,11 @@ public class TacticalEvaluator : ITacticalEvaluator
             
             var enemyPath = enemy.MovementTaken ?? MovementPath.CreateStandingStillPath(enemy.Position);
 
+            // Determine which arc of the friendly unit would be hit
+            var targetArc = GetFiringArcFromPosition(position, enemy.Position.Coordinates);
+            if (targetArc == FiringArc.Rear)
+                enemiesInRearArc++;
+            
             // Check line of sight
             if (!_game.BattleMap.HasLineOfSight(enemy.Position.Coordinates, position.Coordinates))
                 continue;
@@ -129,10 +134,7 @@ public class TacticalEvaluator : ITacticalEvaluator
                 .SelectMany(p => p.GetComponents<Weapon>())
                 .Where(w => w.IsAvailable);
             
-            // Determine which arc of the friendly unit would be hit
-            var targetArc = GetFiringArcFromPosition(position, enemy.Position.Coordinates);
-            if (targetArc == FiringArc.Rear)
-                enemiesInRearArc++;
+            
             var arcMultiplier = targetArc.GetArcMultiplier();
             
             foreach (var weapon in weapons)
