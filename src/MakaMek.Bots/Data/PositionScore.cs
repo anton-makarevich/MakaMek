@@ -32,4 +32,9 @@ public readonly record struct PositionScore
     /// Offensive potential index - higher is better (more damage potential)
     /// </summary>
     public required double OffensiveIndex { get; init; }
+    
+    /// <summary>
+    /// The number of enemy units that can fire into the rear arc
+    /// </summary>
+    public required int EnemiesInRearArc { get; init; }
 }

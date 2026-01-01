@@ -41,8 +41,9 @@ public class TacticalEvaluator : ITacticalEvaluator
             Position = path.Destination,
             MovementType = path.MovementType,
             Path = path,
-            DefensiveIndex = defensiveIndex,
-            OffensiveIndex = offensiveIndex
+            DefensiveIndex = defensiveIndex.Score,
+            OffensiveIndex = offensiveIndex,
+            EnemiesInRearArc = defensiveIndex.EnemiesInRearArc
         };
     }
     
@@ -99,12 +100,13 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="defenderPath">The position to evaluate and path to get to it</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <returns>Defensive threat index (lower is better)</returns>
-    private double CalculateDefensiveIndex(
+    private PathDefensiveScore CalculateDefensiveIndex(
         MovementPath defenderPath,
         IReadOnlyList<IUnit> enemyUnits)
     {
+        var enemiesInRearArc = 0;
         if (_game.BattleMap == null)
-            return 0;
+            return new PathDefensiveScore(0, enemiesInRearArc);
 
         double defensiveIndex = 0;
         var position = defenderPath.Destination; 
@@ -126,7 +128,13 @@ public class TacticalEvaluator : ITacticalEvaluator
             var weapons = enemy.Parts.Values
                 .SelectMany(p => p.GetComponents<Weapon>())
                 .Where(w => w.IsAvailable);
-
+            
+            // Determine which arc of the friendly unit would be hit
+            var targetArc = GetFiringArcFromPosition(position, enemy.Position.Coordinates);
+            if (targetArc == FiringArc.Rear)
+                enemiesInRearArc++;
+            var arcMultiplier = targetArc.GetArcMultiplier();
+            
             foreach (var weapon in weapons)
             {
                 // Check if the weapon can fire at this range
@@ -141,18 +149,14 @@ public class TacticalEvaluator : ITacticalEvaluator
                 // Calculate hit probability using ToHitCalculator with full accuracy
                 // For defensive calculation, we're the target
                 var hitProbability = CalculateHitProbability(enemy, enemyPath, defenderPath, weapon);
-
-                // Determine which arc of the friendly unit would be hit
-                var targetArc = GetFiringArcFromPosition(position, enemy.Position.Coordinates);
-                var arcMultiplier = targetArc.GetArcMultiplier();
-
+                
                 // Calculate threat value
                 var threatValue = hitProbability * weapon.Damage * arcMultiplier;
                 defensiveIndex += threatValue;
             }
         }
 
-        return defensiveIndex;
+        return new PathDefensiveScore(defensiveIndex, enemiesInRearArc);
     }
     
     /// <summary>

@@ -210,7 +210,8 @@ public class MovementEngineTests
             MovementType = MovementType.Walk,
             Path = movementPath,
             OffensiveIndex = 10,
-            DefensiveIndex = 5
+            DefensiveIndex = 5,
+            EnemiesInRearArc = 0
         };
         _tacticalEvaluator.EvaluatePath(unit, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns(positionScore);
@@ -421,7 +422,8 @@ public class MovementEngineTests
                     MovementType = path.MovementType,
                     Path = path,
                     OffensiveIndex = 10,
-                    DefensiveIndex = 5
+                    DefensiveIndex = 5,
+                    EnemiesInRearArc = 0
                 };
             });
         
@@ -469,7 +471,8 @@ public class MovementEngineTests
                     MovementType = path.MovementType,
                     Path = path,
                     OffensiveIndex = score,
-                    DefensiveIndex = 5
+                    DefensiveIndex = 5,
+                    EnemiesInRearArc = 0
                 };
             });
         
@@ -531,7 +534,8 @@ public class MovementEngineTests
                     MovementType = path.MovementType,
                     Path = path,
                     OffensiveIndex = offensiveIndex,
-                    DefensiveIndex = defensiveIndex
+                    DefensiveIndex = defensiveIndex,
+                    EnemiesInRearArc = 0
                 };
             });
         
@@ -545,8 +549,131 @@ public class MovementEngineTests
         // Assert
         commandCaptured.ShouldBeTrue();
         capturedCommand.MovementPath.Count.ShouldBe(1);
-        capturedCommand.MovementPath[0].To.Coordinates
+        capturedCommand.MovementPath[^1].To.Coordinates
             .ShouldBe(optimalOption == 1 ? targetHex1.ToData() : targetHex2.ToData());
+    }
+
+    [Fact]
+    public async Task ExecuteMoveForUnit_WhenAllScoresTied_ShouldPreferMoreHexesTraveled()
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        _player.AliveUnits.Returns([mech]);
+        _clientGame.Players.Returns([_player]);
+
+        var targetHex1 = new HexCoordinates(2, 2);
+        var targetHex2 = new HexCoordinates(3, 3);
+        var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns(reachableHexes);
+
+        var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
+        var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
+
+        // Path 1: shorter
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
+        var path1 = new MovementPath([pathSegment1], MovementType.Walk);
+
+        // Path 2: longer (two segments, different hexes)
+        var intermediate = new HexPosition(new HexCoordinates(2, 3), HexDirection.Top);
+        var pathSegment2A = new PathSegment(mech.Position!, intermediate, 1);
+        var pathSegment2B = new PathSegment(intermediate, targetPosition2, 1);
+        var path2 = new MovementPath([pathSegment2A, pathSegment2B], MovementType.Walk);
+
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns(callInfo =>
+            {
+                var destination = callInfo.ArgAt<HexPosition>(1);
+                return destination.Coordinates.ToData() == targetHex1.ToData() ? path1 : path2;
+            });
+
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+            .Returns(callInfo =>
+            {
+                var path = callInfo.ArgAt<MovementPath>(1);
+
+                // Tied primary scores
+                return new PositionScore
+                {
+                    Position = path.Destination,
+                    MovementType = path.MovementType,
+                    Path = path,
+                    OffensiveIndex = 0,
+                    DefensiveIndex = 0,
+                    EnemiesInRearArc = 0
+                };
+            });
+
+        MoveUnitCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
+
+        // Act
+        await _sut.MakeDecision(_player);
+
+        // Assert - should pick path 2 as it includes more hexes
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.MovementPath[^1].To.Coordinates.ShouldBe(targetHex2.ToData());
+    }
+
+    [Fact]
+    public async Task ExecuteMoveForUnit_ShouldPreferFrontFacingPositions_WhenRearArcExposureDiffers()
+    {
+        // Arrange
+        var mech = CreateTestMech();
+        _player.AliveUnits.Returns([mech]);
+        _clientGame.Players.Returns([_player]);
+
+        var targetHex1 = new HexCoordinates(2, 2);
+        var targetHex2 = new HexCoordinates(3, 3);
+        var reachableHexes = new List<(HexCoordinates coordinates, int cost)> { (targetHex1, 1), (targetHex2, 1) };
+        _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns(reachableHexes);
+
+        var targetPosition1 = new HexPosition(targetHex1, HexDirection.Top);
+        var targetPosition2 = new HexPosition(targetHex2, HexDirection.Top);
+        var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
+        var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 1);
+        var path1 = new MovementPath([pathSegment1], MovementType.Walk);
+        var path2 = new MovementPath([pathSegment2], MovementType.Walk);
+
+        _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns(callInfo =>
+            {
+                var destination = callInfo.ArgAt<HexPosition>(1);
+                return destination.Coordinates.ToData() == targetHex1.ToData() ? path1 : path2;
+            });
+
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+            .Returns(callInfo =>
+            {
+                var path = callInfo.ArgAt<MovementPath>(1);
+
+                // Both defensive/offensive are equal, only rear-arc differs
+                var enemiesInRearArc = path.Destination.Coordinates.ToData() == targetHex1.ToData() ? 2 : 1;
+                return new PositionScore
+                {
+                    Position = path.Destination,
+                    MovementType = path.MovementType,
+                    Path = path,
+                    OffensiveIndex = 0,
+                    DefensiveIndex = 0,
+                    EnemiesInRearArc = enemiesInRearArc
+                };
+            });
+
+        MoveUnitCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
+
+        // Act
+        await _sut.MakeDecision(_player);
+
+        // Assert
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.MovementPath[^1].To.Coordinates.ShouldBe(targetHex2.ToData());
     }
     
     [Fact]
@@ -658,7 +785,8 @@ public class MovementEngineTests
             MovementType = MovementType.Walk,
             Path = movementPath,
             OffensiveIndex = 10,
-            DefensiveIndex = 5
+            DefensiveIndex = 5,
+            EnemiesInRearArc = 0
         };
         
         _tacticalEvaluator.EvaluatePath(Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
