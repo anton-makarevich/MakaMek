@@ -37,8 +37,8 @@ In progress (v 0.47.0 +). Combat against AI opponents
 - Bot player framework with a decision engine for each game phase
 - Basic movement and weapon targeting decisions
 - Tactical evaluation for movement and weapon decisions
-- Basic heat management and shutdown decisions
-- Basic end phase decisions (pilot damage, unit restart, etc.)
+- Basic end phase decisions (shutdown/restart decisions, etc.)
+- Considering heat and ammo rounds for weapon selection
 
 ### Future Phases
 - Support of map Levels and extended terrain types
