@@ -16,6 +16,10 @@ public class WeaponsEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
     private readonly ITacticalEvaluator _tacticalEvaluator;
+
+    // TODO: move all the params like that into config
+    // Higher values make the bot more conservative with ammo
+    private const double AmmoConservationFactor = 3d;
     
     public WeaponsEngine(IClientGame clientGame, ITacticalEvaluator tacticalEvaluator)
     {
@@ -152,11 +156,29 @@ public class WeaponsEngine : IBotDecisionEngine
             if (initialProjectedHeat + nextSelectedHeat - heatDissipation > heatThreshold)
                 continue;
             
-            selectedWeapons.Add(evaluation);
-            selectedHeat = nextSelectedHeat;
+            if (IsFiringWeaponJustified(attacker, evaluation))
+            {
+                selectedWeapons.Add(evaluation);
+                selectedHeat = nextSelectedHeat;
+            }
         }
 
         return selectedWeapons;
+    }
+
+    private static bool IsFiringWeaponJustified(IUnit attacker, WeaponEvaluationData evaluation)
+    {
+        if (!evaluation.Weapon.RequiresAmmo)
+            return true;
+
+        var remainingShots = attacker.GetRemainingAmmoShots(evaluation.Weapon);
+        if (remainingShots <= 0)
+            return false;
+
+        var requiredHitProbability = AmmoConservationFactor / (remainingShots + AmmoConservationFactor);
+        requiredHitProbability = Math.Clamp(requiredHitProbability, 0d, 1d);
+
+        return evaluation.HitProbability >= requiredHitProbability;
     }
 
     private static int GetHeatSelectionThreshold()
