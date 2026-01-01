@@ -266,7 +266,7 @@ public class WeaponsEngineTests
     {
         var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
             position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
-        attacker.GetProjectedHeatValue(_clientGame.RulesProvider).Returns(4);
+        attacker.GetProjectedHeatValue(_clientGame.RulesProvider).Returns(3);
         attacker.HeatDissipation.Returns(1);
         _player.AliveUnits.Returns([attacker]);
 
@@ -282,11 +282,11 @@ public class WeaponsEngineTests
 
         var enemyId = enemy.Id;
 
-        var lowHeat = new TestWeapon(new WeaponDefinition("LowHeat", 5, 0, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var lowHeat = new TestWeapon(new WeaponDefinition("LowHeat", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
-        var someHeat = new TestWeapon(new WeaponDefinition("SomeHeat", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var someHeat = new TestWeapon(new WeaponDefinition("SomeHeat", 5, 2, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
-        var tooMuchHeat = new TestWeapon(new WeaponDefinition("TooMuchHeat", 50, 2, 0, 3, 6, 9, WeaponType.Energy, 100,
+        var tooMuchHeat = new TestWeapon(new WeaponDefinition("TooMuchHeat", 5, 10, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
@@ -317,7 +317,7 @@ public class WeaponsEngineTests
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
         capturedCommand.WeaponTargets.Count.ShouldBe(2);
-        capturedCommand.WeaponTargets.Select(wt => wt.Weapon.Name).ShouldBe(["TooMuchHeat", "LowHeat"]);
+        capturedCommand.WeaponTargets.Select(wt => wt.Weapon.Name).ShouldBe(["LowHeat","SomeHeat"]);
     }
 
     [Fact]

@@ -67,7 +67,7 @@ public class WeaponsEngine : IBotDecisionEngine
             
             Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestTargetScore.Score:F1}");
 
-            var weaponTargets = SelectWeapons(attacker, bestTargetScore, target)
+            var weaponTargets = SelectWeapons(attacker, bestTargetScore)
                 .Select(evaluation => new WeaponTargetData
             {
                 Weapon = evaluation.Weapon.ToData(),
@@ -128,7 +128,7 @@ public class WeaponsEngine : IBotDecisionEngine
         await DeclareWeaponAttack(player, unit, []);
     }
 
-    private List<WeaponEvaluationData> SelectWeapons(IUnit attacker, TargetScore bestTargetScore, IUnit target)
+    private List<WeaponEvaluationData> SelectWeapons(IUnit attacker, TargetScore bestTargetScore)
     {
         var initialProjectedHeat = attacker.GetProjectedHeatValue(_clientGame.RulesProvider);
         var heatDissipation = attacker.HeatDissipation;
@@ -150,7 +150,7 @@ public class WeaponsEngine : IBotDecisionEngine
         {
             var nextSelectedHeat = selectedHeat + evaluation.Weapon.Heat;
             if (initialProjectedHeat + nextSelectedHeat - heatDissipation > heatThreshold)
-                return selectedWeapons;
+                continue;
             
             selectedWeapons.Add(evaluation);
             selectedHeat = nextSelectedHeat;
