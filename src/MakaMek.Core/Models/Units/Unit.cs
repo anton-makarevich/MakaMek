@@ -265,6 +265,26 @@ public abstract class Unit : IUnit
         };
     }
     
+    public int GetProjectedHeatValue(IRulesProvider rulesProvider)
+    {
+        if (HasAppliedHeat)
+        {
+            return CurrentHeat;
+        }
+
+        var heatData = GetHeatData(rulesProvider);
+
+        var movementHeat = heatData.MovementHeatSources.Sum(source => source.HeatPoints);
+
+        var weaponHeat = HasDeclaredWeaponAttack
+            ? heatData.WeaponHeatSources.Sum(source => source.HeatPoints)
+            : WeaponAttackState.SelectedWeapons.Sum(weapon => weapon.Heat);
+
+        var engineHeat = heatData.EngineHeatSource?.Value ?? 0;
+
+        return CurrentHeat + movementHeat + weaponHeat + engineHeat;
+    }
+    
     public void ApplyHeat(HeatData heatData)
     {
         CurrentHeat = Math.Max(0,

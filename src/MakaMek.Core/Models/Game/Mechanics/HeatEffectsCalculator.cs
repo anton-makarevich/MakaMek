@@ -42,14 +42,14 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
 
         var currentHeat = mech.CurrentHeat;
 
-        // Get the avoid number based on current heat level
+        // Get the avoidance number based on the current heat level
         var avoidNumber = GetShutdownAvoidNumber(currentHeat);
         
         // If avoidNumber is 0, no shutdown check is needed
         if (avoidNumber < DiceUtils.Guaranteed2D6Roll)
             return null;
         
-        // Check if pilot is conscious (unconscious pilots automatically fail)
+        // Check if a pilot is conscious (unconscious pilots automatically fail)
         var isConsciousPilot = mech.Pilot?.IsConscious == true;
         
         // Check for automatic shutdown (avoidNumber 13 means automatic shutdown)

@@ -130,6 +130,8 @@ public interface IUnit
     /// <returns>A HeatData object containing all heat sources and dissipation information</returns>
     HeatData GetHeatData(IRulesProvider rulesProvider);
 
+    int GetProjectedHeatValue(IRulesProvider rulesProvider);
+
     void ApplyHeat(HeatData heatData);
 
     /// <summary>
@@ -163,7 +165,7 @@ public interface IUnit
     /// <summary>
     /// Declares weapon attacks against target units
     /// </summary>
-    /// <param name="weaponTargets">The weapon target data containing weapon locations, slots and target IDs</param>
+    /// <param name="weaponTargets">The weapon target data containing weapon locations, slots, and target IDs</param>
     void DeclareWeaponAttack(List<WeaponTargetData> weaponTargets);
 
     /// <summary>
