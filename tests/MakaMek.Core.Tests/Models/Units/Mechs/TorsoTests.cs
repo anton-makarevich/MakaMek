@@ -274,4 +274,22 @@ public class TorsoTests
         options[0].Type.ShouldBe(WeaponConfigurationType.TorsoRotation);
         options[0].AvailableDirections.ShouldBe([HexDirection.TopRight, HexDirection.TopLeft]);
     }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnTrue_WhenTorsoRotationIsPossible()
+    {
+        var sut = new TestTorso("Torso", PartLocation.CenterTorso, 10, 10, 10);
+        var mech = new Mech("Test", "TST-1A", 50, [sut], possibleTorsoRotation: 1);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnFalse_WhenTorsoRotationIsNotPossible()
+    {
+        var sut = new TestTorso("Torso", PartLocation.CenterTorso, 10, 10, 10);
+        
+        sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeFalse();
+    }
 }
