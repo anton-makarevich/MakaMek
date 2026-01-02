@@ -18,7 +18,7 @@ public class UnitPartTests
     {
         internal override bool CanBeBlownOff =>true;
 
-        public override IReadOnlyList<Sanet.MakaMek.Core.Models.Game.WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
         {
             return [];
         }

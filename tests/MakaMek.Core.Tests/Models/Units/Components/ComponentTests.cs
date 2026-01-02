@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Exceptions;
@@ -21,7 +22,7 @@ public class ComponentTests
     {
         internal override bool CanBeBlownOff => true;
 
-        public override IReadOnlyList<Sanet.MakaMek.Core.Models.Game.WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
         {
             return [];
         }

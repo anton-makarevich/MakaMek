@@ -1,5 +1,5 @@
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Game;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -24,6 +24,6 @@ public class Leg : UnitPart
 
     public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
     {
-        return new WeaponConfigurationOptions[] { };
+        return [];
     }
 }

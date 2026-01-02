@@ -1,5 +1,5 @@
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
-using Sanet.MakaMek.Core.Models.Game;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -33,23 +33,6 @@ public class Head : UnitPart
 
     public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
     {
-        if (Unit is not Mech mech || mech.Position == null || !mech.CanRotateTorso)
-        {
-            return [];
-        }
-
-        var availableDirections = MechPartsExtensions.GetAvailableTorsoRotationDirections(
-            mech.Position.Facing,
-            mech.PossibleTorsoRotation);
-
-        if (availableDirections.Count == 0)
-        {
-            return [];
-        }
-
-        return
-        [
-            new WeaponConfigurationOptions(WeaponConfigurationType.TorsoRotation, availableDirections)
-        ];
+        return this.GetAvailableTorsoRotationOptions();
     }
 }

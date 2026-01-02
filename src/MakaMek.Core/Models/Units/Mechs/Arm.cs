@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -31,26 +32,14 @@ public class Arm : UnitPart
             return [];
         }
 
-        var result = new List<WeaponConfigurationOptions>();
-
-        if (mech.CanRotateTorso)
-        {
-            var availableDirections = MechPartsExtensions.GetAvailableTorsoRotationDirections(
-                mech.Position.Facing,
-                mech.PossibleTorsoRotation);
-
-            if (availableDirections.Count > 0)
-            {
-                result.Add(new WeaponConfigurationOptions(WeaponConfigurationType.TorsoRotation, availableDirections));
-            }
-        }
+        var result =  this.GetAvailableTorsoRotationOptions();
 
         if (mech.CanFlipArms)
         {
             var oppositeFacing = (HexDirection)(((int)mech.Position.Facing + 3) % 6);
             result.Add(new WeaponConfigurationOptions(
                 WeaponConfigurationType.ArmsFlip,
-                [mech.Position.Facing, oppositeFacing]));
+                [oppositeFacing]));
         }
 
         return result;
