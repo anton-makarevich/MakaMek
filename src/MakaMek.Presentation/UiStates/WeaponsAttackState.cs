@@ -269,7 +269,7 @@ public class WeaponsAttackState : IUiState
             var torsoRotationOption = Attacker
                 .GetWeaponsConfigurationOptions()
                 .FirstOrDefault(o => o.Type == WeaponConfigurationType.TorsoRotation);
-            if (torsoRotationOption.AvailableDirections is { Count: > 0 })
+            if (torsoRotationOption.AvailableDirections is { Count: > 0 } && Attacker.Position != null)
             {
                 actions.Add(new StateAction(
                     _viewModel.LocalizationService.GetString("Action_TurnTorso"),
@@ -277,7 +277,7 @@ public class WeaponsAttackState : IUiState
                     () => 
                     {
                         UpdateAvailableDirections();
-                        _viewModel.ShowDirectionSelector(Attacker.Position!.Coordinates, _availableDirections);
+                        _viewModel.ShowDirectionSelector(Attacker.Position.Coordinates, _availableDirections);
                         CurrentStep = WeaponsAttackStep.WeaponsConfiguration;
                         _viewModel.NotifyStateChanged();
                     }));

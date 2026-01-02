@@ -122,11 +122,11 @@ public class Mech : Unit
         }
 
         var type = configCommand.Configuration.Type;
-        var targetDirection = (HexDirection)configCommand.Configuration.Value;
 
         switch (type)
         {
             case WeaponConfigurationType.TorsoRotation:
+                var targetDirection = (HexDirection)configCommand.Configuration.Value;
                 RotateTorso(targetDirection);
                 break;
             case WeaponConfigurationType.ArmsFlip:
