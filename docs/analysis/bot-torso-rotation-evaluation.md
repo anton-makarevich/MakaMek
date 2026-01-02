@@ -200,7 +200,7 @@ Capture the argmax:
 - `BestTorsoFacing` (the facing that maximizes offense)
 - Possibly `BestTargetScores` for that facing
 
-Anton: that should be the only change needed for the contract. The evaluator then will evaluate all possible torso facings and return the best one.
+**Anton:** that should be the only change needed for the contract. The evaluator then will evaluate all possible torso facings and return the best one.
 
 This enables `MovementEngine` to choose positions that are good *when combined with* an available torso twist.
 
@@ -262,7 +262,7 @@ Two safe options exist:
   - Re-run `EvaluateTargets` based on the now-updated unit state and re-select weapons.
   - This is safer if later other mechanics introduce dependencies (e.g., more modifiers based on facing).
 
-Anton: it should be option B, as decision engines are stateless, execution end with a command send, so once torso ratiation comad is sent we shold end the execution, the next one should be tiriggered by the server echo of the command.
+**Anton:** it should be option B, as decision engines are stateless, execution ends with a command sent, so once torso rotation command is sent we shold end the execution, the next one should be tirigered by the server echo of the command.
 
 ### 4) Integration with client command synchronization
 
@@ -272,7 +272,7 @@ Therefore, `WeaponsEngine` must:
 
 - `await` the `ConfigureUnitWeapons` task completion before attempting `DeclareWeaponAttack`.
 
-Anton: again it should not be "await" but another MakeDecision execution triggered by the server command
+**Anton:** again it should not be "await" but another MakeDecision execution trigered by the server command
 
 This matches the human UI’s implicit model (configure first, then declare).
 
