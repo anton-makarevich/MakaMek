@@ -188,17 +188,8 @@ public abstract class BaseGame : IGame
         var player = _players.FirstOrDefault(p => p.Id == configCommand.PlayerId);
 
         var unit = player?.Units.FirstOrDefault(u => u.Id == configCommand.UnitId);
-        if (unit == null) return;
 
-        switch (configCommand.Configuration.Type)
-        {
-            case WeaponConfigurationType.TorsoRotation when unit is Mech mech:
-                mech.RotateTorso((HexDirection)configCommand.Configuration.Value);
-                break;
-            case WeaponConfigurationType.ArmsFlip:
-                // Handle arms flip when implemented
-                break;
-        }
+        unit?.ApplyWeaponConfiguration(configCommand);
     }
     
     internal void OnWeaponsAttack(WeaponAttackDeclarationCommand attackCommand)

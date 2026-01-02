@@ -1,7 +1,9 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
@@ -734,6 +736,35 @@ public abstract class Unit : IUnit
     // UI events queue for unit events (damage, etc.)
     public IReadOnlyCollection<UiEvent> Notifications => _notifications.ToArray();
     public IReadOnlyList<UiEvent> Events => _events;
+
+    public IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    {
+        var merged = new Dictionary<WeaponConfigurationType, HashSet<HexDirection>>();
+
+        foreach (var part in Parts.Values)
+        {
+            foreach (var option in part.GetWeaponsConfigurationOptions())
+            {
+                if (!merged.TryGetValue(option.Type, out var set))
+                {
+                    set = [];
+                    merged[option.Type] = set;
+                }
+
+                foreach (var direction in option.AvailableDirections)
+                {
+                    set.Add(direction);
+                }
+            }
+        }
+
+        return merged
+            .OrderBy(kvp => kvp.Key)
+            .Select(kvp => new WeaponConfigurationOptions(kvp.Key, kvp.Value.OrderBy(d => (int)d).ToList()))
+            .ToList();
+    }
+
+    public abstract void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand);
 
     /// <summary>
     /// Adds an event to the unit's events queue

@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Events;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -247,5 +248,48 @@ public class TorsoTests
         var sut = new TestTorso("Test Torso", PartLocation.CenterTorso, 10, 10, 10);
         
         sut.GetFiringArcs(mountingOptions).ShouldBe([expectedArc]);
+    }
+
+    [Fact]
+    public void GetWeaponsConfigurationOptions_WhenNotDeployed_ShouldBeEmpty()
+    {
+        var torso = new TestTorso("Torso", PartLocation.CenterTorso, 10, 10, 10);
+        var mech = new Mech("Test", "TST-1A", 50, [torso]);
+
+        mech.IsDeployed.ShouldBeFalse();
+
+        torso.GetWeaponsConfigurationOptions().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetWeaponsConfigurationOptions_WhenDeployedAndCanRotateTorso_ShouldReturnTorsoRotationOptions()
+    {
+        var torso = new TestTorso("Torso", PartLocation.CenterTorso, 10, 10, 10);
+        var mech = new Mech("Test", "TST-1A", 50, [torso], possibleTorsoRotation: 1);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        var options = torso.GetWeaponsConfigurationOptions();
+
+        options.Count.ShouldBe(1);
+        options[0].Type.ShouldBe(WeaponConfigurationType.TorsoRotation);
+        options[0].AvailableDirections.ShouldBe([HexDirection.TopRight, HexDirection.TopLeft]);
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnTrue_WhenTorsoRotationIsPossible()
+    {
+        var sut = new TestTorso("Torso", PartLocation.CenterTorso, 10, 10, 10);
+        var mech = new Mech("Test", "TST-1A", 50, [sut], possibleTorsoRotation: 1);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnFalse_WhenTorsoRotationIsNotPossible()
+    {
+        var sut = new TestTorso("Torso", PartLocation.CenterTorso, 10, 10, 10);
+        
+        sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeFalse();
     }
 }

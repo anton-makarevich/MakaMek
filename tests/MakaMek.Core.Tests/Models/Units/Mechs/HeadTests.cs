@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
@@ -147,5 +148,45 @@ public class HeadTests
         var sut = new Head("Head",  8, 3);
         
         sut.GetFiringArcs(mountingOptions).ShouldBe([expectedArc]);
+    }
+    
+    [Fact]
+    public void GetWeaponsConfigurationOptions_ShouldBeEmpty_WhenNotDeployed()
+    {
+        var sut = new Head("Head",  8, 3);
+        
+        sut.GetWeaponsConfigurationOptions().ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void GetWeaponsConfigurationOptions_ShouldIncludeTorsoRotation_WhenDeployed()
+    {
+        var sut = new Head("Head",  8, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [sut], possibleTorsoRotation: 1);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        var options = sut.GetWeaponsConfigurationOptions();
+
+        options.Count.ShouldBe(1);
+        options[0].Type.ShouldBe(WeaponConfigurationType.TorsoRotation);
+        options[0].AvailableDirections.ShouldBe([HexDirection.TopRight, HexDirection.TopLeft]);
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnTrue_WhenTorsoRotationIsPossible()
+    {
+        var sut = new Head("Head",  8, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [sut], possibleTorsoRotation: 1);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnFalse_WhenTorsoRotationIsNotPossible()
+    {
+        var sut = new Head("Head",  8, 3);
+        
+        sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeFalse();
     }
 }

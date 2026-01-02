@@ -437,6 +437,7 @@ public class WeaponsAttackStateTests
     public void GetAvailableActions_InActionSelection_ReturnsTorsoAndTargetOptions()
     {
         // Arrange
+        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
         _sut.HandleUnitSelection(_unit1);
 
         // Act
@@ -469,6 +470,7 @@ public class WeaponsAttackStateTests
     public void GetAvailableActions_InActionSelection_ShouldNotReturnTarget_WhenCanNotFire()
     {
         // Arrange
+        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
         _sut.HandleUnitSelection(_unit1);
         // Destroy sensors
         var sensors = _unit1.GetAllComponents<Sensors>().First();
@@ -1399,6 +1401,7 @@ public class WeaponsAttackStateTests
     public void GetAvailableActions_InActionSelection_IncludesSkipAttackOption()
     {
         // Arrange
+        _unit1.Deploy(new HexPosition(1, 1, HexDirection.Bottom));
         _sut.HandleUnitSelection(_unit1);
 
         // Act

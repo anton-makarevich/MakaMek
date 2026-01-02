@@ -1,4 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
@@ -21,7 +23,8 @@ public class Mech : Unit
 
     public int StandupAttempts { private set; get; }
     public int PossibleTorsoRotation { get; }
-    
+    public bool CanFlipArms { get; }
+
     public HexDirection? TorsoDirection=> _parts.Values.OfType<Torso>().FirstOrDefault()?.Facing;
 
     public bool HasUsedTorsoTwist
@@ -40,10 +43,12 @@ public class Mech : Unit
         int tonnage,
         IEnumerable<UnitPart> parts,
         int possibleTorsoRotation = 1,
+        bool canFlipArms = false,
         Guid? id = null)
         : base(chassis, model, tonnage, parts, id)
     {
         PossibleTorsoRotation = possibleTorsoRotation;
+        CanFlipArms = canFlipArms;
         Status = UnitStatus.Active;
     }
 
@@ -108,6 +113,26 @@ public class Mech : Unit
         PartLocation.RightTorso => PartLocation.CenterTorso,
         _ => null
     };
+
+    public override void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand)
+    {
+        if (Position == null)
+        {
+            return;
+        }
+
+        var type = configCommand.Configuration.Type;
+
+        switch (type)
+        {
+            case WeaponConfigurationType.TorsoRotation:
+                var targetDirection = (HexDirection)configCommand.Configuration.Value;
+                RotateTorso(targetDirection);
+                break;
+            case WeaponConfigurationType.ArmsFlip:
+                break; //TODO to be implemented
+        }
+    }
     
     public override int EngineHeatSinks => GetAllComponents<Engine>().FirstOrDefault()?.NumberOfHeatSinks??0;
 

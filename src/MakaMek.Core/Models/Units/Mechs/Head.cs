@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -28,5 +29,10 @@ public class Head : UnitPart
         if (damage > 0)
             Unit?.Pilot?.Hit();
         return base.ApplyDamage(damage, direction, isExplosion);
+    }
+
+    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    {
+        return this.GetAvailableTorsoRotationOptions();
     }
 }

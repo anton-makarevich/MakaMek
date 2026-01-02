@@ -170,7 +170,7 @@ public class WeaponsAttackState : IUiState
     {
         if (!this.CanHumanPlayerAct()) return;
         if (CurrentStep != WeaponsAttackStep.WeaponsConfiguration 
-            || Attacker is not Mech mech 
+            || Attacker == null
             || !_availableDirections.Contains(direction)) return;
         
         _viewModel.HideDirectionSelector();
@@ -181,7 +181,7 @@ public class WeaponsAttackState : IUiState
             {
                 GameOriginId = Game.Id,
                 PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
-                UnitId = mech.Id,
+                UnitId = Attacker.Id,
                 Configuration = new WeaponConfiguration
                 {
                     Type = WeaponConfigurationType.TorsoRotation,
@@ -265,15 +265,20 @@ public class WeaponsAttackState : IUiState
             if (Attacker.IsImmobile) return actions;
             
             // Add torso rotation action if available
-            if (Attacker is Mech { CanRotateTorso: true } mech)
+            // TODO: once arms flip is implemented we should add an action per type instead of filtering
+            var torsoRotationOption = Attacker
+                .GetWeaponsConfigurationOptions()
+                .FirstOrDefault(o => o.Type == WeaponConfigurationType.TorsoRotation);
+            if (torsoRotationOption.AvailableDirections is { Count: > 0 })
             {
                 actions.Add(new StateAction(
                     _viewModel.LocalizationService.GetString("Action_TurnTorso"),
                     true,
                     () => 
                     {
+                        if (Attacker?.Position == null) return;
                         UpdateAvailableDirections();
-                        _viewModel.ShowDirectionSelector(mech.Position!.Coordinates, _availableDirections);
+                        _viewModel.ShowDirectionSelector(Attacker.Position.Coordinates, _availableDirections);
                         CurrentStep = WeaponsAttackStep.WeaponsConfiguration;
                         _viewModel.NotifyStateChanged();
                     }));
@@ -308,23 +313,17 @@ public class WeaponsAttackState : IUiState
 
     private void UpdateAvailableDirections()
     {
-        if (Attacker is not Mech mech || mech.Position == null) return;
-        
-        var currentFacing = (int)mech.Position.Facing;
         _availableDirections.Clear();
 
-        // Add available directions based on PossibleTorsoRotation
-        for (var i = 0; i < 6; i++)
-        {
-            var clockwiseSteps = (i - currentFacing + 6) % 6;
-            var counterClockwiseSteps = (currentFacing - i + 6) % 6;
-            var steps = Math.Min(clockwiseSteps, counterClockwiseSteps);
+        if (Attacker == null) return;
 
-            if (steps <= mech.PossibleTorsoRotation && steps > 0)
-            {
-                _availableDirections.Add((HexDirection)i);
-            }
-        }
+        var torsoRotationOption = Attacker
+            .GetWeaponsConfigurationOptions()
+            .FirstOrDefault(o => o.Type == WeaponConfigurationType.TorsoRotation);
+
+        if (torsoRotationOption.AvailableDirections is not { Count: > 0 }) return;
+
+        _availableDirections.AddRange(torsoRotationOption.AvailableDirections.OrderBy(d => (int)d));
     }
 
     private void HighlightWeaponRanges()

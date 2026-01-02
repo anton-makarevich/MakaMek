@@ -1,5 +1,7 @@
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -306,5 +308,12 @@ public abstract class UnitPart
         return mountingOptions == MountingOptions.Rear
             ? [FiringArc.Rear]
             : [FiringArc.Front];
+    }
+
+    public abstract IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions();
+
+    public bool IsWeaponConfigurationApplicable(WeaponConfigurationType type)
+    {
+        return GetWeaponsConfigurationOptions().Any(o => o.Type == type);
     }
 }

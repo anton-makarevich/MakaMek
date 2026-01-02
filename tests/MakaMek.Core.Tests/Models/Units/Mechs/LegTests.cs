@@ -70,4 +70,23 @@ public class LegTests
         
         sut.GetFiringArcs(mountingOptions).ShouldBe([expectedArc]);
     }
+    
+    [Fact]
+    public void GetWeaponsConfigurationOptions_ShouldBeEmpty_WhenNotDeployed()
+    {
+        var sut = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
+        
+        sut.GetWeaponsConfigurationOptions().ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void GetWeaponsConfigurationOptions_ShouldBeEmpty_WhenDeployed()
+    {
+        var sut = new Leg("Leg", PartLocation.LeftLeg, 8, 4);
+        var mech = new Mech("Test", "TST-1A", 4, [sut]);
+        var position = new HexPosition(new HexCoordinates(0, 0), HexDirection.TopRight);
+        mech.Deploy(position);
+        
+        sut.GetWeaponsConfigurationOptions().ShouldBeEmpty();
+    }
 }
