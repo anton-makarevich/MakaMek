@@ -23,8 +23,8 @@ public class Mech : Unit
 
     public int StandupAttempts { private set; get; }
     public int PossibleTorsoRotation { get; }
-    public bool CanFlipArms => false;
-    
+    public bool CanFlipArms { get; }
+
     public HexDirection? TorsoDirection=> _parts.Values.OfType<Torso>().FirstOrDefault()?.Facing;
 
     public bool HasUsedTorsoTwist
@@ -43,10 +43,12 @@ public class Mech : Unit
         int tonnage,
         IEnumerable<UnitPart> parts,
         int possibleTorsoRotation = 1,
+        bool canFlipArms = false,
         Guid? id = null)
         : base(chassis, model, tonnage, parts, id)
     {
         PossibleTorsoRotation = possibleTorsoRotation;
+        CanFlipArms = canFlipArms;
         Status = UnitStatus.Active;
     }
 

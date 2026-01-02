@@ -106,4 +106,46 @@ public class ArmTests
         options[0].Type.ShouldBe(WeaponConfigurationType.TorsoRotation);
         options[0].AvailableDirections.ShouldBe([HexDirection.TopRight, HexDirection.TopLeft]);
     }
+    
+    [Fact]
+    public void GetWeaponsConfigurationOptions_WhenDeployedAndCanFlipArms_ShouldIncludeArmsFlip()
+    {
+        var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [arm], canFlipArms: true);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        var options = arm.GetWeaponsConfigurationOptions();
+
+        options.Count.ShouldBe(2);
+        options[1].Type.ShouldBe(WeaponConfigurationType.ArmsFlip);
+        options[1].AvailableDirections.ShouldBe([HexDirection.Bottom]);
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnTrueForTorsoRotation_WhenDeployed()
+    {
+        var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [arm], possibleTorsoRotation: 1);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        
+        arm.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnFalseForTorsoRotation_WhenNotDeployed()
+    {
+        var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
+        
+        arm.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnTrueForArmsFlip_WhenDeployedAndCanFlipArms()
+    {
+        var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [arm], canFlipArms: true);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        
+        arm.IsWeaponConfigurationApplicable(WeaponConfigurationType.ArmsFlip).ShouldBeTrue();
+    }
 }

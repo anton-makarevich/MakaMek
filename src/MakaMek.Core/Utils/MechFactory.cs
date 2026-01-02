@@ -32,6 +32,7 @@ public class MechFactory : IMechFactory
             unitData.Mass,
             parts,
             1,
+            false,
             unitData.Id);
 
         // Add equipment to parts

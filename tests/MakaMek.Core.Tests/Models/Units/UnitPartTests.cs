@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Shouldly;
@@ -557,6 +558,16 @@ public class UnitPartTests
         data.Location.ShouldBe(PartLocation.LeftArm);
         data.CurrentFrontArmor.ShouldBe(5);
         data.CurrentStructure.ShouldBe(5);
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnFalse_ForBaseClass()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
+        
+        // Act & Assert
+        sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeFalse();
     }
 
     public class TestUnit() : Unit("Test", "Unit", 20, [], Guid.NewGuid())

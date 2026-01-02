@@ -37,7 +37,7 @@ public class Arm : UnitPart
 
         if (mech.CanFlipArms)
         {
-            var oppositeFacing = (HexDirection)(((int)mech.Position.Facing + 3) % 6);
+            var oppositeFacing = mech.Position.Facing.GetOppositeDirection();
             result.Add(new WeaponConfigurationOptions(
                 WeaponConfigurationType.ArmsFlip,
                 [oppositeFacing]));
