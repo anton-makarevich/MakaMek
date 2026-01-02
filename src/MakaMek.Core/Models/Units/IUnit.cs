@@ -1,7 +1,9 @@
 ﻿using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
@@ -109,6 +111,8 @@ public interface IUnit
     IReadOnlyCollection<UiEvent> Notifications { get; }
     IReadOnlyList<UiEvent> Events { get; }
 
+    IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions();
+
     IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location);
     int GetMovementPoints(MovementType _);
 
@@ -167,6 +171,8 @@ public interface IUnit
     /// </summary>
     /// <param name="weaponTargets">The weapon target data containing weapon locations, slots, and target IDs</param>
     void DeclareWeaponAttack(List<WeaponTargetData> weaponTargets);
+
+    void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand);
 
     /// <summary>
     /// Gets all weapon targeting data for this unit

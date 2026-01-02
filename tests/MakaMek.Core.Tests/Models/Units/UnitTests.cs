@@ -1,7 +1,9 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -24,6 +26,17 @@ namespace Sanet.MakaMek.Core.Tests.Models.Units;
 public class UnitTests
 {
     private readonly IRulesProvider _rulesProvider = Substitute.For<IRulesProvider>();
+
+    private class OptionsUnitPart(string name, PartLocation location, IReadOnlyList<WeaponConfigurationOptions> options)
+        : UnitPart(name, location, 1, 1, 1)
+    {
+        internal override bool CanBeBlownOff => true;
+
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        {
+            return options;
+        }
+    }
     
     private class TestComponent(string name, int size = 1) : Component(new EquipmentDefinition(
         name,
@@ -42,7 +55,7 @@ public class UnitTests
     {
         internal override bool CanBeBlownOff => true;
 
-        public override IReadOnlyList<Sanet.MakaMek.Core.Models.Game.WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
         {
             return [];
         }
@@ -70,6 +83,10 @@ public class UnitTests
             IDamageTransferCalculator damageTransferCalculator) => throw new NotImplementedException();
         
         protected override void ApplyHeatEffects()
+        {
+        }
+
+        public override void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand)
         {
         }
 
@@ -123,6 +140,35 @@ public class UnitTests
         };
 
         return new TestUnit("Test", "Unit", tonnage, parts, id);
+    }
+
+    [Fact]
+    public void GetWeaponsConfigurationOptions_AggregatesAndDeduplicatesByType()
+    {
+        var part1 = new OptionsUnitPart(
+            "P1",
+            PartLocation.LeftArm,
+            [new WeaponConfigurationOptions(WeaponConfigurationType.TorsoRotation, [HexDirection.TopRight])]);
+
+        var part2 = new OptionsUnitPart(
+            "P2",
+            PartLocation.RightArm,
+            [new WeaponConfigurationOptions(WeaponConfigurationType.TorsoRotation, [HexDirection.TopLeft])]);
+
+        var part3 = new OptionsUnitPart(
+            "P3",
+            PartLocation.CenterTorso,
+            [new WeaponConfigurationOptions(WeaponConfigurationType.ArmsFlip, [HexDirection.Top, HexDirection.Bottom])]);
+
+        var unit = new TestUnit("Test", "Unit", 20, [part1, part2, part3]);
+
+        var options = unit.GetWeaponsConfigurationOptions();
+
+        options.Count.ShouldBe(2);
+        options[0].Type.ShouldBe(WeaponConfigurationType.TorsoRotation);
+        options[0].AvailableDirections.ShouldBe([HexDirection.TopRight, HexDirection.TopLeft]);
+        options[1].Type.ShouldBe(WeaponConfigurationType.ArmsFlip);
+        options[1].AvailableDirections.ShouldBe([HexDirection.Top, HexDirection.Bottom]);
     }
     
     private void MountWeaponOnUnit(TestUnit unit, TestWeapon weapon, PartLocation location, int[] slots)

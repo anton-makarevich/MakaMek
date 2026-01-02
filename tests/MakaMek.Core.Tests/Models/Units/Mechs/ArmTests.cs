@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -79,5 +80,30 @@ public class ArmTests
         var sut = new Arm("Arm", PartLocation.LeftArm, 4, 3);
         
         sut.GetFiringArcs(mountingOptions).ShouldContain(FiringArc.Front);
+    }
+
+    [Fact]
+    public void GetWeaponsConfigurationOptions_WhenNotDeployed_ShouldBeEmpty()
+    {
+        var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [arm], possibleTorsoRotation: 1);
+
+        mech.IsDeployed.ShouldBeFalse();
+
+        arm.GetWeaponsConfigurationOptions().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetWeaponsConfigurationOptions_WhenDeployedAndCanRotateTorso_ShouldIncludeTorsoRotation()
+    {
+        var arm = new Arm("Arm", PartLocation.LeftArm, 4, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [arm], possibleTorsoRotation: 1);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        var options = arm.GetWeaponsConfigurationOptions();
+
+        options.Count.ShouldBe(1);
+        options[0].Type.ShouldBe(WeaponConfigurationType.TorsoRotation);
+        options[0].AvailableDirections.ShouldBe([HexDirection.TopRight, HexDirection.TopLeft]);
     }
 }

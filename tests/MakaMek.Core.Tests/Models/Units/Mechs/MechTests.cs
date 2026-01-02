@@ -1,8 +1,10 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
@@ -316,6 +318,62 @@ public class MechTests
         foreach (var torso in torsos)
         {
             torso.Facing.ShouldBe(shouldRotate ? targetFacing : unitFacing);
+        }
+    }
+
+    [Fact]
+    public void ApplyWeaponConfiguration_WhenTorsoRotationIsValid_ShouldRotateTorso()
+    {
+        var parts = CreateBasicPartsData();
+        var torsos = parts.OfType<Torso>().ToList();
+        var sut = new Mech("Test", "TST-1A", 50, parts, possibleTorsoRotation: 1);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        var command = new WeaponConfigurationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = sut.Id,
+            Configuration = new WeaponConfiguration
+            {
+                Type = WeaponConfigurationType.TorsoRotation,
+                Value = (int)HexDirection.TopRight
+            }
+        };
+
+        sut.ApplyWeaponConfiguration(command);
+
+        foreach (var torso in torsos)
+        {
+            torso.Facing.ShouldBe(HexDirection.TopRight);
+        }
+    }
+
+    [Fact]
+    public void ApplyWeaponConfiguration_WhenTorsoRotationIsInvalid_ShouldNotRotateTorso()
+    {
+        var parts = CreateBasicPartsData();
+        var torsos = parts.OfType<Torso>().ToList();
+        var sut = new Mech("Test", "TST-1A", 50, parts, possibleTorsoRotation: 1);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        var command = new WeaponConfigurationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = sut.Id,
+            Configuration = new WeaponConfiguration
+            {
+                Type = WeaponConfigurationType.TorsoRotation,
+                Value = (int)HexDirection.Bottom
+            }
+        };
+
+        sut.ApplyWeaponConfiguration(command);
+
+        foreach (var torso in torsos)
+        {
+            torso.Facing.ShouldBe(HexDirection.Top);
         }
     }
 

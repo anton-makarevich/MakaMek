@@ -1,4 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
@@ -109,6 +111,26 @@ public class Mech : Unit
         PartLocation.RightTorso => PartLocation.CenterTorso,
         _ => null
     };
+
+    public override void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand)
+    {
+        if (Position == null)
+        {
+            return;
+        }
+
+        var type = configCommand.Configuration.Type;
+        var targetDirection = (HexDirection)configCommand.Configuration.Value;
+
+        switch (type)
+        {
+            case WeaponConfigurationType.TorsoRotation:
+                RotateTorso(targetDirection);
+                break;
+            case WeaponConfigurationType.ArmsFlip:
+                break; //TODO to be implemented
+        }
+    }
     
     public override int EngineHeatSinks => GetAllComponents<Engine>().FirstOrDefault()?.NumberOfHeatSinks??0;
 
