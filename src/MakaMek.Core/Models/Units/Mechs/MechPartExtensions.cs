@@ -4,11 +4,11 @@ using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
-public static class MechPartsExtensions
+public static class MechPartExtensions
 {
     extension(UnitPart part)
     {
-        public List<WeaponConfigurationOptions> GetAvailableTorsoRotationOptions()
+        public IReadOnlyList<WeaponConfigurationOptions> GetAvailableTorsoRotationOptions()
         {
             if (part.Unit is not Mech mech || mech.Position == null || !mech.CanRotateTorso) return [];
             

@@ -32,7 +32,8 @@ public class Arm : UnitPart
             return [];
         }
 
-        var result =  this.GetAvailableTorsoRotationOptions();
+        var result =  this.GetAvailableTorsoRotationOptions()
+            .ToList();
 
         if (mech.CanFlipArms)
         {
