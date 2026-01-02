@@ -2507,4 +2507,30 @@ public class MechTests
         // Assert
         sut.Facing.ShouldBeNull();
     }
+    
+    [Fact]
+    public void ApplyWeaponConfiguration_ShouldNotRotateTorso_WhenMechNotDeployed()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+
+        var command = new WeaponConfigurationCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = sut.Id,
+            Configuration = new WeaponConfiguration
+            {
+                Type = WeaponConfigurationType.TorsoRotation,
+                Value = (int)HexDirection.TopRight
+            }
+        };
+
+        // Act
+        sut.ApplyWeaponConfiguration(command);
+
+        // Assert
+        sut.TorsoDirection.ShouldBeNull();
+    }
 }

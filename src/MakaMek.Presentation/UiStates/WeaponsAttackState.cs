@@ -269,13 +269,14 @@ public class WeaponsAttackState : IUiState
             var torsoRotationOption = Attacker
                 .GetWeaponsConfigurationOptions()
                 .FirstOrDefault(o => o.Type == WeaponConfigurationType.TorsoRotation);
-            if (torsoRotationOption.AvailableDirections is { Count: > 0 } && Attacker.Position != null)
+            if (torsoRotationOption.AvailableDirections is { Count: > 0 })
             {
                 actions.Add(new StateAction(
                     _viewModel.LocalizationService.GetString("Action_TurnTorso"),
                     true,
                     () => 
                     {
+                        if (Attacker?.Position == null) return;
                         UpdateAvailableDirections();
                         _viewModel.ShowDirectionSelector(Attacker.Position.Coordinates, _availableDirections);
                         CurrentStep = WeaponsAttackStep.WeaponsConfiguration;
