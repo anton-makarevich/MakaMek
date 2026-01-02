@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Map;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -18,7 +19,7 @@ public class UnitPartTests
     {
         internal override bool CanBeBlownOff =>true;
 
-        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
         {
             return [];
         }

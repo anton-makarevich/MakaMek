@@ -110,7 +110,7 @@ public interface IUnit
     IReadOnlyCollection<UiEvent> Notifications { get; }
     IReadOnlyList<UiEvent> Events { get; }
 
-    IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions();
+    IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null);
 
     IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location);
     int GetMovementPoints(MovementType _);

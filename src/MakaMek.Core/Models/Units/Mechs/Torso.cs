@@ -69,8 +69,8 @@ public abstract class Torso : UnitPart
         return base.ToData() with { CurrentRearArmor = CurrentRearArmor };
     }
 
-    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
     {
-        return this.GetAvailableTorsoRotationOptions();
+        return this.GetAvailableTorsoRotationOptions(forwardPosition);
     }
 }

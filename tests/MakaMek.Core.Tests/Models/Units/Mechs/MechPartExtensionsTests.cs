@@ -57,4 +57,19 @@ public class MechPartExtensionsTests
 
         options.ShouldBeEmpty();
     }
+
+    [Fact]
+    public void GetAvailableTorsoRotationOptions_ShouldReturnCorrectOptions_WhenForwardPositionIsOverridden()
+    {
+        var part = new Arm("Test", PartLocation.LeftArm, 4, 3);
+        var mech = new Mech("Test", "TST-1A", 50, [part], possibleTorsoRotation: 1);
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        var forwardPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        
+        var options = part.GetAvailableTorsoRotationOptions(forwardPosition);
+
+        options.Count.ShouldBe(1);
+        options[0].Type.ShouldBe(WeaponConfigurationType.TorsoRotation);
+        options[0].AvailableDirections.ShouldBe([HexDirection.BottomRight, HexDirection.BottomLeft]);
+    }
 }

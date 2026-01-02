@@ -8,11 +8,12 @@ public static class MechPartExtensions
 {
     extension(UnitPart part)
     {
-        public IReadOnlyList<WeaponConfigurationOptions> GetAvailableTorsoRotationOptions()
+        public IReadOnlyList<WeaponConfigurationOptions> GetAvailableTorsoRotationOptions(HexPosition? forwardPosition = null)
         {
-            if (part.Unit is not Mech mech || mech.Position == null || !mech.CanRotateTorso) return [];
+            forwardPosition ??= part.Unit?.Position;
+            if (part.Unit is not Mech mech || forwardPosition == null || !mech.CanRotateTorso) return [];
             
-            var currentFacingInt = (int)mech.Position.Facing;
+            var currentFacingInt = (int)forwardPosition.Facing;
             
             var availableDirections = new List<HexDirection>();
             

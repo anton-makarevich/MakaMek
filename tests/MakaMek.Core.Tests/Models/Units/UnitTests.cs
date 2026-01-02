@@ -31,7 +31,7 @@ public class UnitTests
     {
         internal override bool CanBeBlownOff => true;
 
-        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
         {
             return options;
         }
@@ -54,7 +54,7 @@ public class UnitTests
     {
         internal override bool CanBeBlownOff => true;
 
-        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
         {
             return [];
         }

@@ -736,13 +736,14 @@ public abstract class Unit : IUnit
     public IReadOnlyCollection<UiEvent> Notifications => _notifications.ToArray();
     public IReadOnlyList<UiEvent> Events => _events;
 
-    public IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    public IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
     {
+        forwardPosition ??= Position;
         var merged = new Dictionary<WeaponConfigurationType, HashSet<HexDirection>>();
 
         foreach (var part in Parts.Values)
         {
-            foreach (var option in part.GetWeaponsConfigurationOptions())
+            foreach (var option in part.GetWeaponsConfigurationOptions(forwardPosition))
             {
                 if (!merged.TryGetValue(option.Type, out var set))
                 {

@@ -310,11 +310,12 @@ public abstract class UnitPart
             : [FiringArc.Front];
     }
 
-    public abstract IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions();
+    public abstract IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null);
 
-    public bool IsWeaponConfigurationApplicable(WeaponConfigurationType type)
+    public bool IsWeaponConfigurationApplicable(WeaponConfigurationType type, HexPosition? forwardPosition = null)
     {
+        forwardPosition ??= Unit?.Position;
         return type == WeaponConfigurationType.None 
-               || GetWeaponsConfigurationOptions().Any(o => o.Type == type);
+               || GetWeaponsConfigurationOptions(forwardPosition).Any(o => o.Type == type);
     }
 }

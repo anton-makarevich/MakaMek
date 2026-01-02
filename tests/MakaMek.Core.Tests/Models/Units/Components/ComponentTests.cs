@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Exceptions;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
@@ -22,7 +23,7 @@ public class ComponentTests
     {
         internal override bool CanBeBlownOff => true;
 
-        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
         {
             return [];
         }
@@ -282,7 +283,7 @@ public class ComponentTests
     public void Mount_ShouldNotMountComponent_WhenSlotsAreEmpty()
     {
         // Arrange
-        var sut = new TestComponent("Test Component", 1);
+        var sut = new TestComponent("Test Component");
         var unitPart = new TestUnitPart("Test Part", PartLocation.LeftArm, 10, 5, 10);
         
         // Act

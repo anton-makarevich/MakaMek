@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -31,8 +32,8 @@ public class Head : UnitPart
         return base.ApplyDamage(damage, direction, isExplosion);
     }
 
-    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
     {
-        return this.GetAvailableTorsoRotationOptions();
+        return this.GetAvailableTorsoRotationOptions(forwardPosition);
     }
 }
