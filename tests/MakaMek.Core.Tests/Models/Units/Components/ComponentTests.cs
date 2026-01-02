@@ -20,6 +20,11 @@ public class ComponentTests
         : UnitPart(name, location, maxArmor, maxStructure, slots)
     {
         internal override bool CanBeBlownOff => true;
+
+        public override IReadOnlyList<Sanet.MakaMek.Core.Models.Game.WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        {
+            return [];
+        }
     }
 
     [Fact]

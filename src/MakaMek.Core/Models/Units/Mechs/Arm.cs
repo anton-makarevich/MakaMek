@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
@@ -21,5 +22,37 @@ public class Arm : UnitPart
             FiringArc.Front, //TODO: once arm flip is implemented it should be considered
             Location == PartLocation.LeftArm ? FiringArc.Left : FiringArc.Right
         ];
+    }
+
+    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    {
+        if (Unit is not Mech mech || mech.Position == null)
+        {
+            return [];
+        }
+
+        var result = new List<WeaponConfigurationOptions>();
+
+        if (mech.CanRotateTorso)
+        {
+            var availableDirections = MechPartsExtensions.GetAvailableTorsoRotationDirections(
+                mech.Position.Facing,
+                mech.PossibleTorsoRotation);
+
+            if (availableDirections.Count > 0)
+            {
+                result.Add(new WeaponConfigurationOptions(WeaponConfigurationType.TorsoRotation, availableDirections));
+            }
+        }
+
+        if (mech.CanFlipArms)
+        {
+            var oppositeFacing = (HexDirection)(((int)mech.Position.Facing + 3) % 6);
+            result.Add(new WeaponConfigurationOptions(
+                WeaponConfigurationType.ArmsFlip,
+                [mech.Position.Facing, oppositeFacing]));
+        }
+
+        return result;
     }
 }

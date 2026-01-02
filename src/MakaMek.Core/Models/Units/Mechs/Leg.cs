@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Game;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -20,4 +21,9 @@ public class Leg : UnitPart
 
     // Legs always face the direction of movement
     public override HexDirection? Facing => Unit?.Position?.Facing;
+
+    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    {
+        return new WeaponConfigurationOptions[] { };
+    }
 }

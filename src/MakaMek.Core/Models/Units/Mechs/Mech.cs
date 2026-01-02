@@ -21,6 +21,7 @@ public class Mech : Unit
 
     public int StandupAttempts { private set; get; }
     public int PossibleTorsoRotation { get; }
+    public bool CanFlipArms => false;
     
     public HexDirection? TorsoDirection=> _parts.Values.OfType<Torso>().FirstOrDefault()?.Facing;
 
