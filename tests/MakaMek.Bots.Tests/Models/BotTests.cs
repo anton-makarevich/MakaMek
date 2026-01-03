@@ -5,7 +5,9 @@ using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -274,6 +276,81 @@ public class BotTests : IDisposable
         // wait for bg task to complete
         await Task.Delay(100);
         await endPhaseEngine.Received(1).MakeDecision(_player);
+    }
+
+    [Fact]
+    public async Task OnWeaponConfigurationCommand_WhenActivePlayerMatches_ShouldMakeDecision()
+    {
+        // Arrange
+        var weaponsEngine = Substitute.For<IBotDecisionEngine>();
+        weaponsEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
+        _decisionEngineProvider.GetEngineForPhase(PhaseNames.WeaponsAttack).Returns(weaponsEngine);
+        
+        _clientGame.TurnPhase.Returns(PhaseNames.WeaponsAttack);
+        _clientGame.PhaseStepState.Returns(new PhaseStepState(PhaseNames.WeaponsAttack, _player, 1));
+
+        var weaponConfigCommand = new WeaponConfigurationCommand
+        {
+            PlayerId = _player.Id,
+            UnitId = Guid.NewGuid(),
+            Configuration = new WeaponConfiguration
+            {
+                Type = WeaponConfigurationType.TorsoRotation,
+                Value = 1
+            },
+            GameOriginId = _clientGame.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Set up the decision engine
+        _phaseSubject.OnNext(PhaseNames.WeaponsAttack);
+
+        // Act
+        _commandSubject.OnNext(weaponConfigCommand);
+
+        // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
+        await weaponsEngine.Received(1).MakeDecision(_player);
+    }
+
+    [Fact]
+    public async Task OnWeaponConfigurationCommand_WhenActivePlayerIsDifferent_ShouldNotMakeDecision()
+    {
+        // Arrange
+        var weaponsEngine = Substitute.For<IBotDecisionEngine>();
+        weaponsEngine.MakeDecision(Arg.Any<IPlayer>()).Returns(Task.CompletedTask);
+        _decisionEngineProvider.GetEngineForPhase(PhaseNames.WeaponsAttack).Returns(weaponsEngine);
+        
+        var otherPlayer = Substitute.For<IPlayer>();
+        otherPlayer.Id.Returns(Guid.NewGuid());
+        
+        _clientGame.TurnPhase.Returns(PhaseNames.WeaponsAttack);
+        _clientGame.PhaseStepState.Returns(new PhaseStepState(PhaseNames.WeaponsAttack, otherPlayer, 1));
+
+        var weaponConfigCommand = new WeaponConfigurationCommand
+        {
+            PlayerId = _player.Id,
+            UnitId = Guid.NewGuid(),
+            Configuration = new WeaponConfiguration
+            {
+                Type = WeaponConfigurationType.TorsoRotation,
+                Value = 1
+            },
+            GameOriginId = _clientGame.Id,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Set up the decision engine
+        _phaseSubject.OnNext(PhaseNames.WeaponsAttack);
+
+        // Act
+        _commandSubject.OnNext(weaponConfigCommand);
+
+        // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
+        await weaponsEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>());
     }
 
     public void Dispose()
