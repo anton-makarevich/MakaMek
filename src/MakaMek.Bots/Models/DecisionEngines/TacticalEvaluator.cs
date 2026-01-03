@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Models.Map;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
@@ -57,7 +58,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             return ValueTask.FromResult<IReadOnlyList<TargetScore>>([]);
 
         var results = new List<TargetScore>();
-        
+
         // Get all friendly weapons
         var weapons = attacker.Parts.Values
             .SelectMany(p => p.GetComponents<Weapon>())
@@ -76,17 +77,40 @@ public class TacticalEvaluator : ITacticalEvaluator
                 weapons);
 
             if (viableWeapons.Count <= 0) continue;
-            
+
             // Determine which arc of the enemy would be hit (bonus for rear/side shots)
             var targetArc = GetFiringArcFromPosition(target.Position, attackerPath.Destination.Coordinates);
             var arcBonus = targetArc.GetArcMultiplier();
-            var targetScoreValue = viableWeapons.Sum(w => 
-                w.HitProbability * w.Weapon.Damage) * arcBonus;
+
+            // Group viable weapons by their required configuration
+            var configGroups = viableWeapons.GroupBy(w => w.Configuration);
+
+            // Calculate score for each configuration
+            var configScores = configGroups.Select(group =>
+            {
+                var weaponsForConfig = group.ToList();
+                var score = weaponsForConfig.Sum(w =>
+                    w.HitProbability * w.Weapon.Damage
+                ) * arcBonus;
+
+                return new ConfigurationScore
+                {
+                    Configuration = group.Key,
+                    Score = score,
+                    TargetId = target.Id,
+                    ViableWeapons = weaponsForConfig
+                };
+            }).ToList();
+
+            // Take the maximum score across all configurations
+            var bestConfigScore = configScores.OrderByDescending(c => c.Score).First();
+
             results.Add(new TargetScore
             {
                 TargetId = target.Id,
-                Score = targetScoreValue,
-                ViableWeapons = viableWeapons
+                Score = bestConfigScore.Score,
+                ViableWeapons = bestConfigScore.ViableWeapons,
+                ConfigurationScores = configScores
             });
         }
 
@@ -172,38 +196,66 @@ public class TacticalEvaluator : ITacticalEvaluator
     {
         if (_game.BattleMap == null)
             return [];
-        
+
         var viableWeapons = new List<WeaponEvaluationData>();
-        
+
         // Check line of sight
         if (!_game.BattleMap.HasLineOfSight(attackerPath.Destination.Coordinates, targetPath.Destination.Coordinates))
             return viableWeapons;
 
         var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPath.Destination.Coordinates);
 
-        foreach (var weapon in weapons)
+        // Get all weapon configurations (torso rotations)
+        var configOptions = attacker.GetWeaponsConfigurationOptions(attackerPath.Destination);
+        var torsoConfigs = configOptions
+            .Where(o => o.Type == WeaponConfigurationType.TorsoRotation)
+            .SelectMany(o => o.AvailableDirections.Select(d =>
+                new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = (int)d }))
+            .ToList();
+
+        // Add the "no rotation" option (current leg facing)
+        var noRotationConfig = new WeaponConfiguration
         {
-            // Check if the weapon can fire at this range
-            if (distanceToTarget < weapon.MinimumRange || distanceToTarget > weapon.LongRange)
-                continue;
+            Type = WeaponConfigurationType.None,
+            Value = (int)attackerPath.Destination.Facing
+        };
+        var allConfigs = new[] { noRotationConfig }.Concat(torsoConfigs).ToList();
 
-            var isInArc =
-                attackerPath.Destination.Coordinates.IsInWeaponFiringArc(targetPath.Destination.Coordinates, weapon,
-                    attackerPath.Destination.Facing);
-            if (!isInArc)
-                continue;
+        // Evaluate weapons for each configuration
+        foreach (var config in allConfigs)
+        {
+            var facing = (HexDirection)config.Value;
 
-            // Calculate hit probability
-            var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon);
-
-            if (hitProbability <= 0)
-                continue;
-
-            viableWeapons.Add(new WeaponEvaluationData
+            foreach (var weapon in weapons)
             {
-                Weapon = weapon,
-                HitProbability = hitProbability,
-            });
+                // Check if the weapon can fire at this range
+                if (distanceToTarget < weapon.MinimumRange || distanceToTarget > weapon.LongRange || weapon.FirstMountPart == null)
+                    continue;
+
+                // Check configuration applicability
+                if (!weapon.FirstMountPart.IsWeaponConfigurationApplicable(config.Type, attackerPath.Destination))
+                    continue;
+
+                // Check arc using resolved facing
+                var isInArc =
+                    attackerPath.Destination.Coordinates.IsInWeaponFiringArc(targetPath.Destination.Coordinates, weapon,
+                        facing);
+                if (!isInArc)
+                    continue;
+
+                // Calculate hit probability with the configuration's facing
+                var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon, facing);
+
+                if (hitProbability <= 0)
+                    continue;
+
+                viableWeapons.Add(new WeaponEvaluationData
+                {
+                    Weapon = weapon,
+                    HitProbability = hitProbability,
+                    Configuration = config
+                });
+            }
         }
 
         return viableWeapons;
@@ -217,16 +269,17 @@ public class TacticalEvaluator : ITacticalEvaluator
         IUnit attacker,
         MovementPath attackerPath,
         MovementPath targetPath,
-        Weapon weapon)
+        Weapon weapon,
+        HexDirection? attackerFacing = null)
     {
         if (_game.BattleMap == null || attacker.Pilot == null)
             return 0;
-        
+
         // Get weapon location for attack modifiers
         var weaponLocation = weapon.FirstMountPartLocation;
         if (weaponLocation == null)
             return 0;
-        
+
         var targetPosition = targetPath.Destination;
 
         // Get current attack modifiers from the attacker (heat, prone, sensors, arm actuators, etc.)
@@ -234,6 +287,9 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         // Determine attacker's movement type (use actual if available, otherwise assume it will walk for now)
         var attackerMovementType = attackerPath.MovementType;
+
+        // Use provided facing or default to path destination facing
+        var facing = attackerFacing ?? attackerPath.Destination.Facing;
 
         // Create a hypothetical attack scenario
         var scenario = AttackScenario.FromHypothetical(
@@ -243,7 +299,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             targetPosition: targetPosition,
             targetHexesMoved: targetPath.HexesTraveled,
             attackerModifiers: attackerModifiers,
-            attackerFacing: attackerPath.Destination.Facing
+            attackerFacing: facing
             );
 
         // Use ToHitCalculator with full accuracy (includes terrain, heat, damage, etc.)
