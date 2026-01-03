@@ -764,6 +764,17 @@ public abstract class Unit : IUnit
             .ToList();
     }
 
+    /// <summary>
+    /// Determines if a weapon configuration is currently applied to the unit
+    /// </summary>
+    /// <param name="config">The weapon configuration to check</param>
+    /// <returns>True if the configuration is applied, false otherwise</returns>
+    public virtual bool IsWeaponConfigurationApplied(WeaponConfiguration config)
+    {
+        // Default implementation: no configs are supported
+        return false;
+    }
+
     public abstract void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand);
 
     /// <summary>

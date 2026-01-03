@@ -218,7 +218,7 @@ public class TacticalEvaluatorTests
         var pilot = Substitute.For<IPilot>();
         pilot.Gunnery.Returns(4);
         unit.AssignPilot(pilot);
-        // Unit at (1,1) Facing Top, Enemy at (1,4) is not in arc
+        // Unit at (1,1) Facing Top, Enemy at (1,4) is not in arc for a weapon on the right torso even when rotated
         var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var path = new MovementPath(new List<PathSegment>
         {
@@ -236,7 +236,7 @@ public class TacticalEvaluatorTests
         // Set up friendly weapon
         var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
         var weapon = new TestWeapon(weaponDef);
-        var part = unit.Parts[PartLocation.RightArm];
+        var part = unit.Parts[PartLocation.RightTorso];
         part.TryAddComponent(weapon);
         
         var enemies = new List<IUnit> { enemy };
@@ -307,10 +307,11 @@ public class TacticalEvaluatorTests
         // Assert
         results.Count.ShouldBe(1);
         results[0].TargetId.ShouldBe(enemy1.Id);
-        results[0].Score.ShouldBeGreaterThan(0);
-        results[0].ViableWeapons.Count.ShouldBe(1);
-        results[0].ViableWeapons[0].Weapon.ShouldBe(weapon);
-        results[0].ViableWeapons[0].HitProbability.ShouldBe(DiceUtils.Calculate2d6Probability(8));
+        results[0].ConfigurationScores.Count.ShouldBeGreaterThan(0);
+        results[0].ConfigurationScores[0].Score.ShouldBeGreaterThan(0);
+        results[0].ConfigurationScores[0].ViableWeapons.Count.ShouldBe(1);
+        results[0].ConfigurationScores[0].ViableWeapons[0].Weapon.ShouldBe(weapon);
+        results[0].ConfigurationScores[0].ViableWeapons[0].HitProbability.ShouldBe(DiceUtils.Calculate2d6Probability(8));
     }
 
     [Fact]

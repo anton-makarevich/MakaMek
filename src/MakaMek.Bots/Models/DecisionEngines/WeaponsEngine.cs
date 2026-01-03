@@ -7,7 +7,6 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
@@ -61,21 +60,25 @@ public class WeaponsEngine : IBotDecisionEngine
                 return;
             }
 
-            // Find best configuration across all targets
+            // Find the best configuration across all targets, preserving target context
             var bestOption = targetScores
-                .SelectMany(t => t.ConfigurationScores)
-                .OrderByDescending(cs => cs.Score)
+                .SelectMany(t => t.ConfigurationScores.Select(cs => new 
+                { 
+                    Target = t, 
+                    ConfigScore = cs 
+                }))
+                .OrderByDescending(x => x.ConfigScore.Score)
                 .FirstOrDefault();
 
-            if (bestOption.Score == 0)
+            if (bestOption == null || bestOption.ConfigScore.Score == 0)
             {
                 // No viable attacks, declare empty attack
                 await DeclareWeaponAttack(player, attacker, []);
                 return;
             }
 
-            var bestConfig = bestOption.Configuration;
-            var target = enemies.FirstOrDefault(e => e.Id == bestOption.TargetId);
+            var bestConfig = bestOption.ConfigScore.Configuration;
+            var target = enemies.FirstOrDefault(e => e.Id == bestOption.Target.TargetId);
             if (target == null)
             {
                 // No valid target found, declare empty attack
@@ -85,7 +88,7 @@ public class WeaponsEngine : IBotDecisionEngine
 
             // Check if configuration needs to be applied
 
-            if (!IsConfigurationApplied(attacker, bestConfig))
+            if (!attacker.IsWeaponConfigurationApplied(bestConfig))
             {
                 // Send configuration command and END execution
                 Console.WriteLine(
@@ -94,10 +97,10 @@ public class WeaponsEngine : IBotDecisionEngine
                 return;
             }
 
-            Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestOption.Score:F1}");
+            Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestOption.ConfigScore.Score:F1}");
 
             // Configuration is applied (or not needed), select weapons and declare attack
-            var weaponTargets = SelectWeapons(attacker, bestOption)
+            var weaponTargets = SelectWeapons(attacker, bestOption.ConfigScore)
                 .Select(evaluation => new WeaponTargetData
             {
                 Weapon = evaluation.Weapon.ToData(),
@@ -169,20 +172,6 @@ public class WeaponsEngine : IBotDecisionEngine
         };
 
         await _clientGame.ConfigureUnitWeapons(command);
-    }
-
-    private static bool IsConfigurationApplied(IUnit unit, WeaponConfiguration config)
-    {
-        if (config.Type == WeaponConfigurationType.None)
-            return true;
-
-        if (config.Type == WeaponConfigurationType.TorsoRotation && unit is Mech mech)
-        {
-            var desiredFacing = (HexDirection)config.Value;
-            return mech.Facing == desiredFacing;
-        }
-
-        return false;
     }
 
     private List<WeaponEvaluationData> SelectWeapons(IUnit attacker, ConfigurationScore configScore)

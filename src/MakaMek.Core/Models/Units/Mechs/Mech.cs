@@ -74,20 +74,36 @@ public class Mech : Unit
 
         var currentUnitFacing = (int)Position!.Facing;
         var newFacingInt = (int)newFacing;
-        
+
         // Calculate steps in both directions (clockwise and counterclockwise)
         var clockwiseSteps = (newFacingInt - currentUnitFacing + 6) % 6;
         var counterClockwiseSteps = (currentUnitFacing - newFacingInt + 6) % 6;
-        
+
         // Use the smaller number of steps
         var steps = Math.Min(clockwiseSteps, counterClockwiseSteps);
-        
+
         // Check if rotation is within the allowed range
         if (steps > PossibleTorsoRotation) return;
         foreach (var torso in _parts.Values.OfType<Torso>())
         {
             torso.Rotate(newFacing);
         }
+    }
+
+    /// <summary>
+    /// Determines if a weapon configuration is currently applied to this mech
+    /// </summary>
+    /// <param name="config">The weapon configuration to check</param>
+    /// <returns>True if the configuration is applied, false otherwise</returns>
+    public override bool IsWeaponConfigurationApplied(WeaponConfiguration config)
+    {
+        if (config.Type == WeaponConfigurationType.TorsoRotation)
+        {
+            var desiredFacing = (HexDirection)config.Value;
+            return Facing == desiredFacing && Position?.Facing != desiredFacing;
+        }
+
+        return false;
     }
 
     public override void UpdateDestroyedStatus()

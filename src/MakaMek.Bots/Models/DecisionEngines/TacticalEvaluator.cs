@@ -35,7 +35,11 @@ public class TacticalEvaluator : ITacticalEvaluator
         IReadOnlyList<IUnit> enemyUnits)
     {
         var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits);
-        var offensiveIndex = (await EvaluateTargets(unit, path, enemyUnits)).Sum(t => t.Score);
+        var targetScores = await EvaluateTargets(unit, path, enemyUnits);
+        var offensiveIndex = targetScores
+            .Sum(t => t.ConfigurationScores.Any()
+                ? t.ConfigurationScores.Max(cs => cs.Score)
+                : 0);
 
         return new PositionScore
         {
@@ -97,19 +101,13 @@ public class TacticalEvaluator : ITacticalEvaluator
                 {
                     Configuration = group.Key,
                     Score = score,
-                    TargetId = target.Id,
                     ViableWeapons = weaponsForConfig
                 };
             }).ToList();
 
-            // Take the maximum score across all configurations
-            var bestConfigScore = configScores.OrderByDescending(c => c.Score).First();
-
             results.Add(new TargetScore
             {
                 TargetId = target.Id,
-                Score = bestConfigScore.Score,
-                ViableWeapons = bestConfigScore.ViableWeapons,
                 ConfigurationScores = configScores
             });
         }

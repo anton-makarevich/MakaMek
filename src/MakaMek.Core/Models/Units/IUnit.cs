@@ -112,6 +112,13 @@ public interface IUnit
 
     IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null);
 
+    /// <summary>
+    /// Checks if a weapon configuration has been applied to this unit
+    /// </summary>
+    /// <param name="config">The configuration to check</param>
+    /// <returns>True if the configuration is applied, false otherwise</returns>
+    bool IsWeaponConfigurationApplied(WeaponConfiguration config);
+
     IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location);
     int GetMovementPoints(MovementType _);
 
