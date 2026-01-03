@@ -1,6 +1,5 @@
 using System.Reflection;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -605,7 +604,7 @@ public class UnitPartTests
             IDamageTransferCalculator damageTransferCalculator)
             => throw new NotImplementedException();
 
-        public override void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand)
+        public override void ApplyWeaponConfiguration(WeaponConfiguration config)
         {
         }
 

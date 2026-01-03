@@ -1,6 +1,5 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
@@ -328,19 +327,13 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, parts, possibleTorsoRotation: 1);
         sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
-        var command = new WeaponConfigurationCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = Guid.NewGuid(),
-            UnitId = sut.Id,
-            Configuration = new WeaponConfiguration
+        var configuration = new WeaponConfiguration
             {
                 Type = WeaponConfigurationType.TorsoRotation,
                 Value = (int)HexDirection.TopRight
-            }
-        };
+            };
 
-        sut.ApplyWeaponConfiguration(command);
+        sut.ApplyWeaponConfiguration(configuration);
 
         foreach (var torso in torsos)
         {
@@ -356,19 +349,13 @@ public class MechTests
         var sut = new Mech("Test", "TST-1A", 50, parts, possibleTorsoRotation: 1);
         sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
 
-        var command = new WeaponConfigurationCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = Guid.NewGuid(),
-            UnitId = sut.Id,
-            Configuration = new WeaponConfiguration
+        var configuration = new WeaponConfiguration
             {
                 Type = WeaponConfigurationType.TorsoRotation,
                 Value = (int)HexDirection.Bottom
-            }
-        };
+            };
 
-        sut.ApplyWeaponConfiguration(command);
+        sut.ApplyWeaponConfiguration(configuration);
 
         foreach (var torso in torsos)
         {
@@ -2514,22 +2501,73 @@ public class MechTests
         var parts = CreateBasicPartsData();
         var sut = new Mech("Test", "TST-1A", 50, parts);
 
-        var command = new WeaponConfigurationCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = Guid.NewGuid(),
-            UnitId = sut.Id,
-            Configuration = new WeaponConfiguration
+        var configuration = new WeaponConfiguration
             {
                 Type = WeaponConfigurationType.TorsoRotation,
                 Value = (int)HexDirection.TopRight
-            }
-        };
+            };
 
         // Act
-        sut.ApplyWeaponConfiguration(command);
+        sut.ApplyWeaponConfiguration(configuration);
 
         // Assert
         sut.TorsoDirection.ShouldBeNull();
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplied_ShouldReturnTrue_WhenTorsoRotationIsApplied()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        var configuration = new WeaponConfiguration
+            {
+                Type = WeaponConfigurationType.TorsoRotation,
+                Value = (int)HexDirection.TopRight
+            };
+
+        // Act
+        sut.ApplyWeaponConfiguration(configuration);
+
+        // Assert
+        sut.IsWeaponConfigurationApplied(configuration).ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplied_ShouldReturnFalse_WhenTorsoRotationIsNotApplied()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        var configuration = new WeaponConfiguration
+            {
+                Type = WeaponConfigurationType.TorsoRotation,
+                Value = (int)HexDirection.TopRight
+            };
+
+        // Assert
+        sut.IsWeaponConfigurationApplied(configuration).ShouldBeFalse();
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplied_ShouldReturnFalse_WhenTypeIsNone()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+        sut.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+        
+        var configuration = new WeaponConfiguration
+            {
+                Type = WeaponConfigurationType.None,
+                Value = 0
+            };
+
+        // Assert
+        sut.IsWeaponConfigurationApplied(configuration).ShouldBeFalse();
     }
 }

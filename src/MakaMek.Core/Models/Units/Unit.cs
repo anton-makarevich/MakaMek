@@ -775,7 +775,7 @@ public abstract class Unit : IUnit
         return false;
     }
 
-    public abstract void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand);
+    public abstract void ApplyWeaponConfiguration(WeaponConfiguration config);
 
     /// <summary>
     /// Adds an event to the unit's events queue

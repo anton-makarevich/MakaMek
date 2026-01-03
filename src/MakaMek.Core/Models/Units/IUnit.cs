@@ -178,7 +178,7 @@ public interface IUnit
     /// <param name="weaponTargets">The weapon target data containing weapon locations, slots, and target IDs</param>
     void DeclareWeaponAttack(List<WeaponTargetData> weaponTargets);
 
-    void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand);
+    void ApplyWeaponConfiguration(WeaponConfiguration config);
 
     /// <summary>
     /// Gets all weapon targeting data for this unit

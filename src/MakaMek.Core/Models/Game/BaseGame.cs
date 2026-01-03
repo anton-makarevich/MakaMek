@@ -189,7 +189,7 @@ public abstract class BaseGame : IGame
 
         var unit = player?.Units.FirstOrDefault(u => u.Id == configCommand.UnitId);
 
-        unit?.ApplyWeaponConfiguration(configCommand);
+        unit?.ApplyWeaponConfiguration(configCommand.Configuration);
     }
     
     internal void OnWeaponsAttack(WeaponAttackDeclarationCommand attackCommand)

@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -130,19 +129,19 @@ public class Mech : Unit
         _ => null
     };
 
-    public override void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand)
+    public override void ApplyWeaponConfiguration(WeaponConfiguration weaponConfiguration)
     {
         if (Position == null)
         {
             return;
         }
 
-        var type = configCommand.Configuration.Type;
+        var type = weaponConfiguration.Type;
 
         switch (type)
         {
             case WeaponConfigurationType.TorsoRotation:
-                var targetDirection = (HexDirection)configCommand.Configuration.Value;
+                var targetDirection = (HexDirection)weaponConfiguration.Value;
                 RotateTorso(targetDirection);
                 break;
             case WeaponConfigurationType.ArmsFlip:
