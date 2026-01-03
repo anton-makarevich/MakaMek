@@ -1,6 +1,6 @@
-﻿using System.Reactive.Linq;
-using Sanet.MakaMek.Bots.Models.DecisionEngines;
+﻿using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -18,7 +18,7 @@ public class Bot : IBot
     private IBotDecisionEngine? _currentDecisionEngine;
     private IDisposable? _phaseStateSubscription;
     private IDisposable? _phaseSubscription;
-    private IDisposable? _gameEndSubscription;
+    private IDisposable? _gameCommandsSubscription;
     private bool _isDisposed;
     private readonly CancellationTokenSource _cts = new();
 
@@ -43,10 +43,29 @@ public class Bot : IBot
         _phaseStateSubscription = clientGame.PhaseStepChanges
             .Subscribe(OnPhaseStateChanged);
         
-        // Subscribe to game end events
-        _gameEndSubscription = clientGame.Commands
-            .OfType<GameEndedCommand>()
-            .Subscribe(_ => Dispose());
+        // Subscribe to all relevant commands
+        _gameCommandsSubscription = clientGame.Commands
+            .Subscribe(HandleGameCommand);
+    }
+
+    private void HandleGameCommand(object command)
+    {
+        if (_isDisposed) return;
+        
+        switch (command)
+        {
+            case GameEndedCommand:
+                Dispose();
+                break;
+            case WeaponConfigurationCommand weaponConfig:
+                if (_clientGame.TurnPhase == PhaseNames.WeaponsAttack
+                    && weaponConfig.PlayerId == PlayerId 
+                    && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId)
+                {
+                    Task.Run(MakeDecision, _cts.Token);
+                }
+                break;
+        }
     }
 
     private void OnPhaseStateChanged(PhaseStepState? phaseStepState)
@@ -106,8 +125,8 @@ public class Bot : IBot
         _phaseSubscription?.Dispose();
         _phaseSubscription = null;
 
-        _gameEndSubscription?.Dispose();
-        _gameEndSubscription = null;
+        _gameCommandsSubscription?.Dispose();
+        _gameCommandsSubscription = null;
     }
 }
 
