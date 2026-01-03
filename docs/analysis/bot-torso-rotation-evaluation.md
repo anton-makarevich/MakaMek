@@ -35,7 +35,7 @@ Additional important mechanics involved:
 
 - Enumerates reachable paths for each movement type (walk/run/jump)
 - Evaluates each reachable `MovementPath` with `_evaluator.EvaluatePath(unit, path, enemyUnits)`
-- Picks the “best” path by sorting:
+- Picks the "best" path by sorting:
   - **DefensiveIndex** ascending
   - **OffensiveIndex** descending
   - EnemiesInRearArc ascending
@@ -54,7 +54,7 @@ Additional important mechanics involved:
 
 - Collects all available weapons on the attacker.
 - For each potential target:
-  - Builds a `targetPath` from the target’s `MovementTaken` (or standing still).
+  - Builds a `targetPath` from the target's `MovementTaken` (or standing still).
   - Computes `viableWeapons = EvaluateWeaponsForTarget(attacker, attackerPath, targetPath, weapons)`.
   - If any viable weapons exist, it computes:
     - `targetArc` (rear/side/front bonus) based on **target-facing vs attacker position**
@@ -102,7 +102,7 @@ In `Mech.cs`:
 
 #### UI flow
 
-`WeaponsAttackState` shows the expected “human” workflow:
+`WeaponsAttackState` shows the expected "human" workflow:
 
 - In action selection step, a mech can choose **Turn Torso**.
 - It computes `_availableDirections` by scanning all 6 directions and filtering by `steps <= mech.PossibleTorsoRotation`.
@@ -124,11 +124,11 @@ In `Mech.cs`:
 
 ## Current limitations / why bots mis-evaluate
 
-### A) Offensive evaluation uses the *leg facing*, not a “best possible torso facing”
+### A) Offensive evaluation uses the *leg facing*, not a "best possible torso facing"
 
 In `TacticalEvaluator.EvaluateWeaponsForTarget` the arc check passes `attackerPath.Destination.Facing` to `IsInWeaponFiringArc`.
 
-- `HexPosition.Facing` is the unit’s base facing (leg facing)
+- `HexPosition.Facing` is the unit's base facing (leg facing/"forward facing")
 - Torso twist is a separate override on the torso parts (`Torso.Rotate`) and is exposed through `Mech.Facing`
 
 As a result, when a target is slightly outside the front/side arcs for the leg-facing, the bot assigns **0 viable weapons**, even though a torso rotation would bring the target into arc.
@@ -147,232 +147,322 @@ Currently `TacticalEvaluator.CalculateHitProbability` passes `attackerFacing: at
 
 ## Proposed solution overview
 
-The goal is to treat torso rotation as a **choice variable** in the bot’s evaluation and decision pipeline:
+The goal is to treat torso rotation as a **choice variable** in the bot's evaluation and decision pipeline:
 
 - During movement evaluation, offensive potential should be computed as:
   - `max_over_possible_torso_facings( expected_damage(attacker_position, torso_facing) )`
 - During weapons declaration, the bot should:
   - choose torso facing + target + weapons as a joint optimization
   - issue a `WeaponConfigurationCommand` when beneficial
-  - then issue `WeaponAttackDeclarationCommand`
+  - then issue `WeaponAttackDeclarationCommand` (in a subsequent execution)
 
 ## Proposed design: torso-aware evaluation
 
-### 1) Define “possible torso facings” for a mech
+### 1) Computing possible torso configurations
 
-Given a mech at a fixed `HexPosition` with base facing `Position.Facing`:
+For a given attacker unit, determine available torso rotation options using the existing game API:
 
-- If unit is not a `Mech`, there are no torso options.
-- If mech cannot rotate (`CanRotateTorso == false`), only one option exists:
-  - `torsoFacing = Position.Facing`
-- If mech can rotate (`CanRotateTorso == true`), compute all facings within `PossibleTorsoRotation` steps:
-  - exactly like `WeaponsAttackState.UpdateAvailableDirections()` does
+```csharp
+var torsoConfigs = attacker.GetWeaponsConfigurationOptions(atackerPath.Destination)
+    .Where(c => c.Type == WeaponConfigurationType.TorsoRotation)
+    .ToList();
+```
 
-Important: include the “no rotation” option as well.
+Always include the "no rotation" option representing the current leg facing:
 
-### 2) Evaluate targets for a specific torso facing (hypothetical)
+```csharp
+var noRotationConfig = new WeaponConfiguration 
+{ 
+    Type = WeaponConfigurationType.None,
+    Value = (int)attackerPath.Destination.Facing
+};
 
-Introduce the notion of a torso-aware call:
+var allConfigs = new[] { noRotationConfig }.Concat(torsoConfigs).ToList();
+```
 
-- `EvaluateTargets(attacker, attackerPath, potentialTargets, HexDirection torsoFacing)`
+### 2) Torso-aware weapon evaluation (TacticalEvaluator)
 
-Internally it must:
+**Changes to `EvaluateWeaponsForTarget`:**
 
-- Use `torsoFacing` for the firing arc inclusion check.
-  - Instead of passing `attackerPath.Destination.Facing`.
-- Use `torsoFacing` for `AttackScenario.FromHypothetical(attackerFacing: torsoFacing)`.
+1. **Enumerate all configurations** using the approach above
+2. **Nested loop structure:**
+   ```csharp
+   foreach (var config in allConfigs)
+   {
+       var facing = (HexDirection)config.Value;
+       
+       foreach (var weapon in weapons)
+       {
+           // Check configuration applicability
+           if (!weapon.FirstMountPart.IsWeaponConfigurationApplicable(config.Type, attackerPath.Destination))
+               continue;
+           
+           // Check arc using resolved facing
+           if (!attackerPath.Destination.Coordinates.IsInWeaponFiringArc(
+               targetPath.Destination.Coordinates, weapon, facing))  //<-- "facing" is variable
+               continue;
+           
+           // Rest of the existing code
+           
+           // Add to viable weapons with configuration tag
+           viableWeapons.Add(new WeaponEvaluationData
+           {
+               Weapon = weapon,
+               HitProbability = hitProb,
+               Configuration = config  // NEW: tag weapon with its config
+           });
+       }
+   }
+   ```
 
-Notes:
+3. **Extend `WeaponEvaluationData`:**
+   ```csharp
+   public class WeaponEvaluationData
+   {
+       public IWeapon Weapon { get; set; }
+       public double HitProbability { get; set; }
+       public WeaponConfiguration Configuration { get; set; }  // NEW
+   }
+   ```
 
-- This evaluation should be *pure/hypothetical* (no mutation of mech state).
-- It should not require sending commands.
+**Result:** The viable weapons list contains entries for all weapon-configuration pairs that pass all checks. Each weapon is tagged with the `WeaponConfiguration` that enables it.
 
-### 3) Compute “best offensive index” for a path
+### 3) Configuration-aware scoring (TacticalEvaluator)
 
-Change the conceptual contract of `EvaluatePath` to:
+**Changes to `EvaluatePath`/`EvaluateTargets`:**
 
-- For a given `(attacker, path)`, compute:
-  - `DefensiveIndex` (unchanged)
-  - `OffensiveIndex = max_torsoFacing( Sum(TargetScore.Score) )`
+When computing offensive score for each target:
 
-Capture the argmax:
+```csharp
+// Group viable weapons by their required configuration
+var configGroups = viableWeapons.GroupBy(w => w.Configuration);
 
-- `BestTorsoFacing` (the facing that maximizes offense)
-- Possibly `BestTargetScores` for that facing
+// Calculate score for each configuration
+var configScores = configGroups.Select(group => 
+{
+    var weaponsForConfig = group.ToList();
+    var score = weaponsForConfig.Sum(w => 
+        w.HitProbability * w.Weapon.Damage
+    ) * arcBonus;
+    
+    return new { Configuration = group.Key, Score = score };
+}).ToList();
 
-**Anton:** that should be the only change needed for the contract. The evaluator then will evaluate all possible torso facings and return the best one.
+// Take the maximum score across all configurations
+var bestConfigScore = configScores.OrderByDescending(c => c.Score).First();
+var targetScore = bestConfigScore.Score;
+```
 
-This enables `MovementEngine` to choose positions that are good *when combined with* an available torso twist.
+When computing `OffensiveIndex` for the entire path:
 
-### 4) Why defensive evaluation likely stays unchanged
+```csharp
+OffensiveIndex = allTargets.Sum(t => t.BestScore);
+```
 
-`CalculateDefensiveIndex` assesses which enemies can shoot the defender and which *defender arc* is exposed.
+This ensures the offensive potential reflects the **best possible torso rotation** for each target.
 
-- Defender arc computation uses `defenderPath.Destination.Facing` (leg-facing) via `GetFiringArcFromPosition`.
-- In Classic BT, a torso twist does not change which side/rear armor is being presented by the legs for purposes of “rear exposure” type heuristics.
+**Note:** Defensive index calculation remains unchanged for now (uses leg-facing as it represents armor exposure from the attacker's perspective).
 
-So, for this specific enhancement, defensive evaluation can remain leg-facing-based.
+### 4) Stateless decision execution (WeaponsEngine)
 
-Ideally we should also account (potential) enemy torso rotation when evaluating defensive index, but that is not as crucial and can be addressed in future iterations.
+**Key principle:** Decision engines are **stateless**. Each `MakeDecision` execution:
+- Observes current game state
+- Produces exactly **one** command
+- Returns (execution ends)
+- Next execution is triggered by server command echo (subscription in Bot.cs)
 
-## Proposed design: torso rotation decision in `WeaponsEngine`
+**Workflow for torso-aware weapon attacks:**
 
-### 1) Joint optimization: torsoFacing + target + weapons
+#### Execution pattern:
+Pseudo code, should be aligned with current implementation, only replacing its corresponding parts
+```csharp
+public async Task<bool> MakeDecision()
+{
+    var attacker = SelectAttacker();
+    if (attacker == null) return false;
+    
+    var enemies = GetEnemies();
+    var attackerPath = GetAttackerPath(attacker);
+    
+    // 1. Evaluate all targets with all torso configurations
+    var targetScores = _tacticalEvaluator.EvaluateTargets(
+        attacker, attackerPath, enemies);
+    
+    if (!targetScores.Any()) 
+    {
+        // No viable attacks, declare empty attack to advance phase
+        await DeclareNoAttack(attacker);
+        return true;
+    }
+    
+    // 2. Find best configuration across all targets
+    var bestOption = targetScores
+        .SelectMany(t => t.ConfigurationScores)  // All config-score pairs
+        .OrderByDescending(cs => cs.Score)
+        .First();
+    
+    var bestConfig = bestOption.Configuration;
+    var bestTarget = bestOption.Target;
+    
+    // 3. Check if configuration needs to be applied
+    if (bestConfig.Type == WeaponConfigurationType.TorsoRotation)
+    {
+        if (!IsConfigurationApplied(attacker, bestConfig))
+        {
+            // Send configuration command and END execution
+            await _clientGame.ConfigureUnitWeapons(
+                new WeaponConfigurationCommand(
+                    attacker.Id, 
+                    bestConfig
+                )
+            );
+            return true; // Execution ends here
+        }
+    }
+    
+    // 4. Configuration is applied (or not needed)
+    //    Select weapons and declare attack
+    var selectedWeapons = SelectWeapons(
+        attacker, bestTarget, bestConfig, enemies);
+    
+    await _clientGame.DeclareWeaponAttack(
+        new WeaponAttackDeclarationCommand(
+            attacker.Id,
+            selectedWeapons
+        )
+    );
+    
+    return true; // Execution ends here
+}
+```
 
-For the current bot behavior (single target), the simplest correct algorithm is:
+#### Server-driven workflow:
 
-- Enumerate torso options
-- For each torso option:
-  - Evaluate targets and pick the best target score
-  - Select weapons under heat/ammo constraints
-  - Compute “final expected damage” for that plan
-- Pick the best plan overall
+1. **First execution:** Bot evaluates → determines torso rotation needed → sends `WeaponConfigurationCommand` → returns
+2. **Server processing:** Calls `BaseGame.OnWeaponConfiguration` → `mech.RotateTorso(direction)` → broadcasts command echo
+3. **Second execution (triggered by echo):** Bot re-evaluates → sees torso already rotated → sends `WeaponAttackDeclarationCommand` → returns
 
-This replaces the current approach of:
+**Implementation helpers:**
 
-- Evaluate targets once with leg-facing
-- Pick best target
-- Select weapons
+```csharp
+private bool IsConfigurationApplied(IUnit unit, WeaponConfiguration config)
+{
+    if (config.Type == WeaponConfigurationType.None)
+        return true;
+        
+    if (config.Type == WeaponConfigurationType.TorsoRotation && unit is Mech mech)
+    {
+        var desiredFacing = (HexDirection)config.Value;
+        return mech.Facing == desiredFacing;
+    }
+    
+    return false;
+}
+```
 
-### 2) Command ordering / workflow
+### 5) Data structure updates
 
-A torso-twist is sent as `WeaponConfigurationCommand` and is processed in `WeaponsAttackPhase` without consuming the unit’s action.
+**Extend `TargetScore` (pseudicode, must be adjusted to be aligned with actual types):**
 
-Recommended bot workflow per attacker unit:
+```csharp
+public class TargetScore
+{
+    public IUnit Target { get; set; }
+    public double Score { get; set; }
+    
+    // NEW: Keep all configuration options with their scores
+    public List<ConfigurationScore> ConfigurationScores { get; set; }
+}
 
-1. **Plan** (pure evaluation, no commands)
-   - Determine best `(torsoFacing, target, selectedWeapons)`.
-2. **If needed** and allowed:
-   - If attacker is `Mech` and `mech.CanRotateTorso` and `torsoFacing != mech.Position.Facing`:
-     - Send `WeaponConfigurationCommand` with `WeaponConfigurationType.TorsoRotation`.
-     - `await _clientGame.ConfigureUnitWeapons(command)`.
-     - If it fails: fall back to “no rotation” plan.
-3. **Declare attack**
-   - Build `WeaponTargetData` list and send `WeaponAttackDeclarationCommand`.
+public class ConfigurationScore
+{
+    public WeaponConfiguration Configuration { get; set; }
+    public double Score { get; set; }
+    public IUnit Target { get; set; }
+    public List<WeaponEvaluationData> ViableWeapons { get; set; }
+}
+```
 
-### 3) “Gracefully continue to select weapons after torso rotation”
-
-Two safe options exist:
-
-- **Option A (recommended):** choose weapons *before* sending the torso rotation command.
-  - You don’t need to re-run selection after rotation, because the evaluation already assumed that torsoFacing.
-  - After ack, you immediately declare attack.
-
-- **Option B (more robust):** re-evaluate after rotation ack.
-  - Re-run `EvaluateTargets` based on the now-updated unit state and re-select weapons.
-  - This is safer if later other mechanics introduce dependencies (e.g., more modifiers based on facing).
-
-**Anton:** it should be option B, as decision engines are stateless, execution ends with a command sent, so once torso rotation command is sent we shold end the execution, the next one should be tirigered by the server echo of the command.
-
-### 4) Integration with client command synchronization
-
-`ClientGame` tracks pending commands and blocks further actions while `_pendingCommands` is not empty (`CanActivePlayerAct`).
-
-Therefore, `WeaponsEngine` must:
-
-- `await` the `ConfigureUnitWeapons` task completion before attempting `DeclareWeaponAttack`.
-
-**Anton:** again it should not be "await" but another MakeDecision execution trigered by the server command
-
-This matches the human UI’s implicit model (configure first, then declare).
-
-## Suggested changes to bot evaluation/decision flow (implementation guidance)
-
-### A) TacticalEvaluator enhancements
-
-Add torso-awareness as a first-class concept:
-
-- **New helper:** `GetPossibleTorsoFacings(IUnit attacker, HexPosition destination)`.
-- **New overload or parameter:** `EvaluateTargets(..., HexDirection attackerFacing)`.
-
-Ensure the following lines conceptually switch from leg-facing to torso-facing:
-
-- Arc check:
-  - from `attackerPath.Destination.Facing`
-  - to `attackerFacing` (torsoFacing candidate)
-
-- `AttackScenario.FromHypothetical(attackerFacing: ...)`:
-  - from `attackerPath.Destination.Facing`
-  - to `attackerFacing`
-
-### B) MovementEngine enhancements
-
-`MovementEngine` already evaluates many paths concurrently.
-
-- Offensive scoring should incorporate torso options *inside* `EvaluatePath`.
-- Optional improvement: store “recommended torso facing” in `PositionScore` for the best-scoring path.
-  - This could reduce recomputation in `WeaponsEngine`, but it is not required.
-
-### C) WeaponsEngine enhancements
-
-`WeaponsEngine.MakeDecision` should become a 2-step command sequence when rotating torso:
-
-- `ConfigureUnitWeapons` (optional)
-- `DeclareWeaponAttack`
-
-Planning logic should pick the best torso option using the same scoring basis as `TacticalEvaluator`.
+The goal is to allow `WeaponsEngine` to:
+- See all configuration options
+- Pick the globally best configuration
+- Access the weapon list for that configuration
 
 ## Edge cases and considerations
 
 ### 1) Unit is not a mech
 
-- No torso rotation options.
-- Behavior remains unchanged.
+- `GetWeaponsConfigurationOptions()` returns empty for non-mechs
+- Only `WeaponConfigurationType.None` is evaluated
+- Behavior identical to current implementation
 
 ### 2) Mech cannot rotate torso
 
-- `PossibleTorsoRotation == 0` or `HasUsedTorsoTwist == true`.
-- Evaluation should consider only the current facing.
+- `CanRotateTorso == false` or `HasUsedTorsoTwist == true`
+- `GetWeaponsConfigurationOptions()` returns empty list
+- Only `WeaponConfigurationType.None` is evaluated
+- Behavior identical to current implementation
 
-### 3) Torso rotation resets on movement and at turn reset
+### 3) Firing arc computation
 
-- `Mech.Position` setter calls `torso.ResetRotation()` whenever position changes.
-- `Mech.ResetTurnState()` resets torso rotation.
+- `IsInWeaponFiringArc` accepts explicit `facing` parameter
+- Must pass the configuration's facing value, not default to `weapon.FirstMountPart.Facing`
+- This avoids requiring actual state mutation during evaluation
 
-Implication:
+### 4) Multiple targets and secondary target modifier
 
-- Movement evaluation can safely assume “torso is neutral” at the end of movement.
-- Weapons planning should assume torso twist is available if `CanRotateTorso`.
+Current bot declares all weapons at a single target. If/when splitting fire:
 
-### 4) Firing arc computation depends on part facing
+- Secondary target penalties depend on `AttackScenario.AttackerFacing`
+- Must use the chosen configuration's facing (post-rotation), not leg-facing
+- Already handled correctly if `CalculateHitProbability` receives `attackerFacing: (HexDirection)config.Value`
 
-- `HexCoordinatesExtensions.IsInWeaponFiringArc` uses a `facing` parameter; if null, it defaults to `weapon.FirstMountPart.Facing`.
-- Since `UnitPart.Facing` defaults to `Unit.Facing`, and `Mech.Facing` reflects torso direction, actual torso rotation affects firing arcs.
+### 7) Defensive evaluation and enemy torso twist
 
-For evaluation, you should prefer the explicit `facing` parameter to avoid requiring mutation.
+Current `CalculateDefensiveIndex` uses actual enemy unit facing state.
 
-### 5) Defensive evaluation and enemy torso twist
-
-Current `CalculateDefensiveIndex` uses actual enemy unit facing state (via part-facing defaults).
-
-If you later want to assume enemies *can* torso twist to shoot you, you would need an analogous “max over enemy torso facings” in defense as well. That is **out of scope** for this change, but worth noting.
-
-### 6) Multiple targets and secondary target modifier
-
-Right now the bot declares all selected weapons at a single target.
-
-If/when the bot starts splitting fire:
-
-- Secondary target penalties depend on whether targets are in front arc, using `AttackScenario.AttackerFacing`.
-- That facing should be the chosen torso-facing (post-rotation), not the leg-facing.
-
-### 7) Failure handling / graceful degradation
-
-If `ConfigureUnitWeapons` fails (returns false) or is rejected by rules:
-
-- Fall back to “no rotation” plan.
-- Still declare weapon attack (possibly empty) to avoid stalling the phase.
+**Out of scope for this change:** Assuming enemies can torso-twist to shoot the defender would require analogous "max over enemy configurations" logic in defensive scoring. This could be addressed in future iterations.
 
 ## Recommended incremental implementation path
 
-- **Step 1:** Add torso-aware target evaluation primitives (no bot behavior changes yet).
-- **Step 2:** Use max-over-torso options in `TacticalEvaluator.EvaluatePath` so movement scoring becomes torso-aware.
-- **Step 3:** Update `WeaponsEngine` to:
-  - evaluate torso options
-  - send `WeaponConfigurationCommand` when beneficial
-  - then declare weapon attack
-- **Step 4 (optional):** Persist “planned torso facing” from movement evaluation into weapons planning to reduce recomputation.
+### Step 1: Extend data structures
+- Add `Configuration` property to `WeaponEvaluationData`
+- Add `ConfigurationScores` to `TargetScore` (or similar changes to support required functionality)
+
+### Step 2: Torso-aware weapon evaluation
+- Modify `EvaluateWeaponsForTarget` to:
+  - Enumerate configurations via `GetWeaponsConfigurationOptions`
+  - Add nested loop over configurations
+  - Check `IsWeaponConfigurationApplicable` per weapon
+  - Use `config.Value` as facing for arc/scenario calculations
+  - Tag each viable weapon with its configuration
+
+### Step 3: Configuration-aware scoring
+- Modify `EvaluatePath` or `EvaluateTargets` to:
+  - Group weapons by configuration
+  - Calculate score per configuration
+  - Take max score for offensive index
+  - Preserve all configuration scores for `WeaponsEngine`
+
+### Step 4: Weapons engine decision logic
+- Modify `WeaponsEngine.MakeDecision` to:
+  - Find best configuration across all targets
+  - Check `IsConfigurationApplied`
+  - Send `WeaponConfigurationCommand` if needed (end execution)
+  - Send `WeaponAttackDeclarationCommand` if configuration ready (end execution)
+
+### Step 5: Testing and validation (MakaMek.BotTests project)
+- Verify movement evaluation favors positions with torso-twist opportunities
+- Verify weapons engine correctly rotates torso when beneficial
+- Verify stateless execution pattern (one command per call)
+- Test edge cases (non-mechs, already-rotated, rotation-blocked)
 
 ## Completion status
 
-- This document describes current behavior and provides implementation guidance for torso-aware evaluation and torso rotation commands in bot decision-making.
+This document describes current behavior and provides implementation guidance for torso-aware evaluation and torso rotation commands in bot decision-making. The design has been clarified to reflect:
+
+- Use of existing `GetWeaponsConfigurationOptions()` API
+- Configuration tagging at weapon evaluation level
+- Grouped scoring by configuration
+- Stateless decision engine pattern with server-driven workflow
+- Correct usage of `WeaponConfiguration` record structure

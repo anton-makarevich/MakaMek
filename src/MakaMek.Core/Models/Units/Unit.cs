@@ -3,7 +3,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
@@ -737,13 +736,14 @@ public abstract class Unit : IUnit
     public IReadOnlyCollection<UiEvent> Notifications => _notifications.ToArray();
     public IReadOnlyList<UiEvent> Events => _events;
 
-    public IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    public IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
     {
+        forwardPosition ??= Position;
         var merged = new Dictionary<WeaponConfigurationType, HashSet<HexDirection>>();
 
         foreach (var part in Parts.Values)
         {
-            foreach (var option in part.GetWeaponsConfigurationOptions())
+            foreach (var option in part.GetWeaponsConfigurationOptions(forwardPosition))
             {
                 if (!merged.TryGetValue(option.Type, out var set))
                 {
@@ -764,7 +764,18 @@ public abstract class Unit : IUnit
             .ToList();
     }
 
-    public abstract void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand);
+    /// <summary>
+    /// Determines if a weapon configuration is currently applied to the unit
+    /// </summary>
+    /// <param name="config">The weapon configuration to check</param>
+    /// <returns>True if the configuration is applied, false otherwise</returns>
+    public virtual bool IsWeaponConfigurationApplied(WeaponConfiguration config)
+    {
+        // Default implementation: no configs are supported
+        return false;
+    }
+
+    public abstract void ApplyWeaponConfiguration(WeaponConfiguration config);
 
     /// <summary>
     /// Adds an event to the unit's events queue

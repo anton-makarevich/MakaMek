@@ -1,7 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -70,8 +69,8 @@ public abstract class Torso : UnitPart
         return base.ToData() with { CurrentRearArmor = CurrentRearArmor };
     }
 
-    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
     {
-        return this.GetAvailableTorsoRotationOptions();
+        return this.GetAvailableTorsoRotationOptions(forwardPosition);
     }
 }

@@ -2,7 +2,6 @@ using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Presentation.ViewModels;
-using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;

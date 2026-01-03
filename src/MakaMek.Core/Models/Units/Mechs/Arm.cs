@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 
@@ -25,19 +25,20 @@ public class Arm : UnitPart
         ];
     }
 
-    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+    public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
     {
-        if (Unit is not Mech mech || mech.Position == null)
+        forwardPosition ??= Unit?.Position;
+        if (Unit is not Mech mech || forwardPosition == null)
         {
             return [];
         }
 
-        var result =  this.GetAvailableTorsoRotationOptions()
+        var result =  this.GetAvailableTorsoRotationOptions(forwardPosition)
             .ToList();
 
         if (mech.CanFlipArms)
         {
-            var oppositeFacing = mech.Position.Facing.GetOppositeDirection();
+            var oppositeFacing = forwardPosition.Facing.GetOppositeDirection();
             result.Add(new WeaponConfigurationOptions(
                 WeaponConfigurationType.ArmsFlip,
                 [oppositeFacing]));

@@ -125,8 +125,7 @@ public class WeaponsEngineTests
                 new TargetScore
                 {
                     TargetId = Guid.NewGuid(),
-                    Score = 10,
-                    ViableWeapons = []
+                    ConfigurationScores = []
                 }
             ]);
 
@@ -174,10 +173,14 @@ public class WeaponsEngineTests
                 new TargetScore
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = weapon, HitProbability = 0 }
+                        new ConfigurationScore
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 0,
+                            ViableWeapons = [new WeaponEvaluationData { Weapon = weapon, HitProbability = 0, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } }]
+                        }
                     ]
                 }
             ]);
@@ -232,13 +235,20 @@ public class WeaponsEngineTests
                 new TargetScore
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = midProb, HitProbability = 0.6 },
-                        new WeaponEvaluationData { Weapon = highProbLowDamage, HitProbability = 0.9 },
-                        new WeaponEvaluationData { Weapon = zeroProb, HitProbability = 0 },
-                        new WeaponEvaluationData { Weapon = highProbHighDamage, HitProbability = 0.9 },
+                        new ConfigurationScore
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = midProb, HitProbability = 0.6, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                                new WeaponEvaluationData { Weapon = highProbLowDamage, HitProbability = 0.9, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                                new WeaponEvaluationData { Weapon = zeroProb, HitProbability = 0, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                                new WeaponEvaluationData { Weapon = highProbHighDamage, HitProbability = 0.9, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                            ]
+                        }
                     ]
                 }
             ]);
@@ -294,12 +304,19 @@ public class WeaponsEngineTests
                 new TargetScore
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = tooMuchHeat, HitProbability = 0.9 },
-                        new WeaponEvaluationData { Weapon = lowHeat, HitProbability = 0.8 },
-                        new WeaponEvaluationData { Weapon = someHeat, HitProbability = 0.7 },
+                        new ConfigurationScore
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = tooMuchHeat, HitProbability = 0.9, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                                new WeaponEvaluationData { Weapon = lowHeat, HitProbability = 0.8, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                                new WeaponEvaluationData { Weapon = someHeat, HitProbability = 0.7, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                            ]
+                        }
                     ]
                 }
             ]);
@@ -373,11 +390,18 @@ public class WeaponsEngineTests
                 new TargetScore
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = ammoWeapon, HitProbability = 0.7 },
-                        new WeaponEvaluationData { Weapon = energyWeapon, HitProbability = 0.6 },
+                        new ConfigurationScore
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = ammoWeapon, HitProbability = 0.7, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                                new WeaponEvaluationData { Weapon = energyWeapon, HitProbability = 0.6, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                            ]
+                        }
                     ]
                 }
             ]);
@@ -451,11 +475,18 @@ public class WeaponsEngineTests
                 new TargetScore
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = ammoWeapon, HitProbability = 0.8 },
-                        new WeaponEvaluationData { Weapon = energyWeapon, HitProbability = 0.6 },
+                        new ConfigurationScore
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = ammoWeapon, HitProbability = 0.8, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                                new WeaponEvaluationData { Weapon = energyWeapon, HitProbability = 0.6, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                            ]
+                        }
                     ]
                 }
             ]);
@@ -531,11 +562,18 @@ public class WeaponsEngineTests
                 new TargetScore
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = lowAmmoWeapon, HitProbability = 0.3 },
-                        new WeaponEvaluationData { Weapon = highAmmoWeapon, HitProbability = 0.3 },
+                        new ConfigurationScore
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = lowAmmoWeapon, HitProbability = 0.3, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                                new WeaponEvaluationData { Weapon = highAmmoWeapon, HitProbability = 0.3, Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 } },
+                            ]
+                        }
                     ]
                 }
             ]);

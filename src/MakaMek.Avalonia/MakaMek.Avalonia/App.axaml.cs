@@ -14,7 +14,6 @@ using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Avalonia.Views.MainMenu;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Presentation.ViewModels;
-using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 using Sanet.MVVM.Navigation.Avalonia.Services;
 using MainWindow = Sanet.MakaMek.Avalonia.Views.MainWindow;
