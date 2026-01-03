@@ -88,13 +88,16 @@ public class WeaponsEngine : IBotDecisionEngine
 
             // Check if configuration needs to be applied
 
-            if (!attacker.IsWeaponConfigurationApplied(bestConfig))
+            if (bestConfig.Type != WeaponConfigurationType.None)
             {
-                // Send configuration command and END execution
-                Console.WriteLine(
-                    $"[WeaponsEngine] Applying torso rotation to facing {(HexDirection)bestConfig.Value} for target {target.Name}");
-                await ConfigureWeapons(player, attacker, bestConfig);
-                return;
+                if (!attacker.IsWeaponConfigurationApplied(bestConfig))
+                {
+                    // Send configuration command and END execution
+                    Console.WriteLine(
+                        $"[WeaponsEngine] Applying torso rotation to facing {(HexDirection)bestConfig.Value} for target {target.Name}");
+                    await ConfigureWeapons(player, attacker, bestConfig);
+                    return;
+                }
             }
 
             Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestOption.ConfigScore.Score:F1}");
