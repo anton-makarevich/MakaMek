@@ -227,7 +227,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             foreach (var weapon in weapons)
             {
                 // Check if the weapon can fire at this range
-                if (distanceToTarget < weapon.MinimumRange || distanceToTarget > weapon.LongRange || weapon.FirstMountPart == null)
+                if (distanceToTarget > weapon.LongRange || weapon.FirstMountPart == null)
                     continue;
 
                 // Check configuration applicability

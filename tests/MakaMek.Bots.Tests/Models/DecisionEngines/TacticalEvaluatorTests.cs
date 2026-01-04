@@ -353,5 +353,82 @@ public class TacticalEvaluatorTests
         result.EnemiesInRearArc.ShouldBe(1, "Enemy at (0112) should be in rear arc of unit at (0616) facing BottomRight");
     }
 
+    [Fact]
+    public async Task EvaluateTargets_ShouldExcludeWeapon_WhenTargetTooFar()
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.Gunnery.Returns(4);
+        unit.AssignPilot(pilot);
+        
+        // Unit at (1,1) Facing Bottom
+        var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        unit.Move(path);
+
+        // Enemy at 10 hexes away - beyond long range
+        var enemy = MovementEngineTests.CreateTestMech();
+        var enemyPos = new HexPosition(new HexCoordinates(1, 11), HexDirection.Top);
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+
+        // Weapon with long range of 9 (enemy is at range 10)
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weapon = new TestWeapon(weaponDef);
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
+
+        var potentialTargets = new List<IUnit> { enemy };
+
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+
+        // Act
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets);
+
+        // Assert
+        results.Count.ShouldBe(0, "Weapon should be excluded when target is beyond long range");
+    }
+
+    [Theory]
+    [InlineData(PartLocation.RightLeg,0)]// Legs don't rotate with torso
+    [InlineData(PartLocation.RightTorso, 1)]
+    public async Task EvaluateTargets_ShouldOnlyIncludeRotationConfig_WhenMountingPartSupportsIt(PartLocation partLocation, int expetedConfigs)
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.Gunnery.Returns(4);
+        unit.AssignPilot(pilot);
+        
+        // Unit at (1,1) Facing Bottom
+        var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        unit.Move(path);
+
+        // Enemy at range
+        var enemy = MovementEngineTests.CreateTestMech();
+        var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+
+        // Mount on a leg part - legs don't support torso rotation
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weapon = new TestWeapon(weaponDef);
+        var legPart = unit.Parts[partLocation]; 
+        legPart.TryAddComponent(weapon);
+
+        var potentialTargets = new List<IUnit> { enemy };
+
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+
+        // Act
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets);
+
+        // Assert
+        results.Count.ShouldBe(expetedConfigs);
+    }
+
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
 }
