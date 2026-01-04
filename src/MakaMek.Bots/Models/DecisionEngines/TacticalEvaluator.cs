@@ -85,25 +85,22 @@ public class TacticalEvaluator : ITacticalEvaluator
             // Determine which arc of the enemy would be hit (bonus for rear/side shots)
             var targetArc = GetFiringArcFromPosition(target.Position, attackerPath.Destination.Coordinates);
             var arcBonus = targetArc.GetArcMultiplier();
-
-            // Group viable weapons by their required configuration
-            var configGroups = viableWeapons.GroupBy(w => w.Configuration);
-
+            
             // Calculate score for each configuration
-            var configScores = configGroups.Select(group =>
+            var configScores = new List<ConfigurationScore>();
+            foreach (var (config, weaponsForConfig) in viableWeapons)
             {
-                var weaponsForConfig = group.ToList();
                 var score = weaponsForConfig.Sum(w =>
                     w.HitProbability * w.Weapon.Damage
                 ) * arcBonus;
 
-                return new ConfigurationScore
+                configScores.Add(new ConfigurationScore
                 {
-                    Configuration = group.Key,
+                    Configuration = config,
                     Score = score,
                     ViableWeapons = weaponsForConfig
-                };
-            }).ToList();
+                });
+            }
 
             results.Add(new TargetScore
             {
@@ -186,7 +183,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <summary>
     /// Evaluates all weapons against a target and returns a list of viable weapons with hit probabilities
     /// </summary>
-    private List<WeaponEvaluationData> EvaluateWeaponsForTarget(
+    private Dictionary<WeaponConfiguration, List<WeaponEvaluationData>> EvaluateWeaponsForTarget(
         IUnit attacker,
         MovementPath attackerPath,
         MovementPath targetPath,
@@ -195,11 +192,11 @@ public class TacticalEvaluator : ITacticalEvaluator
         if (_game.BattleMap == null)
             return [];
 
-        var viableWeapons = new List<WeaponEvaluationData>();
+        var configWeapons = new Dictionary<WeaponConfiguration, List<WeaponEvaluationData>>();
 
         // Check line of sight
         if (!_game.BattleMap.HasLineOfSight(attackerPath.Destination.Coordinates, targetPath.Destination.Coordinates))
-            return viableWeapons;
+            return configWeapons;
 
         var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPath.Destination.Coordinates);
 
@@ -223,6 +220,8 @@ public class TacticalEvaluator : ITacticalEvaluator
         foreach (var config in allConfigs)
         {
             var facing = (HexDirection)config.Value;
+
+            var viableWeapons = new List<WeaponEvaluationData>();
 
             foreach (var weapon in weapons)
             {
@@ -251,12 +250,16 @@ public class TacticalEvaluator : ITacticalEvaluator
                 {
                     Weapon = weapon,
                     HitProbability = hitProbability,
-                    Configuration = config
                 });
+            }
+
+            if (viableWeapons.Count > 0)
+            {
+                configWeapons[config] = viableWeapons;
             }
         }
 
-        return viableWeapons;
+        return configWeapons;
     }
 
     /// <summary>

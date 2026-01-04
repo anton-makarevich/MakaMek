@@ -1,5 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Units.Components;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+﻿using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 namespace Sanet.MakaMek.Bots.Data;
 
@@ -10,5 +9,4 @@ public readonly record struct WeaponEvaluationData
 {
     public required Weapon Weapon { get; init; }
     public required double HitProbability { get; init; }
-    public required WeaponConfiguration Configuration { get; init; }
 }
