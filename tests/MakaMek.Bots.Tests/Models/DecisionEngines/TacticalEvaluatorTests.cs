@@ -393,7 +393,7 @@ public class TacticalEvaluatorTests
     [Theory]
     [InlineData(PartLocation.RightLeg,0)]// Legs don't rotate with torso
     [InlineData(PartLocation.RightTorso, 1)]
-    public async Task EvaluateTargets_ShouldOnlyIncludeRotationConfig_WhenMountingPartSupportsIt(PartLocation partLocation, int expetedConfigs)
+    public async Task EvaluateTargets_ShouldOnlyIncludeRotationConfig_WhenMountingPartSupportsIt(PartLocation partLocation, int expectedConfigs)
     {
         // Arrange
         var unit = MovementEngineTests.CreateTestMech();
@@ -427,7 +427,7 @@ public class TacticalEvaluatorTests
         var results = await _sut.EvaluateTargets(unit, path, potentialTargets);
 
         // Assert
-        results.Count.ShouldBe(expetedConfigs);
+        results.Count.ShouldBe(expectedConfigs);
     }
 
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
