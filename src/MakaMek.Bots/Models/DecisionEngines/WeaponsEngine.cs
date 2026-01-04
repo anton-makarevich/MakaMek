@@ -94,7 +94,7 @@ public class WeaponsEngine : IBotDecisionEngine
                 {
                     // Send configuration command and END execution
                     Console.WriteLine(
-                        $"[WeaponsEngine] Applying torso rotation to facing {(HexDirection)bestConfig.Value} for target {target.Name}");
+                        $"[WeaponsEngine] Applying {bestConfig.Type} with {(HexDirection)bestConfig.Value} when targeting {target.Name}");
                     await ConfigureWeapons(player, attacker, bestConfig);
                     return;
                 }

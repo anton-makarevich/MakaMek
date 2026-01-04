@@ -2480,7 +2480,7 @@ public class UnitTests
     }
     
     [Fact]
-    public void IsWeaponConfigurationApplied_ShouldReturnFalsw()
+    public void IsWeaponConfigurationApplied_ShouldReturnFalse()
     {
         // Arrange
         var sut = CreateTestUnit();
