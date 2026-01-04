@@ -177,13 +177,13 @@ public class WeaponsEngine : IBotDecisionEngine
         await _clientGame.ConfigureUnitWeapons(command);
     }
 
-    private List<WeaponEvaluationData> SelectWeapons(IUnit attacker, ConfigurationScore configScore)
+    private List<WeaponEvaluationData> SelectWeapons(IUnit attacker, WeaponConfigurationEvaluationData configEvaluationData)
     {
         var initialProjectedHeat = attacker.GetProjectedHeatValue(_clientGame.RulesProvider);
         var heatDissipation = attacker.HeatDissipation;
         var heatThreshold = GetHeatSelectionThreshold();
 
-        var sortedWeapons = configScore.ViableWeapons
+        var sortedWeapons = configEvaluationData.ViableWeapons
             .Where(w => w.HitProbability > 0)
             .OrderByDescending(w => w.HitProbability)
             .ThenByDescending(w => w.Weapon.Damage)

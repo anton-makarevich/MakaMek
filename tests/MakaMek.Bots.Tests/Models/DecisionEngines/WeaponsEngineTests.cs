@@ -122,7 +122,7 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = Guid.NewGuid(),
                     ConfigurationScores = []
@@ -170,12 +170,12 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
                     ConfigurationScores =
                     [
-                        new ConfigurationScore
+                        new WeaponConfigurationEvaluationData
                         {
                             Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
                             Score = 0,
@@ -232,12 +232,12 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
                     ConfigurationScores =
                     [
-                        new ConfigurationScore
+                        new WeaponConfigurationEvaluationData
                         {
                             Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
                             Score = 10,
@@ -301,12 +301,12 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
                     ConfigurationScores =
                     [
-                        new ConfigurationScore
+                        new WeaponConfigurationEvaluationData
                         {
                             Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
                             Score = 10,
@@ -387,12 +387,12 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
                     ConfigurationScores =
                     [
-                        new ConfigurationScore
+                        new WeaponConfigurationEvaluationData
                         {
                             Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
                             Score = 10,
@@ -472,12 +472,12 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
                     ConfigurationScores =
                     [
-                        new ConfigurationScore
+                        new WeaponConfigurationEvaluationData
                         {
                             Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
                             Score = 10,
@@ -559,12 +559,12 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
                     ConfigurationScores =
                     [
-                        new ConfigurationScore
+                        new WeaponConfigurationEvaluationData
                         {
                             Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
                             Score = 10,
@@ -619,7 +619,7 @@ public class WeaponsEngineTests
         _clientGame.Players.Returns([_player]);
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
-            .Returns<ValueTask<IReadOnlyList<TargetScore>>>(_ => throw new InvalidOperationException("Unexpected"));
+            .Returns<ValueTask<IReadOnlyList<TargetEvaluationData>>>(_ => throw new InvalidOperationException("Unexpected"));
 
         WeaponAttackDeclarationCommand capturedCommand = default;
         var commandCaptured = false;
@@ -680,12 +680,12 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
                     ConfigurationScores =
                     [
-                        new ConfigurationScore
+                        new WeaponConfigurationEvaluationData
                         {
                             Configuration = torsoConfig,
                             Score = 15.5,

@@ -55,13 +55,13 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <summary>
     /// Evaluates potential targets for a unit
     /// </summary>
-    public ValueTask<IReadOnlyList<TargetScore>> EvaluateTargets(
+    public ValueTask<IReadOnlyList<TargetEvaluationData>> EvaluateTargets(
         IUnit attacker, MovementPath attackerPath, IReadOnlyList<IUnit> potentialTargets)
     {
         if (_game.BattleMap == null || attacker.Position == null)
-            return ValueTask.FromResult<IReadOnlyList<TargetScore>>([]);
+            return ValueTask.FromResult<IReadOnlyList<TargetEvaluationData>>([]);
 
-        var results = new List<TargetScore>();
+        var results = new List<TargetEvaluationData>();
 
         // Get all friendly weapons
         var weapons = attacker.Parts.Values
@@ -87,14 +87,14 @@ public class TacticalEvaluator : ITacticalEvaluator
             var arcBonus = targetArc.GetArcMultiplier();
             
             // Calculate score for each configuration
-            var configScores = new List<ConfigurationScore>();
+            var configScores = new List<WeaponConfigurationEvaluationData>();
             foreach (var (config, weaponsForConfig) in viableWeapons)
             {
                 var score = weaponsForConfig.Sum(w =>
                     w.HitProbability * w.Weapon.Damage
                 ) * arcBonus;
 
-                configScores.Add(new ConfigurationScore
+                configScores.Add(new WeaponConfigurationEvaluationData
                 {
                     Configuration = config,
                     Score = score,
@@ -102,14 +102,14 @@ public class TacticalEvaluator : ITacticalEvaluator
                 });
             }
 
-            results.Add(new TargetScore
+            results.Add(new TargetEvaluationData
             {
                 TargetId = target.Id,
                 ConfigurationScores = configScores
             });
         }
 
-        return ValueTask.FromResult<IReadOnlyList<TargetScore>>(results);
+        return ValueTask.FromResult<IReadOnlyList<TargetEvaluationData>>(results);
     }
     
     /// <summary>
