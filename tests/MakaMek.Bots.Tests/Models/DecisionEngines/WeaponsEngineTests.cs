@@ -715,6 +715,60 @@ public class WeaponsEngineTests
 
         await _clientGame.DidNotReceive().DeclareWeaponAttack(Arg.Any<WeaponAttackDeclarationCommand>());
     }
+    
+    [Fact]
+    public async Task MakeDecision_WhenTorsoConfigurationApplied_ShouldSendWeaponDeclarationCommand()
+    {
+        var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        _player.AliveUnits.Returns([attacker]);
+
+        var enemy = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+            isDeployed: true,
+            name: "Enemy");
+        var enemyPlayer = Substitute.For<IPlayer>();
+        enemyPlayer.Id.Returns(Guid.NewGuid());
+        enemyPlayer.AliveUnits.Returns([enemy]);
+
+        _clientGame.Players.Returns([_player, enemyPlayer]);
+
+        var enemyId = enemy.Id;
+        var torsoConfig = new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = 1 };
+
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+            .Returns([
+                new TargetEvaluationData
+                {
+                    TargetId = enemyId,
+                    ConfigurationScores =
+                    [
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = torsoConfig,
+                            Score = 15.5,
+                            ViableWeapons = []
+                        }
+                    ]
+                }
+            ]);
+
+        attacker.IsWeaponConfigurationApplied(torsoConfig).Returns(true);
+
+        WeaponAttackDeclarationCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.DeclareWeaponAttack(Arg.Do<WeaponAttackDeclarationCommand>(cmd =>
+        {
+            capturedCommand = cmd;
+            commandCaptured = true;
+        }));
+
+        await _sut.MakeDecision(_player);
+
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.UnitId.ShouldBe(attacker.Id);
+        capturedCommand.WeaponTargets.Count.ShouldBe(0);
+    }
 
     private static IUnit CreateMockUnit(
         bool canFireWeapons,
