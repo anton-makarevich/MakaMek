@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
 
@@ -310,10 +310,12 @@ public abstract class UnitPart
             : [FiringArc.Front];
     }
 
-    public abstract IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions();
+    public abstract IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null);
 
-    public bool IsWeaponConfigurationApplicable(WeaponConfigurationType type)
+    public bool IsWeaponConfigurationApplicable(WeaponConfigurationType type, HexPosition? forwardPosition = null)
     {
-        return GetWeaponsConfigurationOptions().Any(o => o.Type == type);
+        forwardPosition ??= Unit?.Position;
+        return type == WeaponConfigurationType.None 
+               || GetWeaponsConfigurationOptions(forwardPosition).Any(o => o.Type == type);
     }
 }

@@ -1,5 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Map;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -8,11 +8,12 @@ public static class MechPartExtensions
 {
     extension(UnitPart part)
     {
-        public IReadOnlyList<WeaponConfigurationOptions> GetAvailableTorsoRotationOptions()
+        public IReadOnlyList<WeaponConfigurationOptions> GetAvailableTorsoRotationOptions(HexPosition? forwardPosition = null)
         {
-            if (part.Unit is not Mech mech || mech.Position == null || !mech.CanRotateTorso) return [];
+            forwardPosition ??= part.Unit?.Position;
+            if (part.Unit is not Mech mech || forwardPosition == null || !mech.CanRotateTorso) return [];
             
-            var currentFacingInt = (int)mech.Position.Facing;
+            var currentFacingInt = (int)forwardPosition.Facing;
             
             var availableDirections = new List<HexDirection>();
             

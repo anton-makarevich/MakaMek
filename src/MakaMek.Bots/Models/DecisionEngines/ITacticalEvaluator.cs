@@ -25,7 +25,7 @@ public interface ITacticalEvaluator
     /// <param name="attackerPath">Movement path of the attacker to get to the position</param>
     /// <param name="potentialTargets">List of potential targets available</param>
     /// <returns>List of scores for each target</returns>
-    ValueTask<IReadOnlyList<TargetScore>> EvaluateTargets(
+    ValueTask<IReadOnlyList<TargetEvaluationData>> EvaluateTargets(
         IUnit attacker,
         MovementPath attackerPath,
         IReadOnlyList<IUnit> potentialTargets);

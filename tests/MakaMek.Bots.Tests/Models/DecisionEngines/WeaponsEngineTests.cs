@@ -122,11 +122,10 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = Guid.NewGuid(),
-                    Score = 10,
-                    ViableWeapons = []
+                    ConfigurationScores = []
                 }
             ]);
 
@@ -171,13 +170,17 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = weapon, HitProbability = 0 }
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 0,
+                            ViableWeapons = [new WeaponEvaluationData { Weapon = weapon, HitProbability = 0 }]
+                        }
                     ]
                 }
             ]);
@@ -229,16 +232,23 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = midProb, HitProbability = 0.6 },
-                        new WeaponEvaluationData { Weapon = highProbLowDamage, HitProbability = 0.9 },
-                        new WeaponEvaluationData { Weapon = zeroProb, HitProbability = 0 },
-                        new WeaponEvaluationData { Weapon = highProbHighDamage, HitProbability = 0.9 },
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = midProb, HitProbability = 0.6},
+                                new WeaponEvaluationData { Weapon = highProbLowDamage, HitProbability = 0.9},
+                                new WeaponEvaluationData { Weapon = zeroProb, HitProbability = 0 },
+                                new WeaponEvaluationData { Weapon = highProbHighDamage, HitProbability = 0.9 },
+                            ]
+                        }
                     ]
                 }
             ]);
@@ -291,15 +301,22 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = tooMuchHeat, HitProbability = 0.9 },
-                        new WeaponEvaluationData { Weapon = lowHeat, HitProbability = 0.8 },
-                        new WeaponEvaluationData { Weapon = someHeat, HitProbability = 0.7 },
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = tooMuchHeat, HitProbability = 0.9 },
+                                new WeaponEvaluationData { Weapon = lowHeat, HitProbability = 0.8 },
+                                new WeaponEvaluationData { Weapon = someHeat, HitProbability = 0.7 },
+                            ]
+                        }
                     ]
                 }
             ]);
@@ -370,14 +387,21 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = ammoWeapon, HitProbability = 0.7 },
-                        new WeaponEvaluationData { Weapon = energyWeapon, HitProbability = 0.6 },
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = ammoWeapon, HitProbability = 0.7 },
+                                new WeaponEvaluationData { Weapon = energyWeapon, HitProbability = 0.6 },
+                            ]
+                        }
                     ]
                 }
             ]);
@@ -448,14 +472,21 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = ammoWeapon, HitProbability = 0.8 },
-                        new WeaponEvaluationData { Weapon = energyWeapon, HitProbability = 0.6 },
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = ammoWeapon, HitProbability = 0.8 },
+                                new WeaponEvaluationData { Weapon = energyWeapon, HitProbability = 0.6 },
+                            ]
+                        }
                     ]
                 }
             ]);
@@ -528,14 +559,21 @@ public class WeaponsEngineTests
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
             .Returns([
-                new TargetScore
+                new TargetEvaluationData
                 {
                     TargetId = enemyId,
-                    Score = 10,
-                    ViableWeapons =
+                    ConfigurationScores =
                     [
-                        new WeaponEvaluationData { Weapon = lowAmmoWeapon, HitProbability = 0.3 },
-                        new WeaponEvaluationData { Weapon = highAmmoWeapon, HitProbability = 0.3 },
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons =
+                            [
+                                new WeaponEvaluationData { Weapon = lowAmmoWeapon, HitProbability = 0.3 },
+                                new WeaponEvaluationData { Weapon = highAmmoWeapon, HitProbability = 0.3 },
+                            ]
+                        }
                     ]
                 }
             ]);
@@ -581,7 +619,7 @@ public class WeaponsEngineTests
         _clientGame.Players.Returns([_player]);
 
         _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
-            .Returns<ValueTask<IReadOnlyList<TargetScore>>>(_ => throw new InvalidOperationException("Unexpected"));
+            .Returns<ValueTask<IReadOnlyList<TargetEvaluationData>>>(_ => throw new InvalidOperationException("Unexpected"));
 
         WeaponAttackDeclarationCommand capturedCommand = default;
         var commandCaptured = false;
@@ -618,6 +656,118 @@ public class WeaponsEngineTests
             attacker, 
             Arg.Is<MovementPath>(p => p == movementPath), 
             Arg.Any<IReadOnlyList<IUnit>>());
+    }
+
+    [Fact]
+    public async Task MakeDecision_WhenTorsoConfigurationNeeded_ShouldSendConfigurationCommand()
+    {
+        var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        _player.AliveUnits.Returns([attacker]);
+
+        var enemy = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+            isDeployed: true,
+            name: "Enemy");
+        var enemyPlayer = Substitute.For<IPlayer>();
+        enemyPlayer.Id.Returns(Guid.NewGuid());
+        enemyPlayer.AliveUnits.Returns([enemy]);
+
+        _clientGame.Players.Returns([_player, enemyPlayer]);
+
+        var enemyId = enemy.Id;
+        var torsoConfig = new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = 1 };
+
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+            .Returns([
+                new TargetEvaluationData
+                {
+                    TargetId = enemyId,
+                    ConfigurationScores =
+                    [
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = torsoConfig,
+                            Score = 15.5,
+                            ViableWeapons = []
+                        }
+                    ]
+                }
+            ]);
+
+        attacker.IsWeaponConfigurationApplied(torsoConfig).Returns(false);
+
+        WeaponConfigurationCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.ConfigureUnitWeapons(Arg.Do<WeaponConfigurationCommand>(cmd =>
+        {
+            capturedCommand = cmd;
+            commandCaptured = true;
+        }));
+
+        await _sut.MakeDecision(_player);
+
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.GameOriginId.ShouldBe(_clientGame.Id);
+        capturedCommand.PlayerId.ShouldBe(_player.Id);
+        capturedCommand.UnitId.ShouldBe(attacker.Id);
+        capturedCommand.Configuration.ShouldBe(torsoConfig);
+
+        await _clientGame.DidNotReceive().DeclareWeaponAttack(Arg.Any<WeaponAttackDeclarationCommand>());
+    }
+    
+    [Fact]
+    public async Task MakeDecision_WhenTorsoConfigurationApplied_ShouldSendWeaponDeclarationCommand()
+    {
+        var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        _player.AliveUnits.Returns([attacker]);
+
+        var enemy = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+            isDeployed: true,
+            name: "Enemy");
+        var enemyPlayer = Substitute.For<IPlayer>();
+        enemyPlayer.Id.Returns(Guid.NewGuid());
+        enemyPlayer.AliveUnits.Returns([enemy]);
+
+        _clientGame.Players.Returns([_player, enemyPlayer]);
+
+        var enemyId = enemy.Id;
+        var torsoConfig = new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = 1 };
+
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+            .Returns([
+                new TargetEvaluationData
+                {
+                    TargetId = enemyId,
+                    ConfigurationScores =
+                    [
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = torsoConfig,
+                            Score = 15.5,
+                            ViableWeapons = []
+                        }
+                    ]
+                }
+            ]);
+
+        attacker.IsWeaponConfigurationApplied(torsoConfig).Returns(true);
+
+        WeaponAttackDeclarationCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.DeclareWeaponAttack(Arg.Do<WeaponAttackDeclarationCommand>(cmd =>
+        {
+            capturedCommand = cmd;
+            commandCaptured = true;
+        }));
+
+        await _sut.MakeDecision(_player);
+
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.UnitId.ShouldBe(attacker.Id);
+        capturedCommand.WeaponTargets.Count.ShouldBe(0);
     }
 
     private static IUnit CreateMockUnit(

@@ -1,11 +1,10 @@
 using System.Reflection;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Map;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -19,7 +18,7 @@ public class UnitPartTests
     {
         internal override bool CanBeBlownOff =>true;
 
-        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
         {
             return [];
         }
@@ -570,6 +569,16 @@ public class UnitPartTests
         sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.TorsoRotation).ShouldBeFalse();
     }
 
+    [Fact]
+    public void IsWeaponConfigurationApplicable_ShouldReturnTrue_ForNoneType()
+    {
+        // Arrange
+        var sut = new TestUnitPart(PartLocation.LeftArm, 10, 5);
+        
+        // Act & Assert
+        sut.IsWeaponConfigurationApplicable(WeaponConfigurationType.None).ShouldBeTrue();
+    }
+
     public class TestUnit() : Unit("Test", "Unit", 20, [], Guid.NewGuid())
     {
         public override int CalculateBattleValue() => 0;
@@ -595,7 +604,7 @@ public class UnitPartTests
             IDamageTransferCalculator damageTransferCalculator)
             => throw new NotImplementedException();
 
-        public override void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand)
+        public override void ApplyWeaponConfiguration(WeaponConfiguration config)
         {
         }
 

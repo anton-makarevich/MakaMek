@@ -2,6 +2,7 @@
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
@@ -51,7 +52,7 @@ public class WeaponsEngine : IBotDecisionEngine
 
             var attackerPath = attacker.MovementTaken ?? MovementPath.CreateStandingStillPath(attacker.Position);
             var targetScores = await _tacticalEvaluator.EvaluateTargets(attacker, attackerPath, enemies);
-            
+
             if (targetScores.Count == 0)
             {
                 // No valid targets (no hit probability > 0), declare attack with an empty weapon list
@@ -59,19 +60,50 @@ public class WeaponsEngine : IBotDecisionEngine
                 return;
             }
 
-            // Select the best target
-            var bestTargetScore = targetScores.MaxBy(t => t.Score);
-            var target = enemies.FirstOrDefault(e => e.Id == bestTargetScore.TargetId);
+            // Find the best configuration across all targets, preserving target context
+            var bestOption = targetScores
+                .SelectMany(t => t.ConfigurationScores.Select(cs => new 
+                { 
+                    Target = t, 
+                    ConfigScore = cs 
+                }))
+                .OrderByDescending(x => x.ConfigScore.Score)
+                .FirstOrDefault();
+
+            if (bestOption == null || bestOption.ConfigScore.Score == 0)
+            {
+                // No viable attacks, declare empty attack
+                await DeclareWeaponAttack(player, attacker, []);
+                return;
+            }
+
+            var bestConfig = bestOption.ConfigScore.Configuration;
+            var target = enemies.FirstOrDefault(e => e.Id == bestOption.Target.TargetId);
             if (target == null)
             {
                 // No valid target found, declare empty attack
                 await DeclareWeaponAttack(player, attacker, []);
                 return;
             }
-            
-            Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestTargetScore.Score:F1}");
 
-            var weaponTargets = SelectWeapons(attacker, bestTargetScore)
+            // Check if configuration needs to be applied
+
+            if (bestConfig.Type != WeaponConfigurationType.None)
+            {
+                if (!attacker.IsWeaponConfigurationApplied(bestConfig))
+                {
+                    // Send configuration command and END execution
+                    Console.WriteLine(
+                        $"[WeaponsEngine] Applying {bestConfig.Type} with {(HexDirection)bestConfig.Value} when targeting {target.Name}");
+                    await ConfigureWeapons(player, attacker, bestConfig);
+                    return;
+                }
+            }
+
+            Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestOption.ConfigScore.Score:F1}");
+
+            // Configuration is applied (or not needed), select weapons and declare attack
+            var weaponTargets = SelectWeapons(attacker, bestOption.ConfigScore)
                 .Select(evaluation => new WeaponTargetData
             {
                 Weapon = evaluation.Weapon.ToData(),
@@ -132,13 +164,26 @@ public class WeaponsEngine : IBotDecisionEngine
         await DeclareWeaponAttack(player, unit, []);
     }
 
-    private List<WeaponEvaluationData> SelectWeapons(IUnit attacker, TargetScore bestTargetScore)
+    private async Task ConfigureWeapons(IPlayer player, IUnit unit, WeaponConfiguration config)
+    {
+        var command = new WeaponConfigurationCommand
+        {
+            GameOriginId = _clientGame.Id,
+            PlayerId = player.Id,
+            UnitId = unit.Id,
+            Configuration = config
+        };
+
+        await _clientGame.ConfigureUnitWeapons(command);
+    }
+
+    private List<WeaponEvaluationData> SelectWeapons(IUnit attacker, WeaponConfigurationEvaluationData configEvaluationData)
     {
         var initialProjectedHeat = attacker.GetProjectedHeatValue(_clientGame.RulesProvider);
         var heatDissipation = attacker.HeatDissipation;
         var heatThreshold = GetHeatSelectionThreshold();
 
-        var sortedWeapons = bestTargetScore.ViableWeapons
+        var sortedWeapons = configEvaluationData.ViableWeapons
             .Where(w => w.HitProbability > 0)
             .OrderByDescending(w => w.HitProbability)
             .ThenByDescending(w => w.Weapon.Damage)
@@ -155,7 +200,7 @@ public class WeaponsEngine : IBotDecisionEngine
             var nextSelectedHeat = selectedHeat + evaluation.Weapon.Heat;
             if (initialProjectedHeat + nextSelectedHeat - heatDissipation > heatThreshold)
                 continue;
-            
+
             if (IsFiringWeaponJustified(attacker, evaluation))
             {
                 selectedWeapons.Add(evaluation);

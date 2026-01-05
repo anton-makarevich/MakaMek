@@ -1,9 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
-using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -32,7 +30,7 @@ public class UnitTests
     {
         internal override bool CanBeBlownOff => true;
 
-        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
         {
             return options;
         }
@@ -55,7 +53,7 @@ public class UnitTests
     {
         internal override bool CanBeBlownOff => true;
 
-        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions()
+        public override IReadOnlyList<WeaponConfigurationOptions> GetWeaponsConfigurationOptions(HexPosition? forwardPosition = null)
         {
             return [];
         }
@@ -86,7 +84,7 @@ public class UnitTests
         {
         }
 
-        public override void ApplyWeaponConfiguration(WeaponConfigurationCommand configCommand)
+        public override void ApplyWeaponConfiguration(WeaponConfiguration config)
         {
         }
 
@@ -2479,6 +2477,20 @@ public class UnitTests
         ]);
     
         sut.GetProjectedHeatValue(_rulesProvider).ShouldBe(6);
+    }
+    
+    [Fact]
+    public void IsWeaponConfigurationApplied_ShouldReturnFalse()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Act & Assert
+        sut.IsWeaponConfigurationApplied(new WeaponConfiguration
+        {
+            Type = WeaponConfigurationType.TorsoRotation,
+            Value = (int)HexDirection.Bottom
+        }).ShouldBeFalse();
     }
 
     // Helper class for testing explodable components
