@@ -28,14 +28,16 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="unit">The unit being evaluated</param>
     /// <param name="path">The movement path for the unit to evaluate</param>
     /// <param name="enemyUnits">All enemy units</param>
+    /// <param name="turnState">Optional turn state for caching evaluation results</param>
     /// <returns>Position score including the path</returns>
     public async Task<PositionScore> EvaluatePath(
         IUnit unit,
         MovementPath path,
-        IReadOnlyList<IUnit> enemyUnits)
+        IReadOnlyList<IUnit> enemyUnits,
+        ITurnState? turnState = null)
     {
         var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits);
-        var targetScores = await EvaluateTargets(unit, path, enemyUnits);
+        var targetScores = await EvaluateTargets(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
             .Sum(t => t.ConfigurationScores.Any()
                 ? t.ConfigurationScores.Max(cs => cs.Score)
@@ -56,7 +58,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// Evaluates potential targets for a unit
     /// </summary>
     public ValueTask<IReadOnlyList<TargetEvaluationData>> EvaluateTargets(
-        IUnit attacker, MovementPath attackerPath, IReadOnlyList<IUnit> potentialTargets)
+        IUnit attacker, MovementPath attackerPath, IReadOnlyList<IUnit> potentialTargets, ITurnState? turnState = null)
     {
         if (_game.BattleMap == null || attacker.Position == null)
             return ValueTask.FromResult<IReadOnlyList<TargetEvaluationData>>([]);
@@ -73,6 +75,18 @@ public class TacticalEvaluator : ITacticalEvaluator
         {
             if (target.Position == null)
                 continue;
+            
+            // Construct Key
+            var key = new TargetEvaluationKey(
+                attacker.Id, attackerPath.Destination.Coordinates, attackerPath.Destination.Facing,
+                target.Id, target.Position.Coordinates, target.Position.Facing
+            );
+            
+            if (turnState?.TryGetTargetEvaluation(key, out var cachedData) == true)
+            {
+                results.AddRange(cachedData);
+                continue;
+            }
 
             var targetPath = target.MovementTaken ?? MovementPath.CreateStandingStillPath(target.Position);
             var viableWeapons = EvaluateWeaponsForTarget(attacker,
@@ -101,12 +115,15 @@ public class TacticalEvaluator : ITacticalEvaluator
                     ViableWeapons = weaponsForConfig
                 });
             }
-
-            results.Add(new TargetEvaluationData
+            
+            var targetEvaluationData = new TargetEvaluationData
             {
                 TargetId = target.Id,
                 ConfigurationScores = configScores
-            });
+            };
+            
+            results.Add(targetEvaluationData);
+            turnState?.AddTargetEvaluation(key, targetEvaluationData);
         }
 
         return ValueTask.FromResult<IReadOnlyList<TargetEvaluationData>>(results);

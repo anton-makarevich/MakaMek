@@ -18,7 +18,7 @@ public class EndPhaseEngine : IBotDecisionEngine
         _clientGame = clientGame;
     }
 
-    public async Task MakeDecision(IPlayer player)
+    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
     {
         try
         {

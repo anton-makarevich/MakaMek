@@ -25,7 +25,7 @@ public class MovementEngine : IBotDecisionEngine
         _evaluator = evaluator;
     }
 
-    public async Task MakeDecision(IPlayer player)
+    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
     {
         IUnit? unitToMove = null;
         try
@@ -84,7 +84,7 @@ public class MovementEngine : IBotDecisionEngine
             Console.WriteLine($"[MovementEngine] Selected {unitToMove.Name} (Role: {unitToMove.GetTacticalRole()}, Priority: {bestCandidate.Priority})");
 
             // 5. Execute Move for a selected unit
-            await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions);
+            await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions, turnState);
         }
         catch (BotDecisionException ex)
         {
@@ -152,7 +152,8 @@ public class MovementEngine : IBotDecisionEngine
         IPlayer player, 
         IUnit unit, 
         IReadOnlyList<IUnit> enemyUnits,
-        IReadOnlySet<HexCoordinates> friendlyPositions)
+        IReadOnlySet<HexCoordinates> friendlyPositions,
+        ITurnState? turnState)
     {
         // Handle prone mechs - try to stand up
         if (unit is Mech { IsProne: true } mech && mech.CanStandup())
@@ -222,7 +223,7 @@ public class MovementEngine : IBotDecisionEngine
                 {
                     try
                     {
-                        var score = await _evaluator.EvaluatePath(unit, path, enemyUnits);
+                        var score = await _evaluator.EvaluatePath(unit, path, enemyUnits, turnState);
                         scores.Add(score);
                     }
                     catch (Exception ex)

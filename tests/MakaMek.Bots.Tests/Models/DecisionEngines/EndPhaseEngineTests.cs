@@ -15,15 +15,12 @@ namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
 
 public class EndPhaseEngineTests
 {
-    private readonly IClientGame _clientGame;
-    private readonly IPlayer _player;
+    private readonly IClientGame _clientGame = Substitute.For<IClientGame>();
+    private readonly IPlayer _player = Substitute.For<IPlayer>();
     private readonly EndPhaseEngine _sut;
 
     public EndPhaseEngineTests()
     {
-        _clientGame = Substitute.For<IClientGame>();
-        _player = Substitute.For<IPlayer>();
-        
         _clientGame.Id.Returns(Guid.NewGuid());
         _clientGame.Turn.Returns(5); // Set a default turn number
         _player.Id.Returns(Guid.NewGuid());
