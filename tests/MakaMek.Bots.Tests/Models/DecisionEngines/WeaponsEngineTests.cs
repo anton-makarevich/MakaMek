@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -15,17 +16,14 @@ namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
 
 public class WeaponsEngineTests
 {
-    private readonly IClientGame _clientGame;
-    private readonly ITacticalEvaluator _tacticalEvaluator;
-    private readonly IPlayer _player;
+    private readonly IClientGame _clientGame = Substitute.For<IClientGame>();
+    private readonly ITacticalEvaluator _tacticalEvaluator = Substitute.For<ITacticalEvaluator>();
+    private readonly IPlayer _player = Substitute.For<IPlayer>();
+    private readonly ITurnState _turnState = Substitute.For<ITurnState>();
     private readonly WeaponsEngine _sut;
 
     public WeaponsEngineTests()
     {
-        _clientGame = Substitute.For<IClientGame>();
-        _tacticalEvaluator = Substitute.For<ITacticalEvaluator>();
-        _player = Substitute.For<IPlayer>();
-
         _clientGame.Id.Returns(Guid.NewGuid());
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Player");
@@ -47,7 +45,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.GameOriginId.ShouldBe(_clientGame.Id);
@@ -70,7 +68,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(unit.Id);
@@ -96,7 +94,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
@@ -137,7 +135,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
@@ -193,7 +191,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
@@ -230,7 +228,9 @@ public class WeaponsEngineTests
         var zeroProb = new TestWeapon(new WeaponDefinition("ZeroProb", 999, 1, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), 
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -261,7 +261,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
@@ -299,7 +299,9 @@ public class WeaponsEngineTests
         var tooMuchHeat = new TestWeapon(new WeaponDefinition("TooMuchHeat", 5, 10, 0, 3, 6, 9, WeaponType.Energy, 100,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -329,7 +331,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
@@ -385,7 +387,9 @@ public class WeaponsEngineTests
 
         attacker.GetRemainingAmmoShots(ammoWeapon).Returns(1);
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -414,7 +418,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
@@ -470,7 +474,9 @@ public class WeaponsEngineTests
 
         attacker.GetRemainingAmmoShots(ammoWeapon).Returns(1);
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -499,7 +505,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
@@ -557,7 +563,9 @@ public class WeaponsEngineTests
         attacker.GetRemainingAmmoShots(lowAmmoWeapon).Returns(1);
         attacker.GetRemainingAmmoShots(highAmmoWeapon).Returns(20);
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -586,7 +594,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
@@ -602,7 +610,7 @@ public class WeaponsEngineTests
 
         var exception = await Should.ThrowAsync<BotDecisionException>(async () =>
         {
-            await _sut.MakeDecision(_player);
+            await _sut.MakeDecision(_player, _turnState);
         });
 
         exception.DecisionEngineType.ShouldBe(nameof(WeaponsEngine));
@@ -629,7 +637,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
@@ -647,15 +655,18 @@ public class WeaponsEngineTests
     
         _player.AliveUnits.Returns([attacker]);
         _clientGame.Players.Returns([_player]);
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), 
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns([]);
     
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
     
         await _tacticalEvaluator.Received(1).EvaluateTargets(
             attacker, 
             Arg.Is<MovementPath>(p => p == movementPath), 
-            Arg.Any<IReadOnlyList<IUnit>>());
+            Arg.Any<IReadOnlyList<IUnit>>(),
+            Arg.Any<ITurnState>());
     }
 
     [Fact]
@@ -678,7 +689,9 @@ public class WeaponsEngineTests
         var enemyId = enemy.Id;
         var torsoConfig = new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = 1 };
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -705,7 +718,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.GameOriginId.ShouldBe(_clientGame.Id);
@@ -763,7 +776,7 @@ public class WeaponsEngineTests
             commandCaptured = true;
         }));
 
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);

@@ -28,7 +28,7 @@ public class WeaponsEngine : IBotDecisionEngine
         _tacticalEvaluator = tacticalEvaluator;
     }
 
-    public async Task MakeDecision(IPlayer player)
+    public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
     {
         try
         {
@@ -51,7 +51,7 @@ public class WeaponsEngine : IBotDecisionEngine
                 .ToList();
 
             var attackerPath = attacker.MovementTaken ?? MovementPath.CreateStandingStillPath(attacker.Position);
-            var targetScores = await _tacticalEvaluator.EvaluateTargets(attacker, attackerPath, enemies);
+            var targetScores = await _tacticalEvaluator.EvaluateTargets(attacker, attackerPath, enemies, turnState);
 
             if (targetScores.Count == 0)
             {

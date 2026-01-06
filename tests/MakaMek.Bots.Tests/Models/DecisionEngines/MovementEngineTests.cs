@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -22,25 +23,23 @@ namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;
 
 public class MovementEngineTests
 {
-    private readonly IClientGame _clientGame;
-    private readonly ITacticalEvaluator _tacticalEvaluator;
-    private readonly IPlayer _player;
-    private readonly IBattleMap _battleMap;
+    private readonly IClientGame _clientGame = Substitute.For<IClientGame>();
+    private readonly ITacticalEvaluator _tacticalEvaluator = Substitute.For<ITacticalEvaluator>();
+    private readonly IPlayer _player = Substitute.For<IPlayer>();
+    private readonly IBattleMap _battleMap = Substitute.For<IBattleMap>();
+    private readonly ITurnState _turnState = Substitute.For<ITurnState>();
     private readonly MovementEngine _sut;
 
     public MovementEngineTests()
     {
-        _clientGame = Substitute.For<IClientGame>();
-        _tacticalEvaluator = Substitute.For<ITacticalEvaluator>();
-        _player = Substitute.For<IPlayer>();
-        _battleMap = Substitute.For<IBattleMap>();
-        
         _clientGame.Id.Returns(Guid.NewGuid());
         _clientGame.BattleMap.Returns(_battleMap);
         _player.Id.Returns(Guid.NewGuid());
         _player.Name.Returns("Test Player");
         
         _sut = new MovementEngine(_clientGame, _tacticalEvaluator);
+        
+        _turnState.TryGetTargetEvaluation(Arg.Any<TargetEvaluationKey>(), out Arg.Any<TargetEvaluationData>()).Returns(false);
     }
 
     [Fact]
@@ -52,7 +51,7 @@ public class MovementEngineTests
         _player.AliveUnits.Returns([unit1, unit2]);
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         await _clientGame.DidNotReceive().MoveUnit(Arg.Any<MoveUnitCommand>());
@@ -71,7 +70,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -94,7 +93,7 @@ public class MovementEngineTests
         await _clientGame.TryStandupUnit(Arg.Do<TryStandupCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -118,7 +117,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => capturedCommand = cmd));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         capturedCommand.ShouldNotBeNull();
@@ -139,7 +138,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -168,7 +167,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -213,7 +212,9 @@ public class MovementEngineTests
             DefensiveIndex = 5,
             EnemiesInRearArc = 0
         };
-        _tacticalEvaluator.EvaluatePath(unit, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(unit, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns(positionScore);
         
         MoveUnitCommand capturedCommand = default;
@@ -221,7 +222,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -250,7 +251,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert - Should move LRM Boat (Priority 90) over Scout (Priority 20)
         commandCaptured.ShouldBeTrue();
@@ -283,7 +284,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert - Should move Trooper (Higher Priority)
         commandCaptured.ShouldBeTrue();
@@ -315,7 +316,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert - Should select LrmBoat (Priority 90)
         commandCaptured.ShouldBeTrue();
@@ -347,7 +348,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert - Should move scout first (prone has priority 0)
         commandCaptured.ShouldBeTrue();
@@ -379,7 +380,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert - Brawler should move first (60 > 50 with initiative bonus)
         commandCaptured.ShouldBeTrue();
@@ -411,7 +412,9 @@ public class MovementEngineTests
         
         // Track which movement types were evaluated
         var evaluatedMovementTypes = new List<MovementType>();
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -428,7 +431,7 @@ public class MovementEngineTests
             });
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert - Should evaluate Walk, Run, and Jump
         evaluatedMovementTypes.ShouldContain(MovementType.Walk);
@@ -460,7 +463,9 @@ public class MovementEngineTests
             .Returns(callInfo => new MovementPath([pathSegment], callInfo.ArgAt<MovementType>(2)));
         
         // Mock evaluator to score Jump highest
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -481,7 +486,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -521,7 +526,9 @@ public class MovementEngineTests
             .Returns(callInfo => new MovementPath([pathSegment2], callInfo.ArgAt<MovementType>(2)));
         
         // Mock evaluator to score options according to test data
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -544,7 +551,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -588,7 +595,9 @@ public class MovementEngineTests
                 return destination.Coordinates.ToData() == targetHex1.ToData() ? path1 : path2;
             });
 
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -610,7 +619,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
 
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         // Assert - should pick path 2 as it includes more hexes
         commandCaptured.ShouldBeTrue();
@@ -646,7 +655,7 @@ public class MovementEngineTests
                 return destination.Coordinates.ToData() == targetHex1.ToData() ? path1 : path2;
             });
 
-        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluatePath(mech, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns(callInfo =>
             {
                 var path = callInfo.ArgAt<MovementPath>(1);
@@ -669,7 +678,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
 
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
 
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -693,7 +702,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         commandCaptured.ShouldBeTrue();
@@ -715,7 +724,7 @@ public class MovementEngineTests
         // Act & Assert
         var exception = await Should.ThrowAsync<BotDecisionException>(async () =>
         {
-            await _sut.MakeDecision(_player);
+            await _sut.MakeDecision(_player, _turnState);
         });
         
         exception.DecisionEngineType.ShouldBe(nameof(MovementEngine));
@@ -755,7 +764,7 @@ public class MovementEngineTests
         await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
         
         // Act - Should not throw, should gracefully skip turn
-        await _sut.MakeDecision(_player);
+        await _sut.MakeDecision(_player, _turnState);
         
         // Assert
         commandCaptured.ShouldBeTrue();

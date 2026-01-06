@@ -1,4 +1,5 @@
 ﻿using Sanet.MakaMek.Bots.Models.DecisionEngines;
+using TurnStateModel = Sanet.MakaMek.Bots.Models.TurnState;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -16,6 +17,7 @@ public class Bot : IBot
     private readonly int _decisionDelayMilliseconds;
     private readonly IClientGame _clientGame;
     private IBotDecisionEngine? _currentDecisionEngine;
+    private ITurnState? _currentTurnState;
     private IDisposable? _phaseStateSubscription;
     private IDisposable? _phaseSubscription;
     private IDisposable? _gameCommandsSubscription;
@@ -56,6 +58,10 @@ public class Bot : IBot
         {
             case GameEndedCommand:
                 Dispose();
+                break;
+            case TurnIncrementedCommand turnCmd:
+                // Reset state on new turn
+                _currentTurnState = new TurnStateModel(_clientGame.Id, turnCmd.TurnNumber);
                 break;
             case WeaponConfigurationCommand weaponConfig:
                 if (_clientGame.TurnPhase == PhaseNames.WeaponsAttack
@@ -105,8 +111,11 @@ public class Bot : IBot
             return;
         }
 
+        // Ensure state exists (lazy init if needed)
+        _currentTurnState ??= new TurnStateModel(_clientGame.Id, _clientGame.Turn);
+
         await Task.Delay(_decisionDelayMilliseconds); // Make more human-like
-        await _currentDecisionEngine.MakeDecision(player);
+        await _currentDecisionEngine.MakeDecision(player, _currentTurnState);
     }
 
     public IBotDecisionEngine? DecisionEngine => _currentDecisionEngine;
