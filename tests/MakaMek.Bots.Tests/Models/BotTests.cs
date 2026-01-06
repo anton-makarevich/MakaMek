@@ -355,11 +355,12 @@ public class BotTests : IDisposable
     {
         // Arrange
         ITurnState? capturedTurnState = null;
-        await _movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Do<ITurnState>(ts => capturedTurnState = ts));
+        _movementEngine.MakeDecision(Arg.Any<IPlayer>(),
+            Arg.Do<ITurnState>(ts => capturedTurnState = ts)).Returns(Task.CompletedTask);
         
         // Set up game properties
         var expectedGameId = Guid.NewGuid();
-        var expectedTurnNumber = 5;
+        const int expectedTurnNumber = 5;
         _clientGame.Id.Returns(expectedGameId);
         _clientGame.Turn.Returns(expectedTurnNumber);
 
@@ -381,11 +382,12 @@ public class BotTests : IDisposable
     {
         // Arrange
         ITurnState? capturedTurnState = null;
-        await _movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Do<ITurnState>(ts => capturedTurnState = ts));
+        _movementEngine.MakeDecision(Arg.Any<IPlayer>(), 
+            Arg.Do<ITurnState>(ts => capturedTurnState = ts)).Returns(Task.CompletedTask);
         
         var expectedGameId = Guid.NewGuid();
-        var initialTurnNumber = 3;
-        var newTurnNumber = 4;
+        const int initialTurnNumber = 3;
+        const int newTurnNumber = 4;
         _clientGame.Id.Returns(expectedGameId);
         _clientGame.Turn.Returns(initialTurnNumber);
 
