@@ -519,6 +519,7 @@ public class TacticalEvaluatorTests
 
         // Assert
         results[0].ShouldBe(cachedData);
+        turnState.DidNotReceive().AddTargetEvaluation(Arg.Any<TargetEvaluationKey>(), Arg.Any<TargetEvaluationData>());
     }
     
 

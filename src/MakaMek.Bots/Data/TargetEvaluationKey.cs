@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Bots.Data;
 
@@ -9,6 +10,7 @@ public readonly record struct TargetEvaluationKey(
     Guid AttackerId, 
     HexCoordinates AttackerCoords, 
     HexDirection AttackerFacing,
+    MovementType AttackerMovementType,
     Guid TargetId,
     HexCoordinates TargetCoords,
     HexDirection TargetFacing);

@@ -79,6 +79,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             // Construct Key
             var key = new TargetEvaluationKey(
                 attacker.Id, attackerPath.Destination.Coordinates, attackerPath.Destination.Facing,
+                attackerPath.MovementType,
                 target.Id, target.Position.Coordinates, target.Position.Facing
             );
             

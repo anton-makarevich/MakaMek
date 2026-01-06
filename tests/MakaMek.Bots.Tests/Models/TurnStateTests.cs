@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 using Shouldly;
 
 namespace Sanet.MakaMek.Bots.Tests.Models;
@@ -35,6 +36,7 @@ public class TurnStateTests
             Guid.NewGuid(), 
             new HexCoordinates(1, 1), 
             HexDirection.Top,
+            MovementType.Walk,
             Guid.NewGuid(),
             new HexCoordinates(2, 2),
             HexDirection.Bottom);
@@ -54,6 +56,7 @@ public class TurnStateTests
             Guid.NewGuid(), 
             new HexCoordinates(1, 1), 
             HexDirection.Top,
+            MovementType.Walk,
             Guid.NewGuid(),
             new HexCoordinates(2, 2),
             HexDirection.Bottom);
@@ -94,6 +97,7 @@ public class TurnStateTests
             Guid.NewGuid(), 
             new HexCoordinates(1, 1), 
             HexDirection.Top,
+            MovementType.Walk,
             Guid.NewGuid(),
             new HexCoordinates(2, 2),
             HexDirection.Bottom);
@@ -102,6 +106,7 @@ public class TurnStateTests
             Guid.NewGuid(), 
             new HexCoordinates(1, 1), 
             HexDirection.Top,
+            MovementType.Walk,
             Guid.NewGuid(),
             new HexCoordinates(2, 2),
             HexDirection.Bottom);
@@ -128,6 +133,7 @@ public class TurnStateTests
             Guid.NewGuid(),
             new HexCoordinates(1, 1),
             HexDirection.Top,
+            MovementType.Walk,
             Guid.NewGuid(),
             new HexCoordinates(2, 2),
             HexDirection.Bottom);
@@ -162,6 +168,7 @@ public class TurnStateTests
             Guid.NewGuid(), 
             new HexCoordinates(1, 1), 
             HexDirection.Top,
+            MovementType.Walk,
             Guid.NewGuid(),
             new HexCoordinates(2, 2),
             HexDirection.Bottom);
@@ -170,6 +177,7 @@ public class TurnStateTests
             key1.AttackerId, 
             key1.AttackerCoords, 
             key1.AttackerFacing,
+            key1.AttackerMovementType,
             key1.TargetId,
             key1.TargetCoords,
             key1.TargetFacing);
@@ -189,6 +197,7 @@ public class TurnStateTests
             Guid.NewGuid(), 
             new HexCoordinates(1, 1), 
             HexDirection.Top,
+            MovementType.Walk,
             Guid.NewGuid(),
             new HexCoordinates(2, 2),
             HexDirection.Bottom);
@@ -207,11 +216,31 @@ public class TurnStateTests
             Guid.NewGuid(), 
             new HexCoordinates(1, 1), 
             HexDirection.Top,
+            MovementType.Walk,
             Guid.NewGuid(),
             new HexCoordinates(2, 2),
             HexDirection.Bottom);
 
         var key2 = key1 with { AttackerFacing = HexDirection.Bottom };
+
+        // Act & Assert
+        key1.ShouldNotBe(key2);
+    }
+    
+    [Fact]
+    public void TargetEvaluationKey_DifferentMovementType_ShouldNotBeEqual()
+    {
+        // Arrange
+        var key1 = new TargetEvaluationKey(
+            Guid.NewGuid(), 
+            new HexCoordinates(1, 1), 
+            HexDirection.Top,
+            MovementType.Walk,
+            Guid.NewGuid(),
+            new HexCoordinates(2, 2),
+            HexDirection.Bottom);
+
+        var key2 = key1 with { AttackerMovementType = MovementType.Run };
 
         // Act & Assert
         key1.ShouldNotBe(key2);
