@@ -126,7 +126,7 @@ public class TurnStateTests
     }
 
     [Fact]
-    public void AddTargetEvaluation_WithSameKey_ShouldOverwrite()
+    public void AddTargetEvaluation_WithSameKey_ShouldNotOverwrite()
     {
         // Arrange
         var key = new TargetEvaluationKey(
@@ -146,7 +146,7 @@ public class TurnStateTests
 
         var data2 = new TargetEvaluationData
         {
-            TargetId = key.TargetId,
+            TargetId = Guid.NewGuid(),
             ConfigurationScores = []
         };
 
@@ -157,7 +157,7 @@ public class TurnStateTests
 
         // Assert
        getResult.ShouldBeTrue();
-       retrievedData.ShouldBe(data2); // Should return the second data
+       retrievedData.ShouldBe(data1); // Should return the first data
     }
 
     [Fact]
