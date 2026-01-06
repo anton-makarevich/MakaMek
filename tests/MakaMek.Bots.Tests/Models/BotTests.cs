@@ -350,6 +350,73 @@ public class BotTests : IDisposable
         await weaponsEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
     }
 
+    [Fact]
+    public async Task MakeDecision_ShouldPassTurnStateWithCorrectGameIdAndTurnNumber()
+    {
+        // Arrange
+        ITurnState? capturedTurnState = null;
+        await _movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Do<ITurnState>(ts => capturedTurnState = ts));
+        
+        // Set up game properties
+        var expectedGameId = Guid.NewGuid();
+        var expectedTurnNumber = 5;
+        _clientGame.Id.Returns(expectedGameId);
+        _clientGame.Turn.Returns(expectedTurnNumber);
+
+        // Act - Trigger decision-making
+        _phaseSubject.OnNext(PhaseNames.Movement);
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
+
+        // wait for bg task to complete
+        await Task.Delay(100);
+
+        // Assert
+        capturedTurnState.ShouldNotBeNull();
+        capturedTurnState.GameId.ShouldBe(expectedGameId);
+        capturedTurnState.TurnNumber.ShouldBe(expectedTurnNumber);
+    }
+
+    [Fact]
+    public async Task OnTurnIncrementedCommand_ShouldResetTurnStateWithNewTurnNumber()
+    {
+        // Arrange
+        ITurnState? capturedTurnState = null;
+        await _movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Do<ITurnState>(ts => capturedTurnState = ts));
+        
+        var expectedGameId = Guid.NewGuid();
+        var initialTurnNumber = 3;
+        var newTurnNumber = 4;
+        _clientGame.Id.Returns(expectedGameId);
+        _clientGame.Turn.Returns(initialTurnNumber);
+
+        // Set up initial phase and make first decision to establish initial state
+        _phaseSubject.OnNext(PhaseNames.Movement);
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
+        await Task.Delay(100);
+        
+        // Reset captured state for next test
+        capturedTurnState = null;
+        _clientGame.Turn.Returns(newTurnNumber);
+
+        // Act - Send TurnIncrementedCommand and trigger a new decision
+        var turnIncrementedCommand = new TurnIncrementedCommand
+        {
+            GameOriginId = expectedGameId,
+            TurnNumber = newTurnNumber,
+            Timestamp = DateTime.UtcNow
+        };
+        _commandSubject.OnNext(turnIncrementedCommand);
+        _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
+
+        // wait for bg task to complete
+        await Task.Delay(100);
+
+        // Assert
+        capturedTurnState.ShouldNotBeNull();
+        capturedTurnState.GameId.ShouldBe(expectedGameId);
+        capturedTurnState.TurnNumber.ShouldBe(newTurnNumber);
+    }
+
     public void Dispose()
     {
         _sut.Dispose();
