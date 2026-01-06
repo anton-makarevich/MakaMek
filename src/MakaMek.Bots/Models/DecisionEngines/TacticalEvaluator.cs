@@ -84,7 +84,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             
             if (turnState?.TryGetTargetEvaluation(key, out var cachedData) == true)
             {
-                results.AddRange(cachedData);
+                results.Add(cachedData);
                 continue;
             }
 

@@ -1,4 +1,6 @@
 using NSubstitute;
+using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
@@ -429,6 +431,96 @@ public class TacticalEvaluatorTests
         // Assert
         results.Count.ShouldBe(expectedConfigs);
     }
+    
+    [Fact]
+    public async Task EvaluateTargets_WithTurnState_ShouldCacheResult()
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.Gunnery.Returns(4);
+        unit.AssignPilot(pilot);
+        
+        // Unit at (1,1) Facing Bottom
+        var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        unit.Move(path);
+
+        // Enemy at range
+        var enemy = MovementEngineTests.CreateTestMech();
+        var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weapon = new TestWeapon(weaponDef);
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
+
+        var potentialTargets = new List<IUnit> { enemy };
+
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+        
+        var turnState = Substitute.For<ITurnState>();
+        turnState.TryGetTargetEvaluation(Arg.Any<TargetEvaluationKey>(), out Arg.Any<TargetEvaluationData>()).Returns(false);
+
+        // Act
+        await _sut.EvaluateTargets(unit, path, potentialTargets, turnState);
+
+        // Assert
+        turnState.Received(1).AddTargetEvaluation(Arg.Any<TargetEvaluationKey>(), Arg.Any<TargetEvaluationData>());
+        turnState.Received(1).TryGetTargetEvaluation(Arg.Any<TargetEvaluationKey>(), out Arg.Any<TargetEvaluationData>());
+    }
+    
+    [Fact]
+    public async Task EvaluateTargets_WithCachedResult_ShouldReturnCachedResult()
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.Gunnery.Returns(4);
+        unit.AssignPilot(pilot);
+        
+        // Unit at (1,1) Facing Bottom 
+        var unitPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var path = new MovementPath([new PathSegment(unitPos, unitPos, 0)], MovementType.Walk);
+        unit.Move(path);
+
+        // Enemy at range
+        var enemy = MovementEngineTests.CreateTestMech();
+        var enemyPos = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
+        enemy.Move(new MovementPath([new PathSegment(enemyPos, enemyPos, 0)], MovementType.Walk));
+
+        var weaponDef = new WeaponDefinition("TestLaser", 5, 1, 0, 3, 6, 9, WeaponType.Energy, 100);
+        var weapon = new TestWeapon(weaponDef);
+        unit.Parts[PartLocation.RightArm].TryAddComponent(weapon);
+    
+        var potentialTargets = new List<IUnit> { enemy };
+
+        _battleMap.HasLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>()).Returns(true);
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+        
+        var turnState = Substitute.For<ITurnState>();
+        var cachedData = new TargetEvaluationData
+        {
+            TargetId = enemy.Id,
+            ConfigurationScores = []
+        };
+        turnState.TryGetTargetEvaluation(Arg.Any<TargetEvaluationKey>(), out Arg.Any<TargetEvaluationData>())
+            .ReturnsForAnyArgs(x => 
+            {
+                x[1] = cachedData;
+                return true;
+            });
+
+        // Act
+        var results = await _sut.EvaluateTargets(unit, path, potentialTargets, turnState);
+
+        // Assert
+        results[0].ShouldBe(cachedData);
+    }
+    
 
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
 }
