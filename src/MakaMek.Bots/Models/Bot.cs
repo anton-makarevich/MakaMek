@@ -60,7 +60,7 @@ public class Bot : IBot
                 Dispose();
                 break;
             case TurnIncrementedCommand turnCmd:
-                // Reset state on new turn
+                // Reset state on a new turn
                 _currentTurnState = new TurnStateModel(_clientGame.Id, turnCmd.TurnNumber);
                 break;
             case WeaponConfigurationCommand weaponConfig:
@@ -69,6 +69,14 @@ public class Bot : IBot
                     && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId)
                 {
                     Task.Run(MakeDecision, _cts.Token);
+                }
+                break;
+            case MechStandUpCommand:
+                // After standup, we need to decide what to do next
+                if (_clientGame.TurnPhase == PhaseNames.Movement
+                    && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId)
+                {
+                     Task.Run(MakeDecision, _cts.Token);
                 }
                 break;
         }
