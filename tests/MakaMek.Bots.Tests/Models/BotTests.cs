@@ -311,7 +311,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await weaponsEngine.Received(1).MakeDecision(_player, Arg.Any<ITurnState>());
+        await weaponsEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == weaponConfigCommand.UnitId));
     }
 
     [Fact]
@@ -376,6 +376,7 @@ public class BotTests : IDisposable
 
         // Assert
         capturedTurnState.ShouldNotBeNull();
+        capturedTurnState.PhaseActiveUnitId.ShouldBeNull();
         capturedTurnState.GameId.ShouldBe(expectedGameId);
         capturedTurnState.TurnNumber.ShouldBe(expectedTurnNumber);
     }
@@ -467,7 +468,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await movementEngine.Received(1).MakeDecision(_player, Arg.Any<ITurnState>());
+        await movementEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == unitId));
     }
 
     [Fact]

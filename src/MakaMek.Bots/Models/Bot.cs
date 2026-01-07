@@ -68,18 +68,25 @@ public class Bot : IBot
                     && weaponConfig.PlayerId == PlayerId 
                     && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId)
                 {
+                    SetStateActiveUnitId(weaponConfig.UnitId);
                     Task.Run(MakeDecision, _cts.Token);
                 }
                 break;
-            case MechStandUpCommand:
+            case MechStandUpCommand standUpCommand:
                 // After standup, we need to decide what to do next
                 if (_clientGame.TurnPhase == PhaseNames.Movement
                     && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId)
                 {
-                     Task.Run(MakeDecision, _cts.Token);
+                    SetStateActiveUnitId(standUpCommand.UnitId);
+                    Task.Run(MakeDecision, _cts.Token);
                 }
                 break;
         }
+    }
+
+    private void SetStateActiveUnitId(Guid? weaponConfigUnitId)
+    {
+        _currentTurnState?.PhaseActiveUnitId = weaponConfigUnitId;
     }
 
     private void OnPhaseStateChanged(PhaseStepState? phaseStepState)
@@ -90,6 +97,7 @@ public class Bot : IBot
         if (_clientGame.TurnPhase == phaseStepState?.Phase
             && phaseStepState.Value.ActivePlayer.Id == PlayerId)
         {
+            SetStateActiveUnitId(null);
             Task.Run(MakeDecision, _cts.Token);
         }
     }

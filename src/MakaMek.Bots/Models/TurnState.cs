@@ -18,6 +18,9 @@ public class TurnState : ITurnState
     /// The turn number this state is for
     /// </summary>
     public int TurnNumber { get; }
+
+    /// <inheritdoc />
+    public Guid? PhaseActiveUnitId { get; set; }
     
     // Key: (AttackerId, AttackerPositionDetails, TargetId, TargetPositionDetails)
     // Value: Cached evaluation data (List of target evaluation data for that specific pair)

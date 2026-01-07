@@ -31,9 +31,13 @@ public class MovementEngine : IBotDecisionEngine
         try
         {
             // 1. Get all friendly units that haven't moved
-            var myUnitsToMove = player.AliveUnits
-                .Where(u => u is { HasMoved: false })
-                .ToList();
+            var myUnitsToMove = turnState?.PhaseActiveUnitId != null 
+                ? player.AliveUnits
+                    .Where(u => u.Id == turnState.PhaseActiveUnitId)
+                    .ToList()
+                : player.AliveUnits
+                    .Where(u => u is { HasMoved: false })
+                    .ToList();
 
             if (myUnitsToMove.Count == 0)
             {
