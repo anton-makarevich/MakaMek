@@ -84,10 +84,10 @@ public class Bot : IBot
         }
     }
 
-    private void SetStateActiveUnitId(Guid? weaponConfigUnitId)
+    private void SetStateActiveUnitId(Guid? unitId)
     {
-        _currentTurnState = _currentTurnState ?? new TurnState(_clientGame.Id, _clientGame.Turn);
-        _currentTurnState?.PhaseActiveUnitId = weaponConfigUnitId;
+        _currentTurnState ??= new TurnState(_clientGame.Id, _clientGame.Turn);
+        _currentTurnState?.PhaseActiveUnitId = unitId;
     }
 
     private void OnPhaseStateChanged(PhaseStepState? phaseStepState)
