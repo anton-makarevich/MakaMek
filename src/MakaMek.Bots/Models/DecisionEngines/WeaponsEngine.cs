@@ -33,7 +33,7 @@ public class WeaponsEngine : IBotDecisionEngine
         try
         {
             // Find units that haven't attacked and can fire weapons
-            var attacker = turnState?.PhaseActiveUnitId!= null 
+            var attacker = turnState?.PhaseActiveUnitId != null 
                 ? player.AliveUnits
                     .FirstOrDefault(u => u.Id == turnState.PhaseActiveUnitId)
                 : player.AliveUnits

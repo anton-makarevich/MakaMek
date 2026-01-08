@@ -1,5 +1,4 @@
 ﻿using Sanet.MakaMek.Bots.Models.DecisionEngines;
-using TurnStateModel = Sanet.MakaMek.Bots.Models.TurnState;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -61,7 +60,7 @@ public class Bot : IBot
                 break;
             case TurnIncrementedCommand turnCmd:
                 // Reset state on a new turn
-                _currentTurnState = new TurnStateModel(_clientGame.Id, turnCmd.TurnNumber);
+                _currentTurnState = new TurnState(_clientGame.Id, turnCmd.TurnNumber);
                 break;
             case WeaponConfigurationCommand weaponConfig:
                 if (_clientGame.TurnPhase == PhaseNames.WeaponsAttack
@@ -75,7 +74,8 @@ public class Bot : IBot
             case MechStandUpCommand standUpCommand:
                 // After standup, we need to decide what to do next
                 if (_clientGame.TurnPhase == PhaseNames.Movement
-                    && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId)
+                    && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId
+                    && _clientGame.PhaseStepState?.ActivePlayer.Units.Any(u => u.Id == standUpCommand.UnitId) == true )
                 {
                     SetStateActiveUnitId(standUpCommand.UnitId);
                     Task.Run(MakeDecision, _cts.Token);
@@ -86,6 +86,7 @@ public class Bot : IBot
 
     private void SetStateActiveUnitId(Guid? weaponConfigUnitId)
     {
+        _currentTurnState = _currentTurnState ?? new TurnState(_clientGame.Id, _clientGame.Turn);
         _currentTurnState?.PhaseActiveUnitId = weaponConfigUnitId;
     }
 
@@ -126,10 +127,7 @@ public class Bot : IBot
             Console.WriteLine($"Bot with PlayerId {PlayerId} not found in game players");
             return;
         }
-
-        // Ensure state exists (lazy init if needed)
-        _currentTurnState ??= new TurnStateModel(_clientGame.Id, _clientGame.Turn);
-
+        
         await Task.Delay(_decisionDelayMilliseconds); // Make more human-like
         await _currentDecisionEngine.MakeDecision(player, _currentTurnState);
     }
