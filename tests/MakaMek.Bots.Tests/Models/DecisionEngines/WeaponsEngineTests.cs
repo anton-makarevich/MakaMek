@@ -802,5 +802,46 @@ public class WeaponsEngineTests
         return unit;
     }
 
+    [Fact]
+    public async Task MakeDecision_WhenPhaseActiveUnitIdSet_ShouldSelectThatUnit()
+    {
+        // 1. Setup multiple units
+        // Normally the first unit is selected
+        var unit1 = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), id: Guid.NewGuid(), name: "Unit1");
+        var unit2 = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), id: Guid.NewGuid(), name: "Unit2");
+            
+        _player.AliveUnits.Returns([unit1, unit2]);
+        _clientGame.Players.Returns([_player]);
+
+        // 2. Set turn state with PhaseActiveUnitId pointing to Unit2
+        var turnState = new TurnState(_clientGame.Id, _clientGame.Turn)
+        {
+            PhaseActiveUnitId = unit2.Id
+        };
+
+        // 3. Mock evaluation to return something valid for Unit2 so it doesn't skip
+        _tacticalEvaluator.EvaluateTargets(unit2, Arg.Any<MovementPath>(), 
+                Arg.Any<IReadOnlyList<IUnit>>(),
+                Arg.Any<ITurnState>())
+            .Returns([]); // Return empty list -> declares empty attack (sufficient to verify selection)
+
+        WeaponAttackDeclarationCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.DeclareWeaponAttack(Arg.Do<WeaponAttackDeclarationCommand>(cmd =>
+        {
+            capturedCommand = cmd;
+            commandCaptured = true;
+        }));
+
+        // Act
+        await _sut.MakeDecision(_player, turnState);
+
+        // Assert
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.UnitId.ShouldBe(unit2.Id);
+    }
+
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);
 }

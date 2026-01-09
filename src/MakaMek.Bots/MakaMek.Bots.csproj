@@ -16,10 +16,6 @@
     <ItemGroup>
       <ProjectReference Include="..\MakaMek.Core\MakaMek.Core.csproj" />
     </ItemGroup>
-    
-    <ItemGroup>
-      <Folder Include="Models\TurnState\" />
-    </ItemGroup>
 
 </Project>
 

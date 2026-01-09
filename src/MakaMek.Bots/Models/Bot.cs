@@ -1,5 +1,4 @@
 ﻿using Sanet.MakaMek.Bots.Models.DecisionEngines;
-using TurnStateModel = Sanet.MakaMek.Bots.Models.TurnState;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -60,18 +59,35 @@ public class Bot : IBot
                 Dispose();
                 break;
             case TurnIncrementedCommand turnCmd:
-                // Reset state on new turn
-                _currentTurnState = new TurnStateModel(_clientGame.Id, turnCmd.TurnNumber);
+                // Reset state on a new turn
+                _currentTurnState = new TurnState(_clientGame.Id, turnCmd.TurnNumber);
                 break;
             case WeaponConfigurationCommand weaponConfig:
                 if (_clientGame.TurnPhase == PhaseNames.WeaponsAttack
                     && weaponConfig.PlayerId == PlayerId 
                     && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId)
                 {
+                    SetStateActiveUnitId(weaponConfig.UnitId);
+                    Task.Run(MakeDecision, _cts.Token);
+                }
+                break;
+            case MechStandUpCommand standUpCommand:
+                // After standup, we need to decide what to do next
+                if (_clientGame.TurnPhase == PhaseNames.Movement
+                    && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId
+                    && _clientGame.PhaseStepState?.ActivePlayer.Units.Any(u => u.Id == standUpCommand.UnitId) == true )
+                {
+                    SetStateActiveUnitId(standUpCommand.UnitId);
                     Task.Run(MakeDecision, _cts.Token);
                 }
                 break;
         }
+    }
+
+    private void SetStateActiveUnitId(Guid? unitId)
+    {
+        _currentTurnState ??= new TurnState(_clientGame.Id, _clientGame.Turn);
+        _currentTurnState?.PhaseActiveUnitId = unitId;
     }
 
     private void OnPhaseStateChanged(PhaseStepState? phaseStepState)
@@ -82,6 +98,7 @@ public class Bot : IBot
         if (_clientGame.TurnPhase == phaseStepState?.Phase
             && phaseStepState.Value.ActivePlayer.Id == PlayerId)
         {
+            SetStateActiveUnitId(null);
             Task.Run(MakeDecision, _cts.Token);
         }
     }
@@ -110,10 +127,7 @@ public class Bot : IBot
             Console.WriteLine($"Bot with PlayerId {PlayerId} not found in game players");
             return;
         }
-
-        // Ensure state exists (lazy init if needed)
-        _currentTurnState ??= new TurnStateModel(_clientGame.Id, _clientGame.Turn);
-
+        
         await Task.Delay(_decisionDelayMilliseconds); // Make more human-like
         await _currentDecisionEngine.MakeDecision(player, _currentTurnState);
     }

@@ -7,10 +7,13 @@ using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Core.Models.Units;
 using Shouldly;
 
 namespace Sanet.MakaMek.Bots.Tests.Models;
@@ -308,7 +311,7 @@ public class BotTests : IDisposable
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
-        await weaponsEngine.Received(1).MakeDecision(_player, Arg.Any<ITurnState>());
+        await weaponsEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == weaponConfigCommand.UnitId));
     }
 
     [Fact]
@@ -373,6 +376,7 @@ public class BotTests : IDisposable
 
         // Assert
         capturedTurnState.ShouldNotBeNull();
+        capturedTurnState.PhaseActiveUnitId.ShouldBeNull();
         capturedTurnState.GameId.ShouldBe(expectedGameId);
         capturedTurnState.TurnNumber.ShouldBe(expectedTurnNumber);
     }
@@ -417,6 +421,100 @@ public class BotTests : IDisposable
         capturedTurnState.ShouldNotBeNull();
         capturedTurnState.GameId.ShouldBe(expectedGameId);
         capturedTurnState.TurnNumber.ShouldBe(newTurnNumber);
+    }
+
+    [Fact]
+    public async Task OnMechStandUpCommand_WhenUnitBelongsToBot_ShouldMakeDecision()
+    {
+        // Arrange
+        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+
+        _clientGame.TurnPhase.Returns(PhaseNames.Movement);
+        _clientGame.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
+        
+        // Setup unit belonging to bot
+        var unitId = Guid.NewGuid();
+        var botUnit = Substitute.For<IUnit>();
+        botUnit.Id.Returns(unitId);
+        _player.Units.Returns(new List<IUnit> { botUnit });
+
+        var standUpCommand = new MechStandUpCommand
+        {
+            GameOriginId = _clientGame.Id,
+            UnitId = unitId,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.GyroHit,
+                DiceResults = [],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 0,
+                    Modifiers = []
+                }
+            }, // Dummy data
+            NewFacing = HexDirection.Top,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Set up the decision engine
+        _phaseSubject.OnNext(PhaseNames.Movement);
+
+        // Act
+        _commandSubject.OnNext(standUpCommand);
+
+        // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
+        await movementEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == unitId));
+    }
+
+    [Fact]
+    public async Task OnMechStandUpCommand_WhenUnitDoesNotBelongToBot_ShouldNotMakeDecision()
+    {
+        // Arrange
+        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+
+        _clientGame.TurnPhase.Returns(PhaseNames.Movement);
+        _clientGame.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
+
+        // Set up a unit NOT belonging to bot
+        var unitId = Guid.NewGuid(); // Unit ID
+        _player.Units.Returns(new List<IUnit>()); // Bot has no units
+
+        var standUpCommand = new MechStandUpCommand
+        {
+            GameOriginId = _clientGame.Id, 
+            UnitId = unitId, // Some other unit
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollType = PilotingSkillRollType.GyroHit,
+                DiceResults = [],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown
+                {
+                    BasePilotingSkill = 0,
+                    Modifiers = []
+                }
+            },
+            NewFacing = HexDirection.Top,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Set up the decision engine
+        _phaseSubject.OnNext(PhaseNames.Movement);
+
+        // Act
+        _commandSubject.OnNext(standUpCommand);
+
+        // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
+        await movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
     }
 
     public void Dispose()

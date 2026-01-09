@@ -916,4 +916,37 @@ public class MovementEngineTests
             new Leg("LeftLeg", PartLocation.LeftLeg, 25, 8)
         ];
     }
+
+    [Fact]
+    public async Task MakeDecision_WhenPhaseActiveUnitIdSet_ShouldMoveThatUnit()
+    {
+        // Arrange
+        var highPriorityUnit = CreateMockUnit(hasMoved: false, id: Guid.NewGuid());
+        ConfigureLrmBoat(highPriorityUnit); // Priority 90
+        
+        var lowPriorityUnit = CreateMockUnit(hasMoved: false, id: Guid.NewGuid());
+        ConfigureScout(lowPriorityUnit); // Priority 20
+        
+        _player.AliveUnits.Returns([highPriorityUnit, lowPriorityUnit]);
+        _clientGame.Players.Returns([_player]);
+        
+        SetupValidMovement();
+        
+        MoveUnitCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
+        
+        // Simulate logic setting PhaseActiveUnitId to the low-priority unit
+        var turnState = new TurnState(_clientGame.Id, _clientGame.Turn)
+        {
+            PhaseActiveUnitId = lowPriorityUnit.Id
+        };
+        
+        // Act
+        await _sut.MakeDecision(_player, turnState);
+        
+        // Assert
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.UnitId.ShouldBe(lowPriorityUnit.Id);
+    }
 }

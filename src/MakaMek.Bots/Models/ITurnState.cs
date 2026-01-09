@@ -16,6 +16,12 @@ public interface ITurnState
     /// The turn number this state is for
     /// </summary>
     int TurnNumber { get; }
+
+    /// <summary>
+    /// The ID of the unit currently active in the phase (e.g. continuing action).
+    /// If null, any unit can be selected.
+    /// </summary>
+    Guid? PhaseActiveUnitId { get; set; }
     
     /// <summary>
     /// Attempts to get cached target evaluation data for a specific attacker-target pair
