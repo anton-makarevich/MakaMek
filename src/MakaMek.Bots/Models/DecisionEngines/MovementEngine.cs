@@ -250,11 +250,11 @@ public class MovementEngine : IBotDecisionEngine
 
         // Select the path with the best combined score
         var bestScores = candidateScores
-            .OrderBy(s => s.DefensiveIndex)
+            .OrderBy(s => s.EnemiesInRearArc)
+            .ThenBy(s => s.DefensiveIndex)
             .ThenByDescending(s => s.OffensiveIndex)
-            .ThenBy(s => s.EnemiesInRearArc)
-            .ThenByDescending(s => s.Path.HexesTraveled);
-            
+            .ThenByDescending(s => s.Path.HexesTraveled).ToList();
+        
         var bestScore = bestScores
             .First(); // TODO: for different difficulty levels we can take random of first N
 
