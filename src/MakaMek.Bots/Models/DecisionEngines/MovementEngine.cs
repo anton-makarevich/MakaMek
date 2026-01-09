@@ -253,7 +253,7 @@ public class MovementEngine : IBotDecisionEngine
             .OrderBy(s => s.EnemiesInRearArc)
             .ThenBy(s => s.DefensiveIndex)
             .ThenByDescending(s => s.OffensiveIndex)
-            .ThenByDescending(s => s.Path.HexesTraveled).ToList();
+            .ThenByDescending(s => s.Path.HexesTraveled);
         
         var bestScore = bestScores
             .First(); // TODO: for different difficulty levels we can take random of first N
