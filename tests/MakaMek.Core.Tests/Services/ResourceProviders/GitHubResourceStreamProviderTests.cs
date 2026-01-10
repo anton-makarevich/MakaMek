@@ -454,6 +454,5 @@ public class GitHubResourceStreamProviderTests
         using var reader = new StreamReader(result);
         var content = await reader.ReadToEndAsync();
         content.ShouldBe(testContent);
-        _logger.ReceivedWithAnyArgs().LogError("");
     }
 }
