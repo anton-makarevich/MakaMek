@@ -23,6 +23,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     /// </summary>
     /// <param name="apiUrl">GitHub API URL pointing to the folder with resources.</param>
     /// <param name="fileExtension">Files with this extension will be included</param>
+    /// <param name="loggerFactory">Logger factory for logging</param>
     /// <param name="httpClient">HTTP client to use for requests. If null, create a new one.</param>
     /// <param name="cachingService">Caching service to cache downloaded files</param>
     public GitHubResourceStreamProvider(
@@ -64,7 +65,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             return null;
         }
 
-        // Try to get from cache first
+        // Try to get from the cache first
         var cachedBytes = await _cachingService.TryGetCachedFile(resourceId);
         if (cachedBytes != null)
         {
