@@ -16,7 +16,7 @@ public class UnitCachingServiceTests
     private readonly IResourceStreamProvider _resourceProvider = Substitute.For<IResourceStreamProvider>();
     private readonly ILoggerFactory _loggerFactory = Substitute.For<ILoggerFactory>();
     private readonly ILogger<UnitCachingService> _logger = Substitute.For<ILogger<UnitCachingService>>();
-    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
@@ -310,18 +310,17 @@ public class UnitCachingServiceTests
         mockProvider1.GetAvailableResourceIds().Returns(["GOOD", "BAD"]);
         await using var goodStream = CreateTestMmuxStream("LCT-1V", "Locust");
         mockProvider1.GetResourceStream("GOOD").Returns(goodStream);
-        mockProvider1
-            .When(x => x.GetResourceStream("BAD"))
-            .Do(_ => throw new Exception("bad resource error"));
+        mockProvider1.GetResourceStream("BAD")
+            .Returns(Task.FromException<Stream?>(new Exception("bad resource error")));
 
         var mockProvider2 = Substitute.For<IResourceStreamProvider>();
         // Provider2 will throw when listing resources to trigger provider-level catch
-        mockProvider2
-            .When(x => x.GetAvailableResourceIds())
-            .Do(_ => throw new Exception("provider enumeration failed"));
+        mockProvider2.GetAvailableResourceIds()
+            .Returns(Task.FromException<IEnumerable<string>>(new Exception("provider enumeration failed")));
 
+        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
         var sut = new UnitCachingService([mockProvider1, mockProvider2], _loggerFactory);
-        
+
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
 
@@ -329,8 +328,23 @@ public class UnitCachingServiceTests
         models.ShouldContain("LCT-1V");
         models.ShouldNotContain("BAD");
 
-        // Error from resource-level catch (line 150)
-        _logger.ReceivedWithAnyArgs(1).LogError("");
+        // Verify that LogError was called
+        // Get all calls to Log method
+        var calls = _logger.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "Log")
+            .ToList();
+
+        // Check that at least one call logged the expected exception
+        var errorCalls = calls.Where(call =>
+        {
+            var args = call.GetArguments();
+            var logLevel = (LogLevel)args[0]!;
+            var exception = args[3] as Exception;
+            return logLevel == LogLevel.Error &&
+                   exception?.Message == "bad resource error";
+        }).ToList();
+
+        errorCalls.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -342,27 +356,31 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamMissingUnitJson();
         mockProvider.GetResourceStream("MISSING_JSON").Returns(badStream);
 
+        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
         var sut = new UnitCachingService([mockProvider], _loggerFactory);
 
-        var originalOut = Console.Out;
-        await using var consoleCapture = new StringWriter();
-        Console.SetOut(consoleCapture);
-        try
-        {
-            // Act
-            var models = (await sut.GetAvailableModels()).ToList();
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
 
-            // Assert: no models added
-            models.ShouldBeEmpty();
+        // Assert: no models added
+        models.ShouldBeEmpty();
 
-            var log = consoleCapture.ToString();
-            log.ShouldContain("Error loading unit 'MISSING_JSON' from provider");
-            log.ShouldContain("missing unit.json");
-        }
-        finally
+        // Get all calls to Log method
+        var calls = _logger.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "Log")
+            .ToList();
+
+        // Check that at least one call logged the expected exception
+        var errorCalls = calls.Where(call =>
         {
-            Console.SetOut(originalOut);
-        }
+            var args = call.GetArguments();
+            var logLevel = (LogLevel)args[0]!;
+            var exception = args[3] as Exception;
+            return logLevel == LogLevel.Error &&
+                   exception?.Message == "MMUX package missing unit.json";
+        }).ToList();
+
+        errorCalls.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -374,27 +392,31 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamMissingImage("ABC-1", "Test");
         mockProvider.GetResourceStream("MISSING_PNG").Returns(badStream);
 
+        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
         var sut = new UnitCachingService([mockProvider], _loggerFactory);
 
-        var originalOut = Console.Out;
-        await using var consoleCapture = new StringWriter();
-        Console.SetOut(consoleCapture);
-        try
-        {
-            // Act
-            var models = (await sut.GetAvailableModels()).ToList();
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
 
-            // Assert: model should not be added because image missing causes an exception
-            models.ShouldBeEmpty();
+        // Assert: model should not be added because image missing causes an exception
+        models.ShouldBeEmpty();
 
-            var log = consoleCapture.ToString();
-            log.ShouldContain("Error loading unit 'MISSING_PNG' from provider");
-            log.ShouldContain("missing unit.png");
-        }
-        finally
+        // Verify that LogError was called
+        // Get all calls to Log method
+        var calls = _logger.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "Log")
+            .ToList();
+
+        // Check that at least one call logged the expected exception
+        var errorCalls = calls.Where(call =>
         {
-            Console.SetOut(originalOut);
-        }
+            var args = call.GetArguments();
+            var logLevel = (LogLevel)args[0]!;
+            var exception = args[3] as Exception;
+            return logLevel == LogLevel.Error &&
+                   exception?.Message == "MMUX package missing unit.png";
+        }).ToList();
+        errorCalls.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -406,27 +428,30 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamWithInvalidUnitJson();
         mockProvider.GetResourceStream("INVALID_UNIT_JSON").Returns(badStream);
 
+        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
         var sut = new UnitCachingService([mockProvider], _loggerFactory);
 
-        var originalOut = Console.Out;
-        await using var consoleCapture = new StringWriter();
-        Console.SetOut(consoleCapture);
-        try
-        {
-            // Act
-            var models = (await sut.GetAvailableModels()).ToList();
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
 
-            // Assert: no models added due to invalid unit.json (missing/empty Model)
-            models.ShouldBeEmpty();
+        // Assert: no models added due to invalid unit.json (missing/empty Model)
+        models.ShouldBeEmpty();
 
-            var log = consoleCapture.ToString();
-            // We only assert the provider-level error prefix, since the exact exception message
-            // may vary depending on whether deserialization throws or returns an object with null Model
-            log.ShouldContain("Failed to deserialize unit.json");
-        }
-        finally
+        // Verify that LogError was called
+        // Get all calls to Log method
+        var calls = _logger.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "Log")
+            .ToList();
+
+        // Check that at least one call logged the expected exception
+        var errorCalls = calls.Where(call =>
         {
-            Console.SetOut(originalOut);
-        }
+            var args = call.GetArguments();
+            var logLevel = (LogLevel)args[0]!;
+            var exception = args[3] as Exception;
+            return logLevel == LogLevel.Error &&
+                   exception?.Message == "Failed to deserialize unit.json";
+        }).ToList();
+        errorCalls.Count.ShouldBe(1);
     }
 }
