@@ -47,7 +47,9 @@ public class GameManagerTests : IDisposable
         _toHitCalculator = Substitute.For<IToHitCalculator>();
         // Use a real adapter with a mock publisher for testing AddPublisher calls
         var initialPublisher = Substitute.For<ITransportPublisher>(); 
-        _transportAdapter = new CommandTransportAdapter([initialPublisher]);
+        var loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(Substitute.For<ILogger<CommandTransportAdapter>>());
+        _transportAdapter = new CommandTransportAdapter(loggerFactory, [initialPublisher]);
         _gameFactory = Substitute.For<IGameFactory>();
         _networkHostService = Substitute.For<INetworkHostService>();
 
@@ -382,7 +384,7 @@ public class GameManagerTests : IDisposable
         // Act
         await _sut.InitializeLobby();
 
-        // Assert subscribe and factory usage
+        // Assert subscription and factory usage
         _commandLoggerFactory.Received(1).CreateLogger(_localizationService, _serverGame);
         _commandPublisher.Received()
             .Subscribe(Arg.Any<Action<IGameCommand>>(), Arg.Any<ITransportPublisher>());

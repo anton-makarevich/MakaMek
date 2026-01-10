@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.ResourceProviders;
@@ -60,6 +61,8 @@ public class GitHubResourceStreamProviderTests
 {
     private readonly MockHttpMessageHandler _mockHttpMessageHandler;
     private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
+    private readonly ILoggerFactory _loggerFactory = Substitute.For<ILoggerFactory>();
+    private readonly ILogger<GitHubResourceStreamProvider> _logger = Substitute.For<ILogger<GitHubResourceStreamProvider>>();
     private readonly GitHubResourceStreamProvider _sut;
 
     public GitHubResourceStreamProviderTests()
@@ -75,9 +78,10 @@ public class GitHubResourceStreamProviderTests
         };
         
         _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns((byte[]?)null);
+        _loggerFactory.CreateLogger<GitHubResourceStreamProvider>().Returns(_logger);
 
         _sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
-            _cachingService,
+            _cachingService, _loggerFactory,
             httpClient);
     }
 
@@ -85,7 +89,7 @@ public class GitHubResourceStreamProviderTests
     public void Constructor_ShouldCreateHttpClient_WhenNotProvided()
     {
         // Arrange & Act
-        var sut = new GitHubResourceStreamProvider("ext", "url", _cachingService);
+        var sut = new GitHubResourceStreamProvider("ext", "url", _cachingService, _loggerFactory);
 
         // Assert - Should not throw and should be able to get resource IDs
         sut.ShouldNotBeNull();
@@ -142,6 +146,12 @@ public class GitHubResourceStreamProviderTests
 
         // Assert
         result.ShouldBeNull();
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to download")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -153,6 +163,7 @@ public class GitHubResourceStreamProviderTests
 
         var provider = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
+            _loggerFactory,
             externalHttpClient);
 
         // Act
@@ -215,6 +226,7 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
+        _logger.ReceivedWithAnyArgs().LogInformation("");
     }
 
     [Fact]
@@ -244,6 +256,7 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
+        _logger.ReceivedWithAnyArgs().LogInformation("");
     }
 
     [Fact]
@@ -258,6 +271,12 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to fetch")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -272,6 +291,12 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error loading GitHub contents")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -286,6 +311,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
+            _loggerFactory,
             httpClient);
 
         // Act
@@ -294,6 +320,12 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error loading GitHub contents")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -308,6 +340,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
+            _loggerFactory,
             httpClient);
 
         // Act
@@ -315,6 +348,12 @@ public class GitHubResourceStreamProviderTests
 
         // Assert
         result.ShouldBeNull();
+        _logger.Received().Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error downloading file from")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -329,6 +368,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
+            _loggerFactory,
             httpClient);
 
         // Act
@@ -336,6 +376,12 @@ public class GitHubResourceStreamProviderTests
 
         // Assert
         result.ShouldBeNull();
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error downloading file from")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -353,6 +399,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
+            _loggerFactory,
             httpClient);
 
         // Act
@@ -387,6 +434,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
+            _loggerFactory,
             httpClient);
 
         // Act
@@ -398,7 +446,7 @@ public class GitHubResourceStreamProviderTests
         var content = await reader.ReadToEndAsync();
         content.ShouldBe(testContent);
 
-        // Verify HTTP client was not used
+        // Verify that the HTTP client was not used
         mockHandler.ResponseContent.ShouldBeNull();
 
         // Verify caching service was called
@@ -425,6 +473,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
+            _loggerFactory,
             httpClient);
 
         // Act

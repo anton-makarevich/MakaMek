@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Serialization;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
@@ -13,9 +14,9 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 /// <summary>
 /// Adapter that bridges between game commands and transport messages
 /// </summary>
-public partial class CommandTransportAdapter
+public partial class CommandTransportAdapter : ICommandTransportAdapter
 {
-    internal readonly List<ITransportPublisher> TransportPublishers = new();
+    private readonly List<ITransportPublisher> _transportPublishers = [];
     private readonly Dictionary<string, Type> _commandTypes;
     private Action<IGameCommand, ITransportPublisher>? _onCommandReceived;
     private bool _isInitialized;
@@ -32,20 +33,25 @@ public partial class CommandTransportAdapter
         }
     };
     private readonly Lock _initLock = new();
-    
+    private readonly ILogger<CommandTransportAdapter> _logger;
+
     /// <summary>
     /// Creates a new instance of the CommandTransportAdapter with multiple publishers
     /// </summary>
     /// <param name="transportPublishers">The transport publishers to use</param>
-    public CommandTransportAdapter(params ITransportPublisher[] transportPublishers)
+    /// <param name="loggerFactory">Logger factory for logging</param>
+    public CommandTransportAdapter(ILoggerFactory loggerFactory, params ITransportPublisher[] transportPublishers)
     {
+        _logger = loggerFactory.CreateLogger<CommandTransportAdapter>();
         foreach (var publisher in transportPublishers)
         {
-            TransportPublishers.Add(publisher);
+            _transportPublishers.Add(publisher);
         }
         _commandTypes = InitializeCommandTypeDictionary();
     }
-    
+
+    public IReadOnlyList<ITransportPublisher> TransportPublishers => _transportPublishers;
+
     /// <summary>
     /// Adds a transport publisher to the adapter
     /// </summary>
@@ -57,9 +63,9 @@ public partial class CommandTransportAdapter
         // Guard with the same lock to avoid races with Initialize
         lock (_initLock)
         {
-            if (TransportPublishers.Contains(publisher)) return;
+            if (_transportPublishers.Contains(publisher)) return;
 
-            TransportPublishers.Add(publisher);
+            _transportPublishers.Add(publisher);
 
             // Subscribe immediately if a callback is already available (init may be in progress)
             if (_onCommandReceived != null)
@@ -74,14 +80,14 @@ public partial class CommandTransportAdapter
     /// </summary>
     public void ClearPublishers()
     {
-        // Take a stable snapshot and clear shared state under lock
+        // Take a stable snapshot and clear the shared state under lock
         ITransportPublisher[] snapshot;
         lock (_initLock)
         {
-            snapshot = TransportPublishers.ToArray();
+            snapshot = _transportPublishers.ToArray();
             _onCommandReceived = null;
             _isInitialized = false;
-            TransportPublishers.Clear();
+            _transportPublishers.Clear();
         }
 
         // Dispose publishers outside the lock
@@ -94,7 +100,7 @@ public partial class CommandTransportAdapter
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error disposing publisher: {ex.Message}");
+                _logger.LogError(ex, "Error disposing publisher");
             }
         }
     }
@@ -117,7 +123,7 @@ public partial class CommandTransportAdapter
         ITransportPublisher[] publishersSnapshot;
         lock (_initLock)
         {
-            publishersSnapshot = TransportPublishers.ToArray();
+            publishersSnapshot = _transportPublishers.ToArray();
         }
 
         foreach (var publisher in publishersSnapshot)
@@ -128,7 +134,7 @@ public partial class CommandTransportAdapter
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error publishing to {publisher.GetType().Name}: {ex.Message}");
+                _logger.LogError(ex, "Error publishing to {PublisherType}", publisher.GetType().Name);
             }
         }
     }
@@ -146,8 +152,8 @@ public partial class CommandTransportAdapter
                 return; // Already initialized, do nothing
 
             _onCommandReceived = onCommandReceived;
-            _isInitialized = true; // Close race window with AddPublisher
-            publishersSnapshot = TransportPublishers.ToArray(); // Stable snapshot
+            _isInitialized = true; // Close the race window with AddPublisher
+            publishersSnapshot = _transportPublishers.ToArray(); // Stable snapshot
         }
 
         // Subscribe outside the lock to minimize lock hold time
@@ -230,17 +236,16 @@ public partial class CommandTransportAdapter
             }
             catch (UnknownCommandTypeException uex)
             {
-                Console.WriteLine($"Unknown MessageType '{message.MessageType}' from {message.SourceId}: {uex.Message}");
+                _logger.LogError(uex, "Unknown command type: {CommandType}", message.MessageType);
             }
             catch (JsonException jex)
             {
-                Console.WriteLine($"JSON error for '{message.MessageType}' (SourceId={message.SourceId}): {jex.Message}");
+                _logger.LogError(jex, "JSON error deserializing command: {CommandType}", message.MessageType);
             }
             catch (Exception ex)
             {
                 // Log error but don't crash the transport subscription
-                Console.WriteLine($"Error processing '{message.MessageType}' (SourceId={message.SourceId}): {ex.Message}");
-                // Depending on logging strategy, might want a more robust logger here in the future
+                _logger.LogError(ex, "Error processing command: {CommandType}", message.MessageType);
             }
         });
     }
