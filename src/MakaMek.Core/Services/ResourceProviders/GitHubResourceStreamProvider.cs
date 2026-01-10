@@ -145,7 +145,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
                 }
             }
 
-            _logger.LogInformation("Found {Count} {_FileExtension} files in GitHub repository", resourceIds.Count, _fileExtension);
+            _logger.LogInformation("Found {Count} {FileExtension} files in GitHub repository", resourceIds.Count, _fileExtension);
         }
         catch (Exception ex)
         {
