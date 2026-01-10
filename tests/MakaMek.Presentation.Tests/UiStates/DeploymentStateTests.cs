@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -66,7 +67,7 @@ public class DeploymentStateTests
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IBattleMapFactory>(),
             _hashService,
-            Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>());
+            Substitute.For<ILogger<ClientGame>>());
         
         var idempotencyKey = Guid.NewGuid();
         _hashService.ComputeCommandIdempotencyKey(

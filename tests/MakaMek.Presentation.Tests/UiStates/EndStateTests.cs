@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -71,7 +72,7 @@ public class EndStateTests
             _heatEffectsCalculator,
             Substitute.For<IBattleMapFactory>(),
             _hashService,
-            Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>());
+            Substitute.For<ILogger<ClientGame>>());
         
         var idempotencyKey = Guid.NewGuid();
         _hashService.ComputeCommandIdempotencyKey(
