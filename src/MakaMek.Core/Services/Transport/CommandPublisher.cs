@@ -18,7 +18,7 @@ public class CommandPublisher : ICommandPublisher
     /// <summary>
     /// Gets the command transport adapter used by this publisher
     /// </summary>
-    public CommandTransportAdapter Adapter { get; }
+    public ICommandTransportAdapter Adapter { get; }
 
     /// <summary>
     /// Creates a new instance of the CommandPublisher

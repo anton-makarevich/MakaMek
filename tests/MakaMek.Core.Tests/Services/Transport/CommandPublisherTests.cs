@@ -25,7 +25,7 @@ public class CommandPublisherTests
         _loggerFactory.CreateLogger<CommandPublisher>().Returns(_logger);
 
         // Create a real adapter instance using the mock publisher
-        _adapter = new CommandTransportAdapter(_transportPublisher);
+        _adapter = new CommandTransportAdapter(_loggerFactory,_transportPublisher);
 
         // Create the publisher using the real adapter
         _sut = new CommandPublisher(_adapter, _loggerFactory); 
