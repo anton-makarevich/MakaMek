@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.Transport;
 
@@ -12,6 +13,7 @@ public class CommandPublisher : ICommandPublisher
     private readonly List<Action<IGameCommand>> _subscribers = [];
     private readonly Dictionary<Action<IGameCommand>, ITransportPublisher> _subscriberTransports = new();
     private readonly Lock _syncLock = new();
+    private readonly ILogger<CommandPublisher> _logger;
 
     /// <summary>
     /// Gets the command transport adapter used by this publisher
@@ -22,9 +24,11 @@ public class CommandPublisher : ICommandPublisher
     /// Creates a new instance of the CommandPublisher
     /// </summary>
     /// <param name="adapter">The command transport adapter to use</param>
-    public CommandPublisher(CommandTransportAdapter adapter)
+    /// <param name="loggerFactory">Logger factory for logging</param>
+    public CommandPublisher(CommandTransportAdapter adapter, ILoggerFactory loggerFactory)
     {
         Adapter = adapter;
+        _logger = loggerFactory.CreateLogger<CommandPublisher>();
     }
     
     /// <summary>
@@ -72,7 +76,7 @@ public class CommandPublisher : ICommandPublisher
     /// Called when a command is received from the transport
     /// </summary>
     /// <param name="command">The received command</param>
-    /// <param name="sourcePublisher">A transport publisher to subscribe to, if null subscribe to all</param>
+    /// <param name="sourcePublisher">A transport publisher to subscribe to, if null, subscribe to all</param>
     private void OnCommandReceived(IGameCommand command, ITransportPublisher sourcePublisher)
     {
         Action<IGameCommand>[] subscribersSnapshot;
@@ -94,7 +98,7 @@ public class CommandPublisher : ICommandPublisher
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in command subscriber: {ex.Message}");
+                _logger.LogError(ex, "Error in command subscriber");
             }
         }
     }
