@@ -30,17 +30,17 @@ public static class CoreServices
             // Register unit caching service with stream providers
             services.AddSingleton<IUnitCachingService,UnitCachingService>(sp =>
             {
-                var cachingService = sp.GetService<IFileCachingService>();
-                var loggerFactory = sp.GetService<ILoggerFactory>();
+                var cachingService = sp.GetRequiredService<IFileCachingService>();
+                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
                 var streamProviders = new List<IResourceStreamProvider>
                 {
                     new GitHubResourceStreamProvider("mmux",
                         "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
-                        cachingService!,
-                        loggerFactory!
+                        cachingService,
+                        loggerFactory
                     )
                 };
-                return new UnitCachingService(streamProviders, loggerFactory!);
+                return new UnitCachingService(streamProviders, loggerFactory);
             });
 
             // Register both image services
