@@ -1,4 +1,5 @@
 using NSubstitute;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
@@ -311,7 +312,9 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         var mockNextPhase = Substitute.For<IGamePhase>();
         mockPhaseManager.GetNextPhase(PhaseNames.Initiative, Arg.Any<ServerGame>()).Returns(mockNextPhase);
         
-        var game = new ServerGame(new ClassicBattletechRulesProvider(),
+        var game = new ServerGame(
+            Substitute.For<ILogger<ServerGame>>(),
+            new ClassicBattletechRulesProvider(),
             new MechFactory(
                 new ClassicBattletechRulesProvider(),
                 new ClassicBattletechComponentProvider(),

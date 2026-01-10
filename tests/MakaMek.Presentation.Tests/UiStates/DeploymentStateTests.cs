@@ -54,7 +54,7 @@ public class DeploymentStateTests
         _hex2 = new Hex(new HexCoordinates(1, 2));
 
         var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
-        _game = new ClientGame(
+        _game = new ClientGame(Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>(),
             _rulesProvider,
             new MechFactory(
                 _rulesProvider,

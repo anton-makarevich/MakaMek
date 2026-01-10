@@ -3,6 +3,7 @@ using Sanet.MakaMek.Avalonia.Browser.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
+using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Avalonia.Browser.DependencyInjection;
 
@@ -10,6 +11,11 @@ public static class BrowserServices
 {
     public static void RegisterBrowserServices(this IServiceCollection services)
     {
+        services.AddLogging(builder =>
+        {
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Information);
+        });
         // Register the dummy network host service for Browser (WASM)
         services.AddSingleton<INetworkHostService, DummyNetworkHostService>();
 

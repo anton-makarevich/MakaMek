@@ -59,7 +59,7 @@ public class EndStateTests
         
         _player = new Player(playerId, "Player1", PlayerControlType.Human);
         
-        _game = new ClientGame(
+        _game = new ClientGame(Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>(),
             rules,
             new MechFactory(
                 rules,

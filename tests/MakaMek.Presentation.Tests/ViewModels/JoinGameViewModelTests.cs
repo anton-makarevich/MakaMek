@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
@@ -50,7 +51,7 @@ public class JoinGameViewModelTests
     public JoinGameViewModelTests()
     {
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
-        _clientGame = new ClientGame(
+        _clientGame = new ClientGame(Substitute.For<ILogger<ClientGame>>(),
             _rulesProvider,
             _mechFactory,
             _commandPublisher, 

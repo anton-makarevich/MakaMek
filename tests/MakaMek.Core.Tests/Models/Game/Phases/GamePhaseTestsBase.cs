@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -43,7 +44,9 @@ public abstract class GamePhaseTestsBase
     {
         IRulesProvider rulesProvider = new ClassicBattletechRulesProvider();
         
-        Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
+        Game = new ServerGame(
+            Substitute.For<ILogger<ServerGame>>(),
+            rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             MockToHitCalculator,
             MockDamageTransferCalculator,
             MockCriticalHitsCalculator,
@@ -56,7 +59,9 @@ public abstract class GamePhaseTestsBase
     
     protected void SetGameWithRulesProvider(IRulesProvider rulesProvider)
     {
-        Game = new ServerGame( rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
+        Game = new ServerGame(
+            Substitute.For<ILogger<ServerGame>>(),
+            rulesProvider, _mechFactory, CommandPublisher, DiceRoller,
             MockToHitCalculator,
             MockDamageTransferCalculator,
             MockCriticalHitsCalculator,

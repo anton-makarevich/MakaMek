@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -24,6 +25,7 @@ public class BattleTechPhaseManagerTests
     {
         _sut = new BattleTechPhaseManager();
         _game = new ServerGame(
+            Substitute.For<ILogger<ServerGame>>(),
             Substitute.For<IRulesProvider>(), // rulesProvider
             _mechFactory,
             Substitute.For<ICommandPublisher>(), // commandPublisher

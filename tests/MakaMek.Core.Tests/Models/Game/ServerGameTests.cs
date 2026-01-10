@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
@@ -47,7 +48,9 @@ public class ServerGameTests
             { PartLocation.LeftLeg, 8 },
             { PartLocation.RightLeg, 8 }
         });
-        _sut = new ServerGame(rulesProvider,
+        _sut = new ServerGame(
+            Substitute.For<ILogger<ServerGame>>(),
+            rulesProvider,
             new MechFactory(
                 rulesProvider,
                 componentProvider,
@@ -306,6 +309,7 @@ public class ServerGameTests
         
         // Create the game with a mocked phase manager
         var sut = new ServerGame(
+            Substitute.For<ILogger<ServerGame>>(),
             rulesProvider,
             Substitute.For<IMechFactory>(),
             commandPublisher, 

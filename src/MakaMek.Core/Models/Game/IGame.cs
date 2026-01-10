@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -8,6 +9,7 @@ namespace Sanet.MakaMek.Core.Models.Game;
 
 public interface IGame
 {
+    ILogger Logger { get; }
     IReadOnlyList<IPlayer> Players { get; }
     int Turn { get; }
     PhaseNames TurnPhase { get; }

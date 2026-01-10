@@ -1,4 +1,5 @@
-﻿using AsyncAwaitBestPractices.MVVM;
+﻿using Microsoft.Extensions.Logging;
+using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
@@ -49,7 +50,7 @@ public class EndGameViewModelTests
         var mapFactory = Substitute.For<IBattleMapFactory>();
         var hashService = Substitute.For<IHashService>();
 
-        _game = new ClientGame(
+        _game = new ClientGame(Substitute.For<ILogger<ClientGame>>(),
             rulesProvider,
             _mechFactory,
             commandPublisher,

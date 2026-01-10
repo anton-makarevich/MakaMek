@@ -31,6 +31,7 @@ using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Utils.Generators;
+using Microsoft.Extensions.Logging;
 using Shouldly.ShouldlyExtensionMethods;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
@@ -65,6 +66,7 @@ public class ClientGameTests
             Substitute.For<ILocalizationService>());
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(battleMap); 
         _sut = new ClientGame(
+            Substitute.For<ILogger<ClientGame>>(),
             _rulesProvider,
             mechFactory,
             _commandPublisher,
@@ -1544,7 +1546,7 @@ public class ClientGameTests
         // Create a new client game with local players
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
-        var clientGame = new ClientGame(
+        var clientGame = new ClientGame(Substitute.For<ILogger<ClientGame>>(),
             _rulesProvider, 
             new MechFactory(
                 _rulesProvider,
@@ -1648,7 +1650,7 @@ public class ClientGameTests
             rulesProvider,
             new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>());
-        var sut = new ClientGame(
+        var sut = new ClientGame(Substitute.For<ILogger<ClientGame>>(),
             rulesProvider, 
             mechFactory,
             commandPublisher,

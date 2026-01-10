@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
@@ -70,7 +71,8 @@ public class StartNewGameViewModelTests
 
 
 
-        _clientGame = new ClientGame(_rulesProvider,
+        _clientGame = new ClientGame(Substitute.For<ILogger<ClientGame>>(),
+            _rulesProvider,
             _mechFactory,
             _commandPublisher,
             _toHitCalculator,

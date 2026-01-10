@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Game;
@@ -34,6 +35,7 @@ public class BaseGameTests : BaseGame
     private static readonly IRulesProvider RulesProviderInstance = new ClassicBattletechRulesProvider();
     private static readonly IComponentProvider ComponentProviderInstance = new ClassicBattletechComponentProvider();
     public BaseGameTests() : base(
+        Substitute.For<ILogger<BaseGame>>(),
         RulesProviderInstance,
         new MechFactory(
             RulesProviderInstance,

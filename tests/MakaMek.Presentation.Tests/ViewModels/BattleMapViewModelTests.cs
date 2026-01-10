@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Reactive.Concurrency;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
@@ -2079,7 +2080,7 @@ public class BattleMapViewModelTests
 
     private ClientGame CreateClientGame()
     {
-        return new ClientGame(
+        return new ClientGame(Substitute.For<ILogger<ClientGame>>(),
             new ClassicBattletechRulesProvider(),
             _mechFactory,
             _commandPublisher,

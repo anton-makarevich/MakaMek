@@ -97,7 +97,7 @@ public class WeaponsAttackStateTests
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
         _player = new Player(playerId, "Player1", PlayerControlType.Human);
-        _game = new ClientGame(
+        _game = new ClientGame(Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>(),
             rules,
             _mechFactory,
             _commandPublisher,

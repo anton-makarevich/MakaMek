@@ -3,6 +3,7 @@ using Sanet.MakaMek.Avalonia.Desktop.Services;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
+using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Avalonia.Desktop.DependencyInjection;
 
@@ -10,6 +11,11 @@ public static class DesktopServices
 {
     public static void RegisterDesktopServices(this IServiceCollection services)
     {
+        services.AddLogging(builder =>
+        {
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Information);
+        });
         // Register the SignalR host service for desktop platforms
         services.AddSingleton<INetworkHostService, SignalRHostService>();
 

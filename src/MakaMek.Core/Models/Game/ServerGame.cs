@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -25,6 +26,7 @@ public class ServerGame : BaseGame, IDisposable
     public IDiceRoller DiceRoller { get; }
 
     public ServerGame(
+        ILogger<ServerGame> logger,
         IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
@@ -37,7 +39,7 @@ public class ServerGame : BaseGame, IDisposable
         IHeatEffectsCalculator heatEffectsCalculator,
         IFallProcessor fallProcessor,
         IPhaseManager? phaseManager = null)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
+        : base(logger, rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
     {
         DiceRoller = diceRoller;
         DamageTransferCalculator = damageTransferCalculator;

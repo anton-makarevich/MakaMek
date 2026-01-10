@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Core.Models.Game.Factories;
 
@@ -14,6 +15,13 @@ namespace Sanet.MakaMek.Core.Models.Game.Factories;
 /// </summary>
 public class GameFactory : IGameFactory
 {
+    private readonly ILoggerFactory _loggerFactory;
+
+    public GameFactory(ILoggerFactory loggerFactory)
+    {
+        _loggerFactory = loggerFactory;
+    }
+
     public ServerGame CreateServerGame(
         IRulesProvider rulesProvider,
         IMechFactory mechFactory,
@@ -28,7 +36,10 @@ public class GameFactory : IGameFactory
         IFallProcessor fallProcessor
         )
     {
+        var logger = _loggerFactory.CreateLogger<ServerGame>();
+
         return new ServerGame(
+            logger,
             rulesProvider,
             mechFactory,
             commandPublisher,
@@ -54,7 +65,10 @@ public class GameFactory : IGameFactory
         IBattleMapFactory mapFactory,
         IHashService hashService)
     {
+        var logger = _loggerFactory.CreateLogger<ClientGame>();
+
         return new ClientGame(
+            logger,
             rulesProvider,
             mechFactory,
             commandPublisher,

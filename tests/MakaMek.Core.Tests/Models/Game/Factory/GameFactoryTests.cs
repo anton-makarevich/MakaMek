@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -15,7 +16,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Factory;
 
 public class GameFactoryTests
 {
-    private readonly GameFactory _sut= new GameFactory();
+    private readonly GameFactory _sut= new GameFactory(Substitute.For<ILoggerFactory>());
     private readonly IRulesProvider _rulesProvider= Substitute.For<IRulesProvider>();
     private readonly ICommandPublisher _commandPublisher= Substitute.For<ICommandPublisher>();
     private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();

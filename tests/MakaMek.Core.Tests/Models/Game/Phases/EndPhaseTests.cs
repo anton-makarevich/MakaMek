@@ -1,4 +1,5 @@
 using NSubstitute;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -678,6 +679,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             Substitute.For<ILocalizationService>());
 
         var singlePlayerGame = new ServerGame(
+            Substitute.For<ILogger<ServerGame>>(),
             rulesProvider,
             mechFactory,
             CommandPublisher,
