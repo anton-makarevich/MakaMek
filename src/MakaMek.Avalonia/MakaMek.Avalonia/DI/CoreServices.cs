@@ -40,7 +40,7 @@ public static class CoreServices
                         loggerFactory!
                     )
                 };
-                return new UnitCachingService(streamProviders);
+                return new UnitCachingService(streamProviders, loggerFactory!);
             });
 
             // Register both image services
