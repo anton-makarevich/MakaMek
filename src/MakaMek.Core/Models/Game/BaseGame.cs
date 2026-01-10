@@ -114,8 +114,6 @@ public abstract class BaseGame : IGame
         ConsciousnessCalculator = consciousnessCalculator;
         HeatEffectsCalculator = heatEffectsCalculator;
         CommandPublisher.Subscribe(HandleCommand);
-
-        Logger.LogDebug("Game instance created with ID {GameId}", Id);
     }
 
     public IReadOnlyList<IPlayer> Players => _players;
