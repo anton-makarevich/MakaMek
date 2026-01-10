@@ -347,7 +347,7 @@ public abstract class BaseGame : IGame
     
     internal void OnPhysicalAttack(PhysicalAttackCommand attackCommand)
     {
-        Logger.Log(LogLevel.Information, "Physical attacks are not implemented");
+        Logger.LogInformation("Physical attacks are not implemented");
     }
 
     internal void OnAmmoExplosion(AmmoExplosionCommand explosionCommand)

@@ -329,22 +329,12 @@ public class UnitCachingServiceTests
         models.ShouldNotContain("BAD");
 
         // Verify that LogError was called
-        // Get all calls to Log method
-        var calls = _logger.ReceivedCalls()
-            .Where(call => call.GetMethodInfo().Name == "Log")
-            .ToList();
-
-        // Check that at least one call logged the expected exception
-        var errorCalls = calls.Where(call =>
-        {
-            var args = call.GetArguments();
-            var logLevel = (LogLevel)args[0]!;
-            var exception = args[3] as Exception;
-            return logLevel == LogLevel.Error &&
-                   exception?.Message == "bad resource error";
-        }).ToList();
-
-        errorCalls.Count.ShouldBe(1);
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<Exception>(ex => ex.Message == "bad resource error"),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -365,22 +355,13 @@ public class UnitCachingServiceTests
         // Assert: no models added
         models.ShouldBeEmpty();
 
-        // Get all calls to Log method
-        var calls = _logger.ReceivedCalls()
-            .Where(call => call.GetMethodInfo().Name == "Log")
-            .ToList();
-
-        // Check that at least one call logged the expected exception
-        var errorCalls = calls.Where(call =>
-        {
-            var args = call.GetArguments();
-            var logLevel = (LogLevel)args[0]!;
-            var exception = args[3] as Exception;
-            return logLevel == LogLevel.Error &&
-                   exception?.Message == "MMUX package missing unit.json";
-        }).ToList();
-
-        errorCalls.Count.ShouldBe(1);
+        // Verify that LogError was called
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<Exception>(ex => ex.Message == "MMUX package missing unit.json"),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -402,21 +383,12 @@ public class UnitCachingServiceTests
         models.ShouldBeEmpty();
 
         // Verify that LogError was called
-        // Get all calls to Log method
-        var calls = _logger.ReceivedCalls()
-            .Where(call => call.GetMethodInfo().Name == "Log")
-            .ToList();
-
-        // Check that at least one call logged the expected exception
-        var errorCalls = calls.Where(call =>
-        {
-            var args = call.GetArguments();
-            var logLevel = (LogLevel)args[0]!;
-            var exception = args[3] as Exception;
-            return logLevel == LogLevel.Error &&
-                   exception?.Message == "MMUX package missing unit.png";
-        }).ToList();
-        errorCalls.Count.ShouldBe(1);
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<Exception>(ex => ex.Message == "MMUX package missing unit.png"),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -438,20 +410,11 @@ public class UnitCachingServiceTests
         models.ShouldBeEmpty();
 
         // Verify that LogError was called
-        // Get all calls to Log method
-        var calls = _logger.ReceivedCalls()
-            .Where(call => call.GetMethodInfo().Name == "Log")
-            .ToList();
-
-        // Check that at least one call logged the expected exception
-        var errorCalls = calls.Where(call =>
-        {
-            var args = call.GetArguments();
-            var logLevel = (LogLevel)args[0]!;
-            var exception = args[3] as Exception;
-            return logLevel == LogLevel.Error &&
-                   exception?.Message == "Failed to deserialize unit.json";
-        }).ToList();
-        errorCalls.Count.ShouldBe(1);
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<Exception>(ex => ex.Message == "Failed to deserialize unit.json"),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 }

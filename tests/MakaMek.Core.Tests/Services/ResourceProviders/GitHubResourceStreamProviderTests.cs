@@ -146,7 +146,12 @@ public class GitHubResourceStreamProviderTests
 
         // Assert
         result.ShouldBeNull();
-        _logger.ReceivedWithAnyArgs().LogWarning("");
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to download")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -266,7 +271,12 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
-        _logger.ReceivedWithAnyArgs().LogError("");
+        _logger.Received(1).Log(
+            LogLevel.Warning,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Failed to fetch")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -281,7 +291,12 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
-        _logger.ReceivedWithAnyArgs().LogWarning("");
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error loading GitHub contents")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -305,7 +320,12 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
-        _logger.ReceivedWithAnyArgs().LogError("");
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error loading GitHub contents")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -328,7 +348,12 @@ public class GitHubResourceStreamProviderTests
 
         // Assert
         result.ShouldBeNull();
-        _logger.ReceivedWithAnyArgs().LogError("");
+        _logger.Received().Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error downloading file from")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -351,7 +376,12 @@ public class GitHubResourceStreamProviderTests
 
         // Assert
         result.ShouldBeNull();
-        _logger.ReceivedWithAnyArgs().LogError("");
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Error downloading file from")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -416,7 +446,7 @@ public class GitHubResourceStreamProviderTests
         var content = await reader.ReadToEndAsync();
         content.ShouldBe(testContent);
 
-        // Verify an HTTP client was not used
+        // Verify that the HTTP client was not used
         mockHandler.ResponseContent.ShouldBeNull();
 
         // Verify caching service was called
