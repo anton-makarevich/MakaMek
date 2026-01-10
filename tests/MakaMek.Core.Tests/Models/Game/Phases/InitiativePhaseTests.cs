@@ -1,4 +1,5 @@
 using NSubstitute;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
@@ -324,7 +325,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IFallProcessor>(),
-            mockPhaseManager)
+            Substitute.For<ILogger<ServerGame>>(), mockPhaseManager)
         {
             IsAutoRoll = false
         };

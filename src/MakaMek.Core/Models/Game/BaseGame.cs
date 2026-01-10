@@ -15,11 +15,13 @@ using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
 public abstract class BaseGame : IGame
 {
+    public ILogger Logger { get; }
     
     internal readonly ICommandPublisher CommandPublisher;
     private readonly List<IPlayer> _players = [];
@@ -92,15 +94,16 @@ public abstract class BaseGame : IGame
         .Where(p => p.CanAct)
         .ToList();
 
-    protected BaseGame(
-        IRulesProvider rulesProvider,
+    protected BaseGame(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator)
+        IHeatEffectsCalculator heatEffectsCalculator,
+        ILogger logger)
     {
+        Logger = logger;
         Id = Guid.NewGuid();
         RulesProvider = rulesProvider;
         CommandPublisher = commandPublisher;

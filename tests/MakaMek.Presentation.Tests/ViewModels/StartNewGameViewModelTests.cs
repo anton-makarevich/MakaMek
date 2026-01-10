@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using AsyncAwaitBestPractices.MVVM;
 using NSubstitute;
@@ -78,7 +79,8 @@ public class StartNewGameViewModelTests
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _mapFactory,
-            _hashService);
+            _hashService,
+            Substitute.For<ILogger<ClientGame>>());
         _gameFactory.CreateClientGame(_rulesProvider,
                 _mechFactory,
                 _commandPublisher,

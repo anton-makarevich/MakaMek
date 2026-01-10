@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -50,8 +51,7 @@ public class GameManagerTests : IDisposable
         _gameFactory = Substitute.For<IGameFactory>();
         _networkHostService = Substitute.For<INetworkHostService>();
 
-        _serverGame = new ServerGame(
-            _rulesProvider,
+        _serverGame = new ServerGame(_rulesProvider,
             _mechFactory,
             _commandPublisher,
             _diceRoller,
@@ -61,8 +61,8 @@ public class GameManagerTests : IDisposable
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            _fallProcessor
-            );
+            _fallProcessor,
+            Substitute.For<ILogger<ServerGame>>());
         _gameFactory.CreateServerGame(
             _rulesProvider,
             _mechFactory,

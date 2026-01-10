@@ -1,4 +1,5 @@
 using System.Reactive.Concurrency;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -123,8 +124,7 @@ public class MovementStateTests
             2, 11,
             new SingleTerrainGenerator(2,11, new ClearTerrain()));
          _player = new Player(playerId, "Player1", PlayerControlType.Human);
-        _game = new ClientGame(
-            _rulesProvider,
+        _game = new ClientGame(_rulesProvider,
             mechFactory,
             _commandPublisher,
             _toHitCalculator,
@@ -132,7 +132,8 @@ public class MovementStateTests
             _consciousnessCalculator,
             _heatEffectsCalculator,
             Substitute.For<IBattleMapFactory>(),
-            _hashService);
+            _hashService,
+            Substitute.For<ILogger<ClientGame>>());
         
         var idempotencyKey = Guid.NewGuid();
         _hashService.ComputeCommandIdempotencyKey(

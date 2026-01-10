@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -97,8 +98,7 @@ public class WeaponsAttackStateTests
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
         _player = new Player(playerId, "Player1", PlayerControlType.Human);
-        _game = new ClientGame(
-            rules,
+        _game = new ClientGame(rules,
             _mechFactory,
             _commandPublisher,
             _toHitCalculator,
@@ -106,7 +106,8 @@ public class WeaponsAttackStateTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IBattleMapFactory>(),
-            _hashService);
+            _hashService,
+            Substitute.For<ILogger<ClientGame>>());
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(battleMap);
 

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Shouldly;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Community;
@@ -59,7 +60,8 @@ public class ServerGameTests
             Substitute.For<IPilotingSkillCalculator>(),
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
-            Substitute.For<IFallProcessor>());
+            Substitute.For<IFallProcessor>(),
+            Substitute.For<ILogger<ServerGame>>());
         _sut.SetBattleMap(battleMap);
     }
 
@@ -305,8 +307,7 @@ public class ServerGameTests
                 phaseManager.GetNextPhase(PhaseNames.Start, Arg.Any<ServerGame>()).Returns(mockPhase);
         
         // Create the game with a mocked phase manager
-        var sut = new ServerGame(
-            rulesProvider,
+        var sut = new ServerGame(rulesProvider,
             Substitute.For<IMechFactory>(),
             commandPublisher, 
             diceRoller,
@@ -317,7 +318,7 @@ public class ServerGameTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IFallProcessor>(),
-            phaseManager);
+            Substitute.For<ILogger<ServerGame>>(), phaseManager);
         
         sut.TransitionToNextPhase(PhaseNames.Start);
 

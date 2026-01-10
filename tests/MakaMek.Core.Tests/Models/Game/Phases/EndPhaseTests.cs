@@ -1,4 +1,5 @@
 using NSubstitute;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -677,8 +678,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>());
 
-        var singlePlayerGame = new ServerGame(
-            rulesProvider,
+        var singlePlayerGame = new ServerGame(rulesProvider,
             mechFactory,
             CommandPublisher,
             DiceRoller,
@@ -689,7 +689,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
             MockFallProcessor,
-            MockPhaseManager);
+            Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);
 
         var playerId = Guid.NewGuid();
         singlePlayerGame.HandleCommand(CreateJoinCommand(playerId, "Solo Player"));

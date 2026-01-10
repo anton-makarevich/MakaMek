@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -32,8 +33,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
     
-    public ClientGame(
-        IRulesProvider rulesProvider,
+    public ClientGame(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
@@ -42,8 +42,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         IHeatEffectsCalculator heatEffectsCalculator,
         IBattleMapFactory mapFactory,
         IHashService hashService,
+        ILogger<ClientGame> logger,
         int ackTimeoutMilliseconds = 10000)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, logger)
     {
         _mapFactory = mapFactory;
         _hashService = hashService;

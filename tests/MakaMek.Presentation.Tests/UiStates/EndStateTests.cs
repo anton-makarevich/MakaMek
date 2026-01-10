@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -59,8 +60,7 @@ public class EndStateTests
         
         _player = new Player(playerId, "Player1", PlayerControlType.Human);
         
-        _game = new ClientGame(
-            rules,
+        _game = new ClientGame(rules,
             new MechFactory(
                 rules,
                 new ClassicBattletechComponentProvider(),
@@ -71,7 +71,8 @@ public class EndStateTests
             Substitute.For<IConsciousnessCalculator>(),
             _heatEffectsCalculator,
             Substitute.For<IBattleMapFactory>(),
-            _hashService);
+            _hashService,
+            Substitute.For<ILogger<ClientGame>>());
         
         var idempotencyKey = Guid.NewGuid();
         _hashService.ComputeCommandIdempotencyKey(

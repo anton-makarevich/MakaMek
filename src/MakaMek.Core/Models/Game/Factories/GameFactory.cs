@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Core.Models.Game.Factories;
 
@@ -14,6 +15,13 @@ namespace Sanet.MakaMek.Core.Models.Game.Factories;
 /// </summary>
 public class GameFactory : IGameFactory
 {
+    private readonly ILoggerFactory _loggerFactory;
+
+    public GameFactory(ILoggerFactory loggerFactory)
+    {
+        _loggerFactory = loggerFactory;
+    }
+
     public ServerGame CreateServerGame(
         IRulesProvider rulesProvider,
         IMechFactory mechFactory,
@@ -28,8 +36,9 @@ public class GameFactory : IGameFactory
         IFallProcessor fallProcessor
         )
     {
-        return new ServerGame(
-            rulesProvider,
+        var logger = _loggerFactory.CreateLogger<ServerGame>();
+
+        return new ServerGame(rulesProvider,
             mechFactory,
             commandPublisher,
             diceRoller,
@@ -39,8 +48,8 @@ public class GameFactory : IGameFactory
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
-            fallProcessor
-            );
+            fallProcessor,
+            logger);
     }
 
     public ClientGame CreateClientGame(
@@ -54,8 +63,9 @@ public class GameFactory : IGameFactory
         IBattleMapFactory mapFactory,
         IHashService hashService)
     {
-        return new ClientGame(
-            rulesProvider,
+        var logger = _loggerFactory.CreateLogger<ClientGame>();
+
+        return new ClientGame(rulesProvider,
             mechFactory,
             commandPublisher,
             toHitCalculator,
@@ -63,6 +73,7 @@ public class GameFactory : IGameFactory
             consciousnessCalculator,
             heatEffectsCalculator,
             mapFactory,
-            hashService);
+            hashService,
+            logger);
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -54,8 +55,7 @@ public class DeploymentStateTests
         _hex2 = new Hex(new HexCoordinates(1, 2));
 
         var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
-        _game = new ClientGame(
-            _rulesProvider,
+        _game = new ClientGame(_rulesProvider,
             new MechFactory(
                 _rulesProvider,
                 _componentProvider,
@@ -66,7 +66,8 @@ public class DeploymentStateTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IBattleMapFactory>(),
-            _hashService);
+            _hashService,
+            Substitute.For<ILogger<ClientGame>>());
         
         var idempotencyKey = Guid.NewGuid();
         _hashService.ComputeCommandIdempotencyKey(
