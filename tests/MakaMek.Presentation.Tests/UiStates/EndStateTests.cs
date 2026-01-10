@@ -59,8 +59,7 @@ public class EndStateTests
         
         _player = new Player(playerId, "Player1", PlayerControlType.Human);
         
-        _game = new ClientGame(Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>(),
-            rules,
+        _game = new ClientGame(rules,
             new MechFactory(
                 rules,
                 new ClassicBattletechComponentProvider(),
@@ -71,7 +70,8 @@ public class EndStateTests
             Substitute.For<IConsciousnessCalculator>(),
             _heatEffectsCalculator,
             Substitute.For<IBattleMapFactory>(),
-            _hashService);
+            _hashService,
+            Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>());
         
         var idempotencyKey = Guid.NewGuid();
         _hashService.ComputeCommandIdempotencyKey(

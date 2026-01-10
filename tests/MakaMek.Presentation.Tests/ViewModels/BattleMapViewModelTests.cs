@@ -2080,8 +2080,7 @@ public class BattleMapViewModelTests
 
     private ClientGame CreateClientGame()
     {
-        return new ClientGame(Substitute.For<ILogger<ClientGame>>(),
-            new ClassicBattletechRulesProvider(),
+        return new ClientGame(new ClassicBattletechRulesProvider(),
             _mechFactory,
             _commandPublisher,
             Substitute.For<IToHitCalculator>(),
@@ -2089,7 +2088,8 @@ public class BattleMapViewModelTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
-            _hashService);
+            _hashService,
+            Substitute.For<ILogger<ClientGame>>());
     }
 
     [Fact]

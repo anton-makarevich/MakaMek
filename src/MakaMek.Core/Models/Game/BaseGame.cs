@@ -94,15 +94,14 @@ public abstract class BaseGame : IGame
         .Where(p => p.CanAct)
         .ToList();
 
-    protected BaseGame(
-        ILogger logger,
-        IRulesProvider rulesProvider,
+    protected BaseGame(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
-        IHeatEffectsCalculator heatEffectsCalculator)
+        IHeatEffectsCalculator heatEffectsCalculator,
+        ILogger logger)
     {
         Logger = logger;
         Id = Guid.NewGuid();

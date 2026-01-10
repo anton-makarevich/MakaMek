@@ -678,9 +678,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>());
 
-        var singlePlayerGame = new ServerGame(
-            Substitute.For<ILogger<ServerGame>>(),
-            rulesProvider,
+        var singlePlayerGame = new ServerGame(rulesProvider,
             mechFactory,
             CommandPublisher,
             DiceRoller,
@@ -691,7 +689,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             MockConsciousnessCalculator,
             MockHeatEffectsCalculator,
             MockFallProcessor,
-            MockPhaseManager);
+            Substitute.For<ILogger<ServerGame>>(), MockPhaseManager);
 
         var playerId = Guid.NewGuid();
         singlePlayerGame.HandleCommand(CreateJoinCommand(playerId, "Solo Player"));

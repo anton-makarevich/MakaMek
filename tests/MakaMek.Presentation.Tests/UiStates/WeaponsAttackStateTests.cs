@@ -97,8 +97,7 @@ public class WeaponsAttackStateTests
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
         _player = new Player(playerId, "Player1", PlayerControlType.Human);
-        _game = new ClientGame(Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>(),
-            rules,
+        _game = new ClientGame(rules,
             _mechFactory,
             _commandPublisher,
             _toHitCalculator,
@@ -106,7 +105,8 @@ public class WeaponsAttackStateTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IBattleMapFactory>(),
-            _hashService);
+            _hashService,
+            Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>());
         _game.JoinGameWithUnits(_player,[],[]);
         _game.SetBattleMap(battleMap);
 

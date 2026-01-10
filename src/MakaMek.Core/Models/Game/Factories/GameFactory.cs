@@ -38,9 +38,7 @@ public class GameFactory : IGameFactory
     {
         var logger = _loggerFactory.CreateLogger<ServerGame>();
 
-        return new ServerGame(
-            logger,
-            rulesProvider,
+        return new ServerGame(rulesProvider,
             mechFactory,
             commandPublisher,
             diceRoller,
@@ -50,8 +48,8 @@ public class GameFactory : IGameFactory
             pilotingSkillCalculator,
             consciousnessCalculator,
             heatEffectsCalculator,
-            fallProcessor
-            );
+            fallProcessor,
+            logger);
     }
 
     public ClientGame CreateClientGame(
@@ -67,9 +65,7 @@ public class GameFactory : IGameFactory
     {
         var logger = _loggerFactory.CreateLogger<ClientGame>();
 
-        return new ClientGame(
-            logger,
-            rulesProvider,
+        return new ClientGame(rulesProvider,
             mechFactory,
             commandPublisher,
             toHitCalculator,
@@ -77,6 +73,7 @@ public class GameFactory : IGameFactory
             consciousnessCalculator,
             heatEffectsCalculator,
             mapFactory,
-            hashService);
+            hashService,
+            logger);
     }
 }

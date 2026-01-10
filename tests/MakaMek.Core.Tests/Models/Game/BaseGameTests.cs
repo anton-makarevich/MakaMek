@@ -34,9 +34,7 @@ public class BaseGameTests : BaseGame
 {
     private static readonly IRulesProvider RulesProviderInstance = new ClassicBattletechRulesProvider();
     private static readonly IComponentProvider ComponentProviderInstance = new ClassicBattletechComponentProvider();
-    public BaseGameTests() : base(
-        Substitute.For<ILogger<BaseGame>>(),
-        RulesProviderInstance,
+    public BaseGameTests() : base(RulesProviderInstance,
         new MechFactory(
             RulesProviderInstance,
             ComponentProviderInstance,
@@ -45,7 +43,8 @@ public class BaseGameTests : BaseGame
         Substitute.For<IToHitCalculator>(),
         Substitute.For<IPilotingSkillCalculator>(),
         Substitute.For<IConsciousnessCalculator>(),
-        Substitute.For<IHeatEffectsCalculator>())
+        Substitute.For<IHeatEffectsCalculator>(),
+        Substitute.For<ILogger<BaseGame>>())
     {
         base.SetBattleMap(
             BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain())));

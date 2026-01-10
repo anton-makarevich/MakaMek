@@ -24,9 +24,7 @@ public class BattleTechPhaseManagerTests
     public BattleTechPhaseManagerTests()
     {
         _sut = new BattleTechPhaseManager();
-        _game = new ServerGame(
-            Substitute.For<ILogger<ServerGame>>(),
-            Substitute.For<IRulesProvider>(), // rulesProvider
+        _game = new ServerGame(Substitute.For<IRulesProvider>(), // rulesProvider
             _mechFactory,
             Substitute.For<ICommandPublisher>(), // commandPublisher
             Substitute.For<IDiceRoller>(), // diceRoller
@@ -37,7 +35,8 @@ public class BattleTechPhaseManagerTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IFallProcessor>(),
-            _sut  // phaseManager
+            Substitute.For<ILogger<ServerGame>>(),
+            _sut // phaseManager
         );
         _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(5,5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
     }

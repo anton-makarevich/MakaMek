@@ -51,9 +51,7 @@ public class GameManagerTests : IDisposable
         _gameFactory = Substitute.For<IGameFactory>();
         _networkHostService = Substitute.For<INetworkHostService>();
 
-        _serverGame = new ServerGame(
-            Substitute.For<ILogger<ServerGame>>(),
-            _rulesProvider,
+        _serverGame = new ServerGame(_rulesProvider,
             _mechFactory,
             _commandPublisher,
             _diceRoller,
@@ -63,8 +61,8 @@ public class GameManagerTests : IDisposable
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,
-            _fallProcessor
-            );
+            _fallProcessor,
+            Substitute.For<ILogger<ServerGame>>());
         _gameFactory.CreateServerGame(
             _rulesProvider,
             _mechFactory,

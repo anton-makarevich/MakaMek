@@ -123,8 +123,7 @@ public class MovementStateTests
             2, 11,
             new SingleTerrainGenerator(2,11, new ClearTerrain()));
          _player = new Player(playerId, "Player1", PlayerControlType.Human);
-        _game = new ClientGame(Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>(),
-            _rulesProvider,
+        _game = new ClientGame(_rulesProvider,
             mechFactory,
             _commandPublisher,
             _toHitCalculator,
@@ -132,7 +131,8 @@ public class MovementStateTests
             _consciousnessCalculator,
             _heatEffectsCalculator,
             Substitute.For<IBattleMapFactory>(),
-            _hashService);
+            _hashService,
+            Substitute.For<Microsoft.Extensions.Logging.ILogger<ClientGame>>());
         
         var idempotencyKey = Guid.NewGuid();
         _hashService.ComputeCommandIdempotencyKey(

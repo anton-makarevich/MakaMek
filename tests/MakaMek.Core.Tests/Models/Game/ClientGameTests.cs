@@ -65,9 +65,7 @@ public class ClientGameTests
             _componentProvider,
             Substitute.For<ILocalizationService>());
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(battleMap); 
-        _sut = new ClientGame(
-            Substitute.For<ILogger<ClientGame>>(),
-            _rulesProvider,
+        _sut = new ClientGame(_rulesProvider,
             mechFactory,
             _commandPublisher,
             Substitute.For<IToHitCalculator>(),
@@ -76,7 +74,7 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
             _hashService,
-            CommandAckTimeout);
+            Substitute.For<ILogger<ClientGame>>(), CommandAckTimeout);
     }
     
     private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,
@@ -1546,8 +1544,7 @@ public class ClientGameTests
         // Create a new client game with local players
         var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
-        var clientGame = new ClientGame(Substitute.For<ILogger<ClientGame>>(),
-            _rulesProvider, 
+        var clientGame = new ClientGame(_rulesProvider, 
             new MechFactory(
                 _rulesProvider,
                 _componentProvider,
@@ -1558,7 +1555,7 @@ public class ClientGameTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
-            _hashService);
+            _hashService, Substitute.For<ILogger<ClientGame>>());
         var unitData = MechFactoryTests.CreateDummyMechData();
         clientGame.JoinGameWithUnits(localPlayer1,[unitData],[]);
         clientGame.JoinGameWithUnits(localPlayer2,[unitData],[]);
@@ -1650,8 +1647,7 @@ public class ClientGameTests
             rulesProvider,
             new ClassicBattletechComponentProvider(),
             Substitute.For<ILocalizationService>());
-        var sut = new ClientGame(Substitute.For<ILogger<ClientGame>>(),
-            rulesProvider, 
+        var sut = new ClientGame(rulesProvider, 
             mechFactory,
             commandPublisher,
             Substitute.For<IToHitCalculator>(),
@@ -1659,7 +1655,7 @@ public class ClientGameTests
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             _mapFactory,
-            _hashService);
+            _hashService, Substitute.For<ILogger<ClientGame>>());
         sut.JoinGameWithUnits(localPlayer1,[player1Unit],[]);
         sut.JoinGameWithUnits(localPlayer2,[player2Unit],[]);
         sut.JoinGameWithUnits(localPlayer3,[player3Unit],[]);

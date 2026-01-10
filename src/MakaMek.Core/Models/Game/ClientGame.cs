@@ -33,9 +33,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     public IObservable<IGameCommand> Commands => _commandSubject.AsObservable();
     public IReadOnlyList<IGameCommand> CommandLog => _commandLog;
     
-    public ClientGame(
-        ILogger<ClientGame> logger,
-        IRulesProvider rulesProvider,
+    public ClientGame(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IToHitCalculator toHitCalculator,
@@ -44,8 +42,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         IHeatEffectsCalculator heatEffectsCalculator,
         IBattleMapFactory mapFactory,
         IHashService hashService,
+        ILogger<ClientGame> logger,
         int ackTimeoutMilliseconds = 10000)
-        : base(logger, rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, logger)
     {
         _mapFactory = mapFactory;
         _hashService = hashService;

@@ -51,8 +51,7 @@ public class JoinGameViewModelTests
     public JoinGameViewModelTests()
     {
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
-        _clientGame = new ClientGame(Substitute.For<ILogger<ClientGame>>(),
-            _rulesProvider,
+        _clientGame = new ClientGame(_rulesProvider,
             _mechFactory,
             _commandPublisher, 
             _toHitCalculator,
@@ -60,7 +59,8 @@ public class JoinGameViewModelTests
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _mapFactory,
-            _hashService);
+            _hashService,
+            Substitute.For<ILogger<ClientGame>>());
         // Configure the adapter to be accessible from the command publisher
         _commandPublisher.Adapter.Returns(_adapter);
         

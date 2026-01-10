@@ -71,8 +71,7 @@ public class StartNewGameViewModelTests
 
 
 
-        _clientGame = new ClientGame(Substitute.For<ILogger<ClientGame>>(),
-            _rulesProvider,
+        _clientGame = new ClientGame(_rulesProvider,
             _mechFactory,
             _commandPublisher,
             _toHitCalculator,
@@ -80,7 +79,8 @@ public class StartNewGameViewModelTests
             _consciousnessCalculator,
             _heatEffectsCalculator,
             _mapFactory,
-            _hashService);
+            _hashService,
+            Substitute.For<ILogger<ClientGame>>());
         _gameFactory.CreateClientGame(_rulesProvider,
                 _mechFactory,
                 _commandPublisher,

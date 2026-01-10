@@ -25,9 +25,7 @@ public class ServerGame : BaseGame, IDisposable
     private IPhaseManager PhaseManager { get; }
     public IDiceRoller DiceRoller { get; }
 
-    public ServerGame(
-        ILogger<ServerGame> logger,
-        IRulesProvider rulesProvider,
+    public ServerGame(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
         ICommandPublisher commandPublisher,
         IDiceRoller diceRoller,
@@ -38,8 +36,9 @@ public class ServerGame : BaseGame, IDisposable
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
         IFallProcessor fallProcessor,
+        ILogger<ServerGame> logger,
         IPhaseManager? phaseManager = null)
-        : base(logger, rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, logger)
     {
         DiceRoller = diceRoller;
         DamageTransferCalculator = damageTransferCalculator;

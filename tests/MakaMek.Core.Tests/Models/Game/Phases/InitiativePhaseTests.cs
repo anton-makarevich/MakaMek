@@ -312,9 +312,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
         var mockNextPhase = Substitute.For<IGamePhase>();
         mockPhaseManager.GetNextPhase(PhaseNames.Initiative, Arg.Any<ServerGame>()).Returns(mockNextPhase);
         
-        var game = new ServerGame(
-            Substitute.For<ILogger<ServerGame>>(),
-            new ClassicBattletechRulesProvider(),
+        var game = new ServerGame(new ClassicBattletechRulesProvider(),
             new MechFactory(
                 new ClassicBattletechRulesProvider(),
                 new ClassicBattletechComponentProvider(),
@@ -327,7 +325,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
             Substitute.For<IConsciousnessCalculator>(),
             Substitute.For<IHeatEffectsCalculator>(),
             Substitute.For<IFallProcessor>(),
-            mockPhaseManager)
+            Substitute.For<ILogger<ServerGame>>(), mockPhaseManager)
         {
             IsAutoRoll = false
         };
