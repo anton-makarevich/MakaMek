@@ -13,8 +13,13 @@ public static class AndroidServices
     {
         services.AddLogging(builder =>
         {
-            builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Information);
+            builder.SetMinimumLevel(
+#if DEBUG
+                LogLevel.Debug
+#else
+                LogLevel.Information
+#endif
+                );
         });
         // Register the dummy network host service for Android
         services.AddSingleton<INetworkHostService, DummyNetworkHostService>();

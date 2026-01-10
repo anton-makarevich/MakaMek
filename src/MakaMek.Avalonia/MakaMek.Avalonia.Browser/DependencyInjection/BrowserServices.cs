@@ -13,8 +13,13 @@ public static class BrowserServices
     {
         services.AddLogging(builder =>
         {
-            builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Information);
+            builder.SetMinimumLevel(
+#if DEBUG
+                LogLevel.Debug
+#else
+                LogLevel.Information
+#endif
+                );
         });
         // Register the dummy network host service for Browser (WASM)
         services.AddSingleton<INetworkHostService, DummyNetworkHostService>();
