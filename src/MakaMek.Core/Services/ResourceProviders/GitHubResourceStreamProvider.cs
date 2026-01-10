@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AsyncAwaitBestPractices;
+using Microsoft.Extensions.Logging;
 
 namespace Sanet.MakaMek.Core.Services.ResourceProviders;
 
@@ -15,6 +16,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     private readonly bool _disposeHttpClient;
     private readonly Lazy<Task<List<string>>> _availableResourceIds;
     private readonly IFileCachingService _cachingService;
+    private readonly ILogger<GitHubResourceStreamProvider> _logger;
 
     /// <summary>
     /// Initializes a new instance of GitHubResourceStreamProvider
@@ -27,6 +29,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         string fileExtension,
         string apiUrl,
         IFileCachingService cachingService,
+        ILoggerFactory loggerFactory,
         HttpClient? httpClient = null)
     {
         _apiUrl = apiUrl;
@@ -35,6 +38,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         _httpClient = httpClient ?? new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "MakaMek-Game");
         _cachingService = cachingService;
+        _logger = loggerFactory.CreateLogger<GitHubResourceStreamProvider>();
 
         _availableResourceIds = new Lazy<Task<List<string>>>(LoadAvailableResourceIds);
     }
@@ -72,7 +76,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             var response = await _httpClient.GetAsync(resourceId);
             if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"Failed to download file from {resourceId}: {response.StatusCode}");
+                _logger.LogWarning("Failed to download file from {ResourceId}: {StatusCode}", resourceId, response.StatusCode);
                 return null;
             }
 
@@ -92,14 +96,14 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error caching file from {resourceId}: {ex.Message}");
+                    _logger.LogError(ex, "Error caching file from {ResourceId}", resourceId);
                 }
             }).SafeFireAndForget(); 
             return new MemoryStream(contentBytes);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error downloading file from {resourceId}: {ex.Message}");
+            _logger.LogError(ex, "Error downloading file from {ResourceId}", resourceId);
             return null;
         }
     }
@@ -117,7 +121,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
             var response = await _httpClient.GetAsync(_apiUrl);
             if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"Failed to fetch GitHub contents: {response.StatusCode}");
+                _logger.LogWarning("Failed to fetch GitHub contents: {StatusCode}", response.StatusCode);
                 return resourceIds;
             }
 
@@ -126,7 +130,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
 
             if (contentItems == null)
             {
-                Console.WriteLine("Failed to deserialize GitHub contents response");
+                _logger.LogWarning("Failed to deserialize GitHub contents response");
                 return resourceIds;
             }
 
@@ -141,11 +145,11 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
                 }
             }
 
-            Console.WriteLine($"Found {resourceIds.Count} {_fileExtension} files in GitHub repository");
+            _logger.LogInformation("Found {Count} {_FileExtension} files in GitHub repository", resourceIds.Count, _fileExtension);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading GitHub contents: {ex.Message}");
+            _logger.LogError(ex, "Error loading GitHub contents");
         }
 
         return resourceIds;
