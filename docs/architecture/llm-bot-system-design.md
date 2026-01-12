@@ -77,7 +77,7 @@ Client → IClientCommand → CommandPublisher → Transport → Server
 Server → Validation → Processing → IGameCommand → Broadcast → All Clients
 ```
 
-**Key Insight**: One ClientGame instance serves ALL local players (human and bot), as documented in project memories.
+**Key Insight**: One ClientGame instance serves one or more local players (human and bot).
 
 ### 1.2 Bot System Overview
 
@@ -124,11 +124,11 @@ Phase transitions are managed by `BattleTechPhaseManager` which implements the s
 ### 1.4 Command System
 
 #### Command Types
-- **IClientCommand** - Commands from clients to server (require validation)
+- **IClientCommand** - Commands from clients to server
   - Include `IdempotencyKey` for duplicate detection
   - Examples: `DeployUnitCommand`, `MoveUnitCommand`, `WeaponAttackDeclarationCommand`
 
-- **IGameCommand** - Server broadcast commands (already validated)
+- **IGameCommand** - Server broadcast commands
   - Examples: `ChangePhaseCommand`, `TurnIncrementedCommand`, `SetBattleMapCommand`
 
 #### Transport Layer
@@ -146,131 +146,56 @@ The LLM bot system introduces three new components that integrate with the exist
 
 #### Architecture Diagram
 
-```mermaid
-graph TB
-    subgraph "MakaMek Game"
-        SG[ServerGame<br/>Authoritative State]
-        CG[ClientGame<br/>Local Replica]
-        SG -->|Commands| CG
-        CG -->|Observables| IB
-    end
-
-    subgraph "Component 3: Integration Bot"
-        IB[LlmDecisionEngine<br/>IBotDecisionEngine]
-        CB[Circuit Breaker]
-        FB[Fallback Engine<br/>Rule-Based]
-        IB --> CB
-        CB -->|Open| FB
-    end
-
-    subgraph "Component 2: MCP Server"
-        MCP[MCP Server<br/>HTTP/SSE]
-        GST[Game State Tools]
-        TAT[Tactical Analysis Tools]
-        CET[Command Execution Tools]
-        MCP --> GST
-        MCP --> TAT
-        MCP --> CET
-        GST --> CG
-        TAT --> CG
-        CET --> CG
-    end
-
-    subgraph "Component 1: LLM Agent App"
-        ORCH[Agent Orchestrator]
-        DA[Deployment Agent]
-        MA[Movement Agent]
-        WA[Weapons Agent]
-        EA[End Phase Agent]
-        MCPC[MCP Client]
-        LLMP[LLM Provider<br/>OpenAI/Anthropic]
-
-        ORCH --> DA
-        ORCH --> MA
-        ORCH --> WA
-        ORCH --> EA
-        DA --> MCPC
-        MA --> MCPC
-        WA --> MCPC
-        EA --> MCPC
-        DA --> LLMP
-        MA --> LLMP
-        WA --> LLMP
-        EA --> LLMP
-    end
-
-    IB -->|Decision Request| ORCH
-    ORCH -->|Decision Response| IB
-    MCPC -->|MCP Protocol| MCP
-    MCP -->|Tool Results| MCPC
-
-    style SG fill:#e1f5ff,stroke:#01579b,color:#000
-    style CG fill:#e1f5ff,stroke:#01579b,color:#000
-    style IB fill:#fff3e0,stroke:#e65100,color:#000
-    style CB fill:#fff3e0,stroke:#e65100,color:#000
-    style FB fill:#fff3e0,stroke:#e65100,color:#000
-    style MCP fill:#f3e5f5,stroke:#4a148c,color:#000
-    style GST fill:#f3e5f5,stroke:#4a148c,color:#000
-    style TAT fill:#f3e5f5,stroke:#4a148c,color:#000
-    style CET fill:#f3e5f5,stroke:#4a148c,color:#000
-    style ORCH fill:#e8f5e9,stroke:#1b5e20,color:#000
-    style DA fill:#e8f5e9,stroke:#1b5e20,color:#000
-    style MA fill:#e8f5e9,stroke:#1b5e20,color:#000
-    style WA fill:#e8f5e9,stroke:#1b5e20,color:#000
-    style EA fill:#e8f5e9,stroke:#1b5e20,color:#000
-    style MCPC fill:#e8f5e9,stroke:#1b5e20,color:#000
-    style LLMP fill:#ffebee,stroke:#b71c1c,color:#000
-```
-
+```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                        MakaMek Game                              │
-│  ┌──────────────┐         ┌──────────────┐                     │
-│  │ ServerGame   │◄────────┤ ClientGame   │                     │
-│  │              │         │              │                     │
-│  └──────────────┘         └──────┬───────┘                     │
-│                                   │                              │
-│                                   │ Observables                  │
-│                                   │ (PhaseChanges,               │
-│                                   │  Commands, etc.)             │
-│                                   ▼                              │
+│                        MakaMek Game                             │
+│  ┌──────────────┐          ┌──────────────┐                     │
+│  │ ServerGame   │◄─────────┤ ClientGame   │                     │
+│  │              │          │              │                     │
+│  └──────────────┘          └──────┬───────┘                     │
+│                                   │                             │
+│                                   │ Observables                 │
+│                                   │ (PhaseChanges,              │
+│                                   │  Commands, etc.)            │
+│                                   ▼                             │
 │                          ┌────────────────┐                     │
 │                          │ Integration    │                     │
-│                          │ Bot            │◄────┐               │
-│                          │ (Component 3)  │     │               │
-│                          └────────┬───────┘     │               │
-│                                   │             │               │
-└───────────────────────────────────┼─────────────┼───────────────┘
-                                    │             │
-                                    │ MCP         │ MCP
-                                    │ Requests    │ Responses
-                                    ▼             │
-                          ┌─────────────────────┐ │
-                          │ MCP Server          │ │
-                          │ (Component 2)       │─┘
-                          │                     │
-                          │ Tools & Resources:  │
-                          │ - Game State Query  │
-                          │ - Tactical Analysis │
-                          │ - Command Execution │
-                          └──────────┬──────────┘
-                                     │
-                                     │ MCP Protocol
-                                     │ (HTTP/SSE)
-                                     ▼
-                          ┌─────────────────────┐
-                          │ LLM Agent App       │
-                          │ (Component 1)       │
-                          │                     │
-                          │ ┌─────────────────┐ │
+│                    ┌─────┤ Bot            │◄────┐               │
+│                    │     │ (Component 3)  │     │               │
+│                    │     └────────┬───────┘     │               │
+│                    │              │             │               │
+└────────────────────┼──────────────┼─────────────┼───────────────┘
+                     │              │             │
+                     │              │             │  
+                     │              │             │ 
+                     │              ▼             │
+                     │    ┌─────────────────────┐ │
+                     │    │ MCP Server          │ │
+                     │    │ (Component 2)       │─┘
+                     │    │                     │
+                     │    │ Tools & Resources:  │
+                     │    │ - Game State Query  │
+                     │    │ - Tactical Analysis │
+                     │    │ - Command Execution │
+                     │    └──────────┬──────────┘
+                     │               │
+                     │               │ MCP Protocol
+                     │               │ (HTTP/SSE)
+                     │               ▼
+                     │    ┌─────────────────────┐
+                     │    │ LLM Agent App       │
+                     │    │ (Component 1)       │
+                     │    │                     │
+                     └───>│ ┌─────────────────┐ │
                           │ │ Orchestrator    │ │
                           │ └────────┬────────┘ │
                           │          │          │
-                          │    ┌─────┴─────┐   │
-                          │    ▼     ▼     ▼   │
-                          │  ┌───┐ ┌───┐ ┌───┐ │
-                          │  │Dep│ │Mov│ │Wpn│ │
-                          │  │Agt│ │Agt│ │Agt│ │
-                          │  └───┘ └───┘ └───┘ │
+                          │    ┌─────┴─────┐    │
+                          │    ▼     ▼     ▼    │
+                          │  ┌───┐ ┌───┐ ┌───┐  │
+                          │  │Dep│ │Mov│ │Wpn│  │
+                          │  │Agt│ │Agt│ │Agt│  │
+                          │  └───┘ └───┘ └───┘  │
                           └─────────────────────┘
                                      │
                                      ▼
@@ -283,13 +208,13 @@ graph TB
 ### 2.2 Component Responsibilities
 
 #### Component 1: LLM Agent Application
-**Type**: Separate .NET 10 Console/Service Application
+**Type**: Separate .NET 10 Application (perhaps ASP.NET Core Web API as web server is required)
 **Technology**: Microsoft Agent Framework + LLM SDKs
 
 **Responsibilities**:
 - Host 4 specialized agents: Deployment, Movement, Weapon Attack, and End-Phase
 - Orchestrate agent selection based on game phase
-- Communicate with LLM providers (OpenAI, Anthropic, Azure OpenAI)
+- Communicate with LLM providers (OpenAI, Anthropic, Azure OpenAI, AWS Bedrock hosted, etc)
 - Use MCP tools to query game state and execute actions
 - Generate tactical decisions with reasoning
 - Manage conversation context across turns
@@ -298,7 +223,6 @@ graph TB
 - Multi-agent architecture with phase-specific specialization
 - Chain-of-thought reasoning for complex decisions
 - Structured output generation for reliable parsing
-- Streaming responses for faster decision-making
 - Configurable LLM provider and model selection
 
 #### Component 2: MCP Server
@@ -312,35 +236,31 @@ graph TB
 - Expose command execution tools
 - Provide real-time game state resources
 - Handle tool call validation and error handling
-- Cache tactical evaluations for performance
 
 **Key Features**:
 - Comprehensive tool catalog for game interaction
 - Resource-based access to game state
 - Real-time synchronization via ClientGame observables
-- Performance optimization through caching
 - Detailed error responses for debugging
 
 #### Component 3: Integration Bot
-**Type**: .NET 10 Library implementing IBotDecisionEngine
+**Type**: .NET 10 Library with decision engines implementing IBotDecisionEngine
 **Technology**: .NET 10, Reactive Extensions
 
+#### CLI App to wrap Components 2 and 3
+**Type**: .NET 10 Console Application
+
 **Responsibilities**:
-- Implement IBotDecisionEngine interface
+- Implement IBotDecisionEngine interface for each game phase that requeires LLM assistance
 - Monitor game state changes via ClientGame observables
-- Trigger LLM agent requests based on phase and context
+- Trigger LLM agent requests based on phase (from the corresponding decision engine) and context
 - Translate LLM responses to game commands
 - Manage communication with LLM Agent Application
-- Implement fallback to rule-based engines
-- Handle error recovery and circuit breaking
-- Provide telemetry and logging
+- Provide logging
 
 **Key Features**:
 - Seamless integration with existing bot infrastructure
-- Circuit breaker pattern for resilience
-- Automatic fallback to rule-based decisions
 - Comprehensive error handling
-- Performance monitoring and metrics
 
 ### 2.3 Data Flow
 
@@ -407,9 +327,7 @@ sequenceDiagram
    - Determines if LLM decision is needed based on phase and player
 
 3. **Context Gathering**
-   - Integration Bot calls MCP Server tools to gather context
-   - MCP Server queries ClientGame and TacticalEvaluator
-   - Returns comprehensive game state and tactical analysis
+   - Integration Bot gather initial context from ClientGame 
 
 4. **LLM Decision Request**
    - Integration Bot sends decision request to LLM Agent Application
@@ -417,7 +335,7 @@ sequenceDiagram
 
 5. **Agent Processing**
    - Agent Orchestrator selects appropriate specialized agent (1 of 4)
-   - Agent uses MCP tools to analyze situation
+   - Agent uses provided context and MCP tools to request detailed information
    - Agent generates decision with reasoning using LLM
 
 6. **Command Translation**
@@ -425,24 +343,13 @@ sequenceDiagram
    - Validates decision against game rules
    - Translates to appropriate IClientCommand
 
-7. **Command Execution**
+7. **Command Execution** (Existing flow)
    - Integration Bot sends command via ClientGame
-   - ClientGame sends to ServerGame with idempotency key
    - ServerGame validates, processes, and broadcasts
 
-8. **State Update**
+8. **State Update** (Existing flow)
    - All clients receive updated game state
    - Cycle continues for next decision point
-
-#### Error Handling Flow
-
-```
-LLM Request → Timeout? → Retry (3x) → Still Failing? → Circuit Breaker
-                                                              ↓
-                                                    Fallback to Rule-Based
-                                                              ↓
-                                                    Execute Valid Action
-```
 
 ### 2.4 Technology Stack
 
@@ -456,6 +363,7 @@ LLM Request → Timeout? → Retry (3x) → Still Failing? → Circuit Breaker
 - **MCP Client**: ModelContextProtocol.SDK
 - **Configuration**: Microsoft.Extensions.Configuration
 - **Logging**: Microsoft.Extensions.Logging
+- **HTTP Server**: ASP.NET Core Web API
 
 #### Component 2: MCP Server
 - **Framework**: .NET 10
@@ -471,8 +379,6 @@ LLM Request → Timeout? → Retry (3x) → Still Failing? → Circuit Breaker
 - **HTTP Client**: System.Net.Http
 - **Resilience**: Polly (for circuit breaker)
 - **Telemetry**: OpenTelemetry
-
-
 
 ---
 
@@ -538,7 +444,7 @@ Analyze the available deployment zones and select the best position and facing.
 
 **Available Tools**:
 - `get_deployment_zones` - Get valid deployment hexes
-- `get_map_info` - Analyze terrain and elevation
+- `get_map_info` - Analyze terrain 
 - `get_game_state` - See enemy positions
 - `execute_deploy_unit` - Deploy unit to selected hex
 
@@ -548,7 +454,7 @@ Analyze the available deployment zones and select the best position and facing.
   "action": "deploy",
   "unitId": "guid",
   "hexCoordinates": {"q": 10, "r": 5},
-  "facing": "North",
+  "facing": "Top",
   "reasoning": "Selected position provides cover while maintaining line of sight..."
 }
 ```
@@ -566,13 +472,11 @@ position units for maximum tactical advantage while minimizing risk. Consider:
 - Terrain effects (elevation, woods, water)
 - Piloting skill roll requirements
 
-Use the tactical evaluation tools to score movement options and select the best path.
+Use the tactical evaluation tools to select unit to move, score movement options and select the best path.
 ```
 
 **Available Tools**:
 - `evaluate_movement_options` - Get scored movement paths
-- `get_tactical_situation` - Comprehensive tactical analysis
-- `calculate_hit_probability` - Estimate attack success
 - `execute_move_unit` - Execute selected movement
 
 **Decision Output**:
@@ -606,6 +510,7 @@ Analyze available targets and select the optimal weapon configuration and target
 - `evaluate_weapon_targets` - Get scored target options
 - `calculate_hit_probability` - Estimate hit chance
 - `get_unit_details` - Analyze target damage state
+- `apply_weapon_configuration` - Apply weapon configuration
 - `execute_weapon_attack` - Declare attack
 
 **Decision Output**:
@@ -625,7 +530,7 @@ Analyze available targets and select the optimal weapon configuration and target
 
 **System Prompt**:
 ```
-You are a BattleTech tactical AI specializing in heat management. Your goal is to
+You are a BattleTech tactical AI specializing in end phase decisions. Your goal is to
 keep units operational while avoiding catastrophic heat effects. Consider:
 - Current heat level and dissipation rate
 - Ammo explosion risk at high heat
@@ -637,8 +542,6 @@ Make decisions about shutting down overheated units or restarting shutdown units
 ```
 
 **Available Tools**:
-- `get_unit_details` - Check heat levels
-- `calculate_restart_probability` - Estimate restart success
 - `execute_shutdown_unit` - Shutdown overheated unit
 - `execute_startup_unit` - Attempt restart
 - `execute_end_turn` - End turn
@@ -679,7 +582,7 @@ Make decisions about shutting down overheated units or restarting shutdown units
 #### 3.2.1 Project Structure
 
 ```
-MakaMek.Bots.Llm/Mcp/
+MakaMek.Bots.Llm.Mcp/
 ├── McpServer.cs                        # MCP server implementation
 ├── Tools/
 │   ├── GameStateTools.cs               # Game state query tools
@@ -763,7 +666,7 @@ MakaMek.Bots.Llm/Mcp/
 ```json
 {
   "name": "get_map_info",
-  "description": "Returns battle map information including terrain and line of sight",
+  "description": "Returns battle map information including terrain",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -994,6 +897,21 @@ MakaMek.Bots.Llm/Mcp/
     "required": ["unitId"]
   }
 }
+
+**15. apply_weapon_configuration**
+```json
+{
+  "name": "apply_weapon_configuration",
+  "description": "Applies a weapon configuration to a unit",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "unitId": {"type": "string"},
+      "configuration": {"type": "object"}
+    },
+    "required": ["unitId", "configuration"]
+  }
+}
 ```
 
 #### 3.2.3 MCP Resources
@@ -1029,28 +947,19 @@ MakaMek.Bots.Llm/
 #### 3.3.2 LlmDecisionEngine Implementation
 
 ```csharp
-public class LlmDecisionEngine : IBotDecisionEngine
+public class Llm*DecisionEngine : IBotDecisionEngine // for every phase (Deployment, Movement, WeaponsAttack, End)
 {
     private readonly ILlmAgentClient _llmAgentClient;
     private readonly IClientGame _clientGame;
-    private readonly CircuitBreaker _circuitBreaker;
-    private readonly FallbackDecisionEngine _fallbackEngine;
+    private readonly FallbackDecisionEngine _fallbackEngine; // Rule-based fallback engine, optional for now
     private readonly ILogger<LlmDecisionEngine> _logger;
 
     public async Task MakeDecision(IPlayer player, ITurnState? turnState = null)
     {
         try
         {
-            // Check circuit breaker state
-            if (_circuitBreaker.IsOpen)
-            {
-                _logger.LogWarning("Circuit breaker open, using fallback");
-                await _fallbackEngine.MakeDecision(player, turnState);
-                return;
-            }
-
             // Gather game context
-            var context = await GatherGameContext(player, turnState);
+            var context = await GatherGameContext(player, turnState); // from _clientGame
 
             // Request decision from LLM Agent
             var decision = await _llmAgentClient.RequestDecision(context);
@@ -1072,25 +981,14 @@ public class LlmDecisionEngine : IBotDecisionEngine
 }
 ```
 
-#### 3.3.3 Circuit Breaker Configuration
+### 3.4 CLI Wrapper for MCP Server and Integration Bot
 
-```json
-{
-  "CircuitBreaker": {
-    "FailureThreshold": 3,
-    "SuccessThreshold": 2,
-    "Timeout": 30000,
-    "HalfOpenRetryDelay": 60000
-  }
-}
+#### 3.4.1 Project Structure
+
 ```
-
-**States**:
-- **Closed**: Normal operation, requests pass through
-- **Open**: Too many failures, all requests use fallback
-- **Half-Open**: Testing if service recovered, limited requests
-
----
+MakaMek.Bots.Llm.Cli/
+└── Program.cs                          # Entry point
+```
 
 ## 4. Integration Patterns
 
@@ -1155,372 +1053,7 @@ private async Task<IClientCommand> TranslateDecision(DecisionResponse decision)
 }
 ```
 
-### 4.3 Error Handling Strategy
-
-**Retry Logic**:
-```csharp
-var retryPolicy = Policy
-    .Handle<HttpRequestException>()
-    .Or<TaskCanceledException>()
-    .WaitAndRetryAsync(3,
-        retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-        onRetry: (exception, timeSpan, retryCount, context) =>
-        {
-            _logger.LogWarning($"Retry {retryCount} after {timeSpan}");
-        });
-```
-
-**Fallback Strategy**:
-1. Primary: LLM-based decision via Agent Application
-2. Secondary: Rule-based decision via existing engines
-3. Tertiary: Random valid action (last resort)
-
-### 4.4 Performance Optimization
-
-**Caching Strategy**:
-- Tactical evaluations cached per turn
-- Game state snapshots cached per phase
-- Hit probability calculations cached
-- Cache invalidated on relevant state changes
-
-**Parallel Processing**:
-- Multiple tool calls executed in parallel
-- Tactical evaluations for multiple units in parallel
-- Non-blocking async/await throughout
-
----
-
-## 5. Implementation Roadmap
-
-### Phase 1: Foundation (Weeks 1-2)
-
-**Objectives**:
-- Set up project structure for all three components
-- Implement basic MCP server with core tools
-- Create Integration Bot skeleton
-- Set up LLM Agent Application with orchestrator
-
-**Deliverables**:
-- `MakaMek.Bots.Llm` project created
-- `MakaMek.LlmAgent` project created
-- Basic MCP server with `get_game_state` and `get_unit_details` tools
-- Integration Bot implementing `IBotDecisionEngine`
-- Agent Orchestrator with phase-based routing
-
-**Dependencies**:
-- ModelContextProtocol.SDK NuGet package
-- Microsoft.AgentFramework NuGet package
-- OpenAI/Anthropic SDK packages
-
-### Phase 2: MCP Server Implementation (Weeks 3-4)
-
-**Objectives**:
-- Implement all game state query tools
-- Implement tactical analysis tools
-- Implement command execution tools
-- Add real-time synchronization
-- Implement caching layer
-
-**Deliverables**:
-- Complete tool catalog (14 tools)
-- MCP resources for game state
-- Integration with TacticalEvaluator
-- Performance-optimized caching
-- Comprehensive error handling
-
-**Testing**:
-- Unit tests for each tool
-- Integration tests with ClientGame
-- Performance benchmarks
-
-### Phase 3: LLM Agent Development (Weeks 5-6)
-
-**Objectives**:
-- Implement all specialized agents
-- Create system prompts for each phase
-- Implement LLM provider abstraction
-- Add structured output parsing
-- Implement MCP client for tool calls
-
-**Deliverables**:
-- 4 specialized agents: DeploymentAgent, MovementAgent, WeaponsAttackAgent, EndPhaseAgent
-- System prompts with BattleTech tactical knowledge for each agent
-- OpenAI and Anthropic provider implementations
-- Robust JSON parsing with validation
-- MCP client service
-
-**Testing**:
-- Agent decision quality tests
-- Prompt effectiveness evaluation
-- LLM provider integration tests
-
-### Phase 4: Integration Bot (Weeks 7-8)
-
-**Objectives**:
-- Implement complete decision-making flow
-- Add circuit breaker pattern
-- Implement fallback logic
-- Add telemetry and logging
-- Integrate with existing bot infrastructure
-
-**Deliverables**:
-- Complete LlmDecisionEngine implementation
-- Circuit breaker with configurable thresholds
-- Fallback to rule-based engines
-- OpenTelemetry integration
-- Comprehensive logging
-
-**Testing**:
-- End-to-end integration tests
-- Failure scenario tests
-- Circuit breaker behavior tests
-- Performance tests
-
-### Phase 5: Testing & Refinement (Weeks 9-10)
-
-**Objectives**:
-- Comprehensive testing of all components
-- Performance optimization
-- Prompt engineering and tuning
-- Multi-bot concurrency testing
-- Documentation
-
-**Deliverables**:
-- Full test suite with >80% coverage
-- Performance benchmarks and optimizations
-- Tuned prompts for better decisions
-- Multi-bot stress tests
-- User documentation and examples
-
-**Testing**:
-- Load testing with multiple concurrent bots
-- Long-running game tests
-- Decision quality evaluation
-- Cost analysis for LLM API usage
-
-### Phase 6: Advanced Features (Weeks 11-12)
-
-**Objectives**:
-- Multi-turn conversation support
-- Learning from game outcomes
-- Difficulty levels via prompt tuning
-- Advanced tactical reasoning
-- Decision explanation generation
-
-**Deliverables**:
-- Conversation history management
-- Game outcome analysis
-- Configurable difficulty settings
-- Enhanced tactical prompts
-- Decision explanation UI
-
-**Testing**:
-- User acceptance testing
-- Difficulty level validation
-- Explanation quality evaluation
-
----
-
-## 6. Technical Specifications
-
-### 6.1 Project Structure
-
-```
-MakaMek.sln
-├── src/
-│   ├── MakaMek.Core/                    (existing)
-│   ├── MakaMek.Bots/                    (existing)
-│   ├── MakaMek.Bots.Llm/                (new)
-│   │   ├── MakaMek.Bots.Llm.csproj
-│   │   ├── Models/
-│   │   ├── Services/
-│   │   ├── Mcp/
-│   │   ├── Configuration/
-│   │   └── Telemetry/
-│   └── MakaMek.LlmAgent/                (new)
-│       ├── MakaMek.LlmAgent.csproj
-│       ├── Program.cs
-│       ├── Agents/
-│       ├── Skills/
-│       ├── Prompts/
-│       ├── Services/
-│       └── Configuration/
-└── tests/
-    ├── MakaMek.Bots.Llm.Tests/          (new)
-    └── MakaMek.LlmAgent.Tests/          (new)
-```
-
-### 6.2 Dependencies
-
-#### MakaMek.Bots.Llm
-```xml
-<ItemGroup>
-  <ProjectReference Include="..\MakaMek.Core\MakaMek.Core.csproj" />
-  <ProjectReference Include="..\MakaMek.Bots\MakaMek.Bots.csproj" />
-  <PackageReference Include="ModelContextProtocol.SDK" Version="1.0.0" />
-  <PackageReference Include="Polly" Version="8.0.0" />
-  <PackageReference Include="OpenTelemetry" Version="1.7.0" />
-  <PackageReference Include="System.Reactive" Version="6.0.0" />
-</ItemGroup>
-```
-
-#### MakaMek.LlmAgent
-```xml
-<ItemGroup>
-  <PackageReference Include="Microsoft.AgentFramework" Version="1.0.0" />
-  <PackageReference Include="ModelContextProtocol.SDK" Version="1.0.0" />
-  <PackageReference Include="OpenAI" Version="2.0.0" />
-  <PackageReference Include="Anthropic.SDK" Version="1.0.0" />
-  <PackageReference Include="Azure.AI.OpenAI" Version="2.0.0" />
-  <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
-  <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
-</ItemGroup>
-```
-
-### 6.3 Configuration Files
-
-#### appsettings.json (MakaMek.LlmAgent)
-```json
-{
-  "LlmProvider": {
-    "Type": "OpenAI",
-    "ApiKey": "${OPENAI_API_KEY}",
-    "Model": "gpt-4o",
-    "Temperature": 0.7,
-    "MaxTokens": 2000,
-    "EnableStreaming": true,
-    "Timeout": 30000
-  },
-  "McpServer": {
-    "Port": 5000,
-    "EnableSse": true
-  },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft": "Warning"
-    }
-  }
-}
-```
-
-#### appsettings.json (Integration Bot)
-```json
-{
-  "LlmBot": {
-    "AgentEndpoint": "http://localhost:5000",
-    "EnableFallback": true,
-    "DecisionTimeout": 30000,
-    "CircuitBreaker": {
-      "FailureThreshold": 3,
-      "SuccessThreshold": 2,
-      "Timeout": 30000,
-      "HalfOpenRetryDelay": 60000
-    }
-  },
-  "Telemetry": {
-    "EnableMetrics": true,
-    "EnableLogging": true
-  }
-}
-```
-
----
-
-## 7. Operational Considerations
-
-### 7.1 Cost Management
-
-**LLM API Costs**:
-- **GPT-4o**: ~$0.005 per decision (estimated 1000 tokens)
-- **Claude 3.5 Sonnet**: ~$0.003 per decision
-- **GPT-3.5-turbo**: ~$0.001 per decision (lower quality)
-
-**Cost Optimization Strategies**:
-1. Use cheaper models for simpler decisions (deployment, end phase)
-2. Cache tactical evaluations to reduce tool calls
-3. Implement token budgets per decision
-4. Use streaming to reduce latency without increasing cost
-5. Batch multiple decisions when possible
-
-**Estimated Monthly Costs** (1000 games, 50 turns avg, 4 decisions per turn):
-- GPT-4o: ~$1,000/month
-- Claude 3.5 Sonnet: ~$600/month
-- GPT-3.5-turbo: ~$200/month
-
-### 7.2 Performance Metrics
-
-**Target Metrics**:
-- **Decision Latency**: <5 seconds per decision (P95)
-- **Throughput**: 10+ concurrent bot players
-- **Availability**: 99.5% uptime
-- **Fallback Rate**: <5% of decisions
-- **Cache Hit Rate**: >70% for tactical evaluations
-
-**Monitoring**:
-- OpenTelemetry metrics for latency, throughput, errors
-- Custom metrics for decision quality
-- LLM API usage and cost tracking
-- Circuit breaker state monitoring
-
-### 7.3 Security Considerations
-
-**API Key Management**:
-- Store API keys in environment variables or Azure Key Vault
-- Never commit API keys to source control
-- Rotate keys regularly
-- Use separate keys for dev/test/prod
-
-**Input Validation**:
-- Validate all LLM outputs before execution
-- Sanitize game state data before sending to LLM
-- Implement rate limiting to prevent abuse
-- Log all decisions for audit trail
-
-**Network Security**:
-- Use HTTPS for all MCP communication
-- Implement authentication for MCP server
-- Restrict MCP server to localhost or trusted networks
-- Use API gateways for production deployments
-
-### 7.4 Scalability
-
-**Horizontal Scaling**:
-- Multiple LLM Agent Application instances behind load balancer
-- Stateless design enables easy scaling
-- MCP server can be replicated per game instance
-- Integration Bot scales with number of bot players
-
-**Vertical Scaling**:
-- Increase LLM token limits for complex decisions
-- Use more powerful models for higher difficulty
-- Optimize caching to reduce memory usage
-- Tune thread pool sizes for better concurrency
-
-### 7.5 Deployment
-
-**Development Environment**:
-```bash
-# Start MCP Server (embedded in Integration Bot)
-dotnet run --project src/MakaMek.Bots.Llm
-
-# Start LLM Agent Application
-dotnet run --project src/MakaMek.LlmAgent
-
-# Run game with LLM bot
-dotnet run --project src/MakaMek.Presentation --bot-type llm
-```
-
-**Production Environment**:
-- Deploy LLM Agent Application as containerized service
-- Use Kubernetes for orchestration and scaling
-- Configure health checks and readiness probes
-- Set up monitoring and alerting
-- Implement blue-green deployment for updates
-
----
-
-## 8. Appendices
+## Appendices
 
 ### Appendix A: MCP Protocol Overview
 
@@ -1618,8 +1151,8 @@ dotnet run --project src/MakaMek.Presentation --bot-type llm
 
 1. **Range Brackets**: Weapons have optimal ranges (short/medium/long)
 2. **Heat Management**: Balance damage output with heat dissipation
-3. **Armor Facing**: Protect damaged armor by rotating torso
-4. **Terrain Usage**: Use woods/water for cover, elevation for advantage
+3. **Armor Facing**: Protect damaged armor by not exposing damaged arcs
+4. **Terrain Usage**: Use woodsr for cover, elevation for advantage
 5. **Target Priority**: Focus fire on damaged units
 6. **Movement Types**: Walking (low heat) vs Running (high heat) vs Jumping (highest heat)
 7. **Piloting Skill Rolls**: Avoid situations requiring PSRs
