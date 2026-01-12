@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -13,18 +14,21 @@ public class CommandPublisherTests
     private readonly ITransportPublisher _transportPublisher = Substitute.For<ITransportPublisher>();
     private Action<TransportMessage>? _transportCallback; // Capture the callback passed to the *transport* mock
     private readonly CommandTransportAdapter _adapter;
+    private readonly ILoggerFactory _loggerFactory = Substitute.For<ILoggerFactory>();
+    private readonly ILogger<CommandPublisher> _logger = Substitute.For<ILogger<CommandPublisher>>();
     public CommandPublisherTests()
     {
         // Capture the Subscribe callback given to the mock transport publisher
         _transportPublisher.When(x => x.Subscribe(Arg.Any<Action<TransportMessage>>()))
             .Do(x => _transportCallback = x.Arg<Action<TransportMessage>>());
+        
+        _loggerFactory.CreateLogger<CommandPublisher>().Returns(_logger);
 
         // Create a real adapter instance using the mock publisher
-        
-        _adapter = new CommandTransportAdapter(_transportPublisher);
+        _adapter = new CommandTransportAdapter(_loggerFactory,_transportPublisher);
 
         // Create the publisher using the real adapter
-        _sut = new CommandPublisher(_adapter); 
+        _sut = new CommandPublisher(_adapter, _loggerFactory); 
     }
 
     [Fact]
@@ -152,10 +156,10 @@ public class CommandPublisherTests
         var timestamp = DateTime.UtcNow;
         var receivedBySubscriber2 = false;
         
-        // First subscriber throws an exception
+        // The first subscriber throws an exception
         _sut.Subscribe(_ => throw new Exception("Test exception"));
         
-        // Second subscriber should still be called
+        // The second subscriber should still be called
         _sut.Subscribe(_ => receivedBySubscriber2 = true);
 
         var commandToSend = new TurnIncrementedCommand
@@ -178,6 +182,7 @@ public class CommandPublisherTests
 
         // Assert
         receivedBySubscriber2.ShouldBeTrue();
+        _logger.Received(1).LogError(Arg.Any<Exception>(), "Error in command subscriber");
     }
 
     [Fact]

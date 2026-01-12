@@ -1,4 +1,6 @@
 ﻿using System.Text;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 using Sanet.MakaMek.Core.Services;
 using Shouldly;
 
@@ -6,10 +8,19 @@ namespace Sanet.MakaMek.Core.Tests.Services;
 
 public class FileSystemCachingServiceTests : IDisposable
 {
-    private readonly FileSystemCachingService _sut = new();
     private const string TestCacheKey = "test-file-key";
-    private readonly byte[] _testContent = Encoding.UTF8.GetBytes("Test file content for caching");
+    private readonly byte[] _testContent = "Test file content for caching"u8.ToArray();
+    private readonly ILoggerFactory _loggerFactory = Substitute.For<ILoggerFactory>();
+    private readonly ILogger<FileSystemCachingService> _logger = Substitute.For<ILogger<FileSystemCachingService>>();
+    private readonly FileSystemCachingService _sut;
 
+    public FileSystemCachingServiceTests()
+    {
+        _loggerFactory.CreateLogger<FileSystemCachingService>().Returns(_logger);
+        _sut = new FileSystemCachingService(_loggerFactory);
+    }
+    
+    
     [Fact]
     public async Task TryGetCachedFile_ShouldReturnNull_WhenFileNotCached()
     {

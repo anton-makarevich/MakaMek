@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
 using Shouldly;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -20,8 +21,10 @@ public class CommandTransportAdapterTests
     private ITransportPublisher _mockPublisher2 = null!;
     private CommandTransportAdapter _sut = null!;
     private List<ITransportPublisher> _publishers = null!;
+    private readonly ILoggerFactory _loggerFactory = Substitute.For<ILoggerFactory>();
+    private readonly ILogger<CommandTransportAdapter> _logger = Substitute.For<ILogger<CommandTransportAdapter>>();
 
-    // Helper to set up adapter with a variable number of publishers
+    // Helper to set up an adapter with a variable number of publishers
     private void SetupAdapter(int publisherCount = 1)
     {
         _publishers = [];
@@ -36,7 +39,8 @@ public class CommandTransportAdapterTests
             _publishers.Add(_mockPublisher2);
         }
 
-        _sut = new CommandTransportAdapter(_publishers.ToArray());
+        _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
+        _sut = new CommandTransportAdapter(_loggerFactory, _publishers.ToArray());
     }
 
     [Fact]
@@ -354,10 +358,13 @@ public class CommandTransportAdapterTests
     [Fact]
     public void Initialize_WithNoPublishers_DoesNotThrow()
     {
-        // Arrange & Act
+        // Arrange
+        _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
+        
+        // Act
         Should.NotThrow(() =>
         {
-            var sut = new CommandTransportAdapter(); // No publishers
+            var sut = new CommandTransportAdapter(_loggerFactory); // No publishers
             sut.Initialize((_,_) => { }); // Initialize should be safe
             sut.PublishCommand(new TurnIncrementedCommand
             {
@@ -374,8 +381,13 @@ public class CommandTransportAdapterTests
         var disposablePublisher1 = Substitute.For<ITransportPublisher, IDisposable>();
         var disposablePublisher2 = Substitute.For<ITransportPublisher, IDisposable>();
         var nonDisposablePublisher = Substitute.For<ITransportPublisher>();
+        _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
 
-        var sut = new CommandTransportAdapter(disposablePublisher1, disposablePublisher2, nonDisposablePublisher);
+        var sut = new CommandTransportAdapter(
+            _loggerFactory,
+            disposablePublisher1,
+            disposablePublisher2,
+            nonDisposablePublisher);
         Action<IGameCommand, ITransportPublisher> commandCallback = (_,_) => {};
         sut.Initialize(commandCallback);
 
@@ -424,7 +436,8 @@ public class CommandTransportAdapterTests
         ((IDisposable)throwingPublisher).When(x => x.Dispose())
             .Do(_ => throw new InvalidOperationException("Test exception during dispose"));
 
-        var sut = new CommandTransportAdapter(throwingPublisher, normalPublisher);
+        _loggerFactory.CreateLogger<CommandTransportAdapter>().Returns(_logger);
+        var sut = new CommandTransportAdapter(_loggerFactory, throwingPublisher, normalPublisher);
         sut.Initialize((_,_) => {});
 
         // Act - This should not throw despite the exception in Dispose()

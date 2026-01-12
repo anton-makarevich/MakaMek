@@ -37,7 +37,7 @@ public class JoinGameViewModelTests
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
     private readonly IGameFactory _gameFactory = Substitute.For<IGameFactory>();
     private readonly ITransportFactory _transportFactory = Substitute.For<ITransportFactory>();
-    private readonly CommandTransportAdapter _adapter = Substitute.For<CommandTransportAdapter>();
+    private readonly ICommandTransportAdapter _adapter = Substitute.For<ICommandTransportAdapter>();
     private readonly ITransportPublisher _transportPublisher = Substitute.For<ITransportPublisher>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();

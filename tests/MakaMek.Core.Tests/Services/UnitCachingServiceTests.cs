@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -12,8 +13,16 @@ namespace Sanet.MakaMek.Core.Tests.Services;
 
 public class UnitCachingServiceTests
 {
-    private static readonly IResourceStreamProvider ResourceProvider = Substitute.For<IResourceStreamProvider>();
-    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+    private readonly IResourceStreamProvider _resourceProvider = Substitute.For<IResourceStreamProvider>();
+    private readonly ILoggerFactory _loggerFactory = Substitute.For<ILoggerFactory>();
+    private readonly ILogger<UnitCachingService> _logger = Substitute.For<ILogger<UnitCachingService>>();
+    
+    public UnitCachingServiceTests()
+    {
+        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
+    }
+    
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
@@ -26,14 +35,13 @@ public class UnitCachingServiceTests
             new EnumConverter<WeightClass>()
         }
     };
-    private static UnitCachingService CreateServiceWithMockProvider(string unitId, Stream mmuxStream)
+    private UnitCachingService CreateServiceWithMockProvider(string unitId, Stream mmuxStream)
     {
-        
-        ResourceProvider.GetAvailableResourceIds().Returns([unitId]);
-        ResourceProvider.GetResourceStream(unitId).Returns(mmuxStream);
-        ResourceProvider.ClearReceivedCalls();
+        _resourceProvider.GetAvailableResourceIds().Returns([unitId]);
+        _resourceProvider.GetResourceStream(unitId).Returns(mmuxStream);
+        _resourceProvider.ClearReceivedCalls();
 
-        return new UnitCachingService([ResourceProvider]);
+        return new UnitCachingService([_resourceProvider], _loggerFactory);
     }
 
     private static Stream CreateTestMmuxStream(string model, string chassis)
@@ -131,7 +139,7 @@ public class UnitCachingServiceTests
         var memoryStream = new MemoryStream();
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
         {
-            // Create unit.json with missing Model property (deserializes to UnitData with null Model)
+            // Create unit.json with a missing Model property (deserializes to UnitData with null Model)
             var unitData = new UnitData
             {
                 Model = "",
@@ -224,7 +232,7 @@ public class UnitCachingServiceTests
         await using var mmuxStream2 = CreateTestMmuxStream("LCT-1V", "Locust");
         var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream1);
         // Return a fresh stream for the second initialization after ClearCache
-        ResourceProvider.GetResourceStream("LCT-1V").Returns(mmuxStream1, mmuxStream2);
+        _resourceProvider.GetResourceStream("LCT-1V").Returns(mmuxStream1, mmuxStream2);
         
         // Ensure the cache is initialized
         var initialModels = (await sut.GetAvailableModels()).ToList();
@@ -236,7 +244,7 @@ public class UnitCachingServiceTests
 
         // Assert
         modelsAfterClear.ShouldNotBeEmpty();
-        await ResourceProvider.Received(2).GetAvailableResourceIds();
+        await _resourceProvider.Received(2).GetAvailableResourceIds();
     }
     
     [Fact]
@@ -244,7 +252,7 @@ public class UnitCachingServiceTests
     {
         // Arrange
         await using var mmuxStream = CreateTestMmuxStream("LCT-1V", "Locust");
-        ResourceProvider.GetResourceStream("LCT-1V").Returns(mmuxStream);
+        _resourceProvider.GetResourceStream("LCT-1V").Returns(mmuxStream);
         var sut = CreateServiceWithMockProvider("LCT-1V", mmuxStream);
         
         // Ensure the cache is initialized
@@ -256,7 +264,7 @@ public class UnitCachingServiceTests
 
         // Assert
         modelsAfterClear.ShouldNotBeEmpty();
-        await ResourceProvider.Received(1).GetAvailableResourceIds();
+        await _resourceProvider.Received(1).GetAvailableResourceIds();
     }
 
     [Fact]
@@ -273,7 +281,7 @@ public class UnitCachingServiceTests
         await using var mmuxStream2 = CreateTestMmuxStream("SHD-2D", "Shadowhawk");
         mockProvider2.GetResourceStream("SHD-2D").Returns(mmuxStream2);
 
-        var sut = new UnitCachingService([mockProvider1, mockProvider2]);
+        var sut = new UnitCachingService([mockProvider1, mockProvider2], _loggerFactory);
 
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
@@ -288,7 +296,7 @@ public class UnitCachingServiceTests
     public async Task Service_ShouldHandleEmptyProviders()
     {
         // Arrange
-        var sut = new UnitCachingService([]);
+        var sut = new UnitCachingService([], _loggerFactory);
 
         // Act
         var models = await sut.GetAvailableModels();
@@ -306,44 +314,32 @@ public class UnitCachingServiceTests
         mockProvider1.GetAvailableResourceIds().Returns(["GOOD", "BAD"]);
         await using var goodStream = CreateTestMmuxStream("LCT-1V", "Locust");
         mockProvider1.GetResourceStream("GOOD").Returns(goodStream);
-        mockProvider1
-            .When(x => x.GetResourceStream("BAD"))
-            .Do(_ => throw new Exception("bad resource error"));
+        mockProvider1.GetResourceStream("BAD")
+            .Returns(Task.FromException<Stream?>(new Exception("bad resource error")));
 
         var mockProvider2 = Substitute.For<IResourceStreamProvider>();
         // Provider2 will throw when listing resources to trigger provider-level catch
-        mockProvider2
-            .When(x => x.GetAvailableResourceIds())
-            .Do(_ => throw new Exception("provider enumeration failed"));
+        mockProvider2.GetAvailableResourceIds()
+            .Returns(Task.FromException<IEnumerable<string>>(new Exception("provider enumeration failed")));
 
-        var sut = new UnitCachingService([mockProvider1, mockProvider2]);
+        var sut = new UnitCachingService([mockProvider1, mockProvider2], _loggerFactory);
 
-        // Capture console output to verify logging
-        var originalOut = Console.Out;
-        await using var consoleCapture = new StringWriter();
-        Console.SetOut(consoleCapture);
-        try
-        {
-            // Act
-            var models = (await sut.GetAvailableModels()).ToList();
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
 
-            // Assert: valid model from GOOD should be present; BAD should not stop processing
-            models.ShouldContain("LCT-1V");
-            models.ShouldNotContain("BAD");
+        // Assert: a valid model from GOOD should be present; BAD should not stop processing
+        models.ShouldContain("LCT-1V");
+        models.ShouldNotContain("BAD");
 
-            var log = consoleCapture.ToString();
-            // Error from resource-level catch (line 150)
-            log.ShouldContain("Error loading unit 'BAD' from provider");
-            // Error from provider-level catch (line 157)
-            log.ShouldContain("Error loading units from provider");
-        }
-        finally
-        {
-            // Restore console
-            Console.SetOut(originalOut);
-        }
+        // Verify that LogError was called
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<Exception>(ex => ex.Message == "bad resource error"),
+            Arg.Any<Func<object, Exception?, string>>());
     }
-    
+
     [Fact]
     public async Task LoadUnitsFromStreamProviders_ShouldLogAndSkip_WhenUnitJsonMissing()
     {
@@ -353,27 +349,21 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamMissingUnitJson();
         mockProvider.GetResourceStream("MISSING_JSON").Returns(badStream);
 
-        var sut = new UnitCachingService([mockProvider]);
+        var sut = new UnitCachingService([mockProvider], _loggerFactory);
 
-        var originalOut = Console.Out;
-        await using var consoleCapture = new StringWriter();
-        Console.SetOut(consoleCapture);
-        try
-        {
-            // Act
-            var models = (await sut.GetAvailableModels()).ToList();
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
 
-            // Assert: no models added
-            models.ShouldBeEmpty();
+        // Assert: no models added
+        models.ShouldBeEmpty();
 
-            var log = consoleCapture.ToString();
-            log.ShouldContain("Error loading unit 'MISSING_JSON' from provider");
-            log.ShouldContain("missing unit.json");
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+        // Verify that LogError was called
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<Exception>(ex => ex.Message == "MMUX package missing unit.json"),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -385,27 +375,21 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamMissingImage("ABC-1", "Test");
         mockProvider.GetResourceStream("MISSING_PNG").Returns(badStream);
 
-        var sut = new UnitCachingService([mockProvider]);
+        var sut = new UnitCachingService([mockProvider], _loggerFactory);
 
-        var originalOut = Console.Out;
-        await using var consoleCapture = new StringWriter();
-        Console.SetOut(consoleCapture);
-        try
-        {
-            // Act
-            var models = (await sut.GetAvailableModels()).ToList();
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
 
-            // Assert: model should not be added because image missing causes an exception
-            models.ShouldBeEmpty();
+        // Assert: model should not be added because image missing causes an exception
+        models.ShouldBeEmpty();
 
-            var log = consoleCapture.ToString();
-            log.ShouldContain("Error loading unit 'MISSING_PNG' from provider");
-            log.ShouldContain("missing unit.png");
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+        // Verify that LogError was called
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<Exception>(ex => ex.Message == "MMUX package missing unit.png"),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -417,27 +401,20 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamWithInvalidUnitJson();
         mockProvider.GetResourceStream("INVALID_UNIT_JSON").Returns(badStream);
 
-        var sut = new UnitCachingService([mockProvider]);
+        var sut = new UnitCachingService([mockProvider], _loggerFactory);
 
-        var originalOut = Console.Out;
-        await using var consoleCapture = new StringWriter();
-        Console.SetOut(consoleCapture);
-        try
-        {
-            // Act
-            var models = (await sut.GetAvailableModels()).ToList();
+        // Act
+        var models = (await sut.GetAvailableModels()).ToList();
 
-            // Assert: no models added due to invalid unit.json (missing/empty Model)
-            models.ShouldBeEmpty();
+        // Assert: no models added due to invalid unit.json (missing/empty Model)
+        models.ShouldBeEmpty();
 
-            var log = consoleCapture.ToString();
-            // We only assert the provider-level error prefix, since the exact exception message
-            // may vary depending on whether deserialization throws or returns an object with null Model
-            log.ShouldContain("Failed to deserialize unit.json");
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+        // Verify that LogError was called
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Is<Exception>(ex => ex.Message == "Failed to deserialize unit.json"),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 }

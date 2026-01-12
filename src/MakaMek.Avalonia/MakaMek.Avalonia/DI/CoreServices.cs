@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
@@ -22,73 +23,83 @@ namespace Sanet.MakaMek.Avalonia.DI;
 
 public static class CoreServices
 {
-    public static void RegisterServices(this IServiceCollection services)
+    extension(IServiceCollection services)
     {
-        // Register unit caching service with stream providers
-        services.AddSingleton<IUnitCachingService,UnitCachingService>(sp =>
+        public void RegisterServices()
         {
-            var cachingService = sp.GetService<IFileCachingService>();
-            var streamProviders = new List<IResourceStreamProvider>
+            // Register unit caching service with stream providers
+            services.AddSingleton<IUnitCachingService,UnitCachingService>(sp =>
             {
-                new GitHubResourceStreamProvider("mmux",
-                    "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
-                    cachingService!
+                var cachingService = sp.GetRequiredService<IFileCachingService>();
+                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                var streamProviders = new List<IResourceStreamProvider>
+                {
+                    new GitHubResourceStreamProvider("mmux",
+                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
+                        cachingService,
+                        loggerFactory
                     )
-            };
-            return new UnitCachingService(streamProviders);
-        });
+                };
+                return new UnitCachingService(streamProviders, loggerFactory);
+            });
 
-        // Register both image services
-        services.AddSingleton<AvaloniaAssetImageService>();
-        services.AddSingleton<CachedImageService>();
+            // Register both image services
+            services.AddSingleton<AvaloniaAssetImageService>();
+            services.AddSingleton<CachedImageService>();
 
-        // Register a hybrid service that routes to the appropriate underlying service
-        services.AddSingleton<IImageService, HybridImageService>();
+            // Register a hybrid service that routes to the appropriate underlying service
+            services.AddSingleton<IImageService, HybridImageService>();
 
-        // Register map preview renderer
-        services.AddSingleton<IMapPreviewRenderer, SkiaMapPreviewRenderer>();
+            // Register map preview renderer
+            services.AddSingleton<IMapPreviewRenderer, SkiaMapPreviewRenderer>();
 
-        services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
+            services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
 
-        services.AddSingleton<ILocalizationService, FakeLocalizationService>();
-        services.AddSingleton<IAvaloniaResourcesLocator, AvaloniaResourcesLocator>();
+            services.AddSingleton<ILocalizationService, FakeLocalizationService>();
+            services.AddSingleton<IAvaloniaResourcesLocator, AvaloniaResourcesLocator>();
 
-        // Register RxTransportPublisher for local players
-        services.AddSingleton<RxTransportPublisher>();
+            // Register RxTransportPublisher for local players
+            services.AddSingleton<RxTransportPublisher>();
 
-        // Register CommandTransportAdapter with just the RxTransportPublisher initially
-        // The network publisher will be added dynamically when needed
-        services.AddTransient<CommandTransportAdapter>(sp =>
-            new CommandTransportAdapter(sp.GetRequiredService<RxTransportPublisher>()));
+            // Register CommandTransportAdapter with just the RxTransportPublisher initially
+            // The network publisher will be added dynamically when needed
+            services.AddTransient<CommandTransportAdapter>(sp =>
+            {
+                var rxPublisher = sp.GetRequiredService<RxTransportPublisher>();
+                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                return new CommandTransportAdapter(loggerFactory, rxPublisher);
+            });
 
-        services.AddTransient<ICommandPublisher, CommandPublisher>();
-        services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
-        services.AddSingleton<IComponentProvider, ClassicBattletechComponentProvider>();
-        services.AddSingleton<IMechFactory, MechFactory>();
-        services.AddSingleton<IDiceRoller, RandomDiceRoller>();
-        services.AddSingleton<IDamageTransferCalculator, DamageTransferCalculator>();
-        services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
-        services.AddSingleton<IConsciousnessCalculator, ConsciousnessCalculator>();
-        services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
-        services.AddSingleton<IToHitCalculator, ToHitCalculator>();
-        services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
-        services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
-        services.AddSingleton<IFallProcessor, FallProcessor>();
-        services.AddSingleton<IGameFactory, GameFactory>();
-        services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
-        services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
-        services.AddSingleton<IGameManager, GameManager>();
-        services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
-        services.AddSingleton<IHashService, HashService>();
-        services.AddSingleton<IBotManager, BotManager>();
-    }
-    public static void RegisterViewModels(this IServiceCollection services)
-    {
-        services.AddTransient<MainMenuViewModel>();
-        services.AddTransient<StartNewGameViewModel>();
-        services.AddTransient<JoinGameViewModel>();
-        services.AddTransient<BattleMapViewModel>();
-        services.AddTransient<EndGameViewModel>();
-        services.AddTransient<AboutViewModel>();
+            services.AddTransient<ICommandPublisher, CommandPublisher>();
+            services.AddSingleton<IRulesProvider, ClassicBattletechRulesProvider>();
+            services.AddSingleton<IComponentProvider, ClassicBattletechComponentProvider>();
+            services.AddSingleton<IMechFactory, MechFactory>();
+            services.AddSingleton<IDiceRoller, RandomDiceRoller>();
+            services.AddSingleton<IDamageTransferCalculator, DamageTransferCalculator>();
+            services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
+            services.AddSingleton<IConsciousnessCalculator, ConsciousnessCalculator>();
+            services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
+            services.AddSingleton<IToHitCalculator, ToHitCalculator>();
+            services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
+            services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
+            services.AddSingleton<IFallProcessor, FallProcessor>();
+            services.AddSingleton<IGameFactory, GameFactory>();
+            services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
+            services.AddSingleton<ITransportFactory, SignalRTransportFactory>();
+            services.AddSingleton<IGameManager, GameManager>();
+            services.AddSingleton<IDispatcherService, AvaloniaDispatcherService>();
+            services.AddSingleton<IHashService, HashService>();
+            services.AddSingleton<IBotManager, BotManager>();
+        }
+
+        public void RegisterViewModels()
+        {
+            services.AddTransient<MainMenuViewModel>();
+            services.AddTransient<StartNewGameViewModel>();
+            services.AddTransient<JoinGameViewModel>();
+            services.AddTransient<BattleMapViewModel>();
+            services.AddTransient<EndGameViewModel>();
+            services.AddTransient<AboutViewModel>();
+        }
     }
 }

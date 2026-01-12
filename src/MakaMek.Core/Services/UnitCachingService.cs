@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -16,6 +17,7 @@ public class UnitCachingService : IUnitCachingService
     private readonly ConcurrentDictionary<string, UnitData> _unitDataCache = new();
     private readonly ConcurrentDictionary<string, byte[]> _imageCache = new();
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
+    private readonly ILogger<UnitCachingService> _logger;
     
     /// <summary>
     /// The maximum number of units to load in parallel
@@ -42,9 +44,11 @@ public class UnitCachingService : IUnitCachingService
     /// Initializes a new instance of UnitCachingService
     /// </summary>
     /// <param name="streamProviders">Collection of stream providers to load units from</param>
-    public UnitCachingService(IEnumerable<IResourceStreamProvider> streamProviders)
+    /// <param name="loggerFactory">Logger factory for logging</param>
+    public UnitCachingService(IEnumerable<IResourceStreamProvider> streamProviders, ILoggerFactory loggerFactory)
     {
         _streamProviders = streamProviders;
+        _logger = loggerFactory.CreateLogger<UnitCachingService>();
     }
     
     /// <summary>
@@ -124,7 +128,7 @@ public class UnitCachingService : IUnitCachingService
             catch (Exception ex)
             {
                 // Log error but continue with other providers
-                Console.WriteLine($"Error loading units from provider {provider.GetType().Name}: {ex.Message}");
+                _logger.LogError(ex, "Error loading units from provider {ProviderType}", provider.GetType().Name);
             }
         }
     }
@@ -142,7 +146,7 @@ public class UnitCachingService : IUnitCachingService
         catch (Exception ex)
         {
             // Log error but continue processing other units
-            Console.WriteLine($"Error loading unit '{unitId}' from provider: {ex.Message}");
+            _logger.LogError(ex, "Error loading unit '{UnitId}' from provider {ProviderType}", unitId, provider.GetType().Name);
         }
     }
 
@@ -153,7 +157,7 @@ public class UnitCachingService : IUnitCachingService
     /// <returns>Task representing the async operation</returns>
     private async Task LoadUnitFromMmuxStreamAsync(Stream mmuxStream)
     {
-        using var archive = new ZipArchive(mmuxStream, ZipArchiveMode.Read);
+        await using var archive = new ZipArchive(mmuxStream, ZipArchiveMode.Read);
 
         // Find and load unit.json
         var unitJsonEntry = archive.GetEntry("unit.json");
@@ -163,7 +167,7 @@ public class UnitCachingService : IUnitCachingService
         }
 
         UnitData unitData;
-        await using (var unitJsonStream = unitJsonEntry.Open())
+        await using (var unitJsonStream = await unitJsonEntry.OpenAsync())
         using (var reader = new StreamReader(unitJsonStream))
         {
             var jsonContent = await reader.ReadToEndAsync();
@@ -182,7 +186,7 @@ public class UnitCachingService : IUnitCachingService
         }
 
         byte[] imageBytes;
-        await using (var imageStream = unitImageEntry.Open())
+        await using (var imageStream = await unitImageEntry.OpenAsync())
         using (var memoryStream = new MemoryStream())
         {
             await imageStream.CopyToAsync(memoryStream);
