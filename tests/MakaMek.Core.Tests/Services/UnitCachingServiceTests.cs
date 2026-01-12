@@ -16,6 +16,12 @@ public class UnitCachingServiceTests
     private readonly IResourceStreamProvider _resourceProvider = Substitute.For<IResourceStreamProvider>();
     private readonly ILoggerFactory _loggerFactory = Substitute.For<ILoggerFactory>();
     private readonly ILogger<UnitCachingService> _logger = Substitute.For<ILogger<UnitCachingService>>();
+    
+    public UnitCachingServiceTests()
+    {
+        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
+    }
+    
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -31,8 +37,6 @@ public class UnitCachingServiceTests
     };
     private UnitCachingService CreateServiceWithMockProvider(string unitId, Stream mmuxStream)
     {
-        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
-        
         _resourceProvider.GetAvailableResourceIds().Returns([unitId]);
         _resourceProvider.GetResourceStream(unitId).Returns(mmuxStream);
         _resourceProvider.ClearReceivedCalls();
@@ -318,7 +322,6 @@ public class UnitCachingServiceTests
         mockProvider2.GetAvailableResourceIds()
             .Returns(Task.FromException<IEnumerable<string>>(new Exception("provider enumeration failed")));
 
-        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
         var sut = new UnitCachingService([mockProvider1, mockProvider2], _loggerFactory);
 
         // Act
@@ -346,7 +349,6 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamMissingUnitJson();
         mockProvider.GetResourceStream("MISSING_JSON").Returns(badStream);
 
-        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
         var sut = new UnitCachingService([mockProvider], _loggerFactory);
 
         // Act
@@ -373,7 +375,6 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamMissingImage("ABC-1", "Test");
         mockProvider.GetResourceStream("MISSING_PNG").Returns(badStream);
 
-        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
         var sut = new UnitCachingService([mockProvider], _loggerFactory);
 
         // Act
@@ -400,7 +401,6 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamWithInvalidUnitJson();
         mockProvider.GetResourceStream("INVALID_UNIT_JSON").Returns(badStream);
 
-        _loggerFactory.CreateLogger<UnitCachingService>().Returns(_logger);
         var sut = new UnitCachingService([mockProvider], _loggerFactory);
 
         // Act
