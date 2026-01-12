@@ -1,7 +1,7 @@
 ﻿# LLM-Powered Bot System for MakaMek
 ## Architecture Design & Product Requirements Document
 
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2026-01-12
 **Status:** Design Proposal
 
@@ -24,7 +24,7 @@ This document presents a comprehensive design for integrating Large Language Mod
 
 The system consists of three main components:
 
-1. **LLM Agent Application** - Separate .NET application using Microsoft Agent Framework with specialized agents for each game phase
+1. **LLM Agent Application** - Separate .NET 10 application using Microsoft Agent Framework with 4 specialized agents: Deployment, Movement, Weapon Attack, and End-Phase
 2. **MCP Server** - Exposes game state and tactical analysis tools via Model Context Protocol
 3. **Integration Bot** - Bridge component that monitors game state and coordinates between the game and LLM agents
 
@@ -144,7 +144,84 @@ Phase transitions are managed by `BattleTechPhaseManager` which implements the s
 
 The LLM bot system introduces three new components that integrate with the existing MakaMek architecture:
 
+#### Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph "MakaMek Game"
+        SG[ServerGame<br/>Authoritative State]
+        CG[ClientGame<br/>Local Replica]
+        SG -->|Commands| CG
+        CG -->|Observables| IB
+    end
+
+    subgraph "Component 3: Integration Bot"
+        IB[LlmDecisionEngine<br/>IBotDecisionEngine]
+        CB[Circuit Breaker]
+        FB[Fallback Engine<br/>Rule-Based]
+        IB --> CB
+        CB -->|Open| FB
+    end
+
+    subgraph "Component 2: MCP Server"
+        MCP[MCP Server<br/>HTTP/SSE]
+        GST[Game State Tools]
+        TAT[Tactical Analysis Tools]
+        CET[Command Execution Tools]
+        MCP --> GST
+        MCP --> TAT
+        MCP --> CET
+        GST --> CG
+        TAT --> CG
+        CET --> CG
+    end
+
+    subgraph "Component 1: LLM Agent App"
+        ORCH[Agent Orchestrator]
+        DA[Deployment Agent]
+        MA[Movement Agent]
+        WA[Weapons Agent]
+        EA[End Phase Agent]
+        MCPC[MCP Client]
+        LLMP[LLM Provider<br/>OpenAI/Anthropic]
+
+        ORCH --> DA
+        ORCH --> MA
+        ORCH --> WA
+        ORCH --> EA
+        DA --> MCPC
+        MA --> MCPC
+        WA --> MCPC
+        EA --> MCPC
+        DA --> LLMP
+        MA --> LLMP
+        WA --> LLMP
+        EA --> LLMP
+    end
+
+    IB -->|Decision Request| ORCH
+    ORCH -->|Decision Response| IB
+    MCPC -->|MCP Protocol| MCP
+    MCP -->|Tool Results| MCPC
+
+    style SG fill:#e1f5ff,stroke:#01579b,color:#000
+    style CG fill:#e1f5ff,stroke:#01579b,color:#000
+    style IB fill:#fff3e0,stroke:#e65100,color:#000
+    style CB fill:#fff3e0,stroke:#e65100,color:#000
+    style FB fill:#fff3e0,stroke:#e65100,color:#000
+    style MCP fill:#f3e5f5,stroke:#4a148c,color:#000
+    style GST fill:#f3e5f5,stroke:#4a148c,color:#000
+    style TAT fill:#f3e5f5,stroke:#4a148c,color:#000
+    style CET fill:#f3e5f5,stroke:#4a148c,color:#000
+    style ORCH fill:#e8f5e9,stroke:#1b5e20,color:#000
+    style DA fill:#e8f5e9,stroke:#1b5e20,color:#000
+    style MA fill:#e8f5e9,stroke:#1b5e20,color:#000
+    style WA fill:#e8f5e9,stroke:#1b5e20,color:#000
+    style EA fill:#e8f5e9,stroke:#1b5e20,color:#000
+    style MCPC fill:#e8f5e9,stroke:#1b5e20,color:#000
+    style LLMP fill:#ffebee,stroke:#b71c1c,color:#000
 ```
+
 ┌─────────────────────────────────────────────────────────────────┐
 │                        MakaMek Game                              │
 │  ┌──────────────┐         ┌──────────────┐                     │
@@ -206,26 +283,26 @@ The LLM bot system introduces three new components that integrate with the exist
 ### 2.2 Component Responsibilities
 
 #### Component 1: LLM Agent Application
-**Type**: Separate .NET Console/Service Application
+**Type**: Separate .NET 10 Console/Service Application
 **Technology**: Microsoft Agent Framework + LLM SDKs
 
 **Responsibilities**:
-- Host specialized agents for each game phase
-- Orchestrate agent selection based on game context
+- Host 4 specialized agents: Deployment, Movement, Weapon Attack, and End-Phase
+- Orchestrate agent selection based on game phase
 - Communicate with LLM providers (OpenAI, Anthropic, Azure OpenAI)
 - Use MCP tools to query game state and execute actions
 - Generate tactical decisions with reasoning
 - Manage conversation context across turns
 
 **Key Features**:
-- Multi-agent architecture with specialized skills
+- Multi-agent architecture with phase-specific specialization
 - Chain-of-thought reasoning for complex decisions
 - Structured output generation for reliable parsing
 - Streaming responses for faster decision-making
 - Configurable LLM provider and model selection
 
 #### Component 2: MCP Server
-**Type**: .NET Library (combined with Component 3)
+**Type**: .NET 10 Library (combined with Component 3)
 **Technology**: Model Context Protocol C# SDK
 
 **Responsibilities**:
@@ -245,8 +322,8 @@ The LLM bot system introduces three new components that integrate with the exist
 - Detailed error responses for debugging
 
 #### Component 3: Integration Bot
-**Type**: .NET Library implementing IBotDecisionEngine
-**Technology**: .NET 9.0, Reactive Extensions
+**Type**: .NET 10 Library implementing IBotDecisionEngine
+**Technology**: .NET 10, Reactive Extensions
 
 **Responsibilities**:
 - Implement IBotDecisionEngine interface
@@ -269,6 +346,58 @@ The LLM bot system introduces three new components that integrate with the exist
 
 #### Decision-Making Flow
 
+```mermaid
+sequenceDiagram
+    participant SG as ServerGame
+    participant CG as ClientGame
+    participant IB as Integration Bot
+    participant MCP as MCP Server
+    participant Agent as LLM Agent
+    participant LLM as LLM Provider
+
+    SG->>CG: Phase Change / Active Player
+    CG->>IB: Observable Event
+
+    alt Circuit Breaker Open
+        IB->>IB: Use Fallback Engine
+    else Circuit Breaker Closed
+        IB->>Agent: Decision Request
+
+        Agent->>MCP: get_game_state()
+        MCP->>CG: Query State
+        CG-->>MCP: Game State
+        MCP-->>Agent: State Data
+
+        Agent->>MCP: evaluate_movement_options()
+        MCP->>CG: Calculate Paths
+        CG-->>MCP: Scored Paths
+        MCP-->>Agent: Tactical Analysis
+
+        Agent->>LLM: Generate Decision
+        Note over Agent,LLM: Chain-of-Thought<br/>Reasoning
+        LLM-->>Agent: Decision + Reasoning
+
+        Agent-->>IB: Decision Response
+
+        IB->>IB: Validate Decision
+        IB->>IB: Translate to Command
+        IB->>CG: Execute Command
+        CG->>SG: Send Command
+
+        alt Success
+            IB->>IB: Record Success
+        else Failure
+            IB->>IB: Record Failure
+            IB->>IB: Use Fallback
+        end
+    end
+
+    SG->>CG: Broadcast Update
+    CG->>IB: State Updated
+```
+
+**Flow Steps**:
+
 1. **Game State Change**
    - ServerGame broadcasts phase change or active player change
    - ClientGame receives update and publishes to observables
@@ -287,7 +416,7 @@ The LLM bot system introduces three new components that integrate with the exist
    - Includes game context, available actions, and constraints
 
 5. **Agent Processing**
-   - Agent Orchestrator selects appropriate specialized agent
+   - Agent Orchestrator selects appropriate specialized agent (1 of 4)
    - Agent uses MCP tools to analyze situation
    - Agent generates decision with reasoning using LLM
 
@@ -318,7 +447,7 @@ LLM Request → Timeout? → Retry (3x) → Still Failing? → Circuit Breaker
 ### 2.4 Technology Stack
 
 #### Component 1: LLM Agent Application
-- **Framework**: .NET 9.0
+- **Framework**: .NET 10
 - **Agent Framework**: Microsoft Agent Framework
 - **LLM SDKs**:
   - OpenAI .NET SDK
@@ -329,14 +458,14 @@ LLM Request → Timeout? → Retry (3x) → Still Failing? → Circuit Breaker
 - **Logging**: Microsoft.Extensions.Logging
 
 #### Component 2: MCP Server
-- **Framework**: .NET 9.0
+- **Framework**: .NET 10
 - **MCP SDK**: ModelContextProtocol.SDK (C# implementation)
 - **Transport**: HTTP/SSE (Server-Sent Events)
 - **Serialization**: System.Text.Json
 - **Caching**: Microsoft.Extensions.Caching.Memory
 
 #### Component 3: Integration Bot
-- **Framework**: .NET 9.0
+- **Framework**: .NET 10
 - **Dependencies**: MakaMek.Core, MakaMek.Bots
 - **Reactive**: System.Reactive
 - **HTTP Client**: System.Net.Http
@@ -1114,8 +1243,8 @@ var retryPolicy = Policy
 - Implement MCP client for tool calls
 
 **Deliverables**:
-- DeploymentAgent, MovementAgent, WeaponsAttackAgent, EndPhaseAgent
-- System prompts with BattleTech tactical knowledge
+- 4 specialized agents: DeploymentAgent, MovementAgent, WeaponsAttackAgent, EndPhaseAgent
+- System prompts with BattleTech tactical knowledge for each agent
 - OpenAI and Anthropic provider implementations
 - Robust JSON parsing with validation
 - MCP client service
@@ -1243,8 +1372,8 @@ MakaMek.sln
   <PackageReference Include="OpenAI" Version="2.0.0" />
   <PackageReference Include="Anthropic.SDK" Version="1.0.0" />
   <PackageReference Include="Azure.AI.OpenAI" Version="2.0.0" />
-  <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
-  <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+  <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+  <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
 </ItemGroup>
 ```
 
@@ -1583,6 +1712,7 @@ The phased implementation roadmap ensures incremental delivery of value while ma
 ---
 
 **Document Version History**:
+- v1.1 (2026-01-12): Updated to .NET 10, clarified 4 specialized agents, embedded Mermaid diagrams
 - v1.0 (2026-01-12): Initial comprehensive design document
 
 **Contributors**:
