@@ -226,7 +226,12 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
-        _logger.ReceivedWithAnyArgs().LogInformation("");
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Found 0 mmux files in GitHub repository")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
@@ -256,7 +261,12 @@ public class GitHubResourceStreamProviderTests
         // Assert
         result.ShouldNotBeNull();
         result.ShouldBeEmpty();
-        _logger.ReceivedWithAnyArgs().LogInformation("");
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("Found 0 mmux files in GitHub repository")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 
     [Fact]
