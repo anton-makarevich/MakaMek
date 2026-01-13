@@ -1029,7 +1029,7 @@ private async Task<IClientCommand> TranslateDecision(DecisionResponse decision)
 1. **Range Brackets**: Weapons have optimal ranges (short/medium/long)
 2. **Heat Management**: Balance damage output with heat dissipation
 3. **Armor Facing**: Protect damaged armor by not exposing damaged arcs
-4. **Terrain Usage**: Use woodsr for cover, elevation for advantage
+4. **Terrain Usage**: Use woods for cover, elevation for advantage
 5. **Target Priority**: Focus fire on damaged units
 6. **Movement Types**: Walking (low heat) vs Running (high heat) vs Jumping (highest heat)
 7. **Piloting Skill Rolls**: Avoid situations requiring PSRs
