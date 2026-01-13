@@ -215,7 +215,7 @@ The LLM bot system introduces three new components that integrate with the exist
 - Host 4 specialized agents: Deployment, Movement, Weapon Attack, and End-Phase
 - Orchestrate agent selection based on game phase
 - Communicate with LLM providers (OpenAI, Anthropic, Azure OpenAI, AWS Bedrock hosted, etc)
-- Use MCP tools to query game state and execute actions
+- Use MCP tools to query game state
 - Generate tactical decisions with reasoning
 - Manage conversation context across turns
 
@@ -224,6 +224,8 @@ The LLM bot system introduces three new components that integrate with the exist
 - Chain-of-thought reasoning for complex decisions
 - Structured output generation for reliable parsing
 - Configurable LLM provider and model selection
+  
+**Response Format**: Agent responses should contain decision recommendations with structured data that the Integration Bot validates and executes via IClientCommand interfaces.
 
 #### Component 2: MCP Server
 **Type**: .NET 10 Library (hosted by CLI wrapper alongside Component 3)
@@ -233,7 +235,6 @@ The LLM bot system introduces three new components that integrate with the exist
 - Implement MCP protocol server
 - Expose game state query tools
 - Expose tactical analysis tools (leveraging TacticalEvaluator)
-- Expose command execution tools
 - Provide real-time game state resources
 - Handle tool call validation and error handling
 
@@ -446,7 +447,6 @@ Analyze the available deployment zones and select the best position and facing.
 - `get_deployment_zones` - Get valid deployment hexes
 - `get_map_info` - Analyze terrain 
 - `get_game_state` - See enemy positions
-- `execute_deploy_unit` - Deploy unit to selected hex
 
 **Decision Output**:
 ```json
@@ -477,7 +477,6 @@ Use the tactical evaluation tools to select unit to move, score movement options
 
 **Available Tools**:
 - `evaluate_movement_options` - Get scored movement paths
-- `execute_move_unit` - Execute selected movement
 
 **Decision Output**:
 ```json
@@ -510,8 +509,6 @@ Analyze available targets and select the optimal weapon configuration and target
 - `evaluate_weapon_targets` - Get scored target options
 - `calculate_hit_probability` - Estimate hit chance
 - `get_unit_details` - Analyze target damage state
-- `apply_weapon_configuration` - Apply weapon configuration
-- `execute_weapon_attack` - Declare attack
 
 **Decision Output**:
 ```json
@@ -540,11 +537,6 @@ keep units operational while avoiding catastrophic heat effects. Consider:
 
 Make decisions about shutting down overheated units or restarting shutdown units.
 ```
-
-**Available Tools**:
-- `execute_shutdown_unit` - Shutdown overheated unit
-- `execute_startup_unit` - Attempt restart
-- `execute_end_turn` - End turn
 
 **Decision Output**:
 ```json
@@ -799,122 +791,11 @@ MakaMek.Bots.Llm.Mcp/
 }
 ```
 
-##### Command Execution Tools
+#### 3.2.3 MCP Read-Only Design
 
-**9. execute_deploy_unit**
-```json
-{
-  "name": "execute_deploy_unit",
-  "description": "Deploys a unit to the specified hex and facing",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "unitId": {"type": "string"},
-      "hexCoordinates": {"type": "object"},
-      "facing": {"type": "string"}
-    },
-    "required": ["unitId", "hexCoordinates", "facing"]
-  }
-}
-```
+**Important**: The MCP server is designed as a **read-only** interface that provides game state queries and tactical analysis capabilities. The LLM cannot directly execute game commands through MCP tools.
 
-**10. execute_move_unit**
-```json
-{
-  "name": "execute_move_unit",
-  "description": "Moves a unit along the specified path",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "unitId": {"type": "string"},
-      "movementPath": {"type": "array"},
-      "movementType": {"type": "string"}
-    },
-    "required": ["unitId", "movementPath", "movementType"]
-  }
-}
-```
-
-**11. execute_weapon_attack**
-```json
-{
-  "name": "execute_weapon_attack",
-  "description": "Declares a weapon attack on the specified target",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "attackerUnitId": {"type": "string"},
-      "targetUnitId": {"type": "string"},
-      "weaponIds": {"type": "array"},
-      "configuration": {"type": "object"}
-    },
-    "required": ["attackerUnitId", "targetUnitId", "weaponIds"]
-  }
-}
-```
-
-**12. execute_end_turn**
-```json
-{
-  "name": "execute_end_turn",
-  "description": "Ends the current player's turn",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "playerId": {"type": "string"}
-    },
-    "required": ["playerId"]
-  }
-}
-```
-
-**13. execute_shutdown_unit**
-```json
-{
-  "name": "execute_shutdown_unit",
-  "description": "Shuts down an overheated unit",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "unitId": {"type": "string"}
-    },
-    "required": ["unitId"]
-  }
-}
-```
-
-**14. execute_startup_unit**
-```json
-{
-  "name": "execute_startup_unit",
-  "description": "Attempts to restart a shutdown unit",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "unitId": {"type": "string"}
-    },
-    "required": ["unitId"]
-  }
-}
-```
-
-**15. apply_weapon_configuration**
-```json
-{
-  "name": "apply_weapon_configuration",
-  "description": "Applies a weapon configuration to a unit",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "unitId": {"type": "string"},
-      "configuration": {"type": "object"}
-    },
-    "required": ["unitId", "configuration"]
-  }
-}
-```
-
-#### 3.2.3 MCP Resources
+#### 3.2.4 MCP Resources
 
 **Resource URIs**:
 - `game://state` - Current game state snapshot
@@ -970,7 +851,6 @@ public class Llm*DecisionEngine : IBotDecisionEngine // for every phase (Deploym
         catch (Exception ex)
         {
             _logger.LogError(ex, "LLM decision failed");
-            _circuitBreaker.RecordFailure();
 
             // Optionally fallback to rule-based engine
         }
