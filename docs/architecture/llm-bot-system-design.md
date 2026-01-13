@@ -561,7 +561,6 @@ Make decisions about shutting down overheated units or restarting shutdown units
 {
   "LlmProvider": {
     "Type": "OpenAI",  // OpenAI, Anthropic, AzureOpenAI
-    "ApiKey": "sk-...",
     "Model": "gpt-4o",
     "Temperature": 0.7,
     "MaxTokens": 2000,
