@@ -226,7 +226,7 @@ The LLM bot system introduces three new components that integrate with the exist
 - Configurable LLM provider and model selection
 
 #### Component 2: MCP Server
-**Type**: .NET 10 Library (combined with Component 3)
+**Type**: .NET 10 Library (hosted by CLI wrapper alongside Component 3)
 **Technology**: Model Context Protocol C# SDK
 
 **Responsibilities**:
@@ -251,7 +251,7 @@ The LLM bot system introduces three new components that integrate with the exist
 **Type**: .NET 10 Console Application
 
 **Responsibilities**:
-- Implement IBotDecisionEngine interface for each game phase that requeires LLM assistance
+- Implement IBotDecisionEngine interface for each game phase that requires LLM assistance
 - Monitor game state changes via ClientGame observables
 - Trigger LLM agent requests based on phase (from the corresponding decision engine) and context
 - Translate LLM responses to game commands
@@ -897,6 +897,7 @@ MakaMek.Bots.Llm.Mcp/
     "required": ["unitId"]
   }
 }
+```
 
 **15. apply_weapon_configuration**
 ```json
@@ -966,16 +967,13 @@ public class Llm*DecisionEngine : IBotDecisionEngine // for every phase (Deploym
 
             // Validate and execute decision
             await ExecuteDecision(player, decision);
-
-            _circuitBreaker.RecordSuccess();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "LLM decision failed");
             _circuitBreaker.RecordFailure();
 
-            // Fallback to rule-based engine
-            await _fallbackEngine.MakeDecision(player, turnState);
+            // Optionally fallback to rule-based engine
         }
     }
 }
