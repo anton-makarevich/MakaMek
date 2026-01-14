@@ -465,7 +465,7 @@ MakaMek.LlmAgent/
 - `DeployUnitCommand` - Unit deployment with position and facing
 - `MoveUnitCommand` - Unit movement with path and movement type
 - `WeaponAttackDeclarationCommand` - Weapon target declaration
-- `WeapononfigurationCommand` - to rotate torso
+- `WeaponConfigurationCommand` - to rotate torso
 - `Startup/ShutdownUnitCcommand` - to manage unit state during end phase
 - `EndPhaseCommand` - End phase actions (shutdown, startup, none)
 
@@ -556,8 +556,8 @@ Analyze available targets and select the optimal weapon configuration.
 - `configuration`: object (optional, e.g., {type: "TorsoRotation", value: 1})
 - `reasoning`: string
 
-##### EndPhaseAgent (Heat Management)
-**Purpose**: Manage heat, shutdown, and startup decisions
+##### EndPhaseAgent 
+**Purpose**: Manage shutdown and startup decisions, end turn
 
 **System Prompt Template**:
 ```
@@ -949,7 +949,7 @@ public class AgentOrchestrator
             "Deployment" => _agents["deployment"],
             "Movement" => _agents["movement"],
             "WeaponsAttack" => _agents["weapons"],
-            "Heat" => _agents["endphase"],
+            "End" => _agents["endphase"],
             _ => throw new NotSupportedException($"Phase {request.Phase} not supported")
         };
         
