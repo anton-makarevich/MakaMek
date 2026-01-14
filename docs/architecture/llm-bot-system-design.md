@@ -312,11 +312,10 @@ sequenceDiagram
     Note over Agent,LLM: Chain-of-Thought<br/>Reasoning
     LLM-->>Agent: Decision + Reasoning
 
-    Agent-->>IB: DecisionResponse
+    Agent-->>IB: IClientCommand
 
     alt Success Response
-        IB->>IB: Validate Decision
-        IB->>IB: Translate to Command
+    IB->>IB: Validate received Command
         IB->>CG: Execute Command
         CG->>SG: Send Command
     else Error Response
@@ -349,11 +348,11 @@ sequenceDiagram
     - Agent Orchestrator selects appropriate specialized agent
     - Agent makes MCP tool calls to bot's MCP Server as needed
     - Agent generates decision with reasoning using LLM
-    - Agent returns structured DecisionResponse
+    - Agent returns corresponding IClientCommand
 
 5. **Response Handling**
     - Integration Bot validates decision against game rules
-    - If valid: translates to IClientCommand and executes
+    - If valid: executes IClientCommand directly
     - If error: activates mandatory fallback engine
 
 6. **Command Execution**
@@ -440,23 +439,19 @@ MakaMek.LlmAgent/
 }
 ```
 
-**Decision Response (Success)**:
+**Agent Response (Success - MoveUnitCommand)**:
 ```json
 {
   "success": true,
-  "action": "move",
-  "unitId": "guid",
-  "movementPath": [
-    {"q": 10, "r": 5},
-    {"q": 11, "r": 5},
-    {"q": 12, "r": 6}
-  ],
-  "movementType": "Walk",
+  "commandType": "<type>",
+  "command": {
+   ...
+  },
   "reasoning": "Walking to hex (12,6) provides optimal firing position while maintaining cover..."
 }
 ```
 
-**Decision Response (Error)**:
+**Agent Response (Error)**:
 ```json
 {
   "success": false,
@@ -465,6 +460,14 @@ MakaMek.LlmAgent/
   "fallbackRequired": true
 }
 ```
+
+**Supported IClientCommand Types**:
+- `DeployUnitCommand` - Unit deployment with position and facing
+- `MoveUnitCommand` - Unit movement with path and movement type
+- `WeaponAttackDeclarationCommand` - Weapon target declaration
+- `WeapononfigurationCommand` - to rotate torso
+- `Startup/ShutdownUnitCcommand` - to manage unit state during end phase
+- `EndPhaseCommand` - End phase actions (shutdown, startup, none)
 
 #### 3.1.3 Agent Specifications
 
@@ -939,7 +942,7 @@ public class AgentOrchestrator
 {
     private readonly Dictionary<string, IAgent> _agents;
     
-    public async Task<DecisionResponse> ProcessDecision(DecisionRequest request)
+    public async Task<AgentResponse> ProcessDecision(DecisionRequest request)
     {
         var agent = request.Phase switch
         {
@@ -1020,7 +1023,7 @@ Optionally should contain list of units to use
 ### 6.2 Command Translation
 
 Decision responses are translated to game commands:
-As all commands are simple records, we can return them directly in the Agent response to simplify/eliminate mappings
+As all commands are simple records, the Agent returns a corresponding IClientCommand structure directly to simplify/eliminate mappings
 
 ### 6.3 Error Handling Flow
 
