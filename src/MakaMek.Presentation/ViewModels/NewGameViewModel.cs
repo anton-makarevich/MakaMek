@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -81,7 +82,7 @@ public abstract class NewGameViewModel : BaseViewModel
         RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
     }
 
-    // Common command handlers with template method pattern
+    // Common command handlers with a template method pattern
     internal void HandleServerCommand(IGameCommand command)
     {
         _dispatcherService.RunOnUIThread(async () =>
@@ -184,7 +185,7 @@ public abstract class NewGameViewModel : BaseViewModel
         );
     }
 
-    // Common player creation logic with template method pattern
+    // Common player creation logic with a template method pattern
     protected virtual Task AddPlayer(PlayerData? playerData = null, PlayerControlType controlType = PlayerControlType.Human)
     {
         if (!CanAddPlayer) return Task.CompletedTask;
@@ -244,10 +245,10 @@ public abstract class NewGameViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading default player from cache: {ex.Message}");
+            _localGame?.Logger.LogError(ex, "Error loading default player from cache");
         }
 
-        // Create new default player if cache load failed
+        // Create a new default player if the cache load failed
         var defaultPlayerData = PlayerData.CreateDefault() with { Tint = GetNextTint() };
         await SaveDefaultPlayer(defaultPlayerData);
         return defaultPlayerData;
@@ -292,7 +293,7 @@ public abstract class NewGameViewModel : BaseViewModel
     {
         if (!CanAddPlayer) return;
 
-        // Load or create default player
+        // Load or create the default player
         var defaultPlayer = await LoadOrCreateDefaultPlayer();
 
         await AddPlayer(defaultPlayer);
@@ -303,7 +304,7 @@ public abstract class NewGameViewModel : BaseViewModel
     /// </summary>
     protected async Task OnDefaultPlayerNameChanged(Player updatedPlayer)
     {
-        // Save the updated player to cache
+        // Save the updated player to the cache
         await SaveDefaultPlayer(updatedPlayer.ToData());
     }
 
@@ -316,10 +317,10 @@ public abstract class NewGameViewModel : BaseViewModel
         // Create a new ViewModel instance for the dialog
         var tableViewModel = new AvailableUnitsTableViewModel(AvailableUnits);
 
-        // Show the dialog and wait for result
+        // Show the dialog and wait for a result
         var result = await NavigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(tableViewModel);
 
-        // If a unit was selected (not cancelled), add it to the player
+        // If a unit was selected (not canceled), add it to the player
         if (result.SelectedUnit.HasValue)
         {
             await playerVm.AddUnit(result.SelectedUnit.Value);
