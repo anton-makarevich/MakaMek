@@ -680,7 +680,7 @@ public class IntegrationBotService : BackgroundService
             var response = await _agentClient.RequestDecision(
                 _botPlayerId, 
                 phaseStep.Phase,
-                GetMcpServerUrl()
+                GetMcpServerUrl() //self host url basically, including port
             );
             
             if (response.Success)
