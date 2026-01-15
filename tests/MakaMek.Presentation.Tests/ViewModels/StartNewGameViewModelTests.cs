@@ -762,44 +762,34 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public void AddDefaultPlayer_ShouldPrintLogError_WhenCacheSaveFails()
+    public async Task AddDefaultPlayer_ShouldPrintLogError_WhenCacheSaveFails()
     {
         // Arrange
         _cachingService.SaveToCache("DefaultPlayer", Arg.Any<byte[]>()).Throws(new Exception("Cache save failed"));
-        var originalOut = Console.Out;
-        using var stringWriter = new StringWriter();
-        Console.SetOut(stringWriter);
-        try
-        {
-            // Act
-            var sut = new StartNewGameViewModel(
-                _gameManager,
-                _unitsLoader,
-                _rulesProvider,
-                _mechFactory,
-                _commandPublisher,
-                _toHitCalculator,
-                _pilotingSkillCalculator,
-                _consciousnessCalculator,
-                _heatEffectsCalculator,
-                _dispatcherService,
-                _gameFactory,
-                _mapFactory,
-                _cachingService,
-                _mapPreviewRenderer,
-                _hashService,
-                Substitute.For<IBotManager>());
-            sut.AttachHandlers();
 
-            // Assert
-            var output = stringWriter.ToString();
-            output.ShouldContain("Error saving default player to cache: Cache save failed");
-        }
-        finally
-        {
-            // Restore original console output
-            Console.SetOut(originalOut);
-        }
+        // Act
+        var sut = new StartNewGameViewModel(
+            _gameManager,
+            _unitsLoader,
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _dispatcherService,
+            _gameFactory,
+            _mapFactory,
+            _cachingService,
+            _mapPreviewRenderer,
+            _hashService,
+            Substitute.For<IBotManager>());
+        await sut.InitializeLobbyAndSubscribe();
+        sut.AttachHandlers();
+
+        // Assert
+        _logger.Received().LogError(Arg.Any<Exception>(), "Error saving default player to cache");
     }
 
     [Fact]

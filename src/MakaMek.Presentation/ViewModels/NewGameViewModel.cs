@@ -267,7 +267,7 @@ public abstract class NewGameViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving default player to cache: {ex.Message}");
+            _localGame?.Logger.LogError(ex, "Error saving default player to cache");
         }
     }
 
