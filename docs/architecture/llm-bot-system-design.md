@@ -365,7 +365,7 @@ sequenceDiagram
 #### Container 1: LLM Agent Application
 - **Framework**: .NET 10
 - **Web Framework**: ASP.NET Core Web API
-- **Agent Framework**: Microsoft Agent Framework (https://github.com/microsoft/agent-framework)
+- **Agent Framework**: [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
 - **LLM SDKs**:
     - OpenAI .NET SDK
     - Anthropic .NET SDK
@@ -1351,8 +1351,8 @@ docker-compose up -d --build
 - Growing ecosystem of MCP servers and clients
 
 **References**:
-- MCP Specification: https://modelcontextprotocol.io/
-- C# SDK: https://github.com/modelcontextprotocol/csharp-sdk
+- MCP Specification: [MCP Specification](https://modelcontextprotocol.io/)
+- MCP C# SDK: [C# SDK](https://github.com/modelcontextprotocol/csharp-sdk)
 
 ### Appendix B: Microsoft Agent Framework
 
@@ -1372,7 +1372,7 @@ docker-compose up -d --build
 - Multi-agent collaboration
 
 **References**:
-- GitHub: https://github.com/microsoft/agent-framework
+- GitHub: [GitHub](https://github.com/microsoft/agent-framework)
 
 ### Appendix C: Alternative Architectures Considered
 
@@ -1482,8 +1482,7 @@ heat is manageable, and Jenner is priority target due to existing damage.
 
 ## Conclusion
 
-This design provides a comprehensive, production-ready architecture for integrating LLM-powered bots into MakaMek. The two-container approach (LLM Agent Application + Integration Bot with MCP Server) offers:
-
+This design provides a comprehensive proof-of-concept architecture for integrating LLM-powered bots into MakaMek, demonstrating the viability of the two-container pattern while deferring production concerns such as cost optimization, rate limiting, and operational hardening.
 - **Flexibility**: Easy to swap LLM providers and models
 - **Reliability**: Mandatory fallback to rule-based engines ensures game continuity
 - **Scalability**: Support for multiple concurrent bot players via separate container instances
