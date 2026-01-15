@@ -183,7 +183,7 @@ public class JoinGameViewModel : NewGameViewModel
                 _mapFactory,
                 _hashService);
 
-            _localGame.Logger.LogAttemptingToConnectToServerip(ServerIp);
+            _localGame.Logger.LogAttemptedToConnectToServerIp(ServerIp);
             
             // Initialize BotManager with the ClientGame
             _botManager.Initialize(_localGame);
