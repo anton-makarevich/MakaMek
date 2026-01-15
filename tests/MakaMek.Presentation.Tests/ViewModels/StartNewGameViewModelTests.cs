@@ -40,6 +40,7 @@ public class StartNewGameViewModelTests
     private readonly IGameManager _gameManager = Substitute.For<IGameManager>();
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly ClientGame _clientGame;
+    private readonly ILogger<ClientGame> _logger = Substitute.For<ILogger<ClientGame>>();
     private readonly Guid _serverGameId = Guid.NewGuid();
     private readonly IUnitsLoader _unitsLoader = Substitute.For<IUnitsLoader>();
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
@@ -80,7 +81,7 @@ public class StartNewGameViewModelTests
             _heatEffectsCalculator,
             _mapFactory,
             _hashService,
-            Substitute.For<ILogger<ClientGame>>());
+            _logger);
         _gameFactory.CreateClientGame(_rulesProvider,
                 _mechFactory,
                 _commandPublisher,
@@ -730,46 +731,36 @@ public class StartNewGameViewModelTests
     }
 
     [Fact]
-    public void AddDefaultPlayer_ShouldPrintLogError_WhenCacheLoadFails()
+    public async Task AddDefaultPlayer_ShouldPrintLogError_WhenCacheLoadFails()
     {
         // Arrange
         _cachingService.TryGetCachedFile("DefaultPlayer").Throws(new Exception("Cache load failed"));
-        var originalOut = Console.Out;
-        using var stringWriter = new StringWriter();
-        Console.SetOut(stringWriter);
-        try
-        {
-            // Act
-            var sut = new StartNewGameViewModel(
-                _gameManager,
-                _unitsLoader,
-                _rulesProvider,
-                _mechFactory,
-                _commandPublisher,
-                _toHitCalculator,
-                _pilotingSkillCalculator,
-                _consciousnessCalculator,
-                _heatEffectsCalculator,
-                _dispatcherService,
-                _gameFactory,
-                _mapFactory,
-                _cachingService,
-                _mapPreviewRenderer,
-                _hashService,
-                Substitute.For<IBotManager>());
-            sut.AttachHandlers();
 
-            // Assert
-            var output = stringWriter.ToString();
-            output.ShouldContain("Error loading default player from cache: Cache load failed");
-        }
-        finally
-        {
-            // Restore original console output
-            Console.SetOut(originalOut);
-        }
+        // Act
+        var sut = new StartNewGameViewModel(
+            _gameManager,
+            _unitsLoader,
+            _rulesProvider,
+            _mechFactory,
+            _commandPublisher,
+            _toHitCalculator,
+            _pilotingSkillCalculator,
+            _consciousnessCalculator,
+            _heatEffectsCalculator,
+            _dispatcherService,
+            _gameFactory,
+            _mapFactory,
+            _cachingService,
+            _mapPreviewRenderer,
+            _hashService,
+            Substitute.For<IBotManager>());
+        await sut.InitializeLobbyAndSubscribe();
+        sut.AttachHandlers();
+        
+        // Assert
+        _logger.Received().LogError(Arg.Any<Exception>(), "Error loading default player from cache");
     }
-    
+
     [Fact]
     public void AddDefaultPlayer_ShouldPrintLogError_WhenCacheSaveFails()
     {
@@ -831,7 +822,7 @@ public class StartNewGameViewModelTests
     public void RemovePlayer_ShouldNotRemoveDefaultPlayer()
     {
         // Arrange
-        var defaultPlayer = _sut.Players.First(); // First player is the default player
+        var defaultPlayer = _sut.Players.First(); // The first player is the default player
         var initialCount = _sut.Players.Count;
 
         // Act

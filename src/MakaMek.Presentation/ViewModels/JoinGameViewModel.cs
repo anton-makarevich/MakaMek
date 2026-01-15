@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -14,6 +15,7 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -61,7 +63,7 @@ public class JoinGameViewModel : NewGameViewModel
         ConnectCommand = new AsyncCommand(ConnectToServer, (_)=>CanConnect);
     }
 
-    // Implementation of the abstract method from base class
+    // Implementation of the abstract method from a base class
     protected override async Task HandleCommandInternal(IGameCommand command)
     {
         switch (command)
@@ -101,7 +103,7 @@ public class JoinGameViewModel : NewGameViewModel
                 break;
                 
             case SetBattleMapCommand:
-                // Handle navigation to BattleMapViewModel when battle map is set
+                // Handle navigation to BattleMapViewModel when the battle map is set
                 
                 // Get the BattleMapViewModel and set the game
                 var battleMapViewModel = NavigationService.GetViewModel<BattleMapViewModel>();
@@ -160,15 +162,13 @@ public class JoinGameViewModel : NewGameViewModel
 
         try
         {
-            Console.WriteLine($"Attempting to connect to {ServerIp}...");
-            
             // Get access to the adapter from the command publisher
             var adapter = _commandPublisher.Adapter;
             
-            // Clear any existing publishers and prepare for new connection
+            // Clear any existing publishers and prepare for a new connection
             adapter.ClearPublishers();
             
-            // Create network client publisher using the factory and connect
+            // Create a network client publisher using the factory and connect
             var client = await _transportFactory.CreateAndStartClientPublisher(ServerAddress);
             adapter.AddPublisher(client);
             _commandPublisher.Subscribe(HandleServerCommand);
@@ -183,6 +183,8 @@ public class JoinGameViewModel : NewGameViewModel
                 _mapFactory,
                 _hashService);
 
+            _localGame.Logger.LogAttemptedToConnectToServerIp(ServerIp);
+            
             // Initialize BotManager with the ClientGame
             _botManager.Initialize(_localGame);
 
@@ -196,7 +198,7 @@ public class JoinGameViewModel : NewGameViewModel
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error connecting to server: {ex.Message}");
+            _localGame?.Logger.LogError(ex, "Error connecting to server: {Message}", ex.Message);
             IsConnected = false;
         }
     }
