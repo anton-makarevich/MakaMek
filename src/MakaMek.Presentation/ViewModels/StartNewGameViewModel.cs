@@ -86,7 +86,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         NotifyPropertyChanged(nameof(ServerIpAddress));
     }
 
-    // Implementation of the abstract method from base class
+    // Implementation of the abstract method from the base class
     protected override Task HandleCommandInternal(IGameCommand command)
     {
         switch (command)
