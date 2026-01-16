@@ -1077,11 +1077,18 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessPotentialFall(
-                Arg.Any<Mech>(),
+                Arg.Is<Mech>(m => m.Id == _player1Unit1.Id), // ← Only for player1Unit1
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
                 Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
+        // For other units, return empty
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Is<Mech>(m => m.Id != _player1Unit1.Id),
+                Arg.Any<IGame>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<List<PartLocation>>())
+            .Returns(new List<MechFallCommand>());
         
         // Get initial armor value to verify damage is applied
         var targetPart = _player1Unit1.Parts[PartLocation.CenterTorso];
