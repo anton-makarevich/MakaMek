@@ -16,7 +16,6 @@ public class Bot : IBot
     private readonly IDecisionEngineProvider _decisionEngineProvider;
     private readonly int _decisionDelayMilliseconds;
     private readonly IClientGame _clientGame;
-    private IBotDecisionEngine? _currentDecisionEngine;
     private ITurnState? _currentTurnState;
     private IDisposable? _phaseStateSubscription;
     private IDisposable? _phaseSubscription;
@@ -112,14 +111,14 @@ public class Bot : IBot
 
     private void UpdateDecisionEngine(PhaseNames phase)
     {
-        _currentDecisionEngine = _decisionEngineProvider.GetEngineForPhase(phase);
+        DecisionEngine = _decisionEngineProvider.GetEngineForPhase(phase);
     }
 
     private async Task MakeDecision()
     {
         if (_isDisposed) return;
             
-        if (_currentDecisionEngine == null) return;
+        if (DecisionEngine == null) return;
 
         // Get the current Player instance from the game's Players collection
         var player = _clientGame.Players.FirstOrDefault(p => p.Id == PlayerId);
@@ -130,10 +129,10 @@ public class Bot : IBot
         }
         
         await Task.Delay(_decisionDelayMilliseconds); // Make more human-like
-        await _currentDecisionEngine.MakeDecision(player, _currentTurnState);
+        await DecisionEngine.MakeDecision(player, _currentTurnState);
     }
 
-    public IBotDecisionEngine? DecisionEngine => _currentDecisionEngine;
+    public IBotDecisionEngine? DecisionEngine { get; private set; }
 
     public void Dispose()
     {
@@ -151,6 +150,8 @@ public class Bot : IBot
 
         _gameCommandsSubscription?.Dispose();
         _gameCommandsSubscription = null;
+        
+        GC.SuppressFinalize(this);
     }
 }
 
