@@ -402,7 +402,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         // Update the resolution data with destruction information
         resolution = resolution with
         {
-            DestroyedParts = newlyDestroyedParts.Any() ? newlyDestroyedParts : null,
+            DestroyedParts = newlyDestroyedParts.Count != 0 ? newlyDestroyedParts : null,
             UnitDestroyed = unitNewlyDestroyed
         };
 
