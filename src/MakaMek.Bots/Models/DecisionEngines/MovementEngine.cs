@@ -8,6 +8,8 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Bots.Models.Logger;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
@@ -42,7 +44,7 @@ public class MovementEngine : IBotDecisionEngine
             if (myUnitsToMove.Count == 0)
             {
                 // No units to move
-                Console.WriteLine($"[MovementEngine] No units to move for player {player.Name}, skipping...");
+                _clientGame.Logger.LogNoUnitsToMove(player.Name);
                 return;
             }
             
@@ -85,7 +87,7 @@ public class MovementEngine : IBotDecisionEngine
             var bestCandidate = scoredUnits.First();
             unitToMove = bestCandidate.Unit;
 
-            Console.WriteLine($"[MovementEngine] Selected {unitToMove.Name} (Role: {unitToMove.GetTacticalRole()}, Priority: {bestCandidate.Priority})");
+            _clientGame.Logger.LogSelectedUnitWithRoleAndPriority(unitToMove.Name, unitToMove.GetTacticalRole(), bestCandidate.Priority);
 
             // 5. Execute Move for a selected unit
             await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions, turnState);
@@ -93,13 +95,13 @@ public class MovementEngine : IBotDecisionEngine
         catch (BotDecisionException ex)
         {
             // Rethrow BotDecisionException to let caller handle decision failures
-            Console.WriteLine($"MovementEngine error for player {player.Name}: {ex.Message}");
+            _clientGame.Logger.LogError(ex, "MovementEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
             throw;
         }
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation for unexpected errors
-            Console.WriteLine($"MovementEngine error for player {player.Name}: {ex.Message}, skipping turn");
+            _clientGame.Logger.LogError(ex, "MovementEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
             await SkipTurn(player, unitToMove);
         }
     }
@@ -233,8 +235,7 @@ public class MovementEngine : IBotDecisionEngine
                     catch (Exception ex)
                     {
                         // Log and continue - don't let one bad path evaluation stop all evaluations
-                        Console.WriteLine(
-                            $"[MovementEngine] Failed to evaluate path to {path.Destination.Coordinates}: {ex.Message}");
+                        _clientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}", path.Destination.Coordinates, ex.Message);
                     }
                 });
             
@@ -258,10 +259,13 @@ public class MovementEngine : IBotDecisionEngine
         var bestScore = bestScores
             .First(); // TODO: for different difficulty levels we can take random of first N
 
-        Console.WriteLine($"[MovementEngine] {unit.Name} moving to {bestScore.Position.Coordinates} " +
-                         $"using {bestScore.MovementType} (Offensive: {bestScore.OffensiveIndex:F1}, " +
-                         $"Defensive: {bestScore.DefensiveIndex:F1}, EnemiesInRearArc: {bestScore.EnemiesInRearArc})");
-
+        _clientGame.Logger.LogUnitMovingToPositionUsingMovementTypeWithOffensiveDefensiveAndEnemiesInRearArc(unit.Name,
+            bestScore.Position.Coordinates,
+            bestScore.MovementType,
+            bestScore.OffensiveIndex,
+            bestScore.DefensiveIndex,
+            bestScore.EnemiesInRearArc);
+        
         // Execute the move using the stored path (no need to recalculate)
         await MoveUnit(player, unit, bestScore.Path);
     }
