@@ -353,7 +353,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         SetMap();
 
-        // Setup weapons using the existing method
+        // Set up weapons using the existing method
         SetupPlayer1WeaponTargets();
 
         // Get the target unit (player2's unit)
@@ -568,6 +568,96 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 cmd.ResolutionData.HitLocationsData.TotalDamage == 30)); // 5 hits * 6 damage per missile = 30 damage
     }
 
+    /// <summary>
+    /// BUG REPRODUCTION TEST: This test demonstrates the bug where a mech receiving
+    /// heavy damage (>= 20 points) through pure armor damage (no structure damage,
+    /// no component hits, no destroyed parts) does NOT trigger a heavy damage PSR
+    /// at the end of the weapon attack resolution phase.
+    /// 
+    /// Expected Behavior: FallProcessor.ProcessPotentialFall should be called at the end of phase
+    /// Actual Behavior: FallProcessor.ProcessPotentialFall is NOT called because the unit
+    ///                   is never added to _accumulatedDamageData
+    /// </summary>
+    [Fact]
+    public void Enter_ShouldTriggerHeavyDamagePsr_WhenMechReceivesHeavyDamageWithoutComponentHits()
+    {
+        // Arrange
+        SetMap();
+
+        // Configure rules provider to return the heavy damage threshold of 20
+        var mockRulesProvider = Substitute.For<IRulesProvider>();
+        mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
+        mockRulesProvider.GetHitLocation(Arg.Any<int>(), Arg.Any<HitDirection>()).Returns(PartLocation.CenterTorso);
+        SetGameWithRulesProvider(mockRulesProvider);
+        // Create a high-damage weapon (20 points) to reach the heavy damage threshold
+        var highDamageWeapon = new TestWeapon(damage: 20);
+        var part1 = _player1Unit1.Parts[0];
+        part1.TryAddComponent(highDamageWeapon).ShouldBeTrue();
+        // Set up weapon targets - player1 attacks player2
+        var weaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = highDamageWeapon.Name,
+                    Type = highDamageWeapon.ComponentType,
+                    Assignments =
+                    [
+                        new LocationSlotAssignment(part1.Location,
+                            highDamageWeapon.MountedAtFirstLocationSlots.First(),
+                            highDamageWeapon.MountedAtFirstLocationSlots.Length)
+                    ]
+                },
+                TargetId = _player2Unit1.Id,
+                IsPrimaryTarget = true
+            }
+        };
+        _player1Unit1.DeclareWeaponAttack(weaponTargets);
+        // Set up ToHitCalculator to ensure the hit
+        Game.ToHitCalculator.GetToHitNumber(
+                Arg.Any<Unit>(),
+                Arg.Any<Unit>(),
+                Arg.Any<Weapon>(),
+                Arg.Any<BattleMap>(),
+                Arg.Any<bool>(),
+                Arg.Any<PartLocation?>())
+            .Returns(7);
+        // Setup dice rolls: attack hits (8), hits center torso (7)
+        SetupDiceRolls(8, 7);
+        // CRITICAL: Setup damage calculator to return ONLY armor damage (NO structure damage)
+        // This is the key to reproducing the bug - armor damage only, no crits
+        MockDamageTransferCalculator.CalculateStructureDamage(
+                Arg.Any<Unit>(),
+                Arg.Any<PartLocation>(),
+                Arg.Any<int>(),
+                Arg.Any<HitDirection>(),
+                Arg.Any<IReadOnlyList<LocationHitData>?>())
+            .Returns(callInfo =>
+            [
+                new LocationDamageData(
+                    callInfo.Arg<PartLocation>(),
+                    callInfo.Arg<int>(), // All damage goes to armor
+                    0, // NO structure damage - this prevents critical hits
+                    false)
+            ]);
+        // Act
+        _sut.Enter();
+        // Assert
+        // Verify that the target mech received the heavy damage
+        var targetMech = _player2Unit1 as Mech;
+        targetMech.ShouldNotBeNull();
+        targetMech.TotalPhaseDamage.ShouldBeGreaterThanOrEqualTo(20,
+            "Mech should have accumulated at least 20 points of damage");
+        // BUG: This assertion FAILS because FallProcessor.ProcessPotentialFall is never called
+        // The unit is not added to _accumulatedDamageData because there was no structure damage
+        MockFallProcessor.Received().ProcessPotentialFall(
+            Arg.Is<Mech>(m => m.Id == _player2Unit1.Id),
+            Arg.Any<IGame>(),
+            Arg.Any<List<ComponentHitData>>(),
+            Arg.Any<List<PartLocation>>());
+    }
+
     [Fact]
     public void Enter_ShouldNotRollForClusterHits_WhenClusterWeaponMisses()
     {
@@ -634,7 +724,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Ensure BattleMap is null (default state after ServerGame creation in test base)
         Game.BattleMap.ShouldBeNull();
     
-        // Setup weapon targets - necessary to reach the ResolveAttack call
+        // Set up weapon targets - necessary to reach the ResolveAttack call
         SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 6); // Set up dice rolls, values don't matter much here
     
@@ -987,11 +1077,18 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         };
 
         MockFallProcessor.ProcessPotentialFall(
-                Arg.Any<Mech>(),
+                Arg.Is<Mech>(m => m.Id == _player1Unit1.Id), // ← Only for player1Unit1
                 Arg.Any<IGame>(),
                 Arg.Any<List<ComponentHitData>>(),
                 Arg.Any<List<PartLocation>>())
             .Returns(new List<MechFallCommand> { mechFallingCommand });
+        // For other units, return empty
+        MockFallProcessor.ProcessPotentialFall(
+                Arg.Is<Mech>(m => m.Id != _player1Unit1.Id),
+                Arg.Any<IGame>(),
+                Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<List<PartLocation>>())
+            .Returns(new List<MechFallCommand>());
         
         // Get initial armor value to verify damage is applied
         var targetPart = _player1Unit1.Parts[PartLocation.CenterTorso];
@@ -1187,7 +1284,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         PartLocation location,
         IUnit unit)
     {
-        // Setup structure damage calculator to return structure damage
+        // Set up a structure damage calculator to return structure damage
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1265,7 +1362,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
-        // Setup structure damage calculator to return structure damage
+        // Set up a structure damage calculator to return structure damage
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1314,7 +1411,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         SetupPlayer1WeaponTargets();
         SetupDiceRolls(8, 9, 4); // Set up dice rolls to ensure hits
 
-        // Setup structure damage calculator to return structure damage for left leg
+        // Set up a structure damage calculator to return structure damage for the left leg
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1486,7 +1583,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         SetMap();
 
-        // Setup a single weapon attack from player1 to player2
+        // Set up a single weapon attack from player1 to player2
         var weapon1 = new TestWeapon();
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(weapon1).ShouldBeTrue();
@@ -1524,7 +1621,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Setup dice rolls: attack hits (8), hits head (12), but no structure damage
         SetupDiceRolls(8, 12);
 
-        // Setup damage calculator to return only armor damage (no structure damage)
+        // Set up a damage calculator to return only armor damage (no structure damage)
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1532,7 +1629,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<HitDirection>())
             .Returns(callInfo => [new LocationDamageData(callInfo.Arg<PartLocation>(), callInfo.Arg<int>(), 0, false)]);
         
-        // Setup consciousness calculator to return a consciousness roll command
+        // Set up a consciousness calculator to return a consciousness roll command
         var consciousnessCommand = new PilotConsciousnessRollCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -1561,7 +1658,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var weaponAttackIndex = publishedCommands.FindIndex(cmd =>
             cmd is WeaponAttackResolutionCommand warc && warc.AttackerId == _player1Unit1.Id);
         var consciousnessIndex = publishedCommands.FindIndex(cmd =>
-            cmd is PilotConsciousnessRollCommand pcrc && pcrc.UnitId == _player2Unit1.Id);
+            cmd is PilotConsciousnessRollCommand pilotConsciousnessRollCommand && pilotConsciousnessRollCommand.UnitId == _player2Unit1.Id);
 
         // Verify all commands were published
         weaponAttackIndex.ShouldBeGreaterThanOrEqualTo(0, "WeaponAttackResolutionCommand should be published");
@@ -1584,7 +1681,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         SetMap();
 
-        // Setup a single weapon attack from player1 to player2
+        // Set up a single weapon attack from player1 to player2
         var weapon1 = new TestWeapon();
         var part1 = _player1Unit1.Parts[0];
         part1.TryAddComponent(weapon1).ShouldBeTrue();
@@ -1622,7 +1719,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         // Setup dice rolls: attack hits (8), hits head (12), structure damage causes critical hit
         SetupDiceRolls(8, 12);
 
-        // Setup damage calculator to return head damage with structure damage
+        // Set up a damage calculator to return head damage with structure damage
         MockDamageTransferCalculator.CalculateStructureDamage(
                 Arg.Any<Unit>(),
                 Arg.Any<PartLocation>(),
@@ -1636,7 +1733,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                     : [new LocationDamageData(location, callInfo.Arg<int>(), 0, false)];
             });
 
-        // Setup critical hits calculator to return a critical hit
+        // Set up a critical hits calculator to return a critical hit
         var criticalHitsCommand = new CriticalHitsResolutionCommand
         {
             GameOriginId = Game.Id,
@@ -1654,7 +1751,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
                 Arg.Any<List<LocationDamageData>>())
             .Returns(criticalHitsCommand);
 
-        // Setup consciousness calculator to return a consciousness roll command
+        // Set up a consciousness calculator to return a consciousness roll command
         var consciousnessCommand = new PilotConsciousnessRollCommand
         {
             GameOriginId = Guid.NewGuid(),
@@ -1684,9 +1781,9 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
         var weaponAttackIndex = publishedCommands.FindIndex(cmd =>
             cmd is WeaponAttackResolutionCommand warc && warc.AttackerId == _player1Unit1.Id);
         var criticalHitsIndex = publishedCommands.FindIndex(cmd =>
-            cmd is CriticalHitsResolutionCommand chrc && chrc.TargetId == _player2Unit1.Id);
+            cmd is CriticalHitsResolutionCommand criticalHitsResolutionCommand && criticalHitsResolutionCommand.TargetId == _player2Unit1.Id);
         var consciousnessIndex = publishedCommands.FindIndex(cmd =>
-            cmd is PilotConsciousnessRollCommand pcrc && pcrc.UnitId == _player2Unit1.Id);
+            cmd is PilotConsciousnessRollCommand pilotConsciousnessRollCommand && pilotConsciousnessRollCommand.UnitId == _player2Unit1.Id);
 
         // Verify all commands were published
         weaponAttackIndex.ShouldBeGreaterThanOrEqualTo(0, "WeaponAttackResolutionCommand should be published");

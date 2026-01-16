@@ -421,32 +421,32 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         Game.CommandPublisher.PublishCommand(command);
 
-        // Calculate and send critical hits if any location received structure damage
-        if (resolution.HitLocationsData?.HitLocations == null 
-            || !resolution.HitLocationsData.HitLocations
-                .Any(h => h.Damage.Any(d => d.StructureDamage > 0)))
-        {
-            ProcessConsciousnessRollsForUnit(target);
-            return;
-        }
-
-        var criticalHitsCommand = Game.CriticalHitsCalculator
-            .CalculateAndApplyCriticalHits(target, (resolution.HitLocationsData?.HitLocations!) //nullability is checked above
-                .SelectMany(h => h.Damage).ToList());
         IEnumerable<ComponentHitData> allComponentHits = [];
         List<PartLocation> blownOffParts = [];
-        if (criticalHitsCommand != null)
+        // Calculate and send critical hits if any location received structure damage
+        if (resolution.HitLocationsData?.HitLocations != null
+            && resolution.HitLocationsData.HitLocations
+                .Any(h => h.Damage.Any(d => d.StructureDamage > 0)))
         {
-            criticalHitsCommand.GameOriginId = Game.Id;
-            Game.CommandPublisher.PublishCommand(criticalHitsCommand);
+            var criticalHitsCommand = Game.CriticalHitsCalculator
+                .CalculateAndApplyCriticalHits(target,
+                    (resolution.HitLocationsData?.HitLocations!) //nullability is checked above
+                    .SelectMany(h => h.Damage).ToList());
 
-            // Check for component hits that can cause a fall
-            allComponentHits = criticalHitsCommand.CriticalHits.SelectMany(ch => ch.HitComponents ?? []);
+            
+            if (criticalHitsCommand != null)
+            {
+                criticalHitsCommand.GameOriginId = Game.Id;
+                Game.CommandPublisher.PublishCommand(criticalHitsCommand);
 
-            // Also track parts blown off by critical hits (e.g., leg/arm/head)
-            blownOffParts = criticalHitsCommand.CriticalHits
-                .Where(ch => ch.IsBlownOff)
-                .Select(ch => ch.Location).ToList();
+                // Check for component hits that can cause a fall
+                allComponentHits = criticalHitsCommand.CriticalHits.SelectMany(ch => ch.HitComponents ?? []);
+
+                // Also track parts blown off by critical hits (e.g., leg/arm/head)
+                blownOffParts = criticalHitsCommand.CriticalHits
+                    .Where(ch => ch.IsBlownOff)
+                    .Select(ch => ch.Location).ToList();
+            }
         }
 
         // Process consciousness rolls for pilot damage from the attack and critical hits
