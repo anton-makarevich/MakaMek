@@ -1,5 +1,7 @@
-﻿using Sanet.MakaMek.Bots.Exceptions;
+﻿using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -96,14 +98,12 @@ public class WeaponsEngine : IBotDecisionEngine
                 if (!attacker.IsWeaponConfigurationApplied(bestConfig))
                 {
                     // Send configuration command and END execution
-                    Console.WriteLine(
-                        $"[WeaponsEngine] Applying {bestConfig.Type} with {(HexDirection)bestConfig.Value} when targeting {target.Name}");
+                    _clientGame.Logger.LogApplyingConfigTypeWithHexDirectionWhenTargetingTargetName(bestConfig.Type, (HexDirection)bestConfig.Value, target.Name);
                     await ConfigureWeapons(player, attacker, bestConfig);
                     return;
                 }
             }
-
-            Console.WriteLine($"[WeaponsEngine] Selected target {target.Name} with score {bestOption.ConfigScore.Score:F1}");
+            _clientGame.Logger.LogSelectedTargetWithScore(target.Name, bestOption.ConfigScore.Score);
 
             // Configuration is applied (or not needed), select weapons and declare attack
             var weaponTargets = SelectWeapons(attacker, bestOption.ConfigScore)
@@ -127,13 +127,13 @@ public class WeaponsEngine : IBotDecisionEngine
         catch (BotDecisionException ex)
         {
             // Rethrow BotDecisionException to let caller handle decision failures
-            Console.WriteLine($"WeaponsEngine error for player {player.Name}: {ex.Message}");
+            _clientGame.Logger.LogError(ex, "WeaponsEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
             throw;
         }
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation
-            Console.WriteLine($"WeaponsEngine error for player {player.Name}: {ex.Message}");
+            _clientGame.Logger.LogError(ex, "WeaponsEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
             // If anything fails, skip turn to avoid blocking the game
             await SkipTurn(player);
         }
