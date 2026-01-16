@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
@@ -197,14 +198,11 @@ public class BotTests : IDisposable
     }
 
     [Fact]
-    public async Task OnActivePlayerChanged_WhenPlayerNotFound_ShouldWriteToConsole()
+    public async Task OnActivePlayerChanged_WhenPlayerNotFound_ShouldWriteToLog()
     {
         // Arrange
-        var originalOut = Console.Out;
-        await using var stringWriter = new StringWriter();
-        Console.SetOut(stringWriter);
-
         var clientGame = Substitute.For<IClientGame>();
+        var logger = Substitute.For<ILogger<ClientGame>>();
         var commandSubject = new Subject<IGameCommand>();
         var phaseStepChanges = new Subject<PhaseStepState?>();
         var phaseSubject = new Subject<PhaseNames>();
@@ -220,6 +218,7 @@ public class BotTests : IDisposable
         clientGame.PhaseChanges.Returns(phaseSubject.AsObservable());
         clientGame.Id.Returns(Guid.NewGuid());
         clientGame.Players.Returns(new List<IPlayer>()); // Empty player list
+        clientGame.Logger.Returns(logger);
 
         decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
 
@@ -233,26 +232,19 @@ public class BotTests : IDisposable
             // Act - Trigger decision-making when a player is not found
             phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, player, 1));
 
-            // Give async operation time to complete - poll with timeout
-            string output;
-            var timeout = TimeSpan.FromSeconds(1);
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            while (stopwatch.Elapsed < timeout)
-            {
-                output = stringWriter.ToString();
-                if (output.Contains($"Bot with PlayerId {playerId} not found"))
-                    break;
-                await Task.Delay(10);
-            }
+            // Give async operation time to complete
+            await Task.Delay(100);
 
             // Assert
-            output = stringWriter.ToString();
-            output.ShouldContain($"Bot with PlayerId {playerId} not found in game players");
+            logger.Received(1).Log(
+                LogLevel.Warning,
+                Arg.Any<EventId>(),
+                Arg.Is<object>(o => o.ToString()!.Contains($"Bot with PlayerId {playerId} not found in game players")),
+                Arg.Any<Exception>(),
+                Arg.Any<Func<object, Exception?, string>>());
         }
         finally
         {
-            // Restore original console output
-            Console.SetOut(originalOut);
             commandSubject.Dispose();
             phaseStepChanges.Dispose();
             phaseSubject.Dispose();
