@@ -20,10 +20,10 @@ namespace MakaMek.Tools.BotContainer.Services;
 
 public static class DependencyInjection
 {
-    public static void AddBotContainerServices(this IServiceCollection services)
+    public static void AddBotContainerServices(this IServiceCollection services, IConfiguration configuration)
     {
         // Configuration
-        services.Configure<BotConfiguration>(services.BuildServiceProvider().GetRequiredService<IConfiguration>().GetSection("BotConfiguration"));
+        services.Configure<BotConfiguration>(configuration.GetSection("BotConfiguration"));
 
         // Logging
         services.AddLogging(builder =>

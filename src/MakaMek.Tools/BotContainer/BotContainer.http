@@ -1,6 +1,6 @@
 @MakaMek.Tools.BotContainer_HostAddress = http://localhost:5002
 
-GET {{MakaMek.Tools.BotContainer_HostAddress}}/weatherforecast/
+GET {{MakaMek.Tools.BotContainer_HostAddress}}/health
 Accept: application/json
 
 ###

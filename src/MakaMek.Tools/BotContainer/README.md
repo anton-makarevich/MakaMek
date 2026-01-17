@@ -18,9 +18,7 @@ Configuration is managed via `appsettings.json`.
     "BotName": "IntegrationBot_01",
     "BotTeam": "#00FF00",
     "Units": [
-      {
-        "Name": "WSP-1A.mtf"
-      }
+      "WSP-1A.mtf"
     ]
   }
 }
