@@ -129,9 +129,6 @@ public class IntegrationBotService : BackgroundService
         {
             GameOriginId = _clientGame.Id
         });
-        
-        // Attempt to join the game immediately
-        JoinGame();
     }
 
     private void HandleServerCommand(IGameCommand command)
@@ -140,17 +137,29 @@ public class IntegrationBotService : BackgroundService
         {
             switch (command)
             {
+                case RequestGameLobbyStatusCommand lobbyCmd:
+                    // When we receive lobby status, join the game
+                    _logger.LogInformation("Received lobby status. Joining game...");
+                    JoinGame();
+                    break;
                 case JoinGameCommand joinCmd:
                     // Log other players joining
-                    _logger.LogInformation("Player {PlayerName} joined the game.", joinCmd.PlayerName);
-                    break;
-                case UpdatePlayerStatusCommand statusCmd:
-                    if (statusCmd.PlayerId == _botPlayer?.Id && statusCmd.PlayerStatus == PlayerStatus.Joined)
+                    if (joinCmd.PlayerId != _botPlayer?.Id)
                     {
+                        _logger.LogInformation("Player {PlayerName} joined the game.", joinCmd.PlayerName);
+                    }
+                    else
+                    {
+                        // This is the confirmation that our bot joined successfully
                         _logger.LogInformation("Bot successfully joined the game. Setting status to Ready.");
                         SetReady();
                     }
-
+                    break;
+                case UpdatePlayerStatusCommand statusCmd:
+                    if (statusCmd.PlayerId == _botPlayer?.Id && statusCmd.PlayerStatus == PlayerStatus.Ready)
+                    {
+                        _logger.LogInformation("Bot is ready.");
+                    }
                     break;
                 case ChangePhaseCommand phaseCmd:
                     _logger.LogInformation("Phase changed to {Phase}", phaseCmd.Phase);
@@ -183,7 +192,7 @@ public class IntegrationBotService : BackgroundService
             var pilotAssignments = new List<PilotAssignmentData>();
 
             var availableUnits = await _unitsLoader.LoadUnits();
-            if (availableUnits.Any())
+            if (availableUnits.Count != 0)
             {
                  // Pick based on config names if possible, else random
                  foreach(var cfg in _config.Units)
