@@ -31,7 +31,6 @@ builder.Services.Configure<AgentConfiguration>(
 // Register services
 builder.Services.AddHttpClient<McpClientService>();
 builder.Services.AddSingleton<ILlmProvider, OpenAIProvider>();
-builder.Services.AddSingleton<McpClientService>();
 
 // Register agents
 builder.Services.AddSingleton<DeploymentAgent>();

@@ -74,7 +74,7 @@ public class AgentOrchestrator
                 Command: null,
                 Reasoning: null,
                 ErrorType: "ORCHESTRATOR_ERROR",
-                ErrorMessage: $"Orchestrator error: {ex.Message}",
+                ErrorMessage: $"Orchestrator error",
                 FallbackRequired: true
             );
         }
