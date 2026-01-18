@@ -8,7 +8,7 @@ namespace BotAgent.Orchestration;
 /// </summary>
 public class AgentOrchestrator
 {
-    private readonly Dictionary<string, BaseAgent> _agents;
+    private readonly Dictionary<string, ISpecializedAgent> _agents;
     private readonly ILogger<AgentOrchestrator> _logger;
 
     public AgentOrchestrator(
@@ -20,7 +20,7 @@ public class AgentOrchestrator
     {
         _logger = logger;
 
-        _agents = new Dictionary<string, BaseAgent>(StringComparer.OrdinalIgnoreCase)
+        _agents = new Dictionary<string, ISpecializedAgent>(StringComparer.OrdinalIgnoreCase)
         {
             ["Deployment"] = deploymentAgent,
             ["Movement"] = movementAgent,
@@ -48,7 +48,6 @@ public class AgentOrchestrator
                 _logger.LogWarning("Unsupported phase: {Phase}", request.Phase);
                 return new DecisionResponse(
                     Success: false,
-                    CommandType: null,
                     Command: null,
                     Reasoning: null,
                     ErrorType: "UNSUPPORTED_PHASE",
@@ -62,9 +61,8 @@ public class AgentOrchestrator
             var response = await agent.MakeDecisionAsync(request, cancellationToken);
 
             _logger.LogInformation(
-                "Decision completed - Success: {Success}, CommandType: {CommandType}",
-                response.Success,
-                response.CommandType);
+                "Decision completed - Success: {Success}",
+                response.Success);
 
             return response;
         }
@@ -73,7 +71,6 @@ public class AgentOrchestrator
             _logger.LogError(ex, "Error processing decision request");
             return new DecisionResponse(
                 Success: false,
-                CommandType: null,
                 Command: null,
                 Reasoning: null,
                 ErrorType: "ORCHESTRATOR_ERROR",

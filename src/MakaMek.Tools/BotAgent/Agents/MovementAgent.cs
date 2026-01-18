@@ -1,5 +1,8 @@
 using BotAgent.Models;
 using BotAgent.Services;
+using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace BotAgent.Agents;
 
@@ -13,7 +16,10 @@ public class MovementAgent : BaseAgent
 
     protected override string SystemPrompt => """
         You are a BattleTech tactical AI specializing in mech movement. Your goal is to
-        position units for maximum tactical advantage while minimizing risk. Consider:
+        position units for maximum tactical advantage while minimizing risk.
+        Consider standing up if unit is prone (TryStandupCommand).
+        Consider moving to better position if standing (MoveUnitCommand).
+        Consider:
         - Offensive positioning (weapon range, line of sight to enemies)
         - Defensive positioning (cover, minimizing rear arc exposure)
         - Heat management (walking vs running vs jumping)
@@ -31,30 +37,20 @@ public class MovementAgent : BaseAgent
     {
     }
 
-    public override async Task<DecisionResponse> MakeDecisionAsync(
-        DecisionRequest request,
-        CancellationToken cancellationToken = default)
+    protected override IClientCommand ParseDecision(string responseText, DecisionRequest request)
     {
-        try
+        // TODO: Parse actual JSON response from LLM
+        // TODO: Determine if we need to stand up or move based on LLM output
+        
+        // Placeholder: Default to MoveUnitCommand
+        return new MoveUnitCommand
         {
-            Logger.LogInformation("MovementAgent making decision for player {PlayerId}", request.PlayerId);
-
-            // TODO: Query MCP Server for movement options and game state
-            // var gameState = await McpClient.GetGameStateAsync(request.McpServerUrl, cancellationToken);
-            // var movementOptions = await McpClient.EvaluateMovementOptionsAsync(request.McpServerUrl, unitId, cancellationToken);
-
-            // TODO: Generate decision using LLM
-            // var decision = await LlmProvider.GenerateDecisionAsync(SystemPrompt, userPrompt, cancellationToken);
-
-            // Placeholder response until full implementation
-            return CreateErrorResponse(
-                "AGENT_NOT_IMPLEMENTED",
-                "MovementAgent full implementation pending Integration Bot MCP Server");
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in MovementAgent decision making");
-            return CreateErrorResponse("AGENT_ERROR", ex.Message);
-        }
+            PlayerId = request.PlayerId,
+            UnitId = Guid.Empty, // Would come from LLM/Context
+            GameOriginId = Guid.Empty, // Would come from Context
+            MovementType = MovementType.Walk,
+            MovementPath = new List<PathSegmentData>(),
+            IdempotencyKey = Guid.NewGuid()
+        };
     }
 }

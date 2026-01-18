@@ -1,5 +1,6 @@
 using BotAgent.Models;
 using BotAgent.Services;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
 namespace BotAgent.Agents;
 
@@ -12,15 +13,10 @@ public class EndPhaseAgent : BaseAgent
     public override string Description => "Specialist in heat management and end phase decisions";
 
     protected override string SystemPrompt => """
-        You are a BattleTech tactical AI specializing in end phase decisions. Your goal is to
-        keep units operational while avoiding catastrophic heat effects. Consider:
-        - Current heat level and dissipation rate
-        - Ammo explosion risk at high heat
-        - Shutdown vs continued operation trade-offs
-        - Restart probability for shutdown units
-        - Next turn tactical requirements
-        
-        Make decisions about shutting down overheated units or restarting shutdown units.
+        You are a BattleTech tactical AI specializing in end phase decisions.
+        Consider shutting down overheated units (ShutdownUnitCommand).
+        Consider restarting shutdown units (StartupUnitCommand).
+        End the turn (TurnEndedCommand) when all unit management is done.
         """;
 
     public EndPhaseAgent(
@@ -31,30 +27,18 @@ public class EndPhaseAgent : BaseAgent
     {
     }
 
-    public override async Task<DecisionResponse> MakeDecisionAsync(
-        DecisionRequest request,
-        CancellationToken cancellationToken = default)
+    protected override IClientCommand ParseDecision(string responseText, DecisionRequest request)
     {
-        try
+        // TODO: Parse actual JSON response from LLM
+        // TODO: Determine if we need to startup, shutdown, or end turn
+        
+        // Placeholder: Default to TurnEndedCommand
+        return new TurnEndedCommand
         {
-            Logger.LogInformation("EndPhaseAgent making decision for player {PlayerId}", request.PlayerId);
-
-            // TODO: Query MCP Server for unit details and game state
-            // var gameState = await McpClient.GetGameStateAsync(request.McpServerUrl, cancellationToken);
-            // var unitDetails = await McpClient.GetUnitDetailsAsync(request.McpServerUrl, unitId, cancellationToken);
-
-            // TODO: Generate decision using LLM
-            // var decision = await LlmProvider.GenerateDecisionAsync(SystemPrompt, userPrompt, cancellationToken);
-
-            // Placeholder response until full implementation
-            return CreateErrorResponse(
-                "AGENT_NOT_IMPLEMENTED",
-                "EndPhaseAgent full implementation pending Integration Bot MCP Server");
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in EndPhaseAgent decision making");
-            return CreateErrorResponse("AGENT_ERROR", ex.Message);
-        }
+            PlayerId = request.PlayerId,
+            GameOriginId = Guid.Empty, // From context
+            Timestamp = DateTime.UtcNow,
+            IdempotencyKey = Guid.NewGuid()
+        };
     }
 }

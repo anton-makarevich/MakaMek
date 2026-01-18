@@ -1,10 +1,12 @@
 using BotAgent.Models;
 using BotAgent.Services;
+using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
 namespace BotAgent.Agents;
 
 /// <summary>
-/// Weapons attack phase agent - selects targets and weapon configurations for maximum damage.
+/// Weapons attack phase agent - selects targets and weapon configurations.
 /// </summary>
 public class WeaponsAttackAgent : BaseAgent
 {
@@ -12,8 +14,10 @@ public class WeaponsAttackAgent : BaseAgent
     public override string Description => "Specialist in weapons targeting and attack optimization";
 
     protected override string SystemPrompt => """
-        You are a BattleTech tactical AI specializing in weapons targeting. Your goal is to
-        maximize damage output while managing heat and ammunition. Consider:
+        You are a BattleTech tactical AI specializing in weapons targeting.
+        Consider torso rotation if targets are out of arc (WeaponConfigurationCommand).
+        Select best targets and fire weapons (WeaponAttackDeclarationCommand).
+        Consider:
         - Target priority (damaged units, high-value targets)
         - Hit probability vs potential damage
         - Heat generation and shutdown risk
@@ -31,30 +35,19 @@ public class WeaponsAttackAgent : BaseAgent
     {
     }
 
-    public override async Task<DecisionResponse> MakeDecisionAsync(
-        DecisionRequest request,
-        CancellationToken cancellationToken = default)
+    protected override IClientCommand ParseDecision(string responseText, DecisionRequest request)
     {
-        try
+        // TODO: Parse actual JSON response from LLM
+        // TODO: Check if we need torso rotation (WeaponConfigurationCommand) or attack (WeaponAttackDeclarationCommand)
+        
+        // Placeholder: Default to WeaponAttackDeclarationCommand
+        return new WeaponAttackDeclarationCommand
         {
-            Logger.LogInformation("WeaponsAttackAgent making decision for player {PlayerId}", request.PlayerId);
-
-            // TODO: Query MCP Server for weapon targets and game state
-            // var gameState = await McpClient.GetGameStateAsync(request.McpServerUrl, cancellationToken);
-            // var weaponTargets = await McpClient.EvaluateWeaponTargetsAsync(request.McpServerUrl, attackerUnitId, cancellationToken);
-
-            // TODO: Generate decision using LLM
-            // var decision = await LlmProvider.GenerateDecisionAsync(SystemPrompt, userPrompt, cancellationToken);
-
-            // Placeholder response until full implementation
-            return CreateErrorResponse(
-                "AGENT_NOT_IMPLEMENTED",
-                "WeaponsAttackAgent full implementation pending Integration Bot MCP Server");
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in WeaponsAttackAgent decision making");
-            return CreateErrorResponse("AGENT_ERROR", ex.Message);
-        }
+            PlayerId = request.PlayerId,
+            UnitId = Guid.Empty, // From context
+            GameOriginId = Guid.Empty, // From context
+            WeaponTargets = new List<WeaponTargetData>(),
+            IdempotencyKey = Guid.NewGuid()
+        };
     }
 }

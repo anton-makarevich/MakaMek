@@ -1,31 +1,15 @@
+using Microsoft.Extensions.AI;
+
 namespace BotAgent.Services;
 
 /// <summary>
-/// Interface for LLM provider abstraction.
+/// Interface for LLM provider abstraction using Microsoft Agent Framework.
 /// </summary>
 public interface ILlmProvider
 {
     /// <summary>
-    /// Generate a tactical decision using the LLM with structured output.
+    /// Get the ChatClient for creating ChatAgents.
     /// </summary>
-    /// <param name="systemPrompt">System prompt defining agent role and instructions.</param>
-    /// <param name="userPrompt">User prompt with game context and decision request.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>LLM response as structured JSON string.</returns>
-    Task<string> GenerateDecisionAsync(
-        string systemPrompt,
-        string userPrompt,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Generate chain-of-thought reasoning for a decision.
-    /// </summary>
-    /// <param name="systemPrompt">System prompt defining agent role.</param>
-    /// <param name="userPrompt">User prompt with tactical situation.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Reasoning text.</returns>
-    Task<string> GenerateReasoningAsync(
-        string systemPrompt,
-        string userPrompt,
-        CancellationToken cancellationToken = default);
+    /// <returns>Configured IChatClient instance.</returns>
+    IChatClient GetChatClient();
 }

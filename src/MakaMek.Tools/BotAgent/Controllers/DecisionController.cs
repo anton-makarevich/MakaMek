@@ -49,7 +49,6 @@ public class DecisionController : ControllerBase
                 _logger.LogWarning("Invalid request: PlayerId is empty");
                 return BadRequest(new DecisionResponse(
                     Success: false,
-                    CommandType: null,
                     Command: null,
                     Reasoning: null,
                     ErrorType: "INVALID_REQUEST",
@@ -63,7 +62,6 @@ public class DecisionController : ControllerBase
                 _logger.LogWarning("Invalid request: Phase is empty");
                 return BadRequest(new DecisionResponse(
                     Success: false,
-                    CommandType: null,
                     Command: null,
                     Reasoning: null,
                     ErrorType: "INVALID_REQUEST",
@@ -77,7 +75,6 @@ public class DecisionController : ControllerBase
                 _logger.LogWarning("Invalid request: McpServerUrl is empty");
                 return BadRequest(new DecisionResponse(
                     Success: false,
-                    CommandType: null,
                     Command: null,
                     Reasoning: null,
                     ErrorType: "INVALID_REQUEST",
@@ -98,7 +95,6 @@ public class DecisionController : ControllerBase
                 StatusCodes.Status500InternalServerError,
                 new DecisionResponse(
                     Success: false,
-                    CommandType: null,
                     Command: null,
                     Reasoning: null,
                     ErrorType: "INTERNAL_ERROR",

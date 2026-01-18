@@ -1,5 +1,7 @@
 using BotAgent.Models;
 using BotAgent.Services;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Map;
 
 namespace BotAgent.Agents;
 
@@ -13,13 +15,7 @@ public class DeploymentAgent : BaseAgent
 
     protected override string SystemPrompt => """
         You are a BattleTech tactical AI specializing in unit deployment. Your goal is to
-        select deployment positions that maximize tactical advantage while considering:
-        - Distance to enemy units
-        - Terrain cover and elevation
-        - Line of sight to objectives
-        - Support from friendly units
-        - Escape routes and maneuverability
-        
+        select deployment positions that maximize tactical advantage.
         Analyze the available deployment zones and select the best position and facing.
         """;
 
@@ -31,29 +27,19 @@ public class DeploymentAgent : BaseAgent
     {
     }
 
-    public override async Task<DecisionResponse> MakeDecisionAsync(
-        DecisionRequest request,
-        CancellationToken cancellationToken = default)
+    protected override IClientCommand ParseDecision(string responseText, DecisionRequest request)
     {
-        try
+        // TODO: Parse actual JSON response from LLM
+        // This is a placeholder that returns a dummy command
+        
+        return new DeployUnitCommand
         {
-            Logger.LogInformation("DeploymentAgent making decision for player {PlayerId}", request.PlayerId);
-
-            // TODO: Query MCP Server for deployment zones and game state
-            // var gameState = await McpClient.GetGameStateAsync(request.McpServerUrl, cancellationToken);
-
-            // TODO: Generate decision using LLM
-            // var decision = await LlmProvider.GenerateDecisionAsync(SystemPrompt, userPrompt, cancellationToken);
-
-            // Placeholder response until full implementation
-            return CreateErrorResponse(
-                "AGENT_NOT_IMPLEMENTED",
-                "DeploymentAgent full implementation pending Integration Bot MCP Server");
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in DeploymentAgent decision making");
-            return CreateErrorResponse("AGENT_ERROR", ex.Message);
-        }
+            PlayerId = request.PlayerId,
+            UnitId = Guid.Empty, // Would come from LLM/Context
+            GameOriginId = Guid.Empty, // will be set by client game
+            Position = new HexCoordinateData(0, 0),
+            Direction = 0,
+            IdempotencyKey = Guid.NewGuid()
+        };
     }
 }
