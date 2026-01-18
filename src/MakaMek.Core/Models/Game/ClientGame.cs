@@ -81,11 +81,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 break;
             case JoinGameCommand joinGameCommand:
                 OnPlayerJoined(joinGameCommand);
-                var localPlayer = Players.FirstOrDefault(p => p.Id == joinGameCommand.PlayerId);
-                if (localPlayer != null)
-                {
-                    localPlayer.Status = PlayerStatus.Joined;
-                }
                 break;
             case UpdatePlayerStatusCommand statusCommand:
                 OnPlayerStatusUpdated(statusCommand);
