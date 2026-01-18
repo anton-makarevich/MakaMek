@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -12,19 +13,19 @@ public class StartPhase(ServerGame game) : GamePhase(game)
         switch (command)
         {
             case JoinGameCommand joinGameCommand:
-                var broadcastJoinCommand = joinGameCommand;
-                broadcastJoinCommand.GameOriginId = Game.Id;
+                Game.Logger.LogInformation("JoinGameCommand received: {PlayerName}", joinGameCommand.PlayerName);
+                var broadcastJoinCommand = joinGameCommand with { GameOriginId = Game.Id };
                 Game.OnPlayerJoined(joinGameCommand);
                 Game.CommandPublisher.PublishCommand(broadcastJoinCommand);
                 break;
             case UpdatePlayerStatusCommand playerStatusCommand:
-                var broadcastStatusCommand = playerStatusCommand;
-                broadcastStatusCommand.GameOriginId = Game.Id;
+                Game.Logger.LogInformation("UpdatePlayerStatusCommand received: {PlayerId} - {PlayerStatus}", playerStatusCommand.PlayerId, playerStatusCommand.PlayerStatus);
+                var broadcastStatusCommand = playerStatusCommand with { GameOriginId = Game.Id };
                 Game.OnPlayerStatusUpdated(playerStatusCommand);
                 Game.CommandPublisher.PublishCommand(broadcastStatusCommand);
                 TryTransitionToNextPhase();
                 break;
-            case RequestGameLobbyStatusCommand requestCommand:
+            case RequestGameLobbyStatusCommand:
                 // Send information about all currently joined players to the requesting client
                 SendLobbyStatusToClients();
                 break;
@@ -61,7 +62,7 @@ public class StartPhase(ServerGame game) : GamePhase(game)
                 PilotAssignments = pilotAssignments
             };
             
-            // Send directly to the requesting client
+            // Send it to the requesting client
             Game.CommandPublisher.PublishCommand(joinCommand);
         }
     }

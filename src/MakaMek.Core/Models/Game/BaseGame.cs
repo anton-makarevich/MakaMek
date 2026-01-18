@@ -126,6 +126,7 @@ public abstract class BaseGame : IGame
     internal void OnPlayerJoined(JoinGameCommand joinGameCommand)
     {
         if (!ValidateJoinCommand(joinGameCommand)) return;
+        
         var controlType = GetLocalPlayerControlType(joinGameCommand.PlayerId) ?? PlayerControlType.Remote;
         var player = new Player(joinGameCommand.PlayerId,
             joinGameCommand.PlayerName,
@@ -452,9 +453,10 @@ public abstract class BaseGame : IGame
     private bool ValidateJoinCommand(JoinGameCommand joinCommand)
     {
         var existingPlayer = _players.FirstOrDefault(p => p.Id == joinCommand.PlayerId);
-        if (existingPlayer != null) throw new InvalidOperationException("Player already exists");
-        return joinCommand.PlayerId != Guid.Empty && _players.All(p => p.Id != joinCommand.PlayerId);
-}
+        if (existingPlayer == null) return true;
+        Logger.LogInformation("Player {PlayerName} already joined the game.", joinCommand.PlayerName);
+        return false;
+    }
 
     private bool ValidateDeployCommand(DeployUnitCommand deployUnitCommand)
     {

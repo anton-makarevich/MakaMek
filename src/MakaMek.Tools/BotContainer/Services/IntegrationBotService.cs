@@ -36,6 +36,7 @@ public class IntegrationBotService : BackgroundService
     private readonly IBattleMapFactory _mapFactory;
     private readonly IHashService _hashService;
     private readonly ILogger<IntegrationBotService> _logger;
+    private IDisposable? _gameCommandsSubscription;
 
     private ClientGame? _clientGame;
     private IPlayer? _botPlayer;
@@ -80,13 +81,22 @@ public class IntegrationBotService : BackgroundService
     {
         try
         {
+            _logger.LogInformation("Loading units...");
+            _availableUnits = await _unitsLoader.LoadUnits();
+
             _logger.LogInformation("Starting Integration Bot Service...");
-            
             await InitializeConnection();
             
             _logger.LogInformation("Bot Service started and waiting for game events.");
             
-            _availableUnits = await _unitsLoader.LoadUnits();
+            // Request lobby status to update the local state
+            _clientGame?.RequestLobbyStatus(new RequestGameLobbyStatusCommand
+            {
+                GameOriginId = _clientGame.Id
+            });
+            
+            // Join the game
+            JoinGame();
 
             // Keep the service alive
             while (!stoppingToken.IsCancellationRequested)
@@ -113,7 +123,6 @@ public class IntegrationBotService : BackgroundService
 
         var client = await _transportFactory.CreateAndStartClientPublisher(_config.ServerUrl);
         adapter.AddPublisher(client);
-        _commandPublisher.Subscribe(HandleServerCommand);
 
         _clientGame = _gameFactory.CreateClientGame(
             _rulesProvider,
@@ -128,24 +137,17 @@ public class IntegrationBotService : BackgroundService
 
         _botManager.Initialize(_clientGame);
         
-        // Request lobby status to update the local state
-        _clientGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand
-        {
-            GameOriginId = _clientGame.Id
-        });
+        _gameCommandsSubscription = _clientGame.Commands
+            .Subscribe(HandleGameCommand);
     }
 
-    private void HandleServerCommand(IGameCommand command)
+    private void HandleGameCommand(IGameCommand command)
     {
+        if (command.GameOriginId == _clientGame?.Id) return;
         try
         {
             switch (command)
             {
-                case RequestGameLobbyStatusCommand:
-                    // When we receive lobby status, join the game
-                    _logger.LogInformation("Received lobby status. Joining game...");
-                    JoinGame();
-                    break;
                 case JoinGameCommand joinCmd:
                     // Log other players joining
                     if (joinCmd.PlayerId != _botPlayer?.Id)
@@ -205,14 +207,8 @@ public class IntegrationBotService : BackgroundService
                         u.Model.Contains(cfg, StringComparison.OrdinalIgnoreCase)).ToList();
                     if (matchingUnits.Count != 0)
                     {
-                        units.Add(matchingUnits.First());
+                        units.Add(matchingUnits.First() with { Id = Guid.NewGuid() });
                     }
-                }
-
-                // Fallback if no specific matches
-                if (units.Count == 0)
-                {
-                    units.AddRange(_availableUnits.Take(_config.Units.Count > 0 ? _config.Units.Count : 1));
                 }
             }
 
@@ -226,7 +222,7 @@ public class IntegrationBotService : BackgroundService
 
                 pilotAssignments.Add(new PilotAssignmentData
                 {
-                    UnitId = unit.Id ?? Guid.NewGuid(),
+                    UnitId = unit.Id.Value,
                     PilotData = PilotData.CreateDefaultPilot("BotPilot", _botPlayer.Id.ToString())
                 });
             }
@@ -250,5 +246,16 @@ public class IntegrationBotService : BackgroundService
             PlayerStatus = PlayerStatus.Ready
         };
         _clientGame.SetPlayerReady(readyCommand);
+    }
+    
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Stopping Integration Bot Service...");
+        _gameCommandsSubscription?.Dispose();
+        _gameCommandsSubscription = null;
+        _clientGame?.Dispose();
+        _clientGame = null;
+        _botPlayer = null;
+        await base.StopAsync(cancellationToken);
     }
 }
