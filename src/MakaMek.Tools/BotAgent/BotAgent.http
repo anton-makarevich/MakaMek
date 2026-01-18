@@ -1,0 +1,6 @@
+@BotAgent_HostAddress = http://localhost:5244
+
+GET {{BotAgent_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
