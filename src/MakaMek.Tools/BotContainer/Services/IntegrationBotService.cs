@@ -39,6 +39,8 @@ public class IntegrationBotService : BackgroundService
 
     private ClientGame? _clientGame;
     private IPlayer? _botPlayer;
+    
+    private List<UnitData> _availableUnits = [];
 
     public IntegrationBotService(
         IOptions<BotConfiguration> config,
@@ -84,6 +86,8 @@ public class IntegrationBotService : BackgroundService
             
             _logger.LogInformation("Bot Service started and waiting for game events.");
             
+            _availableUnits = await _unitsLoader.LoadUnits();
+
             // Keep the service alive
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -137,7 +141,7 @@ public class IntegrationBotService : BackgroundService
         {
             switch (command)
             {
-                case RequestGameLobbyStatusCommand lobbyCmd:
+                case RequestGameLobbyStatusCommand:
                     // When we receive lobby status, join the game
                     _logger.LogInformation("Received lobby status. Joining game...");
                     JoinGame();
@@ -172,7 +176,7 @@ public class IntegrationBotService : BackgroundService
         }
     }
 
-    private async void JoinGame()
+    private void JoinGame()
     {
         try
         {
@@ -191,33 +195,40 @@ public class IntegrationBotService : BackgroundService
             var units = new List<UnitData>();
             var pilotAssignments = new List<PilotAssignmentData>();
 
-            var availableUnits = await _unitsLoader.LoadUnits();
-            if (availableUnits.Count != 0)
+            if (_availableUnits.Count != 0)
             {
-                 // Pick based on config names if possible, else random
-                 foreach(var cfg in _config.Units)
-                 {
-                     var matchingUnits = availableUnits.Where(u => u.Chassis.Contains(cfg, StringComparison.OrdinalIgnoreCase) || u.Model.Contains(cfg, StringComparison.OrdinalIgnoreCase)).ToList();
-                     if (matchingUnits.Count != 0)
-                     {
-                         units.Add(matchingUnits.First());
-                     }
-                 }
-                 
-                 // Fallback if no specific matches
-                 if (units.Count == 0)
-                 {
-                     units.AddRange(availableUnits.Take(_config.Units.Count > 0 ? _config.Units.Count : 1));
-                 }
+                // Pick based on config names if possible, else random
+                foreach (var cfg in _config.Units)
+                {
+                    var matchingUnits = _availableUnits.Where(u =>
+                        u.Chassis.Contains(cfg, StringComparison.OrdinalIgnoreCase) ||
+                        u.Model.Contains(cfg, StringComparison.OrdinalIgnoreCase)).ToList();
+                    if (matchingUnits.Count != 0)
+                    {
+                        units.Add(matchingUnits.First());
+                    }
+                }
+
+                // Fallback if no specific matches
+                if (units.Count == 0)
+                {
+                    units.AddRange(_availableUnits.Take(_config.Units.Count > 0 ? _config.Units.Count : 1));
+                }
             }
-            
+
             foreach (var unit in units)
             {
-                 pilotAssignments.Add(new PilotAssignmentData
-                 {
-                     UnitId = unit.Id ?? Guid.NewGuid(),
-                     PilotData = PilotData.CreateDefaultPilot("BotPilot", _botPlayer.Id.ToString())
-                 });
+                if (unit.Id == null || unit.Id == Guid.Empty)
+                {
+                    _logger.LogWarning("Unit {UnitModel} has no ID. Generating a new one.", unit.Model);
+                    continue;
+                }
+
+                pilotAssignments.Add(new PilotAssignmentData
+                {
+                    UnitId = unit.Id ?? Guid.NewGuid(),
+                    PilotData = PilotData.CreateDefaultPilot("BotPilot", _botPlayer.Id.ToString())
+                });
             }
 
             _clientGame?.JoinGameWithUnits(_botPlayer, units, pilotAssignments);
