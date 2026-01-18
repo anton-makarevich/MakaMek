@@ -43,46 +43,6 @@ public class DecisionController : ControllerBase
 
         try
         {
-            // Validate request
-            if (request.PlayerId == Guid.Empty)
-            {
-                _logger.LogWarning("Invalid request: PlayerId is empty");
-                return BadRequest(new DecisionResponse(
-                    Success: false,
-                    Command: null,
-                    Reasoning: null,
-                    ErrorType: "INVALID_REQUEST",
-                    ErrorMessage: "PlayerId cannot be empty",
-                    FallbackRequired: true
-                ));
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Phase))
-            {
-                _logger.LogWarning("Invalid request: Phase is empty");
-                return BadRequest(new DecisionResponse(
-                    Success: false,
-                    Command: null,
-                    Reasoning: null,
-                    ErrorType: "INVALID_REQUEST",
-                    ErrorMessage: "Phase cannot be empty",
-                    FallbackRequired: true
-                ));
-            }
-
-            if (string.IsNullOrWhiteSpace(request.McpServerUrl))
-            {
-                _logger.LogWarning("Invalid request: McpServerUrl is empty");
-                return BadRequest(new DecisionResponse(
-                    Success: false,
-                    Command: null,
-                    Reasoning: null,
-                    ErrorType: "INVALID_REQUEST",
-                    ErrorMessage: "McpServerUrl cannot be empty",
-                    FallbackRequired: true
-                ));
-            }
-
             // Process decision
             var response = await _orchestrator.ProcessDecisionAsync(request, cancellationToken);
 

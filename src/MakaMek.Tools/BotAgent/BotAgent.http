@@ -1,6 +1,19 @@
 @BotAgent_HostAddress = http://localhost:5244
 
-GET {{BotAgent_HostAddress}}/weatherforecast/
+GET {{BotAgent_HostAddress}}/health
 Accept: application/json
+
+###
+
+POST {{BotAgent_HostAddress}}/decision
+Accept: application/json
+Content-Type: application/json
+
+{
+  "playerId": "00000000-0000-0000-0000-000000000000",
+  "phase": "Deployment",
+  "mcpServerUrl": "http://localhost:5000/mcp",
+  "timeout": 30000
+}
 
 ###
