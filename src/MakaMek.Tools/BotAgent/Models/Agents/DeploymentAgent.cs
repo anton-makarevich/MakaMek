@@ -1,8 +1,8 @@
-using BotAgent.Models;
+using BotAgent.Models.Agents.Outputs;
 using BotAgent.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
-namespace BotAgent.Agents;
+namespace BotAgent.Models.Agents;
 
 /// <summary>
 /// Deployment phase agent - selects optimal deployment position and facing for units.
@@ -11,7 +11,6 @@ namespace BotAgent.Agents;
 public class DeploymentAgent : BaseAgent
 {
     public override string Name => "DeploymentAgent";
-    public override string Description => "Specialist in unit deployment and initial positioning";
 
     protected override string SystemPrompt => """
         You are a BattleTech tactical AI specializing in unit deployment. Your role is to select

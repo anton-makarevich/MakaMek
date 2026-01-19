@@ -1,10 +1,10 @@
 using Sanet.MakaMek.Core.Data.Map;
 
-namespace BotAgent.Models;
+namespace BotAgent.Models.Agents.Outputs;
 
 /// <summary>
 /// Structured output from DeploymentAgent LLM decision.
-/// This record is used with ChatClientAgent.RunAsync<T> for type-safe structured output.
+/// This record is used with MAF structured output for type-safe structured output.
 /// </summary>
 public record DeploymentAgentOutput
 {

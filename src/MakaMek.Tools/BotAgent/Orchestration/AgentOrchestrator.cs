@@ -1,5 +1,5 @@
-using BotAgent.Agents;
 using BotAgent.Models;
+using BotAgent.Models.Agents;
 
 namespace BotAgent.Orchestration;
 

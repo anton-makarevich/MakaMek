@@ -1,6 +1,6 @@
 using BotAgent.Services;
 
-namespace BotAgent.Agents;
+namespace BotAgent.Models.Agents;
 
 /// <summary>
 /// End phase agent - manages shutdown and startup decisions, ends turn.
@@ -8,7 +8,6 @@ namespace BotAgent.Agents;
 public class EndPhaseAgent : BaseAgent
 {
     public override string Name => "EndPhaseAgent";
-    public override string Description => "Specialist in heat management and end phase decisions";
 
     protected override string SystemPrompt => """
         You are a BattleTech tactical AI specializing in end phase decisions.

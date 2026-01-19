@@ -1,6 +1,6 @@
 using BotAgent.Services;
 
-namespace BotAgent.Agents;
+namespace BotAgent.Models.Agents;
 
 /// <summary>
 /// Weapons attack phase agent - selects targets and weapon configurations.
@@ -8,7 +8,6 @@ namespace BotAgent.Agents;
 public class WeaponsAttackAgent : BaseAgent
 {
     public override string Name => "WeaponsAttackAgent";
-    public override string Description => "Specialist in weapons targeting and attack optimization";
 
     protected override string SystemPrompt => """
         You are a BattleTech tactical AI specializing in weapons targeting.

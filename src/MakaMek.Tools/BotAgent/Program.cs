@@ -1,5 +1,5 @@
-using BotAgent.Agents;
 using BotAgent.Configuration;
+using BotAgent.Models.Agents;
 using BotAgent.Orchestration;
 using BotAgent.Services;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;

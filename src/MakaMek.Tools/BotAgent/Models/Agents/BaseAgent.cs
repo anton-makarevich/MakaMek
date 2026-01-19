@@ -1,9 +1,8 @@
 using System.Text;
-using BotAgent.Models;
 using BotAgent.Services;
 using Microsoft.Agents.AI;
 
-namespace BotAgent.Agents;
+namespace BotAgent.Models.Agents;
 
 /// <summary>
 /// Abstract base class for all specialized agents using Microsoft Agent Framework.
@@ -15,7 +14,6 @@ public abstract class BaseAgent : ISpecializedAgent
     protected McpClientService McpClient { get; init; }
 
     public abstract string Name { get; }
-    public abstract string Description { get; }
     protected abstract string SystemPrompt { get; }
 
     protected BaseAgent(
@@ -81,7 +79,7 @@ public abstract class BaseAgent : ISpecializedAgent
         sb.AppendLine();
 
         // Add controlled units information
-        if (request.ControlledUnits != null && request.ControlledUnits.Count > 0)
+        if (request.ControlledUnits.Count > 0)
         {
             sb.AppendLine("YOUR UNITS:");
             foreach (var unit in request.ControlledUnits)
@@ -95,7 +93,7 @@ public abstract class BaseAgent : ISpecializedAgent
         }
 
         // Add enemy units information
-        if (request.EnemyUnits != null && request.EnemyUnits.Count > 0)
+        if (request.EnemyUnits.Count > 0)
         {
             sb.AppendLine("ENEMY UNITS:");
             foreach (var enemy in request.EnemyUnits)
@@ -107,7 +105,7 @@ public abstract class BaseAgent : ISpecializedAgent
             sb.AppendLine();
         }
 
-        // Add specific unit to deploy if specified
+        // Add a specific unit to deploy if specified
         if (request.UnitToAct.HasValue)
         {
             sb.AppendLine($"DEPLOY UNIT: {request.UnitToAct.Value}");
