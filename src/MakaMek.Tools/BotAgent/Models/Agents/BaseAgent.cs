@@ -24,7 +24,6 @@ public abstract class BaseAgent : ISpecializedAgent
         McpClient = mcpClient;
         Logger = logger;
 
-        // CRITICAL: Must be ChatClientAgent for structured output support
         Agent = new ChatClientAgent(
             chatClient: llmProvider.GetChatClient(),
             instructions: SystemPrompt
@@ -35,44 +34,17 @@ public abstract class BaseAgent : ISpecializedAgent
     /// Make a decision using the agent. Can be overridden by specialized agents
     /// that use structured output.
     /// </summary>
-    public virtual async Task<DecisionResponse> MakeDecisionAsync(
+    public virtual Task<DecisionResponse> MakeDecisionAsync(
         DecisionRequest request,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            Logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
-
-            // Build user prompt with game context from DecisionRequest
-            var userPrompt = BuildUserPrompt(request);
-
-            // Run agent (basic RunAsync, not structured)
-            var response = await Agent.RunAsync(userPrompt, cancellationToken: cancellationToken);
-
-            var responseText = response.ToString();
-
-            Logger.LogInformation("{AgentName} received response", Name);
-
-            return new DecisionResponse(
-                Success: true,
-                Command: null, // Will be set by specialized agents
-                Reasoning: responseText,
-                ErrorType: null,
-                ErrorMessage: null,
-                FallbackRequired: false
-            );
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in {AgentName} decision making", Name);
-            return CreateErrorResponse("AGENT_ERROR", ex.Message);
-        }
+        return Task.FromResult(CreateErrorResponse("NOT_IMPLEMENTED", "Not implemented"));
     }
 
     /// <summary>
     /// Build user prompt with game context. Can be overridden by specialized agents.
     /// </summary>
-    protected virtual string BuildUserPrompt(DecisionRequest request)
+    protected string BuildUserPrompt(DecisionRequest request)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"Make a tactical decision for player {request.PlayerId} in phase {request.Phase}.");

@@ -6,7 +6,7 @@ namespace BotAgent.Models.Agents;
 
 /// <summary>
 /// Deployment phase agent - selects optimal deployment position and facing for units.
-/// Uses Microsoft Agent Framework's structured output (RunAsync<T>) for type-safe decisions.
+/// Uses Microsoft Agent Framework's structured output for type-safe decisions.
 /// </summary>
 public class DeploymentAgent : BaseAgent
 {
@@ -77,7 +77,7 @@ public class DeploymentAgent : BaseAgent
             // Build user prompt with game context from DecisionRequest
             var userPrompt = BuildUserPrompt(request);
 
-            // Run agent with structured output using MAF
+            // Run agent with structured output 
             var structuredResponse = await Agent.RunAsync<DeploymentAgentOutput>(
                 userPrompt, 
                 cancellationToken: cancellationToken);
@@ -120,7 +120,7 @@ public class DeploymentAgent : BaseAgent
         }
 
         // Validate direction range
-        if (output.Direction < 0 || output.Direction > 5)
+        if (output.Direction is < 0 or > 5)
         {
             Logger.LogError("Invalid direction in LLM output: {Direction}", output.Direction);
             throw new InvalidOperationException("INVALID_DIRECTION");
