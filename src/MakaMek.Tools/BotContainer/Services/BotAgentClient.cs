@@ -34,41 +34,25 @@ public class BotAgentClient
     /// <summary>
     /// Request a tactical decision from the BotAgent API.
     /// </summary>
-    /// <param name="playerId">The player ID requesting the decision.</param>
-    /// <param name="phase">The current game phase.</param>
-    /// <param name="mcpServerUrl">The URL of the MCP server for game state queries.</param>
-    /// <param name="timeout">Request timeout in milliseconds.</param>
+    /// <param name="request">The decision request containing game state and context</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Decision response from the agent.</returns>
     public async Task<DecisionResponse> RequestDecisionAsync(
-        Guid playerId,
-        string phase,
-        string mcpServerUrl,
-        int? timeout = 30000,
+        DecisionRequest request,
         CancellationToken cancellationToken = default)
     {
-        // Resolve effective timeout - use configured timeout when default is passed
-        var effectiveTimeout = timeout ?? _config.Timeout;
-
         try
         {
-            var request = new DecisionRequest(
-                PlayerId: playerId,
-                Phase: phase,
-                McpServerUrl: mcpServerUrl,
-                Timeout: effectiveTimeout
-            );
-
             _logger.LogInformation(
                 "Requesting decision from BotAgent for player {PlayerId} in phase {Phase}",
-                playerId,
-                phase);
+                request.PlayerId,
+                request.Phase);
 
             var requestJson = JsonSerializer.Serialize(request, _jsonOptions);
             var content = new StringContent(requestJson, System.Text.Encoding.UTF8, "application/json");
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(TimeSpan.FromMilliseconds(effectiveTimeout + 5000)); // Add 5s buffer
+            cts.CancelAfter(TimeSpan.FromMilliseconds(request.Timeout + 5000)); // Add 5s buffer
 
             using var response = await _httpClient.PostAsync(
                 $"{_config.ApiUrl}/api/decision",

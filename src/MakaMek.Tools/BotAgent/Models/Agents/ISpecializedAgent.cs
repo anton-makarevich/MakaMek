@@ -1,6 +1,4 @@
-using BotAgent.Models;
-
-namespace BotAgent.Agents;
+namespace BotAgent.Models.Agents;
 
 /// <summary>
 /// Interface for specialized agents that handle specific game phases.

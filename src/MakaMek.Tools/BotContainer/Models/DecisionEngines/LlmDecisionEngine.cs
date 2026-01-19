@@ -4,6 +4,8 @@ using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using BotAgent.Models;
+using Sanet.MakaMek.Core.Data.Units;
 
 namespace MakaMek.Tools.BotContainer.Models.DecisionEngines;
 
@@ -47,11 +49,11 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
                 GetType().Name,
                 player.Name);
 
+            // Create decision request with game state
+            var request = CreateDecisionRequest(player, turnState);
+
             // Request decision from BotAgent
-            var response = await _botAgentClient.RequestDecisionAsync(
-                playerId: player.Id,
-                phase: PhaseName,
-                mcpServerUrl: _mcpServerUrl);
+            var response = await _botAgentClient.RequestDecisionAsync(request);
 
             // Check if we should use fallback
             if (!response.Success || response.FallbackRequired || response.Command == null)
@@ -97,6 +99,43 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
 
             await FallbackEngine.MakeDecision(player, turnState);
         }
+    }
+
+    /// <summary>
+    /// Creates a DecisionRequest with game state for the BotAgent.
+    /// Can be overridden by derived classes to add phase-specific data.
+    /// </summary>
+    /// <param name="player">The player making the decision</param>
+    /// <param name="turnState">The current turn state</param>
+    /// <returns>A populated DecisionRequest</returns>
+    protected virtual DecisionRequest CreateDecisionRequest(IPlayer player, ITurnState? turnState)
+    {
+        // Get controlled units (player's units)
+        var controlledUnits = ClientGame.Players
+            .Where(p => p.Id == player.Id)
+            .SelectMany(p => p.Units)
+            .Select(u => u.ToData())
+            .ToList();
+
+        // Get enemy units (other players' units)
+        var enemyUnits = ClientGame.Players
+            .Where(p => p.Id != player.Id)
+            .SelectMany(p => p.Units)
+            .Select(u => u.ToData())
+            .ToList();
+
+        // Get specific unit to act (from turn state if available)
+        var unitToAct = turnState?.PhaseActiveUnitId;
+
+        return new DecisionRequest(
+            PlayerId: player.Id,
+            Phase: PhaseName,
+            McpServerUrl: _mcpServerUrl,
+            Timeout: 30000,
+            ControlledUnits: controlledUnits,
+            EnemyUnits: enemyUnits,
+            UnitToAct: unitToAct
+        );
     }
 
     /// <summary>
