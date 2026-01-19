@@ -3,9 +3,9 @@ using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using BotAgent.Models;
+using Sanet.MakaMek.Core.Data.Units;
 
 namespace MakaMek.Tools.BotContainer.Models.DecisionEngines;
 
@@ -125,7 +125,7 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
             .ToList();
 
         // Get specific unit to act (from turn state if available)
-        var unitToAct = turnState?.ActiveUnitId;
+        var unitToAct = turnState?.PhaseActiveUnitId;
 
         return new DecisionRequest(
             PlayerId: player.Id,
