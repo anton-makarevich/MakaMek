@@ -84,7 +84,7 @@ public abstract class BaseAgent : ISpecializedAgent
             sb.AppendLine();
         }
 
-        sb.AppendLine("Select the best deployment position and facing direction based on tactical principles.");
+        sb.AppendLine($"Select the best action for the {request.Phase} phase based on tactical principles.");
 
         return sb.ToString();
     }
