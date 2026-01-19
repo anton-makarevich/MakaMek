@@ -44,16 +44,19 @@ public class BotAgentClient
         Guid playerId,
         string phase,
         string mcpServerUrl,
-        int timeout = 30000,
+        int? timeout = 30000,
         CancellationToken cancellationToken = default)
     {
+        // Resolve effective timeout - use configured timeout when default is passed
+        var effectiveTimeout = timeout ?? _config.Timeout;
+
         try
         {
             var request = new DecisionRequest(
                 PlayerId: playerId,
                 Phase: phase,
                 McpServerUrl: mcpServerUrl,
-                Timeout: timeout
+                Timeout: effectiveTimeout
             );
 
             _logger.LogInformation(
@@ -65,9 +68,9 @@ public class BotAgentClient
             var content = new StringContent(requestJson, System.Text.Encoding.UTF8, "application/json");
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(TimeSpan.FromMilliseconds(timeout + 5000)); // Add 5s buffer
+            cts.CancelAfter(TimeSpan.FromMilliseconds(effectiveTimeout + 5000)); // Add 5s buffer
 
-            var response = await _httpClient.PostAsync(
+            using var response = await _httpClient.PostAsync(
                 $"{_config.ApiUrl}/api/decision",
                 content,
                 cts.Token);
@@ -88,7 +91,7 @@ public class BotAgentClient
                 );
             }
 
-            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            var responseJson = await response.Content.ReadAsStringAsync(cts.Token);
             var decisionResponse = JsonSerializer.Deserialize<DecisionResponse>(responseJson, _jsonOptions);
 
             if (decisionResponse == null)
