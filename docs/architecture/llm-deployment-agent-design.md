@@ -147,9 +147,7 @@ The agent needs access to:
 
 ## 3. Design Decisions
 
-### 3.1 DecisionRequest Enhancement
-
-### 3.2 MCP Tools Design
+### 3.1 MCP Tools Design
 
 **Approach**: Implement a core MCP tool for deployment decisions
 
@@ -191,12 +189,12 @@ Agent = new ChatClientAgent(
     chatClient: llmProvider.GetChatClient(),
     instructions: SystemPrompt,
     tools: new[] {
-        GetDeploymentZonesTool()
+        GetDeploymentZonesTool() // next phase, no tools in initial implemtation
     }
 );
 ```
 
-### 3.3 Structured Output Strategy
+### 3.2 Structured Output Strategy
 
 **Approach**: Use Microsoft Agent Framework's `RunAsync<T>` for type-safe structured output
 
@@ -306,7 +304,7 @@ private DecisionResponse MapToDecisionResponse(
 }
 ```
 
-### 3.4 Enhanced System Prompt
+### 3.3 Enhanced System Prompt
 
 **Approach**: Comprehensive prompt with tactical guidance and output specification
 
@@ -543,7 +541,7 @@ public class DeploymentAgent : BaseAgent
             GameOriginId = Guid.Empty, // Will be set by ClientGame
             Position = output.Position,
             Direction = output.Direction,
-            IdempotencyKey = Guid.NewGuid()
+            IdempotencyKey = null // Will be set by ClientGame
         };
 
         Logger.LogInformation(
@@ -902,9 +900,9 @@ Before creating `DeployUnitCommand`, validate:
 
 ---
 
-## 10. Summary and Next Steps
+## 9. Summary and Next Steps
 
-### 10.1 Summary
+### 9.1 Summary
 
 This design document provides a complete specification for implementing LLM-based deployment decisions in the MakaMek bot system using **Microsoft Agent Framework's structured output feature**. Key achievements:
 
@@ -932,7 +930,7 @@ This design document provides a complete specification for implementing LLM-base
 - [ ] Write integration tests for structured output flow
 - [ ] Manual testing with real LLM
 
-### 10.3 Success Criteria
+### 9.3 Success Criteria
 
 The implementation is successful when:
 1. ✅ DeploymentAgent receives game state in DecisionRequest
