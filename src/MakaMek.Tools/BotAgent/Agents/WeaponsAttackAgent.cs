@@ -1,7 +1,4 @@
-using BotAgent.Models;
 using BotAgent.Services;
-using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
 namespace BotAgent.Agents;
 
@@ -33,21 +30,5 @@ public class WeaponsAttackAgent : BaseAgent
         ILogger<WeaponsAttackAgent> logger)
         : base(llmProvider, mcpClient, logger)
     {
-    }
-
-    protected override IClientCommand ParseDecision(string responseText, DecisionRequest request)
-    {
-        // TODO: Parse actual JSON response from LLM
-        // TODO: Check if we need torso rotation (WeaponConfigurationCommand) or attack (WeaponAttackDeclarationCommand)
-        
-        // Placeholder: Default to WeaponAttackDeclarationCommand
-        return new WeaponAttackDeclarationCommand
-        {
-            PlayerId = request.PlayerId,
-            UnitId = Guid.Empty, // From context
-            GameOriginId = Guid.Empty, // From context
-            WeaponTargets = new List<WeaponTargetData>(),
-            IdempotencyKey = Guid.NewGuid()
-        };
     }
 }
