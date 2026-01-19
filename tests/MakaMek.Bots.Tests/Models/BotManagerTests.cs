@@ -2,6 +2,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using NSubstitute;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -11,16 +12,13 @@ namespace Sanet.MakaMek.Bots.Tests.Models;
 
 public class BotManagerTests : IDisposable
 {
-    private readonly BotManager _sut;
-    private readonly IClientGame _clientGame;
-    private readonly Subject<IGameCommand> _commandSubject;
+    private readonly BotManager _sut = new();
+    private readonly IClientGame _clientGame = Substitute.For<IClientGame>();
+    private readonly Subject<IGameCommand> _commandSubject = new();
+    private readonly IDecisionEngineProvider _decisionEngineProvider = Substitute.For<IDecisionEngineProvider>();
 
     public BotManagerTests()
     {
-        _sut = new BotManager();
-        _clientGame = Substitute.For<IClientGame>();
-        _commandSubject = new Subject<IGameCommand>();
-        
         _clientGame.Commands.Returns(_commandSubject.AsObservable());
         _clientGame.Id.Returns(Guid.NewGuid());
     }
@@ -29,7 +27,7 @@ public class BotManagerTests : IDisposable
     public void Initialize_ShouldSetClientGame()
     {
         // Act
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         
         // Assert
         _sut.Bots.ShouldBeEmpty();
@@ -40,13 +38,13 @@ public class BotManagerTests : IDisposable
     public void Initialize_ShouldClearExistingBots()
     {
         // Arrange
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         var player = CreateBotPlayer();
         _sut.AddBot(player);
         _sut.Bots.Count.ShouldBe(1);
         
         // Act
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         
         // Assert
         _sut.Bots.ShouldBeEmpty();
@@ -67,7 +65,7 @@ public class BotManagerTests : IDisposable
     public void AddBot_WhenPlayerIsNotBot_ShouldThrowArgumentException()
     {
         // Arrange
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         var player = CreateHumanPlayer();
         
         // Act & Assert
@@ -79,7 +77,7 @@ public class BotManagerTests : IDisposable
     public void AddBot_WhenValidBotPlayer_ShouldAddToCollection()
     {
         // Arrange
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         var player = CreateBotPlayer();
 
         // Act
@@ -94,7 +92,7 @@ public class BotManagerTests : IDisposable
     public void IsBot_WhenPlayerIsBot_ShouldReturnTrue()
     {
         // Arrange
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         var player = CreateBotPlayer();
         _sut.AddBot(player);
         
@@ -109,7 +107,7 @@ public class BotManagerTests : IDisposable
     public void IsBot_WhenPlayerIsNotBot_ShouldReturnFalse()
     {
         // Arrange
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         var playerId = Guid.NewGuid();
         
         // Act
@@ -123,7 +121,7 @@ public class BotManagerTests : IDisposable
     public void RemoveBot_WhenBotExists_ShouldRemoveFromCollection()
     {
         // Arrange
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         var player = CreateBotPlayer();
         _sut.AddBot(player);
         _sut.Bots.Count.ShouldBe(1);
@@ -140,7 +138,7 @@ public class BotManagerTests : IDisposable
     public void RemoveBot_WhenBotDoesNotExist_ShouldNotThrow()
     {
         // Arrange
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         var playerId = Guid.NewGuid();
         
         // Act & Assert
@@ -151,7 +149,7 @@ public class BotManagerTests : IDisposable
     public void Clear_ShouldRemoveAllBots()
     {
         // Arrange
-        _sut.Initialize(_clientGame);
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         var player1 = CreateBotPlayer();
         var player2 = CreateBotPlayer();
         _sut.AddBot(player1);
@@ -166,14 +164,13 @@ public class BotManagerTests : IDisposable
     }
     
     [Fact]
-    public void Initialize_ShouldRecreateDecisionEngineProvider()
+    public void Initialize_ShouldSetDecisionEngineProvider()
     {
-        _sut.Initialize(_clientGame);
-        var originalProvider = _sut.DecisionEngineProvider;
+        // Act
+        _sut.Initialize(_clientGame, _decisionEngineProvider);
         
-        _sut.Initialize(_clientGame);
-        
-        _sut.DecisionEngineProvider.ShouldNotBeSameAs(originalProvider);
+        // Assert
+        _sut.DecisionEngineProvider.ShouldBe(_decisionEngineProvider);
     }
 
     private static IPlayer CreateBotPlayer()

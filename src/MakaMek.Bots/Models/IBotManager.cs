@@ -15,10 +15,11 @@ public interface IBotManager
     IReadOnlyList<IBot> Bots { get; }
 
     /// <summary>
-    /// Initializes the bot manager with a client game instance
+    /// Initializes the bot manager with a client game instance and decision engine provider
     /// </summary>
     /// <param name="clientGame">The client game to manage bots for</param>
-    void Initialize(IClientGame clientGame);
+    /// <param name="decisionEngineProvider">The decision engine provider to use for bot decision-making</param>
+    void Initialize(IClientGame clientGame, IDecisionEngineProvider decisionEngineProvider);
 
     /// <summary>
     /// Adds a new bot player to the game

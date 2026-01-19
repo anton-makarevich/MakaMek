@@ -15,15 +15,13 @@ public class BotManager : IBotManager
 
     public IReadOnlyList<IBot> Bots => _bots.Values.ToList();
 
-    public void Initialize(IClientGame clientGame)
+    public void Initialize(IClientGame clientGame, IDecisionEngineProvider decisionEngineProvider)
     {
         // Clean up existing bots if reinitializing
         Clear();
 
         ClientGame = clientGame;
-        
-        // Create shared decision engine provider for all bots
-        DecisionEngineProvider = new DecisionEngineProvider(clientGame);
+        DecisionEngineProvider = decisionEngineProvider;
     }
 
     public void AddBot(IPlayer player)

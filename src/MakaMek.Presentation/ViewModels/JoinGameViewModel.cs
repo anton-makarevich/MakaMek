@@ -2,6 +2,7 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -185,8 +186,9 @@ public class JoinGameViewModel : NewGameViewModel
 
             _localGame.Logger.LogAttemptedToConnectToServerIp(ServerIp);
             
-            // Initialize BotManager with the ClientGame
-            _botManager.Initialize(_localGame);
+            // Initialize BotManager with the ClientGame and DecisionEngineProvider
+            var decisionEngineProvider = new DecisionEngineProvider(_localGame);
+            _botManager.Initialize(_localGame, decisionEngineProvider);
 
             IsConnected = true;
             _localGame.RequestLobbyStatus(new RequestGameLobbyStatusCommand

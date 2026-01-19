@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
 using MakaMek.Tools.BotContainer.Configuration;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -36,6 +38,10 @@ public class IntegrationBotService : BackgroundService
     private readonly IBattleMapFactory _mapFactory;
     private readonly IHashService _hashService;
     private readonly ILogger<IntegrationBotService> _logger;
+    private readonly BotAgentClient _botAgentClient;
+    private readonly IOptions<BotAgentConfiguration> _botAgentConfig;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly IServer _server;
     private IDisposable? _gameCommandsSubscription;
 
     private ClientGame? _clientGame;
@@ -58,7 +64,11 @@ public class IntegrationBotService : BackgroundService
         IHeatEffectsCalculator heatEffectsCalculator,
         IBattleMapFactory mapFactory,
         IHashService hashService,
-        ILogger<IntegrationBotService> logger)
+        ILogger<IntegrationBotService> logger,
+        BotAgentClient botAgentClient,
+        IOptions<BotAgentConfiguration> botAgentConfig,
+        ILoggerFactory loggerFactory,
+        IServer server)
     {
         _config = config.Value;
         _transportFactory = transportFactory;
@@ -75,6 +85,10 @@ public class IntegrationBotService : BackgroundService
         _mapFactory = mapFactory;
         _hashService = hashService;
         _logger = logger;
+        _botAgentClient = botAgentClient;
+        _botAgentConfig = botAgentConfig;
+        _loggerFactory = loggerFactory;
+        _server = server;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -135,7 +149,17 @@ public class IntegrationBotService : BackgroundService
             _mapFactory,
             _hashService);
 
-        _botManager.Initialize(_clientGame);
+        // Initialize BotManager with LLM-enabled DecisionEngineProvider
+        var mcpServerUrl = ConstructMcpServerUrl();
+        _logger.LogInformation("Using MCP server URL: {McpServerUrl}", mcpServerUrl);
+        
+        var decisionEngineProvider = new LlmDecisionEngineProvider(
+            _clientGame,
+            _botAgentClient,
+            _botAgentConfig,
+            mcpServerUrl,
+            _loggerFactory);
+        _botManager.Initialize(_clientGame, decisionEngineProvider);
         
         _gameCommandsSubscription = _clientGame.Commands
             .Subscribe(HandleGameCommand);
@@ -257,5 +281,24 @@ public class IntegrationBotService : BackgroundService
         _clientGame = null;
         _botPlayer = null;
         await base.StopAsync(cancellationToken);
+    }
+
+    private string ConstructMcpServerUrl()
+    {
+        var addresses = _server.Features.Get<IServerAddressesFeature>()?.Addresses;
+        if (addresses == null || !addresses.Any())
+        {
+            _logger.LogWarning("No server addresses found, falling back to localhost:5000");
+            return "http://localhost:5000/mcp";
+        }
+
+        // Prefer HTTP over HTTPS, and prefer non-loopback addresses
+        var preferredAddress = addresses
+            .Where(addr => addr.StartsWith("http://"))
+            .FirstOrDefault(addr => !addr.Contains("localhost") && !addr.Contains("127.0.0.1"))
+            ?? addresses.FirstOrDefault(addr => addr.StartsWith("http://"))
+            ?? addresses.First();
+
+        return $"{preferredAddress.TrimEnd('/')}/mcp";
     }
 }

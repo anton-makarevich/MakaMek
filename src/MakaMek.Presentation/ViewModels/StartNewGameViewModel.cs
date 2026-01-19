@@ -2,6 +2,7 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
@@ -79,8 +80,9 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             _mapFactory,
             _hashService);
 
-        // Initialize BotManager with the ClientGame
-        _botManager.Initialize(_localGame);
+        // Initialize BotManager with the ClientGame and DecisionEngineProvider
+        var decisionEngineProvider = new DecisionEngineProvider(_localGame);
+        _botManager.Initialize(_localGame, decisionEngineProvider);
 
         // Update server IP initially if needed
         NotifyPropertyChanged(nameof(ServerIpAddress));

@@ -1533,3 +1533,80 @@ The deployment architecture using Docker containers provides:
 - Basic error validation sufficient
 - Prompt templates can be improved later
 - Focus on proving the architecture works end-to-end
+
+## Appendix
+### Bot-Agent integration (actual implementation):
+```mermaid
+graph TB
+    subgraph "Integration Bot (Component 2)"
+        LBM[LlmBotManager]
+        LDEP[LlmDecisionEngineProvider]
+        
+        subgraph "LLM Decision Engines"
+            LDE[LlmDeploymentEngine]
+            LME[LlmMovementEngine]
+            LWE[LlmWeaponsEngine]
+            LEE[LlmEndPhaseEngine]
+        end
+        
+        subgraph "Fallback Engines"
+            DE[DeploymentEngine]
+            ME[MovementEngine]
+            WE[WeaponsEngine]
+            EE[EndPhaseEngine]
+        end
+        
+        BAC[BotAgentClient]
+        CG[ClientGame]
+    end
+    
+    subgraph "BotAgent API (Component 1)"
+        API[POST /api/decision]
+        LLM[LLM Agent]
+    end
+    
+    subgraph "Configuration"
+        CFG[appsettings.json]
+        BACFG[BotAgentConfiguration]
+    end
+    
+    LBM -->|creates| LDEP
+    LDEP -->|provides| LDE
+    LDEP -->|provides| LME
+    LDEP -->|provides| LWE
+    LDEP -->|provides| LEE
+    
+    LDE -->|wraps| DE
+    LME -->|wraps| ME
+    LWE -->|wraps| WE
+    LEE -->|wraps| EE
+    
+    LDE -->|uses| BAC
+    LME -->|uses| BAC
+    LWE -->|uses| BAC
+    LEE -->|uses| BAC
+    
+    LDE -->|executes on| CG
+    LME -->|executes on| CG
+    LWE -->|executes on| CG
+    LEE -->|executes on| CG
+    
+    BAC -->|HTTP POST| API
+    API -->|delegates to| LLM
+    LLM -->|DecisionResponse| API
+    API -->|returns| BAC
+    
+    CFG -->|loads| BACFG
+    BACFG -->|configures| BAC
+    
+    BAC -.->|on error| LDE
+    LDE -.->|fallback| DE
+    
+    style LDE fill:#4a90e2,color:#fff
+    style LME fill:#4a90e2,color:#fff
+    style LWE fill:#4a90e2,color:#fff
+    style LEE fill:#4a90e2,color:#fff
+    style BAC fill:#e24a4a,color:#fff
+    style API fill:#50c878,color:#fff
+    style LLM fill:#50c878,color:#fff
+```

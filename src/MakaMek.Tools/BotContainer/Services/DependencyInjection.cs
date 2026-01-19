@@ -1,4 +1,5 @@
 using MakaMek.Tools.BotContainer.Configuration;
+using MakaMek.Tools.BotContainer.Models;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -24,6 +25,7 @@ public static class DependencyInjection
     {
         // Configuration
         services.Configure<BotConfiguration>(configuration.GetSection("BotConfiguration"));
+        services.Configure<BotAgentConfiguration>(configuration.GetSection("BotAgent"));
 
         // Logging
         services.AddLogging(builder =>
@@ -90,6 +92,9 @@ public static class DependencyInjection
 
         // Bot Specific
         services.AddSingleton<IDispatcherService, HeadlessDispatcherService>();
+
+        // LLM Bot Agent Integration
+        services.AddHttpClient<BotAgentClient>();
         services.AddSingleton<IBotManager, BotManager>();
 
         // Hosted Service
