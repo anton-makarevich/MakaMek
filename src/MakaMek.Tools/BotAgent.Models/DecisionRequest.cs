@@ -11,7 +11,7 @@ namespace BotAgent.Models;
 /// <param name="ControlledUnits">Bot's units with full state.</param>
 /// <param name="EnemyUnits">Enemy units with positions.</param>
 /// <param name="Timeout">Request timeout in milliseconds (default: 30000).</param>
-/// <param name="UnitToAct">Specific unit to deploy (optional, if null agent chooses).</param>
+/// <param name="UnitToAct">Specific unit that should act this turn (optional, if null agent chooses).</param>
 public record DecisionRequest(
     Guid PlayerId,
     string Phase,
