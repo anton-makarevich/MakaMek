@@ -16,22 +16,12 @@ public class LlmProviderConfiguration
     public string Model { get; set; } = "gpt-4o";
 
     /// <summary>
-    /// Sampling temperature (0.0 - 2.0).
-    /// </summary>
-    public double Temperature { get; set; } = 0.7;
-
-    /// <summary>
-    /// Maximum tokens in response.
-    /// </summary>
-    public int MaxTokens { get; set; } = 2000;
-
-    /// <summary>
     /// Request timeout in milliseconds.
     /// </summary>
     public int Timeout { get; set; } = 30000;
 
     /// <summary>
-    /// API key for the LLM provider (should be loaded from environment variable).
+    /// API key for the LLM provider (should be loaded from an environment variable).
     /// </summary>
     public string ApiKey { get; set; } = string.Empty;
 }
