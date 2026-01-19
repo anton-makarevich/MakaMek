@@ -17,7 +17,6 @@ namespace Sanet.MakaMek.Core.Services.Transport;
 public partial class CommandTransportAdapter : ICommandTransportAdapter
 {
     private readonly List<ITransportPublisher> _transportPublishers = [];
-    private readonly Dictionary<string, Type> _commandTypes;
     private Action<IGameCommand, ITransportPublisher>? _onCommandReceived;
     private bool _isInitialized;
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
@@ -47,7 +46,6 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         {
             _transportPublishers.Add(publisher);
         }
-        _commandTypes = InitializeCommandTypeDictionary();
     }
 
     public IReadOnlyList<ITransportPublisher> TransportPublishers => _transportPublishers;
@@ -183,7 +181,8 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     /// <exception cref="InvalidOperationException">Thrown when deserialization fails or produces an invalid command</exception>
     internal IGameCommand DeserializeCommand(TransportMessage message)
     {
-        if (!_commandTypes.TryGetValue(message.MessageType, out var commandType))
+        var commandType = CommandTypeRegistry.GetCommandType(message.MessageType);
+        if (commandType == null)
         {
             // Unknown command type - throw exception
             throw new UnknownCommandTypeException(message.MessageType);
@@ -203,27 +202,6 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             throw new JsonException($"Error deserializing command of type {message.MessageType}: {ex.Message}", ex);
         }
     }
-    
-    /// <summary>
-    /// Initializes a dictionary mapping command type names to their types
-    /// This avoids using reflection for type resolution
-    /// Command types are automatically registered by the source generator
-    /// </summary>
-    private Dictionary<string, Type> InitializeCommandTypeDictionary()
-    {
-        var commandTypes = new Dictionary<string, Type>();
-
-        // Call the generated method to register all command types
-        RegisterGeneratedCommandTypes(commandTypes);
-
-        return commandTypes;
-    }
-
-    /// <summary>
-    /// Registers command types found by the source generator
-    /// This method is implemented by the CommandTypeRegistrationGenerator
-    /// </summary>
-    partial void RegisterGeneratedCommandTypes(Dictionary<string, Type> commandTypes);
     
     // Helper method to encapsulate the subscription logic including error handling
     private void SubscribePublisher(ITransportPublisher publisher, Action<IGameCommand, ITransportPublisher> onCommandReceived)

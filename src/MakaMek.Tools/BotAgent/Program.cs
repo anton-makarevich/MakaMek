@@ -2,6 +2,7 @@ using BotAgent.Agents;
 using BotAgent.Configuration;
 using BotAgent.Orchestration;
 using BotAgent.Services;
+using Sanet.MakaMek.Core.Data.Serialization.Converters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,7 +43,11 @@ builder.Services.AddSingleton<EndPhaseAgent>();
 builder.Services.AddSingleton<AgentOrchestrator>();
 
 // Add controllers and API documentation
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new GameCommandJsonConverter());
+    });
 builder.Services.AddOpenApi();
 
 // Add CORS if needed

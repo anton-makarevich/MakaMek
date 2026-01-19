@@ -1,0 +1,83 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Services.Transport;
+
+namespace Sanet.MakaMek.Core.Data.Serialization.Converters;
+
+/// <summary>
+/// JSON converter for IGameCommand that uses CommandTypeRegistry for polymorphic serialization
+/// Handles serialization and deserialization of command types with $type property
+/// </summary>
+public class GameCommandJsonConverter : JsonConverter<IGameCommand>
+{
+    private const string TypePropertyName = "$type";
+
+    public override IGameCommand? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.StartObject)
+            return null;
+
+        using var document = JsonDocument.ParseValue(ref reader);
+        var root = document.RootElement;
+
+        if (!root.TryGetProperty(TypePropertyName, out var typeProperty))
+        {
+            throw new JsonException($"Missing '{TypePropertyName}' property for command deserialization");
+        }
+
+        var typeName = typeProperty.GetString();
+        if (string.IsNullOrEmpty(typeName))
+        {
+            throw new JsonException($"'{TypePropertyName}' property cannot be null or empty");
+        }
+
+        var commandType = CommandTypeRegistry.GetCommandType(typeName);
+        if (commandType == null)
+        {
+            throw new JsonException($"Unknown command type: {typeName}");
+        }
+
+        // Deserialize the command using the specific type
+        var json = root.GetRawText();
+        var command = (IGameCommand?)JsonSerializer.Deserialize(json, commandType, options);
+        
+        if (command == null)
+        {
+            throw new JsonException($"Failed to deserialize command of type {typeName}");
+        }
+
+        return command;
+    }
+
+    public override void Write(Utf8JsonWriter writer, IGameCommand value, JsonSerializerOptions options)
+    {
+        var commandType = value.GetType();
+        var typeName = CommandTypeRegistry.GetCommandTypeName(commandType);
+        
+        if (string.IsNullOrEmpty(typeName))
+        {
+            throw new JsonException($"Cannot find type name for command type {commandType.Name}");
+        }
+
+        writer.WriteStartObject();
+        
+        // Write the $type property first
+        writer.WriteString(TypePropertyName, typeName);
+        
+        // Write the command properties
+        var json = JsonSerializer.Serialize(value, commandType, options);
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        
+        foreach (var property in root.EnumerateObject())
+        {
+            if (property.Name != TypePropertyName)
+            {
+                property.WriteTo(writer);
+            }
+        }
+        
+        writer.WriteEndObject();
+    }
+}
