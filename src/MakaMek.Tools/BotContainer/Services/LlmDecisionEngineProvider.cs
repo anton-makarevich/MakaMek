@@ -20,6 +20,7 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
         IClientGame clientGame,
         BotAgentClient botAgentClient,
         IOptions<BotAgentConfiguration> botAgentConfig,
+        string mcpServerUrl,
         ILoggerFactory loggerFactory)
     {
         var config = botAgentConfig.Value;
@@ -40,7 +41,7 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
                     botAgentClient,
                     deploymentFallback,
                     clientGame,
-                    config.McpServerUrl,
+                    mcpServerUrl,
                     loggerFactory.CreateLogger<LlmDeploymentEngine>())
             },
             {
@@ -49,7 +50,7 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
                     botAgentClient,
                     movementFallback,
                     clientGame,
-                    config.McpServerUrl,
+                    mcpServerUrl,
                     loggerFactory.CreateLogger<LlmMovementEngine>())
             },
             {
@@ -58,7 +59,7 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
                     botAgentClient,
                     weaponsFallback,
                     clientGame,
-                    config.McpServerUrl,
+                    mcpServerUrl,
                     loggerFactory.CreateLogger<LlmWeaponsEngine>())
             },
             {
@@ -67,7 +68,7 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
                     botAgentClient,
                     endPhaseFallback,
                     clientGame,
-                    config.McpServerUrl,
+                    mcpServerUrl,
                     loggerFactory.CreateLogger<LlmEndPhaseEngine>())
             }
         };
