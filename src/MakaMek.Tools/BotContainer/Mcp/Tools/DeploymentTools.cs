@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Sanet.MakaMek.Core.Models.Map;
 using ModelContextProtocol.Server;
 using MakaMek.Tools.BotContainer.Services;
+using Sanet.MakaMek.Core.Data.Map;
 
 namespace MakaMek.Tools.BotContainer.Mcp.Tools;
 
@@ -16,7 +17,7 @@ public class DeploymentTools
     }
 
     [McpServerTool, Description("Get valid deployment hexes for the current game.")]
-    public List<HexCoordinates> GetDeploymentZones()
+    public List<HexCoordinateData> GetDeploymentZones()
     {
         if (_gameStateProvider.ClientGame == null)
         {
@@ -31,7 +32,9 @@ public class DeploymentTools
              throw new InvalidOperationException("BattleMap is not available.");
         }
 
-        var edgeHexes = map.GetEdgeHexCoordinates().ToList();
+        var edgeHexes = map.GetEdgeHexCoordinates()
+            .Select(h=>h.ToData())
+            .ToList();
         
         return edgeHexes;
     }

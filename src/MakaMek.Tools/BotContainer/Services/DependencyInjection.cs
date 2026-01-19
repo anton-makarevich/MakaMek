@@ -1,5 +1,6 @@
 using MakaMek.Tools.BotContainer.Configuration;
 using MakaMek.Tools.BotContainer.Mcp.Tools;
+using ModelContextProtocol.Protocol;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -102,7 +103,14 @@ public static class DependencyInjection
 
         // MCP Server
         services.AddSingleton<IGameStateProvider, GameStateProvider>();
-        services.AddMcpServer()
+        services.AddMcpServer((options) =>
+            {
+                options.ServerInfo= new Implementation
+                {
+                    Name = "MakaMek MCP Server",
+                    Version = "0.1.0"
+                };
+            })
             .WithHttpTransport((options) =>
             {
                 options.Stateless = true;
