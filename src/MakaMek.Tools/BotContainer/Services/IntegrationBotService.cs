@@ -36,6 +36,9 @@ public class IntegrationBotService : BackgroundService
     private readonly IBattleMapFactory _mapFactory;
     private readonly IHashService _hashService;
     private readonly ILogger<IntegrationBotService> _logger;
+    private readonly BotAgentClient _botAgentClient;
+    private readonly IOptions<BotAgentConfiguration> _botAgentConfig;
+    private readonly ILoggerFactory _loggerFactory;
     private IDisposable? _gameCommandsSubscription;
 
     private ClientGame? _clientGame;
@@ -58,7 +61,10 @@ public class IntegrationBotService : BackgroundService
         IHeatEffectsCalculator heatEffectsCalculator,
         IBattleMapFactory mapFactory,
         IHashService hashService,
-        ILogger<IntegrationBotService> logger)
+        ILogger<IntegrationBotService> logger,
+        BotAgentClient botAgentClient,
+        IOptions<BotAgentConfiguration> botAgentConfig,
+        ILoggerFactory loggerFactory)
     {
         _config = config.Value;
         _transportFactory = transportFactory;
@@ -75,6 +81,9 @@ public class IntegrationBotService : BackgroundService
         _mapFactory = mapFactory;
         _hashService = hashService;
         _logger = logger;
+        _botAgentClient = botAgentClient;
+        _botAgentConfig = botAgentConfig;
+        _loggerFactory = loggerFactory;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -135,7 +144,13 @@ public class IntegrationBotService : BackgroundService
             _mapFactory,
             _hashService);
 
-        _botManager.Initialize(_clientGame);
+        // Initialize BotManager with LLM-enabled DecisionEngineProvider
+        var decisionEngineProvider = new LlmDecisionEngineProvider(
+            _clientGame,
+            _botAgentClient,
+            _botAgentConfig,
+            _loggerFactory);
+        _botManager.Initialize(_clientGame, decisionEngineProvider);
         
         _gameCommandsSubscription = _clientGame.Commands
             .Subscribe(HandleGameCommand);

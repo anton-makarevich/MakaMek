@@ -95,7 +95,7 @@ public static class DependencyInjection
 
         // LLM Bot Agent Integration
         services.AddHttpClient<BotAgentClient>();
-        services.AddSingleton<IBotManager, LlmBotManager>();
+        services.AddSingleton<IBotManager, BotManager>();
 
         // Hosted Service
         services.AddHostedService<IntegrationBotService>();
