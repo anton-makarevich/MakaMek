@@ -1,6 +1,6 @@
 ﻿# LLM Deployment Agent - Detailed Design Document
 
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2026-01-19
 **Status:** Design Specification
 **Related:** `docs/architecture/llm-bot-system-design.md`
@@ -13,11 +13,13 @@ This document provides a comprehensive design for implementing complete LLM deci
 
 - Enhanced game state communication via `DecisionRequest`
 - MCP tools for deployment zone queries
-- JSON parsing and command validation
+- **Structured output using Microsoft Agent Framework**
 - Enhanced system prompts with BattleTech tactical knowledge
 - Complete integration flow with error handling
 
 **Goal**: Enable the `DeploymentAgent` to make informed, tactical deployment decisions using LLM reasoning while maintaining seamless integration with the existing `LlmDeploymentEngine` and fallback mechanisms.
+
+**Key Change in v1.1**: Adoption of Microsoft Agent Framework's structured output feature (`RunAsync<T>`) to eliminate custom JSON parsing and improve reliability.
 
 ---
 
@@ -44,7 +46,7 @@ DeployUnitCommand {
 
 **Validation**:
 - Hex must not be occupied by another unit
-- Position must be in deployment zone 
+- Position must be in deployment zone
 - Direction must be 0-5
 
 ### 1.2 Rule-Based Bot Deployment (DeploymentEngine.cs)
@@ -118,10 +120,10 @@ public record DecisionResponse(
    - No actual MCP protocol implementation
    - No tools registered with `ChatClientAgent`
 
-3. **No JSON Parsing Logic**
+3. **No Structured Output Implementation**
    - `ParseDecision()` is a stub
+   - Not using MAF's structured output capabilities
    - No validation of LLM output
-   - No error handling for malformed responses
 
 4. **Generic System Prompt**
    - Lacks BattleTech tactical knowledge
@@ -146,7 +148,6 @@ The agent needs access to:
 ## 3. Design Decisions
 
 ### 3.1 DecisionRequest Enhancement
-
 
 ### 3.2 MCP Tools Design
 
@@ -183,8 +184,6 @@ The agent needs access to:
 - Call `BattleMap.GetEdgeHexCoordinates()`
 - Return list of valid positions with map metadata
 
-```
-
 **Tool Registration**:
 Tools should be registered with `ChatClientAgent` in `DeploymentAgent` constructor:
 ```csharp
@@ -197,84 +196,115 @@ Agent = new ChatClientAgent(
 );
 ```
 
-### 3.3 JSON Parsing Strategy
+### 3.3 Structured Output Strategy
 
-**Approach**: Hybrid - structured prompt with JSON response parsing
+**Approach**: Use Microsoft Agent Framework's `RunAsync<T>` for type-safe structured output
 
-**LLM Output Format**:
-```json
+**Key Advantages**:
+- ✅ Eliminates custom JSON parsing code
+- ✅ Type-safe at compile time
+- ✅ Built-in validation by MAF
+- ✅ Handles JSON extraction automatically
+- ✅ More reliable than regex-based parsing
+
+**Output Record Definition**:
+```csharp
+/// <summary>
+/// Structured output from DeploymentAgent LLM decision.
+/// This record is used with ChatClientAgent.RunAsync<T> for type-safe structured output.
+/// </summary>
+public record DeploymentAgentOutput
 {
-  "unitId": "guid-string",
-  "position": {"q": 1, "r": 1},
-  "direction": 0,
-  "reasoning": "Deploy heavy mech at northern edge facing toward map center..."
+    /// <summary>
+    /// GUID of the unit to deploy (as string for LLM output).
+    /// </summary>
+    public required string UnitId { get; init; }
+
+    /// <summary>
+    /// Hex position for deployment.
+    /// </summary>
+    public required HexCoordinateData Position { get; init; }
+
+    /// <summary>
+    /// Facing direction (0-5).
+    /// 0 = Top, 1 = TopRight, 2 = BottomRight, 3 = Bottom, 4 = BottomLeft, 5 = TopLeft
+    /// </summary>
+    public required int Direction { get; init; }
+
+    /// <summary>
+    /// Tactical reasoning for the deployment decision.
+    /// </summary>
+    public required string Reasoning { get; init; }
 }
 ```
 
-**Parsing Implementation**:
+**Agent Implementation**:
 ```csharp
-protected override IClientCommand ParseDecision(string responseText, DecisionRequest request)
+public async Task<DecisionResponse> MakeDecisionAsync(
+    DecisionRequest request,
+    CancellationToken cancellationToken = default)
 {
     try
     {
-        // Extract JSON from response (may be wrapped in markdown code blocks)
-        var jsonText = ExtractJson(responseText);
+        Logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
 
-        // Parse JSON
-        var decision = JsonSerializer.Deserialize<DeploymentDecision>(jsonText);
+        // Build user prompt with game context from DecisionRequest
+        var userPrompt = BuildUserPrompt(request);
 
-        // Validate
-        if (decision == null)
-            throw new JsonException("Failed to deserialize deployment decision");
+        // Run agent with structured output
+        var structuredResponse = await Agent.RunAsync<DeploymentAgentOutput>(
+            userPrompt, 
+            cancellationToken: cancellationToken);
 
-        if (!Guid.TryParse(decision.UnitId, out var unitId))
-            throw new JsonException($"Invalid unitId: {decision.UnitId}");
-
-        if (decision.Direction < 0 || decision.Direction > 5)
-            throw new JsonException($"Invalid direction: {decision.Direction}");
-
-        // Create command
-        return new DeployUnitCommand
-        {
-            PlayerId = request.PlayerId,
-            UnitId = unitId,
-            GameOriginId = Guid.Empty, // Will be set by ClientGame
-            Position = new HexCoordinateData(decision.Position.Q, decision.Position.R),
-            Direction = decision.Direction,
-            IdempotencyKey = Guid.NewGuid()
-        };
+        // Map structured output to DecisionResponse
+        return MapToDecisionResponse(structuredResponse, request);
     }
-    catch (JsonException ex)
+    catch (Exception ex)
     {
-        Logger.LogError(ex, "Failed to parse LLM response as JSON");
-        throw new InvalidOperationException("INVALID_LLM_RESPONSE", ex);
+        Logger.LogError(ex, "Error in {AgentName} decision making", Name);
+        return CreateErrorResponse("AGENT_ERROR", ex.Message);
     }
 }
-```
 
-**Helper Methods**:
-```csharp
-private string ExtractJson(string text)
+private DecisionResponse MapToDecisionResponse(
+    DeploymentAgentOutput output, 
+    DecisionRequest request)
 {
-    // Handle markdown code blocks: ```json ... ```
-    var jsonMatch = Regex.Match(text, @"```(?:json)?\s*(\{.*?\})\s*```", RegexOptions.Singleline);
-    if (jsonMatch.Success)
-        return jsonMatch.Groups[1].Value;
+    // Validate GUID
+    if (!Guid.TryParse(output.UnitId, out var unitId))
+    {
+        Logger.LogError("Invalid unitId in LLM output: {UnitId}", output.UnitId);
+        throw new InvalidOperationException("INVALID_UNIT_ID");
+    }
 
-    // Try to find raw JSON object
-    var rawMatch = Regex.Match(text, @"\{.*\}", RegexOptions.Singleline);
-    if (rawMatch.Success)
-        return rawMatch.Value;
+    // Validate direction range
+    if (output.Direction < 0 || output.Direction > 5)
+    {
+        Logger.LogError("Invalid direction in LLM output: {Direction}", output.Direction);
+        throw new InvalidOperationException("INVALID_DIRECTION");
+    }
 
-    throw new JsonException("No JSON found in response");
+    // Create command
+    var command = new DeployUnitCommand
+    {
+        PlayerId = request.PlayerId,
+        UnitId = unitId,
+        GameOriginId = Guid.Empty, // Will be set by ClientGame
+        Position = output.Position,
+        Direction = output.Direction,
+        IdempotencyKey = null // Will be set by ClientGame
+    };
+
+    return new DecisionResponse(
+        Success: true,
+        Command: command,
+        Reasoning: output.Reasoning,
+        ErrorType: null,
+        ErrorMessage: null,
+        FallbackRequired: false
+    );
 }
 ```
-
-**Supporting Types**:
-
-`DeploymentDecision` -> use DeployUnitCommand
-
-`PositionData` -> use HexCoordinateData
 
 ### 3.4 Enhanced System Prompt
 
@@ -284,10 +314,10 @@ private string ExtractJson(string text)
 ```csharp
 protected override string SystemPrompt => """
     You are a BattleTech tactical AI specializing in unit deployment. Your role is to select
-    optimal deployment positions and facing directions for your units.
+    optimal deployment positions and facing directions for your units. You make a decision for only one unit a time.
 
     TACTICAL PRINCIPLES:
-    - Deploy valid deployment zones 
+    - Deploy in valid deployment zones 
     - Face toward enemies if deployed, otherwise toward map center
     - Consider unit role:
       * Heavy mechs (70-100 tons): Deploy forward for frontline combat
@@ -310,18 +340,22 @@ protected override string SystemPrompt => """
     5. Calculate optimal facing direction
 
     OUTPUT FORMAT:
-    Respond with JSON only (no additional text):
-    { 
-      "command":{
-        "unitId": "guid-string",
-        "position": {"q": int, "r": int},
-        "direction": int (0-5)
-      },
-      "reasoning": "brief explanation"
+    You must respond with a structured JSON object containing:
+    {
+      "unitId": "guid-string",
+      "position": {"q": int, "r": int},
+      "direction": int (0-5),
+      "reasoning": "brief tactical explanation"
     }
 
     Direction (facing) values:
     0 = Top, 1 = TopRight, 2 = BottomRight, 3 = Bottom, 4 = BottomLeft, 5 = TopLeft
+    
+    IMPORTANT: Ensure:
+    - unitId is a valid GUID string from the provided unit list (a unit we are going to deploy)
+    - position Q and R are integers within map bounds
+    - direction is an integer between 0 and 5 (inclusive)
+    - reasoning clearly explains the tactical rationale
     """;
 ```
 
@@ -330,8 +364,9 @@ protected override string SystemPrompt => """
 2. **Tactical Principles**: BattleTech-specific deployment strategies
 3. **Available Information**: What data the agent has access to
 4. **Decision Process**: Step-by-step guidance
-5. **Output Format**: Exact JSON structure expected
+5. **Output Format**: Exact JSON structure (for MAF structured output)
 6. **Direction Mapping**: Clear explanation of direction values
+7. **Validation Notes**: Emphasize structured output requirements
 
 ---
 
@@ -368,23 +403,60 @@ public record DecisionRequest(
 );
 ```
 
-### 4.2 DeploymentAgent.cs Changes
+### 4.2 DeploymentAgentOutput.cs (New File)
+
+**File**: `src/MakaMek.Tools/BotAgent.Models/DeploymentAgentOutput.cs`
+
+```csharp
+using Sanet.MakaMek.Core.Data.Map;
+
+namespace BotAgent.Models;
+
+/// <summary>
+/// Structured output from DeploymentAgent LLM decision.
+/// This record is used with ChatClientAgent.RunAsync<T> for type-safe structured output.
+/// </summary>
+public record DeploymentAgentOutput
+{
+    /// <summary>
+    /// GUID of the unit to deploy (as string for LLM output).
+    /// </summary>
+    public required string UnitId { get; init; }
+
+    /// <summary>
+    /// Hex position for deployment.
+    /// </summary>
+    public required HexCoordinateData Position { get; init; }
+
+    /// <summary>
+    /// Facing direction (0-5).
+    /// 0 = Top, 1 = TopRight, 2 = BottomRight, 3 = Bottom, 4 = BottomLeft, 5 = TopLeft
+    /// </summary>
+    public required int Direction { get; init; }
+
+    /// <summary>
+    /// Tactical reasoning for the deployment decision.
+    /// </summary>
+    public required string Reasoning { get; init; }
+}
+```
+
+### 4.3 DeploymentAgent.cs Changes
 
 **File**: `src/MakaMek.Tools/BotAgent/Agents/DeploymentAgent.cs`
 
-**Complete Implementation**:
+**Complete Implementation with Structured Output**:
 ```csharp
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using BotAgent.Models;
 using BotAgent.Services;
+using Microsoft.Extensions.AI;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Map;
 
 namespace BotAgent.Agents;
 
 /// <summary>
 /// Deployment phase agent - selects optimal deployment position and facing for units.
+/// Uses Microsoft Agent Framework's structured output (RunAsync<T>) for type-safe decisions.
 /// </summary>
 public class DeploymentAgent : BaseAgent
 {
@@ -403,150 +475,237 @@ public class DeploymentAgent : BaseAgent
     {
     }
 
-    protected override IClientCommand ParseDecision(string responseText, DecisionRequest request)
+    public override async Task<DecisionResponse> MakeDecisionAsync(
+        DecisionRequest request,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            // Extract JSON from response (may be wrapped in markdown code blocks)
-            var jsonText = ExtractJson(responseText);
+            Logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
 
-            // Parse JSON
-            var decision = JsonSerializer.Deserialize<DeployUnitCommand>(jsonText);
+            // Build user prompt with game context from DecisionRequest
+            var userPrompt = BuildUserPrompt(request);
 
-            // Validate
-            if (decision == null)
-                throw new JsonException("Failed to deserialize deployment decision");
+            // Run agent with structured output using MAF
+            var structuredResponse = await ((ChatClientAgent)Agent).RunAsync<DeploymentAgentOutput>(
+                userPrompt, 
+                cancellationToken: cancellationToken);
 
-            if (!Guid.TryParse(decision.UnitId, out var unitId))
-                throw new JsonException($"Invalid unitId: {decision.UnitId}");
+            Logger.LogInformation(
+                "{AgentName} received structured output - Unit: {UnitId}, Position: ({Q},{R}), Direction: {Direction}",
+                Name,
+                structuredResponse.UnitId,
+                structuredResponse.Position.Q,
+                structuredResponse.Position.R,
+                structuredResponse.Direction);
 
-            if (decision.Direction < 0 || decision.Direction > 5)
-                throw new JsonException($"Invalid direction: {decision.Direction}");
-
-            // Create command
-            return new DeployUnitCommand
-            {
-                PlayerId = request.PlayerId,
-                UnitId = unitId,
-                GameOriginId = Guid.Empty, // Will be set by ClientGame
-                Position = new HexCoordinateData(decision.Position.Q, decision.Position.R),
-                Direction = decision.Direction,
-                IdempotencyKey = Guid.NewGuid()
-            };
+            // Map structured output to DecisionResponse
+            return MapToDecisionResponse(structuredResponse, request);
         }
-        catch (JsonException ex)
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("INVALID_"))
         {
-            Logger.LogError(ex, "Failed to parse LLM response as JSON");
-            throw new InvalidOperationException("INVALID_LLM_RESPONSE", ex);
+            Logger.LogError(ex, "{AgentName} validation error", Name);
+            return CreateErrorResponse(ex.Message, ex.InnerException?.Message ?? ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {AgentName} decision making", Name);
+            return CreateErrorResponse("AGENT_ERROR", ex.Message);
         }
     }
 
-    private string ExtractJson(string text)
+    /// <summary>
+    /// Maps the structured LLM output to DecisionResponse with validation.
+    /// </summary>
+    private DecisionResponse MapToDecisionResponse(
+        DeploymentAgentOutput output, 
+        DecisionRequest request)
     {
-        // Handle markdown code blocks: ```json ... ```
-        var jsonMatch = Regex.Match(text, @"```(?:json)?\s*(\{.*?\})\s*```", RegexOptions.Singleline);
-        if (jsonMatch.Success)
-            return jsonMatch.Groups[1].Value;
+        // Validate GUID
+        if (!Guid.TryParse(output.UnitId, out var unitId))
+        {
+            Logger.LogError("Invalid unitId in LLM output: {UnitId}", output.UnitId);
+            throw new InvalidOperationException("INVALID_UNIT_ID");
+        }
 
-        // Try to find raw JSON object
-        var rawMatch = Regex.Match(text, @"\{.*\}", RegexOptions.Singleline);
-        if (rawMatch.Success)
-            return rawMatch.Value;
+        // Validate direction range
+        if (output.Direction < 0 || output.Direction > 5)
+        {
+            Logger.LogError("Invalid direction in LLM output: {Direction}", output.Direction);
+            throw new InvalidOperationException("INVALID_DIRECTION");
+        }
 
-        throw new JsonException("No JSON found in response");
+        // Create command
+        var command = new DeployUnitCommand
+        {
+            PlayerId = request.PlayerId,
+            UnitId = unitId,
+            GameOriginId = Guid.Empty, // Will be set by ClientGame
+            Position = output.Position,
+            Direction = output.Direction,
+            IdempotencyKey = Guid.NewGuid()
+        };
+
+        Logger.LogInformation(
+            "{AgentName} created DeployUnitCommand - PlayerId: {PlayerId}, UnitId: {UnitId}",
+            Name,
+            command.PlayerId,
+            command.UnitId);
+
+        return new DecisionResponse(
+            Success: true,
+            Command: command,
+            Reasoning: output.Reasoning,
+            ErrorType: null,
+            ErrorMessage: null,
+            FallbackRequired: false
+        );
     }
 }
 ```
 
-### 4.3 LlmDeploymentEngine.cs Changes
+### 4.4 LlmDeploymentEngine.cs Changes
 
 **File**: `src/MakaMek.Tools/BotContainer/Models/DecisionEngines/LlmDeploymentEngine.cs`
 
 **Changes to populate DecisionRequest**:
 
-Modify the base class `LlmDecisionEngine<T>` to include controlled and enemy units (from _clientGame) and unit to act (from turnState). this is the same for all the phases
+Modify the base class `LlmDecisionEngine<T>` to include controlled and enemy units (from `_clientGame`) and unit to act (from `turnState`). This is the same for all the phases.
 
-### 4.4 BaseAgent.cs Enhancement
+### 4.5 BaseAgent.cs Enhancement
 
 **File**: `src/MakaMek.Tools/BotAgent/Agents/BaseAgent.cs`
 
-**Changes to build user prompt with game context**:
+**Changes to ensure ChatClientAgent type and BuildUserPrompt**:
 
 ```csharp
-public async Task<DecisionResponse> MakeDecisionAsync(
-    DecisionRequest request,
-    CancellationToken cancellationToken = default)
+using Microsoft.Extensions.AI;
+
+namespace BotAgent.Agents;
+
+public abstract class BaseAgent
 {
-    try
+    protected ChatClientAgent Agent { get; init; }
+    protected ILogger Logger { get; init; }
+    protected McpClientService McpClient { get; init; }
+
+    public abstract string Name { get; }
+    public abstract string Description { get; }
+    protected abstract string SystemPrompt { get; }
+
+    protected BaseAgent(
+        ILlmProvider llmProvider,
+        McpClientService mcpClient,
+        ILogger logger)
     {
-        Logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
+        McpClient = mcpClient;
+        Logger = logger;
 
-        // Build user prompt with game context from DecisionRequest
-        var userPrompt = BuildUserPrompt(request);
-
-        // Run agent
-        var response = await Agent.RunAsync(userPrompt, cancellationToken: cancellationToken);
-
-        var responseText = response.ToString(); // Or extract content properly
-
-        // Parse response to command
-        var command = ParseDecision(responseText, request);
-
-        return CreateSuccessResponse(command, responseText);
+        // CRITICAL: Must be ChatClientAgent for structured output support
+        Agent = new ChatClientAgent(
+            chatClient: llmProvider.GetChatClient(),
+            instructions: SystemPrompt
+        );
     }
-    catch (Exception ex)
-    {
-        Logger.LogError(ex, "Error in {AgentName} decision making", Name);
-        return CreateErrorResponse("AGENT_ERROR", ex.Message);
-    }
-}
 
-/// <summary>
-/// Build user prompt with game context. Can be overridden by specialized agents.
-/// </summary>
-protected virtual string BuildUserPrompt(DecisionRequest request)
-{
-    var sb = new StringBuilder();
-    sb.AppendLine($"Make a tactical decision for player {request.PlayerId} in phase {request.Phase}.");
-    sb.AppendLine();
-
-    // Add controlled units information
-    if (request.ControlledUnits != null && request.ControlledUnits.Count > 0)
+    /// <summary>
+    /// Make a decision using the agent. Can be overridden by specialized agents
+    /// that use structured output.
+    /// </summary>
+    public virtual async Task<DecisionResponse> MakeDecisionAsync(
+        DecisionRequest request,
+        CancellationToken cancellationToken = default)
     {
-        sb.AppendLine("YOUR UNITS:");
-        foreach (var unit in request.ControlledUnits)
+        try
         {
-            var deployStatus = unit.Id.HasValue && request.ControlledUnits.Any(u => u.Id == unit.Id)
-                ? "DEPLOYED" : "UNDEPLOYED";
-            sb.AppendLine($"- {unit.Model} ({unit.Mass} tons) - {deployStatus}");
-            if (unit.Id.HasValue)
-                sb.AppendLine($"  ID: {unit.Id.Value}");
-        }
-        sb.AppendLine();
-    }
+            Logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
 
-    // Add enemy units information
-    if (request.EnemyUnits != null && request.EnemyUnits.Count > 0)
-    {
-        sb.AppendLine("ENEMY UNITS:");
-        foreach (var enemy in request.EnemyUnits)
+            // Build user prompt with game context from DecisionRequest
+            var userPrompt = BuildUserPrompt(request);
+
+            // Run agent (basic RunAsync, not structured)
+            var response = await Agent.RunAsync(userPrompt, cancellationToken: cancellationToken);
+
+            var responseText = response.ToString();
+
+            Logger.LogInformation("{AgentName} received response", Name);
+
+            return new DecisionResponse(
+                Success: true,
+                Command: null, // Will be set by specialized agents
+                Reasoning: responseText,
+                ErrorType: null,
+                ErrorMessage: null,
+                FallbackRequired: false
+            );
+        }
+        catch (Exception ex)
         {
-            sb.AppendLine($"- {enemy.Model} ({enemy.Mass} tons)");
-            // Position info would be included if available in UnitData
+            Logger.LogError(ex, "Error in {AgentName} decision making", Name);
+            return CreateErrorResponse("AGENT_ERROR", ex.Message);
         }
-        sb.AppendLine();
     }
 
-    // Add specific unit to deploy if specified
-    if (request.UnitToAct.HasValue)
+    /// <summary>
+    /// Build user prompt with game context. Can be overridden by specialized agents.
+    /// </summary>
+    protected virtual string BuildUserPrompt(DecisionRequest request)
     {
-        sb.AppendLine($"DEPLOY UNIT: {request.UnitToAct.Value}");
+        var sb = new StringBuilder();
+        sb.AppendLine($"Make a tactical decision for player {request.PlayerId} in phase {request.Phase}.");
         sb.AppendLine();
+
+        // Add controlled units information
+        if (request.ControlledUnits != null && request.ControlledUnits.Count > 0)
+        {
+            sb.AppendLine("YOUR UNITS:");
+            foreach (var unit in request.ControlledUnits)
+            {
+                var deployStatus = unit.Position != null ? "DEPLOYED" : "UNDEPLOYED";
+                sb.AppendLine($"- {unit.Model} ({unit.Mass} tons) - {deployStatus}");
+                if (unit.Id.HasValue)
+                    sb.AppendLine($"  ID: {unit.Id.Value}");
+            }
+            sb.AppendLine();
+        }
+
+        // Add enemy units information
+        if (request.EnemyUnits != null && request.EnemyUnits.Count > 0)
+        {
+            sb.AppendLine("ENEMY UNITS:");
+            foreach (var enemy in request.EnemyUnits)
+            {
+                sb.AppendLine($"- {enemy.Model} ({enemy.Mass} tons)");
+                if (enemy.Position != null)
+                    sb.AppendLine($"  Position: Q={enemy.Position.Q}, R={enemy.Position.R}");
+            }
+            sb.AppendLine();
+        }
+
+        // Add specific unit to deploy if specified
+        if (request.UnitToAct.HasValue)
+        {
+            sb.AppendLine($"DEPLOY UNIT: {request.UnitToAct.Value}");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("Use the get_deployment_zones tool to query valid deployment positions.");
+        sb.AppendLine("Select the best deployment position and facing direction based on tactical principles.");
+
+        return sb.ToString();
     }
 
-    sb.AppendLine("Select the best deployment position and facing direction.");
-
-    return sb.ToString();
+    protected DecisionResponse CreateErrorResponse(string errorType, string errorMessage)
+    {
+        return new DecisionResponse(
+            Success: false,
+            Command: null,
+            Reasoning: null,
+            ErrorType: errorType,
+            ErrorMessage: errorMessage,
+            FallbackRequired: true
+        );
+    }
 }
 ```
 
@@ -554,7 +713,7 @@ protected virtual string BuildUserPrompt(DecisionRequest request)
 
 ## 5. Integration Flow
 
-### 5.1 Complete Decision Flow
+### 5.1 Complete Decision Flow with Structured Output
 
 ```mermaid
 sequenceDiagram
@@ -565,6 +724,7 @@ sequenceDiagram
     participant AO as AgentOrchestrator
     participant DA as DeploymentAgent
     participant LLM as LLM Provider
+    participant MAF as MS Agent Framework
     participant CG as ClientGame
 
     BM->>LDE: MakeDecision(player, turnState)
@@ -575,10 +735,13 @@ sequenceDiagram
     API->>AO: ProcessDecisionAsync(request)
     AO->>DA: MakeDecisionAsync(request)
     DA->>DA: BuildUserPrompt(request)
-    DA->>LLM: RunAsync(userPrompt)
-    LLM-->>DA: JSON response
-    DA->>DA: ParseDecision(responseText)
-    DA->>DA: Validate command
+    DA->>MAF: RunAsync<DeploymentAgentOutput>(userPrompt)
+    MAF->>LLM: Generate structured output
+    LLM-->>MAF: JSON response
+    MAF->>MAF: Parse to DeploymentAgentOutput
+    MAF-->>DA: DeploymentAgentOutput (type-safe)
+    DA->>DA: MapToDecisionResponse(output)
+    DA->>DA: Validate (unitId, direction)
     DA-->>AO: DecisionResponse(success, command, reasoning)
     AO-->>API: DecisionResponse
     API-->>BAC: HTTP 200 + DecisionResponse
@@ -586,8 +749,19 @@ sequenceDiagram
     LDE->>LDE: ExecuteCommandAsync(command)
     LDE->>CG: DeployUnit(deployCommand)
 
-    alt Error occurs
-        DA-->>AO: DecisionResponse(error, fallbackRequired)
+    alt Validation error
+        DA->>DA: Validation fails
+        DA-->>AO: DecisionResponse(error, INVALID_*)
+        AO-->>API: DecisionResponse
+        API-->>BAC: HTTP 200 + DecisionResponse
+        BAC-->>LDE: DecisionResponse
+        LDE->>FallbackEngine: MakeDecision(player)
+    end
+
+    alt MAF parsing error
+        MAF->>MAF: Failed to parse
+        MAF-->>DA: Exception
+        DA-->>AO: DecisionResponse(error, AGENT_ERROR)
         AO-->>API: DecisionResponse
         API-->>BAC: HTTP 200 + DecisionResponse
         BAC-->>LDE: DecisionResponse
@@ -604,16 +778,22 @@ sequenceDiagram
 
 2. **DeploymentAgent.BuildUserPrompt()**
    - Formats game state from `DecisionRequest` into natural language
-   - Includes unit lists
+   - Includes unit lists with deployment status
    - Provides clear instructions for LLM
 
-3. **DeploymentAgent.ParseDecision()**
-   - Extracts JSON from LLM response (handles markdown wrapping)
-   - Deserializes to `DeployUnitCommand` record
-   - Validates unit ID, position, direction
-   - Creates `DeployUnitCommand` with validated data
+3. **Microsoft Agent Framework RunAsync<T>()**
+   - **NEW**: Automatically handles structured output generation
+   - **NEW**: Parses LLM response to `DeploymentAgentOutput`
+   - **NEW**: Provides type-safe output (no manual JSON parsing)
+   - **NEW**: Built-in validation of output structure
 
-4. **LlmDeploymentEngine.ExecuteCommandAsync()**
+4. **DeploymentAgent.MapToDecisionResponse()**
+   - **NEW**: Simple mapping from structured output to command
+   - **NEW**: Minimal validation (GUID format, direction range)
+   - **NEW**: Creates `DeployUnitCommand` from validated output
+   - **NEW**: Returns `DecisionResponse` with command and reasoning
+
+5. **LlmDeploymentEngine.ExecuteCommandAsync()**
    - Receives command from BotAgentClient
    - Validates command type
    - Sends to `ClientGame.DeployUnit()`
@@ -625,43 +805,43 @@ sequenceDiagram
 
 ### 6.1 Error Types
 
-| Error Type | Cause | Fallback Required | Handling |
-|------------|-------|-------------------|----------|
-| `INVALID_LLM_RESPONSE` | JSON parsing failure | Yes | Log error, use fallback engine |
-| `INVALID_UNIT` | Unit ID not found or invalid GUID | Yes | Log error, use fallback engine |
-| `INVALID_POSITION` | Position out of bounds or occupied | Yes | Log error, use fallback engine |
-| `INVALID_DIRECTION` | Direction not in range 0-5 | Yes | Log error, use fallback engine |
-| `MCP_ERROR` | MCP tool call failure | Yes | Log error, use fallback engine |
-| `LLM_TIMEOUT` | LLM request timeout | Yes | Log error, use fallback engine |
-| `AGENT_ERROR` | Unexpected agent error | Yes | Log error, use fallback engine |
+| Error Type | Cause                                                 | Fallback Required | Handling |
+|------------|-------------------------------------------------------|-------------------|----------|
+| `MAF_PARSING_ERROR` | MAF failed to parse LLM response to structured output | Yes | Log error, use fallback engine |
+| `INVALID_UNIT_ID` | Unit ID not valid GUID format                         | Yes | Log error, use fallback engine |
+| `INVALID_DIRECTION` | Direction not in range 0-5                            | Yes | Log error, use fallback engine |
+| `INVALID_POSITION` | Position validation fails (future enhancement)        | Yes | Log error, use fallback engine |
+| `MCP_ERROR` | MCP tool call failure                                 | Yes | Log error, use fallback engine |
+| `LLM_TIMEOUT` | LLM request timeout                                   | Yes | Log error, use fallback engine |
+| `AGENT_ERROR` | Unexpected agent error                                | Yes | Log error, use fallback engine |
 
 ### 6.2 Error Handling Implementation
 
-**In DeploymentAgent.ParseDecision()**:
+**In DeploymentAgent.MapToDecisionResponse()**:
 ```csharp
-try
+// Validate GUID
+if (!Guid.TryParse(output.UnitId, out var unitId))
 {
-    // Parsing and validation logic
+    Logger.LogError("Invalid unitId in LLM output: {UnitId}", output.UnitId);
+    throw new InvalidOperationException("INVALID_UNIT_ID");
 }
-catch (JsonException ex)
+
+// Validate direction range
+if (output.Direction < 0 || output.Direction > 5)
 {
-    Logger.LogError(ex, "Failed to parse LLM response as JSON");
-    throw new InvalidOperationException("INVALID_LLM_RESPONSE", ex);
-}
-catch (Exception ex)
-{
-    Logger.LogError(ex, "Unexpected error parsing decision");
-    throw new InvalidOperationException("AGENT_ERROR", ex);
+    Logger.LogError("Invalid direction in LLM output: {Direction}", output.Direction);
+    throw new InvalidOperationException("INVALID_DIRECTION");
 }
 ```
 
-**In BaseAgent.MakeDecisionAsync()**:
+**In DeploymentAgent.MakeDecisionAsync()**:
 ```csharp
 catch (InvalidOperationException ex) when (ex.Message.StartsWith("INVALID_"))
 {
+    Logger.LogError(ex, "{AgentName} validation error", Name);
     return CreateErrorResponse(ex.Message, ex.InnerException?.Message ?? ex.Message);
 }
-catch (Exception ex)
+catch (Exception ex) // Catches MAF parsing errors and other exceptions
 {
     Logger.LogError(ex, "Error in {AgentName} decision making", Name);
     return CreateErrorResponse("AGENT_ERROR", ex.Message);
@@ -685,13 +865,10 @@ catch (Exception ex)
 ### 6.3 Validation Checklist
 
 Before creating `DeployUnitCommand`, validate:
-- ✅ Unit ID is valid GUID
-- ✅ Unit exists in player's units
-- ✅ Unit is not already deployed
-- ✅ Position is not occupied
+- ✅ Unit ID is valid GUID format
 - ✅ Direction is 0-5
 
-**Note**: For MVP, basic validation (GUID, direction range) is sufficient. 
+**Note**: For MVP, basic validation (GUID format, direction range) is sufficient.
 ---
 
 ## 7. Testing Considerations
@@ -702,7 +879,9 @@ Before creating `DeployUnitCommand`, validate:
 - [ ] Deploy second unit with enemy deployed → faces enemy
 - [ ] Deploy heavy mech → selects forward position
 - [ ] Deploy light mech → selects flanking position
-- [ ] Invalid LLM response → falls back to rule-based engine
+- [ ] MAF structured output parsing works correctly
+- [ ] Invalid unit ID → validation error → fallback
+- [ ] Invalid direction → validation error → fallback
 - [ ] LLM timeout → falls back to rule-based engine
 - [ ] Multiple bots deploying → no conflicts
 
@@ -723,15 +902,16 @@ Before creating `DeployUnitCommand`, validate:
 
 ---
 
-## 9. Summary and Next Steps
+## 10. Summary and Next Steps
 
-### 9.1 Summary
+### 10.1 Summary
 
-This design document provides a complete specification for implementing LLM-based deployment decisions in the MakaMek bot system. Key achievements:
+This design document provides a complete specification for implementing LLM-based deployment decisions in the MakaMek bot system using **Microsoft Agent Framework's structured output feature**. Key achievements:
 
 ✅ **Enhanced DecisionRequest** with game state (ControlledUnits, EnemyUnits, UnitToAct)
 ✅ **MCP Tools Design** for deployment zones, unit info, and enemy positions
-✅ **JSON Parsing Strategy** with validation and error handling
+✅ **Structured Output Strategy** using MAF's `RunAsync<T>` (eliminates custom JSON parsing)
+✅ **DeploymentAgentOutput Record** for type-safe LLM output
 ✅ **Enhanced SystemPrompt** with BattleTech tactical knowledge
 ✅ **Complete Integration Flow** from LlmDeploymentEngine to ClientGame
 ✅ **Comprehensive Error Handling** with fallback to rule-based engine
@@ -740,30 +920,35 @@ This design document provides a complete specification for implementing LLM-base
 ### 9.2 Implementation Checklist
 
 - [ ] Update `DecisionRequest.cs` with additional fields
-- [ ] Implement `DeploymentAgent.ParseDecision()` with JSON parsing
-- [ ] Implement `DeploymentAgent.ExtractJson()` helper
+- [ ] Create `DeploymentAgentOutput.cs` record
+- [ ] Update `DeploymentAgent.cs` to use `RunAsync<DeploymentAgentOutput>()`
+- [ ] Implement `DeploymentAgent.MapToDecisionResponse()` method
 - [ ] Update `DeploymentAgent.SystemPrompt` with enhanced prompt
-- [ ] Implement `DeploymentAgent.BuildUserPrompt()` override
+- [ ] Update `BaseAgent.cs` to ensure `ChatClientAgent` type
+- [ ] Implement `BaseAgent.BuildUserPrompt()` virtual method
 - [ ] Update `LlmDeploymentEngine.CreateDecisionRequest()` to populate game state
 - [ ] Add `CreateDecisionRequest()` virtual method to `LlmDecisionEngine<T>` base class
-- [ ] Update `BaseAgent.BuildUserPrompt()` virtual method
+- [ ] Write unit tests for `MapToDecisionResponse()`
+- [ ] Write integration tests for structured output flow
+- [ ] Manual testing with real LLM
 
-### 9.3 Success Criteria
+### 10.3 Success Criteria
 
 The implementation is successful when:
 1. ✅ DeploymentAgent receives game state in DecisionRequest
-2. ✅ DeploymentAgent generates valid DeployUnitCommand from LLM response
-3. ✅ Unit is deployed at correct position with correct facing
-4. ✅ LLM reasoning is logged and observable
-5. ✅ Errors trigger fallback to DeploymentEngine
-6. ✅ All unit tests pass
-7. ✅ Integration tests pass
-8. ✅ Manual testing shows tactical deployment decisions
+2. ✅ MAF structured output produces valid `DeploymentAgentOutput`
+3. ✅ `MapToDecisionResponse()` creates valid `DeployUnitCommand`
+4. ✅ Unit is deployed at correct position with correct facing
+5. ✅ LLM reasoning is logged and observable
+6. ✅ Validation errors trigger fallback to DeploymentEngine
+7. ✅ All unit tests pass
+8. ✅ Integration tests pass
+9. ✅ Manual testing shows tactical deployment decisions
+10. ✅ No custom JSON parsing code in production
 
 ---
 
-**Document Version**: 1.0
+**Document Version**: 1.1
 **Last Updated**: 2026-01-19
 **Status**: Ready for Implementation
-
-
+**Key Change**: Adopted Microsoft Agent Framework structured output, eliminated custom JSON parsing
