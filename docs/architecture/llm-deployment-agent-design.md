@@ -189,7 +189,7 @@ Agent = new ChatClientAgent(
     chatClient: llmProvider.GetChatClient(),
     instructions: SystemPrompt,
     tools: new[] {
-        GetDeploymentZonesTool() // next phase, no tools in initial implemtation
+        GetDeploymentZonesTool() // next phase, no tools in initial implementation
     }
 );
 ```
@@ -687,7 +687,7 @@ public abstract class BaseAgent
             sb.AppendLine();
         }
 
-        sb.AppendLine("Use the get_deployment_zones tool to query valid deployment positions.");
+        sb.AppendLine("Use the get_deployment_zones tool to query valid deployment positions.");// this is only when MCP is implemented
         sb.AppendLine("Select the best deployment position and facing direction based on tactical principles.");
 
         return sb.ToString();
