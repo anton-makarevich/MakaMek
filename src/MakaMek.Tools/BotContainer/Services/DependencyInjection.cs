@@ -1,5 +1,5 @@
 using MakaMek.Tools.BotContainer.Configuration;
-using MakaMek.Tools.BotContainer.Models;
+using MakaMek.Tools.BotContainer.Mcp.Tools;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -99,5 +99,14 @@ public static class DependencyInjection
 
         // Hosted Service
         services.AddHostedService<IntegrationBotService>();
+
+        // MCP Server
+        services.AddSingleton<IGameStateProvider, GameStateProvider>();
+        services.AddMcpServer()
+            .WithHttpTransport((options) =>
+            {
+                options.Stateless = true;
+            })
+            .WithTools<DeploymentTools>();
     }
 }
