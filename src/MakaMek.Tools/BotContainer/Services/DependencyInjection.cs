@@ -24,6 +24,7 @@ public static class DependencyInjection
     {
         // Configuration
         services.Configure<BotConfiguration>(configuration.GetSection("BotConfiguration"));
+        services.Configure<BotAgentConfiguration>(configuration.GetSection("BotAgent"));
 
         // Logging
         services.AddLogging(builder =>
@@ -90,7 +91,11 @@ public static class DependencyInjection
 
         // Bot Specific
         services.AddSingleton<IDispatcherService, HeadlessDispatcherService>();
-        services.AddSingleton<IBotManager, BotManager>();
+
+        // LLM Bot Agent Integration
+        services.AddHttpClient<BotAgentClient>();
+        services.AddSingleton<BotAgentClient>();
+        services.AddSingleton<IBotManager, LlmBotManager>();
 
         // Hosted Service
         services.AddHostedService<IntegrationBotService>();
