@@ -10,9 +10,9 @@ namespace BotAgent.Agents;
 /// </summary>
 public abstract class BaseAgent : ISpecializedAgent
 {
-    protected readonly ChatClientAgent Agent;
+    private readonly ChatClientAgent _agent;
     protected readonly McpClientService McpClient;
-    protected readonly ILogger Logger;
+    private readonly ILogger _logger;
 
     public abstract string Name { get; }
     public abstract string Description { get; }
@@ -24,10 +24,10 @@ public abstract class BaseAgent : ISpecializedAgent
         ILogger logger)
     {
         McpClient = mcpClient;
-        Logger = logger;
+        _logger = logger;
 
         // Initialize Microsoft Agent Framework ChatClientAgent
-        Agent = new ChatClientAgent(
+        _agent = new ChatClientAgent(
             chatClient: llmProvider.GetChatClient(),
             instructions: SystemPrompt
             // TODO: Register MCP tools here when implemented
@@ -41,7 +41,7 @@ public abstract class BaseAgent : ISpecializedAgent
     {
         try
         {
-            Logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
+            _logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
 
             // Build user prompt with game context
             // TODO: Enhance this with actual game state from MCP
@@ -49,7 +49,7 @@ public abstract class BaseAgent : ISpecializedAgent
 
             // Run agent
             // TODO: Use structured output or tool calls to get the command data
-            var response = await Agent.RunAsync(userPrompt, cancellationToken: cancellationToken);
+            var response = await _agent.RunAsync(userPrompt, cancellationToken: cancellationToken);
             
             var responseText = response.ToString(); // Or extract content properly
             
@@ -60,7 +60,7 @@ public abstract class BaseAgent : ISpecializedAgent
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error in {AgentName} decision making", Name);
+            _logger.LogError(ex, "Error in {AgentName} decision making", Name);
             return CreateErrorResponse("AGENT_ERROR", ex.Message);
         }
     }
@@ -84,7 +84,7 @@ public abstract class BaseAgent : ISpecializedAgent
 
     protected DecisionResponse CreateSuccessResponse(IClientCommand command, string reasoning)
     {
-        Logger.LogInformation("{AgentName} generated command: {CommandType}", Name, command.GetType().Name);
+        _logger.LogInformation("{AgentName} generated command: {CommandType}", Name, command.GetType().Name);
 
         return new DecisionResponse(
             Success: true,

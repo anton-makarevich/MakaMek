@@ -6,16 +6,16 @@ using OpenAI;
 namespace BotAgent.Services;
 
 /// <summary>
-/// OpenAI implementation of LLM provider using Microsoft Agent Framework.
+/// OpenAI implementation of an LLM provider using Microsoft Agent Framework.
 /// </summary>
-public class OpenAIProvider : ILlmProvider
+public class OpenAiProvider : ILlmProvider
 {
     private readonly LlmProviderConfiguration _config;
-    private readonly ILogger<OpenAIProvider> _logger;
+    private readonly ILogger<OpenAiProvider> _logger;
 
-    public OpenAIProvider(
+    public OpenAiProvider(
         IOptions<LlmProviderConfiguration> config,
-        ILogger<OpenAIProvider> logger)
+        ILogger<OpenAiProvider> logger)
     {
         _config = config.Value;
         _logger = logger;
