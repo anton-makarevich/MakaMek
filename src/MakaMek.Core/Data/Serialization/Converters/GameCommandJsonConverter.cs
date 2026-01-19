@@ -48,11 +48,6 @@ public class GameCommandJsonConverter : JsonConverter<IGameCommand>
         var innerOptions = new JsonSerializerOptions(options);
         innerOptions.Converters.Clear();
         var command = (IGameCommand?)JsonSerializer.Deserialize(json, commandType, innerOptions);
-        
-        if (command == null)
-        {
-            throw new JsonException($"Failed to deserialize command of type {typeName}");
-        }
 
         return command;
     }

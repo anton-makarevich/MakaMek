@@ -301,6 +301,38 @@ public class GameCommandJsonConverterTests
     }
 
     [Fact]
+    public void Read_InvalidCommandType_ThrowsJsonException()
+    {
+        // Arrange
+        var json = $$"""
+        {
+            "$type": "ChangePhaseCommand",
+            "Phase": "999",
+            "GameOriginId": "{{Guid.NewGuid()}}",
+            "Timestamp": "{{DateTime.UtcNow:O}}"
+        }
+        """;
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(bytes);
+        reader.Read(); // Move to StartObject
+
+        // Act & Assert
+        JsonException? exception = null;
+        try
+        {
+            _sut.Read(ref reader, typeof(IGameCommand), _options);
+        }
+        catch (JsonException ex)
+        {
+            exception = ex;
+        }
+        
+        exception.ShouldNotBeNull();
+        exception.Message.ShouldContain("The JSON value could not be converted");
+    }
+
+    [Fact]
     public void Read_StartTokenNotObject_ReturnsNull()
     {
         // Arrange
