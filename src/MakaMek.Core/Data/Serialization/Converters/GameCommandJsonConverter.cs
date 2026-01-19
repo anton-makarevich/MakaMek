@@ -13,6 +13,11 @@ public class GameCommandJsonConverter : JsonConverter<IGameCommand>
 {
     private const string TypePropertyName = "$type";
 
+    public override bool CanConvert(Type typeToConvert)
+    {
+        return typeof(IGameCommand).IsAssignableFrom(typeToConvert);
+    }
+
     public override IGameCommand? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
@@ -40,7 +45,9 @@ public class GameCommandJsonConverter : JsonConverter<IGameCommand>
 
         // Deserialize the command using the specific type
         var json = root.GetRawText();
-        var command = (IGameCommand?)JsonSerializer.Deserialize(json, commandType, options);
+        var innerOptions = new JsonSerializerOptions(options);
+        innerOptions.Converters.Clear();
+        var command = (IGameCommand?)JsonSerializer.Deserialize(json, commandType, innerOptions);
         
         if (command == null)
         {
@@ -65,8 +72,20 @@ public class GameCommandJsonConverter : JsonConverter<IGameCommand>
         // Write the $type property first
         writer.WriteString(TypePropertyName, typeName);
         
-        // Write the command properties
-        var json = JsonSerializer.Serialize(value, commandType, options);
+        // Write the command properties by serializing to a temporary JsonDocument
+        var tempOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = options.PropertyNamingPolicy,
+            PropertyNameCaseInsensitive = options.PropertyNameCaseInsensitive,
+            WriteIndented = options.WriteIndented,
+            DefaultIgnoreCondition = options.DefaultIgnoreCondition,
+            NumberHandling = options.NumberHandling,
+            AllowTrailingCommas = options.AllowTrailingCommas,
+            ReadCommentHandling = options.ReadCommentHandling,
+            MaxDepth = options.MaxDepth
+        };
+        
+        var json = JsonSerializer.Serialize(value, commandType, tempOptions);
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
         
