@@ -6,37 +6,41 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace MakaMek.Tools.BotContainer.DecisionEngines;
+namespace MakaMek.Tools.BotContainer.Models.DecisionEngines;
 
 /// <summary>
-/// LLM-enabled deployment decision engine that calls BotAgent API
-/// and falls back to the standard DeploymentEngine on failure.
+/// LLM-enabled movement decision engine that calls BotAgent API
+/// and falls back to the standard MovementEngine on failure.
 /// </summary>
-public class LlmDeploymentEngine : LlmDecisionEngine<DeploymentEngine>
+public class LlmMovementEngine : LlmDecisionEngine<MovementEngine>
 {
-    public LlmDeploymentEngine(
+    public LlmMovementEngine(
         BotAgentClient botAgentClient,
-        DeploymentEngine fallbackEngine,
+        MovementEngine fallbackEngine,
         IClientGame clientGame,
         string mcpServerUrl,
-        ILogger<LlmDeploymentEngine> logger)
+        ILogger<LlmMovementEngine> logger)
         : base(botAgentClient, fallbackEngine, clientGame, mcpServerUrl, logger)
     {
     }
 
-    protected override string PhaseName => nameof(PhaseNames.Deployment);
+    protected override string PhaseName => nameof(PhaseNames.Movement);
 
     protected override async Task ExecuteCommandAsync(IClientCommand clientCommand, IPlayer player, ITurnState? turnState)
     {
         switch (clientCommand)
         {
-            case DeployUnitCommand deployCommand:
-                await ClientGame.DeployUnit(deployCommand);
+            case MoveUnitCommand moveCommand:
+                await ClientGame.MoveUnit(moveCommand);
+                break;
+
+            case TryStandupCommand standUpCommand:
+                await ClientGame.TryStandupUnit(standUpCommand);
                 break;
 
             default:
                 Logger.LogWarning(
-                    "LlmDeploymentEngine: Unexpected command type {CommandType} for Deployment phase. Using fallback engine.",
+                    "LlmMovementEngine: Unexpected command type {CommandType} for Movement phase. Using fallback engine.",
                     clientCommand.GetType().Name);
                 await FallbackEngine.MakeDecision(player, turnState);
                 break;

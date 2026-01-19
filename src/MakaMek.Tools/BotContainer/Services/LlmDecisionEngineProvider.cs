@@ -1,6 +1,6 @@
-﻿using MakaMek.Tools.BotContainer.DecisionEngines;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using MakaMek.Tools.BotContainer.Configuration;
+using MakaMek.Tools.BotContainer.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Models.Game;
@@ -78,4 +78,3 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
         return _decisionEngines.GetValueOrDefault(phase);
     }
 }
-

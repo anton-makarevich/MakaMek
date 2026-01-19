@@ -5,7 +5,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace MakaMek.Tools.BotContainer.DecisionEngines;
+namespace MakaMek.Tools.BotContainer.Models.DecisionEngines;
 
 /// <summary>
 /// Abstract base class for LLM-enabled decision engines that calls BotAgent API
@@ -15,11 +15,11 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
     where TFallbackEngine : IBotDecisionEngine
 {
     private readonly BotAgentClient _botAgentClient;
-    private readonly TFallbackEngine _fallbackEngine;
     private readonly string _mcpServerUrl;
     private readonly ILogger<LlmDecisionEngine<TFallbackEngine>> _logger;
 
-    protected TFallbackEngine FallbackEngine => _fallbackEngine;
+    protected TFallbackEngine FallbackEngine { get; }
+
     protected IClientGame ClientGame { get; }
 
     protected ILogger Logger => _logger;
@@ -32,7 +32,7 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
         ILogger<LlmDecisionEngine<TFallbackEngine>> logger)
     {
         _botAgentClient = botAgentClient;
-        _fallbackEngine = fallbackEngine;
+        FallbackEngine = fallbackEngine;
         ClientGame = clientGame;
         _mcpServerUrl = mcpServerUrl;
         _logger = logger;
@@ -63,7 +63,7 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
                     response.ErrorType,
                     response.ErrorMessage);
 
-                await _fallbackEngine.MakeDecision(player, turnState);
+                await FallbackEngine.MakeDecision(player, turnState);
                 return;
             }
 
@@ -73,7 +73,7 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
                 _logger.LogWarning(
                     "{EngineType}: BotAgent returned invalid command type. Using fallback engine.",
                     GetType().Name);
-                await _fallbackEngine.MakeDecision(player, turnState);
+                await FallbackEngine.MakeDecision(player, turnState);
                 return;
             }
 
@@ -95,7 +95,7 @@ public abstract class LlmDecisionEngine<TFallbackEngine> : IBotDecisionEngine
                 GetType().Name,
                 player.Name);
 
-            await _fallbackEngine.MakeDecision(player, turnState);
+            await FallbackEngine.MakeDecision(player, turnState);
         }
     }
 

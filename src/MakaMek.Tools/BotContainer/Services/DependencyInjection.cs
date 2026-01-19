@@ -1,4 +1,5 @@
 using MakaMek.Tools.BotContainer.Configuration;
+using MakaMek.Tools.BotContainer.Models;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;

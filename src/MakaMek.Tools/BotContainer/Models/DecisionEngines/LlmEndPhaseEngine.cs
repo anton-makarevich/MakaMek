@@ -6,7 +6,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace MakaMek.Tools.BotContainer.DecisionEngines;
+namespace MakaMek.Tools.BotContainer.Models.DecisionEngines;
 
 /// <summary>
 /// LLM-enabled end phase decision engine that calls BotAgent API

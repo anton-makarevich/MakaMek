@@ -1,11 +1,12 @@
-﻿using Microsoft.Extensions.Options;
-using MakaMek.Tools.BotContainer.Configuration;
+﻿using MakaMek.Tools.BotContainer.Configuration;
+using MakaMek.Tools.BotContainer.Services;
+using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace MakaMek.Tools.BotContainer.Services;
+namespace MakaMek.Tools.BotContainer.Models;
 
 /// <summary>
 /// Bot manager that uses LLM-enabled decision engines.

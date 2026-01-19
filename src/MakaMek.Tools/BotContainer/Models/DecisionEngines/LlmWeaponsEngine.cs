@@ -6,41 +6,41 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 
-namespace MakaMek.Tools.BotContainer.DecisionEngines;
+namespace MakaMek.Tools.BotContainer.Models.DecisionEngines;
 
 /// <summary>
-/// LLM-enabled movement decision engine that calls BotAgent API
-/// and falls back to the standard MovementEngine on failure.
+/// LLM-enabled weapons attack decision engine that calls BotAgent API
+/// and falls back to the standard WeaponsEngine on failure.
 /// </summary>
-public class LlmMovementEngine : LlmDecisionEngine<MovementEngine>
+public class LlmWeaponsEngine : LlmDecisionEngine<WeaponsEngine>
 {
-    public LlmMovementEngine(
+    public LlmWeaponsEngine(
         BotAgentClient botAgentClient,
-        MovementEngine fallbackEngine,
+        WeaponsEngine fallbackEngine,
         IClientGame clientGame,
         string mcpServerUrl,
-        ILogger<LlmMovementEngine> logger)
+        ILogger<LlmWeaponsEngine> logger)
         : base(botAgentClient, fallbackEngine, clientGame, mcpServerUrl, logger)
     {
     }
 
-    protected override string PhaseName => nameof(PhaseNames.Movement);
+    protected override string PhaseName => nameof(PhaseNames.WeaponsAttack);
 
     protected override async Task ExecuteCommandAsync(IClientCommand clientCommand, IPlayer player, ITurnState? turnState)
     {
         switch (clientCommand)
         {
-            case MoveUnitCommand moveCommand:
-                await ClientGame.MoveUnit(moveCommand);
+            case WeaponAttackDeclarationCommand attackCommand:
+                await ClientGame.DeclareWeaponAttack(attackCommand);
                 break;
 
-            case TryStandupCommand standUpCommand:
-                await ClientGame.TryStandupUnit(standUpCommand);
+            case WeaponConfigurationCommand configCommand:
+                await ClientGame.ConfigureUnitWeapons(configCommand);
                 break;
 
             default:
                 Logger.LogWarning(
-                    "LlmMovementEngine: Unexpected command type {CommandType} for Movement phase. Using fallback engine.",
+                    "LlmWeaponsEngine: Unexpected command type {CommandType} for WeaponsAttack phase. Using fallback engine.",
                     clientCommand.GetType().Name);
                 await FallbackEngine.MakeDecision(player, turnState);
                 break;
