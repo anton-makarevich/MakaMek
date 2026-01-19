@@ -4,7 +4,9 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
+using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Shouldly;
 
@@ -301,6 +303,32 @@ public class GameCommandJsonConverterTests
     }
 
     [Fact]
+    public void Write_UnknownCommandType_ThrowsJsonException()
+    {
+        // Arrange - create a mock command type that won't be in the registry
+        // We'll use a dynamically created type that implements IGameCommand but isn't registered
+        var mockCommand = new MockGameCommand();
+        
+        using var stream = new MemoryStream();
+        using var writer = new Utf8JsonWriter(stream);
+        var options = new JsonSerializerOptions();
+
+        // Act & Assert
+        JsonException? exception = null;
+        try
+        {
+            _sut.Write(writer, mockCommand, options);
+        }
+        catch (JsonException ex)
+        {
+            exception = ex;
+        }
+        
+        exception.ShouldNotBeNull();
+        exception.Message.ShouldContain("Cannot find type name for command type");
+    }
+
+    [Fact]
     public void Read_InvalidCommandType_ThrowsJsonException()
     {
         // Arrange
@@ -473,5 +501,18 @@ public class GameCommandJsonConverterTests
 
         // Assert
         type.ShouldBeNull();
+    }
+}
+
+// Mock command class for testing error scenarios
+public class MockGameCommand : IGameCommand
+{
+    public Guid GameOriginId { get; set; }
+    public DateTime Timestamp { get; set; }
+    public string CommandType => "MockGameCommand";
+
+    public string Render(ILocalizationService localizationService, IGame game)
+    {
+        return "Mock command";
     }
 }
