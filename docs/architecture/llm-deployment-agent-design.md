@@ -805,7 +805,6 @@ sequenceDiagram
 
 | Error Type | Cause                                                 | Fallback Required | Handling |
 |------------|-------------------------------------------------------|-------------------|----------|
-| `MAF_PARSING_ERROR` | MAF failed to parse LLM response to structured output | Yes | Log error, use fallback engine |
 | `INVALID_UNIT_ID` | Unit ID not valid GUID format                         | Yes | Log error, use fallback engine |
 | `INVALID_DIRECTION` | Direction not in range 0-5                            | Yes | Log error, use fallback engine |
 | `INVALID_POSITION` | Position validation fails (future enhancement)        | Yes | Log error, use fallback engine |
@@ -893,11 +892,6 @@ Before creating `DeployUnitCommand`, validate:
    - Implement actual MCP protocol calls
    - Register tools with ChatClientAgent
    - LLM calls tools directly instead of manual prompt building
-
-2. **Structured Output**
-   - Use Microsoft Agent Framework's structured output feature
-   - Eliminate JSON parsing errors
-
 ---
 
 ## 9. Summary and Next Steps
