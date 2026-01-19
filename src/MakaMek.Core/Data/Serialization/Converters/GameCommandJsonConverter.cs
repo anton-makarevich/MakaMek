@@ -45,8 +45,8 @@ public class GameCommandJsonConverter : JsonConverter<IGameCommand>
 
         // Deserialize the command using the specific type
         var json = root.GetRawText();
-        var innerOptions = new JsonSerializerOptions(options);
-        innerOptions.Converters.Clear();
+        // this is needed to avoid infinite recursion
+        var innerOptions = GetOptionsWithoutThisConverter(options);
         var command = (IGameCommand?)JsonSerializer.Deserialize(json, commandType, innerOptions);
 
         return command;
@@ -56,34 +56,22 @@ public class GameCommandJsonConverter : JsonConverter<IGameCommand>
     {
         var commandType = value.GetType();
         var typeName = CommandTypeRegistry.GetCommandTypeName(commandType);
-        
+    
         if (string.IsNullOrEmpty(typeName))
         {
             throw new JsonException($"Cannot find type name for command type {commandType.Name}");
         }
 
         writer.WriteStartObject();
-        
-        // Write the $type property first
         writer.WriteString(TypePropertyName, typeName);
-        
-        // Write the command properties by serializing to a temporary JsonDocument
-        var tempOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = options.PropertyNamingPolicy,
-            PropertyNameCaseInsensitive = options.PropertyNameCaseInsensitive,
-            WriteIndented = options.WriteIndented,
-            DefaultIgnoreCondition = options.DefaultIgnoreCondition,
-            NumberHandling = options.NumberHandling,
-            AllowTrailingCommas = options.AllowTrailingCommas,
-            ReadCommentHandling = options.ReadCommentHandling,
-            MaxDepth = options.MaxDepth
-        };
-        
-        var json = JsonSerializer.Serialize(value, commandType, tempOptions);
+    
+        // this is needed to avoid infinite recursion
+        var innerOptions = GetOptionsWithoutThisConverter(options);
+    
+        var json = JsonSerializer.Serialize(value, commandType, innerOptions);
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
-        
+    
         foreach (var property in root.EnumerateObject())
         {
             if (property.Name != TypePropertyName)
@@ -91,7 +79,27 @@ public class GameCommandJsonConverter : JsonConverter<IGameCommand>
                 property.WriteTo(writer);
             }
         }
-        
+    
         writer.WriteEndObject();
+    }
+    
+    private JsonSerializerOptions GetOptionsWithoutThisConverter(JsonSerializerOptions options)
+    {
+        // Only create new options if this converter is present
+        var serializationOptions = options;
+        var converterType = GetType();
+        var converterIndex = -1;
+    
+        for (var i = 0; i < options.Converters.Count; i++)
+        {
+            if (options.Converters[i].GetType() != converterType) continue;
+            converterIndex = i;
+            break;
+        }
+
+        if (converterIndex < 0) return serializationOptions;
+        serializationOptions = new JsonSerializerOptions(options);
+        serializationOptions.Converters.RemoveAt(converterIndex);
+        return serializationOptions;
     }
 }

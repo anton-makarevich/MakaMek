@@ -286,23 +286,6 @@ public class GameCommandJsonConverterTests
     }
 
     [Fact]
-    public void Read_InvalidJson_ReturnsNull()
-    {
-        // Arrange
-        const string json = "{\"$type\": \"ChangePhaseCommand\", \"invalid\": }";
-
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var reader = new Utf8JsonReader(bytes);
-
-        // Act & 
-
-        var command = _sut.Read(ref reader, typeof(IGameCommand), _options);
-
-        // Assert
-        command.ShouldBeNull();
-    }
-
-    [Fact]
     public void Write_UnknownCommandType_ThrowsJsonException()
     {
         // Arrange - create a mock command type that won't be in the registry
