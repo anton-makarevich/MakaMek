@@ -1,5 +1,5 @@
-using BotAgent.Services;
 using BotAgent.Services.LlmProviders;
+using Microsoft.Agents.AI;
 
 namespace BotAgent.Models.Agents;
 
@@ -29,4 +29,15 @@ public class EndPhaseAgent : BaseAgent
     /// </summary>
     protected override string BuildUserPrompt(DecisionRequest request) => 
         throw new NotImplementedException("BuildUserPrompt not yet implemented for this agent");
+
+    /// <summary>
+    /// Make the actual end phase decision using the provided agent.
+    /// </summary>
+    protected override Task<DecisionResponse> GetAgentDecision(
+        ChatClientAgent agent, 
+        DecisionRequest request, 
+        CancellationToken cancellationToken)
+    {
+        return Task.FromResult(CreateErrorResponse("NOT_IMPLEMENTED", "EndPhaseAgent not yet implemented"));
+    }
 }

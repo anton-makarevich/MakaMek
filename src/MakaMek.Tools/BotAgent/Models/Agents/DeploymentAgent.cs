@@ -1,6 +1,6 @@
 using BotAgent.Models.Agents.Outputs;
-using BotAgent.Services;
 using BotAgent.Services.LlmProviders;
+using Microsoft.Agents.AI;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using System.Text;
 
@@ -77,19 +77,21 @@ public class DeploymentAgent : BaseAgent
     {
     }
 
-    public override async Task<DecisionResponse> MakeDecision(
-        DecisionRequest request,
-        CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Make the actual deployment decision using the provided agent.
+    /// </summary>
+    protected override async Task<DecisionResponse> GetAgentDecision(
+        ChatClientAgent agent, 
+        DecisionRequest request, 
+        CancellationToken cancellationToken)
     {
         try
         {
-            Logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
-
             // Build user prompt with game context from DecisionRequest
             var userPrompt = BuildUserPrompt(request);
 
             // Run agent with structured output 
-            var structuredResponse = await Agent.RunAsync<DeploymentAgentOutput>(
+            var structuredResponse = await agent.RunAsync<DeploymentAgentOutput>(
                 userPrompt, 
                 cancellationToken: cancellationToken);
 
