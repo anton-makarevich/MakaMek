@@ -40,6 +40,8 @@ public static class BotAgentServices
         services.AddHttpClient<McpClientService>();
         
         // Register LLM provider
+        services.AddSingleton<LocalOpenAiLikeProvider>();
+        services.AddSingleton<OpenAiProvider>();
         services.AddSingleton<ILlmProvider>(sp =>
         {
             var cfg = sp.GetRequiredService<IOptions<LlmProviderConfiguration>>().Value;
