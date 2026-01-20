@@ -26,7 +26,7 @@ public class LlmProviderConfiguration
     public string ApiKey { get; set; } = string.Empty;
     
     /// <summary>
-    /// Optional endpoint for the LLM provider.
+    /// Endpoint for the LLM provider (required for LocalOpenAiLikeProvider).
     /// </summary>
     public string Endpoint { get; set; } = string.Empty;
 }

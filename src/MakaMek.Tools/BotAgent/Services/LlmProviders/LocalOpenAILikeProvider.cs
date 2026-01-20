@@ -13,6 +13,7 @@ public class LocalOpenAiLikeProvider : ILlmProvider
 {
     private readonly LlmProviderConfiguration _config;
     private readonly ILogger<LocalOpenAiLikeProvider> _logger;
+    private readonly Uri _endpoint;
 
     public LocalOpenAiLikeProvider(
         IOptions<LlmProviderConfiguration> config,
@@ -26,6 +27,14 @@ public class LocalOpenAiLikeProvider : ILlmProvider
             throw new InvalidOperationException(
                 "LocalOpenAILikeProvider requires LlmProvider:Endpoint to be set.");
         }
+
+        if (!Uri.TryCreate(_config.Endpoint, UriKind.Absolute, out var endpoint))
+        {
+            throw new InvalidOperationException(
+                $"Invalid LlmProvider:Endpoint value '{_config.Endpoint}'.");
+        }
+
+        _endpoint = endpoint;
     }
 
     public IChatClient GetChatClient()
@@ -35,7 +44,7 @@ public class LocalOpenAiLikeProvider : ILlmProvider
         // Create OpenAI client
         var openAiClient = new OpenAIClient(
             new ApiKeyCredential("NO_API_KEY_REQUIRED"),
-            new OpenAIClientOptions{ Endpoint = new Uri(_config.Endpoint)});
+            new OpenAIClientOptions{ Endpoint = _endpoint });
         var chatClient = openAiClient.GetChatClient(_config.Model);
 
         // Create ChatClient adapter using extension method
