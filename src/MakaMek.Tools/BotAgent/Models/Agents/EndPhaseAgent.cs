@@ -34,7 +34,7 @@ public class EndPhaseAgent : BaseAgent
     /// Make the actual end-phase decision using the provided agent.
     /// </summary>
     protected override Task<DecisionResponse> GetAgentDecision(
-        ChatClientAgent agent, 
+        AIAgent agent, 
         DecisionRequest request, 
         string[] availableTools,
         CancellationToken cancellationToken)

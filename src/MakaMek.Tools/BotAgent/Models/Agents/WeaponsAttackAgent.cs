@@ -41,7 +41,7 @@ public class WeaponsAttackAgent : BaseAgent
     /// Make the actual weapons attack decision using the provided agent.
     /// </summary>
     protected override Task<DecisionResponse> GetAgentDecision(
-        ChatClientAgent agent, 
+        AIAgent agent, 
         DecisionRequest request, 
         string[] availableTools,
         CancellationToken cancellationToken)

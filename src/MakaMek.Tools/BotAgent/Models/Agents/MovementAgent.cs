@@ -42,7 +42,7 @@ public class MovementAgent : BaseAgent
     /// Make the actual movement decision using the provided agent.
     /// </summary>
     protected override Task<DecisionResponse> GetAgentDecision(
-        ChatClientAgent agent, 
+        AIAgent agent, 
         DecisionRequest request,
         string[] availableTools,
         CancellationToken cancellationToken)
