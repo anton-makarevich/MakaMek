@@ -34,7 +34,7 @@ public class DeploymentAgent : BaseAgent
         - Spread units to avoid clustering - maintain tactical spacing
         
         DECISION PROCESS:
-        1. Check if ANY undeployed units exist - if not (YOUR UNITS is empty all all units in it are DEPLOYED), return error response
+        1. Check if ANY undeployed units exist - if not (YOUR UNITS is empty/none or all units in it are DEPLOYED), return error response
         2. Identify which unit to deploy:
            - Use the unit specified in "DEPLOY UNIT:" if present
            - Otherwise, select the first undeployed unit from YOUR UNITS
