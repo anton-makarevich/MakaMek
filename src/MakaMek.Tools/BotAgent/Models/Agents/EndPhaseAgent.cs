@@ -24,4 +24,10 @@ public class EndPhaseAgent : BaseAgent
         : base(llmProvider, mcpClient, logger)
     {
     }
+
+    /// <summary>
+    /// Build user prompt with game context for end phase decisions.
+    /// </summary>
+    protected override string BuildUserPrompt(DecisionRequest request) => 
+        throw new NotImplementedException("BuildUserPrompt not yet implemented for this agent");
 }

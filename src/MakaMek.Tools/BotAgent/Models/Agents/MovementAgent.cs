@@ -32,4 +32,10 @@ public class MovementAgent : BaseAgent
         : base(llmProvider, mcpClient, logger)
     {
     }
+
+    /// <summary>
+    /// Build user prompt with game context for movement decisions.
+    /// </summary>
+    protected override string BuildUserPrompt(DecisionRequest request) => 
+        throw new NotImplementedException("BuildUserPrompt not yet implemented for this agent");
 }
