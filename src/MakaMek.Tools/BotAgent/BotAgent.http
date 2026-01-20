@@ -13,7 +13,22 @@ Content-Type: application/json
   "playerId": "00000000-0000-0000-0000-000000000000",
   "phase": "Deployment",
   "mcpServerUrl": "http://localhost:5000/mcp",
-  "controlledUnits": [],
+  "controlledUnits": [
+    {
+      "id": "a49e6619-737c-427f-9718-84e2136701a0",
+      "chassis": "Wolverine",
+      "model": "WSP-1A",
+      "mass": 50,
+      "walkMp": 4,
+      "engineRating": 200,
+      "engineType": "Fusion",
+      "armorValues": {},
+      "equipment": [],
+      "additionalAttributes": {},
+      "quirks": {},
+      "position": null
+    }
+  ],
   "enemyUnits": [],
   "timeout": 30000
 }

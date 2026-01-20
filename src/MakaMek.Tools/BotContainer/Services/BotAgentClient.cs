@@ -2,6 +2,7 @@
 using BotAgent.Models;
 using Microsoft.Extensions.Options;
 using MakaMek.Tools.BotContainer.Configuration;
+using Sanet.MakaMek.Core.Data.Serialization.Converters;
 
 namespace MakaMek.Tools.BotContainer.Services;
 
@@ -23,12 +24,15 @@ public class BotAgentClient
         _httpClient = httpClient;
         _config = config.Value;
         _logger = logger;
-        
+
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false
         };
+
+        // Add GameCommandJsonConverter to handle IGameCommand deserialization
+        _jsonOptions.Converters.Add(new GameCommandJsonConverter());
     }
 
     /// <summary>

@@ -16,7 +16,7 @@ public interface ISpecializedAgent
     /// <param name="request">Decision request from Integration Bot.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Decision response with command or error.</returns>
-    Task<DecisionResponse> MakeDecisionAsync(
+    Task<DecisionResponse> MakeDecision(
         DecisionRequest request,
         CancellationToken cancellationToken = default);
 }

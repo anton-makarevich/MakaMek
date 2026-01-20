@@ -35,9 +35,6 @@ public static class BotAgentServices
         // Configure options
         services.Configure<LlmProviderConfiguration>(configuration.GetSection("LlmProvider"));
         services.Configure<AgentConfiguration>(configuration.GetSection("Agent"));
-
-        // Register services
-        services.AddHttpClient<McpClientService>();
         
         // Register LLM provider
         services.AddSingleton<LocalOpenAiLikeProvider>();

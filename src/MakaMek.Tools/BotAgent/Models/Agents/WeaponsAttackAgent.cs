@@ -1,5 +1,5 @@
-using BotAgent.Services;
 using BotAgent.Services.LlmProviders;
+using Microsoft.Agents.AI;
 
 namespace BotAgent.Models.Agents;
 
@@ -26,9 +26,8 @@ public class WeaponsAttackAgent : BaseAgent
 
     public WeaponsAttackAgent(
         ILlmProvider llmProvider,
-        McpClientService mcpClient,
         ILogger<WeaponsAttackAgent> logger)
-        : base(llmProvider, mcpClient, logger)
+        : base(llmProvider, logger)
     {
     }
 
@@ -37,4 +36,16 @@ public class WeaponsAttackAgent : BaseAgent
     /// </summary>
     protected override string BuildUserPrompt(DecisionRequest request) => 
         throw new NotImplementedException("BuildUserPrompt not yet implemented for this agent");
+
+    /// <summary>
+    /// Make the actual weapons attack decision using the provided agent.
+    /// </summary>
+    protected override Task<DecisionResponse> GetAgentDecision(
+        ChatClientAgent agent, 
+        DecisionRequest request, 
+        string[] availableTools,
+        CancellationToken cancellationToken)
+    {
+        return Task.FromResult(CreateErrorResponse("NOT_IMPLEMENTED", "WeaponsAttackAgent not yet implemented"));
+    }
 }

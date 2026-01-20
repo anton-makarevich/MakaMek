@@ -1,6 +1,6 @@
 using BotAgent.Models.Agents.Outputs;
-using BotAgent.Services;
 using BotAgent.Services.LlmProviders;
+using Microsoft.Agents.AI;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using System.Text;
 
@@ -22,7 +22,7 @@ public class DeploymentAgent : BaseAgent
         - You can ONLY deploy units that are marked as "UNDEPLOYED" in the YOUR UNITS section
         - If ALL units are already DEPLOYED or no units exist, you MUST return an error response
         - Each decision is for ONE unit only
-        - All positions must be within valid deployment zones (use get_deployment_zones tool)
+        - USE get_deployment_zones tool, all positions must be within valid deployment zones 
         - Facing direction must be an integer 0-5
         
         TACTICAL PRINCIPLES:
@@ -34,14 +34,20 @@ public class DeploymentAgent : BaseAgent
         - Spread units to avoid clustering - maintain tactical spacing
         
         DECISION PROCESS:
-        1. Check if ANY undeployed units exist - if not (YOUR UNITS is empty/none or all units in it are DEPLOYED), return error response
+        1. Check if ANY undeployed units exist - if not (YOUR UNITS is empty/none or all the units in it are DEPLOYED), return error response
         2. Identify which unit to deploy:
            - Use the unit specified in "DEPLOY UNIT:" if present
            - Otherwise, select the first undeployed unit from YOUR UNITS
-        3. Call get_deployment_zones tool to get valid positions
+        3. Call get_deployment_zones tool to get valid positions, return error if the tool is not available or returns no valid positions
         4. Analyze tactical situation (enemy positions, map center, terrain)
         5. Select optimal position from valid deployment zones
         6. Calculate facing direction (0-5) toward primary threat or objective
+        
+        BATTLETECH MAP INFO:
+        - The map contains of hexes, each hex has a position defined by Q (column) and R (row) coordinates
+        - The TopLeft (North-west) hex has Q=1, R=1 coordinates
+        - The Left edge of the map has Q=1, the Right edge of the map has Q=map width
+        - The Top edge of the map has R=1, the Bottom edge of the map has R=map height
         
         FACING DIRECTION VALUES:
         0 = North (Top)
@@ -55,7 +61,7 @@ public class DeploymentAgent : BaseAgent
         Return a valid JSON object with this exact structure:
         {
           "unitId": "guid-string-from-unit-list",
-          "position": {"q": integer, "r": integer},
+          "position": {"q": integer >=1, "r": integer >=1},
           "direction": integer (0-5),
           "reasoning": "short tactical explanation"
         }
@@ -63,7 +69,7 @@ public class DeploymentAgent : BaseAgent
         
         VALIDATION CHECKLIST (before responding):
         ✓ Is there at least one UNDEPLOYED unit available?
-        ✓ Is unitId a valid GUID from an UNDEPLOYED unit in YOUR UNITS?
+        ✓ Is unitId a valid GUID in a valid format from an UNDEPLOYED unit in YOUR UNITS?
         ✓ Is position within the deployment zones returned by get_deployment_zones?
         ✓ Are q and r integers?
         ✓ Is direction an integer between 0 and 5?
@@ -72,26 +78,34 @@ public class DeploymentAgent : BaseAgent
 
     public DeploymentAgent(
         ILlmProvider llmProvider,
-        McpClientService mcpClient,
         ILogger<DeploymentAgent> logger)
-        : base(llmProvider, mcpClient, logger)
+        : base(llmProvider, logger)
     {
     }
 
-    public override async Task<DecisionResponse> MakeDecisionAsync(
+    /// <summary>
+    /// Make the actual deployment decision using the provided agent.
+    /// </summary>
+    protected override async Task<DecisionResponse> GetAgentDecision(ChatClientAgent agent,
         DecisionRequest request,
-        CancellationToken cancellationToken = default)
+        string[] availableTools,
+        CancellationToken cancellationToken)
     {
+        var thread = agent.GetNewThread();
         try
         {
-            Logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
+            if (!availableTools.Contains("get_deployment_zones"))
+            {
+                throw new InvalidOperationException("get_deployment_zones tool is not available");
+            }
 
             // Build user prompt with game context from DecisionRequest
             var userPrompt = BuildUserPrompt(request);
 
             // Run agent with structured output 
-            var structuredResponse = await Agent.RunAsync<DeploymentAgentOutput>(
-                userPrompt, 
+            var structuredResponse = await agent.RunAsync<DeploymentAgentOutput>(
+                userPrompt,
+                thread: thread,
                 cancellationToken: cancellationToken);
 
             Logger.LogInformation(
@@ -114,6 +128,10 @@ public class DeploymentAgent : BaseAgent
         {
             Logger.LogError(ex, "Error in {AgentName} decision making", Name);
             return CreateErrorResponse("AGENT_ERROR", ex.Message);
+        }
+        finally
+        {
+            Logger.LogDebug("DeploymentAgent decision making completed, the full thread {Thread}", thread.Serialize());
         }
     }
 

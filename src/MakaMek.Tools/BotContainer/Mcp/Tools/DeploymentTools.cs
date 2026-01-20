@@ -16,7 +16,7 @@ public class DeploymentTools
         _gameStateProvider = gameStateProvider;
     }
 
-    [McpServerTool, Description("Get valid deployment hexes for the current game.")]
+    [McpServerTool, Description("Get valid deployment zones (hexes), should be used by the deployment agent")]
     public List<HexCoordinateData> GetDeploymentZones()
     {
         if (_gameStateProvider.ClientGame == null)
