@@ -24,4 +24,9 @@ public class LlmProviderConfiguration
     /// API key for the LLM provider (should be loaded from an environment variable).
     /// </summary>
     public string ApiKey { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Endpoint for the LLM provider (required for LocalOpenAiLikeProvider).
+    /// </summary>
+    public string Endpoint { get; set; } = string.Empty;
 }

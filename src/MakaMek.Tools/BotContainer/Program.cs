@@ -1,4 +1,4 @@
-using MakaMek.Tools.BotContainer.Services;
+using MakaMek.Tools.BotContainer.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 

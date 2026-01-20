@@ -1,5 +1,5 @@
-using System.Text;
 using BotAgent.Services;
+using BotAgent.Services.LlmProviders;
 using Microsoft.Agents.AI;
 
 namespace BotAgent.Models.Agents;
@@ -42,52 +42,9 @@ public abstract class BaseAgent : ISpecializedAgent
     }
 
     /// <summary>
-    /// Build user prompt with game context. Can be overridden by specialized agents.
+    /// Build user prompt with game context. Must be implemented by specialized agents.
     /// </summary>
-    protected string BuildUserPrompt(DecisionRequest request)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine($"Make a tactical decision for player {request.PlayerId} in phase {request.Phase}.");
-        sb.AppendLine();
-
-        // Add controlled units information
-        if (request.ControlledUnits.Count > 0)
-        {
-            sb.AppendLine("YOUR UNITS:");
-            foreach (var unit in request.ControlledUnits)
-            {
-                var deployStatus = unit.Position != null ? "DEPLOYED" : "UNDEPLOYED";
-                sb.AppendLine($"- {unit.Model} ({unit.Mass} tons) - {deployStatus}");
-                if (unit.Id.HasValue)
-                    sb.AppendLine($"  ID: {unit.Id.Value}");
-            }
-            sb.AppendLine();
-        }
-
-        // Add enemy units information
-        if (request.EnemyUnits.Count > 0)
-        {
-            sb.AppendLine("ENEMY UNITS:");
-            foreach (var enemy in request.EnemyUnits)
-            {
-                sb.AppendLine($"- {enemy.Model} ({enemy.Mass} tons)");
-                if (enemy.Position != null)
-                    sb.AppendLine($"  Position: Q={enemy.Position.Q}, R={enemy.Position.R}");
-            }
-            sb.AppendLine();
-        }
-
-        // Add a specific unit to deploy if specified
-        if (request.UnitToAct.HasValue)
-        {
-            sb.AppendLine($"DEPLOY UNIT: {request.UnitToAct.Value}");
-            sb.AppendLine();
-        }
-
-        sb.AppendLine($"Select the best action for the {request.Phase} phase based on tactical principles.");
-
-        return sb.ToString();
-    }
+    protected abstract string BuildUserPrompt(DecisionRequest request);
 
     protected DecisionResponse CreateErrorResponse(string errorType, string errorMessage)
     {

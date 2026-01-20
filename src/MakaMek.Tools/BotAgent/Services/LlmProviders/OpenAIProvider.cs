@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using OpenAI;
 
-namespace BotAgent.Services;
+namespace BotAgent.Services.LlmProviders;
 
 /// <summary>
 /// OpenAI implementation of an LLM provider using Microsoft Agent Framework.
