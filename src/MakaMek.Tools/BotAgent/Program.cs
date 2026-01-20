@@ -2,6 +2,7 @@ using BotAgent.Configuration;
 using BotAgent.Models.Agents;
 using BotAgent.Orchestration;
 using BotAgent.Services;
+using BotAgent.Services.LlmProviders;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,7 +32,7 @@ builder.Services.Configure<AgentConfiguration>(
 
 // Register services
 builder.Services.AddHttpClient<McpClientService>();
-builder.Services.AddSingleton<ILlmProvider, OpenAiProvider>();
+builder.Services.AddSingleton<ILlmProvider, LocalOpenAiLikeProvider>();
 
 // Register agents
 builder.Services.AddSingleton<DeploymentAgent>();

@@ -1,11 +1,11 @@
 @BotAgent_HostAddress = http://localhost:5244
 
-GET {{BotAgent_HostAddress}}/health
+GET {{BotAgent_HostAddress}}/api/health
 Accept: application/json
 
 ###
 
-POST {{BotAgent_HostAddress}}/decision
+POST {{BotAgent_HostAddress}}/api/decision
 Accept: application/json
 Content-Type: application/json
 
@@ -13,6 +13,8 @@ Content-Type: application/json
   "playerId": "00000000-0000-0000-0000-000000000000",
   "phase": "Deployment",
   "mcpServerUrl": "http://localhost:5000/mcp",
+  "controlledUnits": [],
+  "enemyUnits": [],
   "timeout": 30000
 }
 
