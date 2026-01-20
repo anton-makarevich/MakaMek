@@ -73,7 +73,7 @@ public abstract class BaseAgent : ISpecializedAgent
         DecisionRequest request, 
         CancellationToken cancellationToken)
     {
-        var tools = new List<AITool>();
+        var tools = new List<McpClientTool>();
         var mcpEndpoint = request.McpServerUrl;
         
         // Try to connect to the MCP server if URL is provided
@@ -109,7 +109,7 @@ public abstract class BaseAgent : ISpecializedAgent
         return new ChatClientAgent(
             chatClient: LlmProvider.GetChatClient(),
             instructions: SystemPrompt,
-            tools: tools
+            tools: tools.Cast<AITool>().ToArray()
         );
     }
 

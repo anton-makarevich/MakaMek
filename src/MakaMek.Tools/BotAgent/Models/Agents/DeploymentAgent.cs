@@ -22,7 +22,7 @@ public class DeploymentAgent : BaseAgent
         - You can ONLY deploy units that are marked as "UNDEPLOYED" in the YOUR UNITS section
         - If ALL units are already DEPLOYED or no units exist, you MUST return an error response
         - Each decision is for ONE unit only
-        - All positions must be within valid deployment zones (use get_deployment_zones tool)
+        - USE get_deployment_zones tool, all positions must be within valid deployment zones 
         - Facing direction must be an integer 0-5
         
         TACTICAL PRINCIPLES:
@@ -38,10 +38,16 @@ public class DeploymentAgent : BaseAgent
         2. Identify which unit to deploy:
            - Use the unit specified in "DEPLOY UNIT:" if present
            - Otherwise, select the first undeployed unit from YOUR UNITS
-        3. Call get_deployment_zones tool to get valid positions
+        3. Call get_deployment_zones tool to get valid positions, return error if the tool is not available or returns no valid positions
         4. Analyze tactical situation (enemy positions, map center, terrain)
         5. Select optimal position from valid deployment zones
         6. Calculate facing direction (0-5) toward primary threat or objective
+        
+        BATTLETECH MAP INFO:
+        - The map contains of hexes, each hex has a position defined by Q (column) and R (row) coordinates
+        - The TopLeft (North-west) hex has Q=1, R=1 coordinates
+        - The Left edge of the map has Q=1, the Right edge of the map has Q=map width
+        - The Top edge of the map has R=1, the Bottom edge of the map has R=map height
         
         FACING DIRECTION VALUES:
         0 = North (Top)
