@@ -15,4 +15,6 @@ if (!app.Environment.IsDevelopment())
 // Basic health check endpoint
 app.MapGet("/health", () => "Integration Bot Container Running");
 
+app.MapMcp();
+
 app.Run();

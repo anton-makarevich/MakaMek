@@ -49,6 +49,8 @@ public class IntegrationBotService : BackgroundService
     
     private List<UnitData> _availableUnits = [];
 
+    private readonly IGameStateProvider _gameStateProvider;
+
     public IntegrationBotService(
         IOptions<BotConfiguration> config,
         ITransportFactory transportFactory,
@@ -68,7 +70,8 @@ public class IntegrationBotService : BackgroundService
         BotAgentClient botAgentClient,
         IOptions<BotAgentConfiguration> botAgentConfig,
         ILoggerFactory loggerFactory,
-        IServer server)
+        IServer server,
+        IGameStateProvider gameStateProvider)
     {
         _config = config.Value;
         _transportFactory = transportFactory;
@@ -89,6 +92,7 @@ public class IntegrationBotService : BackgroundService
         _botAgentConfig = botAgentConfig;
         _loggerFactory = loggerFactory;
         _server = server;
+        _gameStateProvider = gameStateProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -148,6 +152,8 @@ public class IntegrationBotService : BackgroundService
             _heatEffectsCalculator,
             _mapFactory,
             _hashService);
+
+        _gameStateProvider.ClientGame = _clientGame;
 
         // Initialize BotManager with LLM-enabled DecisionEngineProvider
         var mcpServerUrl = ConstructMcpServerUrl();
@@ -275,6 +281,7 @@ public class IntegrationBotService : BackgroundService
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Stopping Integration Bot Service...");
+        _gameStateProvider.ClientGame = null;
         _gameCommandsSubscription?.Dispose();
         _gameCommandsSubscription = null;
         _clientGame?.Dispose();
