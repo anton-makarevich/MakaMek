@@ -1,5 +1,6 @@
 using MakaMek.Tools.BotContainer.Configuration;
 using MakaMek.Tools.BotContainer.Mcp.Tools;
+using MakaMek.Tools.BotContainer.Services;
 using ModelContextProtocol.Protocol;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -18,9 +19,9 @@ using Sanet.Transport.Rx;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game;
 
-namespace MakaMek.Tools.BotContainer.Services;
+namespace MakaMek.Tools.BotContainer.DependencyInjection;
 
-public static class DependencyInjection
+public static class BotContainerServices
 {
     public static void AddBotContainerServices(this IServiceCollection services, IConfiguration configuration)
     {
