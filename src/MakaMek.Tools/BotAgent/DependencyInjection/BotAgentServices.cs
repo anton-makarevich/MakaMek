@@ -3,6 +3,7 @@ using BotAgent.Models.Agents;
 using BotAgent.Orchestration;
 using BotAgent.Services;
 using BotAgent.Services.LlmProviders;
+using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 
 namespace BotAgent.DependencyInjection;
@@ -19,7 +20,7 @@ public static class BotAgentServices
             builder.AddDebug();
         });
 
-        // Load API key from environment variable if not in configuration
+        // Load API key from the environment variable if not in configuration
         var llmConfig = configuration.GetSection("LlmProvider");
         var apiKey = llmConfig["ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
@@ -37,7 +38,18 @@ public static class BotAgentServices
 
         // Register services
         services.AddHttpClient<McpClientService>();
-        services.AddSingleton<ILlmProvider, LocalOpenAiLikeProvider>();
+        
+        // Register LLM provider
+        services.AddSingleton<ILlmProvider>(sp =>
+        {
+            var cfg = sp.GetRequiredService<IOptions<LlmProviderConfiguration>>().Value;
+            return cfg.Type switch
+            {
+                "LocalOpenAI" => sp.GetRequiredService<LocalOpenAiLikeProvider>(),
+                "OpenAI" => sp.GetRequiredService<OpenAiProvider>(),
+                _ => throw new InvalidOperationException($"Unsupported LLM provider type '{cfg.Type}'.")
+            };
+        });
 
         // Register agents
         services.AddSingleton<DeploymentAgent>();
