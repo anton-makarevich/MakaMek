@@ -185,8 +185,12 @@ public class DeploymentAgent : BaseAgent
                 if (unit.Id.HasValue)
                     sb.AppendLine($"  ID: {unit.Id.Value}");
             }
-            sb.AppendLine();
         }
+        else
+        {
+            sb.AppendLine("YOUR UNITS: (none)");
+        }
+        sb.AppendLine();
 
         // Add enemy units information
         if (request.EnemyUnits.Count > 0)
@@ -198,8 +202,12 @@ public class DeploymentAgent : BaseAgent
                 if (enemy.Position != null)
                     sb.AppendLine($"  Position: Q={enemy.Position.Q}, R={enemy.Position.R}");
             }
-            sb.AppendLine();
         }
+        else
+        {
+            sb.AppendLine("ENEMY UNITS: (none)");
+        }
+        sb.AppendLine();
 
         // Add a specific unit to deploy if specified
         if (request.UnitToAct.HasValue)
