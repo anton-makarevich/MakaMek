@@ -34,7 +34,7 @@ public class DeploymentAgent : BaseAgent
         - Spread units to avoid clustering - maintain tactical spacing
         
         DECISION PROCESS:
-        1. Check if ANY undeployed units exist - if not, return error response
+        1. Check if ANY undeployed units exist - if not (YOUR UNITS is empty all all units in it are DEPLOYED), return error response
         2. Identify which unit to deploy:
            - Use the unit specified in "DEPLOY UNIT:" if present
            - Otherwise, select the first undeployed unit from YOUR UNITS
@@ -171,7 +171,7 @@ public class DeploymentAgent : BaseAgent
     protected override string BuildUserPrompt(DecisionRequest request)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Make a tactical decision for player {request.PlayerId} in phase {request.Phase}.");
+        sb.AppendLine($"Make a unit deployment decision.");
         sb.AppendLine();
 
         // Add controlled units information
@@ -207,8 +207,6 @@ public class DeploymentAgent : BaseAgent
             sb.AppendLine($"DEPLOY UNIT: {request.UnitToAct.Value}");
             sb.AppendLine();
         }
-
-        sb.AppendLine($"Select the best action for the {request.Phase} phase based on tactical principles.");
 
         return sb.ToString();
     }
