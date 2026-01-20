@@ -58,7 +58,7 @@ public class AgentOrchestrator
 
             _logger.LogDebug("Routing to agent: {AgentName}", agent.Name);
 
-            var response = await agent.MakeDecisionAsync(request, cancellationToken);
+            var response = await agent.MakeDecision(request, cancellationToken);
 
             _logger.LogInformation(
                 "Decision completed - Success: {Success}",

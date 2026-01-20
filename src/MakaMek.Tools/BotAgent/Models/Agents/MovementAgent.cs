@@ -27,9 +27,8 @@ public class MovementAgent : BaseAgent
 
     public MovementAgent(
         ILlmProvider llmProvider,
-        McpClientService mcpClient,
         ILogger<MovementAgent> logger)
-        : base(llmProvider, mcpClient, logger)
+        : base(llmProvider, logger)
     {
     }
 

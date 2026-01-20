@@ -72,13 +72,12 @@ public class DeploymentAgent : BaseAgent
 
     public DeploymentAgent(
         ILlmProvider llmProvider,
-        McpClientService mcpClient,
         ILogger<DeploymentAgent> logger)
-        : base(llmProvider, mcpClient, logger)
+        : base(llmProvider, logger)
     {
     }
 
-    public override async Task<DecisionResponse> MakeDecisionAsync(
+    public override async Task<DecisionResponse> MakeDecision(
         DecisionRequest request,
         CancellationToken cancellationToken = default)
     {

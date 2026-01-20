@@ -19,9 +19,8 @@ public class EndPhaseAgent : BaseAgent
 
     public EndPhaseAgent(
         ILlmProvider llmProvider,
-        McpClientService mcpClient,
         ILogger<EndPhaseAgent> logger)
-        : base(llmProvider, mcpClient, logger)
+        : base(llmProvider, logger)
     {
     }
 

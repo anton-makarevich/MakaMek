@@ -26,9 +26,8 @@ public class WeaponsAttackAgent : BaseAgent
 
     public WeaponsAttackAgent(
         ILlmProvider llmProvider,
-        McpClientService mcpClient,
         ILogger<WeaponsAttackAgent> logger)
-        : base(llmProvider, mcpClient, logger)
+        : base(llmProvider, logger)
     {
     }
 
