@@ -4,7 +4,7 @@ using Microsoft.Agents.AI;
 namespace BotAgent.Models.Agents;
 
 /// <summary>
-/// Movement phase agent - evaluates movement options and selects optimal path.
+/// Movement phase agent - evaluates movement options and selects an optimal path.
 /// </summary>
 public class MovementAgent : BaseAgent
 {
@@ -43,7 +43,8 @@ public class MovementAgent : BaseAgent
     /// </summary>
     protected override Task<DecisionResponse> GetAgentDecision(
         ChatClientAgent agent, 
-        DecisionRequest request, 
+        DecisionRequest request,
+        string[] availableTools,
         CancellationToken cancellationToken)
     {
         return Task.FromResult(CreateErrorResponse("NOT_IMPLEMENTED", "MovementAgent not yet implemented"));

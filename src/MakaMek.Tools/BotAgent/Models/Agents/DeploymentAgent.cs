@@ -86,13 +86,18 @@ public class DeploymentAgent : BaseAgent
     /// <summary>
     /// Make the actual deployment decision using the provided agent.
     /// </summary>
-    protected override async Task<DecisionResponse> GetAgentDecision(
-        ChatClientAgent agent, 
-        DecisionRequest request, 
+    protected override async Task<DecisionResponse> GetAgentDecision(ChatClientAgent agent,
+        DecisionRequest request,
+        string[] availableTools,
         CancellationToken cancellationToken)
     {
         try
         {
+            if (!availableTools.Contains("get_deployment_zones"))
+            {
+                throw new InvalidOperationException("get_deployment_zones tool is not available");
+            }
+            
             // Build user prompt with game context from DecisionRequest
             var userPrompt = BuildUserPrompt(request);
 

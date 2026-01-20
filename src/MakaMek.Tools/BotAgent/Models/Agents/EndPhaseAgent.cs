@@ -25,17 +25,18 @@ public class EndPhaseAgent : BaseAgent
     }
 
     /// <summary>
-    /// Build user prompt with game context for end phase decisions.
+    /// Build user prompt with game context for end-phase decisions.
     /// </summary>
     protected override string BuildUserPrompt(DecisionRequest request) => 
         throw new NotImplementedException("BuildUserPrompt not yet implemented for this agent");
 
     /// <summary>
-    /// Make the actual end phase decision using the provided agent.
+    /// Make the actual end-phase decision using the provided agent.
     /// </summary>
     protected override Task<DecisionResponse> GetAgentDecision(
         ChatClientAgent agent, 
         DecisionRequest request, 
+        string[] availableTools,
         CancellationToken cancellationToken)
     {
         return Task.FromResult(CreateErrorResponse("NOT_IMPLEMENTED", "EndPhaseAgent not yet implemented"));

@@ -43,6 +43,7 @@ public class WeaponsAttackAgent : BaseAgent
     protected override Task<DecisionResponse> GetAgentDecision(
         ChatClientAgent agent, 
         DecisionRequest request, 
+        string[] availableTools,
         CancellationToken cancellationToken)
     {
         return Task.FromResult(CreateErrorResponse("NOT_IMPLEMENTED", "WeaponsAttackAgent not yet implemented"));

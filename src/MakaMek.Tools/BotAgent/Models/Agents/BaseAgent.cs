@@ -8,13 +8,11 @@ namespace BotAgent.Models.Agents;
 /// <summary>
 /// Abstract base class for all specialized agents using Microsoft Agent Framework.
 /// </summary>
-public abstract class BaseAgent : ISpecializedAgent, IAsyncDisposable
+public abstract class BaseAgent : ISpecializedAgent
 {
     protected ILogger Logger { get; init; }
     private ILlmProvider LlmProvider { get; init; }
     
-    private McpClient? _mcpClient;
-
     public abstract string Name { get; }
     protected abstract string SystemPrompt { get; }
 
@@ -34,20 +32,46 @@ public abstract class BaseAgent : ISpecializedAgent, IAsyncDisposable
         DecisionRequest request,
         CancellationToken cancellationToken = default)
     {
+        McpClient? mcpClient = null;
+
         try
         {
             Logger.LogInformation("{AgentName} making decision for player {PlayerId}", Name, request.PlayerId);
+            var mcpEndpoint = request.McpServerUrl;
 
             // Create an agent with MCP tools for this specific request
-            var agent = await CreateAgentWithMcpTools(request, cancellationToken);
+            mcpClient = await McpClient.CreateAsync(new HttpClientTransport(new HttpClientTransportOptions 
+            {
+                TransportMode = HttpTransportMode.StreamableHttp,
+                Endpoint = new Uri(mcpEndpoint), 
+            }), cancellationToken: cancellationToken);
+
+            var toolsInMcp = await mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
+            var availableToolNames = toolsInMcp.Select(t => t.Name).ToArray();
+            
+            foreach (var tool in toolsInMcp)
+            {
+                Logger.LogInformation("Tool found: {ToolName}", tool.Name);
+            }
+            
+            var agent =new ChatClientAgent(
+                chatClient: LlmProvider.GetChatClient(),
+                instructions: SystemPrompt,
+                tools: toolsInMcp.Cast<AITool>().ToArray()
+            );
             
             // Call the specialized decision method
-            return await GetAgentDecision(agent, request, cancellationToken);
+            return await GetAgentDecision(agent, request, availableToolNames, cancellationToken);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error in {AgentName} decision making", Name);
             return CreateErrorResponse("AGENT_ERROR", ex.Message);
+        }
+        finally
+        {
+            if (mcpClient != null)
+                await mcpClient.DisposeAsync();
         }
     }
 
@@ -61,59 +85,14 @@ public abstract class BaseAgent : ISpecializedAgent, IAsyncDisposable
     /// </summary>
     /// <param name="agent">The agent instance with MCP tools (if available)</param>
     /// <param name="request">The decision request</param>
+    /// <param name="availableTools">Names of available tools</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The decision response</returns>
     protected abstract Task<DecisionResponse> GetAgentDecision(
         ChatClientAgent agent, 
         DecisionRequest request, 
+        string[] availableTools,
         CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Create a ChatClientAgent with MCP tools if available or without tools if MCP is not available.
-    /// </summary>
-    private async Task<ChatClientAgent> CreateAgentWithMcpTools(
-        DecisionRequest request, 
-        CancellationToken cancellationToken)
-    {
-        var tools = new List<McpClientTool>();
-        var mcpEndpoint = request.McpServerUrl;
-        
-        // Try to connect to the MCP server if URL is provided
-        if (!string.IsNullOrEmpty(request.McpServerUrl))
-        {
-            try
-            {
-                _mcpClient = await McpClient.CreateAsync(new HttpClientTransport(new HttpClientTransportOptions 
-                {
-                    TransportMode = HttpTransportMode.StreamableHttp,
-                    Endpoint = new Uri(mcpEndpoint), 
-                }), cancellationToken: cancellationToken);
-
-                var toolsInMcp = await _mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
-                
-                tools.AddRange(toolsInMcp);
-                
-                Logger.LogInformation("Successfully loaded {ToolCount} MCP tools from {McpUrl}", 
-                    tools.Count, request.McpServerUrl);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Failed to connect to MCP server at {McpUrl}, proceeding without tools", 
-                    request.McpServerUrl);
-                // Continue without MCP tools
-            }
-        }
-        else
-        {
-            Logger.LogInformation("No MCP server URL provided, proceeding without tools");
-        }
-
-        return new ChatClientAgent(
-            chatClient: LlmProvider.GetChatClient(),
-            instructions: SystemPrompt,
-            tools: tools.Cast<AITool>().ToArray()
-        );
-    }
 
     protected DecisionResponse CreateErrorResponse(string errorType, string errorMessage)
     {
@@ -125,14 +104,5 @@ public abstract class BaseAgent : ISpecializedAgent, IAsyncDisposable
             ErrorMessage: errorMessage,
             FallbackRequired: true
         );
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_mcpClient != null)
-        {
-            await _mcpClient.DisposeAsync();
-        }
-        GC.SuppressFinalize(this);
     }
 }
