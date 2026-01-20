@@ -91,19 +91,21 @@ public class DeploymentAgent : BaseAgent
         string[] availableTools,
         CancellationToken cancellationToken)
     {
+        var thread = agent.GetNewThread();
         try
         {
             if (!availableTools.Contains("get_deployment_zones"))
             {
                 throw new InvalidOperationException("get_deployment_zones tool is not available");
             }
-            
+
             // Build user prompt with game context from DecisionRequest
             var userPrompt = BuildUserPrompt(request);
 
             // Run agent with structured output 
             var structuredResponse = await agent.RunAsync<DeploymentAgentOutput>(
-                userPrompt, 
+                userPrompt,
+                thread: thread,
                 cancellationToken: cancellationToken);
 
             Logger.LogInformation(
@@ -126,6 +128,10 @@ public class DeploymentAgent : BaseAgent
         {
             Logger.LogError(ex, "Error in {AgentName} decision making", Name);
             return CreateErrorResponse("AGENT_ERROR", ex.Message);
+        }
+        finally
+        {
+            Logger.LogDebug("DeploymentAgent decision making completed, the full thread {Thread}", thread.Serialize());
         }
     }
 
