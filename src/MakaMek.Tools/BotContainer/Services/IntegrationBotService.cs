@@ -281,6 +281,7 @@ public class IntegrationBotService : BackgroundService
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Stopping Integration Bot Service...");
+        _gameStateProvider.ClientGame = null;
         _gameCommandsSubscription?.Dispose();
         _gameCommandsSubscription = null;
         _clientGame?.Dispose();
