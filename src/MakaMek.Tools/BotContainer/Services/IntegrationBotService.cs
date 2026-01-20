@@ -296,16 +296,16 @@ public class IntegrationBotService : BackgroundService
         if (addresses == null || !addresses.Any())
         {
             _logger.LogWarning("No server addresses found, falling back to localhost:5000");
-            return "http://localhost:5000/mcp";
+            return "http://localhost:5000";
         }
 
-        // Prefer HTTP over HTTPS, and prefer non-loopback addresses
+        // Prefer HTTP over HTTPS and prefer non-loopback addresses
         var preferredAddress = addresses
             .Where(addr => addr.StartsWith("http://"))
             .FirstOrDefault(addr => !addr.Contains("localhost") && !addr.Contains("127.0.0.1"))
             ?? addresses.FirstOrDefault(addr => addr.StartsWith("http://"))
             ?? addresses.First();
 
-        return $"{preferredAddress.TrimEnd('/')}/mcp";
+        return preferredAddress.TrimEnd('/');
     }
 }

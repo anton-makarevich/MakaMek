@@ -34,7 +34,7 @@ public class DeploymentAgent : BaseAgent
         - Spread units to avoid clustering - maintain tactical spacing
         
         DECISION PROCESS:
-        1. Check if ANY undeployed units exist - if not (YOUR UNITS is empty/none or all units in it are DEPLOYED), return error response
+        1. Check if ANY undeployed units exist - if not (YOUR UNITS is empty/none or all the units in it are DEPLOYED), return error response
         2. Identify which unit to deploy:
            - Use the unit specified in "DEPLOY UNIT:" if present
            - Otherwise, select the first undeployed unit from YOUR UNITS
@@ -55,7 +55,7 @@ public class DeploymentAgent : BaseAgent
         Return a valid JSON object with this exact structure:
         {
           "unitId": "guid-string-from-unit-list",
-          "position": {"q": integer, "r": integer},
+          "position": {"q": integer >=1, "r": integer >=1},
           "direction": integer (0-5),
           "reasoning": "short tactical explanation"
         }
@@ -63,7 +63,7 @@ public class DeploymentAgent : BaseAgent
         
         VALIDATION CHECKLIST (before responding):
         ✓ Is there at least one UNDEPLOYED unit available?
-        ✓ Is unitId a valid GUID from an UNDEPLOYED unit in YOUR UNITS?
+        ✓ Is unitId a valid GUID in a valid format from an UNDEPLOYED unit in YOUR UNITS?
         ✓ Is position within the deployment zones returned by get_deployment_zones?
         ✓ Are q and r integers?
         ✓ Is direction an integer between 0 and 5?
