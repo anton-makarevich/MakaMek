@@ -8,10 +8,12 @@ namespace BotAgent.Models.Agents;
 /// <summary>
 /// Abstract base class for all specialized agents using Microsoft Agent Framework.
 /// </summary>
-public abstract class BaseAgent : ISpecializedAgent
+public abstract class BaseAgent : ISpecializedAgent, IAsyncDisposable
 {
     protected ILogger Logger { get; init; }
     private ILlmProvider LlmProvider { get; init; }
+    
+    private McpClient? _mcpClient;
 
     public abstract string Name { get; }
     protected abstract string SystemPrompt { get; }
@@ -81,13 +83,13 @@ public abstract class BaseAgent : ISpecializedAgent
         {
             try
             {
-                await using var mcpClient = await McpClient.CreateAsync(new HttpClientTransport(new HttpClientTransportOptions 
+                _mcpClient = await McpClient.CreateAsync(new HttpClientTransport(new HttpClientTransportOptions 
                 {
                     TransportMode = HttpTransportMode.StreamableHttp,
                     Endpoint = new Uri(mcpEndpoint), 
                 }), cancellationToken: cancellationToken);
 
-                var toolsInMcp = await mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
+                var toolsInMcp = await _mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
                 
                 tools.AddRange(toolsInMcp);
                 
@@ -123,5 +125,14 @@ public abstract class BaseAgent : ISpecializedAgent
             ErrorMessage: errorMessage,
             FallbackRequired: true
         );
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_mcpClient != null)
+        {
+            await _mcpClient.DisposeAsync();
+        }
+        GC.SuppressFinalize(this);
     }
 }
