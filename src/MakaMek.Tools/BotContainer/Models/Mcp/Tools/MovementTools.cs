@@ -140,6 +140,9 @@ public class MovementTools
 
         if (!Enum.TryParse<MovementType>(movementTypeStr, true, out var movementType))
             throw new ArgumentException($"Invalid movement type: {movementTypeStr}");
+        
+        if (!unit.GetAvailableMovementTypes().Contains(movementType))
+            throw new ArgumentException($"Movement type {movementType} is not available for unit {unitId}.");
 
         if (!Enum.IsDefined(typeof(HexDirection), facing))
              throw new ArgumentException($"Invalid facing: {facing}");
