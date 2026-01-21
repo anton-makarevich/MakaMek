@@ -2570,4 +2570,38 @@ public class MechTests
         // Assert
         sut.IsWeaponConfigurationApplied(configuration).ShouldBeFalse();
     }
+    
+    [Fact]
+    public void GetAvailableMovementTypes_ShouldReturnWalkAndRun_WhenCanRun()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+
+        // Act
+        var result = sut.GetAvailableMovementTypes();
+
+        // Assert
+        result.ShouldContain(MovementType.Walk);
+        result.ShouldContain(MovementType.Run);
+    }
+    
+    [Fact]
+    public void GetAvailableMovementTypes_ShouldIncludeJump_WhenCanJump()
+    {
+        // Arrange
+        var parts = CreateBasicPartsData();
+        var leftLeg = parts.Single(p => p.Location == PartLocation.LeftLeg);
+        leftLeg.TryAddComponent(new JumpJets());
+        var rightLeg = parts.Single(p => p.Location == PartLocation.RightLeg);
+        rightLeg.TryAddComponent(new JumpJets());
+        var sut = new Mech("Test", "TST-1A", 50, parts);
+
+        // Act
+        var result = sut.GetAvailableMovementTypes();
+
+        // Assert
+        result.ShouldContain(MovementType.Walk);
+        result.ShouldContain(MovementType.Jump);
+    }
 }

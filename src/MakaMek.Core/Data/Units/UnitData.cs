@@ -33,5 +33,5 @@ public record struct UnitData
     /// <summary>
     /// Current position of the unit on the map (null if not deployed).
     /// </summary>
-    public HexCoordinateData? Position { get; init; }
+    public HexPositionData? Position { get; init; }
 }

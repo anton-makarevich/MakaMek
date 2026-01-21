@@ -178,19 +178,7 @@ public class MovementEngine : IBotDecisionEngine
         var occupiedHexes = GetOccupiedHexes(unit);
 
         // Determine available movement types for this unit
-        var availableMovementTypes = new List<MovementType> { MovementType.Walk };
-        
-        if (unit is Mech mechUnit)
-        {
-            if (mechUnit.CanRun)
-                availableMovementTypes.Add(MovementType.Run);
-            if (mechUnit.CanJump)
-                availableMovementTypes.Add(MovementType.Jump);
-        }
-        else if (unit.GetMovementPoints(MovementType.Run) > 0)
-        {
-            availableMovementTypes.Add(MovementType.Run);
-        }
+        var availableMovementTypes = unit.GetAvailableMovementTypes();
 
         // Evaluate all candidate positions with all available movement types
         var candidateScores = new List<PositionScore>();

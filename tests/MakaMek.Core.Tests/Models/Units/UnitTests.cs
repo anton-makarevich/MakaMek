@@ -2492,6 +2492,20 @@ public class UnitTests
             Value = (int)HexDirection.Bottom
         }).ShouldBeFalse();
     }
+    
+    [Fact]
+    public void GetAvailableMovementTypes_ShouldReturnWalkOnly()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        
+        // Act
+        var result = sut.GetAvailableMovementTypes();
+        
+        // Assert
+        result.ShouldContain(MovementType.Walk);
+        result.Count.ShouldBe(1);
+    }
 
     // Helper class for testing explodable components
     private class TestExplodableComponent(string name, int explosionDamage, int size = 1) : TestComponent(name, size)

@@ -58,17 +58,7 @@ public class MovementTools
             .ToList();
 
         // 2. Identify available movement types
-        var availableMovementTypes = new List<MovementType> { MovementType.Walk };
-        // TODO: to be refactored, see #705
-        if (unit is Sanet.MakaMek.Core.Models.Units.Mechs.Mech mech)
-        {
-            if (mech.CanRun) availableMovementTypes.Add(MovementType.Run);
-            if (mech.CanJump) availableMovementTypes.Add(MovementType.Jump);
-        }
-        else if (unit.GetMovementPoints(MovementType.Run) > 0)
-        {
-            availableMovementTypes.Add(MovementType.Run);
-        }
+        var availableMovementTypes = unit.GetAvailableMovementTypes();
 
         // 3. Calculate reachable hexes and evaluate options
         var hexOptions = new Dictionary<HexCoordinateData, List<MovementOption>>();
@@ -150,6 +140,9 @@ public class MovementTools
 
         if (!Enum.TryParse<MovementType>(movementTypeStr, true, out var movementType))
             throw new ArgumentException($"Invalid movement type: {movementTypeStr}");
+        
+        if (!unit.GetAvailableMovementTypes().Contains(movementType))
+            throw new ArgumentException($"Movement type {movementType} is not available for unit {unitId}.");
 
         if (!Enum.IsDefined(typeof(HexDirection), facing))
              throw new ArgumentException($"Invalid facing: {facing}");

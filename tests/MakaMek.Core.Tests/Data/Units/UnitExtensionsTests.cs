@@ -2,6 +2,7 @@ using NSubstitute;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
@@ -42,6 +43,25 @@ public class UnitExtensionsTests
         convertedUnitData.Mass.ShouldBe(_originalUnitData.Mass);
         convertedUnitData.EngineRating.ShouldBe(_originalUnitData.EngineRating);
         convertedUnitData.EngineType.ShouldBe(_originalUnitData.EngineType);
+        convertedUnitData.Position.ShouldBeNull();
+    }
+    
+    [Fact]
+    public void ToData_ConvertsPosition_WhenDeployed()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        mech.Deploy(position);
+
+        // Act
+        var convertedUnitData = mech.ToData();
+
+        // Assert
+        convertedUnitData.Position.ShouldNotBeNull();
+        convertedUnitData.Position.Coordinates.Q.ShouldBe(1);
+        convertedUnitData.Position.Coordinates.R.ShouldBe(1);
+        convertedUnitData.Position.Facing.ShouldBe(3);
     }
 
     [Fact]
@@ -269,7 +289,7 @@ public class UnitExtensionsTests
         // Arrange
         var mech = _mechFactory.Create(_originalUnitData);
         
-        // Deplete armor and damage structure on center torso
+        // Deplete armor and damage structure on the center torso
         var centerTorso = (CenterTorso)mech.Parts[PartLocation.CenterTorso];
         var damage = centerTorso.MaxArmor + 5; // Deplete armor and damage 5 structure
         centerTorso.ApplyDamage(damage, HitDirection.Front);
@@ -296,7 +316,7 @@ public class UnitExtensionsTests
         // 1. Blow off right arm
         mech.Parts[PartLocation.RightArm].BlowOff();
         
-        // 2. Destroy left arm (no structure left)
+        // 2. Destroy the left arm (no structure left)
         var leftArm = mech.Parts[PartLocation.LeftArm];
         leftArm.ApplyDamage(leftArm.MaxArmor + leftArm.MaxStructure, HitDirection.Front);
         
@@ -308,7 +328,7 @@ public class UnitExtensionsTests
         var rightTorso = (SideTorso)mech.Parts[PartLocation.RightTorso];
         rightTorso.ApplyDamage(8, HitDirection.Front);
         
-        // 5. Deplete armor and damage structure on center torso
+        // 5. Deplete armor and damage structure on the center torso
         var centerTorso = (CenterTorso)mech.Parts[PartLocation.CenterTorso];
         centerTorso.ApplyDamage(centerTorso.MaxArmor + 5, HitDirection.Front);
 
