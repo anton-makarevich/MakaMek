@@ -167,7 +167,7 @@ public class DeploymentAgent : BaseAgent
     }
     
     [Description("Execute a deployment decision for a unit")]
-    string MakeDeploymentDecision(
+    private string MakeDeploymentDecision(
         [Description("Unit GUID")] Guid unitId,
         [Description("Q coordinate")] int q,
         [Description("R coordinate")] int r,
