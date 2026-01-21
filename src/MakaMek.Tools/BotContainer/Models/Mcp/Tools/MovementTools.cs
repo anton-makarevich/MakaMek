@@ -83,11 +83,6 @@ public class MovementTools
 
             foreach (var hex in reachabilityData.AllReachableHexes)
             {
-                // We need a path to evaluate
-                // Pick the best facing for this hex/move combo to score it "optimistically"
-                // or evaluate all facings? Evaluating all facings is too much data.
-                // DeploymentEngine does path evaluation.
-                
                 // Let's get the path to this hex
                 var paths = map.GetPathsToHexWithAllFacings(
                     unit.Position,
@@ -102,7 +97,7 @@ public class MovementTools
                 {
                     try 
                     {
-                        var score = await _gameStateProvider.TacticalEvaluator.EvaluatePath(unit, path, enemyUnits, null);
+                        var score = await _gameStateProvider.TacticalEvaluator.EvaluatePath(unit, path, enemyUnits);
                         
                         var option = new MovementOption(
                             moveType.ToString(),

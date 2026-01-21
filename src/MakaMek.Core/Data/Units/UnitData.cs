@@ -31,7 +31,7 @@ public record struct UnitData
     public IReadOnlyList<UnitPartStateData>? UnitPartStates { get; init; }
 
     /// <summary>
-    /// Current position of unit on the map (null if not deployed).
+    /// Current position of the unit on the map (null if not deployed).
     /// </summary>
     public HexCoordinateData? Position { get; init; }
 }
