@@ -211,7 +211,7 @@ public class MovementAgent : BaseAgent
         {
             sb.AppendLine($"MOVE UNIT: {request.UnitToAct.Value}");
             var unit = request.ControlledUnits.FirstOrDefault(u => u.Id == request.UnitToAct.Value);
-            sb.AppendLine($"Status: {(unit.IsProne ? "PRONE" : "STANDING")}");
+            sb.AppendLine($"Status: {(unit.StatusFlags?.Contains(UnitStatus.Prone)==true ? "PRONE" : "STANDING")}");
             if (unit.Position != null)
                 sb.AppendLine($"Current Position: Q={unit.Position.Coordinates.Q}, R={unit.Position.Coordinates.R}, Facing={unit.Position.Facing}");
                 
