@@ -9,11 +9,11 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
+using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
-using Sanet.MakaMek.Core.Tests.Utils;
 
-namespace Sanet.MakaMek.Core.Tests.Data.Units;
+namespace Sanet.MakaMek.Core.Tests.Models.Units;
 
 public class UnitExtensionsTests
 {
@@ -430,6 +430,40 @@ public class UnitExtensionsTests
         var centerTorsoState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.CenterTorso);
         centerTorsoState.CurrentFrontArmor.ShouldBe(0);
         centerTorsoState.CurrentStructure.ShouldBe(centerTorso.CurrentStructure);
+    }
+    
+    [Fact]
+    public void ToData_WithoutMovementPath_ShouldNotSerializeMovementPath()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+        
+        // Act
+        var serializedData = mech.ToData();
+        
+        // Assert
+        serializedData.MovementPathSegments.ShouldBeNull();
+    }
+    
+    [Fact]
+    public void ToData_WithMovementPath_ShouldSerializeMovementPath()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+        
+        // Move the mech
+        var startPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var endPos = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        var path = new MovementPath([new PathSegment(startPos, endPos, 1)], MovementType.Walk);
+        mech.Deploy(startPos);
+        mech.Move(path);
+
+        // Act
+        var serializedData = mech.ToData();
+
+        // Assert
+        serializedData.MovementPathSegments.ShouldNotBeNull();
+        serializedData.MovementPathSegments.Count.ShouldBe(1);
     }
 
     [Fact]

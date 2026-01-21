@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 

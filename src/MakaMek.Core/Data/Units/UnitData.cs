@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
@@ -31,6 +32,8 @@ public record struct UnitData
     /// Only includes entries for parts that have damage, are destroyed, or are blown off.
     /// </summary>
     public IReadOnlyList<UnitPartStateData>? UnitPartStates { get; init; }
+    
+    public IReadOnlyList<PathSegmentData>? MovementPathSegments { get; init; }
 
     /// <summary>
     /// Current position of the unit on the map (null if not deployed).
