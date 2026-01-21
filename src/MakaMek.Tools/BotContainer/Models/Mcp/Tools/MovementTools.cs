@@ -95,10 +95,10 @@ public class MovementTools
                 // Evaluate each valid path (each facing)
                 foreach (var path in paths.Values)
                 {
-                    try 
+                    try
                     {
                         var score = await _gameStateProvider.TacticalEvaluator.EvaluatePath(unit, path, enemyUnits);
-                        
+
                         var option = new MovementOption(
                             moveType.ToString(),
                             score.OffensiveIndex,
@@ -111,10 +111,15 @@ public class MovementTools
                         {
                             hexOptions[coordData] = [];
                         }
+
                         hexOptions[coordData].Add(option);
 
                     }
-                    catch (Exception) { /* Ignore invalid paths */ }
+                    catch (Exception ex)
+                    {
+                        _gameStateProvider.ClientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}", hex, ex.Message);
+                         // Ignore invalid paths
+                    }
                 }
             }
         }
