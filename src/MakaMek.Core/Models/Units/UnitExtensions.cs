@@ -1,12 +1,12 @@
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
-using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils;
 
-namespace Sanet.MakaMek.Core.Data.Units;
+namespace Sanet.MakaMek.Core.Models.Units;
 
 public static class UnitExtensions
 {
@@ -87,6 +87,13 @@ public static class UnitExtensions
 
                 partStates.Add(partState);
             }
+            
+            var statusFlags = Enum.GetValues<UnitStatus>()
+                .Where(s => s is not UnitStatus.None and not UnitStatus.Active)
+                .Where(s => (unit.Status & s) == s)
+                .ToArray();
+            
+            var movementPathSegments = unit.MovementTaken?.ToData();
 
             return new UnitData
             {
@@ -101,6 +108,8 @@ public static class UnitExtensions
                 AdditionalAttributes = new Dictionary<string, string>(),
                 Quirks = new Dictionary<string, string>(),
                 UnitPartStates = partStates.Count > 0 ? partStates : null,
+                StatusFlags = statusFlags.Length > 0 ? statusFlags : null,
+                MovementPathSegments = movementPathSegments,
                 Position = unit.Position?.ToData()
             };
         }
