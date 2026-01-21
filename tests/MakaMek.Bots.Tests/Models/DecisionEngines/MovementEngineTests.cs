@@ -184,6 +184,7 @@ public class MovementEngineTests
         var unit = CreateMockUnit(hasMoved: false, isDeployed: true);
         _player.AliveUnits.Returns([unit]);
         _clientGame.Players.Returns([_player]);
+        unit.GetAvailableMovementTypes().Returns([MovementType.Walk]);
 
         // Mock reachable hexes
         var targetHex = new HexCoordinates(2, 2);

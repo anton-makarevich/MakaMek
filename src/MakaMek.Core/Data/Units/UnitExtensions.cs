@@ -101,7 +101,7 @@ public static class UnitExtensions
                 AdditionalAttributes = new Dictionary<string, string>(),
                 Quirks = new Dictionary<string, string>(),
                 UnitPartStates = partStates.Count > 0 ? partStates : null,
-                Position = unit.Position?.Coordinates.ToData()
+                Position = unit.Position?.ToData()
             };
         }
         
