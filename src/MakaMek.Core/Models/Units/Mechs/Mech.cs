@@ -61,6 +61,14 @@ public class Mech : Unit
             _ => 0
         };
     }
+    
+    public override IReadOnlyList<MovementType> GetAvailableMovementTypes()
+    {
+        var types = new List<MovementType> { MovementType.Walk };
+        if (CanRun) types.Add(MovementType.Run);
+        if (CanJump) types.Add(MovementType.Jump);
+        return types;
+    }
 
     public override HexDirection? Facing => TorsoDirection?? Position?.Facing;
 

@@ -152,6 +152,11 @@ public abstract class Unit : IUnit
         return ModifiedMovement;
     }
     
+    public virtual IReadOnlyList<MovementType> GetAvailableMovementTypes()
+    {
+        return [MovementType.Walk];
+    }
+    
     // Could be moved to ViewModel as those are presentation only
     public int AvailableWalkingPoints => GetMovementPoints(MovementType.Walk);
     public int AvailableRunningPoints => GetMovementPoints(MovementType.Run);

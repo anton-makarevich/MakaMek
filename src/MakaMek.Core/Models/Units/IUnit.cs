@@ -1,5 +1,4 @@
 ﻿using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
@@ -126,6 +125,8 @@ public interface IUnit
     /// Determines if the unit can move backward with the given movement type
     /// </summary>
     bool CanMoveBackward(MovementType type);
+    
+    IReadOnlyList<MovementType> GetAvailableMovementTypes();
 
     void Deploy(HexPosition position);
 
