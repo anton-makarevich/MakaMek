@@ -15,6 +15,8 @@ public record struct UnitData
     public required string EngineType { get; init; }
     public required Dictionary<PartLocation, ArmorLocation> ArmorValues { get; init; }
 
+    public IReadOnlyList<UnitStatus>? StatusFlags { get; init; }
+
     /// <summary>
     /// Component-centric equipment model with per-instance components and multi-location support
     /// </summary>

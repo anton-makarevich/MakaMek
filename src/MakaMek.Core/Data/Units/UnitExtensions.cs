@@ -87,6 +87,11 @@ public static class UnitExtensions
 
                 partStates.Add(partState);
             }
+            
+            var statusFlags = Enum.GetValues<UnitStatus>()
+                .Where(s => s is not UnitStatus.None and not UnitStatus.Active)
+                .Where(s => (unit.Status & s) == s)
+                .ToArray();
 
             return new UnitData
             {
@@ -101,6 +106,7 @@ public static class UnitExtensions
                 AdditionalAttributes = new Dictionary<string, string>(),
                 Quirks = new Dictionary<string, string>(),
                 UnitPartStates = partStates.Count > 0 ? partStates : null,
+                StatusFlags = statusFlags.Length > 0 ? statusFlags : null,
                 Position = unit.Position?.ToData()
             };
         }

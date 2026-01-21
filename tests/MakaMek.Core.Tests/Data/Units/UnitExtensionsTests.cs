@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
 using Shouldly;
@@ -44,6 +45,79 @@ public class UnitExtensionsTests
         convertedUnitData.EngineRating.ShouldBe(_originalUnitData.EngineRating);
         convertedUnitData.EngineType.ShouldBe(_originalUnitData.EngineType);
         convertedUnitData.Position.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ToData_WithProneStatus_SerializesProneFlag()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+        mech.SetProne();
+
+        // Act
+        var convertedUnitData = mech.ToData();
+
+        // Assert
+        convertedUnitData.StatusFlags.ShouldNotBeNull();
+        convertedUnitData.StatusFlags.ShouldContain(UnitStatus.Prone);
+        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.None);
+        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.Active);
+    }
+
+    [Fact]
+    public void ToData_WithImmobileStatus_SerializesImmobileFlag()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+        var pilot = new MechWarrior("John", "Doe");
+        mech.AssignPilot(pilot);
+        pilot.KnockUnconscious(1);
+
+        // Act
+        var convertedUnitData = mech.ToData();
+
+        // Assert
+        convertedUnitData.StatusFlags.ShouldNotBeNull();
+        convertedUnitData.StatusFlags.ShouldContain(UnitStatus.Immobile);
+        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.None);
+        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.Active);
+    }
+
+    [Fact]
+    public void ToData_WithMultipleStatusFlags_SerializesAllFlagsSeparately()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+        mech.SetProne();
+        var pilot = new MechWarrior("John", "Doe");
+        mech.AssignPilot(pilot);
+        pilot.KnockUnconscious(1);
+
+        // Act
+        var convertedUnitData = mech.ToData();
+
+        // Assert
+        convertedUnitData.StatusFlags.ShouldNotBeNull();
+        convertedUnitData.StatusFlags.ShouldContain(UnitStatus.Prone);
+        convertedUnitData.StatusFlags.ShouldContain(UnitStatus.Immobile);
+        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.None);
+        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.Active);
+    }
+
+    [Fact]
+    public void ToData_WithNoSpecialStatusFlags_SetsStatusFlagsToNull()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        mech.AssignPilot(pilot);
+
+        // Act
+        var convertedUnitData = mech.ToData();
+
+        // Assert
+        convertedUnitData.StatusFlags.ShouldBeNull();
     }
     
     [Fact]
