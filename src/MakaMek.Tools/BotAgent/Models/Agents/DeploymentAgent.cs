@@ -206,7 +206,7 @@ public class DeploymentAgent : BaseAgent
             foreach (var unit in request.ControlledUnits)
             {
                 var deployStatus = unit.Position != null 
-                    ? $"DEPLOYED at Position: Q={unit.Position.Q}, R={unit.Position.R}" 
+                    ? $"DEPLOYED at Position: Q={unit.Position.Coordinates.Q}, R={unit.Position.Coordinates.R}" 
                     : "UNDEPLOYED";
                 sb.AppendLine($"- {unit.Model} ({unit.Mass} tons) - {deployStatus}");
 
@@ -228,7 +228,7 @@ public class DeploymentAgent : BaseAgent
             {
                 sb.AppendLine($"- {enemy.Model} ({enemy.Mass} tons)");
                 if (enemy.Position != null)
-                    sb.AppendLine($"  Position: Q={enemy.Position.Q}, R={enemy.Position.R}");
+                    sb.AppendLine($"  Position: Q={enemy.Position.Coordinates.Q}, R={enemy.Position.Coordinates.R}");
             }
         }
         else
