@@ -3,5 +3,5 @@
 public record ReachableHexData(
     int Q, 
     int R, 
-    List<MovementOption> Options
+    IReadOnlyList<MovementOption> Options
 );

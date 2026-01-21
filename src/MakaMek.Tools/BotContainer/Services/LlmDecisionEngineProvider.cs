@@ -75,5 +75,5 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
         return _decisionEngines.GetValueOrDefault(phase);
     }
     
-    public ITacticalEvaluator? TacticalEvaluator {  get; private set; }
+    public ITacticalEvaluator TacticalEvaluator {  get; private set; }
 }

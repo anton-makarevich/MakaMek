@@ -107,12 +107,13 @@ public class MovementTools
                         );
 
                         var coordData = hex.ToData();
-                        if (!hexOptions.ContainsKey(coordData))
+                        if (!hexOptions.TryGetValue(coordData, out var value))
                         {
-                            hexOptions[coordData] = [];
+                            value = [];
+                            hexOptions[coordData] = value;
                         }
 
-                        hexOptions[coordData].Add(option);
+                        value.Add(option);
 
                     }
                     catch (Exception ex)
