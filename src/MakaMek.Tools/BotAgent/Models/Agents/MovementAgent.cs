@@ -212,7 +212,7 @@ public class MovementAgent : BaseAgent
          var sb = new StringBuilder();
         sb.AppendLine($"Make a tactical movement decision.");
         sb.AppendLine();
-
+        
         if (request.UnitToAct.HasValue)
         {
             sb.AppendLine($"MOVE UNIT: {request.UnitToAct.Value}");
@@ -226,7 +226,14 @@ public class MovementAgent : BaseAgent
         }
         else
         {
-            sb.AppendLine("No specific unit requested. Select one of your units.");
+            sb.AppendLine("YOUR UNITS:");
+            foreach (var unit in request.ControlledUnits)
+            {
+                sb.AppendLine($"Status: {(unit.StatusFlags?.Contains(UnitStatus.Prone)==true ? "PRONE" : "STANDING")}");
+                sb.AppendLine($"- {unit.Model} ({unit.Mass} tons)");
+                if (unit.Position != null)
+                    sb.AppendLine($"  Position: Q={unit.Position.Coordinates.Q}, R={unit.Position.Coordinates.R}, Facing={unit.Position.Facing}");
+            }
         }
 
         // Enemy info
