@@ -27,9 +27,9 @@ public class MovementAgent : BaseAgent
            - IF PRONE: Decide whether to Stand Up (if safe/possible) or Move Prone. Use 'make_standup_decision' if standing up.
            - IF STANDING: Proceed to standard movement.
         3. Call 'get_reachable_hexes(unitId)' to get all valid move options.
-           - This returns options grouped by hex (Q, R), with 'OffensiveIndex' (higher is better - higher chance to hit an emeny from that position) and 'DefensiveIndex' (lower is better - lower chance to be hit by an enemy at this position).
+           - This returns options grouped by hex (Q, R), with 'OffensiveIndex' (higher is better - higher chance to hit an enemy from that position) and 'DefensiveIndex' (lower is better - lower chance to be hit by an enemy at this position).
         4. Select the best option based on:
-           - Indices: Look for High Offensive + Lower Defensive values, prioritise Indecies based on the situation and strategy - rather you want to play more deffensive or aggressive.
+           - Indices: Look for High Offensive + Lower Defensive values, prioritise Indices based on the situation and strategy - rather you want to play more defensive or aggressive.
         5. Call 'get_movement_path(unitId, q, r, movementType, facing)' to get the exact path.
            - 'facing' must be the final facing direction (0-5).
         6. Call 'make_movement_decision' with the retrieved path.
@@ -49,7 +49,7 @@ public class MovementAgent : BaseAgent
         **If moving first (lost initiative):**
         - Adopt defensive posture
         - Maximize movement modifiers
-        - Position for overwatch
+        - Position for over-watch
         
         **If moving last (won initiative):**
         - Take aggressive positioning
@@ -166,7 +166,7 @@ public class MovementAgent : BaseAgent
         {
             UnitId = unitId,
             MovementType = (MovementType)movementType,
-            MovementPath = pathSegments ?? [],
+            MovementPath = pathSegments,
             GameOriginId = Guid.Empty
         };
         
@@ -177,10 +177,17 @@ public class MovementAgent : BaseAgent
     [Description("Execute a stand-up decision (for prone units)")]
     string MakeStandupDecision(
         [Description("Unit GUID")] Guid unitId,
-        [Description("Movement Type after standup")] int movementType,
-        [Description("New Facing Direction (0-5)")] int facing,
+        [Description("Movement Type after standup")]
+        int movementType,
+        [Description("New Facing Direction (0-5)")]
+        int facing,
         [Description("Reasoning")] string reasoning)
     {
+        if (!Enum.IsDefined(typeof(MovementType), movementType))
+            throw new ArgumentException($"Invalid movement type: {movementType}");
+
+        if (facing is < 0 or > 5)
+            throw new ArgumentException($"Invalid facing direction: {facing}. Must be 0-5.");
         var command = new TryStandupCommand
         {
             UnitId = unitId,
