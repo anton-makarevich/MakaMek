@@ -166,6 +166,11 @@ public class MovementAgent : BaseAgent
             throw new ArgumentException(
                 $"Invalid movement type for movement decision: {movementType}. Must be StandingStill, Walk, Run, or Jump.");
 
+        if (movementType != 0 && pathSegments == null || pathSegments.Count == 0) // if not StandingStill
+        {
+            throw new ArgumentException("Movement requires a non-empty pathSegments list.");
+        }
+
         var command = new MoveUnitCommand
         {
             UnitId = unitId,
@@ -229,6 +234,7 @@ public class MovementAgent : BaseAgent
             sb.AppendLine("YOUR UNITS:");
             foreach (var unit in request.ControlledUnits)
             {
+                sb.AppendLine($"ID: {unit.Id}");
                 sb.AppendLine($"Status: {(unit.StatusFlags?.Contains(UnitStatus.Prone)==true ? "PRONE" : "STANDING")}");
                 sb.AppendLine($"- {unit.Model} ({unit.Mass} tons)");
                 if (unit.Position != null)
