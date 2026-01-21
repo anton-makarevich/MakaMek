@@ -1,5 +1,6 @@
 using BotAgent.Services.LlmProviders;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 
 namespace BotAgent.Models.Agents;
 
@@ -30,6 +31,11 @@ public class MovementAgent : BaseAgent
         ILogger<MovementAgent> logger)
         : base(llmProvider, logger)
     {
+    }
+
+    protected override List<AITool> GetLocalTools()
+    {
+        throw new NotImplementedException();
     }
 
     /// <summary>

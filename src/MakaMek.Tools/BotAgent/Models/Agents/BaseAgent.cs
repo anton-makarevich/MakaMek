@@ -3,6 +3,7 @@ using BotAgent.Services.LlmProviders;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
 namespace BotAgent.Models.Agents;
 
@@ -16,6 +17,8 @@ public abstract class BaseAgent : ISpecializedAgent
     
     public abstract string Name { get; }
     protected abstract string SystemPrompt { get; }
+
+    protected (IClientCommand, string)? PendingDecision;
 
     protected BaseAgent(
         ILlmProvider llmProvider,
@@ -47,18 +50,26 @@ public abstract class BaseAgent : ISpecializedAgent
                 Endpoint = new Uri(mcpEndpoint), 
             }), cancellationToken: cancellationToken);
 
-            var toolsInMcp = await mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
-            var availableToolNames = toolsInMcp.Select(t => t.Name).ToArray();
-            
-            foreach (var tool in toolsInMcp)
+            var localTools = GetLocalTools();
+            foreach (var tool in localTools)
             {
-                Logger.LogInformation("Tool found: {ToolName}", tool.Name);
+                Logger.LogInformation("Local tool found: {ToolName}", tool.Name);
             }
+
+            var mcpTools = await mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
+            
+            foreach (var tool in mcpTools)
+            {
+                Logger.LogInformation("MCP tool found: {ToolName}", tool.Name);
+            }
+            
+            var allTools = localTools.Concat(mcpTools.Cast<AITool>()).ToArray();
+            var availableToolNames = allTools.Select(t => t.Name).ToArray();
             
             var agent =LlmProvider.GetChatClient()
                 .CreateAIAgent(
                     instructions: SystemPrompt,
-                    tools: toolsInMcp.Cast<AITool>().ToArray())
+                    tools: allTools)
                 .AsBuilder()
                 .Use(FunctionCallMiddleware)
                 .Build();
@@ -77,6 +88,8 @@ public abstract class BaseAgent : ISpecializedAgent
                 await mcpClient.DisposeAsync();
         }
     }
+
+    protected abstract List<AITool> GetLocalTools();
 
     /// <summary>
     /// Build user prompt with game context. Must be implemented by specialized agents.
