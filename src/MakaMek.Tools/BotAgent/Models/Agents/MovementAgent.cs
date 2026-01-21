@@ -129,7 +129,7 @@ public class MovementAgent : BaseAgent
             // Ensure PlayerId is set
             MoveUnitCommand moveCmd => moveCmd with { PlayerId = request.PlayerId },
             TryStandupCommand standupCmd => standupCmd with { PlayerId = request.PlayerId },
-            _ => command
+            _ => throw new InvalidOperationException($"INVALID_COMMAND_TYPE: {command.GetType().Name}")
         };
 
         Logger.LogInformation("{AgentName} created command: {CommandType}", Name, command.GetType().Name);
@@ -151,16 +151,20 @@ public class MovementAgent : BaseAgent
             AIFunctionFactory.Create(MakeStandupDecision, "make_standup_decision")
         ];
     }
-    
+
     [Description("Execute a movement decision")]
     string MakeMovementDecision(
         [Description("Unit GUID")] Guid unitId,
-        [Description("Movement Type: 0=StandingStill, 1=Walk, 2=Run, 3=Jump")] int movementType,
+        [Description("Movement Type: 0=StandingStill, 1=Walk, 2=Run, 3=Jump")]
+        int movementType,
         [Description("Path segments")] List<PathSegmentData> pathSegments,
         [Description("Reasoning")] string reasoning)
     {
-        if (!Enum.IsDefined(typeof(MovementType), movementType))
-            throw new ArgumentException($"Invalid movement type: {movementType}");
+
+        if (!Enum.IsDefined(typeof(MovementType), movementType) ||
+            (MovementType)movementType == MovementType.Prone)
+            throw new ArgumentException(
+                $"Invalid movement type for movement decision: {movementType}. Must be StandingStill, Walk, Run, or Jump.");
 
         var command = new MoveUnitCommand
         {
@@ -169,7 +173,7 @@ public class MovementAgent : BaseAgent
             MovementPath = pathSegments,
             GameOriginId = Guid.Empty
         };
-        
+
         PendingDecision = new ValueTuple<IClientCommand, string>(command, reasoning);
         return JsonSerializer.Serialize(new { success = true, message = "Movement decision recorded" });
     }
@@ -183,11 +187,13 @@ public class MovementAgent : BaseAgent
         int facing,
         [Description("Reasoning")] string reasoning)
     {
-        if (!Enum.IsDefined(typeof(MovementType), movementType))
-            throw new ArgumentException($"Invalid movement type: {movementType}");
-
+        if (!Enum.IsDefined(typeof(MovementType), movementType) ||
+            (MovementType)movementType == MovementType.Prone)
+            throw new ArgumentException(
+                $"Invalid movement type after standup: {movementType}. Must be StandingStill, Walk, Run, or Jump.");
         if (facing is < 0 or > 5)
             throw new ArgumentException($"Invalid facing direction: {facing}. Must be 0-5.");
+
         var command = new TryStandupCommand
         {
             UnitId = unitId,
