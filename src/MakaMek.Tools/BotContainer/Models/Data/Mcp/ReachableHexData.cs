@@ -1,4 +1,4 @@
-﻿namespace MakaMek.Tools.BotContainer.Mcp.Tools;
+﻿namespace MakaMek.Tools.BotContainer.Models.Data.Mcp;
 
 public record ReachableHexData(
     int Q, 

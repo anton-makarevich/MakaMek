@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using MakaMek.Tools.BotContainer.Models.Data.Mcp;
 using MakaMek.Tools.BotContainer.Services;
 using ModelContextProtocol.Server;
 using Sanet.MakaMek.Core.Data.Game;
@@ -6,7 +7,7 @@ using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 
-namespace MakaMek.Tools.BotContainer.Mcp.Tools;
+namespace MakaMek.Tools.BotContainer.Models.Mcp.Tools;
 
 [McpServerToolType]
 public class MovementTools

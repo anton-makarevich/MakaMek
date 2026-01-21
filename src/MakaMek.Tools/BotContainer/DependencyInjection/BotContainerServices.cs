@@ -1,5 +1,5 @@
 using MakaMek.Tools.BotContainer.Configuration;
-using MakaMek.Tools.BotContainer.Mcp.Tools;
+using MakaMek.Tools.BotContainer.Models.Mcp.Tools;
 using MakaMek.Tools.BotContainer.Services;
 using ModelContextProtocol.Protocol;
 using Sanet.MakaMek.Bots.Models;
