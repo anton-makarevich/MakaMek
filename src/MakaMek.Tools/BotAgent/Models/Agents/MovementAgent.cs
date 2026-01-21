@@ -1,5 +1,6 @@
 using BotAgent.Services.LlmProviders;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 
 namespace BotAgent.Models.Agents;
 
@@ -32,6 +33,11 @@ public class MovementAgent : BaseAgent
     {
     }
 
+    protected override List<AITool> GetLocalTools()
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Build user prompt with game context for movement decisions.
     /// </summary>
@@ -42,7 +48,7 @@ public class MovementAgent : BaseAgent
     /// Make the actual movement decision using the provided agent.
     /// </summary>
     protected override Task<DecisionResponse> GetAgentDecision(
-        ChatClientAgent agent, 
+        AIAgent agent, 
         DecisionRequest request,
         string[] availableTools,
         CancellationToken cancellationToken)

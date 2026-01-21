@@ -1,5 +1,6 @@
 using BotAgent.Services.LlmProviders;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 
 namespace BotAgent.Models.Agents;
 
@@ -31,6 +32,11 @@ public class WeaponsAttackAgent : BaseAgent
     {
     }
 
+    protected override List<AITool> GetLocalTools()
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Build user prompt with game context for weapons attack decisions.
     /// </summary>
@@ -41,7 +47,7 @@ public class WeaponsAttackAgent : BaseAgent
     /// Make the actual weapons attack decision using the provided agent.
     /// </summary>
     protected override Task<DecisionResponse> GetAgentDecision(
-        ChatClientAgent agent, 
+        AIAgent agent, 
         DecisionRequest request, 
         string[] availableTools,
         CancellationToken cancellationToken)

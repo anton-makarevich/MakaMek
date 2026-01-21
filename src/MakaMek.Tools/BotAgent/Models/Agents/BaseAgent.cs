@@ -1,7 +1,9 @@
+using System.Text;
 using BotAgent.Services.LlmProviders;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
 namespace BotAgent.Models.Agents;
 
@@ -15,6 +17,8 @@ public abstract class BaseAgent : ISpecializedAgent
     
     public abstract string Name { get; }
     protected abstract string SystemPrompt { get; }
+
+    protected (IClientCommand, string)? PendingDecision;
 
     protected BaseAgent(
         ILlmProvider llmProvider,
@@ -46,19 +50,29 @@ public abstract class BaseAgent : ISpecializedAgent
                 Endpoint = new Uri(mcpEndpoint), 
             }), cancellationToken: cancellationToken);
 
-            var toolsInMcp = await mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
-            var availableToolNames = toolsInMcp.Select(t => t.Name).ToArray();
-            
-            foreach (var tool in toolsInMcp)
+            var localTools = GetLocalTools();
+            foreach (var tool in localTools)
             {
-                Logger.LogInformation("Tool found: {ToolName}", tool.Name);
+                Logger.LogInformation("Local tool found: {ToolName}", tool.Name);
+            }
+
+            var mcpTools = await mcpClient.ListToolsAsync(cancellationToken: cancellationToken);
+            
+            foreach (var tool in mcpTools)
+            {
+                Logger.LogInformation("MCP tool found: {ToolName}", tool.Name);
             }
             
-            var agent =new ChatClientAgent(
-                chatClient: LlmProvider.GetChatClient(),
-                instructions: SystemPrompt,
-                tools: toolsInMcp.Cast<AITool>().ToArray()
-            );
+            var allTools = localTools.Concat(mcpTools.Cast<AITool>()).ToArray();
+            var availableToolNames = allTools.Select(t => t.Name).ToArray();
+            
+            var agent =LlmProvider.GetChatClient()
+                .CreateAIAgent(
+                    instructions: SystemPrompt,
+                    tools: allTools)
+                .AsBuilder()
+                .Use(FunctionCallMiddleware)
+                .Build();
             
             // Call the specialized decision method
             return await GetAgentDecision(agent, request, availableToolNames, cancellationToken);
@@ -75,6 +89,8 @@ public abstract class BaseAgent : ISpecializedAgent
         }
     }
 
+    protected abstract List<AITool> GetLocalTools();
+
     /// <summary>
     /// Build user prompt with game context. Must be implemented by specialized agents.
     /// </summary>
@@ -89,11 +105,25 @@ public abstract class BaseAgent : ISpecializedAgent
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The decision response</returns>
     protected abstract Task<DecisionResponse> GetAgentDecision(
-        ChatClientAgent agent, 
+        AIAgent agent, 
         DecisionRequest request, 
         string[] availableTools,
         CancellationToken cancellationToken);
 
+    private async ValueTask<object?> FunctionCallMiddleware(AIAgent callingAgent, FunctionInvocationContext context, Func<FunctionInvocationContext, CancellationToken, ValueTask<object?>> next, CancellationToken cancellationToken)
+    {
+        StringBuilder functionCallDetails = new();
+        functionCallDetails.Append($"- Tool Call: '{context.Function.Name}'");
+        if (context.Arguments.Count > 0)
+        {
+            functionCallDetails.Append($" (Args: {string.Join(",", context.Arguments.Select(x => $"[{x.Key} = {x.Value}]"))}");
+        }
+        
+        Logger.LogInformation("{AgentName} is calling tool: {FunctionCallDetails}", Name, functionCallDetails.ToString());
+
+        return await next(context, cancellationToken);
+    }
+    
     protected DecisionResponse CreateErrorResponse(string errorType, string errorMessage)
     {
         return new DecisionResponse(

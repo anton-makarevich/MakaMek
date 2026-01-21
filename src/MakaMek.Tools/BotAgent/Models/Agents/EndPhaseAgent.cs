@@ -1,5 +1,6 @@
 using BotAgent.Services.LlmProviders;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 
 namespace BotAgent.Models.Agents;
 
@@ -24,6 +25,11 @@ public class EndPhaseAgent : BaseAgent
     {
     }
 
+    protected override List<AITool> GetLocalTools()
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Build user prompt with game context for end-phase decisions.
     /// </summary>
@@ -34,7 +40,7 @@ public class EndPhaseAgent : BaseAgent
     /// Make the actual end-phase decision using the provided agent.
     /// </summary>
     protected override Task<DecisionResponse> GetAgentDecision(
-        ChatClientAgent agent, 
+        AIAgent agent, 
         DecisionRequest request, 
         string[] availableTools,
         CancellationToken cancellationToken)

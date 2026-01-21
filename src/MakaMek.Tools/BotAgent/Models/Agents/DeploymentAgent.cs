@@ -1,8 +1,11 @@
-using BotAgent.Models.Agents.Outputs;
+using System.ComponentModel;
 using BotAgent.Services.LlmProviders;
 using Microsoft.Agents.AI;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using System.Text;
+using System.Text.Json;
+using Microsoft.Extensions.AI;
+using Sanet.MakaMek.Core.Data.Map;
 
 namespace BotAgent.Models.Agents;
 
@@ -32,6 +35,7 @@ public class DeploymentAgent : BaseAgent
           * Medium mechs (40-55 tons): Flexible mid-range positions
           * Light mechs (20-35 tons): Flanking positions with mobility options
         - Spread units to avoid clustering - maintain tactical spacing
+        - Units should never deploy on the same hex. Note positions occupied by deployed units in both YOUR UNITS and ENEMY UNITS section and exclude them from available list of hexes.
         
         DECISION PROCESS:
         1. Check if ANY undeployed units exist - if not (YOUR UNITS is empty/none or all the units in it are DEPLOYED), return error response
@@ -42,6 +46,7 @@ public class DeploymentAgent : BaseAgent
         4. Analyze tactical situation (enemy positions, map center, terrain)
         5. Select optimal position from valid deployment zones
         6. Calculate facing direction (0-5) toward primary threat or objective
+        7. Once you have all the information to make a decision, record it using make_deployment_decision tool
         
         BATTLETECH MAP INFO:
         - The map contains of hexes, each hex has a position defined by Q (column) and R (row) coordinates
@@ -56,16 +61,6 @@ public class DeploymentAgent : BaseAgent
         3 = South (Bottom)
         4 = Southwest (BottomLeft)
         5 = Northwest (TopLeft)
-        
-        OUTPUT FORMAT EXPLANATION (full JSON schema is provided):
-        Return a valid JSON object with this exact structure:
-        {
-          "unitId": "guid-string-from-unit-list",
-          "position": {"q": integer >=1, "r": integer >=1},
-          "direction": integer (0-5),
-          "reasoning": "short tactical explanation"
-        }
-        
         
         VALIDATION CHECKLIST (before responding):
         ✓ Is there at least one UNDEPLOYED unit available?
@@ -86,7 +81,7 @@ public class DeploymentAgent : BaseAgent
     /// <summary>
     /// Make the actual deployment decision using the provided agent.
     /// </summary>
-    protected override async Task<DecisionResponse> GetAgentDecision(ChatClientAgent agent,
+    protected override async Task<DecisionResponse> GetAgentDecision(AIAgent agent,
         DecisionRequest request,
         string[] availableTools,
         CancellationToken cancellationToken)
@@ -94,6 +89,8 @@ public class DeploymentAgent : BaseAgent
         var thread = agent.GetNewThread();
         try
         {
+            PendingDecision = null;
+            
             if (!availableTools.Contains("get_deployment_zones"))
             {
                 throw new InvalidOperationException("get_deployment_zones tool is not available");
@@ -103,21 +100,15 @@ public class DeploymentAgent : BaseAgent
             var userPrompt = BuildUserPrompt(request);
 
             // Run agent with structured output 
-            var structuredResponse = await agent.RunAsync<DeploymentAgentOutput>(
-                userPrompt,
-                thread: thread,
+            var response = await agent.RunAsync(
+                userPrompt, 
+                thread,
                 cancellationToken: cancellationToken);
-
-            Logger.LogInformation(
-                "{AgentName} received structured output - Unit: {UnitId}, Position: ({Q},{R}), Direction: {Direction}",
-                Name,
-                structuredResponse.Result.UnitId,
-                structuredResponse.Result.Position.Q,
-                structuredResponse.Result.Position.R,
-                structuredResponse.Result.Direction);
+            
+            Logger.LogInformation("{AgentName} received response: {Response}", Name, response);
 
             // Map structured output to DecisionResponse
-            return MapToDecisionResponse(structuredResponse.Result, request);
+            return CreateDecisionResponse(request, response);
         }
         catch (InvalidOperationException ex) when (ex.Message.StartsWith("INVALID_"))
         {
@@ -138,34 +129,19 @@ public class DeploymentAgent : BaseAgent
     /// <summary>
     /// Maps the structured LLM output to DecisionResponse with validation.
     /// </summary>
-    private DecisionResponse MapToDecisionResponse(
-        DeploymentAgentOutput output, 
-        DecisionRequest request)
+    private DecisionResponse CreateDecisionResponse(
+        DecisionRequest request,
+        AgentRunResponse response
+        )
     {
-        // Validate GUID
-        if (!Guid.TryParse(output.UnitId, out var unitId))
-        {
-            Logger.LogError("Invalid unitId in LLM output: {UnitId}", output.UnitId);
-            throw new InvalidOperationException("INVALID_UNIT_ID");
-        }
-
         // Validate direction range
-        if (output.Direction is < 0 or > 5)
+        if (PendingDecision?.Item1 is not DeployUnitCommand command)
         {
-            Logger.LogError("Invalid direction in LLM output: {Direction}", output.Direction);
-            throw new InvalidOperationException("INVALID_DIRECTION");
+            Logger.LogError("Agent decision is null, agent response is {Response}", response);
+            throw new InvalidOperationException("INVALID_DECISION");
         }
-
-        // Create command
-        var command = new DeployUnitCommand
-        {
-            PlayerId = request.PlayerId,
-            UnitId = unitId,
-            GameOriginId = Guid.Empty, // Will be set by ClientGame
-            Position = output.Position,
-            Direction = output.Direction,
-            IdempotencyKey = null // Will be set by ClientGame
-        };
+        
+        command = command with { PlayerId = request.PlayerId };
 
         Logger.LogInformation(
             "{AgentName} created DeployUnitCommand - PlayerId: {PlayerId}, UnitId: {UnitId}",
@@ -176,11 +152,42 @@ public class DeploymentAgent : BaseAgent
         return new DecisionResponse(
             Success: true,
             Command: command,
-            Reasoning: output.Reasoning,
+            Reasoning: PendingDecision.Value.Item2,
             ErrorType: null,
             ErrorMessage: null,
             FallbackRequired: false
         );
+    }
+
+    protected override List<AITool> GetLocalTools()
+    {
+        return [
+            AIFunctionFactory.Create(MakeDeploymentDecision, "make_deployment_decision")
+        ];
+    }
+    
+    [Description("Execute a deployment decision for a unit")]
+    string MakeDeploymentDecision(
+        [Description("Unit GUID")] Guid unitId,
+        [Description("Q coordinate")] int q,
+        [Description("R coordinate")] int r,
+        [Description("Facing direction 0-5")] int direction,
+        [Description("Tactical reasoning")] string reasoning)
+    {
+        // Create and store the command
+        var command = new DeployUnitCommand
+        {
+            UnitId = unitId,
+            Position = new HexCoordinateData(q, r),
+            Direction = direction,
+            GameOriginId = Guid.Empty, // Will be set by ClientGame
+        };
+        PendingDecision = new ValueTuple<IClientCommand, string>(command, reasoning);
+    
+        return JsonSerializer.Serialize(new { 
+            success = true, 
+            message = "Deployment decision recorded" 
+        });
     }
 
     /// <summary>
@@ -198,8 +205,11 @@ public class DeploymentAgent : BaseAgent
             sb.AppendLine("YOUR UNITS:");
             foreach (var unit in request.ControlledUnits)
             {
-                var deployStatus = unit.Position != null ? "DEPLOYED" : "UNDEPLOYED";
+                var deployStatus = unit.Position != null 
+                    ? $"DEPLOYED at Position: Q={unit.Position.Q}, R={unit.Position.R}" 
+                    : "UNDEPLOYED";
                 sb.AppendLine($"- {unit.Model} ({unit.Mass} tons) - {deployStatus}");
+
                 if (unit.Id.HasValue)
                     sb.AppendLine($"  ID: {unit.Id.Value}");
             }
