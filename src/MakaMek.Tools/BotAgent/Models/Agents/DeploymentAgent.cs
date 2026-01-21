@@ -35,6 +35,7 @@ public class DeploymentAgent : BaseAgent
           * Medium mechs (40-55 tons): Flexible mid-range positions
           * Light mechs (20-35 tons): Flanking positions with mobility options
         - Spread units to avoid clustering - maintain tactical spacing
+        - Units should never deploy on the same hex. Note positions occupied by deployed units in both YOUR UNITS and ENEMY UNITS section and exclude them from available list of hexes.
         
         DECISION PROCESS:
         1. Check if ANY undeployed units exist - if not (YOUR UNITS is empty/none or all the units in it are DEPLOYED), return error response
@@ -170,7 +171,7 @@ public class DeploymentAgent : BaseAgent
     protected override List<AITool> GetLocalTools()
     {
         return [
-            AIFunctionFactory.Create(MakeDeploymentDecision)
+            AIFunctionFactory.Create(MakeDeploymentDecision, "make_deployment_decision")
         ];
     }
     
