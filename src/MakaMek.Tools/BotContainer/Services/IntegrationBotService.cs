@@ -3,6 +3,7 @@ using MakaMek.Tools.BotContainer.Configuration;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -158,13 +159,17 @@ public class IntegrationBotService : BackgroundService
         // Initialize BotManager with LLM-enabled DecisionEngineProvider
         var mcpServerUrl = ConstructMcpServerUrl();
         _logger.LogInformation("Using MCP server URL: {McpServerUrl}", mcpServerUrl);
-        
+
+
         var decisionEngineProvider = new LlmDecisionEngineProvider(
             _clientGame,
             _botAgentClient,
-            _botAgentConfig,
             mcpServerUrl,
             _loggerFactory);
+        
+        // Expose tactical evaluator to MCP tools
+        _gameStateProvider.TacticalEvaluator = decisionEngineProvider.TacticalEvaluator;
+        
         _botManager.Initialize(_clientGame, decisionEngineProvider);
         
         _gameCommandsSubscription = _clientGame.Commands

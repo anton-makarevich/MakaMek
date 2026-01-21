@@ -285,6 +285,7 @@ public class MovementState : IUiState
         }
     }
 
+    // TODO that should be a part of UnitPresentationExtensions
     public IEnumerable<StateAction> GetAvailableActions()
     {
         lock (_stateLock)

@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using MakaMek.Tools.BotContainer.Configuration;
-using MakaMek.Tools.BotContainer.Models.DecisionEngines;
+﻿using MakaMek.Tools.BotContainer.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Models.Game;
@@ -19,17 +17,15 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
     public LlmDecisionEngineProvider(
         IClientGame clientGame,
         BotAgentClient botAgentClient,
-        IOptions<BotAgentConfiguration> botAgentConfig,
         string mcpServerUrl,
         ILoggerFactory loggerFactory)
     {
-        var config = botAgentConfig.Value;
-        var tacticalEvaluator = new TacticalEvaluator(clientGame);
+        TacticalEvaluator = new TacticalEvaluator(clientGame);
 
         // Create standard fallback engines
         var deploymentFallback = new DeploymentEngine(clientGame);
-        var movementFallback = new MovementEngine(clientGame, tacticalEvaluator);
-        var weaponsFallback = new WeaponsEngine(clientGame, tacticalEvaluator);
+        var movementFallback = new MovementEngine(clientGame, TacticalEvaluator);
+        var weaponsFallback = new WeaponsEngine(clientGame, TacticalEvaluator);
         var endPhaseFallback = new EndPhaseEngine(clientGame);
 
         // Create LLM-enabled engines that wrap the fallback engines
@@ -78,4 +74,6 @@ public class LlmDecisionEngineProvider : IDecisionEngineProvider
     {
         return _decisionEngines.GetValueOrDefault(phase);
     }
+    
+    public ITacticalEvaluator TacticalEvaluator {  get; private set; }
 }
