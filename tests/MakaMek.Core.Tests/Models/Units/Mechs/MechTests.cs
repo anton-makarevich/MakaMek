@@ -2587,7 +2587,7 @@ public class MechTests
     }
     
     [Fact]
-    public void GetAvailableMovementTypes_ShouldReturnWalkAndJump_WhenCanJump()
+    public void GetAvailableMovementTypes_ShouldIncludeJump_WhenCanJump()
     {
         // Arrange
         var parts = CreateBasicPartsData();
