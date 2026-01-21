@@ -58,17 +58,7 @@ public class MovementTools
             .ToList();
 
         // 2. Identify available movement types
-        var availableMovementTypes = new List<MovementType> { MovementType.Walk };
-        // TODO: to be refactored, see #705
-        if (unit is Sanet.MakaMek.Core.Models.Units.Mechs.Mech mech)
-        {
-            if (mech.CanRun) availableMovementTypes.Add(MovementType.Run);
-            if (mech.CanJump) availableMovementTypes.Add(MovementType.Jump);
-        }
-        else if (unit.GetMovementPoints(MovementType.Run) > 0)
-        {
-            availableMovementTypes.Add(MovementType.Run);
-        }
+        var availableMovementTypes = unit.GetAvailableMovementTypes();
 
         // 3. Calculate reachable hexes and evaluate options
         var hexOptions = new Dictionary<HexCoordinateData, List<MovementOption>>();
