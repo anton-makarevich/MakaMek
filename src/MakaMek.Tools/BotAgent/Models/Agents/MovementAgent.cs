@@ -231,8 +231,8 @@ public class MovementAgent : BaseAgent
         }
         else
         {
-            sb.AppendLine("YOUR UNITS:");
-            foreach (var unit in request.ControlledUnits)
+            sb.AppendLine("YOUR UNITS to move:");
+            foreach (var unit in request.ControlledUnits.Where(u => u is { Id: not null, MovementPathSegments: null }))
             {
                 sb.AppendLine($"ID: {unit.Id}");
                 sb.AppendLine($"Status: {(unit.StatusFlags?.Contains(UnitStatus.Prone)==true ? "PRONE" : "STANDING")}");
