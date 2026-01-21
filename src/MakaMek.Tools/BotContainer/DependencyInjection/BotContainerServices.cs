@@ -116,6 +116,7 @@ public static class BotContainerServices
             {
                 options.Stateless = true;
             })
-            .WithTools<DeploymentTools>();
+            .WithTools<DeploymentTools>()
+            .WithTools<MovementTools>();
     }
 }
