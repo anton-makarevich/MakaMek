@@ -62,15 +62,6 @@ public class DeploymentAgent : BaseAgent
         4 = Southwest (BottomLeft)
         5 = Northwest (TopLeft)
         
-        OUTPUT FORMAT EXPLANATION:
-        Return a valid JSON object with this exact structure:
-        {
-          "unitId": "guid-string-from-unit-list",
-          "position": {"q": integer >=1, "r": integer >=1},
-          "direction": integer (0-5),
-          "reasoning": "short tactical explanation"
-        }
-        
         VALIDATION CHECKLIST (before responding):
         ✓ Is there at least one UNDEPLOYED unit available?
         ✓ Is unitId a valid GUID in a valid format from an UNDEPLOYED unit in YOUR UNITS?
@@ -214,8 +205,11 @@ public class DeploymentAgent : BaseAgent
             sb.AppendLine("YOUR UNITS:");
             foreach (var unit in request.ControlledUnits)
             {
-                var deployStatus = unit.Position != null ? "DEPLOYED" : "UNDEPLOYED";
+                var deployStatus = unit.Position != null 
+                    ? $"DEPLOYED at Position: Q={unit.Position.Q}, R={unit.Position.R}" 
+                    : "UNDEPLOYED";
                 sb.AppendLine($"- {unit.Model} ({unit.Mass} tons) - {deployStatus}");
+
                 if (unit.Id.HasValue)
                     sb.AppendLine($"  ID: {unit.Id.Value}");
             }
