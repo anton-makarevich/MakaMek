@@ -39,4 +39,7 @@ public record struct UnitData
     /// Current position of the unit on the map (null if not deployed).
     /// </summary>
     public HexPositionData? Position { get; init; }
+    
+    // TODO to be refactored to expose actual declarations #710
+    public bool HasDeclaredWeaponAttack { get; init; }
 }

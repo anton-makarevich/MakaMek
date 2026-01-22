@@ -76,11 +76,11 @@ public class MovementAgent : BaseAgent
     }
 
     protected override async Task<DecisionResponse> GetAgentDecision(AIAgent agent,
+        AgentThread thread,
         DecisionRequest request,
         string[] availableTools,
         CancellationToken cancellationToken)
     {
-        var thread = agent.GetNewThread();
         try
         {
             PendingDecision = null;
@@ -153,7 +153,7 @@ public class MovementAgent : BaseAgent
     }
 
     [Description("Execute a movement decision")]
-    string MakeMovementDecision(
+    private string MakeMovementDecision(
         [Description("Unit GUID")] Guid unitId,
         [Description("Movement Type: 0=StandingStill, 1=Walk, 2=Run, 3=Jump")]
         int movementType,
@@ -184,7 +184,7 @@ public class MovementAgent : BaseAgent
     }
 
     [Description("Execute a stand-up decision (for prone units)")]
-    string MakeStandupDecision(
+    private string MakeStandupDecision(
         [Description("Unit GUID")] Guid unitId,
         [Description("Movement Type after standup")]
         int movementType,

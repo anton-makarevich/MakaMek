@@ -82,11 +82,11 @@ public class DeploymentAgent : BaseAgent
     /// Make the actual deployment decision using the provided agent.
     /// </summary>
     protected override async Task<DecisionResponse> GetAgentDecision(AIAgent agent,
+        AgentThread thread,
         DecisionRequest request,
         string[] availableTools,
         CancellationToken cancellationToken)
     {
-        var thread = agent.GetNewThread();
         try
         {
             PendingDecision = null;
@@ -167,7 +167,7 @@ public class DeploymentAgent : BaseAgent
     }
     
     [Description("Execute a deployment decision for a unit")]
-    string MakeDeploymentDecision(
+    private string MakeDeploymentDecision(
         [Description("Unit GUID")] Guid unitId,
         [Description("Q coordinate")] int q,
         [Description("R coordinate")] int r,

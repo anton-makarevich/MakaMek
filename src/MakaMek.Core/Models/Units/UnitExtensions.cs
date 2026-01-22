@@ -110,7 +110,8 @@ public static class UnitExtensions
                 UnitPartStates = partStates.Count > 0 ? partStates : null,
                 StatusFlags = statusFlags.Length > 0 ? statusFlags : null,
                 MovementPathSegments = movementPathSegments,
-                Position = unit.Position?.ToData()
+                Position = unit.Position?.ToData(),
+                HasDeclaredWeaponAttack = unit.HasDeclaredWeaponAttack
             };
         }
         
