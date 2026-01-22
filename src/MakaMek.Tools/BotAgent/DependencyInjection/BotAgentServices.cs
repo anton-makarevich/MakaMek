@@ -51,10 +51,10 @@ public static class BotAgentServices
         });
 
         // Register agents
-        services.AddSingleton<DeploymentAgent>();
-        services.AddSingleton<MovementAgent>();
-        services.AddSingleton<WeaponsAttackAgent>();
-        services.AddSingleton<EndPhaseAgent>();
+        services.AddTransient<DeploymentAgent>();
+        services.AddTransient<MovementAgent>();
+        services.AddTransient<WeaponsAttackAgent>();
+        services.AddTransient<EndPhaseAgent>();
 
         // Register orchestrator
         services.AddSingleton<AgentOrchestrator>();
