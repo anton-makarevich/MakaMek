@@ -111,8 +111,10 @@ public static class UnitExtensions
                 StatusFlags = statusFlags.Length > 0 ? statusFlags : null,
                 MovementPathSegments = movementPathSegments,
                 Position = unit.Position?.ToData(),
-                HasDeclaredWeaponAttack = unit.HasDeclaredWeaponAttack
+                HasDeclaredWeaponAttack = unit.HasDeclaredWeaponAttack,
+                CurrentHeat = unit.CurrentHeat
             };
+
         }
         
         public UnitTacticalRole GetTacticalRole()

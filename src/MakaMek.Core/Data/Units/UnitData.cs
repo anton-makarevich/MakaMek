@@ -42,4 +42,6 @@ public record struct UnitData
     
     // TODO to be refactored to expose actual declarations #710
     public bool HasDeclaredWeaponAttack { get; init; }
+    
+    public int CurrentHeat { get; init; }
 }
