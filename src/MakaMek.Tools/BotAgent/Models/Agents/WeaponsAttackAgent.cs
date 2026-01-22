@@ -219,11 +219,11 @@ public class WeaponsAttackAgent : BaseAgent
     /// </summary>
     protected override async Task<DecisionResponse> GetAgentDecision(
         AIAgent agent,
+        AgentThread thread,
         DecisionRequest request,
         string[] availableTools,
         CancellationToken cancellationToken)
     {
-        var thread = agent.GetNewThread();
         try
         {
             PendingDecision = null;

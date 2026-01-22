@@ -41,6 +41,7 @@ public class EndPhaseAgent : BaseAgent
     /// </summary>
     protected override Task<DecisionResponse> GetAgentDecision(
         AIAgent agent, 
+        AgentThread thread,
         DecisionRequest request, 
         string[] availableTools,
         CancellationToken cancellationToken)

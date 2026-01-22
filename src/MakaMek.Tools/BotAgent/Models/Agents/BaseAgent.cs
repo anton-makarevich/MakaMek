@@ -76,8 +76,10 @@ public abstract class BaseAgent : ISpecializedAgent
                 .Use(FunctionCallMiddleware)
                 .Build();
             
+            var thread = agent.GetNewThread();
+            
             // Call the specialized decision method
-            return await GetAgentDecision(agent, request, availableToolNames, cancellationToken);
+            return await GetAgentDecision(agent, thread, request, availableToolNames, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -103,12 +105,14 @@ public abstract class BaseAgent : ISpecializedAgent
     /// Make the actual decision using the provided agent. Must be implemented by specialized agents.
     /// </summary>
     /// <param name="agent">The agent instance with MCP tools (if available)</param>
+    /// <param name="thread">Thread with all the agent's conversation</param>
     /// <param name="request">The decision request</param>
     /// <param name="availableTools">Names of available tools</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The decision response</returns>
     protected abstract Task<DecisionResponse> GetAgentDecision(
         AIAgent agent, 
+        AgentThread thread,
         DecisionRequest request, 
         string[] availableTools,
         CancellationToken cancellationToken);
