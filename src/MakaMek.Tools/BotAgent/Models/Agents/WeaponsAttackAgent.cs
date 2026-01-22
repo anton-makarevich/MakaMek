@@ -125,19 +125,47 @@ public class WeaponsAttackAgent : BaseAgent
         [Description("List of weapon names to fire (empty list to skip attack)")] List<string> weaponNames,
         [Description("Tactical reasoning")] string reasoning)
     {
-        // Note: weaponNames will be resolved to actual ComponentData in CreateDecisionResponse
-        // For now, just store the decision intent
+        if (LastRequest == null)
+        {
+            throw new InvalidOperationException("INVALID_REQUEST: No request data available");
+        }
+        
+        // Find the unit in request
+        var unit = LastRequest.ControlledUnits.FirstOrDefault(u => u.Id == unitId);
+        if (unit.Equipment == null)
+        {
+            throw new InvalidOperationException($"INVALID_UNIT: Unit {unitId} not found in controlled units");
+        }
+
+        // Resolve weapon names to ComponentData from Equipment
+        var weaponTargets = new List<WeaponTargetData>();
+        foreach (var weaponName in weaponNames)
+        {
+            // Find weapon in equipment by name
+            var weapon = unit.Equipment.FirstOrDefault(c =>
+                c.Name?.Equals(weaponName, StringComparison.OrdinalIgnoreCase) == true);
+
+            if (weapon != null)
+            {
+                weaponTargets.Add(new WeaponTargetData
+                {
+                    Weapon = weapon,
+                    TargetId = targetId,
+                    IsPrimaryTarget = true
+                });
+            }
+        }
+        
         var command = new WeaponAttackDeclarationCommand
         {
             UnitId = unitId,
-            WeaponTargets = [], // Will be populated in CreateDecisionResponse
+            WeaponTargets = weaponTargets,
             GameOriginId = Guid.Empty,
             PlayerId = Guid.Empty // Will be set later
         };
 
         // Store weapon names and target for later resolution
-        var decisionData = new { unitId, targetId, weaponNames, command };
-        PendingDecision = new ValueTuple<IClientCommand, string>(command, reasoning + $"|DATA:{JsonSerializer.Serialize(decisionData)}");
+        PendingDecision = new ValueTuple<IClientCommand, string>(command, reasoning);
 
         return JsonSerializer.Serialize(new { success = true, message = "Weapon attack decision recorded" });
     }
@@ -245,77 +273,13 @@ public class WeaponsAttackAgent : BaseAgent
 
         var reasoning = PendingDecision.Value.Item2;
 
-        // Handle WeaponAttackDeclarationCommand to resolve weapon names
-        if (command is WeaponAttackDeclarationCommand attackCommand)
+        command = command switch
         {
-            // Extract decision data from reasoning (stored as "reasoning|DATA:{json}")
-            var parts = reasoning.Split("|DATA:", 2);
-            var actualReasoning = parts[0];
-
-            if (parts.Length > 1)
-            {
-                try
-                {
-                    var decisionData = JsonSerializer.Deserialize<JsonElement>(parts[1]);
-                    var unitId = decisionData.GetProperty("unitId").GetGuid();
-                    var targetId = decisionData.GetProperty("targetId").GetGuid();
-                    var weaponNames = decisionData.GetProperty("weaponNames")
-                        .EnumerateArray()
-                        .Select(e => e.GetString() ?? "")
-                        .Where(s => !string.IsNullOrEmpty(s))
-                        .ToList();
-
-                    // Find the unit in request
-                    var unit = request.ControlledUnits.FirstOrDefault(u => u.Id == unitId);
-                    if (unit.Equipment == null)
-                    {
-                        throw new InvalidOperationException($"INVALID_UNIT: Unit {unitId} not found in controlled units");
-                    }
-
-                    // Resolve weapon names to ComponentData from Equipment
-                    var weaponTargets = new List<WeaponTargetData>();
-                    foreach (var weaponName in weaponNames)
-                    {
-                        // Find weapon in equipment by name
-                        var weapon = unit.Equipment.FirstOrDefault(c =>
-                            c.Name?.Equals(weaponName, StringComparison.OrdinalIgnoreCase) == true);
-
-                        if (weapon != null)
-                        {
-                            weaponTargets.Add(new WeaponTargetData
-                            {
-                                Weapon = weapon,
-                                TargetId = targetId,
-                                IsPrimaryTarget = true
-                            });
-                        }
-                    }
-
-                    // Update command with resolved weapons and PlayerId
-                    command = attackCommand with
-                    {
-                        WeaponTargets = weaponTargets,
-                        PlayerId = request.PlayerId
-                    };
-
-                    reasoning = actualReasoning;
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error resolving weapon attack decision data");
-                    throw new InvalidOperationException($"INVALID_RESOLUTION: {ex.Message}", ex);
-                }
-            }
-        }
-        else if (command is WeaponConfigurationCommand configCommand)
-        {
-            // Ensure PlayerId is set
-            command = configCommand with { PlayerId = request.PlayerId };
-        }
-        else
-        {
-            throw new InvalidOperationException($"INVALID_COMMAND_TYPE: {command.GetType().Name}");
-        }
+            // Handle WeaponAttackDeclarationCommand to resolve weapon names
+            WeaponAttackDeclarationCommand attackCommand => attackCommand with { PlayerId = request.PlayerId },
+            WeaponConfigurationCommand configCommand => configCommand with { PlayerId = request.PlayerId },
+            _ => throw new InvalidOperationException($"INVALID_COMMAND_TYPE: {command.GetType().Name}")
+        };
 
         Logger.LogInformation("{AgentName} created command: {CommandType}", Name, command.GetType().Name);
 

@@ -14,6 +14,7 @@ public abstract class BaseAgent : ISpecializedAgent
 {
     protected ILogger Logger { get; init; }
     private ILlmProvider LlmProvider { get; init; }
+    protected DecisionRequest? LastRequest { get; set; }
     
     public abstract string Name { get; }
     protected abstract string SystemPrompt { get; }
@@ -36,6 +37,7 @@ public abstract class BaseAgent : ISpecializedAgent
         DecisionRequest request,
         CancellationToken cancellationToken = default)
     {
+        LastRequest = request;
         McpClient? mcpClient = null;
 
         try
@@ -86,6 +88,7 @@ public abstract class BaseAgent : ISpecializedAgent
         {
             if (mcpClient != null)
                 await mcpClient.DisposeAsync();
+            LastRequest = null;
         }
     }
 
