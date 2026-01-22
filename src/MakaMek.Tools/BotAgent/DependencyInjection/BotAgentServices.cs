@@ -57,7 +57,7 @@ public static class BotAgentServices
         services.AddTransient<EndPhaseAgent>();
 
         // Register orchestrator
-        services.AddSingleton<AgentOrchestrator>();
+        services.AddTransient<AgentOrchestrator>();
 
         // Add controllers and API documentation
         services.AddControllers()
