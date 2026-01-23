@@ -28,17 +28,20 @@ Complete as of v0.46.5. Allows to complete games locally and over the LAN.
 - Prototype UI built with AvaloniaUI
 - Importing mechs defined in MegaMek's MTF format (Level 1 equipment only), 173 mech variants are supported at the moment
 
-### Phase 1. Bot framework 🚧
-In progress (v 0.47.0 +). Combat against AI opponents
+### Phase 1. Bot framework ✅
+Complete as of v0.50.7. Combat against AI opponents
 - [Bot Player System - Product Requirements Document (PRD)](docs/architecture/bot-player-system-prd.md) - Detailed requirements and specifications for the Bot Player System
 - [Bot Player System - Implementation Roadmap](docs/architecture/bot-player-system-implementation-roadmap.md) - High-level plan for implementing the bot player system
 
 #### Implemented
 - Bot player framework with a decision engine for each game phase
 - Basic movement and weapon targeting decisions
-- Tactical evaluation for movement and weapon decisions
+- Tactical evaluation of available positions, including torso turns, for movement and weapon decisions
 - Basic end phase decisions (shutdown/restart decisions, etc.)
 - Considering heat and ammo rounds for weapon selection
+
+#### Experimental
+An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with dedicated decision engines, multiple agents and tools.
 
 ### Future Phases
 - Support of map Levels and extended terrain types
