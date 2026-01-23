@@ -28,17 +28,20 @@ Complete as of v0.46.5. Allows to complete games locally and over the LAN.
 - Prototype UI built with AvaloniaUI
 - Importing mechs defined in MegaMek's MTF format (Level 1 equipment only), 173 mech variants are supported at the moment
 
-### Phase 1. Bot framework 🚧
-In progress (v 0.47.0 +). Combat against AI opponents
+### Phase 1. Bot framework ✅
+Complete as of v0.50.7. Combat against AI opponents
 - [Bot Player System - Product Requirements Document (PRD)](docs/architecture/bot-player-system-prd.md) - Detailed requirements and specifications for the Bot Player System
 - [Bot Player System - Implementation Roadmap](docs/architecture/bot-player-system-implementation-roadmap.md) - High-level plan for implementing the bot player system
 
 #### Implemented
 - Bot player framework with a decision engine for each game phase
 - Basic movement and weapon targeting decisions
-- Tactical evaluation for movement and weapon decisions
+- Tactical evaluation of available positions, including torso turns, for movement and weapon decisions
 - Basic end phase decisions (shutdown/restart decisions, etc.)
 - Considering heat and ammo rounds for weapon selection
+
+#### Experimental
+An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with dedicated decision engines, multiple agents and tools.
 
 ### Future Phases
 - Support of map Levels and extended terrain types
@@ -82,6 +85,7 @@ MakaMek/
 | **macOS Version**          | [![Build and Package MacOS App](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-mac.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-mac.yml)    | [![Download Mac Package](https://img.shields.io/badge/Download-macOS%20Installer-orange?logo=apple)](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-mac.yml)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | **Windows Version**        | [![Build Windows App](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-windows.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-windows.yml)      | [![Download Windows Installer](https://img.shields.io/badge/Download-Windows%20Installer-orange?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABE0lEQVR4nO3aMUrEYBDF8R/Y2W1hoa29CF7BwgvoEWw9gI2lF9ADWNraiTarWwhewcJKOytL/UTIQhrjsolk17w/pBnCzDd88xjICyGEZWUV2zjAMS7wgDeMLSAb2MUhTnGFJ3ygNDy9MMIO9nGCSzzi/ZfDlj4a+R6FLazXYufVKMx72PJXjaxgE3s4qg56g2d8VgVea+9PY701Mmo5ClNKn41cd1ik10ZKGpEbKRmtBqIR0YhopIloRDQiGmnivqVOxh3mKjPUCEvDpOW133WYq8xQ40eyR2SPyB5pIhoRjYhGmohGRCOikUF8xP43tkJbo+dlkYyeNi7sWi12tqjW2yDM0EHY013/MHA7V8YQBswXmfZIX4+AWlMAAAAASUVORK5CYII=)](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-windows.yml) |
 | **Linux Version**          | [![Build Linux App](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-linux.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-linux.yml)            | [![Download Linux AppImage](https://img.shields.io/badge/Download-Linux%20AppImage-orange?logo=linux)](https://github.com/anton-makarevich/MakaMek/actions/workflows/build-linux.yml)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **BotAgent Docker**         | [![BotAgent Docker](https://github.com/anton-makarevich/MakaMek/actions/workflows/botagent-docker.yml/badge.svg)](https://github.com/anton-makarevich/MakaMek/actions/workflows/botagent-docker.yml)         | [![Docker Image](https://img.shields.io/badge/Docker-Container-blue?logo=docker)](https://github.com/anton-makarevich/MakaMek/pkgs/container/botagent)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 > **Note:** iOS build requires a complex distribution process (App Store is not possible because of the licensing). While the platform is supported by the codebase, ipa is not available (yet?).
 > Users can build and deploy to iOS devices from the source code.
