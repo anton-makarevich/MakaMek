@@ -227,7 +227,7 @@ public abstract class Unit : IUnit
         }
 
         // Calculate weapon heat for weapons with targets
-        var weaponTargets = GetAllWeaponTargetsData();
+        var weaponTargets = DeclaredWeaponTargets??[];
 
         foreach (var weaponTarget in weaponTargets)
         {
@@ -362,7 +362,7 @@ public abstract class Unit : IUnit
     /// <summary>
     /// Indicates whether this unit has declared weapon attacks for the current turn
     /// </summary>
-    public bool HasDeclaredWeaponAttack { get; private set; }
+    public bool HasDeclaredWeaponAttack => DeclaredWeaponTargets != null;
 
     /// <summary>
     /// Indicates whether this unit has applied heat for the current turn
@@ -372,7 +372,7 @@ public abstract class Unit : IUnit
     /// <summary>
     /// Collection of weapon targeting data for the current attack declaration
     /// </summary>
-    private readonly List<WeaponTargetData> _weaponTargets = [];
+    public IReadOnlyList<WeaponTargetData>? DeclaredWeaponTargets { get; private set; }
 
     private void ResetMovement()
     {
@@ -417,8 +417,7 @@ public abstract class Unit : IUnit
     
     private void ResetWeaponsTargets()
     {
-        _weaponTargets.Clear();
-        HasDeclaredWeaponAttack = false;
+        DeclaredWeaponTargets = null;
     }
 
     /// <summary>
@@ -431,38 +430,32 @@ public abstract class Unit : IUnit
         {
             throw new InvalidOperationException("Unit is not deployed.");
         }
-        
-        // Validate and store weapon targets
-        _weaponTargets.Clear();
-        _weaponTargets.AddRange(weaponTargets);
-        
-        HasDeclaredWeaponAttack = true;
-    }
 
-    /// <summary>
-    /// Gets all weapon targeting data for this unit
-    /// </summary>
-    /// <returns>Read-only collection of weapon target data</returns>
-    public IReadOnlyList<WeaponTargetData> GetAllWeaponTargetsData()
-    {
-        return _weaponTargets.AsReadOnly();
-    }
+        var validatedWeaponTargets = new List<WeaponTargetData>();
 
-    /// <summary>
-    /// Gets weapon targeting data for a specific weapon
-    /// </summary>
-    /// <param name="weaponLocation">The location of the weapon</param>
-    /// <param name="weaponSlots">The slots where the weapon is mounted</param>
-    /// <returns>The weapon target data if found, null otherwise</returns>
-    public WeaponTargetData? GetWeaponTargetData(PartLocation weaponLocation, int[] weaponSlots)
-    {
-        return _weaponTargets.FirstOrDefault(wt =>
+        foreach (var weaponTarget in weaponTargets)
         {
-            var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-            return primaryAssignment != null &&
-                   primaryAssignment.Location == weaponLocation &&
-                   primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(weaponSlots.OrderBy(s => s));
-        });
+            var primaryAssignment = weaponTarget.Weapon.Assignments.FirstOrDefault();
+            if (primaryAssignment == null)
+                continue;
+
+            var mountedWeapon = GetMountedComponentAtLocation<Weapon>(
+                primaryAssignment.Location,
+                primaryAssignment.FirstSlot);
+
+            if (mountedWeapon == null || mountedWeapon.Name != weaponTarget.Weapon.Name)
+                continue;
+
+            var declaredSlots = primaryAssignment.GetSlots();
+            var mountedSlotsAtLocation = mountedWeapon.GetMountedAtLocationSlots(primaryAssignment.Location);
+            if (!declaredSlots.SequenceEqual(mountedSlotsAtLocation))
+                continue;
+
+            validatedWeaponTargets.Add(weaponTarget);
+        }
+
+        // Store weapon targets
+        DeclaredWeaponTargets = validatedWeaponTargets.AsReadOnly();
     }
 
     // Methods

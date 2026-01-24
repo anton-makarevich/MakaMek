@@ -40,8 +40,7 @@ public record struct UnitData
     /// </summary>
     public HexPositionData? Position { get; init; }
     
-    // TODO to be refactored to expose actual declarations #710
-    public bool HasDeclaredWeaponAttack { get; init; }
+    public IReadOnlyList<WeaponTargetData>? DeclaredWeaponTargets { get; init; }
     
     public int CurrentHeat { get; init; }
 }

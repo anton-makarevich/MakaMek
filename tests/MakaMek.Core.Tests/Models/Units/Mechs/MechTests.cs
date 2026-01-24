@@ -599,14 +599,15 @@ public class MechTests
             }
         ]);
         sut.HasDeclaredWeaponAttack.ShouldBeTrue();
-        sut.GetAllWeaponTargetsData().ShouldNotBeEmpty();
+        sut.DeclaredWeaponTargets.ShouldNotBeNull();
+        sut.DeclaredWeaponTargets.ShouldNotBeEmpty();
 
         // Act
         sut.ResetTurnState();
 
         // Assert
         sut.HasDeclaredWeaponAttack.ShouldBeFalse();
-        sut.GetAllWeaponTargetsData().ShouldBeEmpty();
+        sut.DeclaredWeaponTargets.ShouldBeNull();
     }
 
 

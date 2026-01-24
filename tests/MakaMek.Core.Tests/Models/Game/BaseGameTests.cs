@@ -337,7 +337,8 @@ public class BaseGameTests : BaseGame
 
         // Assert
         attackerMech.HasDeclaredWeaponAttack.ShouldBeTrue();
-        attackerMech.GetAllWeaponTargetsData().Count.ShouldBe(1);
+        attackerMech.DeclaredWeaponTargets.ShouldNotBeNull();
+        attackerMech.DeclaredWeaponTargets.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -421,7 +422,8 @@ public class BaseGameTests : BaseGame
 
         // Assert
         attackerMech.HasDeclaredWeaponAttack.ShouldBeTrue();
-        attackerMech.GetAllWeaponTargetsData().Count.ShouldBe(2);
+        attackerMech.DeclaredWeaponTargets.ShouldNotBeNull();
+        attackerMech.DeclaredWeaponTargets.Count.ShouldBe(2);
     }
 
     [Fact]
