@@ -367,9 +367,8 @@ public class UnitTests
         var weaponTargetData = attacker.DeclaredWeaponTargets
             ?.FirstOrDefault(wt =>
             {
-                var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.LeftArm &&
+                var primaryAssignment = wt.Weapon.Assignments[0];
+                return primaryAssignment is { Location: PartLocation.LeftArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
             });
         weaponTargetData.ShouldNotBeNull();
@@ -437,9 +436,8 @@ public class UnitTests
         var weapon1Target = attacker.DeclaredWeaponTargets
             ?.FirstOrDefault(wt =>
             {
-                var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.LeftArm &&
+                var primaryAssignment = wt.Weapon.Assignments[0];
+                return primaryAssignment is { Location: PartLocation.LeftArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
             });
         weapon1Target.ShouldNotBeNull();
@@ -449,9 +447,8 @@ public class UnitTests
         var weapon2Target = attacker.DeclaredWeaponTargets
             ?.FirstOrDefault(wt =>
             {
-                var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.RightArm &&
+                var primaryAssignment = wt.Weapon.Assignments[0];
+                return primaryAssignment is { Location: PartLocation.RightArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 2, 3 }.OrderBy(s => s));
             });
         weapon2Target.ShouldNotBeNull();
@@ -632,9 +629,8 @@ public class UnitTests
         var weaponTarget = attacker.DeclaredWeaponTargets
             ?.FirstOrDefault(wt =>
             {
-                var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
-                return primaryAssignment != null &&
-                       primaryAssignment.Location == PartLocation.LeftArm &&
+                var primaryAssignment = wt.Weapon.Assignments[0];
+                return primaryAssignment is { Location: PartLocation.LeftArm } &&
                        primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
             });
         weaponTarget.ShouldNotBeNull();
@@ -2280,7 +2276,7 @@ public class UnitTests
         var sut = new TestUnit("Test", "Unit", 20, parts);
         
         // Assert
-        sut.AvailableWalkingPoints.ShouldBe(0);
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(0);
     }
     
     [Fact]
@@ -2290,7 +2286,7 @@ public class UnitTests
         var sut = new TestUnit("Test", "Unit", 0, []);
         
         // Assert
-        sut.AvailableWalkingPoints.ShouldBe(0);
+        sut.GetMovementPoints(MovementType.Walk).ShouldBe(0);
     }
     
     [Fact]
@@ -2332,7 +2328,7 @@ public class UnitTests
         _rulesProvider.GetExternalHeatCap().Returns(15);
         var unit = CreateTestUnit();
         
-        // 10 Flamers × 2 heat each = 20 total
+        // 10 Flamers × 2 heat points each = 20 total
         for (var i = 0; i < 10; i++)
         {
             unit.AddExternalHeat($"Flamer {i}", 2);
@@ -2399,7 +2395,7 @@ public class UnitTests
         _rulesProvider.GetExternalHeatCap().Returns(15);
         var sut = CreateTestUnit();
         
-        // Add 10 Flamers × 2 heat each = 20 total, but capped at 15
+        // Add 10 Flamers × 2 heat points each = 20 total, but capped at 15
         for (var i = 0; i < 10; i++)
         {
             sut.AddExternalHeat($"Flamer {i}", 2);
