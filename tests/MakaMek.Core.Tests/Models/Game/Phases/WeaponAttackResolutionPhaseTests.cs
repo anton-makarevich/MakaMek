@@ -394,7 +394,7 @@ public class WeaponAttackResolutionPhaseTests : GamePhaseTestsBase
             }
         };
         attackingUnit.DeclareWeaponAttack(
-            attackingUnit.GetAllWeaponTargetsData().Concat(additionalWeaponTargets).ToList());
+            (attackingUnit.DeclaredWeaponTargets ?? []).Concat(additionalWeaponTargets).ToList());
 
         // Configure dice rolls to ensure hits and specific hit locations
         // First roll (8) is for the first attack (hit)

@@ -179,21 +179,9 @@ public interface IUnit
     /// <param name="weaponTargets">The weapon target data containing weapon locations, slots, and target IDs</param>
     void DeclareWeaponAttack(List<WeaponTargetData> weaponTargets);
 
+    IReadOnlyList<WeaponTargetData>? DeclaredWeaponTargets { get; }
+
     void ApplyWeaponConfiguration(WeaponConfiguration config);
-
-    /// <summary>
-    /// Gets all weapon targeting data for this unit
-    /// </summary>
-    /// <returns>Read-only collection of weapon target data</returns>
-    IReadOnlyList<WeaponTargetData> GetAllWeaponTargetsData();
-
-    /// <summary>
-    /// Gets weapon targeting data for a specific weapon
-    /// </summary>
-    /// <param name="weaponLocation">The location of the weapon</param>
-    /// <param name="weaponSlots">The slots where the weapon is mounted</param>
-    /// <returns>The weapon target data if found, null otherwise</returns>
-    WeaponTargetData? GetWeaponTargetData(PartLocation weaponLocation, int[] weaponSlots);
 
     int CalculateBattleValue();
     void Startup();

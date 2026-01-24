@@ -364,7 +364,14 @@ public class UnitTests
         attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
-        var weaponTargetData = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        var weaponTargetData = attacker.DeclaredWeaponTargets
+            ?.FirstOrDefault(wt =>
+            {
+                var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
+                return primaryAssignment != null &&
+                       primaryAssignment.Location == PartLocation.LeftArm &&
+                       primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
+            });
         weaponTargetData.ShouldNotBeNull();
         weaponTargetData.TargetId.ShouldBe(targetId);
         weaponTargetData.IsPrimaryTarget.ShouldBeTrue();
@@ -427,12 +434,26 @@ public class UnitTests
         attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
-        var weapon1Target = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        var weapon1Target = attacker.DeclaredWeaponTargets
+            ?.FirstOrDefault(wt =>
+            {
+                var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
+                return primaryAssignment != null &&
+                       primaryAssignment.Location == PartLocation.LeftArm &&
+                       primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
+            });
         weapon1Target.ShouldNotBeNull();
         weapon1Target.TargetId.ShouldBe(targetId1);
         weapon1Target.IsPrimaryTarget.ShouldBeTrue();
 
-        var weapon2Target = attacker.GetWeaponTargetData(PartLocation.RightArm, [2, 3]);
+        var weapon2Target = attacker.DeclaredWeaponTargets
+            ?.FirstOrDefault(wt =>
+            {
+                var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
+                return primaryAssignment != null &&
+                       primaryAssignment.Location == PartLocation.RightArm &&
+                       primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 2, 3 }.OrderBy(s => s));
+            });
         weapon2Target.ShouldNotBeNull();
         weapon2Target.TargetId.ShouldBe(targetId2);
         weapon2Target.IsPrimaryTarget.ShouldBeTrue();
@@ -490,7 +511,14 @@ public class UnitTests
         attacker.DeclareWeaponAttack(weaponTargets);
         
         // Assert
-        var weaponTarget = attacker.GetWeaponTargetData(PartLocation.LeftArm, [0, 1]);
+        var weaponTarget = attacker.DeclaredWeaponTargets
+            ?.FirstOrDefault(wt =>
+            {
+                var primaryAssignment = wt.Weapon.Assignments.FirstOrDefault();
+                return primaryAssignment != null &&
+                       primaryAssignment.Location == PartLocation.LeftArm &&
+                       primaryAssignment.GetSlots().OrderBy(s => s).SequenceEqual(new[] { 0, 1 }.OrderBy(s => s));
+            });
         weaponTarget.ShouldNotBeNull();
         weaponTarget.TargetId.ShouldBe(targetId);
         weaponTarget.IsPrimaryTarget.ShouldBeTrue();
