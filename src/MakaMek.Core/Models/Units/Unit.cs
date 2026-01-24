@@ -431,6 +431,8 @@ public abstract class Unit : IUnit
             throw new InvalidOperationException("Unit is not deployed.");
         }
         
+        // TODO: Validate weapon belongs to this unit
+        
         // Store weapon targets
         DeclaredWeaponTargets = weaponTargets.ToList().AsReadOnly();
     }

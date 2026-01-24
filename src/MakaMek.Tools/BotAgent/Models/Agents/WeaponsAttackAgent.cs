@@ -191,7 +191,7 @@ public class WeaponsAttackAgent : BaseAgent
             if (unit.Position != null)
                 sb.AppendLine(
                     $"  Position: Q={unit.Position.Coordinates.Q}, R={unit.Position.Coordinates.R}, Facing={unit.Position.Facing}");
-            sb.AppendLine($"  Has declared attack: {unit.HasDeclaredWeaponAttack}");
+            sb.AppendLine($"  Has declared attack: {unit.DeclaredWeaponTargets!= null}");
         }
 
         sb.AppendLine();

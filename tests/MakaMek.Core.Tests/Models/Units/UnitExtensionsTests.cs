@@ -1,10 +1,12 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -464,6 +466,33 @@ public class UnitExtensionsTests
         // Assert
         serializedData.MovementPathSegments.ShouldNotBeNull();
         serializedData.MovementPathSegments.Count.ShouldBe(1);
+    }
+    
+    [Fact]
+    public void ToData_WithWeaponTargets_ShouldSerializeWeaponTargets()
+    {
+        // Arrange
+        var mech = _mechFactory.Create(_originalUnitData);
+        mech.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        
+        // Set weapon targets
+        var weapon = new MediumLaser();
+        var targetId = Guid.NewGuid();
+        mech.DeclareWeaponAttack([
+            new WeaponTargetData
+            {
+                Weapon = weapon.ToData(),
+                TargetId = targetId,
+                IsPrimaryTarget = true
+            }
+        ]);
+
+        // Act
+        var serializedData = mech.ToData();
+
+        // Assert
+        serializedData.DeclaredWeaponTargets.ShouldNotBeNull();
+        serializedData.DeclaredWeaponTargets.Count.ShouldBe(1);
     }
 
     [Fact]
