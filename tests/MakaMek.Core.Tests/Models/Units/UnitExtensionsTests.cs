@@ -477,6 +477,8 @@ public class UnitExtensionsTests
         
         // Set weapon targets
         var weapon = new MediumLaser();
+        var rightArm = mech.Parts[PartLocation.RightArm];
+        rightArm.TryAddComponent(weapon).ShouldBeTrue();
         var targetId = Guid.NewGuid();
         mech.DeclareWeaponAttack([
             new WeaponTargetData

@@ -430,11 +430,32 @@ public abstract class Unit : IUnit
         {
             throw new InvalidOperationException("Unit is not deployed.");
         }
-        
-        // TODO: Validate weapon belongs to this unit
-        
+
+        var validatedWeaponTargets = new List<WeaponTargetData>();
+
+        foreach (var weaponTarget in weaponTargets)
+        {
+            var primaryAssignment = weaponTarget.Weapon.Assignments.FirstOrDefault();
+            if (primaryAssignment == null)
+                continue;
+
+            var mountedWeapon = GetMountedComponentAtLocation<Weapon>(
+                primaryAssignment.Location,
+                primaryAssignment.FirstSlot);
+
+            if (mountedWeapon == null)
+                continue;
+
+            var declaredSlots = primaryAssignment.GetSlots();
+            var mountedSlotsAtLocation = mountedWeapon.GetMountedAtLocationSlots(primaryAssignment.Location);
+            if (!declaredSlots.SequenceEqual(mountedSlotsAtLocation))
+                continue;
+
+            validatedWeaponTargets.Add(weaponTarget);
+        }
+
         // Store weapon targets
-        DeclaredWeaponTargets = weaponTargets.ToList().AsReadOnly();
+        DeclaredWeaponTargets = validatedWeaponTargets.AsReadOnly();
     }
 
     // Methods
