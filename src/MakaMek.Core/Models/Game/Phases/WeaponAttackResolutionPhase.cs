@@ -90,14 +90,7 @@ public class WeaponAttackResolutionPhase(ServerGame game) : GamePhase(game)
         }
 
         var currentUnit = unitsWithTargets[_currentUnitIndex];
-        var weaponTargets = currentUnit.DeclaredWeaponTargets;
-
-        if (weaponTargets == null || weaponTargets.Count == 0)
-        {
-            MoveToNextUnit();
-            ResolveNextAttack();
-            return;
-        }
+        var weaponTargets = currentUnit.DeclaredWeaponTargets??[];
 
         // Check if we've processed all weapon targets for the current unit
         if (_currentWeaponIndex >= weaponTargets.Count)
