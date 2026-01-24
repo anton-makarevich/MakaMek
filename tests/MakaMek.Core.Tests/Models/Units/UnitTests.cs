@@ -460,6 +460,124 @@ public class UnitTests
 
         attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
     }
+
+    [Fact]
+    public void DeclareWeaponAttack_ShouldNotAddWeaponTarget_WhenPrimaryAssignmentIsMissing()
+    {
+        // Arrange
+        var attackerId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+
+        var attacker = CreateTestUnit(attackerId);
+
+        var weapon = new TestWeapon("Test Weapon", 2);
+        MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
+
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        var weaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = "Test Weapon",
+                    Type = MakaMekComponent.MachineGun,
+                    Assignments = []
+                },
+                TargetId = targetId,
+                IsPrimaryTarget = true
+            }
+        };
+
+        // Act
+        attacker.DeclareWeaponAttack(weaponTargets);
+
+        // Assert
+        attacker.DeclaredWeaponTargets.ShouldNotBeNull();
+        attacker.DeclaredWeaponTargets.Count.ShouldBe(0);
+        attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DeclareWeaponAttack_ShouldNotAddWeaponTarget_WhenWeaponNameDoesNotMatchMountedWeapon()
+    {
+        // Arrange
+        var attackerId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+
+        var attacker = CreateTestUnit(attackerId);
+
+        var weapon = new TestWeapon("Mounted Weapon", 2);
+        MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
+
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        var weaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = "Different Name",
+                    Type = MakaMekComponent.MachineGun,
+                    Assignments = [
+                        new LocationSlotAssignment(PartLocation.LeftArm, 0, 2)
+                    ]
+                },
+                TargetId = targetId,
+                IsPrimaryTarget = true
+            }
+        };
+
+        // Act
+        attacker.DeclareWeaponAttack(weaponTargets);
+
+        // Assert
+        attacker.DeclaredWeaponTargets.ShouldNotBeNull();
+        attacker.DeclaredWeaponTargets.Count.ShouldBe(0);
+        attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DeclareWeaponAttack_ShouldNotAddWeaponTarget_WhenSlotsDoNotMatchMountedWeapon()
+    {
+        // Arrange
+        var attackerId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+
+        var attacker = CreateTestUnit(attackerId);
+
+        var weapon = new TestWeapon("Test Weapon", 2);
+        MountWeaponOnUnit(attacker, weapon, PartLocation.LeftArm, [0, 1]);
+
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        var weaponTargets = new List<WeaponTargetData>
+        {
+            new()
+            {
+                Weapon = new ComponentData
+                {
+                    Name = "Test Weapon",
+                    Type = MakaMekComponent.MachineGun,
+                    Assignments = [
+                        new LocationSlotAssignment(PartLocation.LeftArm, 0, 1)
+                    ]
+                },
+                TargetId = targetId,
+                IsPrimaryTarget = true
+            }
+        };
+
+        // Act
+        attacker.DeclareWeaponAttack(weaponTargets);
+
+        // Assert
+        attacker.DeclaredWeaponTargets.ShouldNotBeNull();
+        attacker.DeclaredWeaponTargets.Count.ShouldBe(0);
+        attacker.HasDeclaredWeaponAttack.ShouldBeTrue();
+    }
     
     [Fact]
     public void DeclareWeaponAttack_ShouldSkipWeaponsNotFound()

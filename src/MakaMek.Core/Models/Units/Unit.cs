@@ -443,7 +443,7 @@ public abstract class Unit : IUnit
                 primaryAssignment.Location,
                 primaryAssignment.FirstSlot);
 
-            if (mountedWeapon == null)
+            if (mountedWeapon == null || mountedWeapon.Name != weaponTarget.Weapon.Name)
                 continue;
 
             var declaredSlots = primaryAssignment.GetSlots();
