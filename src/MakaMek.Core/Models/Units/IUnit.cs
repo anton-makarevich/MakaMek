@@ -64,9 +64,6 @@ public interface IUnit
     HeatRollModifier? AttackHeatPenalty { get; }
     EngineHeatPenalty? EngineHeatPenalty { get; }
     IReadOnlyList<RollModifier> MovementModifiers { get; }
-    int AvailableWalkingPoints { get; }
-    int AvailableRunningPoints { get; }
-    int AvailableJumpingPoints { get; }
 
     /// <summary>
     /// Determines if the unit is in a minimum movement situation (1 MP available)
