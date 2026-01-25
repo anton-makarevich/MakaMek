@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
+﻿using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 namespace Sanet.MakaMek.Core.Models.Map;
 
@@ -26,6 +27,11 @@ public static class HexCoordinatesExtensions
             }
             
             return false;
+        }
+
+        public bool IsOccupied(IGame game)
+        {
+            return game.Players.Any(p => p.Units.Any(u => u.IsDeployed && u.Position!.Coordinates == coordinates));
         }
     }
 }
