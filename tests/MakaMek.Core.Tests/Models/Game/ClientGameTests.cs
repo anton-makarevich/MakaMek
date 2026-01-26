@@ -478,11 +478,11 @@ public class ClientGameTests
         });
 
         _sut.HandleCommand(new ChangeActivePlayerCommand
-                {
-                    GameOriginId = Guid.NewGuid(),
-                    PlayerId = player.Id,
-                    UnitsToPlay = 1
-                });
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
         
         // Deploy another unit to the hex
         var unit2 = _sut.Players[0].Units.First(u => u.Id == unitData2.Id.Value);
