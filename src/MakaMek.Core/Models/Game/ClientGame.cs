@@ -216,6 +216,8 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     private async Task<bool> SendClientCommand<T>(T command) where T : struct, IClientCommand
     {
+        if (!ValidateCommand(command)) return false;
+        
         // Extract UnitId from the command if it has one
         var unitId = GetUnitIdFromCommand(command);
 
@@ -234,8 +236,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             // Return the existing task
             return await pendingCommand.Task.ConfigureAwait(false);
         }
-
-        if (!ValidateCommand(command)) return false;
 
         // Assign the idempotency key to the command
         var commandWithKey = command with

@@ -460,7 +460,10 @@ public abstract class BaseGame : IGame
 
     private bool ValidateDeployCommand(DeployUnitCommand deployUnitCommand)
     {
-        return deployUnitCommand.PlayerId!=Guid.Empty;
+        var position = new HexCoordinates(deployUnitCommand.Position);
+        if (!position.IsOccupied(this)) return deployUnitCommand.PlayerId != Guid.Empty;
+        Logger.LogInformation("Hex {Position} is already occupied.", position);
+        return false;
     }
     
     protected bool ValidateTurnIncrementedCommand(TurnIncrementedCommand command)
