@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Core.Models.Game;
@@ -21,44 +19,28 @@ namespace Sanet.MakaMek.Avalonia.Views;
 
 public partial class BattleMapView : BaseView<BattleMapViewModel>
 {
-    private Point _lastPointerPosition;
-    private readonly TranslateTransform _mapTranslateTransform = new();
-    private readonly ScaleTransform _mapScaleTransform = new() { ScaleX = 1, ScaleY = 1 };
-    private const double MinScale = 0.5;
-    private const double MaxScale = 2.0;
-    private const double ScaleStep = 0.1;
-    private const int SelectionThresholdMilliseconds = 250; // Time to distinguish selection vs pan
+    private const int SelectionThresholdMilliseconds = 250;
+    
     private bool _isManipulating;
     private bool _isZooming;
     private bool _isPressed;
+    private Point? _clickPosition;
+    private HexControl? _selectedHex;
+    
     private CancellationTokenSource _manipulationTokenSource;
     private List<UnitControl>? _unitControls;
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackControl> _weaponAttackControls = [];
-    private Point? _clickPosition;
-    private HexControl? _selectedHex;
 
     public BattleMapView()
     {
         InitializeComponent();
         
-        var transformGroup = new TransformGroup();
-        transformGroup.Children.Add(_mapScaleTransform);
-        transformGroup.Children.Add(_mapTranslateTransform);
-        MapCanvas.RenderTransform = transformGroup;
-        
         MapCanvas.PointerPressed += OnPointerPressed;
-        MapCanvas.PointerMoved += OnPointerMoved;
         MapCanvas.PointerReleased += OnPointerReleased;
-        MapCanvas.PointerWheelChanged += OnPointerWheelChanged;
-        
-        var pinchGestureRecognizer = new PinchGestureRecognizer();
-        MapCanvas.GestureRecognizers.Add(pinchGestureRecognizer);
-        MapCanvas.AddHandler(Gestures.PinchEvent, OnPinchChanged);
-        MapCanvas.AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
     }
 
-    private void RenderMap(IGame game, IImageService<Bitmap> imageService)
+    private void RenderMap(ClientGame game, IImageService<Bitmap> imageService)
     {
         var directionSelector = DirectionSelector;
         MapCanvas.Children.Clear();
@@ -94,9 +76,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_isZooming) return;
-        _lastPointerPosition = e.GetPosition(this);
-        
         _isManipulating = false; // Reset manipulation flag
 
         // Start a timer to determine if this is a manipulation
@@ -157,52 +136,6 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
                 ViewModel?.HandleHexSelection(_selectedHex.Hex);
             }
         }
-    }
-    
-
-    private void OnPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (_isZooming) return;
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-        var position = e.GetPosition(this);
-        var delta = position - _lastPointerPosition;
-        _lastPointerPosition = position;
-        
-        _mapTranslateTransform.X += delta.X;
-        _mapTranslateTransform.Y += delta.Y;
-    }
-    
-    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
-    {
-        var delta = e.Delta.Y * ScaleStep;
-        ApplyZoom(1 + delta, e.GetPosition(MapCanvas));
-    }
-    
-    private void OnPinchChanged(object? sender, PinchEventArgs e)
-    {
-        _isManipulating = true;
-        _isZooming = true;
-        ApplyZoom(e.Scale, e.ScaleOrigin);
-    }
-    
-    private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
-    {
-        _isManipulating = false;
-        _isZooming = false;
-        MapCanvas.RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
-    }
-    
-    private void ApplyZoom(double scaleFactor, Point origin)
-    {
-        if (origin.X < 0 || origin.Y < 0) return;
-        if (origin.X > MapCanvas.Width || origin.Y > MapCanvas.Height) return;
-        
-        var newScale = _mapScaleTransform.ScaleX * scaleFactor;
-        if (newScale is < MinScale or > MaxScale) return;
-    
-        MapCanvas.RenderTransformOrigin = new RelativePoint(origin, RelativeUnit.Absolute);
-        _mapScaleTransform.ScaleX = newScale;
-        _mapScaleTransform.ScaleY = newScale;
     }
 
     protected override void OnViewModelSet()
@@ -265,20 +198,5 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             _weaponAttackControls.Add(control);
             MapCanvas.Children.Add(control);
         }
-    }
-
-    private void CenterMap(object? sender, RoutedEventArgs e)
-    {
-        _mapTranslateTransform.X = 0;
-        _mapTranslateTransform.Y = 0;
-        _mapScaleTransform.ScaleX = 1;
-        _mapScaleTransform.ScaleY = 1;
-        MapCanvas.RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
-    }
-
-    protected override void OnSizeChanged(SizeChangedEventArgs e)
-    {
-        base.OnSizeChanged(e);
-        TurnInfoPanel.MaxWidth = Math.Max(e.NewSize.Width-6, 300);
     }
 }
