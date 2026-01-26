@@ -454,6 +454,56 @@ public class ClientGameTests
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<DeployUnitCommand>());
     }
     
+    [Fact]
+    public void DeployUnit_ShouldNotPublishCommand_WhenTargetHexIsOccupied()
+    {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        var unitData2 = unitData with { Id = Guid.NewGuid() };
+        _sut.JoinGameWithUnits(player, [unitData, unitData2],[]);
+        
+        var hexToDeploy = new HexCoordinates(1, 1);
+        
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData, unitData2],
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        _sut.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitsToPlay = 1
+        });
+        
+        // Deploy another unit to the hex
+        var unit2 = _sut.Players[0].Units.First(u => u.Id == unitData2.Id.Value);
+        unit2.Deploy(new HexPosition(hexToDeploy, HexDirection.Top));
+        
+        var deployCommand = new DeployUnitCommand
+        {
+            GameOriginId = _sut.Id,
+            PlayerId = player.Id,
+            Position = hexToDeploy.ToData(),
+            Direction = 0,
+            UnitId = unitData.Id.Value
+        };
+
+        // Act
+        _sut.DeployUnit(deployCommand);
+    
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<DeployUnitCommand>());
+    }
+    
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

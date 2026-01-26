@@ -1,4 +1,7 @@
-﻿using Sanet.MakaMek.Core.Models.Map;
+﻿using NSubstitute;
+using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -117,5 +120,46 @@ public class HexCoordinatesExtensionsTests
         
         // Assert
         result.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsOccupied_ReturnsTrue_WhenUnitDeployedInHex()
+    {
+        // Arrange
+        var sut = new HexCoordinates(5, 5);
+        
+        var testUnit = new Mech("Test", "TST-1A", 50, []);
+        testUnit.Deploy(new HexPosition(sut, HexDirection.Top));
+        var player = Substitute.For<IPlayer>();
+        player.Units.Returns([testUnit]);
+        var game = Substitute.For<IGame>();
+        game.Players.Returns([player]);
+        
+        // Act
+        var result = sut.IsOccupied(game);
+        
+        // Assert
+        result.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void IsOccupied_ReturnsFalse_WhenNoUnitDeployedInHex()
+    {
+        // Arrange
+        var sut = new HexCoordinates(5, 5);
+        
+        var testUnit = new Mech("Test", "TST-1A", 50, []);
+        // Deploy the unit in a different hex
+        testUnit.Deploy(new HexPosition(new HexCoordinates(4, 4), HexDirection.Top));
+        var player = Substitute.For<IPlayer>();
+        player.Units.Returns([testUnit]);
+        var game = Substitute.For<IGame>();
+        game.Players.Returns([player]);
+        
+        // Act
+        var result = sut.IsOccupied(game);
+        
+        // Assert
+        result.ShouldBeFalse();
     }
 }
