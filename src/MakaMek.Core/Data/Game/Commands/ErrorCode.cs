@@ -1,4 +1,4 @@
-﻿namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
+﻿namespace Sanet.MakaMek.Core.Data.Game.Commands;
 
 /// <summary>
 /// Error codes for command rejection
@@ -16,7 +16,7 @@ public enum ErrorCode
     ValidationFailed,
     
     /// <summary>
-    /// Command is not allowed in current game state
+    /// Command is not allowed in the current game state
     /// </summary>
     InvalidGameState
 }
