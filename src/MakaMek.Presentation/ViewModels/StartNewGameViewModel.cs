@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
@@ -25,6 +26,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
 {
     private readonly IGameManager _gameManager;
     private readonly IBattleMapFactory _mapFactory;
+    private readonly ILogger<StartNewGameViewModel> _logger;
 
     public StartNewGameViewModel(
         IGameManager gameManager,
@@ -42,7 +44,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IFileCachingService cachingService,
         IMapPreviewRenderer mapPreviewRenderer,
         IHashService hashService,
-        IBotManager botManager)
+        IBotManager botManager,
+        ILogger<StartNewGameViewModel> logger)
         : base(rulesProvider,
             unitsLoader,
             commandPublisher,
@@ -55,11 +58,13 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             cachingService,
             hashService,
             botManager,
-            mechFactory)
+            mechFactory,
+            logger)
     {
         _gameManager = gameManager;
         _mapFactory = mapFactory;
-        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory);
+        _logger = logger;
+        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, logger);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
     }
@@ -235,6 +240,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
     public override void AttachHandlers()
     {
         base.AttachHandlers();
-        InitializeLobbyAndSubscribe().SafeFireAndForget();
+        InitializeLobbyAndSubscribe().SafeFireAndForget(
+            ex => _logger.LogError(ex, "Error initializing lobby"));
     }
 }

@@ -42,6 +42,7 @@ public abstract class NewGameViewModel : BaseViewModel
     private readonly IFileCachingService _cachingService;
     protected readonly IBotManager _botManager;
     protected readonly IMechFactory _mechFactory;
+    private readonly ILogger _logger;
 
     protected ClientGame? _localGame;
 
@@ -63,7 +64,8 @@ public abstract class NewGameViewModel : BaseViewModel
         IFileCachingService cachingService,
         IHashService hashService,
         IBotManager botManager,
-        IMechFactory mechFactory)
+        IMechFactory mechFactory,
+        ILogger logger)
     {
         _rulesProvider = rulesProvider;
         _unitsLoader = unitsLoader;
@@ -78,6 +80,7 @@ public abstract class NewGameViewModel : BaseViewModel
         _hashService = hashService;
         _botManager = botManager;
         _mechFactory = mechFactory;
+        _logger = logger;
 
         RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
     }
@@ -274,11 +277,13 @@ public abstract class NewGameViewModel : BaseViewModel
     public override void AttachHandlers()
     {
         base.AttachHandlers();
-        LoadAvailableUnits().SafeFireAndForget();
+        LoadAvailableUnits().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available units"));
 
         // Auto-add default player
         if (Players.Count == 0)
-            AddDefaultPlayer().SafeFireAndForget();
+            AddDefaultPlayer().SafeFireAndForget(
+                ex => _logger.LogError(ex, "Error adding default player")
+                );
     }
     
     private async Task LoadAvailableUnits()

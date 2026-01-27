@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Avalonia.Views.StartNewGame;
 using Sanet.MakaMek.Bots.Models;
@@ -52,7 +53,9 @@ namespace MakaMek.Avalonia.Tests.Views
                 cachingService,
                 Substitute.For<IMapPreviewRenderer>(),
                 Substitute.For<IHashService>(),
-                Substitute.For<IBotManager>());
+                Substitute.For<IBotManager>(),
+                Substitute.For<ILogger<StartNewGameViewModel>>()
+            );
 
             // Act
             view.DataContext = viewModel;

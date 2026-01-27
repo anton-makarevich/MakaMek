@@ -46,6 +46,7 @@ public class JoinGameViewModelTests
     private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
+    private readonly ILogger<JoinGameViewModel> _logger = Substitute.For<ILogger<JoinGameViewModel>>();
     private readonly ClientGame _clientGame;
 
     public JoinGameViewModelTests()
@@ -101,7 +102,8 @@ public class JoinGameViewModelTests
             _mapFactory,
             _cachingService,
             _hashService,
-            _botManager);
+            _botManager,
+            _logger);
         _sut.AttachHandlers();
     }
 
@@ -477,7 +479,8 @@ public class JoinGameViewModelTests
             _mapFactory,
             cachingService,
             _hashService,
-            Substitute.For<IBotManager>());
+            _botManager,
+            _logger);
         sut.AttachHandlers();
 
         // Act
@@ -510,7 +513,8 @@ public class JoinGameViewModelTests
             _mapFactory,
             cachingService,
             _hashService,
-            Substitute.For<IBotManager>());
+            _botManager,
+            _logger);
 
         // Assert - should be able to add default player even when not connected
         sut.IsConnected.ShouldBeFalse();

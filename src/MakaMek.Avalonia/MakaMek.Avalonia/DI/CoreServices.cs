@@ -37,7 +37,7 @@ public static class CoreServices
                     new GitHubResourceStreamProvider("mmux",
                         "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/units/mechs",
                         cachingService,
-                        loggerFactory
+                        loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
                     )
                 };
                 return new UnitCachingService(streamProviders, loggerFactory);

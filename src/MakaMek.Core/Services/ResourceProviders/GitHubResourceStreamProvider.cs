@@ -23,14 +23,14 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
     /// </summary>
     /// <param name="apiUrl">GitHub API URL pointing to the folder with resources.</param>
     /// <param name="fileExtension">Files with this extension will be included</param>
-    /// <param name="loggerFactory">Logger factory for logging</param>
+    /// <param name="logger">Logger for class</param>
     /// <param name="httpClient">HTTP client to use for requests. If null, create a new one.</param>
     /// <param name="cachingService">Caching service to cache downloaded files</param>
     public GitHubResourceStreamProvider(
         string fileExtension,
         string apiUrl,
         IFileCachingService cachingService,
-        ILoggerFactory loggerFactory,
+        ILogger<GitHubResourceStreamProvider> logger,
         HttpClient? httpClient = null)
     {
         _apiUrl = apiUrl;
@@ -39,7 +39,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
         _httpClient = httpClient ?? new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "MakaMek-Game");
         _cachingService = cachingService;
-        _logger = loggerFactory.CreateLogger<GitHubResourceStreamProvider>();
+        _logger = logger;
 
         _availableResourceIds = new Lazy<Task<List<string>>>(LoadAvailableResourceIds);
     }
@@ -99,7 +99,7 @@ public class GitHubResourceStreamProvider : IResourceStreamProvider
                 {
                     _logger.LogError(ex, "Error caching file from {ResourceId}", resourceId);
                 }
-            }).SafeFireAndForget(); 
+            }).SafeFireAndForget(ex => _logger.LogError(ex, "Error caching file from {ResourceId}", resourceId)); 
             return new MemoryStream(contentBytes);
         }
         catch (Exception ex)
