@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
-using BotAgent.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;

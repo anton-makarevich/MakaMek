@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
-using BotAgent.Models;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
+using Sanet.MakaMek.Tools.BotAgent.Models;
 using Sanet.MakaMek.Tools.BotContainer.Configuration;
 
 namespace Sanet.MakaMek.Tools.BotContainer.Services;

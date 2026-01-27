@@ -1,5 +1,4 @@
 using System.Text;
-using BotAgent.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;

@@ -1,5 +1,3 @@
-using BotAgent.Models;
-
 namespace Sanet.MakaMek.Tools.BotAgent.Models.Agents;
 
 /// <summary>

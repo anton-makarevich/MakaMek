@@ -1,5 +1,5 @@
-using BotAgent.Models;
 using Microsoft.AspNetCore.Mvc;
+using Sanet.MakaMek.Tools.BotAgent.Models;
 using Sanet.MakaMek.Tools.BotAgent.Orchestration;
 
 namespace Sanet.MakaMek.Tools.BotAgent.Controllers;

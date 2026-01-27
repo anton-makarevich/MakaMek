@@ -1,4 +1,4 @@
-using BotAgent.Models;
+using Sanet.MakaMek.Tools.BotAgent.Models;
 using Sanet.MakaMek.Tools.BotAgent.Models.Agents;
 
 namespace Sanet.MakaMek.Tools.BotAgent.Orchestration;

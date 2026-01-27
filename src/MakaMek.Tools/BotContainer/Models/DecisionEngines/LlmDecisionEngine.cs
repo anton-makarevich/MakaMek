@@ -1,10 +1,10 @@
-using BotAgent.Models;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Tools.BotAgent.Models;
 using Sanet.MakaMek.Tools.BotContainer.Services;
 
 namespace Sanet.MakaMek.Tools.BotContainer.Models.DecisionEngines;
