@@ -1007,7 +1007,7 @@ public class BaseGameTests : BaseGame
         var result = ValidateCommand(command);
 
         // Assert
-        result.ShouldBeTrue();
+        result.IsValid.ShouldBeTrue();
     }
 
     [Fact]
@@ -1027,7 +1027,7 @@ public class BaseGameTests : BaseGame
         var result = ValidateCommand(command);
 
         // Assert
-        result.ShouldBeTrue();
+        result.IsValid.ShouldBeTrue();
     }
 
     [Fact]
@@ -1047,7 +1047,7 @@ public class BaseGameTests : BaseGame
         var result = ValidateCommand(command);
 
         // Assert
-        result.ShouldBeTrue();
+        result.IsValid.ShouldBeTrue();
     }
     
     [Fact]
@@ -1066,7 +1066,7 @@ public class BaseGameTests : BaseGame
         var result = ValidateCommand(command);
 
         // Assert
-        result.ShouldBeTrue();
+        result.IsValid.ShouldBeTrue();
     }
     
     [Fact]
@@ -1085,7 +1085,7 @@ public class BaseGameTests : BaseGame
         var result = ValidateCommand(command);
 
         // Assert
-        result.ShouldBeTrue();
+        result.IsValid.ShouldBeTrue();
     }
 
     [Fact]
@@ -1110,7 +1110,7 @@ public class BaseGameTests : BaseGame
         var result = ValidateCommand(command);
 
         // Assert
-        result.ShouldBeTrue();
+        result.IsValid.ShouldBeTrue();
     }
     
     [Fact]
@@ -1129,7 +1129,7 @@ public class BaseGameTests : BaseGame
         var result = ValidateCommand(command);
 
         // Assert
-        result.ShouldBeTrue();
+        result.IsValid.ShouldBeTrue();
     }
     
     [Fact]
@@ -1147,7 +1147,7 @@ public class BaseGameTests : BaseGame
         var result = ValidateCommand(command);
 
         // Assert
-        result.ShouldBeTrue();
+        result.IsValid.ShouldBeTrue();
     }
     
     [Fact]
@@ -1165,7 +1165,7 @@ public class BaseGameTests : BaseGame
         var result = ValidateCommand(command);
 
         // Assert
-        result.ShouldBeTrue();
+        result.IsValid.ShouldBeTrue();
     }
     
     [Fact]

@@ -503,7 +503,36 @@ public class ServerGameTests
                 false)
         ], aimedShotRoll??[], locationRoll??[], partLocation);
     }
-    
+
+    [Fact]
+    public void HandleCommand_ShouldPublishErrorCommand_WhenValidationFails()
+    {
+        // Arrange
+        var idempotencyKey = Guid.NewGuid();
+
+        var invalidCommand = new DeployUnitCommand
+        {
+            PlayerId = Guid.Empty,
+            UnitId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            Position = new HexCoordinateData(2, 3),
+            Direction = 0,
+            IdempotencyKey = idempotencyKey
+        };
+
+        _commandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(invalidCommand);
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(cmd =>
+            cmd.GameOriginId == _sut.Id &&
+            cmd.IdempotencyKey == idempotencyKey &&
+            cmd.ErrorCode == ErrorCode.ValidationFailed
+        ));
+    }
+
     [Fact]
     public void HandleCommand_ShouldRejectDuplicateCommand_WhenSameIdempotencyKey()
     {
