@@ -81,7 +81,7 @@ public class MtfDataProvider:IUnitDataProvider
                 }
                 if (key.StartsWith("model"))
                 {
-                    // Extract model and nickname from model field (format: "MODEL 'NICKNAME'" or "MODEL (NICKNAME)")
+                    // Extract the model and nickname from the model field (format: "MODEL 'NICKNAME'" or "MODEL (NICKNAME)")
                     var (model, nickname) = ExtractModelAndNickname(value);
                     mechData["model"] = model;
                     if (!string.IsNullOrEmpty(nickname))
@@ -116,7 +116,8 @@ public class MtfDataProvider:IUnitDataProvider
 
     private (List<ComponentData> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines, Dictionary<string, string> mechData)
     {
-        // Track components by location and slot for consolidation, including rear-facing flag
+        // Track components by location and slot for consolidation,
+        // including a rear-facing flag (we can replace it with "options" if we need more flags in the future)
         var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, bool isRearFacing)>>();
         var armorValues = new Dictionary<PartLocation, ArmorLocation>();
         PartLocation? currentLocation = null;
@@ -134,14 +135,14 @@ public class MtfDataProvider:IUnitDataProvider
                 continue;
             }
 
-            // Start of armor section
+            // Start of the armor section
             if (line.StartsWith("Armor:", StringComparison.OrdinalIgnoreCase))
             {
                 parsingArmor = true;
                 continue;
             }
 
-            // End of armor section
+            // End of the armor section
             if (line.StartsWith("Weapons:", StringComparison.OrdinalIgnoreCase))
             {
                 parsingArmor = false;
@@ -188,7 +189,7 @@ public class MtfDataProvider:IUnitDataProvider
                 continue;
             }
 
-            // Add equipment to current location with slot tracking
+            // Add equipment to the current location with slot tracking
             if (currentLocation.HasValue)
             {
                 if (!line.Contains("-Empty-", StringComparison.OrdinalIgnoreCase))
@@ -270,7 +271,7 @@ public class MtfDataProvider:IUnitDataProvider
         }
         
         // Handle rear-facing weapons
-        if (isRearFacing)
+        if (isRearFacing && specificData == null)
         {
             var mountingOptions = MountingOptions.Rear;
             specificData = new WeaponStateData(mountingOptions);

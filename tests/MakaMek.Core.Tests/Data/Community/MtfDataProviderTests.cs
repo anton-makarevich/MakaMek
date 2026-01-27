@@ -548,7 +548,7 @@ public class MtfDataProviderTests
                          cd.SpecificData is WeaponStateData { MountingOptions: MountingOptions.Standard }))
             .ToList();
 
-        // Atlas has 2 forward-facing Medium Lasers (Left Arm and Right Arm) + 1 in Center Torso (forward)
+        // Atlas has 2 forward-facing Medium Lasers (Left Arm and Right Arm)
         forwardFacingMediumLasers.Count.ShouldBe(2);
     }
 }
