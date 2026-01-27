@@ -1,4 +1,4 @@
-namespace BotAgent.Configuration;
+namespace Sanet.MakaMek.Tools.BotAgent.Configuration;
 
 /// <summary>
 /// Configuration for LLM provider settings.

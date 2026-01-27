@@ -1,14 +1,15 @@
 using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
-using BotAgent.Services.LlmProviders;
+using BotAgent.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
-namespace BotAgent.Models.Agents;
+namespace Sanet.MakaMek.Tools.BotAgent.Models.Agents;
 
 /// <summary>
 /// Weapons attack phase agent - selects targets and weapon configurations.

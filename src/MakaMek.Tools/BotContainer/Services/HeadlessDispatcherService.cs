@@ -1,7 +1,7 @@
 using System.Reactive.Concurrency;
 using Sanet.MakaMek.Core.Services;
 
-namespace MakaMek.Tools.BotContainer.Services;
+namespace Sanet.MakaMek.Tools.BotContainer.Services;
 
 public class HeadlessDispatcherService : IDispatcherService
 {

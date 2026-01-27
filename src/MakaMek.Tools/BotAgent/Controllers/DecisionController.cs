@@ -1,8 +1,8 @@
 using BotAgent.Models;
-using BotAgent.Orchestration;
 using Microsoft.AspNetCore.Mvc;
+using Sanet.MakaMek.Tools.BotAgent.Orchestration;
 
-namespace BotAgent.Controllers;
+namespace Sanet.MakaMek.Tools.BotAgent.Controllers;
 
 /// <summary>
 /// API controller for tactical decision requests.

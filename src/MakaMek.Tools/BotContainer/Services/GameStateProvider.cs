@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Models.Game;
 
-namespace MakaMek.Tools.BotContainer.Services;
+namespace Sanet.MakaMek.Tools.BotContainer.Services;
 
 public class GameStateProvider : IGameStateProvider
 {

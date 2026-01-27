@@ -1,9 +1,9 @@
-using BotAgent.Configuration;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using OpenAI;
+using Sanet.MakaMek.Tools.BotAgent.Configuration;
 
-namespace BotAgent.Services.LlmProviders;
+namespace Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
 /// <summary>
 /// OpenAI implementation of an LLM provider using Microsoft Agent Framework.

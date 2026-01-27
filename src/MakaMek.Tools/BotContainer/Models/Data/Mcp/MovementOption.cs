@@ -1,4 +1,4 @@
-﻿namespace MakaMek.Tools.BotContainer.Models.Data.Mcp;
+﻿namespace Sanet.MakaMek.Tools.BotContainer.Models.Data.Mcp;
 
 public record MovementOption(
     string MovementType, 

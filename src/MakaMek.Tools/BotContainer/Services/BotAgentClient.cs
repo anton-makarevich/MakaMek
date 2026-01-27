@@ -1,10 +1,10 @@
 ﻿using System.Text.Json;
 using BotAgent.Models;
 using Microsoft.Extensions.Options;
-using MakaMek.Tools.BotContainer.Configuration;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
+using Sanet.MakaMek.Tools.BotContainer.Configuration;
 
-namespace MakaMek.Tools.BotContainer.Services;
+namespace Sanet.MakaMek.Tools.BotContainer.Services;
 
 /// <summary>
 /// HTTP client for making decision requests to the BotAgent API.

@@ -1,11 +1,12 @@
 using System.Text;
-using BotAgent.Services.LlmProviders;
+using BotAgent.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
-namespace BotAgent.Models.Agents;
+namespace Sanet.MakaMek.Tools.BotAgent.Models.Agents;
 
 /// <summary>
 /// Abstract base class for all specialized agents using Microsoft Agent Framework.
@@ -14,7 +15,7 @@ public abstract class BaseAgent : ISpecializedAgent
 {
     protected ILogger Logger { get; init; }
     private ILlmProvider LlmProvider { get; init; }
-    protected DecisionRequest? LastRequest { get; set; }
+    protected DecisionRequest? LastRequest { get; private set; }
     
     public abstract string Name { get; }
     protected abstract string SystemPrompt { get; }
@@ -64,8 +65,8 @@ public abstract class BaseAgent : ISpecializedAgent
             {
                 Logger.LogInformation("MCP tool found: {ToolName}", tool.Name);
             }
-            
-            var allTools = localTools.Concat(mcpTools.Cast<AITool>()).ToArray();
+
+            List<AITool> allTools = [..localTools, ..mcpTools];
             var availableToolNames = allTools.Select(t => t.Name).ToArray();
             
             var agent =LlmProvider.GetChatClient()
@@ -73,7 +74,7 @@ public abstract class BaseAgent : ISpecializedAgent
                     instructions: SystemPrompt,
                     tools: allTools)
                 .AsBuilder()
-                .Use(FunctionCallMiddleware)
+                .Use(ToolCallMiddleware)
                 .Build();
             
             var thread = agent.GetNewThread();
@@ -117,7 +118,7 @@ public abstract class BaseAgent : ISpecializedAgent
         string[] availableTools,
         CancellationToken cancellationToken);
 
-    private async ValueTask<object?> FunctionCallMiddleware(AIAgent callingAgent, FunctionInvocationContext context, Func<FunctionInvocationContext, CancellationToken, ValueTask<object?>> next, CancellationToken cancellationToken)
+    private async ValueTask<object?> ToolCallMiddleware(AIAgent callingAgent, FunctionInvocationContext context, Func<FunctionInvocationContext, CancellationToken, ValueTask<object?>> next, CancellationToken cancellationToken)
     {
         StringBuilder functionCallDetails = new();
         functionCallDetails.Append($"- Tool Call: '{context.Function.Name}'");

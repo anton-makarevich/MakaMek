@@ -1,12 +1,12 @@
-﻿using MakaMek.Tools.BotContainer.Services;
-using Sanet.MakaMek.Bots.Models;
+﻿using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Tools.BotContainer.Services;
 
-namespace MakaMek.Tools.BotContainer.Models.DecisionEngines;
+namespace Sanet.MakaMek.Tools.BotContainer.Models.DecisionEngines;
 
 /// <summary>
 /// LLM-enabled weapons attack decision engine that calls BotAgent API

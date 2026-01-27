@@ -1,7 +1,7 @@
 using BotAgent.Models;
-using BotAgent.Models.Agents;
+using Sanet.MakaMek.Tools.BotAgent.Models.Agents;
 
-namespace BotAgent.Orchestration;
+namespace Sanet.MakaMek.Tools.BotAgent.Orchestration;
 
 /// <summary>
 /// Agent orchestrator that routes decision requests to appropriate specialized agents.

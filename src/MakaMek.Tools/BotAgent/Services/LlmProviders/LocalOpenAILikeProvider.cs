@@ -1,10 +1,10 @@
 using System.ClientModel;
-using BotAgent.Configuration;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using OpenAI;
+using Sanet.MakaMek.Tools.BotAgent.Configuration;
 
-namespace BotAgent.Services.LlmProviders;
+namespace Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
 /// <summary>
 /// Local OpenAI-like provider that uses the local client supporting OpenAI API.

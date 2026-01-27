@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
 using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
 
-namespace BotAgent.Controllers;
+namespace Sanet.MakaMek.Tools.BotAgent.Controllers;
 
 /// <summary>
 /// Health check controller.

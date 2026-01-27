@@ -1,4 +1,4 @@
-﻿namespace MakaMek.Tools.BotContainer.Configuration;
+﻿namespace Sanet.MakaMek.Tools.BotContainer.Configuration;
 
 /// <summary>
 /// Configuration for BotAgent API integration.
