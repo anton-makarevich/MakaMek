@@ -1,15 +1,15 @@
 using System.ComponentModel;
-using BotAgent.Services.LlmProviders;
-using Microsoft.Agents.AI;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
-namespace BotAgent.Models.Agents;
+namespace Sanet.MakaMek.Tools.BotAgent.Models.Agents;
 
 /// <summary>
 /// Movement phase agent - selects optimal movement destination and mode.

@@ -1,13 +1,13 @@
 using System.ComponentModel;
-using BotAgent.Services.LlmProviders;
-using Microsoft.Agents.AI;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Map;
+using Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
-namespace BotAgent.Models.Agents;
+namespace Sanet.MakaMek.Tools.BotAgent.Models.Agents;
 
 /// <summary>
 /// Deployment phase agent - selects optimal deployment position and facing for units.
@@ -99,7 +99,7 @@ public class DeploymentAgent : BaseAgent
             // Build user prompt with game context from DecisionRequest
             var userPrompt = BuildUserPrompt(request);
 
-            // Run agent with structured output 
+            // Run agent 
             var response = await agent.RunAsync(
                 userPrompt, 
                 thread,

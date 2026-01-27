@@ -1,14 +1,13 @@
 using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
-using BotAgent.Services.LlmProviders;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
-
-namespace BotAgent.Models.Agents;
+namespace Sanet.MakaMek.Tools.BotAgent.Models.Agents;
 
 /// <summary>
 /// End phase agent - manages shutdown and startup decisions, ends turn.

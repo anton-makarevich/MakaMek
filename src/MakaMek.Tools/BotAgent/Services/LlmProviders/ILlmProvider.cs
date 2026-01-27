@@ -1,6 +1,6 @@
 using Microsoft.Extensions.AI;
 
-namespace BotAgent.Services.LlmProviders;
+namespace Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
 /// <summary>
 /// Interface for LLM provider abstraction using Microsoft Agent Framework.

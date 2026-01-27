@@ -1,4 +1,4 @@
-using BotAgent.DependencyInjection;
+using Sanet.MakaMek.Tools.BotAgent.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,10 +1,10 @@
-﻿using MakaMek.Tools.BotContainer.Models.DecisionEngines;
-using Sanet.MakaMek.Bots.Models.DecisionEngines;
+﻿using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
+using Sanet.MakaMek.Tools.BotContainer.Models.DecisionEngines;
 
-namespace MakaMek.Tools.BotContainer.Services;
+namespace Sanet.MakaMek.Tools.BotContainer.Services;
 
 /// <summary>
 /// Provides LLM-enabled decision engines for specific game phases.

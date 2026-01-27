@@ -1,8 +1,7 @@
-using MakaMek.Tools.BotContainer.Configuration;
-using MakaMek.Tools.BotContainer.Models.Mcp.Tools;
-using MakaMek.Tools.BotContainer.Services;
 using ModelContextProtocol.Protocol;
 using Sanet.MakaMek.Bots.Models;
+using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -11,15 +10,16 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Services.ResourceProviders;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
+using Sanet.MakaMek.Core.Services.ResourceProviders;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Tools.BotContainer.Configuration;
+using Sanet.MakaMek.Tools.BotContainer.Models.Mcp.Tools;
+using Sanet.MakaMek.Tools.BotContainer.Services;
 using Sanet.Transport.Rx;
-using Sanet.MakaMek.Core.Models.Game.Dice;
-using Sanet.MakaMek.Core.Models.Game;
 
-namespace MakaMek.Tools.BotContainer.DependencyInjection;
+namespace Sanet.MakaMek.Tools.BotContainer.DependencyInjection;
 
 public static class BotContainerServices
 {

@@ -1,10 +1,10 @@
 using System.ComponentModel;
-using MakaMek.Tools.BotContainer.Services;
 using ModelContextProtocol.Server;
 using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Tools.BotContainer.Services;
 
-namespace MakaMek.Tools.BotContainer.Models.Mcp.Tools;
+namespace Sanet.MakaMek.Tools.BotContainer.Models.Mcp.Tools;
 
 [McpServerToolType]
 public class DeploymentTools

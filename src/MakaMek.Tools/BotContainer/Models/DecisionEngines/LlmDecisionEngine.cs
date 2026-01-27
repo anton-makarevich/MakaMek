@@ -1,13 +1,13 @@
-using MakaMek.Tools.BotContainer.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using BotAgent.Models;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Tools.BotAgent.Models;
+using Sanet.MakaMek.Tools.BotContainer.Services;
 
-namespace MakaMek.Tools.BotContainer.Models.DecisionEngines;
+namespace Sanet.MakaMek.Tools.BotContainer.Models.DecisionEngines;
 
 /// <summary>
 /// Abstract base class for LLM-enabled decision engines that calls BotAgent API

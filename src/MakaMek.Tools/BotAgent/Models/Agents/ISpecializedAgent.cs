@@ -1,4 +1,4 @@
-namespace BotAgent.Models.Agents;
+namespace Sanet.MakaMek.Tools.BotAgent.Models.Agents;
 
 /// <summary>
 /// Interface for specialized agents that handle specific game phases.

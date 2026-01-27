@@ -1,13 +1,12 @@
-using Microsoft.Extensions.Options;
-using MakaMek.Tools.BotContainer.Configuration;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Players;
+using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -18,9 +17,9 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Data.Units;
+using Sanet.MakaMek.Tools.BotContainer.Configuration;
 
-namespace MakaMek.Tools.BotContainer.Services;
+namespace Sanet.MakaMek.Tools.BotContainer.Services;
 
 public class IntegrationBotService : BackgroundService
 {

@@ -1,11 +1,11 @@
-using BotAgent.Configuration;
-using BotAgent.Models.Agents;
-using BotAgent.Orchestration;
-using BotAgent.Services.LlmProviders;
 using Microsoft.Extensions.Options;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
+using Sanet.MakaMek.Tools.BotAgent.Configuration;
+using Sanet.MakaMek.Tools.BotAgent.Models.Agents;
+using Sanet.MakaMek.Tools.BotAgent.Orchestration;
+using Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
-namespace BotAgent.DependencyInjection;
+namespace Sanet.MakaMek.Tools.BotAgent.DependencyInjection;
 
 public static class BotAgentServices
 {

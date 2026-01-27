@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Data.Units;
 
-namespace BotAgent.Models;
+namespace Sanet.MakaMek.Tools.BotAgent.Models;
 
 /// <summary>
 /// Request from Integration Bot to LLM Agent for tactical decision.
