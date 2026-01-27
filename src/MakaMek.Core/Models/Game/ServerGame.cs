@@ -122,7 +122,21 @@ public class ServerGame : BaseGame, IDisposable
             }
         }
 
-        if (!ValidateCommand(command)) return;
+        var validationResult = ValidateCommand(command);
+        if (!validationResult.IsValid)
+        {
+            var errorCommand = new ErrorCommand
+            {
+                GameOriginId = Id,
+                IdempotencyKey = command is IClientCommand { IdempotencyKey: not null } failedClientCommand
+                    ? failedClientCommand.IdempotencyKey.Value
+                    : null,
+                ErrorCode = validationResult.ErrorCode ?? ErrorCode.ValidationFailed,
+                Timestamp = DateTime.UtcNow
+            };
+            CommandPublisher.PublishCommand(errorCommand);
+            return;
+        }
 
         // Handle PlayerLeftCommand before delegating to phase
         if (command is PlayerLeftCommand playerLeftCommand)

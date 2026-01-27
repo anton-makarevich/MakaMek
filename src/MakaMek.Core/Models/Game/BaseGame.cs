@@ -125,7 +125,7 @@ public abstract class BaseGame : IGame
 
     internal void OnPlayerJoined(JoinGameCommand joinGameCommand)
     {
-        if (!ValidateJoinCommand(joinGameCommand)) return;
+        if (!ValidateJoinCommand(joinGameCommand).IsValid) return;
         
         var controlType = GetLocalPlayerControlType(joinGameCommand.PlayerId) ?? PlayerControlType.Remote;
         var player = new Player(joinGameCommand.PlayerId,
@@ -407,7 +407,7 @@ public abstract class BaseGame : IGame
         }
     }
     
-    protected bool ValidateCommand(IGameCommand command)
+    protected CommandValidationResult ValidateCommand(IGameCommand command)
     {
         return command switch
         {
@@ -415,34 +415,36 @@ public abstract class BaseGame : IGame
             UpdatePlayerStatusCommand playerStateCommand => ValidatePlayer(playerStateCommand),
             DeployUnitCommand deployUnitCommand => ValidateDeployCommand(deployUnitCommand),
             TurnIncrementedCommand turnIncrementedCommand => ValidateTurnIncrementedCommand(turnIncrementedCommand),
-            SetBattleMapCommand => true,
-            MoveUnitCommand => true,
-            WeaponConfigurationCommand => true,
-            WeaponAttackDeclarationCommand=> true,
-            WeaponAttackResolutionCommand => true,
-            HeatUpdatedCommand => true,
-            TurnEndedCommand => true,
-            RequestGameLobbyStatusCommand => true,
-            MechFallCommand => true,
-            TryStandupCommand => true,
-            MechStandUpCommand => true,
-            UnitShutdownCommand => true,
-            UnitStartupCommand => true,
-            PilotConsciousnessRollCommand => true,
-            ShutdownUnitCommand => true,
-            StartupUnitCommand => true,
-            AmmoExplosionCommand => true,
-            CriticalHitsResolutionCommand => true,
-            PlayerLeftCommand => true,
-            GameEndedCommand => true,
-            _ => false
+            SetBattleMapCommand => CommandValidationResult.Valid(),
+            MoveUnitCommand => CommandValidationResult.Valid(),
+            WeaponConfigurationCommand => CommandValidationResult.Valid(),
+            WeaponAttackDeclarationCommand=> CommandValidationResult.Valid(),
+            WeaponAttackResolutionCommand => CommandValidationResult.Valid(),
+            HeatUpdatedCommand => CommandValidationResult.Valid(),
+            TurnEndedCommand => CommandValidationResult.Valid(),
+            RequestGameLobbyStatusCommand => CommandValidationResult.Valid(),
+            MechFallCommand => CommandValidationResult.Valid(),
+            TryStandupCommand => CommandValidationResult.Valid(),
+            MechStandUpCommand => CommandValidationResult.Valid(),
+            UnitShutdownCommand => CommandValidationResult.Valid(),
+            UnitStartupCommand => CommandValidationResult.Valid(),
+            PilotConsciousnessRollCommand => CommandValidationResult.Valid(),
+            ShutdownUnitCommand => CommandValidationResult.Valid(),
+            StartupUnitCommand => CommandValidationResult.Valid(),
+            AmmoExplosionCommand => CommandValidationResult.Valid(),
+            CriticalHitsResolutionCommand => CommandValidationResult.Valid(),
+            PlayerLeftCommand => CommandValidationResult.Valid(),
+            GameEndedCommand => CommandValidationResult.Valid(),
+            _ => CommandValidationResult.Invalid(ErrorCode.ValidationFailed)
         };
     }
 
-    private bool ValidatePlayer(UpdatePlayerStatusCommand updatePlayerStateCommand)
+    private CommandValidationResult ValidatePlayer(UpdatePlayerStatusCommand updatePlayerStateCommand)
     {
         var player = _players.FirstOrDefault(p => p.Id == updatePlayerStateCommand.PlayerId);
-        return player != null;
+        return player != null
+            ? CommandValidationResult.Valid()
+            : CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
     }
 
     protected bool ShouldHandleCommand(IGameCommand command)
@@ -450,26 +452,33 @@ public abstract class BaseGame : IGame
         return command.GameOriginId != Id && command.GameOriginId != Guid.Empty;
     }
 
-    private bool ValidateJoinCommand(JoinGameCommand joinCommand)
+    private CommandValidationResult ValidateJoinCommand(JoinGameCommand joinCommand)
     {
         var existingPlayer = _players.FirstOrDefault(p => p.Id == joinCommand.PlayerId);
-        if (existingPlayer == null) return true;
+        if (existingPlayer == null) return CommandValidationResult.Valid();
         Logger.LogInformation("Player {PlayerName} already joined the game.", joinCommand.PlayerName);
-        return false;
+        return CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
     }
 
-    private bool ValidateDeployCommand(DeployUnitCommand deployUnitCommand)
+    private CommandValidationResult ValidateDeployCommand(DeployUnitCommand deployUnitCommand)
     {
         var position = new HexCoordinates(deployUnitCommand.Position);
-        if (!position.IsOccupied(this)) return deployUnitCommand.PlayerId != Guid.Empty;
+        if (!position.IsOccupied(this))
+        {
+            return deployUnitCommand.PlayerId != Guid.Empty
+                ? CommandValidationResult.Valid()
+                : CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
+        }
         Logger.LogInformation("Hex {Position} is already occupied.", position);
-        return false;
+        return CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
     }
     
-    protected bool ValidateTurnIncrementedCommand(TurnIncrementedCommand command)
+    protected CommandValidationResult ValidateTurnIncrementedCommand(TurnIncrementedCommand command)
     {
         // Validate that the turn number is only incremented by 1
-        return command.TurnNumber == Turn + 1;
+        return command.TurnNumber == Turn + 1
+            ? CommandValidationResult.Valid()
+            : CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
     }
 
     public abstract void HandleCommand(IGameCommand command);

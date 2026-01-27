@@ -87,7 +87,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 break;
             case TurnIncrementedCommand turnIncrementedCommand:
                 // Use the validation method from BaseGame
-                if (ValidateTurnIncrementedCommand(turnIncrementedCommand))
+                if (ValidateTurnIncrementedCommand(turnIncrementedCommand).IsValid)
                 {
                     foreach (var alivePlayer in AlivePlayers)
                     {
@@ -216,7 +216,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     private async Task<bool> SendClientCommand<T>(T command) where T : struct, IClientCommand
     {
-        if (!ValidateCommand(command)) return false;
+        if (!ValidateCommand(command).IsValid) return false;
         
         // Extract UnitId from the command if it has one
         var unitId = GetUnitIdFromCommand(command);
