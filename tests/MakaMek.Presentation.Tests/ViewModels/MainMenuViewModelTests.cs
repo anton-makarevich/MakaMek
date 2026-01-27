@@ -1,4 +1,5 @@
 using AsyncAwaitBestPractices.MVVM;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
@@ -25,21 +26,22 @@ public class MainMenuViewModelTests
     private readonly IUnitCachingService _unitCachingService = Substitute.For<IUnitCachingService>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
+    private readonly ILogger<MainMenuViewModel> _logger = Substitute.For<ILogger<MainMenuViewModel>>();
 
     public MainMenuViewModelTests()
     {
         _navigationService = Substitute.For<INavigationService>();
 
-        // Setup default behavior for unit caching service
+        // Set up a default behavior for unit caching service
         _unitCachingService.GetAvailableModels().Returns(["LCT-1V", "SHD-2D"]);
 
-        // Setup default behavior for localization service
+        // Set up a default behavior for localization service
         _localizationService.GetString("MainMenu_Loading_Content").Returns("Loading content...");
         _localizationService.GetString("MainMenu_Loading_NoItemsFound").Returns("No items found");
         _localizationService.GetString("MainMenu_Loading_ItemsLoaded").Returns("Loaded {0} items");
         _localizationService.GetString("MainMenu_Loading_Error").Returns("Error loading units: {0}");
 
-        _sut = new MainMenuViewModel(_unitCachingService, _localizationService, 0);
+        _sut = new MainMenuViewModel(_unitCachingService, _localizationService, _logger, 0);
         _sut.SetNavigationService(_navigationService);
     }
 
@@ -74,7 +76,9 @@ public class MainMenuViewModelTests
             Substitute.For<IFileCachingService>(),
             Substitute.For<IMapPreviewRenderer>(),
             _hashService,
-            Substitute.For<IBotManager>());
+            Substitute.For<IBotManager>(),
+            Substitute.For<ILogger<StartNewGameViewModel>>()
+        );
         _navigationService.GetNewViewModel<StartNewGameViewModel>().Returns(startVm);
 
         // Act
@@ -115,7 +119,9 @@ public class MainMenuViewModelTests
             Substitute.For<IBattleMapFactory>(),
             Substitute.For<IFileCachingService>(),
             _hashService,
-            Substitute.For<IBotManager>());
+            Substitute.For<IBotManager>(),
+            Substitute.For<ILogger<JoinGameViewModel>>()
+        );
         _navigationService.GetNewViewModel<JoinGameViewModel>().Returns(joinVm);
 
         // Act
@@ -172,7 +178,7 @@ public class MainMenuViewModelTests
             .GetAvailableModels()
             .Returns(Task.FromException<IEnumerable<string>>(new Exception(errorMessage)));
         
-        var sut = new MainMenuViewModel(_unitCachingService, _localizationService, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _localizationService, _logger, 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete
@@ -190,7 +196,7 @@ public class MainMenuViewModelTests
         // Arrange
         _unitCachingService.GetAvailableModels().Returns([]);
         
-        var sut = new MainMenuViewModel(_unitCachingService, _localizationService, 0);
+        var sut = new MainMenuViewModel(_unitCachingService, _localizationService, _logger, 0);
         sut.SetNavigationService(_navigationService);
         
         // Small delay to allow the background task to complete

@@ -41,7 +41,8 @@ public class JoinGameViewModel : NewGameViewModel
         IBattleMapFactory mapFactory,
         IFileCachingService cachingService,
         IHashService hashService,
-        IBotManager botManager)
+        IBotManager botManager,
+        ILogger<JoinGameViewModel> logger)
         : base(rulesProvider,
             unitsLoader,
             commandPublisher,
@@ -54,7 +55,8 @@ public class JoinGameViewModel : NewGameViewModel
             cachingService,
             hashService,
             botManager,
-            mechFactory)
+            mechFactory,
+            logger)
     {
         _transportFactory = transportFactory;
         _mapFactory = mapFactory;

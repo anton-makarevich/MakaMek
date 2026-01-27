@@ -1,6 +1,7 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
@@ -15,33 +16,30 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 /// </summary>
 public class MapConfigViewModel : BindableBase, IDisposable
 {
-    private int _mapWidth = 15;
-    private int _mapHeight = 17;
     private int _forestCoverage = 20;
-    private int _lightWoodsPercentage = 30;
     private object? _previewImage;
-    private bool _isGenerating;
     private readonly IMapPreviewRenderer _previewRenderer;
     private readonly IBattleMapFactory _mapFactory;
+    private readonly ILogger _logger;
     private readonly IDisposable? _previewSubscription;
     private readonly Subject<MapParameterChange> _mapParametersChanged = new();
 
-    public MapConfigViewModel(IMapPreviewRenderer previewRenderer, IBattleMapFactory mapFactory)
+    public MapConfigViewModel(IMapPreviewRenderer previewRenderer, IBattleMapFactory mapFactory, ILogger logger)
     {
         _previewRenderer = previewRenderer;
         _mapFactory = mapFactory;
+        _logger = logger;
 
-        // Subscribe with debounce
+        // Subscribe with debouncing
         _previewSubscription = _mapParametersChanged
             .Throttle(TimeSpan.FromMilliseconds(300))
             .Subscribe( (mapParameterChange) =>
             {
-                UpdateMapAsync().SafeFireAndForget();
+                UpdateMapAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error updating map"));
             });
 
-        // Generate initial map and preview
-        UpdateMapAsync().SafeFireAndForget();
-
+        // Generate an initial map and preview
+        UpdateMapAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error generating initial map"));
     }
 
     public string MapWidthLabel => "Map Width";
@@ -51,13 +49,13 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
     public int MapWidth
     {
-        get => _mapWidth;
+        get;
         set
         {
-            SetProperty(ref _mapWidth, value);
+            SetProperty(ref field, value);
             StartMapUpdate();
         }
-    }
+    } = 15;
 
     private void StartMapUpdate()
     {
@@ -67,13 +65,13 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
     public int MapHeight
     {
-        get => _mapHeight;
+        get;
         set
         {
-            SetProperty(ref _mapHeight, value);
+            SetProperty(ref field, value);
             StartMapUpdate();
         }
-    }
+    } = 17;
 
     public int ForestCoverage
     {
@@ -88,13 +86,13 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
     public int LightWoodsPercentage
     {
-        get => _lightWoodsPercentage;
+        get;
         set
         {
-            SetProperty(ref _lightWoodsPercentage, value);
+            SetProperty(ref field, value);
             StartMapUpdate();
         }
-    }
+    } = 30;
 
     public bool IsLightWoodsEnabled => _forestCoverage > 0;
 
@@ -109,8 +107,8 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
     public bool IsGenerating
     {
-        get => _isGenerating;
-        private set => SetProperty(ref _isGenerating, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     // Renamed and repurposed: now generates the actual BattleMap and optionally updates the preview

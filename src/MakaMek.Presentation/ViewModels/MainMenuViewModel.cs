@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MVVM.Core.ViewModels;
@@ -12,13 +13,15 @@ public class MainMenuViewModel : BaseViewModel
     private readonly IUnitCachingService _unitCachingService;
     private readonly ILocalizationService _localizationService;
     private readonly int _messageDelay;
-    private bool _isLoading;
-    private string _loadingText = string.Empty;
 
-    public MainMenuViewModel(IUnitCachingService unitCachingService, ILocalizationService localizationService, int messageDelay = 1000)
+    public MainMenuViewModel(IUnitCachingService unitCachingService,
+        ILocalizationService localizationService,
+        ILogger<MainMenuViewModel> logger,
+        int messageDelay = 1000)
     {
         _unitCachingService = unitCachingService ?? throw new ArgumentNullException(nameof(unitCachingService));
         _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        var logger1 = logger;
         _messageDelay = messageDelay;
 
         // Get version from entry assembly
@@ -32,7 +35,7 @@ public class MainMenuViewModel : BaseViewModel
         // Start preloading units
         IsLoading = true;
         LoadingText = _localizationService.GetString("MainMenu_Loading_Content");
-        PreloadUnits().SafeFireAndForget();
+        PreloadUnits().SafeFireAndForget(ex => logger1.LogError(ex, "Error preloading units"));
     }
 
     public ICommand StartNewGameCommand { get; }
@@ -45,8 +48,8 @@ public class MainMenuViewModel : BaseViewModel
     /// </summary>
     public bool IsLoading
     {
-        get => _isLoading;
-        private set => SetProperty(ref _isLoading, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     /// <summary>
@@ -54,10 +57,10 @@ public class MainMenuViewModel : BaseViewModel
     /// </summary>
     public string LoadingText
     {
-        get => _loadingText;
-        private set => SetProperty(ref _loadingText, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
-    
+
     private async Task NavigateToViewModel<TViewModel>() where TViewModel : BaseViewModel
     {
         var viewModel = NavigationService.GetNewViewModel<TViewModel>();

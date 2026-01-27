@@ -61,7 +61,6 @@ public class GitHubResourceStreamProviderTests
 {
     private readonly MockHttpMessageHandler _mockHttpMessageHandler;
     private readonly IFileCachingService _cachingService = Substitute.For<IFileCachingService>();
-    private readonly ILoggerFactory _loggerFactory = Substitute.For<ILoggerFactory>();
     private readonly ILogger<GitHubResourceStreamProvider> _logger = Substitute.For<ILogger<GitHubResourceStreamProvider>>();
     private readonly GitHubResourceStreamProvider _sut;
 
@@ -78,10 +77,9 @@ public class GitHubResourceStreamProviderTests
         };
         
         _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns((byte[]?)null);
-        _loggerFactory.CreateLogger<GitHubResourceStreamProvider>().Returns(_logger);
 
         _sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
-            _cachingService, _loggerFactory,
+            _cachingService, _logger,
             httpClient);
     }
 
@@ -89,7 +87,7 @@ public class GitHubResourceStreamProviderTests
     public void Constructor_ShouldCreateHttpClient_WhenNotProvided()
     {
         // Arrange & Act
-        var sut = new GitHubResourceStreamProvider("ext", "url", _cachingService, _loggerFactory);
+        var sut = new GitHubResourceStreamProvider("ext", "url", _cachingService, _logger);
 
         // Assert - Should not throw and should be able to get resource IDs
         sut.ShouldNotBeNull();
@@ -163,7 +161,7 @@ public class GitHubResourceStreamProviderTests
 
         var provider = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
-            _loggerFactory,
+            _logger,
             externalHttpClient);
 
         // Act
@@ -321,7 +319,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
-            _loggerFactory,
+            _logger,
             httpClient);
 
         // Act
@@ -350,7 +348,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
-            _loggerFactory,
+            _logger,
             httpClient);
 
         // Act
@@ -378,7 +376,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
-            _loggerFactory,
+            _logger,
             httpClient);
 
         // Act
@@ -409,7 +407,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
-            _loggerFactory,
+            _logger,
             httpClient);
 
         // Act
@@ -444,7 +442,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
-            _loggerFactory,
+            _logger,
             httpClient);
 
         // Act
@@ -483,7 +481,7 @@ public class GitHubResourceStreamProviderTests
 
         var sut = new GitHubResourceStreamProvider("mmux", "https://api.github.com/test",
             _cachingService,
-            _loggerFactory,
+            _logger,
             httpClient);
 
         // Act

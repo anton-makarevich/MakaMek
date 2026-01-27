@@ -56,6 +56,7 @@ public class StartNewGameViewModelTests
     private readonly IMapPreviewRenderer _mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
+    private readonly ILogger<StartNewGameViewModel> _vmLogger = Substitute.For<ILogger<StartNewGameViewModel>>();
 
     public StartNewGameViewModelTests()
     {
@@ -121,7 +122,8 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _hashService,
-            _botManager);
+            _botManager,
+            _vmLogger);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -682,7 +684,8 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _hashService,
-            Substitute.For<IBotManager>());
+            _botManager,
+            _vmLogger);
         sut.AttachHandlers();
 
         // Assert
@@ -720,7 +723,8 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _hashService,
-            Substitute.For<IBotManager>());
+            _botManager,
+            _vmLogger);
         sut.AttachHandlers();
 
         // Act
@@ -753,7 +757,8 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _hashService,
-            Substitute.For<IBotManager>());
+            _botManager,
+            _vmLogger);
         await sut.InitializeLobbyAndSubscribe();
         sut.AttachHandlers();
         
@@ -784,7 +789,8 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _hashService,
-            Substitute.For<IBotManager>());
+            _botManager,
+            _vmLogger);
         await sut.InitializeLobbyAndSubscribe();
         sut.AttachHandlers();
 

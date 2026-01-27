@@ -3,6 +3,7 @@ using System.Reactive.Linq;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -233,7 +234,7 @@ public class BattleMapViewModel : BaseViewModel
                 break;
             case GameEndedCommand gameEndedCommand:
                 // Server ended the game - navigate to the appropriate screen
-                ProcessGameEnded(gameEndedCommand).SafeFireAndForget();
+                ProcessGameEnded(gameEndedCommand).SafeFireAndForget(ex => Game?.Logger.LogError(ex, "Error processing game ended command"));
                 break;
         }
 

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Map.Factory;
@@ -13,12 +14,13 @@ public class MapConfigViewModelTests
     private readonly MapConfigViewModel _sut;
     private readonly IMapPreviewRenderer _previewRenderer = Substitute.For<IMapPreviewRenderer>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
+    private readonly ILogger _logger = Substitute.For<ILogger>();
 
     public MapConfigViewModelTests()
     {
         _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>())
             .Returns(ci => new BattleMap(ci.ArgAt<int>(0), ci.ArgAt<int>(1)));
-        _sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
+        _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
     }
 
     [Fact]
@@ -109,14 +111,14 @@ public class MapConfigViewModelTests
     [Fact]
     public async Task Constructor_GeneratesInitialPreview()
     {
-        // Arrange - setup mock to return completed task
+        // Arrange - setup mock to return a completed task
         _previewRenderer.GeneratePreviewAsync(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
             
         // Act - create a new instance
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
         
         // Allow any pending async operations to complete
         var i = 0;
@@ -147,7 +149,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
         
         // Allow any pending async operations to complete
         await Task.Delay(100);
@@ -170,7 +172,7 @@ public class MapConfigViewModelTests
             Task.FromResult<object?>(mockImage2));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
         var i = 0;
         while (sut.IsGenerating)
         {
@@ -183,7 +185,7 @@ public class MapConfigViewModelTests
         sut.IsGenerating.ShouldBeTrue();
         sut.PreviewImage.ShouldBe(mockImage1);
 
-        // Wait for delay to complete
+        // Wait for the delay to complete
         i = 0;
         while (sut.IsGenerating)
         {
@@ -208,7 +210,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(null));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
         var i = 0;
         while (sut.IsGenerating)
         {
