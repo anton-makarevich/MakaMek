@@ -105,10 +105,10 @@ public class MechFactory : IMechFactory
     private void RestorePartStates(Mech mech, UnitData unitData)
     {
         // If no part states are provided, the unit is pristine (no damage)
-        if (unitData.UnitPartStates == null || unitData.UnitPartStates.Count == 0)
+        if (unitData.State.UnitPartStates == null || unitData.State.UnitPartStates.Count == 0)
             return;
 
-        foreach (var partState in unitData.UnitPartStates)
+        foreach (var partState in unitData.State.UnitPartStates)
         {
             if (!mech.Parts.TryGetValue(partState.Location, out var part))
                 continue;

@@ -46,7 +46,7 @@ public class UnitExtensionsTests
         convertedUnitData.Mass.ShouldBe(_originalUnitData.Mass);
         convertedUnitData.EngineRating.ShouldBe(_originalUnitData.EngineRating);
         convertedUnitData.EngineType.ShouldBe(_originalUnitData.EngineType);
-        convertedUnitData.Position.ShouldBeNull();
+        convertedUnitData.State.Position.ShouldBeNull();
     }
 
     [Fact]
@@ -60,10 +60,10 @@ public class UnitExtensionsTests
         var convertedUnitData = mech.ToData();
 
         // Assert
-        convertedUnitData.StatusFlags.ShouldNotBeNull();
-        convertedUnitData.StatusFlags.ShouldContain(UnitStatus.Prone);
-        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.None);
-        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.Active);
+        convertedUnitData.State.StatusFlags.ShouldNotBeNull();
+        convertedUnitData.State.StatusFlags.ShouldContain(UnitStatus.Prone);
+        convertedUnitData.State.StatusFlags.ShouldNotContain(UnitStatus.None);
+        convertedUnitData.State.StatusFlags.ShouldNotContain(UnitStatus.Active);
     }
 
     [Fact]
@@ -79,10 +79,10 @@ public class UnitExtensionsTests
         var convertedUnitData = mech.ToData();
 
         // Assert
-        convertedUnitData.StatusFlags.ShouldNotBeNull();
-        convertedUnitData.StatusFlags.ShouldContain(UnitStatus.Immobile);
-        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.None);
-        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.Active);
+        convertedUnitData.State.StatusFlags.ShouldNotBeNull();
+        convertedUnitData.State.StatusFlags.ShouldContain(UnitStatus.Immobile);
+        convertedUnitData.State.StatusFlags.ShouldNotContain(UnitStatus.None);
+        convertedUnitData.State.StatusFlags.ShouldNotContain(UnitStatus.Active);
     }
 
     [Fact]
@@ -99,11 +99,11 @@ public class UnitExtensionsTests
         var convertedUnitData = mech.ToData();
 
         // Assert
-        convertedUnitData.StatusFlags.ShouldNotBeNull();
-        convertedUnitData.StatusFlags.ShouldContain(UnitStatus.Prone);
-        convertedUnitData.StatusFlags.ShouldContain(UnitStatus.Immobile);
-        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.None);
-        convertedUnitData.StatusFlags.ShouldNotContain(UnitStatus.Active);
+        convertedUnitData.State.StatusFlags.ShouldNotBeNull();
+        convertedUnitData.State.StatusFlags.ShouldContain(UnitStatus.Prone);
+        convertedUnitData.State.StatusFlags.ShouldContain(UnitStatus.Immobile);
+        convertedUnitData.State.StatusFlags.ShouldNotContain(UnitStatus.None);
+        convertedUnitData.State.StatusFlags.ShouldNotContain(UnitStatus.Active);
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class UnitExtensionsTests
         var convertedUnitData = mech.ToData();
 
         // Assert
-        convertedUnitData.StatusFlags.ShouldBeNull();
+        convertedUnitData.State.StatusFlags.ShouldBeNull();
     }
     
     [Fact]
@@ -134,10 +134,10 @@ public class UnitExtensionsTests
         var convertedUnitData = mech.ToData();
 
         // Assert
-        convertedUnitData.Position.ShouldNotBeNull();
-        convertedUnitData.Position.Coordinates.Q.ShouldBe(1);
-        convertedUnitData.Position.Coordinates.R.ShouldBe(1);
-        convertedUnitData.Position.Facing.ShouldBe(3);
+        convertedUnitData.State.Position.ShouldNotBeNull();
+        convertedUnitData.State.Position.Coordinates.Q.ShouldBe(1);
+        convertedUnitData.State.Position.Coordinates.R.ShouldBe(1);
+        convertedUnitData.State.Position.Facing.ShouldBe(3);
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
 
         // Assert
-        serializedData.UnitPartStates.ShouldBeNull();
+        serializedData.State.UnitPartStates.ShouldBeNull();
     }
 
     [Fact]
@@ -282,10 +282,10 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
 
         // Assert
-        serializedData.UnitPartStates.ShouldNotBeNull();
-        serializedData.UnitPartStates.Count.ShouldBe(1);
+        serializedData.State.UnitPartStates.ShouldNotBeNull();
+        serializedData.State.UnitPartStates.Count.ShouldBe(1);
         
-        var armState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.RightArm);
+        var armState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.RightArm);
         armState.IsBlownOff.ShouldBeTrue();
     }
 
@@ -304,10 +304,10 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
 
         // Assert
-        serializedData.UnitPartStates.ShouldNotBeNull();
-        serializedData.UnitPartStates.Count.ShouldBe(1);
+        serializedData.State.UnitPartStates.ShouldNotBeNull();
+        serializedData.State.UnitPartStates.Count.ShouldBe(1);
         
-        var armState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.LeftArm);
+        var armState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.LeftArm);
         armState.CurrentFrontArmor.ShouldBe(0);
         armState.CurrentStructure.ShouldBe(0);
         armState.IsBlownOff.ShouldBeFalse();
@@ -328,10 +328,10 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
 
         // Assert
-        serializedData.UnitPartStates.ShouldNotBeNull();
-        serializedData.UnitPartStates.Count.ShouldBe(1);
+        serializedData.State.UnitPartStates.ShouldNotBeNull();
+        serializedData.State.UnitPartStates.Count.ShouldBe(1);
         
-        var torsoState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.LeftTorso);
+        var torsoState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.LeftTorso);
         torsoState.CurrentRearArmor.ShouldBe(leftTorso.CurrentRearArmor);
         torsoState.CurrentFrontArmor.ShouldBe(leftTorso.MaxArmor); // Front armor untouched
     }
@@ -351,10 +351,10 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
 
         // Assert
-        serializedData.UnitPartStates.ShouldNotBeNull();
-        serializedData.UnitPartStates.Count.ShouldBe(1);
+        serializedData.State.UnitPartStates.ShouldNotBeNull();
+        serializedData.State.UnitPartStates.Count.ShouldBe(1);
         
-        var torsoState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.RightTorso);
+        var torsoState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.RightTorso);
         torsoState.CurrentFrontArmor.ShouldBe(rightTorso.CurrentArmor);
         torsoState.CurrentRearArmor.ShouldBe(rightTorso.MaxRearArmor); // Rear armor untouched
     }
@@ -374,10 +374,10 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
 
         // Assert
-        serializedData.UnitPartStates.ShouldNotBeNull();
-        serializedData.UnitPartStates.Count.ShouldBe(1);
+        serializedData.State.UnitPartStates.ShouldNotBeNull();
+        serializedData.State.UnitPartStates.Count.ShouldBe(1);
         
-        var torsoState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.CenterTorso);
+        var torsoState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.CenterTorso);
         torsoState.CurrentFrontArmor.ShouldBe(0);
         torsoState.CurrentStructure.ShouldBe(centerTorso.CurrentStructure);
     }
@@ -412,24 +412,24 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
 
         // Assert
-        serializedData.UnitPartStates.ShouldNotBeNull();
-        serializedData.UnitPartStates.Count.ShouldBe(5);
+        serializedData.State.UnitPartStates.ShouldNotBeNull();
+        serializedData.State.UnitPartStates.Count.ShouldBe(5);
         
         // Verify each part state
-        var rightArmState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.RightArm);
+        var rightArmState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.RightArm);
         rightArmState.IsBlownOff.ShouldBeTrue();
         
-        var leftArmState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.LeftArm);
+        var leftArmState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.LeftArm);
         leftArmState.CurrentFrontArmor.ShouldBe(0);
         leftArmState.CurrentStructure.ShouldBe(0);
         
-        var leftTorsoState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.LeftTorso);
+        var leftTorsoState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.LeftTorso);
         leftTorsoState.CurrentRearArmor.ShouldBe(leftTorso.CurrentRearArmor);
         
-        var rightTorsoState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.RightTorso);
+        var rightTorsoState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.RightTorso);
         rightTorsoState.CurrentFrontArmor.ShouldBe(rightTorso.CurrentArmor);
         
-        var centerTorsoState = serializedData.UnitPartStates.First(s => s.Location == PartLocation.CenterTorso);
+        var centerTorsoState = serializedData.State.UnitPartStates.First(s => s.Location == PartLocation.CenterTorso);
         centerTorsoState.CurrentFrontArmor.ShouldBe(0);
         centerTorsoState.CurrentStructure.ShouldBe(centerTorso.CurrentStructure);
     }
@@ -444,7 +444,7 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
         
         // Assert
-        serializedData.MovementPathSegments.ShouldBeNull();
+        serializedData.State.MovementPathSegments.ShouldBeNull();
     }
     
     [Fact]
@@ -464,8 +464,8 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
 
         // Assert
-        serializedData.MovementPathSegments.ShouldNotBeNull();
-        serializedData.MovementPathSegments.Count.ShouldBe(1);
+        serializedData.State.MovementPathSegments.ShouldNotBeNull();
+        serializedData.State.MovementPathSegments.Count.ShouldBe(1);
     }
     
     [Fact]
@@ -493,8 +493,8 @@ public class UnitExtensionsTests
         var serializedData = mech.ToData();
 
         // Assert
-        serializedData.DeclaredWeaponTargets.ShouldNotBeNull();
-        serializedData.DeclaredWeaponTargets.Count.ShouldBe(1);
+        serializedData.State.DeclaredWeaponTargets.ShouldNotBeNull();
+        serializedData.State.DeclaredWeaponTargets.Count.ShouldBe(1);
     }
 
     [Fact]

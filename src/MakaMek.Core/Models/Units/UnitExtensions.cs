@@ -107,12 +107,15 @@ public static class UnitExtensions
                 Equipment = equipment,
                 AdditionalAttributes = new Dictionary<string, string>(),
                 Quirks = new Dictionary<string, string>(),
-                UnitPartStates = partStates.Count > 0 ? partStates : null,
-                StatusFlags = statusFlags.Length > 0 ? statusFlags : null,
-                MovementPathSegments = movementPathSegments,
-                Position = unit.Position?.ToData(),
-                DeclaredWeaponTargets = unit.DeclaredWeaponTargets,
-                CurrentHeat = unit.CurrentHeat
+                State = new UnitStateData
+                {
+                    UnitPartStates = partStates.Count > 0 ? partStates : null,
+                    StatusFlags = statusFlags.Length > 0 ? statusFlags : null,
+                    MovementPathSegments = movementPathSegments,
+                    Position = unit.Position?.ToData(),
+                    DeclaredWeaponTargets = unit.DeclaredWeaponTargets,
+                    CurrentHeat = unit.CurrentHeat
+                }
             };
         }
         
