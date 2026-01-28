@@ -483,7 +483,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Rules;
 
             // Verify ammo-specific state is applied correctly
             var ammo = (Ammo)result;
-            ammo.RemainingShots.ShouldBe(ammoStateData.RemainingShots);
+            ammo.RemainingShots.ShouldBe(ammoStateData.RemainingShots!.Value);
         }
         
         [Fact]

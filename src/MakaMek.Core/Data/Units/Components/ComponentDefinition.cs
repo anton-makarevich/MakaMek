@@ -9,7 +9,8 @@ public abstract record ComponentDefinition(
     int HealthPoints,
     int BattleValue,
     bool IsRemovable,
-    MakaMekComponent ComponentType);
+    MakaMekComponent ComponentType,
+    decimal Mass = 0m);
 
 /// <summary>
 /// Definition for actuator components (shoulder, arm, leg actuators)
@@ -39,5 +40,6 @@ public record EquipmentDefinition(
     int BattleValue = 0,
     int Size = 1,
     int HealthPoints = 1,
-    bool IsRemovable = true)
-    : ComponentDefinition(Name, Size, HealthPoints, BattleValue, IsRemovable, ComponentType);
+    bool IsRemovable = true,
+    decimal Mass = 0m)
+    : ComponentDefinition(Name, Size, HealthPoints, BattleValue, IsRemovable, ComponentType, Mass);

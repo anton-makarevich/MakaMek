@@ -5,9 +5,10 @@ namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 public sealed class Ammo : Component
 {
     private int _remainingShots;
+    private readonly decimal _massRoundsMultiplier = 1m;
 
     public Ammo(WeaponDefinition definition, ComponentData? componentData = null)
-        : base(CreateAmmoDefinition(definition), componentData)
+        : base(CreateAmmoDefinition(definition, componentData), componentData)
     {
         Definition = definition;
 
@@ -15,23 +16,33 @@ public sealed class Ammo : Component
         var maxRounds = definition.FullAmmoRounds;
         if (componentData?.SpecificData is AmmoStateData ammoState)
         {
-            _remainingShots = Math.Max(ammoState.RemainingShots, 0);
+            _massRoundsMultiplier = ammoState.MassRoundsMultiplier;
+            if (ammoState.RemainingShots != null)
+            {
+                _remainingShots = Math.Max(ammoState.RemainingShots.Value, 0);
+            }
         }
         else
         {
-            _remainingShots = Math.Max(maxRounds, 0);
+            _remainingShots = _massRoundsMultiplier == 1m
+                ? maxRounds 
+                :Math.Max((int)(maxRounds * _massRoundsMultiplier), 0);
         }
     }
 
-    public static ComponentDefinition CreateAmmoDefinition(WeaponDefinition weaponDefinition)
+    public static ComponentDefinition CreateAmmoDefinition(WeaponDefinition weaponDefinition, ComponentData? componentData = null)
     {
         if (!weaponDefinition.RequiresAmmo)
         {
             throw new ArgumentException($"Cannot create ammo for weapon that doesn't require it: {weaponDefinition.Name}");
         }
+        var massRoundsMultiplier = componentData?.SpecificData is AmmoStateData ammoState
+            ? ammoState.MassRoundsMultiplier
+            : 1m;
         return new EquipmentDefinition(
             $"{weaponDefinition.Name} Ammo",
-            weaponDefinition.AmmoComponentType ?? throw new InvalidOperationException("Ammo component type not defined")); 
+            weaponDefinition.AmmoComponentType ?? throw new InvalidOperationException("Ammo component type not defined"),
+            Mass: 1m * massRoundsMultiplier); 
     }
 
     public WeaponDefinition Definition { get; }
@@ -68,7 +79,7 @@ public sealed class Ammo : Component
 
     protected override ComponentSpecificData GetSpecificData()
     {
-        return new AmmoStateData(RemainingShots);
+        return new AmmoStateData(RemainingShots, _massRoundsMultiplier);
     }
 
     public override bool IsAvailable => base.IsAvailable && RemainingShots > 0;

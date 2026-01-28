@@ -2,6 +2,7 @@
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
@@ -406,5 +407,29 @@ public class MechFactoryTests
         var restoredCenterTorso = (CenterTorso)restoredMech.Parts[PartLocation.CenterTorso];
         restoredCenterTorso.CurrentArmor.ShouldBe(0);
         restoredCenterTorso.CurrentStructure.ShouldBe(centerTorso.CurrentStructure);
+    }
+    
+    [Fact]
+    public void Create_WithRearFacingWeapon_PreservesRearFacing()
+    {
+        // Arrange - Machine Gun in Right Torso, rear facing
+        var equipment = new List<ComponentData>
+        {
+            new ComponentData
+            {
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 1, 1)],
+                SpecificData = new WeaponStateData(MountingOptions.Rear)
+            }
+        };
+        var unitData = CreateDummyMechData(equipment);
+
+        // Act
+        var mech = _mechFactory.Create(unitData);
+
+        // Assert
+        var rightTorso = mech.Parts[PartLocation.RightTorso];
+        var machineGun = rightTorso.GetComponents<MachineGun>().First();
+        machineGun.GetFiringArcs().ShouldContain(FiringArc.Rear);
     }
 }
