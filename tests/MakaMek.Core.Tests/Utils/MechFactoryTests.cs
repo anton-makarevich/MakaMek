@@ -118,7 +118,7 @@ public class MechFactoryTests
         // Note: Slot 0 is occupied by ShoulderActuator, so use slots 1-4
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.AC5,
                 Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 4)]
@@ -148,7 +148,7 @@ public class MechFactoryTests
         // Arrange - Multi-slot component with non-consecutive slots in the same location
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.Sensors,
                 Assignments =
@@ -236,12 +236,12 @@ public class MechFactoryTests
         // Arrange - Two Medium Lasers in different locations
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.MediumLaser,
                 Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 1)]
             },
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.MediumLaser,
                 Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 1, 1)]
@@ -294,7 +294,7 @@ public class MechFactoryTests
         // Arrange - Component at specific non-zero starting slot
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.MediumLaser,
                 Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 2, 1)]
@@ -416,7 +416,7 @@ public class MechFactoryTests
         // Arrange - Machine Gun in Right Torso, rear facing
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.MachineGun,
                 Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 1, 1)],
@@ -440,12 +440,12 @@ public class MechFactoryTests
         // Arrange - Machine Gun with half-ammo in Right Torso
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.MachineGun,
                 Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 1, 1)]
             },
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.ISAmmoMG,
                 Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 0, 1)],
