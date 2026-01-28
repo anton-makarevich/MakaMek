@@ -437,7 +437,7 @@ public class MechFactoryTests
     [Fact]
     public void Create_WithHalfMachineGunAmmo_PreservesHalfAmmo()
     {
-        // Arrange - Machine Gun with half ammo in Right Torso
+        // Arrange - Machine Gun with half-ammo in Right Torso
         var equipment = new List<ComponentData>
         {
             new ComponentData
