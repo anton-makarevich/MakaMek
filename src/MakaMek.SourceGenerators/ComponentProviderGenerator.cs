@@ -423,8 +423,8 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             // Use semantic analysis to get the symbol information
             var symbolInfo = semanticModel.GetSymbolInfo(argument.Expression);
 
+            // Check if it's a MakaMekComponent enum member
             if (symbolInfo.Symbol is IFieldSymbol { ContainingType: { Name: "MakaMekComponent", TypeKind: TypeKind.Enum } } fieldSymbol)
-                // Check if it's a MakaMekComponent enum member
             {
                 // Return the enum member name
                 return fieldSymbol.Name;
@@ -481,8 +481,8 @@ public class ComponentProviderGenerator : IIncrementalGenerator
                 // Use semantic analysis to get the symbol information
                 var symbolInfo = semanticModel.GetSymbolInfo(argument.Expression);
 
+                // Check if it's a MakaMekComponent enum member
                 if (symbolInfo.Symbol is IFieldSymbol { ContainingType: { Name: "MakaMekComponent", TypeKind: TypeKind.Enum } } fieldSymbol)
-                    // Check if it's a MakaMekComponent enum member
                 {
                     // Return the enum member name
                     return fieldSymbol.Name;
