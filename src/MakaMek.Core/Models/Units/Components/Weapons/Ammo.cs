@@ -17,16 +17,16 @@ public sealed class Ammo : Component
         if (componentData?.SpecificData is AmmoStateData ammoState)
         {
             _massRoundsMultiplier = ammoState.MassRoundsMultiplier;
-            if (ammoState.RemainingShots != null)
-            {
-                _remainingShots = Math.Max(ammoState.RemainingShots.Value, 0);
-            }
+            
+            _remainingShots = ammoState.RemainingShots != null
+                ? Math.Max(ammoState.RemainingShots.Value, 0)
+                : _massRoundsMultiplier == 1m 
+                    ? maxRounds 
+                    : Math.Max((int)(maxRounds * _massRoundsMultiplier), 0);
         }
         else
         {
-            _remainingShots = _massRoundsMultiplier == 1m
-                ? maxRounds 
-                :Math.Max((int)(maxRounds * _massRoundsMultiplier), 0);
+            _remainingShots =  maxRounds;
         }
     }
 
