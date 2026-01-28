@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Community;
@@ -17,6 +18,7 @@ public class MtfDataProviderTests
     private readonly string[] _vindicatorAaMtfData = File.ReadAllLines("Resources/Vindicator VND-1AA Avenging Angel.mtf");
     private readonly string[] _vindicatorRVongMtfData = File.ReadAllLines("Resources/Vindicator VND-1R Vong.mtf");
     private readonly string[] _wolfhoundMtfData = File.ReadAllLines("Resources/Wolfhound WLF-1A.mtf");
+    private readonly string[] _atlasMtfData = File.ReadAllLines("Resources/Atlas AS7-D.mtf");
     private readonly ClassicBattletechComponentProvider _componentProvider = new();
 
     [Fact]
@@ -338,11 +340,11 @@ public class MtfDataProviderTests
     {
         // Arrange
         var sut = new MtfDataProvider(_componentProvider);
-        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, MakaMekComponent>>
+        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, bool isRearFacing)>>
         {
             [PartLocation.LeftArm] = new()
             {
-                [0] = MakaMekComponent.MachineGun
+                [0] = (MakaMekComponent.MachineGun, false)
             }
         };
         var processedSlots = new HashSet<(PartLocation, int)>
@@ -505,4 +507,49 @@ public class MtfDataProviderTests
         mechData.ArmorValues[PartLocation.LeftLeg].FrontArmor.ShouldBe(16);
         mechData.ArmorValues[PartLocation.RightLeg].FrontArmor.ShouldBe(16);
     }
+    
+    [Fact]
+    public void Parse_AtlasMtf_LoadsRearFacingWeaponsCorrectly()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var mechData = sut.LoadMechFromTextData(_atlasMtfData);
+
+        // Assert
+        // Atlas AS7-D has two rear-facing Medium Lasers in Center Torso (slots 10 and 11)
+        var rearFacingMediumLasers = mechData.Equipment
+            .Where(cd => cd.Type == MakaMekComponent.MediumLaser &&
+                        cd.Assignments.Any(a => a.Location == PartLocation.CenterTorso) &&
+                        cd.SpecificData is WeaponStateData)
+            .ToList();
+
+        // Should have 2 rear-facing Medium Lasers
+        rearFacingMediumLasers.Count.ShouldBe(2);
+
+        // Verify each rear-facing laser has WeaponStateData with Rear mounting
+        foreach (var laser in rearFacingMediumLasers)
+        {
+            laser.SpecificData.ShouldBeOfType<WeaponStateData>();
+            var weaponData = (WeaponStateData)laser.SpecificData!;
+            weaponData.MountingOptions.ShouldBe(MountingOptions.Rear);
+            
+            // Verify they're in Center Torso
+            laser.Assignments.Count.ShouldBe(1);
+            laser.Assignments[0].Location.ShouldBe(PartLocation.CenterTorso);
+            laser.Assignments[0].Length.ShouldBe(1);
+        }
+
+        // Verify forward-facing Medium Lasers don't have WeaponStateData (or have Standard mounting)
+        var forwardFacingMediumLasers = mechData.Equipment
+            .Where(cd => cd.Type == MakaMekComponent.MediumLaser &&
+                        (cd.SpecificData == null || 
+                         cd.SpecificData is WeaponStateData { MountingOptions: MountingOptions.Standard }))
+            .ToList();
+
+        // Atlas has 2 forward-facing Medium Lasers (Left Arm and Right Arm)
+        forwardFacingMediumLasers.Count.ShouldBe(2);
+    }
 }
+

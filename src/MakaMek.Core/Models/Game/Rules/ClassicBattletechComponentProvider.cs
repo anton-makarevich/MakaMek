@@ -42,6 +42,17 @@ public partial class ClassicBattletechComponentProvider : IComponentProvider
         {
             return Engine.CreateEngineDefinition(engineState);
         }
+        
+        // Special case: Weapons with specific mounting options
+        if (specificData is WeaponStateData weaponState)
+        {
+            var baseDefinition = _definitions.GetValueOrDefault(componentType);
+            if (baseDefinition is WeaponDefinition weaponDef)
+            {
+                // Create a new WeaponDefinition with the specified mounting options
+                return weaponDef with { MountingOptions = weaponState.MountingOptions };
+            }
+        }
 
         // All other components use generated mappings
         return _definitions.GetValueOrDefault(componentType);
