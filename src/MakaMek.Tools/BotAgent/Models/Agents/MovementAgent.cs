@@ -222,9 +222,9 @@ public class MovementAgent : BaseAgent
         {
             sb.AppendLine($"MOVE UNIT: {request.UnitToAct.Value}");
             var unit = request.ControlledUnits.FirstOrDefault(u => u.Id == request.UnitToAct.Value);
-            sb.AppendLine($"Status: {(unit.StatusFlags?.Contains(UnitStatus.Prone)==true ? "PRONE" : "STANDING")}");
-            if (unit.Position != null)
-                sb.AppendLine($"Current Position: Q={unit.Position.Coordinates.Q}, R={unit.Position.Coordinates.R}, Facing={unit.Position.Facing}");
+            sb.AppendLine($"Status: {(unit.State?.StatusFlags?.Contains(UnitStatus.Prone)==true ? "PRONE" : "STANDING")}");
+            if (unit.State?.Position != null)
+                sb.AppendLine($"Current Position: Q={unit.State?.Position.Coordinates.Q}, R={unit.State?.Position.Coordinates.R}, Facing={unit.State?.Position.Facing}");
                 
             // Add Movement Mode info if available in UnitData, otherwise inferred by Agent via tools
             sb.AppendLine();
@@ -232,13 +232,13 @@ public class MovementAgent : BaseAgent
         else
         {
             sb.AppendLine("YOUR UNITS to move:");
-            foreach (var unit in request.ControlledUnits.Where(u => u is { Id: not null, MovementPathSegments: null }))
+            foreach (var unit in request.ControlledUnits.Where(u => u is { Id: not null, State.MovementPathSegments: null }))
             {
                 sb.AppendLine($"ID: {unit.Id}");
-                sb.AppendLine($"Status: {(unit.StatusFlags?.Contains(UnitStatus.Prone)==true ? "PRONE" : "STANDING")}");
+                sb.AppendLine($"Status: {(unit.State?.StatusFlags?.Contains(UnitStatus.Prone)==true ? "PRONE" : "STANDING")}");
                 sb.AppendLine($"- {unit.Model} ({unit.Mass} tons)");
-                if (unit.Position != null)
-                    sb.AppendLine($"  Position: Q={unit.Position.Coordinates.Q}, R={unit.Position.Coordinates.R}, Facing={unit.Position.Facing}");
+                if (unit.State?.Position != null)
+                    sb.AppendLine($"  Position: Q={unit.State?.Position.Coordinates.Q}, R={unit.State?.Position.Coordinates.R}, Facing={unit.State?.Position.Facing}");
             }
         }
 
@@ -249,8 +249,8 @@ public class MovementAgent : BaseAgent
             foreach (var enemy in request.EnemyUnits)
             {
                 sb.AppendLine($"- {enemy.Model} ({enemy.Mass} tons)");
-                if (enemy.Position != null)
-                    sb.AppendLine($"  Position: Q={enemy.Position.Coordinates.Q}, R={enemy.Position.Coordinates.R}");
+                if (enemy.State?.Position != null)
+                    sb.AppendLine($"  Position: Q={enemy.State?.Position.Coordinates.Q}, R={enemy.State?.Position.Coordinates.R}");
             }
         }
         

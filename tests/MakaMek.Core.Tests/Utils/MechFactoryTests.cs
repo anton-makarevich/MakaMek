@@ -344,7 +344,13 @@ public class MechFactoryTests
     public void MechFactory_WithEmptyPartStates_ShouldCreatePristineMech()
     {
         // Arrange
-        var unitData = CreateDummyMechData() with { UnitPartStates = new List<UnitPartStateData>() };
+        var unitData = CreateDummyMechData() with
+        {
+            State = new UnitStateData
+            {
+                UnitPartStates = new List<UnitPartStateData>()
+            }
+        };
 
         // Act
         var mech = _mechFactory.Create(unitData);

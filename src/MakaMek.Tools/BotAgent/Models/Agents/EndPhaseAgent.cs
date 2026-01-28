@@ -126,12 +126,12 @@ public class EndPhaseAgent : BaseAgent
             if (unit.Id.HasValue)
                 sb.AppendLine($"  ID: {unit.Id.Value}");
 
-            if (unit.Position != null)
-                sb.AppendLine($"  Position: Q={unit.Position.Coordinates.Q}, R={unit.Position.Coordinates.R}");
+            if (unit.State?.Position != null)
+                sb.AppendLine($"  Position: Q={unit.State?.Position.Coordinates.Q}, R={unit.State?.Position.Coordinates.R}");
             
-            sb.AppendLine($"  Current Heat: {unit.CurrentHeat} (Max: 30)");
+            sb.AppendLine($"  Current Heat: {unit.State?.CurrentHeat} (Max: 30)");
             
-            var isShutdown = unit.StatusFlags?.Contains(UnitStatus.Shutdown) == true;
+            var isShutdown = unit.State?.StatusFlags?.Contains(UnitStatus.Shutdown) == true;
             sb.AppendLine($"  Status: {(isShutdown ? "SHUTDOWN" : "ACTIVE")}");
         }
 
@@ -140,8 +140,8 @@ public class EndPhaseAgent : BaseAgent
         sb.AppendLine("ENEMY POSITIONS:");
         foreach (var enemy in request.EnemyUnits)
         {
-            if (enemy.Position != null)
-                sb.AppendLine($"- {enemy.Model}: Q={enemy.Position.Coordinates.Q}, R={enemy.Position.Coordinates.R}");
+            if (enemy.State?.Position != null)
+                sb.AppendLine($"- {enemy.Model}: Q={enemy.State?.Position.Coordinates.Q}, R={enemy.State?.Position.Coordinates.R}");
         }
 
         sb.AppendLine();
