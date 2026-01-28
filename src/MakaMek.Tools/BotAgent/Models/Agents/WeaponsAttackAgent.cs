@@ -188,10 +188,10 @@ public class WeaponsAttackAgent : BaseAgent
             if (unit.Id.HasValue)
                 sb.AppendLine($"  ID: {unit.Id.Value}");
 
-            if (unit.State.Position != null)
+            if (unit.State?.Position != null)
                 sb.AppendLine(
-                    $"  Position: Q={unit.State.Position.Coordinates.Q}, R={unit.State.Position.Coordinates.R}, Facing={unit.State.Position.Facing}");
-            sb.AppendLine($"  Has declared attack: {unit.State.DeclaredWeaponTargets!= null}");
+                    $"  Position: Q={unit.State?.Position.Coordinates.Q}, R={unit.State?.Position.Coordinates.R}, Facing={unit.State?.Position.Facing}");
+            sb.AppendLine($"  Has declared attack: {unit.State?.DeclaredWeaponTargets!= null}");
         }
 
         sb.AppendLine();
@@ -201,8 +201,8 @@ public class WeaponsAttackAgent : BaseAgent
         foreach (var enemy in request.EnemyUnits)
         {
             sb.AppendLine($"- {enemy.Model} ({enemy.Mass} tons)");
-            if (enemy.State.Position != null)
-                sb.AppendLine($"  Position: Q={enemy.State.Position.Coordinates.Q}, R={enemy.State.Position.Coordinates.R}");
+            if (enemy.State?.Position != null)
+                sb.AppendLine($"  Position: Q={enemy.State?.Position.Coordinates.Q}, R={enemy.State?.Position.Coordinates.R}");
         }
 
         sb.AppendLine();

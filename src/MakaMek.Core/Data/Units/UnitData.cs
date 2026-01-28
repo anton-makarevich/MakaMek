@@ -22,5 +22,5 @@ public record struct UnitData
     public required Dictionary<string, string> AdditionalAttributes { get; init; }
     public required Dictionary<string,string> Quirks { get; init; }
 
-    public UnitStateData State { get; init; }
+    public UnitStateData? State { get; init; }
 }
