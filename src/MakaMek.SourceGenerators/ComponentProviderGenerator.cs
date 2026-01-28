@@ -423,15 +423,11 @@ public class ComponentProviderGenerator : IIncrementalGenerator
             // Use semantic analysis to get the symbol information
             var symbolInfo = semanticModel.GetSymbolInfo(argument.Expression);
 
-            if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-            {
+            if (symbolInfo.Symbol is IFieldSymbol { ContainingType: { Name: "MakaMekComponent", TypeKind: TypeKind.Enum } } fieldSymbol)
                 // Check if it's a MakaMekComponent enum member
-                if (fieldSymbol.ContainingType?.Name == "MakaMekComponent" &&
-                    fieldSymbol.ContainingType.TypeKind == TypeKind.Enum)
-                {
-                    // Return the enum member name
-                    return fieldSymbol.Name;
-                }
+            {
+                // Return the enum member name
+                return fieldSymbol.Name;
             }
         }
 
@@ -478,22 +474,18 @@ public class ComponentProviderGenerator : IIncrementalGenerator
 
         foreach (var argument in argumentList.Arguments)
         {
-            // Only look for named parameter "AmmoComponentType"
+            // Only look for the named parameter "AmmoComponentType"
             var argName = argument.NameColon?.Name.Identifier.Text;
             if (argName == "AmmoComponentType")
             {
                 // Use semantic analysis to get the symbol information
                 var symbolInfo = semanticModel.GetSymbolInfo(argument.Expression);
 
-                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-                {
+                if (symbolInfo.Symbol is IFieldSymbol { ContainingType: { Name: "MakaMekComponent", TypeKind: TypeKind.Enum } } fieldSymbol)
                     // Check if it's a MakaMekComponent enum member
-                    if (fieldSymbol.ContainingType?.Name == "MakaMekComponent" &&
-                        fieldSymbol.ContainingType.TypeKind == TypeKind.Enum)
-                    {
-                        // Return the enum member name
-                        return fieldSymbol.Name;
-                    }
+                {
+                    // Return the enum member name
+                    return fieldSymbol.Name;
                 }
             }
         }
