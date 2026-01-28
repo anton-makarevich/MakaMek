@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -431,5 +432,34 @@ public class MechFactoryTests
         var rightTorso = mech.Parts[PartLocation.RightTorso];
         var machineGun = rightTorso.GetComponents<MachineGun>().First();
         machineGun.GetFiringArcs().ShouldContain(FiringArc.Rear);
+    }
+    
+    [Fact]
+    public void Create_WithHalfMachineGunAmmo_PreservesHalfAmmo()
+    {
+        // Arrange - Machine Gun with half ammo in Right Torso
+        var equipment = new List<ComponentData>
+        {
+            new ComponentData
+            {
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 1, 1)]
+            },
+            new ComponentData
+            {
+                Type = MakaMekComponent.ISAmmoMG,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 0, 1)],
+                SpecificData = new AmmoStateData(null, 0.5m)
+            }
+        };
+        var unitData = CreateDummyMechData(equipment);
+
+        // Act
+        var mech = _mechFactory.Create(unitData);
+
+        // Assert
+        var rightTorso = mech.Parts[PartLocation.RightTorso];
+        var ammo = rightTorso.GetComponents<Ammo>().First();
+        ammo.RemainingShots.ShouldBe(100);
     }
 }
