@@ -2,10 +2,12 @@
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Ballistic;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -116,7 +118,7 @@ public class MechFactoryTests
         // Note: Slot 0 is occupied by ShoulderActuator, so use slots 1-4
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.AC5,
                 Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 4)]
@@ -146,7 +148,7 @@ public class MechFactoryTests
         // Arrange - Multi-slot component with non-consecutive slots in the same location
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.Sensors,
                 Assignments =
@@ -234,12 +236,12 @@ public class MechFactoryTests
         // Arrange - Two Medium Lasers in different locations
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.MediumLaser,
                 Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 1, 1)]
             },
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.MediumLaser,
                 Assignments = [new LocationSlotAssignment(PartLocation.LeftArm, 1, 1)]
@@ -292,7 +294,7 @@ public class MechFactoryTests
         // Arrange - Component at specific non-zero starting slot
         var equipment = new List<ComponentData>
         {
-            new ComponentData
+            new()
             {
                 Type = MakaMekComponent.MediumLaser,
                 Assignments = [new LocationSlotAssignment(PartLocation.RightArm, 2, 1)]
@@ -406,5 +408,58 @@ public class MechFactoryTests
         var restoredCenterTorso = (CenterTorso)restoredMech.Parts[PartLocation.CenterTorso];
         restoredCenterTorso.CurrentArmor.ShouldBe(0);
         restoredCenterTorso.CurrentStructure.ShouldBe(centerTorso.CurrentStructure);
+    }
+    
+    [Fact]
+    public void Create_WithRearFacingWeapon_PreservesRearFacing()
+    {
+        // Arrange - Machine Gun in Right Torso, rear facing
+        var equipment = new List<ComponentData>
+        {
+            new()
+            {
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 1, 1)],
+                SpecificData = new WeaponStateData(MountingOptions.Rear)
+            }
+        };
+        var unitData = CreateDummyMechData(equipment);
+
+        // Act
+        var mech = _mechFactory.Create(unitData);
+
+        // Assert
+        var rightTorso = mech.Parts[PartLocation.RightTorso];
+        var machineGun = rightTorso.GetComponents<MachineGun>().First();
+        machineGun.GetFiringArcs().ShouldContain(FiringArc.Rear);
+    }
+    
+    [Fact]
+    public void Create_WithHalfMachineGunAmmo_PreservesHalfAmmo()
+    {
+        // Arrange - Machine Gun with half-ammo in Right Torso
+        var equipment = new List<ComponentData>
+        {
+            new()
+            {
+                Type = MakaMekComponent.MachineGun,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 1, 1)]
+            },
+            new()
+            {
+                Type = MakaMekComponent.ISAmmoMG,
+                Assignments = [new LocationSlotAssignment(PartLocation.RightTorso, 0, 1)],
+                SpecificData = new AmmoStateData(null, 0.5m)
+            }
+        };
+        var unitData = CreateDummyMechData(equipment);
+
+        // Act
+        var mech = _mechFactory.Create(unitData);
+
+        // Assert
+        var rightTorso = mech.Parts[PartLocation.RightTorso];
+        var ammo = rightTorso.GetComponents<Ammo>().First();
+        ammo.RemainingShots.ShouldBe(100);
     }
 }

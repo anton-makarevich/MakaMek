@@ -10,7 +10,7 @@ public class AmmoTests
 {
     public static Ammo CreateAmmo(WeaponDefinition definition, int initialShots)
     {
-        var specificData = new AmmoStateData(initialShots);
+        var specificData = new AmmoStateData(initialShots, 1m);
         var fullAmmo = new Ammo(definition);
         var data = fullAmmo.ToData() with { SpecificData = specificData };
         return new Ammo(definition, data);

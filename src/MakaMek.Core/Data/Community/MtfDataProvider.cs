@@ -117,8 +117,7 @@ public class MtfDataProvider:IUnitDataProvider
     private (List<ComponentData> equipment, Dictionary<PartLocation, ArmorLocation> armor) ParseLocationData(IEnumerable<string> lines, Dictionary<string, string> mechData)
     {
         // Track components by location and slot for consolidation,
-        // including a rear-facing flag (we can replace it with "options" if we need more flags in the future)
-        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, bool isRearFacing)>>();
+        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>>();
         var armorValues = new Dictionary<PartLocation, ArmorLocation>();
         PartLocation? currentLocation = null;
         var currentSlotIndex = 0;
@@ -184,7 +183,7 @@ public class MtfDataProvider:IUnitDataProvider
                     currentLocation = location;
                     currentSlotIndex = 0; // Reset slot index for a new location
                     if (!locationSlotComponents.ContainsKey(location))
-                        locationSlotComponents[location] = new Dictionary<int, (MakaMekComponent, bool)>();
+                        locationSlotComponents[location] = new Dictionary<int, (MakaMekComponent, ComponentOptions)>();
                 }
                 continue;
             }
@@ -196,15 +195,25 @@ public class MtfDataProvider:IUnitDataProvider
                 {
                     // Check for rear-facing suffix
                     var componentName = line;
-                    var isRearFacing = false;
+                    var options = new ComponentOptions();
                     if (componentName.EndsWith(" (R)", StringComparison.OrdinalIgnoreCase))
                     {
-                        isRearFacing = true;
+                        options = options with { IsRearFacing = true };
                         componentName = componentName[..^4]; // Strip " (R)" suffix
                     }
                     
+                    if (componentName.EndsWith(" - Full", StringComparison.OrdinalIgnoreCase))
+                        componentName = componentName[..^7];
+                    
+                    if (componentName.EndsWith(" - Half", StringComparison.OrdinalIgnoreCase))
+                    {
+                        componentName = componentName[..^7];
+                        options = options with { MassRoundsMultiplier = 0.5m };
+                    }
+
                     var component = MapMtfStringToComponent(componentName);
-                    locationSlotComponents[currentLocation.Value][currentSlotIndex] = (component, isRearFacing);
+                    
+                    locationSlotComponents[currentLocation.Value][currentSlotIndex] = (component, options);
                 }
                 currentSlotIndex++; // Increment slot index for each line (including empty slots)
             }
@@ -218,20 +227,20 @@ public class MtfDataProvider:IUnitDataProvider
     /// <summary>
     /// Converts location-slot component data to component-centric ComponentData objects
     /// </summary>
-    private List<ComponentData> ConvertToComponentData(Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, bool isRearFacing)>> locationSlotComponents, Dictionary<string, string> mechData)
+    private List<ComponentData> ConvertToComponentData(Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents, Dictionary<string, string> mechData)
     {
         var componentDataList = new List<ComponentData>();
         var processedSlots = new HashSet<(PartLocation, int)>(); // Track processed slots
 
         foreach (var (location, slotComponents) in locationSlotComponents)
         {
-            foreach (var (slot, (component, isRearFacing)) in slotComponents.OrderBy(kvp => kvp.Key))
+            foreach (var (slot, (component, options)) in slotComponents.OrderBy(kvp => kvp.Key))
             {
                 if (processedSlots.Contains((location, slot)))
                     continue;
 
                 // Get component size and specific data
-                var (componentSize, specificData) = GetComponentSizeAndData(component, mechData, isRearFacing);
+                var (componentSize, specificData) = GetComponentSizeAndData(component, mechData, options);
 
                 // Collect all slot assignments for this component instance using size-based validation
                 var assignments = CollectSlotAssignments(component, location, slot, locationSlotComponents, processedSlots, componentSize);
@@ -254,7 +263,7 @@ public class MtfDataProvider:IUnitDataProvider
     /// <summary>
     /// Gets the component size and specific data for the given component type
     /// </summary>
-    private (int size, ComponentSpecificData? specificData) GetComponentSizeAndData(MakaMekComponent component, Dictionary<string, string> mechData, bool isRearFacing = false)
+    private (int size, ComponentSpecificData? specificData) GetComponentSizeAndData(MakaMekComponent component, Dictionary<string, string> mechData, ComponentOptions? options = null)
     {
         ComponentSpecificData? specificData = null;
 
@@ -271,10 +280,16 @@ public class MtfDataProvider:IUnitDataProvider
         }
         
         // Handle rear-facing weapons
-        if (isRearFacing && specificData == null)
+        if (options?.IsRearFacing == true && specificData == null)
         {
             var mountingOptions = MountingOptions.Rear;
             specificData = new WeaponStateData(mountingOptions);
+        }
+
+        // Handle ammo mass/rounds multiplier
+        if (options != null && options.MassRoundsMultiplier != 1m && specificData == null)
+        {
+            specificData = new AmmoStateData(null, options.MassRoundsMultiplier);
         }
 
         var definition = _componentProvider.GetDefinition(component, specificData);
@@ -290,7 +305,7 @@ public class MtfDataProvider:IUnitDataProvider
         MakaMekComponent component,
         PartLocation startLocation,
         int startSlot,
-        Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, bool isRearFacing)>> locationSlotComponents,
+        Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents,
         HashSet<(PartLocation, int)> processedSlots,
         int expectedSize)
     {
@@ -351,7 +366,7 @@ public class MtfDataProvider:IUnitDataProvider
         MakaMekComponent component,
         PartLocation location,
         int startSlot,
-        Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, bool isRearFacing)>> locationSlotComponents,
+        Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents,
         HashSet<(PartLocation, int)> processedSlots,
         int maxSlots = int.MaxValue)
     {
@@ -397,7 +412,7 @@ public class MtfDataProvider:IUnitDataProvider
             "IS Ammo SRM-2" => MakaMekComponent.ISAmmoSRM2,
             "IS Ammo SRM-4" => MakaMekComponent.ISAmmoSRM4,
             "IS Ammo SRM-6" => MakaMekComponent.ISAmmoSRM6,
-            "IS Ammo MG - Full" => MakaMekComponent.ISAmmoMG,
+            "IS Ammo MG" or "IS Machine Gun Ammo" => MakaMekComponent.ISAmmoMG,
             "IS Ammo LRM-5" => MakaMekComponent.ISAmmoLRM5,
             "IS Ammo LRM-10" => MakaMekComponent.ISAmmoLRM10,
             "IS Ammo LRM-15" => MakaMekComponent.ISAmmoLRM15,

@@ -5,9 +5,23 @@ namespace Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 
 public abstract class Weapon : Component
 {
+
     protected Weapon(WeaponDefinition definition, ComponentData? componentData = null)
-        : base(definition, componentData)
+        : base(GetDefinitionWithSpecificData(definition, componentData), componentData)
+    { }
+
+    /// <summary>
+    /// Applies ComponentSpecificData to the base weapon definition
+    /// </summary>
+    private static WeaponDefinition GetDefinitionWithSpecificData(
+        WeaponDefinition baseDefinition, 
+        ComponentData? componentData)
     {
+        if (componentData?.SpecificData is WeaponStateData weaponState)
+        {
+            return baseDefinition with { MountingOptions = weaponState.MountingOptions };
+        }
+        return baseDefinition;
     }
 
     // Cast the base definition to WeaponDefinition for weapon-specific properties
@@ -44,9 +58,19 @@ public abstract class Weapon : Component
 
     public IReadOnlyList<FiringArc> GetFiringArcs()
     {
-
         if (FirstMountPart == null)
             return [];
         return FirstMountPart.GetFiringArcs(WeaponDefinition.MountingOptions);
+    }
+
+    /// <summary>
+    /// Override to persist weapon-specific state data for serialization
+    /// </summary>
+    protected override ComponentSpecificData? GetSpecificData()
+    {
+        // Only persist if mounting options differ from the standard definition
+        return WeaponDefinition.MountingOptions != MountingOptions.Standard 
+            ? new WeaponStateData(WeaponDefinition.MountingOptions) 
+            : null;
     }
 }

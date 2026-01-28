@@ -25,7 +25,7 @@ public record WeaponDefinition(
     MakaMekComponent? AmmoComponentType = null,
     int ExternalHeat = 0,
     MountingOptions MountingOptions = MountingOptions.Standard)
-    : ComponentDefinition(Name, Size, 1, BattleValue, true, WeaponComponentType)
+    : ComponentDefinition(Name, Size, 1, BattleValue, true, WeaponComponentType, 0m)
 {
     /// <summary>
     /// Indicates whether this weapon requires ammunition to fire

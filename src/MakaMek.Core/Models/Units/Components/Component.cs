@@ -149,6 +149,8 @@ public abstract class Component : IManufacturedItem
     public int Hits { get; private set; }
     public bool IsDestroyed => Hits >= HealthPoints;
 
+    public decimal Mass => _definition.Mass;
+
     public virtual void Activate() => IsActive = true;
     public virtual void Deactivate() => IsActive = false;
 

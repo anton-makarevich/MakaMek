@@ -31,7 +31,7 @@ public class ComponentSpecificDataTests
     public void AmmoStateData_SerializesAndDeserializesCorrectly()
     {
         // Arrange
-        var originalData = new AmmoStateData(20);
+        var originalData = new AmmoStateData(20, 0.5m);
 
         // Act
         var json = JsonSerializer.Serialize<ComponentSpecificData>(originalData);
@@ -43,6 +43,7 @@ public class ComponentSpecificDataTests
 
         var ammoData = (AmmoStateData)deserializedData;
         ammoData.RemainingShots.ShouldBe(20);
+        ammoData.MassRoundsMultiplier.ShouldBe(0.5m);
     }
 
     [Fact]
@@ -66,7 +67,8 @@ public class ComponentSpecificDataTests
         var json = """
         {
             "$type": "Ammo",
-            "RemainingShots": 15
+            "RemainingShots": 15,
+            "MassRoundsMultiplier": 0.5
         }
         """;
 
@@ -79,6 +81,7 @@ public class ComponentSpecificDataTests
 
         var ammoData = (AmmoStateData)deserializedData;
         ammoData.RemainingShots.ShouldBe(15);
+        ammoData.MassRoundsMultiplier.ShouldBe(0.5m);
     }
 
     [Fact]

@@ -19,6 +19,7 @@ public class MtfDataProviderTests
     private readonly string[] _vindicatorRVongMtfData = File.ReadAllLines("Resources/Vindicator VND-1R Vong.mtf");
     private readonly string[] _wolfhoundMtfData = File.ReadAllLines("Resources/Wolfhound WLF-1A.mtf");
     private readonly string[] _atlasMtfData = File.ReadAllLines("Resources/Atlas AS7-D.mtf");
+    private readonly string[] _victorMtfData = File.ReadAllLines("Resources/Victor VTR-9A.mtf");
     private readonly ClassicBattletechComponentProvider _componentProvider = new();
 
     [Fact]
@@ -340,11 +341,11 @@ public class MtfDataProviderTests
     {
         // Arrange
         var sut = new MtfDataProvider(_componentProvider);
-        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, bool isRearFacing)>>
+        var locationSlotComponents = new Dictionary<PartLocation, Dictionary<int, (MakaMekComponent component, ComponentOptions options)>>
         {
             [PartLocation.LeftArm] = new()
             {
-                [0] = (MakaMekComponent.MachineGun, false)
+                [0] = (MakaMekComponent.MachineGun, new ComponentOptions())
             }
         };
         var processedSlots = new HashSet<(PartLocation, int)>
@@ -544,12 +545,37 @@ public class MtfDataProviderTests
         // Verify forward-facing Medium Lasers don't have WeaponStateData (or have Standard mounting)
         var forwardFacingMediumLasers = mechData.Equipment
             .Where(cd => cd.Type == MakaMekComponent.MediumLaser &&
-                        (cd.SpecificData == null || 
-                         cd.SpecificData is WeaponStateData { MountingOptions: MountingOptions.Standard }))
+                        cd.SpecificData is null or WeaponStateData { MountingOptions: MountingOptions.Standard })
             .ToList();
 
         // Atlas has 2 forward-facing Medium Lasers (Left Arm and Right Arm)
         forwardFacingMediumLasers.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Parse_VictorVTR9A_ParsesHalfCapacityMachineGunAmmoInLeftTorso()
+    {
+        // Arrange
+        var sut = new MtfDataProvider(_componentProvider);
+
+        // Act
+        var unitData = sut.LoadMechFromTextData(_victorMtfData);
+
+        // Assert
+        var ammo = unitData.Equipment
+            .FirstOrDefault(cd => cd.Type == MakaMekComponent.ISAmmoMG
+                                  && cd.Assignments.Any(a => a.Location == PartLocation.LeftTorso));
+        ammo.ShouldNotBeNull();
+
+        ammo.Assignments.Count.ShouldBe(1);
+        ammo.Assignments[0].Location.ShouldBe(PartLocation.LeftTorso);
+        ammo.Assignments[0].FirstSlot.ShouldBe(4);
+        ammo.Assignments[0].Length.ShouldBe(1);
+
+        ammo.SpecificData.ShouldBeOfType<AmmoStateData>();
+        var ammoState = (AmmoStateData)ammo.SpecificData!;
+        ammoState.MassRoundsMultiplier.ShouldBe(0.5m);
+        ammoState.RemainingShots.ShouldBeNull();
     }
 }
 
