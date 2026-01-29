@@ -80,6 +80,32 @@ public class MovementPath : IEquatable<MovementPath>
         return new MovementPath(reversedSegments, MovementType);
     }
 
+    public MovementPath Append(MovementPath path)
+    {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (MovementType != path.MovementType)
+            throw new ArgumentException("Movement types must match", nameof(path));
+
+        if (Destination != path.Start)
+            throw new ArgumentException("Paths are not continuous", nameof(path));
+
+        var combinedSegments = Segments.Concat(path.Segments).ToList();
+        return new MovementPath(combinedSegments, MovementType);
+    }
+    
+    public MovementPath RemoveTrailingTurns()
+    {
+        var segments = Segments.ToList();
+        while (segments.Count > 1)
+        {
+            var last = segments[^1];
+            if (last.From.Coordinates != last.To.Coordinates) break;
+            segments.RemoveAt(segments.Count - 1);
+        }
+
+        return new MovementPath(segments, MovementType);
+    }
+
     public bool Equals(MovementPath? other)
     {
         if (other is null) return false;
