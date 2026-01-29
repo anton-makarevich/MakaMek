@@ -24,6 +24,8 @@ public class MovementState : IUiState
     private readonly Lock _stateLock = new();
     private bool _isPostStandupMovement;
 
+    private IMovementStep _step;
+
     public IClientGame? Game => _viewModel.Game;
 
     public MovementState(BattleMapViewModel viewModel)
@@ -49,6 +51,13 @@ public class MovementState : IUiState
             .Where(u=>u.Owner?.Id == _viewModel.Game.PhaseStepState?.ActivePlayer.Id && u.Position!=null)
             .Select(u => u.Position!.Coordinates)
             .ToHashSet();
+
+        _step = new SelectingUnitStep(this);
+    }
+
+    private void TransitionTo(IMovementStep step)
+    {
+        _step = step;
     }
 
     public void HandleUnitSelection(IUnit? unit)
@@ -63,7 +72,7 @@ public class MovementState : IUiState
             _selectedUnit = unit;
             _builder.SetUnit(unit);
             _isPostStandupMovement = false; // Reset post-standup state when selecting a new unit
-            CurrentMovementStep = MovementStep.SelectingMovementType;
+            TransitionTo(new SelectingMovementTypeStep(this));
             _viewModel.NotifyStateChanged();
         }
     }
@@ -72,13 +81,7 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (!this.CanHumanPlayerAct()) return;
-            if (_selectedUnit == null) return;
-            if (CurrentMovementStep != MovementStep.SelectingMovementType) return;
-            _selectedMovementType = movementType;
-            _builder.SetMovementType(movementType);
-
-            HighlightReachableHexes();
+            _step.HandleMovementTypeSelection(movementType);
         }
     }
 
@@ -97,7 +100,7 @@ public class MovementState : IUiState
             return;
         }
 
-        CurrentMovementStep = MovementStep.SelectingTargetHex;
+        TransitionTo(new SelectingTargetHexStep(this));
         _movementPoints = _selectedUnit?.GetMovementPoints(movementType) ?? 0;
 
         // Get reachable hexes and highlight them
@@ -119,36 +122,17 @@ public class MovementState : IUiState
     public void HandleHexSelection(Hex hex)
     {
         if (HandleUnitSelectionFromHex(hex)) return;
-        HandleTargetHexSelection(hex);
+        lock (_stateLock)
+        {
+            _step.HandleHexSelection(hex);
+        }
     }
 
     public void HandleFacingSelection(HexDirection direction)
     {
         lock (_stateLock)
         {
-            if (CurrentMovementStep == MovementStep.ConfirmMovement)
-            {
-                ConfirmMovement();
-                return;
-            }
-
-            // Check if this is a standup direction selection
-            if (CurrentMovementStep == MovementStep.SelectingStandingUpDirection)
-            {
-                // This is standup with direction selection - send the standup command immediately
-                CompleteStandupAttempt(direction);
-                return;
-            }
-
-            if (CurrentMovementStep != MovementStep.SelectingDirection) return;
-
-            var path = _possibleDirections[direction];
-            
-            _builder.SetMovementPath(path);
-            _viewModel.ShowDirectionSelector(path.Destination.Coordinates, [direction]);
-            _viewModel.ShowMovementPath(path);
-            CurrentMovementStep = MovementStep.ConfirmMovement;
-            _viewModel.NotifyStateChanged();
+            _step.HandleFacingSelection(direction);
         }
     }
 
@@ -191,7 +175,7 @@ public class MovementState : IUiState
                 _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes,false);
                 _reachabilityData = null;
             }
-            CurrentMovementStep=MovementStep.SelectingUnit;
+            TransitionTo(new SelectingUnitStep(this));
             _viewModel.NotifyStateChanged();
         }
     }
@@ -211,7 +195,7 @@ public class MovementState : IUiState
             return;
         }
 
-        CurrentMovementStep = MovementStep.SelectingDirection;
+        TransitionTo(new SelectingDirectionStep(this));
 
         // Use the extension method to find all possible paths to the target hex
         _possibleDirections = _viewModel.Game.BattleMap?.GetPathsToHexWithAllFacings(
@@ -250,7 +234,7 @@ public class MovementState : IUiState
             _reachabilityData = null;
             _selectedUnit = null;
             _isPostStandupMovement = false; // Reset post-standup state when movement is completed
-            CurrentMovementStep = MovementStep.Completed;
+            TransitionTo(new CompletedStep(this));
             _viewModel.NotifyStateChanged();
         }
     }
@@ -275,13 +259,13 @@ public class MovementState : IUiState
     public string PlayerActionLabel => CurrentMovementStep == MovementStep.ConfirmMovement ? 
         _viewModel.LocalizationService.GetString("Action_MoveUnit") : string.Empty;
     
-    public MovementStep CurrentMovementStep { get; private set; } = MovementStep.SelectingUnit;
+    public MovementStep CurrentMovementStep => _step.Step;
 
     public void ExecutePlayerAction()
     {
-        if (CurrentMovementStep == MovementStep.ConfirmMovement)
+        lock (_stateLock)
         {
-            ConfirmMovement();
+            _step.ExecutePlayerAction();
         }
     }
 
@@ -445,7 +429,7 @@ public class MovementState : IUiState
             // Ensure the builder has the movement type set
             _builder.SetMovementType(_selectedMovementType.Value);
 
-            CurrentMovementStep = MovementStep.SelectingStandingUpDirection;
+            TransitionTo(new SelectingStandingUpDirectionStep(this));
             _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
             _viewModel.NotifyStateChanged();
         }
@@ -534,8 +518,118 @@ public class MovementState : IUiState
             AddToPossibleDirections(rotatedDirectionCcw, steps);
         }
 
-        CurrentMovementStep = MovementStep.SelectingDirection;
+        TransitionTo(new SelectingDirectionStep(this));
         _viewModel.ShowDirectionSelector(mech.Position.Coordinates, _possibleDirections.Keys);
         _viewModel.NotifyStateChanged();
+    }
+
+    private interface IMovementStep
+    {
+        MovementStep Step { get; }
+        void HandleMovementTypeSelection(MovementType movementType);
+        void HandleHexSelection(Hex hex);
+        void HandleFacingSelection(HexDirection direction);
+        void ExecutePlayerAction();
+    }
+
+    private abstract class MovementStepBase : IMovementStep
+    {
+        protected readonly MovementState Owner;
+
+        protected MovementStepBase(MovementState owner)
+        {
+            Owner = owner;
+        }
+
+        public abstract MovementStep Step { get; }
+        public virtual void HandleMovementTypeSelection(MovementType movementType) { }
+        public virtual void HandleHexSelection(Hex hex) { }
+        public virtual void HandleFacingSelection(HexDirection direction) { }
+        public virtual void ExecutePlayerAction() { }
+    }
+
+    private sealed class SelectingUnitStep : MovementStepBase
+    {
+        public SelectingUnitStep(MovementState owner) : base(owner) { }
+        public override MovementStep Step => MovementStep.SelectingUnit;
+    }
+
+    private sealed class SelectingMovementTypeStep : MovementStepBase
+    {
+        public SelectingMovementTypeStep(MovementState owner) : base(owner) { }
+        public override MovementStep Step => MovementStep.SelectingMovementType;
+
+        public override void HandleMovementTypeSelection(MovementType movementType)
+        {
+            if (Owner.Game is not { CanActivePlayerAct: true, PhaseStepState.ActivePlayer.ControlType: Core.Models.Game.Players.PlayerControlType.Human }) return;
+            if (Owner._selectedUnit == null) return;
+            if (Owner.CurrentMovementStep != MovementStep.SelectingMovementType) return;
+
+            Owner._selectedMovementType = movementType;
+            Owner._builder.SetMovementType(movementType);
+            Owner.HighlightReachableHexes();
+        }
+    }
+
+    private sealed class SelectingTargetHexStep : MovementStepBase
+    {
+        public SelectingTargetHexStep(MovementState owner) : base(owner) { }
+        public override MovementStep Step => MovementStep.SelectingTargetHex;
+
+        public override void HandleHexSelection(Hex hex)
+        {
+            Owner.HandleTargetHexSelection(hex);
+        }
+    }
+
+    private sealed class SelectingDirectionStep : MovementStepBase
+    {
+        public SelectingDirectionStep(MovementState owner) : base(owner) { }
+        public override MovementStep Step => MovementStep.SelectingDirection;
+
+        public override void HandleFacingSelection(HexDirection direction)
+        {
+            if (Owner.CurrentMovementStep != MovementStep.SelectingDirection) return;
+            if (!Owner._possibleDirections.TryGetValue(direction, out var path)) return;
+
+            Owner._builder.SetMovementPath(path);
+            Owner._viewModel.ShowDirectionSelector(path.Destination.Coordinates, [direction]);
+            Owner._viewModel.ShowMovementPath(path);
+            Owner.TransitionTo(new ConfirmMovementStep(Owner));
+            Owner._viewModel.NotifyStateChanged();
+        }
+    }
+
+    private sealed class ConfirmMovementStep : MovementStepBase
+    {
+        public ConfirmMovementStep(MovementState owner) : base(owner) { }
+        public override MovementStep Step => MovementStep.ConfirmMovement;
+
+        public override void HandleFacingSelection(HexDirection direction)
+        {
+            Owner.ConfirmMovement();
+        }
+
+        public override void ExecutePlayerAction()
+        {
+            Owner.ConfirmMovement();
+        }
+    }
+
+    private sealed class SelectingStandingUpDirectionStep : MovementStepBase
+    {
+        public SelectingStandingUpDirectionStep(MovementState owner) : base(owner) { }
+        public override MovementStep Step => MovementStep.SelectingStandingUpDirection;
+
+        public override void HandleFacingSelection(HexDirection direction)
+        {
+            Owner.CompleteStandupAttempt(direction);
+        }
+    }
+
+    private sealed class CompletedStep : MovementStepBase
+    {
+        public CompletedStep(MovementState owner) : base(owner) { }
+        public override MovementStep Step => MovementStep.Completed;
     }
 }
