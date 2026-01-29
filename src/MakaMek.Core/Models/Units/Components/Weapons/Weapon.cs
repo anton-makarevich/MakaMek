@@ -8,7 +8,10 @@ public abstract class Weapon : Component
 
     protected Weapon(WeaponDefinition definition, ComponentData? componentData = null)
         : base(GetDefinitionWithSpecificData(definition, componentData), componentData)
-    { }
+    {
+        if (WeaponDefinition.MountingOptions == MountingOptions.Rear)
+            Name = Name + " R";
+    }
 
     /// <summary>
     /// Applies ComponentSpecificData to the base weapon definition

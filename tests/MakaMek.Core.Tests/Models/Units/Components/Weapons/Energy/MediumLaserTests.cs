@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Shouldly;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 
@@ -35,5 +36,18 @@ public class MediumLaserTests
 
         // Assert
         laser.IsDestroyed.ShouldBeTrue();
+    }
+    
+    [Fact]
+    public void Name_ReflectsRearMounting()
+    {
+        var sut = new MediumLaser(new ComponentData
+        {
+            Type = MakaMekComponent.MediumLaser,
+            Assignments = [],
+            SpecificData = new WeaponStateData(MountingOptions.Rear)
+        });
+        
+        sut.Name.ShouldBe("Medium Laser R");
     }
 }
