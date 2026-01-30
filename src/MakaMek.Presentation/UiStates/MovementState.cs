@@ -833,12 +833,12 @@ public class MovementState : IUiState
 
         public override void HandleFacingSelection(HexDirection direction)
         {
-            if (State.CurrentMovementStep != MovementStep.SelectingDirection) return;
+            if (State.CurrentMovementStep != MovementStep.SelectingWaypointHex) return;
             if (!State._possibleDirections.TryGetValue(direction, out var path)) return;
-
-            State._builder.SetMovementPath(path);
+            State._selectedPath!.Append(path);
+            State._builder.SetMovementPath(State._selectedPath);
             State._viewModel.ShowDirectionSelector(path.Destination.Coordinates, [direction]);
-            State._viewModel.ShowMovementPath(path);
+            State._viewModel.ShowMovementPath(State._selectedPath);
             State.TransitionTo(new ConfirmMovementStep(State));
             State._viewModel.NotifyStateChanged();
         }
