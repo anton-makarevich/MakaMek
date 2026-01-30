@@ -51,8 +51,8 @@ public class MovementPathTests
         sut.TotalCost.ShouldBe(2);
         sut.HexesTraveled.ShouldBe(1);
         sut.StraightLineDistance.ShouldBe(1);
-        sut.Start!.Coordinates.ShouldBe(new HexCoordinates(1, 1));
-        sut.Destination!.Coordinates.ShouldBe(new HexCoordinates(1, 2));
+        sut.Start.Coordinates.ShouldBe(new HexCoordinates(1, 1));
+        sut.Destination.Coordinates.ShouldBe(new HexCoordinates(1, 2));
         sut.Destination.Facing.ShouldBe(HexDirection.TopRight);
         sut.Hexes.Count.ShouldBe(2);
         sut.TurnsTaken.ShouldBe(1);
@@ -125,10 +125,10 @@ public class MovementPathTests
             "Total cost should be preserved");
         
         // Verify start and destination are reversed (with opposite facings)
-        reversedPath.Start!.Coordinates.ShouldBe(originalPath.Start!.Coordinates);
+        reversedPath.Start.Coordinates.ShouldBe(originalPath.Start.Coordinates);
         reversedPath.Start.Facing.ShouldBe(originalPath.Start.Facing.GetOppositeDirection());
         
-        reversedPath.Destination!.Coordinates.ShouldBe(originalPath.Destination!.Coordinates);
+        reversedPath.Destination.Coordinates.ShouldBe(originalPath.Destination.Coordinates);
         reversedPath.Destination.Facing.ShouldBe(originalPath.Destination.Facing.GetOppositeDirection());
     }
     

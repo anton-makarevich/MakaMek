@@ -18,11 +18,11 @@ public class MovementState : IUiState
     private UnitReachabilityData? _reachabilityData;
     private readonly IReadOnlySet<HexCoordinates> _prohibitedHexes;
     private readonly IReadOnlySet<HexCoordinates> _friendlyUnitsCoordinates;
-    private MovementType? _selectedMovementType;
     private int _movementPoints;
     private Dictionary<HexDirection, MovementPath> _possibleDirections = [];
     private readonly Lock _stateLock = new();
     private bool _isPostStandupMovement;
+    private MovementPath? _selectedPath;
 
     private IMovementStep _step;
 
@@ -87,10 +87,10 @@ public class MovementState : IUiState
 
     private void HighlightReachableHexes()
     {
-        if (_selectedMovementType == null) return;
+        if (_selectedPath?.MovementType == null) return;
         var position = _selectedUnit?.Position;
         if (position == null) return;
-        var movementType = _selectedMovementType.Value;
+        var movementType = _selectedPath.MovementType;
         if (movementType == MovementType.StandingStill)
         {
             // For standing still, we create an empty movement path
@@ -184,7 +184,7 @@ public class MovementState : IUiState
     {
         if (_selectedUnit?.Position == null
             || _viewModel.Game == null
-            || _selectedMovementType == null
+            || _selectedPath?.MovementType == null
             || _reachabilityData == null) return;
 
         // Reset selection if clicked outside reachable hexes during target hex selection
@@ -201,7 +201,7 @@ public class MovementState : IUiState
         _possibleDirections = _viewModel.Game.BattleMap?.GetPathsToHexWithAllFacings(
             _selectedUnit.Position,
             hex.Coordinates,
-            _selectedMovementType.Value,
+            _selectedPath.MovementType,
             _movementPoints,
             _reachabilityData.Value,
             _prohibitedHexes) ?? [];
@@ -425,9 +425,11 @@ public class MovementState : IUiState
             if (_selectedUnit?.Position == null) return;
 
             // Set the selected movement type for later use
-            _selectedMovementType = movementType;
+            _selectedPath = new MovementPath([
+                new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0)],
+                movementType);
             // Ensure the builder has the movement type set
-            _builder.SetMovementType(_selectedMovementType.Value);
+            _builder.SetMovementType(movementType);
 
             TransitionTo(new SelectingStandingUpDirectionStep(this));
             _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
@@ -442,7 +444,7 @@ public class MovementState : IUiState
         {
             if (_viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
             if (_selectedUnit?.Position == null) return;
-            if (_selectedMovementType == null) return;
+            if (_selectedPath?.MovementType == null) return;
 
             // Create a standup command with the selected direction
             var standupCommand = new TryStandupCommand
@@ -451,7 +453,7 @@ public class MovementState : IUiState
                 UnitId = _selectedUnit.Id,
                 PlayerId = _viewModel.Game.PhaseStepState.Value.ActivePlayer.Id,
                 NewFacing = direction,
-                MovementTypeAfterStandup = _selectedMovementType.Value
+                MovementTypeAfterStandup = _selectedPath.MovementType
             };
 
             // Publish the command
@@ -469,13 +471,11 @@ public class MovementState : IUiState
         lock (_stateLock)
         {
             // Check if the unit is no longer prone (standup was successful)
-            if (_selectedMovementType != null &&
-                _selectedUnit is Mech { IsProne: false } mech
-                && mech.GetMovementPoints(_selectedMovementType.Value) > 0)
-            {
-                _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
-                HighlightReachableHexes();
-            }
+            if (_selectedPath?.MovementType == null ||
+                _selectedUnit is not Mech { IsProne: false } mech
+                || mech.GetMovementPoints(_selectedPath.MovementType) <= 0) return;
+            _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
+            HighlightReachableHexes();
         }
     }
 
@@ -562,10 +562,12 @@ public class MovementState : IUiState
         public override void HandleMovementTypeSelection(MovementType movementType)
         {
             if (!State.CanHumanPlayerAct()) return;
-            if (State._selectedUnit == null) return;
+            if (State._selectedUnit?.Position == null) return;
             if (State.CurrentMovementStep != MovementStep.SelectingMovementType) return;
 
-            State._selectedMovementType = movementType;
+            State._selectedPath = new MovementPath([
+                    new PathSegment(State._selectedUnit.Position, State._selectedUnit.Position, 0)],
+                movementType);
             State._builder.SetMovementType(movementType);
             State.HighlightReachableHexes();
         }
