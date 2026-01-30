@@ -4,9 +4,7 @@ public enum MovementStep
 {
     SelectingUnit,
     SelectingMovementType,
-    SelectingTargetHex,
-    SelectingWaypointHex,
-    SelectingDirection,
+    BuildingMovementPath,
     SelectingStandingUpDirection,
     ConfirmMovement,
     Completed

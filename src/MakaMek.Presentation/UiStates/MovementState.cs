@@ -18,8 +18,6 @@ public class MovementState : IUiState
     private UnitReachabilityData? _reachabilityData;
     private readonly IReadOnlySet<HexCoordinates> _prohibitedHexes;
     private readonly IReadOnlySet<HexCoordinates> _friendlyUnitsCoordinates;
-    private MovementType? _selectedMovementType;
-    private int _movementPoints;
     private Dictionary<HexDirection, MovementPath> _possibleDirections = [];
     private readonly Lock _stateLock = new();
     private bool _isPostStandupMovement;
@@ -89,27 +87,19 @@ public class MovementState : IUiState
 
     private void HighlightReachableHexes()
     {
-        if (_selectedMovementType == null) return;
+        if (_selectedPath?.MovementType == null) return;
         var position = _selectedUnit?.Position;
         if (position == null) return;
-        var movementType = _selectedMovementType.Value;
-        if (movementType == MovementType.StandingStill)
-        {
-            // For standing still, we create an empty movement path
-            var path =MovementPath.CreateStandingStillPath(position);
-            _builder.SetMovementPath(path);
-            CompleteMovement();
-            return;
-        }
-
-        TransitionTo(new SelectingTargetHexStep(this));
-        _movementPoints = _selectedUnit?.GetMovementPoints(movementType) ?? 0;
+        var movementType = _selectedPath.MovementType;
+        var remainingMp = GetRemainingMovementPoints();
 
         // Get reachable hexes and highlight them
         if (_selectedUnit != null && _viewModel.Game?.BattleMap != null)
         {
-            _reachabilityData = _viewModel.Game.BattleMap.GetReachableHexesForUnit(
-                _selectedUnit,
+            _reachabilityData = _viewModel.Game.BattleMap.GetReachableHexesForPosition(
+                _selectedPath.Destination,
+                remainingMp,
+                _selectedUnit.CanMoveBackward(movementType),
                 movementType,
                 _prohibitedHexes,
                 _friendlyUnitsCoordinates
@@ -120,112 +110,18 @@ public class MovementState : IUiState
 
         _viewModel.NotifyStateChanged();
     }
-
-    private void HandleWaypointHexSelection(Hex hex)
+    
+    private void ClearHighlighting()
     {
-        if (_selectedUnit?.Position == null
-            || _viewModel.Game == null
-            || _selectedMovementType == null
-            || _reachabilityData == null
-            || _selectedPath == null) return;
-
-        if (!_reachabilityData.Value.IsHexReachable(hex.Coordinates))
-        {
-            ResetUnitSelection();
-            return;
-        }
-
-        var remainingMp = GetRemainingMovementPoints();
-        if (remainingMp <= 0) return;
-        if (_viewModel.Game.BattleMap is not { } battleMap) return;
-
-        var startPos = _selectedPath.Destination;
-        var movementType = _selectedMovementType.Value;
-
-        var legPaths = GetPathsToHexWithAllFacings(
-            battleMap,
-            startPos,
-            hex.Coordinates,
-            movementType,
-            remainingMp,
-            _reachabilityData.Value);
-
-        if (legPaths.Count == 0)
-        {
-            ResetUnitSelection();
-            return;
-        }
-
-        var chosenLeg = SelectCheapestPath(legPaths).RemoveTrailingTurns();
-        _selectedPath = _selectedPath.Append(chosenLeg);
-        _builder.SetMovementPath(_selectedPath);
-        _viewModel.ShowMovementPath(_selectedPath);
-
         if (_reachabilityData != null)
             _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes, false);
-
-        var newRemaining = GetRemainingMovementPoints();
-        HighlightReachableHexesFromPosition(_selectedPath.Destination, newRemaining);
-        _possibleDirections = GetTurnPathsForCurrentHex(_selectedPath.Destination, newRemaining);
-        if (_possibleDirections.Count != 0)
-        {
-            _viewModel.ShowDirectionSelector(_selectedPath.Destination.Coordinates, _possibleDirections.Keys);
-        }
-
-        _viewModel.NotifyStateChanged();
-    }
-
-    private void HighlightReachableHexesFromPosition(HexPosition position, int movementPoints)
-    {
-        if (_selectedMovementType == null) return;
-        if (_selectedUnit == null) return;
-        if (_viewModel.Game?.BattleMap == null) return;
-
-        var movementType = _selectedMovementType.Value;
-        if (movementPoints <= 0)
-        {
-            _reachabilityData = new UnitReachabilityData([], []);
-            return;
-        }
-
-        if (movementType == MovementType.Jump)
-        {
-            _reachabilityData = new UnitReachabilityData([], []);
-            return;
-        }
-
-        var friendlyWithoutCurrent = _friendlyUnitsCoordinates
-            .Where(c => c != position.Coordinates)
-            .ToHashSet();
-
-        var forwardReachable = _viewModel.Game.BattleMap
-            .GetReachableHexes(position, movementPoints, _prohibitedHexes)
-            .Select(x => x.coordinates)
-            .Where(hex => !friendlyWithoutCurrent.Contains(hex))
-            .ToList();
-
-        if (!_selectedUnit.CanMoveBackward(movementType))
-        {
-            _reachabilityData = new UnitReachabilityData(forwardReachable, []);
-            _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes, true);
-            return;
-        }
-
-        var oppositePosition = position.GetOppositeDirectionPosition();
-        var backwardReachable = _viewModel.Game.BattleMap
-            .GetReachableHexes(oppositePosition, movementPoints, _prohibitedHexes)
-            .Select(x => x.coordinates)
-            .Where(hex => !friendlyWithoutCurrent.Contains(hex))
-            .ToList();
-
-        _reachabilityData = new UnitReachabilityData(forwardReachable, backwardReachable);
-        _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes, true);
+        _reachabilityData = null;
     }
 
     private int GetRemainingMovementPoints()
     {
-        if (_selectedPath == null) return _movementPoints;
-        return Math.Max(0, _movementPoints - _selectedPath.TotalCost);
+        if (_selectedPath == null || _selectedUnit == null) return 0;
+        return Math.Max(0, _selectedUnit.GetMovementPoints(_selectedPath.MovementType) - _selectedPath.TotalCost);
     }
 
     private static MovementPath SelectCheapestPath(Dictionary<HexDirection, MovementPath> paths)
@@ -234,67 +130,6 @@ public class MovementState : IUiState
             .OrderBy(p => p.TotalCost)
             .ThenBy(p => p.TurnsTaken)
             .First();
-    }
-
-    private Dictionary<HexDirection, MovementPath> GetTurnPathsForCurrentHex(HexPosition position, int movementPoints)
-    {
-        if (_selectedMovementType == null) return [];
-        if (_viewModel.Game?.BattleMap == null) return [];
-
-        var map = _viewModel.Game.BattleMap;
-        var result = new Dictionary<HexDirection, MovementPath>();
-
-        foreach (var dir in HexDirectionExtensions.AllDirections)
-        {
-            var target = new HexPosition(position.Coordinates, dir);
-            var path = map.FindPath(position, target, _selectedMovementType.Value, movementPoints, _prohibitedHexes);
-            if (path != null)
-            {
-                result[dir] = path;
-            }
-        }
-
-        return result;
-    }
-
-    private Dictionary<HexDirection, MovementPath> GetPathsToHexWithAllFacings(
-        IBattleMap battleMap,
-        HexPosition startPosition,
-        HexCoordinates targetHex,
-        MovementType movementType,
-        int movementPoints,
-        UnitReachabilityData reachabilityData)
-    {
-        var possibleDirections = new Dictionary<HexDirection, MovementPath>();
-        var isForwardReachable = reachabilityData.IsForwardReachable(targetHex);
-        var isBackwardReachable = reachabilityData.IsBackwardReachable(targetHex);
-
-        foreach (var direction in HexDirectionExtensions.AllDirections)
-        {
-            var targetPos = new HexPosition(targetHex, direction);
-            MovementPath? path = null;
-
-            if (movementType == MovementType.Jump || isForwardReachable)
-            {
-                path = battleMap.FindPath(startPosition, targetPos, movementType, movementPoints, _prohibitedHexes);
-            }
-
-            if (path == null && movementType == MovementType.Walk && isBackwardReachable)
-            {
-                var oppositeStartPos = startPosition.GetOppositeDirectionPosition();
-                var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
-
-                path = battleMap.FindPath(oppositeStartPos, oppositeTargetPos, movementType, movementPoints, _prohibitedHexes)
-                    ?.ReverseFacing();
-            }
-
-            if (path != null)
-            {
-                possibleDirections[direction] = path;
-            }
-        }
-
-        return possibleDirections;
     }
 
     public void HandleHexSelection(Hex hex)
@@ -347,13 +182,7 @@ public class MovementState : IUiState
             _selectedPath = null;
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
-            if (_reachabilityData is { } data 
-                && (data.ForwardReachableHexes.Count > 0 
-                    || data.BackwardReachableHexes.Count > 0))
-            {
-                _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes,false);
-                _reachabilityData = null;
-            }
+            ClearHighlighting();
             TransitionTo(new SelectingUnitStep(this));
             _viewModel.NotifyStateChanged();
         }
@@ -363,7 +192,7 @@ public class MovementState : IUiState
     {
         if (_selectedUnit?.Position == null
             || _viewModel.Game == null
-            || _selectedMovementType == null
+            || _selectedPath == null
             || _reachabilityData == null) return;
 
         // Reset selection if clicked outside reachable hexes during target hex selection
@@ -374,79 +203,22 @@ public class MovementState : IUiState
             return;
         }
         
+        var movementPoints = GetRemainingMovementPoints();
         
-
-        var movementType = _selectedMovementType.Value;
-        if (movementType is MovementType.Walk or MovementType.Run)
-        {
-            var startPos = _selectedPath?.Destination ?? _selectedUnit.Position;
-            var remainingMp = _selectedPath == null ? _movementPoints : GetRemainingMovementPoints();
-
-            if (_viewModel.Game.BattleMap is not { } battleMap)
-            {
-                ResetUnitSelection();
-                return;
-            }
-
-            var legPaths = GetPathsToHexWithAllFacings(
-                battleMap,
-                startPos,
-                hex.Coordinates,
-                movementType,
-                remainingMp,
-                _reachabilityData.Value);
-
-            if (legPaths.Count == 0)
-            {
-                ResetUnitSelection();
-                return;
-            }
-
-            var chosenLeg = SelectCheapestPath(legPaths).RemoveTrailingTurns();
-            _selectedPath = _selectedPath == null ? chosenLeg : _selectedPath.Append(chosenLeg);
-            _builder.SetMovementPath(_selectedPath);
-            _viewModel.ShowMovementPath(_selectedPath);
-
-            var newRemaining = GetRemainingMovementPoints();
-            if (newRemaining > 0)
-            {
-                if (_reachabilityData != null)
-                    _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes, false);
-
-                HighlightReachableHexesFromPosition(_selectedPath.Destination, newRemaining);
-                _possibleDirections = GetTurnPathsForCurrentHex(_selectedPath.Destination, newRemaining);
-                if (_possibleDirections.Count != 0)
-                {
-                    _viewModel.ShowDirectionSelector(_selectedPath.Destination.Coordinates, _possibleDirections.Keys);
-                }
-
-                TransitionTo(new SelectingWaypointHexStep(this));
-                _viewModel.NotifyStateChanged();
-                return;
-            }
-        }
-
-        TransitionTo(new SelectingDirectionStep(this));
-
         // Use the extension method to find all possible paths to the target hex
-        if (_viewModel.Game.BattleMap is not { } battleMapForFacing)
-        {
-            ResetUnitSelection();
-            return;
-        }
-
-        _possibleDirections = GetPathsToHexWithAllFacings(
-            battleMapForFacing,
+        _possibleDirections = _viewModel.Game.BattleMap?.GetPathsToHexWithAllFacings(
             _selectedUnit.Position,
             hex.Coordinates,
-            _selectedMovementType.Value,
-            _movementPoints,
-            _reachabilityData.Value);
+            _selectedPath.MovementType,
+            movementPoints,
+            _reachabilityData.Value,
+            _prohibitedHexes) ?? [];
 
         // Show direction selector if there are any possible directions
-        if (_possibleDirections.Count != 0)
+        if (_possibleDirections.Count > 0)
         {
             _viewModel.HideMovementPath();
+            _viewModel.ShowMovementPath(_selectedPath);
             _viewModel.ShowDirectionSelector(hex.Coordinates, _possibleDirections.Select(kv=>kv.Key).ToList());
         }
 
@@ -466,8 +238,7 @@ public class MovementState : IUiState
             }
 
             _builder.Reset();
-            if (_reachabilityData != null)
-                _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes,false);
+            ClearHighlighting();
             _reachabilityData = null;
             _selectedUnit = null;
             _selectedPath = null;
@@ -481,9 +252,7 @@ public class MovementState : IUiState
     {
         MovementStep.SelectingUnit => _viewModel.LocalizationService.GetString("Action_SelectUnitToMove"),
         MovementStep.SelectingMovementType => _viewModel.LocalizationService.GetString("Action_SelectMovementType"),
-        MovementStep.SelectingTargetHex => _viewModel.LocalizationService.GetString("Action_SelectTargetHex"),
-        MovementStep.SelectingWaypointHex => _viewModel.LocalizationService.GetString("Action_SelectTargetHex"),
-        MovementStep.SelectingDirection => _viewModel.LocalizationService.GetString("Action_SelectFacingDirection"),
+        MovementStep.BuildingMovementPath => _viewModel.LocalizationService.GetString("Action_SelectFacingDirection"),
         MovementStep.ConfirmMovement => _viewModel.LocalizationService.GetString("Action_MoveUnit"),
         MovementStep.SelectingStandingUpDirection => _viewModel.LocalizationService.GetString("Action_SelectFacingDirection"),
         _ => string.Empty
@@ -664,9 +433,9 @@ public class MovementState : IUiState
             if (_selectedUnit?.Position == null) return;
 
             // Set the selected movement type for later use
-            _selectedMovementType = movementType;
+            _selectedPath = new MovementPath([new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0)], movementType);
             // Ensure the builder has the movement type set
-            _builder.SetMovementType(_selectedMovementType.Value);
+            _builder.SetMovementType(movementType);
 
             TransitionTo(new SelectingStandingUpDirectionStep(this));
             _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
@@ -681,7 +450,7 @@ public class MovementState : IUiState
         {
             if (_viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
             if (_selectedUnit?.Position == null) return;
-            if (_selectedMovementType == null) return;
+            if (_selectedPath?.MovementType == null) return;
 
             // Create a standup command with the selected direction
             var standupCommand = new TryStandupCommand
@@ -690,7 +459,7 @@ public class MovementState : IUiState
                 UnitId = _selectedUnit.Id,
                 PlayerId = _viewModel.Game.PhaseStepState.Value.ActivePlayer.Id,
                 NewFacing = direction,
-                MovementTypeAfterStandup = _selectedMovementType.Value
+                MovementTypeAfterStandup = _selectedPath.MovementType
             };
 
             // Publish the command
@@ -708,9 +477,9 @@ public class MovementState : IUiState
         lock (_stateLock)
         {
             // Check if the unit is no longer prone (standup was successful)
-            if (_selectedMovementType != null &&
+            if (_selectedPath?.MovementType != null &&
                 _selectedUnit is Mech { IsProne: false } mech
-                && mech.GetMovementPoints(_selectedMovementType.Value) > 0)
+                && mech.GetMovementPoints(_selectedPath.MovementType) > 0)
             {
                 _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
                 HighlightReachableHexes();
@@ -726,10 +495,10 @@ public class MovementState : IUiState
 
         // Set up for prone facing change movement
         _builder.SetMovementType(MovementType.Walk);
-        _movementPoints = mech.GetMovementPoints(MovementType.Walk);
+        var movementPoints = mech.GetMovementPoints(MovementType.Walk);
 
         // Calculate maximum rotation steps based on available movement points
-        var maxRotateSteps = Math.Min(3, _movementPoints);
+        var maxRotateSteps = Math.Min(3, movementPoints);
 
         // Reset possible directions
         _possibleDirections = [];
@@ -757,7 +526,7 @@ public class MovementState : IUiState
             AddToPossibleDirections(rotatedDirectionCcw, steps);
         }
 
-        TransitionTo(new SelectingDirectionStep(this));
+        TransitionTo(new BuildingMovementPathStep(this));
         _viewModel.ShowDirectionSelector(mech.Position.Coordinates, _possibleDirections.Keys);
         _viewModel.NotifyStateChanged();
     }
@@ -795,68 +564,73 @@ public class MovementState : IUiState
 
     private sealed class SelectingMovementTypeStep : MovementStepBase
     {
-        public SelectingMovementTypeStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.SelectingMovementType;
-
         public override void HandleMovementTypeSelection(MovementType movementType)
         {
             if (!State.CanHumanPlayerAct()) return;
-            if (State._selectedUnit == null) return;
+            if (State._selectedUnit?.Position == null) return;
             if (State.CurrentMovementStep != MovementStep.SelectingMovementType) return;
-
-            State._selectedMovementType = movementType;
+            
+            if (movementType == MovementType.StandingStill)
+            {
+                // For standing still, we create an empty movement path
+                var path = MovementPath.CreateStandingStillPath(State._selectedUnit.Position);
+                State._builder.SetMovementPath(path);
+                State.CompleteMovement();
+                return;
+            }
+            
+            State._selectedPath = new MovementPath([
+                new PathSegment(State._selectedUnit.Position, State._selectedUnit.Position!, 0)
+            ], movementType);
             State._builder.SetMovementType(movementType);
-            State.HighlightReachableHexes();
+            State.TransitionTo(new BuildingMovementPathStep(State));
         }
+
+        public SelectingMovementTypeStep(MovementState state) : base(state) { }
+
+        public override MovementStep Step => MovementStep.SelectingMovementType;
     }
 
-    private sealed class SelectingTargetHexStep : MovementStepBase
+    private sealed class BuildingMovementPathStep : MovementStepBase
     {
-        public SelectingTargetHexStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.SelectingTargetHex;
+        public BuildingMovementPathStep(MovementState state) : base(state)
+        {
+            State.ClearHighlighting();
+
+            if (State._selectedPath == null) return;
+
+            if (State._selectedPath.MovementType == MovementType.Jump
+                && State._selectedPath.TotalCost > 0)
+                return;
+
+            if (State._possibleDirections.Count > 0)
+            {
+                State._viewModel.ShowDirectionSelector(State._selectedPath.Destination.Coordinates,
+                    State._possibleDirections.Select(kv => kv.Key).ToList());
+                var shortestPath = SelectCheapestPath(State._possibleDirections).RemoveTrailingTurns();
+                State._selectedPath.Append(shortestPath);
+            }
+
+            State.HighlightReachableHexes();
+            
+            State._viewModel.NotifyStateChanged();
+        }
+
+        public override MovementStep Step => MovementStep.BuildingMovementPath;
 
         public override void HandleHexSelection(Hex hex)
         {
             State.HandleTargetHexSelection(hex);
         }
-    }
-
-    private sealed class SelectingWaypointHexStep : MovementStepBase
-    {
-        public SelectingWaypointHexStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.SelectingWaypointHex;
-
-        public override void HandleHexSelection(Hex hex)
-        {
-            State.HandleWaypointHexSelection(hex);
-        }
 
         public override void HandleFacingSelection(HexDirection direction)
         {
-            if (State.CurrentMovementStep != MovementStep.SelectingWaypointHex) return;
+            if (State.CurrentMovementStep != MovementStep.BuildingMovementPath) return;
             if (!State._possibleDirections.TryGetValue(direction, out var path)) return;
             State._selectedPath!.Append(path);
             State._builder.SetMovementPath(State._selectedPath);
             State._viewModel.ShowDirectionSelector(path.Destination.Coordinates, [direction]);
             State._viewModel.ShowMovementPath(State._selectedPath);
-            State.TransitionTo(new ConfirmMovementStep(State));
-            State._viewModel.NotifyStateChanged();
-        }
-    }
-
-    private sealed class SelectingDirectionStep : MovementStepBase
-    {
-        public SelectingDirectionStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.SelectingDirection;
-
-        public override void HandleFacingSelection(HexDirection direction)
-        {
-            if (State.CurrentMovementStep != MovementStep.SelectingDirection) return;
-            if (!State._possibleDirections.TryGetValue(direction, out var path)) return;
-
-            State._builder.SetMovementPath(path);
-            State._viewModel.ShowDirectionSelector(path.Destination.Coordinates, [direction]);
-            State._viewModel.ShowMovementPath(path);
             State.TransitionTo(new ConfirmMovementStep(State));
             State._viewModel.NotifyStateChanged();
         }

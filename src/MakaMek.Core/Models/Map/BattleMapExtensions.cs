@@ -79,6 +79,33 @@ public static class BattleMapExtensions
                 return new UnitReachabilityData([], []);
 
             var movementPoints = unit.GetMovementPoints(movementType);
+            var canMoveBackward = unit.CanMoveBackward(movementType);
+            return map.GetReachableHexesForPosition(unit.Position,
+                movementPoints,
+                canMoveBackward,
+                movementType,
+                prohibitedHexes,
+                friendlyUnitsCoordinates);
+        }
+
+        /// <summary>
+        /// Gets all reachable coordinates for a unit with a given movement type.
+        /// </summary>
+        /// <param name="position">Position to calculate reachable hexes from</param>
+        /// <param name="movementPoints">Movement points available</param>
+        /// <param name="canMoveBackward">If the unit can move backward</param>
+        /// <param name="movementType">The movement type to use</param>
+        /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through (e.g., occupied by enemy units)</param>
+        /// <param name="friendlyUnitsCoordinates">Hexes occupied by friendly units (unit can pass but not stop there)</param>
+        /// <returns>List of coordinates that could be reached by a unit using a specified movement type</returns>
+        public UnitReachabilityData GetReachableHexesForPosition(
+            HexPosition position,
+            int movementPoints,
+            bool canMoveBackward,
+            MovementType movementType,
+            IReadOnlySet<HexCoordinates> prohibitedHexes,
+            IReadOnlySet<HexCoordinates> friendlyUnitsCoordinates)
+        {
             if (movementPoints <= 0)
                 return new UnitReachabilityData([], []);
 
@@ -87,7 +114,7 @@ public static class BattleMapExtensions
                 // For jumping, we use the simplified method that ignores terrain and facing
                 var reachableHexes = map
                     .GetJumpReachableHexes(
-                        unit.Position.Coordinates,
+                        position.Coordinates,
                         movementPoints,
                         prohibitedHexes)
                     .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
@@ -99,15 +126,15 @@ public static class BattleMapExtensions
 
             // Get forward reachable hexes
             var forwardReachableHexes = map
-                .GetReachableHexes(unit.Position, movementPoints, prohibitedHexes)
+                .GetReachableHexes(position, movementPoints, prohibitedHexes)
                 .Select(x => x.coordinates)
                 .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
                 .ToList();
 
             // Get backward reachable hexes if the unit can move backward
-            if (!unit.CanMoveBackward(movementType))
+            if (!canMoveBackward)
                 return new UnitReachabilityData(forwardReachableHexes, []);
-            var oppositePosition = unit.Position.GetOppositeDirectionPosition();
+            var oppositePosition = position.GetOppositeDirectionPosition();
             var backwardReachableHexes = map
                 .GetReachableHexes(oppositePosition, movementPoints, prohibitedHexes)
                 .Select(x => x.coordinates)
@@ -116,6 +143,7 @@ public static class BattleMapExtensions
 
             return new UnitReachabilityData(forwardReachableHexes, backwardReachableHexes);
         }
+
 
         /// <summary>
         /// Finds all possible paths from a start position to a target hex, considering all possible facing directions.
