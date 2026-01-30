@@ -339,4 +339,98 @@ public class MovementPathTests
         path.Segments[0].Cost.ShouldBe(0);
         path.MovementType.ShouldBe(MovementType.StandingStill);
     }
+    
+    [Fact]
+    public void Append_ShouldCombineTwoPaths()
+    {
+        // Arrange
+        var path1 = new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(1, 2, HexDirection.Top), 1)], MovementType.Walk);
+        var path2 = new MovementPath([new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 3, HexDirection.Top), 1)], MovementType.Walk);
+        
+        // Act
+        var combined = path1.Append(path2);
+        
+        // Assert
+        combined.Segments.Count.ShouldBe(2);
+        combined.Segments[0].To.Coordinates.ShouldBe(new HexCoordinates(1, 2));
+        combined.Segments[1].To.Coordinates.ShouldBe(new HexCoordinates(1, 3));
+    }
+    
+    [Fact]
+    public void Append_ShouldThrow_WhenMovementTypesDiffer()
+    {
+        // Arrange
+        var path1 = new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(1, 2, HexDirection.Top), 1)], MovementType.Walk);
+        var path2 = new MovementPath([new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(1, 3, HexDirection.Top), 1)], MovementType.Jump);
+        
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => path1.Append(path2));
+    }
+    
+    [Fact]
+    public void Append_ShouldThrow_WhenPathsAreNotContinuous()
+    {
+        // Arrange
+        var path1 = new MovementPath([new PathSegment(new HexPosition(1, 1, HexDirection.Top), new HexPosition(1, 2, HexDirection.Top), 1)], MovementType.Walk);
+        var path2 = new MovementPath([new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 3, HexDirection.Top), 1)], MovementType.Walk);
+        
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => path1.Append(path2));
+    }
+    
+    [Fact]
+    public void RemoveTrailingTurns_ShouldRemoveTurnsAtTheEndOfThePath()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                1),
+            new(
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft),
+                1)
+        };
+        
+        var path = new MovementPath(segments, MovementType.Walk);
+        
+        // Act
+        var result = path.RemoveTrailingTurns();
+        
+        // Assert
+        result.Segments.Count.ShouldBe(1);
+        result.Segments[0].From.Coordinates.ShouldBe(new HexCoordinates(1, 1));
+        result.Segments[0].To.Coordinates.ShouldBe(new HexCoordinates(1, 2));
+    }
+    
+    [Fact]
+    public void RemoveTrailingTurns_ShouldNotRemoveTurnsInMiddleOfThePath()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                1),
+            new(
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft),
+                1),
+            new(
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.BottomLeft),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.BottomLeft),
+                1)
+        };
+        
+        var path = new MovementPath(segments, MovementType.Walk);
+        
+        // Act
+        var result = path.RemoveTrailingTurns();
+        
+        // Assert
+        result.Segments.Count.ShouldBe(3);
+    }
 }
