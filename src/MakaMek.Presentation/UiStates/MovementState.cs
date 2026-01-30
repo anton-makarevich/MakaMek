@@ -59,6 +59,19 @@ public class MovementState : IUiState
     {
         _step = step;
     }
+    
+    private void ClearHighlighting()
+    {
+        if (_reachabilityData != null)
+            _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes, false);
+        _reachabilityData = null;
+    }
+
+    private int GetRemainingMovementPoints()
+    {
+        if (_selectedPath == null || _selectedUnit == null) return 0;
+        return Math.Max(0, _selectedUnit.GetMovementPoints(_selectedPath.MovementType) - _selectedPath.TotalCost);
+    }
 
     public void HandleUnitSelection(IUnit? unit)
     {
@@ -168,13 +181,7 @@ public class MovementState : IUiState
             _selectedUnit = null;
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
-            if (_reachabilityData is { } data 
-                && (data.ForwardReachableHexes.Count > 0 
-                    || data.BackwardReachableHexes.Count > 0))
-            {
-                _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes,false);
-                _reachabilityData = null;
-            }
+            ClearHighlighting();
             TransitionTo(new SelectingUnitStep(this));
             _viewModel.NotifyStateChanged();
         }
@@ -229,9 +236,7 @@ public class MovementState : IUiState
             }
 
             _builder.Reset();
-            if (_reachabilityData != null)
-                _viewModel.HighlightHexes(_reachabilityData.Value.AllReachableHexes,false);
-            _reachabilityData = null;
+            ClearHighlighting();
             _selectedUnit = null;
             _isPostStandupMovement = false; // Reset post-standup state when movement is completed
             TransitionTo(new CompletedStep(this));
