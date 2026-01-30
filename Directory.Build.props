@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
     <PropertyGroup>
-        <Version>0.51.5</Version>
+        <Version>0.51.6</Version>
         <Authors>Anton Makarevich</Authors>
         <Company>Anton Makarevich</Company>
         <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
