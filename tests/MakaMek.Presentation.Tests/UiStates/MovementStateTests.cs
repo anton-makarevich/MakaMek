@@ -248,7 +248,7 @@ public class MovementStateTests
     }
 
     [Fact]
-    public void HandleHexSelection_TransitionsToDirectionSelection()
+    public void HandleHexSelection_TransitionsToWaypointSelection_WhenMovementPointsRemain()
     {
         // Arrange
         _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
@@ -259,7 +259,29 @@ public class MovementStateTests
         _sut.HandleHexSelection(_hex1);
 
         // Assert
-        _sut.ActionLabel.ShouldBe("Select facing direction");
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingWaypointHex);
+        _sut.ActionLabel.ShouldBe("Select target hex");
+    }
+
+    [Fact]
+    public void HandleHexSelection_InWaypointStep_AllowsEarlyFacingSelection_ToConfirmMovement()
+    {
+        // Arrange
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1,2),HexDirection.Bottom));
+        _sut.HandleUnitSelection(_unit1);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        _sut.HandleHexSelection(_hex1);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingWaypointHex);
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
+        _battleMapViewModel.AvailableDirections.ShouldNotBeNull();
+        var direction = _battleMapViewModel.AvailableDirections!.First();
+
+        // Act
+        _sut.HandleFacingSelection(direction);
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+        _sut.ActionLabel.ShouldBe("Move Unit");
     }
 
     [Fact]
