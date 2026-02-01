@@ -1045,6 +1045,41 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void HandleHexSelection_ContinuesPathBuilding_WhenInConfirmMovementStep_AndMovementPointsRemain()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _battleMapViewModel.Units.First();
+        unit.Deploy(position);
+        _sut.HandleUnitSelection(unit);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        var firstTargetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        _sut.HandleHexSelection(firstTargetHex);
+
+        // First direction selection transitions to ConfirmMovement
+        _sut.HandleFacingSelection(HexDirection.Top);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+
+        var pathAfterFirstLeg = _battleMapViewModel.MovementPath;
+        pathAfterFirstLeg.ShouldNotBeNull();
+        pathAfterFirstLeg.Last().To.Coordinates.ShouldBe(firstTargetHex.Coordinates);
+
+        // Act - click another reachable hex while in confirmation step
+        var nextTargetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
+        _sut.HandleHexSelection(nextTargetHex);
+
+        // Assert
+        _sut.ActionLabel.ShouldBe("Select facing direction");
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
+        _battleMapViewModel.DirectionSelectorPosition.ShouldBe(nextTargetHex.Coordinates);
+        _battleMapViewModel.AvailableDirections.ShouldNotBeEmpty();
+        _battleMapViewModel.MovementPath.ShouldBe(pathAfterFirstLeg);
+    }
+
+    [Fact]
     public void HandleFacingSelection_CompletesMovement_WhenInConfirmMovementStep()
     {
         // Arrange
