@@ -610,39 +610,6 @@ public class MechTests
         sut.DeclaredWeaponTargets.ShouldBeNull();
     }
 
-
-    [Theory]
-    [InlineData(5, 8, 2)]
-    [InlineData(4, 6, 0)]
-    [InlineData(3, 5, 2)]
-    public void GetMovement_ReturnsCorrectMPs(int walkMp, int runMp, int jumpMp)
-    {
-        // Arrange
-        var parts = CreateBasicPartsData(walkMp*50);
-        if (jumpMp > 0)
-        {
-            var centerTorso = parts.Single(p => p.Location == PartLocation.CenterTorso);
-            centerTorso.TryAddComponent(new JumpJets());
-            centerTorso.TryAddComponent(new JumpJets());
-        }
-
-        var mech = new Mech("Test", "TST-1A", 50, parts);
-
-        // Act
-        var walkingMp = mech.GetMovementPoints(MovementType.Walk);
-        var runningMp = mech.GetMovementPoints(MovementType.Run);
-        var jumpingMp = mech.GetMovementPoints(MovementType.Jump);
-
-        // Assert
-        walkingMp.ShouldBe(walkMp, "walking MP should match the base movement");
-        runningMp.ShouldBe(runMp, "running MP should be 1.5x walking");
-        jumpingMp.ShouldBe(jumpMp, "jumping MP should match the number of jump jets");
-        
-        mech.AvailableWalkingPoints.ShouldBe(walkingMp);
-        mech.AvailableRunningPoints.ShouldBe(runningMp);
-        mech.AvailableJumpingPoints.ShouldBe(jumpingMp);
-    }
-
     [Theory]
     // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (torso), 1 (head/limb blown off)
     [InlineData(2, 0)]

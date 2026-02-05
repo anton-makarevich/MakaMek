@@ -155,11 +155,6 @@ public abstract class Unit : IUnit
     {
         return [MovementType.Walk];
     }
-    
-    // Could be moved to ViewModel as those are presentation only
-    public int AvailableWalkingPoints => GetMovementPoints(MovementType.Walk);
-    public int AvailableRunningPoints => GetMovementPoints(MovementType.Run);
-    public int AvailableJumpingPoints => GetMovementPoints(MovementType.Jump);
 
     /// <summary>
     /// Determines if the unit can move backward with the given movement type
