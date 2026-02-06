@@ -183,6 +183,8 @@ public class FakeLocalizationService: ILocalizationService
             "Action_SelectTargetHex" => "Select target hex",
             "Action_SelectFacingDirection" => "Select facing direction",
             "Action_MoveUnit" => "Move Unit",
+            "Action_ConfirmMovement" => "Confirm movement",
+            "Action_ConfirmOrSelectNextHex" => "Confirm or select next hex",
             "Action_StandStill" => "Stand Still",
             "Action_StayProne" => "Stay Prone",
             "Action_AttemptStandup" => "Attempt Standup",

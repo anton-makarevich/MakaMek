@@ -66,6 +66,8 @@ public class MovementStateTests
         _localizationService.GetString("Action_SelectTargetHex").Returns("Select target hex");
         _localizationService.GetString("Action_SelectFacingDirection").Returns("Select facing direction");
         _localizationService.GetString("Action_MoveUnit").Returns("Move Unit");
+        _localizationService.GetString("Action_ConfirmMovement").Returns("Confirm movement");
+        _localizationService.GetString("Action_ConfirmOrSelectNextHex").Returns("Confirm or select next hex");
         _localizationService.GetString("Action_StandStill").Returns("Stand Still");
         _localizationService.GetString("Action_StayProne").Returns("Stay Prone");
         _localizationService.GetString("Action_MovementPoints").Returns("{0} | MP: {1}");
@@ -1041,7 +1043,7 @@ public class MovementStateTests
         
         // Assert
         _battleMapViewModel.MovementPath.ShouldNotBeNull();
-        _sut.ActionLabel.ShouldBe("Move Unit");
+        _sut.ActionLabel.ShouldBe("Confirm or select next hex");
     }
 
     [Fact]
@@ -1476,5 +1478,102 @@ public class MovementStateTests
             .Where(h => h.IsHighlighted)
             .ToList();
         reachableHexes.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void ConfirmMovementStep_ActionLabel_ReturnsConfirmOrSelectNextHex_WhenWalkWithRemainingMPs()
+    {
+        // Arrange
+        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        _unit1.Deploy(startPosition);
+        _sut.HandleUnitSelection(_unit1);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        _sut.HandleHexSelection(targetHex);
+        _sut.HandleFacingSelection(HexDirection.Top);
+        
+        // Act
+        var actionLabel = _sut.ActionLabel;
+        
+        // Assert
+        actionLabel.ShouldBe("Confirm or select next hex");
+    }
+    
+    [Fact]
+    public void ConfirmMovementStep_ActionLabel_ReturnsConfirmOrSelectNextHex_WhenRunWithRemainingMPs()
+    {
+        // Arrange
+        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        _unit1.Deploy(startPosition);
+        _sut.HandleUnitSelection(_unit1);
+        _sut.HandleMovementTypeSelection(MovementType.Run);
+        
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
+        _sut.HandleHexSelection(targetHex);
+        _sut.HandleFacingSelection(HexDirection.Top);
+        
+        // Act
+        var actionLabel = _sut.ActionLabel;
+        
+        // Assert
+        actionLabel.ShouldBe("Confirm or select next hex");
+    }
+    
+    [Fact]
+    public void ConfirmMovementStep_ActionLabel_ReturnsConfirmMovement_WhenWalkWithNoRemainingMPs()
+    {
+        // Arrange
+        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        _unit1.Deploy(startPosition);
+        _sut.HandleUnitSelection(_unit1);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+        
+        // Move to a hex that uses all walking MPs (move 8 hexes to use all 8 walking MPs)
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 9))!;
+        _sut.HandleHexSelection(targetHex);
+        _sut.HandleFacingSelection(HexDirection.Bottom);
+        
+        // Act
+        var actionLabel = _sut.ActionLabel;
+        
+        // Assert
+        actionLabel.ShouldBe("Confirm movement");
+    }
+    
+    [Fact]
+    public void ConfirmMovementStep_ActionLabel_ReturnsConfirmMovement_WhenJump()
+    {
+        // Arrange
+        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        _unit1.Deploy(startPosition);
+        _sut.HandleUnitSelection(_unit1);
+        _sut.HandleMovementTypeSelection(MovementType.Jump);
+        
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
+        _sut.HandleHexSelection(targetHex);
+        _sut.HandleFacingSelection(HexDirection.Top);
+        
+        // Act
+        var actionLabel = _sut.ActionLabel;
+        
+        // Assert
+        actionLabel.ShouldBe("Confirm movement");
+    }
+    
+    [Fact]
+    public void ConfirmMovementStep_ActionLabel_ReturnsConfirmMovement_WhenStandingStill()
+    {
+        // Arrange
+        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        _unit1.Deploy(startPosition);
+        _sut.HandleUnitSelection(_unit1);
+        _sut.HandleMovementTypeSelection(MovementType.StandingStill);
+        
+        // Act
+        var actionLabel = _sut.ActionLabel;
+        
+        // Assert
+        actionLabel.ShouldBe(string.Empty); // Standing still completes movement immediately
     }
 }
