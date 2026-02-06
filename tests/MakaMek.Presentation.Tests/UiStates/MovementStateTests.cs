@@ -66,7 +66,7 @@ public class MovementStateTests
         _localizationService.GetString("Action_SelectTargetHex").Returns("Select target hex");
         _localizationService.GetString("Action_SelectFacingDirection").Returns("Select facing direction");
         _localizationService.GetString("Action_MoveUnit").Returns("Move Unit");
-        _localizationService.GetString("Action_ConfirmMovement").Returns("Confirm Movement");
+        _localizationService.GetString("Action_ConfirmMovement").Returns("Confirm movement");
         _localizationService.GetString("Action_ConfirmOrSelectNextHex").Returns("Confirm or select next hex");
         _localizationService.GetString("Action_StandStill").Returns("Stand Still");
         _localizationService.GetString("Action_StayProne").Returns("Stay Prone");
@@ -1043,7 +1043,7 @@ public class MovementStateTests
         
         // Assert
         _battleMapViewModel.MovementPath.ShouldNotBeNull();
-        _sut.ActionLabel.ShouldBe("Move Unit");
+        _sut.ActionLabel.ShouldBe("Confirm or select next hex");
     }
 
     [Fact]
@@ -1529,22 +1529,10 @@ public class MovementStateTests
         _sut.HandleUnitSelection(_unit1);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
         
-        // Move to a hex that uses all walking MPs (move 4 hexes to use all 4 walking MPs)
-        var targetHex1 = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
-        _sut.HandleHexSelection(targetHex1);
-        _sut.HandleFacingSelection(HexDirection.Top);
-        
-        var targetHex2 = _game.BattleMap.GetHex(new HexCoordinates(1, 3))!;
-        _sut.HandleHexSelection(targetHex2);
-        _sut.HandleFacingSelection(HexDirection.Top);
-        
-        var targetHex3 = _game.BattleMap.GetHex(new HexCoordinates(1, 4))!;
-        _sut.HandleHexSelection(targetHex3);
-        _sut.HandleFacingSelection(HexDirection.Top);
-        
-        var targetHex4 = _game.BattleMap.GetHex(new HexCoordinates(1, 5))!;
-        _sut.HandleHexSelection(targetHex4);
-        _sut.HandleFacingSelection(HexDirection.Top);
+        // Move to a hex that uses all walking MPs (move 8 hexes to use all 8 walking MPs)
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 9))!;
+        _sut.HandleHexSelection(targetHex);
+        _sut.HandleFacingSelection(HexDirection.Bottom);
         
         // Act
         var actionLabel = _sut.ActionLabel;

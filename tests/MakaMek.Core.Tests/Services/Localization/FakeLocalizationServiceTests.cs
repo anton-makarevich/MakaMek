@@ -235,7 +235,7 @@ public class FakeLocalizationServiceTests
     [InlineData("Action_SelectTargetHex", "Select target hex")]
     [InlineData("Action_SelectFacingDirection", "Select facing direction")]
     [InlineData("Action_MoveUnit", "Move Unit")]
-    [InlineData("Action_ConfirmMovement", "Confirm Movement")]
+    [InlineData("Action_ConfirmMovement", "Confirm movement")]
     [InlineData("Action_ConfirmOrSelectNextHex", "Confirm or select next hex")]
     [InlineData("Action_StandStill", "Stand Still")]
     [InlineData("Action_StayProne", "Stay Prone")]
