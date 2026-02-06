@@ -55,15 +55,7 @@ public class MovementState : IUiState
 
         _step = new SelectingUnitStep(this);
     }
-
-    private MovementPath CommitLegIntoSelectedPath(MovementPath leg)
-    {
-        if (_selectedPath == null || _selectedPath.Segments is [{ Cost: 0 }]
-            && _selectedPath.Start == _selectedPath.Destination) return leg;
-
-        return _selectedPath.Append(leg);
-    }
-
+    
     private void TransitionTo(IMovementStep step)
     {
         _step = step;
@@ -615,7 +607,7 @@ public class MovementState : IUiState
             if (State.CurrentMovementStep != MovementStep.SelectingDirection) return;
             if (!State._possibleDirections.TryGetValue(direction, out var path)) return;
 
-            State._selectedPath = State.CommitLegIntoSelectedPath(path);
+            State._selectedPath = State._selectedPath?.Append(path) ?? path;
             State._builder.SetMovementPath(State._selectedPath);
 
             State._viewModel.ShowDirectionSelector(path.Destination.Coordinates, [direction]);

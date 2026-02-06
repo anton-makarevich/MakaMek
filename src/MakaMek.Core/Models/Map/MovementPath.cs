@@ -89,6 +89,10 @@ public class MovementPath : IEquatable<MovementPath>
         if (Destination != path.Start)
             throw new ArgumentException("Paths are not continuous", nameof(path));
 
+        // If current path has only one 0-cost segment and start equals destination, return the new path
+        if (Segments is [{ Cost: 0 }] && Start == Destination)
+            return path;
+
         var combinedSegments = Segments.Concat(path.Segments).ToList();
         return new MovementPath(combinedSegments, MovementType);
     }
