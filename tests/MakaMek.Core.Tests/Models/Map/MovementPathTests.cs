@@ -390,7 +390,9 @@ public class MovementPathTests
         var result = zeroCostPath.Append(newPath);
         
         // Assert
-        result.ShouldBe(newPath, "Should return the new path when current path has single 0-cost segment and start equals destination");
+        result.Segments.Count.ShouldBe(1, "Zero-cost segment should be removed, leaving only the new path's segment");
+        result.Segments[0].Cost.ShouldBe(1);
+        result.Segments[0].To.Coordinates.ShouldBe(new HexCoordinates(2, 1));
     }
     
     [Fact]
