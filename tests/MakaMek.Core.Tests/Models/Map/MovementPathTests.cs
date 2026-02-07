@@ -379,6 +379,23 @@ public class MovementPathTests
     }
     
     [Fact]
+    public void Append_ShouldRemoveZeroCostSegments_WhenCurrentPathHasSingleZeroCostSegment()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var zeroCostPath = new MovementPath([new PathSegment(position, position, 0)], MovementType.Walk);
+        var newPath = new MovementPath([new PathSegment(position, new HexPosition(new HexCoordinates(2, 1), HexDirection.Top), 1)], MovementType.Walk);
+        
+        // Act
+        var result = zeroCostPath.Append(newPath);
+        
+        // Assert
+        result.Segments.Count.ShouldBe(1, "Zero-cost segment should be removed, leaving only the new path's segment");
+        result.Segments[0].Cost.ShouldBe(1);
+        result.Segments[0].To.Coordinates.ShouldBe(new HexCoordinates(2, 1));
+    }
+    
+    [Fact]
     public void RemoveTrailingTurns_ShouldRemoveTurnsAtTheEndOfThePath()
     {
         // Arrange
