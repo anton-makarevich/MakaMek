@@ -24,6 +24,8 @@ internal class UnitState : IEquatable<UnitState>
     public UnitStatus Status { get; init; }
     
     public int CurrentHeat { get; init; }
+    
+    public MovementPath? MovementTaken { get; init; }
 
     public bool Equals(UnitState? other)
     {
@@ -60,7 +62,7 @@ internal class UnitState : IEquatable<UnitState>
             TorsoDirection?.GetHashCode() ?? 0,
             Status,
             HashCode.Combine(TotalCurrentArmor, TotalCurrentStructure),
-            CurrentHeat
+            HashCode.Combine(CurrentHeat, MovementTaken?.GetHashCode() ?? 0)
         );
     }
 

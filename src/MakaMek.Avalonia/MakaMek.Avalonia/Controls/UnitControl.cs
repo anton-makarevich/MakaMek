@@ -24,6 +24,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Avalonia.Controls
 {
@@ -42,6 +43,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly ProgressBar _heatBar;
         private readonly StackPanel _eventsPanel;
         private readonly TimeSpan _eventDisplayDuration = TimeSpan.FromSeconds(5);
+        private readonly List<PathSegmentControl> _unitMovementPathSegments = [];
 
         private readonly IAvaloniaResourcesLocator _resourcesLocator = new AvaloniaResourcesLocator();
 
@@ -289,7 +291,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     TotalCurrentStructure = _unit.TotalCurrentStructure,
                     Status = _unit.Status,
                     Events = _unit.Notifications,
-                    CurrentHeat = _unit.CurrentHeat
+                    CurrentHeat = _unit.CurrentHeat,
+                    MovementTaken = _unit.MovementTaken
                 })
                 .DistinctUntilChanged()
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
@@ -366,6 +369,16 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     else
                     {
                         torsoArrow.IsVisible = false;
+                    }
+
+                    // Update movement path display during Weapons Attack phase
+                    if (state is { IsWeaponsPhase: true, MovementTaken.TotalCost: > 0 })
+                    {
+                        ShowMovementPath(state.MovementTaken);
+                    }
+                    else
+                    {
+                        HideMovementPath();
                     }
                 });
 
@@ -622,6 +635,45 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     VerticalAlignment = VerticalAlignment.Center
                 }
             };
+        }
+
+        private void ShowMovementPath(MovementPath path)
+        {
+            // Only update if the path has changed
+            if (_unitMovementPathSegments.Count > 0)
+            {
+                // Path already displayed, no need to recreate
+                return;
+            }
+
+            if (Parent is not Canvas canvas) return;
+
+            var color = _unit.Owner != null
+                ? Color.Parse(_unit.Owner.Tint)
+                : Colors.Yellow;
+
+            foreach (var segment in path.Segments)
+            {
+                var segmentViewModel = new PathSegmentViewModel(segment);
+                var segmentControl = new PathSegmentControl(segmentViewModel, _viewModel);
+                _unitMovementPathSegments.Add(segmentControl);
+                canvas.Children.Add(segmentControl);
+            }
+        }
+
+        private void HideMovementPath()
+        {
+            if (_unitMovementPathSegments.Count == 0) return;
+
+            if (Parent is Canvas canvas)
+            {
+                foreach (var pathSegment in _unitMovementPathSegments)
+                {
+                    canvas.Children.Remove(pathSegment);
+                }
+            }
+
+            _unitMovementPathSegments.Clear();
         }
     }
 }
