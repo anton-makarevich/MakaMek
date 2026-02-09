@@ -347,6 +347,16 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
                     // Rotate entire control to show torso/unit direction
                     RenderTransform = new RotateTransform(torsoFacing * 60, 0, 0);
+                    
+                    // Update movement path display during Weapons Attack phase
+                    if (state is { IsWeaponsPhase: true, MovementTaken.TotalCost: > 0 })
+                    {
+                        ShowMovementPath(state.MovementTaken);
+                    }
+                    else
+                    {
+                        HideMovementPath();
+                    }
 
                     // Update direction indicator for mechs
                     if (isMech)
@@ -360,7 +370,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                         torsoArrow.RenderTransform = new RotateTransform(deltaAngle);
 
                         // Check if torso direction has changed
-                        if (!state.IsWeaponsPhase || !((Mech)_unit).HasUsedTorsoTwist) return;
+                        if (!state.IsWeaponsPhase || !((Mech)_unit).HasUsedTorsoTwist) 
+                            return;
                         if (state.TorsoDirection.HasValue)
                         {
                             (_viewModel.CurrentState as WeaponsAttackState)?.HandleTorsoRotation(_unit.Id);
@@ -369,16 +380,6 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     else
                     {
                         torsoArrow.IsVisible = false;
-                    }
-
-                    // Update movement path display during Weapons Attack phase
-                    if (state is { IsWeaponsPhase: true, MovementTaken.TotalCost: > 0 })
-                    {
-                        ShowMovementPath(state.MovementTaken);
-                    }
-                    else
-                    {
-                        HideMovementPath();
                     }
                 });
 
