@@ -299,21 +299,26 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
                 .Subscribe(state =>
                 {
+                    // Phase 1: Update state-based visuals (independent of positioning)
                     UpdateDestroyedState(destroyedCross);
                     
                     if (state.Position == null) return; // unit is not deployed, no need to display
 
                     UpdateStatusIndicators(statusPanel, proneIndicator, immobileIndicator);
-                    Render();
                     UpdateSelectionBorder(state, selectionBorder);
+                    UpdateRotation(state);
+                    
+                    // Phase 2: Process events (modifies _eventsPanel.Children before positioning)
+                    ProcessEvents(state.Events);
+                    
+                    // Phase 3: Position all UI elements (depends on final _eventsPanel.Children.Count)
+                    Render();
+                    
+                    // Phase 4: Update values and content (depends on elements being positioned)
                     UpdateActionButtons(state.Actions);
                     UpdateHealthBars(state.TotalCurrentArmor, state.TotalMaxArmor, state.TotalCurrentStructure,
                         state.TotalMaxStructure);
                     UpdateHeatBar(state.CurrentHeat);
-                    
-                    ProcessEvents(state.Events);
-
-                    UpdateRotation(state);
                     UpdateMovementPathDisplay(state);
                     UpdateTorsoArrow(state, torsoArrow);
                 });
