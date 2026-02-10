@@ -130,6 +130,9 @@ public static class BattleMapExtensions
                 .Select(x => x.coordinates)
                 .Where(hex => !friendlyUnitsCoordinates.Contains(hex))
                 .ToList();
+            
+            if (movementType == MovementType.Walk)
+                forwardReachableHexes.Add(position.Coordinates);
 
             // Get backward reachable hexes if the unit can move backward
             if (!canMoveBackward)
