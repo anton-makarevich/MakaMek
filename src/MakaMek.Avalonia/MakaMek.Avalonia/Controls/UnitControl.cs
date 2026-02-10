@@ -593,13 +593,17 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 ? Color.Parse(_unit.Owner.Tint)
                 : Colors.Yellow;
 
+            var zIndex = 0;
             foreach (var segment in path.Segments)
             {
                 var segmentViewModel = new PathSegmentViewModel(segment);
                 var segmentControl = new PathSegmentControl(segmentViewModel, color);
                 _unitMovementPathSegments.Add(segmentControl);
                 canvas.Children.Add(segmentControl);
+                // Ensure path segments appear below the unit
+                zIndex = segmentControl.ZIndex;
             }
+            ZIndex = zIndex + 1;
         }
 
         private void HideMovementPath()
