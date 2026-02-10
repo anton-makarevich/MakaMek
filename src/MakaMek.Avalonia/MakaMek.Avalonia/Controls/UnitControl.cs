@@ -547,6 +547,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
         public void Dispose()
         {
+            HideMovementPath();
             _subscription.Dispose();
         }
 
@@ -581,14 +582,15 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private void ShowMovementPath(MovementPath path)
         {
             // Only update if the path has changed
-            if (_unitMovementPathSegments.Count > 0)
+            if (_unitMovementPathSegments.Count == path.Segments.Count)
             {
-                // Path already displayed, no need to recreate
-                return;
+                return; // Path unchanged
             }
 
+            HideMovementPath(); // Clear stale segments
+
             if (Parent is not Canvas canvas) return;
-            
+
             var color = _unit.Owner != null
                 ? Color.Parse(_unit.Owner.Tint)
                 : Colors.Yellow;
@@ -603,6 +605,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 // Ensure path segments appear below the unit
                 zIndex = segmentControl.ZIndex;
             }
+
             ZIndex = zIndex + 1;
         }
 
