@@ -24,6 +24,8 @@ internal class UnitState : IEquatable<UnitState>
     public UnitStatus Status { get; init; }
     
     public int CurrentHeat { get; init; }
+    
+    public MovementPath? MovementTaken { get; init; }
 
     public bool Equals(UnitState? other)
     {
@@ -41,6 +43,7 @@ internal class UnitState : IEquatable<UnitState>
                TotalCurrentStructure == other.TotalCurrentStructure &&
                Status == other.Status &&
                CurrentHeat == other.CurrentHeat &&
+               AreMovementPathsEqual(MovementTaken, other.MovementTaken) &&
                AreEventsEqual(Events, other.Events);
     }
 
@@ -60,7 +63,7 @@ internal class UnitState : IEquatable<UnitState>
             TorsoDirection?.GetHashCode() ?? 0,
             Status,
             HashCode.Combine(TotalCurrentArmor, TotalCurrentStructure),
-            CurrentHeat
+            HashCode.Combine(CurrentHeat, MovementTaken?.GetHashCode() ?? 0)
         );
     }
 
@@ -91,5 +94,18 @@ internal class UnitState : IEquatable<UnitState>
         // Only check if there are any events, since we're just interested in 
         // whether there are new events to process
         return !events1.Any() && !events2.Any();
+    }
+
+    private bool AreMovementPathsEqual(MovementPath? path1, MovementPath? path2)
+    {
+        if (path1 is null || path2 is null)
+            return false;
+        if (path1.Start != path2.Start)
+            return false;
+        if (path1.Destination != path2.Destination)
+            return false;
+        if (path1.TotalCost != path2.TotalCost)
+            return false;
+        return true;
     }
 }

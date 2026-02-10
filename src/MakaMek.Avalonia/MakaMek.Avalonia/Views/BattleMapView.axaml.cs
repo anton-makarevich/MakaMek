@@ -27,7 +27,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private const double MinScale = 0.5;
     private const double MaxScale = 2.0;
     private const double ScaleStep = 0.1;
-    private const int SelectionThresholdMilliseconds = 250; // Time to distinguish selection vs pan
+    private const int SelectionThresholdMilliseconds = 250; // Time to distinguish selection vs. pan
     private bool _isManipulating;
     private bool _isZooming;
     private bool _isPressed;
@@ -106,7 +106,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             {
                 if (!t.IsCanceled)
                 {
-                    _isManipulating = true; // Set flag if the delay completes
+                    _isManipulating = true; // Set the flag if the delay completes
                 }
             }, TaskScheduler.Current);
         _isPressed = true;
@@ -240,9 +240,13 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             return;
         }
 
+        var color = Color.TryParse(ViewModel.ActivePlayerTint, out var parsed)
+            ? parsed
+            : Colors.Yellow;
+
         foreach (var pathSegmentViewModel in ViewModel.MovementPath)
         {
-            var segmentControl = new PathSegmentControl(pathSegmentViewModel, ViewModel);
+            var segmentControl = new PathSegmentControl(pathSegmentViewModel, color);
             MapCanvas.Children.Add(segmentControl);
             _movementPathSegments.Add(segmentControl);
         }
