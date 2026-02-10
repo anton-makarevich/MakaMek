@@ -239,10 +239,12 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             _movementPathSegments.Clear();
             return;
         }
+        
+        var color = Color.Parse(ViewModel.ActivePlayerTint);
 
         foreach (var pathSegmentViewModel in ViewModel.MovementPath)
         {
-            var segmentControl = new PathSegmentControl(pathSegmentViewModel, ViewModel);
+            var segmentControl = new PathSegmentControl(pathSegmentViewModel, color);
             MapCanvas.Children.Add(segmentControl);
             _movementPathSegments.Add(segmentControl);
         }

@@ -155,7 +155,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Value = 1
             };
 
-            // Create heat level bar (vertical)
+            // Create a heat level bar (vertical)
             _heatBar = new ProgressBar
             {
                 Foreground = heatBrush,
@@ -588,11 +588,15 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
 
             if (Parent is not Canvas canvas) return;
+            
+            var color = _unit.Owner != null
+                ? Color.Parse(_unit.Owner.Tint)
+                : Colors.Yellow;
 
             foreach (var segment in path.Segments)
             {
                 var segmentViewModel = new PathSegmentViewModel(segment);
-                var segmentControl = new PathSegmentControl(segmentViewModel, _viewModel);
+                var segmentControl = new PathSegmentControl(segmentViewModel, color);
                 _unitMovementPathSegments.Add(segmentControl);
                 canvas.Children.Add(segmentControl);
             }
@@ -658,7 +662,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
         private void UpdateMovementPathDisplay(UnitState state)
         {
-            // Show movement path when MovementTaken has cost, regardless of phase
+            // Show movement path when MovementTaken has cost
             if (state.MovementTaken is { TotalCost: > 0 })
             {
                 ShowMovementPath(state.MovementTaken);

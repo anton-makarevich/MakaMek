@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
@@ -16,13 +15,12 @@ public class PathSegmentControl : Panel
     private const double ArrowSize = 15; // Size of arrow head
     private const double ArcSize = 20;
 
-    public PathSegmentControl(PathSegmentViewModel segment, BattleMapViewModel battleMap)
+    public PathSegmentControl(PathSegmentViewModel segment, Color color)
     {
         _segment = segment;
 
         Width = HexCoordinates.HexWidth * 2;
         Height = HexCoordinates.HexHeight * 2;
-        var color = Color.Parse(battleMap.ActivePlayerTint);
         var path = new Path
         {
             Stroke = new SolidColorBrush(color),
@@ -81,7 +79,7 @@ public class PathSegmentControl : Panel
         
         for (int i = 0; i < _segment.Cost; i++)
         {
-            var arrowOffset = i * (ArrowSize * 0.5); // Each subsequent arrow is moved back by half arrow length
+            var arrowOffset = i * (ArrowSize * 0.5); // Each subsequent arrow is moved back by half-arrow length
             var arrowEndPoint = new Point(
                 endPoint.X - arrowOffset * dirX,
                 endPoint.Y - arrowOffset * dirY
