@@ -93,7 +93,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Margin = new Thickness(4)
             };
 
-            // Create health bars panel
+            // Create a health bars panel
             _healthBars = new StackPanel
             {
                 Orientation = Orientation.Vertical,
@@ -106,7 +106,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Width = Width * 0.8
             };
 
-            // Create events panel for damage labels
+            // Create an events panel for damage labels
             _eventsPanel = new StackPanel
             {
                 Orientation = Orientation.Vertical,
@@ -221,7 +221,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 context.SetFillRule(FillRule.NonZero);
             }
 
-            // Create destroyed indicator (cross)
+            // Create a destroyed indicator (cross)
             var destroyedCross = new Path
             {
                 Data = new StreamGeometry(),
@@ -234,7 +234,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 Width = Width * 0.3,
                 Height = Height * 0.3
             };
-            // Draw cross geometry
+            
+            // Draw cross-geometry
             var crossSize = destroyedCross.Width;
             using (var context = ((StreamGeometry)destroyedCross.Data).Open())
             {
@@ -275,7 +276,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             Children.Add(statusPanel);
 
             // Create an observable that polls the unit's position and selection state
-            Observable
+            _subscription = Observable
                 .Interval(TimeSpan.FromMilliseconds(32)) // ~60fps
                 .Select(_ => new UnitState()
                 {
@@ -298,89 +299,23 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
                 .Subscribe(state =>
                 {
-                    // Show/hide destroyed indicator
-                    destroyedCross.IsVisible = _unit.IsOutOfCommission;
-                    _healthBars.IsVisible = !_unit.IsDestroyed;
-
+                    UpdateDestroyedState(destroyedCross);
+                    
                     if (state.Position == null) return; // unit is not deployed, no need to display
 
-                    // Show/hide status indicators (for mechs only)
-                    if (_unit is Mech mech)
-                    {
-                        var isProne = mech is { IsProne: true, IsDestroyed: false };
-                        var isImmobile = mech is { IsImmobile: true, IsDestroyed: false };
-
-                        proneIndicator.IsVisible = isProne;
-                        immobileIndicator.IsVisible = isImmobile;
-                        statusPanel.IsVisible = isProne || isImmobile;
-                    }
-                    else
-                    {
-                        proneIndicator.IsVisible = false;
-                        immobileIndicator.IsVisible = false;
-                        statusPanel.IsVisible = false;
-                    }
-
-
+                    UpdateStatusIndicators(statusPanel, proneIndicator, immobileIndicator);
                     Render();
-                    selectionBorder.IsVisible = state.SelectedUnit == _unit
-                                                || _viewModel.CurrentState is WeaponsAttackState attackState &&
-                                                (attackState.Attacker == _unit || attackState.SelectedTarget == _unit);
+                    UpdateSelectionBorder(state, selectionBorder);
                     UpdateActionButtons(state.Actions);
                     UpdateHealthBars(state.TotalCurrentArmor, state.TotalMaxArmor, state.TotalCurrentStructure,
                         state.TotalMaxStructure);
                     UpdateHeatBar(state.CurrentHeat);
-
-                    // Process any new events
-                    if (state.Events.Any())
-                    {
-                        ProcessEvents(state.Events);
-                    }
-
-                    // Calculate rotation angles
-                    var isMech = _unit is Mech;
-
-                    var torsoFacing = isMech && state.TorsoDirection.HasValue
-                        ? (int)state.TorsoDirection.Value
-                        : (int)state.Position!.Facing;
-                    var unitFacing = (int)state.Position!.Facing;
-
-                    // Rotate entire control to show torso/unit direction
-                    RenderTransform = new RotateTransform(torsoFacing * 60, 0, 0);
                     
-                    // Update movement path display during Weapons Attack phase
-                    if (state is { IsWeaponsPhase: true, MovementTaken.TotalCost: > 0 })
-                    {
-                        ShowMovementPath(state.MovementTaken);
-                    }
-                    else
-                    {
-                        HideMovementPath();
-                    }
+                    ProcessEvents(state.Events);
 
-                    // Update direction indicator for mechs
-                    if (isMech)
-                    {
-                        torsoArrow.IsVisible = state.IsWeaponsPhase
-                                               && !_unit.IsDestroyed
-                                               && state is { TorsoDirection: not null, Position: not null };
-                        if (!torsoArrow.IsVisible) return;
-                        // Since control is rotated to torso direction, we need opposite delta
-                        var deltaAngle = (unitFacing - torsoFacing + 6) % 6 * 60;
-                        torsoArrow.RenderTransform = new RotateTransform(deltaAngle);
-
-                        // Check if torso direction has changed
-                        if (!state.IsWeaponsPhase || !((Mech)_unit).HasUsedTorsoTwist) 
-                            return;
-                        if (state.TorsoDirection.HasValue)
-                        {
-                            (_viewModel.CurrentState as WeaponsAttackState)?.HandleTorsoRotation(_unit.Id);
-                        }
-                    }
-                    else
-                    {
-                        torsoArrow.IsVisible = false;
-                    }
+                    UpdateRotation(state);
+                    UpdateMovementPathDisplay(state);
+                    UpdateTorsoArrow(state, torsoArrow);
                 });
 
             // Initial update
@@ -649,10 +584,6 @@ namespace Sanet.MakaMek.Avalonia.Controls
 
             if (Parent is not Canvas canvas) return;
 
-            var color = _unit.Owner != null
-                ? Color.Parse(_unit.Owner.Tint)
-                : Colors.Yellow;
-
             foreach (var segment in path.Segments)
             {
                 var segmentViewModel = new PathSegmentViewModel(segment);
@@ -675,6 +606,94 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
 
             _unitMovementPathSegments.Clear();
+        }
+
+        private void UpdateDestroyedState(Path destroyedCross)
+        {
+            destroyedCross.IsVisible = _unit.IsOutOfCommission;
+            _healthBars.IsVisible = !_unit.IsDestroyed;
+        }
+
+        private void UpdateStatusIndicators(StackPanel statusPanel, Border proneIndicator, Border immobileIndicator)
+        {
+            if (_unit is Mech mech)
+            {
+                var isProne = mech is { IsProne: true, IsDestroyed: false };
+                var isImmobile = mech is { IsImmobile: true, IsDestroyed: false };
+
+                proneIndicator.IsVisible = isProne;
+                immobileIndicator.IsVisible = isImmobile;
+                statusPanel.IsVisible = isProne || isImmobile;
+            }
+            else
+            {
+                proneIndicator.IsVisible = false;
+                immobileIndicator.IsVisible = false;
+                statusPanel.IsVisible = false;
+            }
+        }
+
+        private void UpdateSelectionBorder(UnitState state, Border selectionBorder)
+        {
+            selectionBorder.IsVisible = state.SelectedUnit == _unit
+                                        || _viewModel.CurrentState is WeaponsAttackState attackState &&
+                                        (attackState.Attacker == _unit || attackState.SelectedTarget == _unit);
+        }
+
+        private void UpdateRotation(UnitState state)
+        {
+            var isMech = _unit is Mech;
+            var torsoFacing = isMech && state.TorsoDirection.HasValue
+                ? (int)state.TorsoDirection.Value
+                : (int)state.Position!.Facing;
+
+            // Rotate the entire control to show a torso/unit direction
+            RenderTransform = new RotateTransform(torsoFacing * 60, 0, 0);
+        }
+
+        private void UpdateMovementPathDisplay(UnitState state)
+        {
+            // Show movement path when MovementTaken has cost, regardless of phase
+            if (state.MovementTaken is { TotalCost: > 0 })
+            {
+                ShowMovementPath(state.MovementTaken);
+            }
+            else
+            {
+                HideMovementPath();
+            }
+        }
+
+        private void UpdateTorsoArrow(UnitState state, Path torsoArrow)
+        {
+            if (_unit is not Mech mech)
+            {
+                torsoArrow.IsVisible = false;
+                return;
+            }
+
+            torsoArrow.IsVisible = state.IsWeaponsPhase
+                                   && !_unit.IsDestroyed
+                                   && state is { TorsoDirection: not null, Position: not null };
+            
+            if (!torsoArrow.IsVisible)
+                return;
+
+            // Calculate torso arrow rotation
+            var torsoFacing = state.TorsoDirection.HasValue
+                ? (int)state.TorsoDirection.Value
+                : (int)state.Position!.Facing;
+            var unitFacing = (int)state.Position!.Facing;
+            
+            // Since control is rotated to a torso direction, we need the opposite delta
+            var deltaAngle = (unitFacing - torsoFacing + 6) % 6 * 60;
+            torsoArrow.RenderTransform = new RotateTransform(deltaAngle);
+
+            // Handle torso twist if it has been used
+            if (state.IsWeaponsPhase && mech.HasUsedTorsoTwist && state.TorsoDirection.HasValue)
+            {
+                (_viewModel.CurrentState as WeaponsAttackState)?.HandleTorsoRotation(_unit.Id);
+            }
         }
     }
 }
