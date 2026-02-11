@@ -466,10 +466,26 @@ public class Mech : Unit
     public bool CanRun {
         get
         {
-            var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
-            if (destroyedLegs > 0) return false;
-            return true;
+            var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
+            return destroyedLegs <= 0;
         }
+    }
+    
+    public bool CanStandup()
+    {
+        if (IsShutdown) return false;
+        
+        if (!IsGyroAvailable) return false;
+
+        var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
+        if (destroyedLegs >= 2) return false;
+
+        // Check if the Mech has at least one movement point available
+        if (GetMovementPoints(MovementType.Walk) < StandupCost && !IsMinimumMovement) return false;
+
+        if (Pilot?.IsConscious == false) return false;
+
+        return true;
     }
 
     /// <summary>
@@ -494,26 +510,10 @@ public class Mech : Unit
         return gyro?.Hits ==1;
     }
 
-    public void SetProne()
+    public void SetProne(HexDirection? facing = null)
     {
+        if (facing.HasValue && Position != null) Position = Position with { Facing = facing.Value };
         Status |= UnitStatus.Prone;
-    }
-
-    public bool CanStandup()
-    {
-        if (IsShutdown) return false;
-        
-        if (!IsGyroAvailable) return false;
-
-        var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
-        if (destroyedLegs >= 2) return false;
-
-        // Check if the Mech has at least one movement point available
-        if (GetMovementPoints(MovementType.Walk) < 1) return false;
-
-        if (Pilot?.IsConscious == false) return false;
-
-        return true;
     }
 
     private bool IsGyroAvailable {

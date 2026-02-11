@@ -1761,4 +1761,78 @@ public class MovementStateTests
             .Any(h => h.IsHighlighted)
             .ShouldBeTrue(); // Hexes should still be highlighted
     }
+    [Fact]
+    public void ResumeMovementAfterFall_ShouldThrow_WhenUnitIsNotProneMech()
+    {
+        // Arrange
+        var unit = Substitute.For<IUnit>();
+        unit.Position.Returns(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        _sut.HandleUnitSelection(unit);
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall())
+            .Message.ShouldBe("Unit is not prone after fall or no movement path");
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_ShouldThrow_WhenSelectedPathIsNull()
+    {
+        // Arrange
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech.SetProne();
+        _sut.HandleUnitSelection(mech);
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => _sut.ResumeMovementAfterFall())
+            .Message.ShouldBe("Unit is not prone after fall or no movement path");
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_ShouldCompleteMovement_WhenMechCannotStandUp()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        // Deploy the mech so it has a valid position
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech.SetProne();
+        mech.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 }); // Shutdown mech cannot stand up
+
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk); // Sets up _selectedPath
+        mech.CanStandup().ShouldBeFalse();
+        
+        // Act
+        _sut.ResumeMovementAfterFall();
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
+        _game.Received().MoveUnit(Arg.Any<MoveUnitCommand>());
+    }
+
+    [Fact]
+    public void ResumeMovementAfterFall_ShouldTransitionToSelectingMovementType_WhenMechCanStandUp()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        // Deploy the mech so it has a valid position
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech.SetProne();
+        
+        // Ensure mech can stand up (it is by default if not shutdown/destroyed/etc and has MPs)
+        mech.CanStandup().ShouldBeTrue();
+        
+        _sut.HandleUnitSelection(mech);
+        _sut.HandleMovementTypeSelection(MovementType.Walk); // Sets up _selectedPath
+
+        // Act
+        _sut.ResumeMovementAfterFall();
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingMovementType);
+    }
 }

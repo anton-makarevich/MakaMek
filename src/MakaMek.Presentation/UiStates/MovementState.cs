@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -154,7 +155,6 @@ public class MovementState : IUiState
         {
             if (_selectedUnit?.Position == null) return;
             path = MovementPath.CreateStandingStillPath(_selectedUnit.Position);
-            _builder.SetMovementType(MovementType.StandingStill);
             _builder.SetMovementPath(path);
         }
 
@@ -204,6 +204,8 @@ public class MovementState : IUiState
         }
 
         TransitionTo(new SelectingDirectionStep(this));
+        
+        // TODO: the code below doesn't belong to the method
 
         // Use the extension method to find all possible paths to the target hex
         var startPosition = _selectedPath.Destination;
@@ -306,11 +308,11 @@ public class MovementState : IUiState
                     // Check if this is a minimum movement situation
                     if (mech.IsMinimumMovement)
                     {
-                        // Minimum movement case: single "Attempt Standup" button, automatically use running
+                        // Minimum movement case: single "Attempt Standup" button
                         proneActions.Add(new StateAction(
                             _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
                             true,
-                            () => AttemptStandup(MovementType.Run)));
+                            () => AttemptStandup(MovementType.Walk)));
                     }
                     else
                     {
@@ -414,7 +416,7 @@ public class MovementState : IUiState
         }
     }
 
-    // New method to handle standup attempts
+    // A method to handle standup attempts
     private void AttemptStandup(MovementType movementType)
     {
         lock (_stateLock)
@@ -427,7 +429,7 @@ public class MovementState : IUiState
                 new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0)],
                 movementType);
             // Ensure the builder has the movement type set
-            _builder.SetMovementType(movementType);
+            _builder.SetMovementPath(_selectedPath);
 
             TransitionTo(new SelectingStandingUpDirectionStep(this));
             _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
@@ -470,11 +472,46 @@ public class MovementState : IUiState
         {
             // Check if the unit is no longer prone (standup was successful)
             if (_selectedPath?.MovementType == null ||
-                _selectedUnit is not Mech { IsProne: false } mech
-                || mech.GetMovementPoints(_selectedPath.MovementType) <= 0) return;
+                _selectedUnit is not Mech { IsProne: false, Position: not null } mech) return;
+
+            if (mech.GetMovementPoints(_selectedPath.MovementType) < 1)
+            {
+                // No more movement possible, just confirm
+                CompleteMovement();
+                return;
+            }
+            
             _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
+            _selectedPath = new MovementPath([
+                new PathSegment(mech.Position, mech.Position, 0)],
+                _selectedPath.MovementType);
+            _builder.SetMovementPath(_selectedPath);
             HighlightReachableHexes();
             TransitionTo(new SelectingTargetHexStep(this));
+            _viewModel.NotifyStateChanged();
+        }
+    }
+
+    public void ResumeMovementAfterFall()
+    {
+        lock (_stateLock)
+        {
+            if (_selectedUnit is not Mech { IsProne: true, Position: not null } mech || _selectedPath == null)
+            {
+                var exception = new InvalidOperationException("Unit is not prone after fall or no movement path");
+                Game?.Logger.LogError(exception, "Unit is not prone after fall or no movement path");
+                throw exception;
+            }
+
+            if (!mech.CanStandup())
+            {
+                _builder.SetMovementPath(_selectedPath);
+                CompleteMovement();
+                return;
+            }
+            
+            TransitionTo(new SelectingMovementTypeStep(this));
+            _viewModel.NotifyStateChanged();
         }
     }
 
@@ -484,8 +521,6 @@ public class MovementState : IUiState
         if (_viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
         if (mech.Position == null || !mech.IsProne) return;
 
-        // Set up for prone facing change movement
-        _builder.SetMovementType(MovementType.Walk);
         _movementPoints = mech.GetMovementPoints(MovementType.Walk);
 
         // Calculate maximum rotation steps based on available movement points
@@ -496,6 +531,11 @@ public class MovementState : IUiState
 
         var currentFacing = mech.Facing;
         if (currentFacing == null) return;
+        
+        _selectedPath = new MovementPath([
+            new PathSegment(mech.Position, mech.Position, 0)],
+            MovementType.Walk);
+        _builder.SetMovementPath(_selectedPath);
 
         void AddToPossibleDirections(HexDirection direction, int cost)
         {
@@ -580,7 +620,6 @@ public class MovementState : IUiState
             State._selectedPath = new MovementPath([
                     new PathSegment(State._selectedUnit.Position, State._selectedUnit.Position, 0)],
                 movementType);
-            State._builder.SetMovementType(movementType);
             State.HighlightReachableHexes();
             State.TransitionTo(new SelectingTargetHexStep(State));
         }

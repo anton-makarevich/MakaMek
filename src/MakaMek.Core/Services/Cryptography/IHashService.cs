@@ -8,5 +8,6 @@ public interface IHashService
         Type commandType,
         int turn,
         string phase,
-        Guid? unitId = null);
+        Guid? unitId = null,
+        int attempt = 0);
 }

@@ -230,7 +230,10 @@ public class BattleMapViewModel : BaseViewModel
                 ProcessWeaponAttackResolution(resolutionCommand);
                 break;
             case MechStandUpCommand standUpCommand:
-                ProcessMechStandUp(standUpCommand);
+                ProcessMechStandUp(standUpCommand.UnitId, false);
+                break;
+            case MechFallCommand fallCommand:
+                ProcessMechStandUp(fallCommand.UnitId, true);
                 break;
             case GameEndedCommand gameEndedCommand:
                 // Server ended the game - navigate to the appropriate screen
@@ -241,12 +244,19 @@ public class BattleMapViewModel : BaseViewModel
         NotifyStateChanged();
     }
 
-    private void ProcessMechStandUp(MechStandUpCommand standUpCommand)
+    private void ProcessMechStandUp(Guid unitId, bool isFalling)
     {
         if (CurrentState is MovementState movementState 
-            && standUpCommand.UnitId == SelectedUnit?.Id)
+            && unitId == SelectedUnit?.Id)
         {
-            movementState.ResumeMovementAfterStandup();
+            if (isFalling)
+            {
+                movementState.ResumeMovementAfterFall();
+            }
+            else
+            {
+                movementState.ResumeMovementAfterStandup();
+            }
         }
     }
 

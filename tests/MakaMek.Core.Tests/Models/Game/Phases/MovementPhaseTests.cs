@@ -422,69 +422,6 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void ProcessStandupCommand_ShouldCompleteUitMovement_WhenNoMpAfterStandup()
-    {
-        // Arrange
-        _sut.Enter();
-        var unit = Game.PhaseStepState!.Value.ActivePlayer.Units.Single(u => u.Id == _unit1Id) as Mech;
-        // Make sure the unit is a Mech and is prone
-        unit!.Deploy(new HexPosition(1, 2, HexDirection.Top));
-        // destroy the left leg to remove MP
-        var leg = unit.Parts[PartLocation.LeftLeg];
-        leg.ApplyDamage(20, HitDirection.Front);
-        unit.SetProne();
-
-        // Configure the FallProcessor to return successful standup data
-        var psrBreakdown = new PsrBreakdown
-        {
-            BasePilotingSkill = 4,
-            Modifiers = [],
-        };
-
-        var successfulPsrData = new PilotingSkillRollData
-        {
-            RollType = PilotingSkillRollType.StandupAttempt,
-            DiceResults = [3, 3],
-            IsSuccessful = true,
-            PsrBreakdown = psrBreakdown
-        };
-
-        var successfulStandupData = new FallContextData
-        {
-            UnitId = unit.Id,
-            GameId = Game.Id,
-            IsFalling = false, // Not falling = successful standup
-            ReasonType = FallReasonType.StandUpAttempt,
-            PilotingSkillRoll = successfulPsrData,
-            LevelsFallen = 0,
-            WasJumping = false
-        };
-
-        // Set up the Mock for ProcessStandupAttempt
-        Game.FallProcessor.ProcessMovementAttempt(unit, FallReasonType.StandUpAttempt, Game)
-            .Returns(successfulStandupData);
-
-        CommandPublisher.ClearReceivedCalls();
-
-        // Act
-        _sut.HandleCommand(new TryStandupCommand
-        {
-            GameOriginId = Game.Id,
-            PlayerId = _player1Id,
-            UnitId = _unit1Id,
-            Timestamp = DateTime.UtcNow,
-            MovementTypeAfterStandup = MovementType.Run
-        });
-
-        // Assert
-        CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
-            cmd.UnitId == _unit1Id && cmd.MovementType == MovementType.Run));
-
-        CommandPublisher.Received().PublishCommand(Arg.Is<ChangeActivePlayerCommand>(cmd =>
-            cmd.GameOriginId == Game.Id));
-    }
-
-    [Fact]
     public void HandleCommand_ShouldPublishMoveCommand_WhenJumpWithDamagedGyroSucceeds()
     {
         // Arrange

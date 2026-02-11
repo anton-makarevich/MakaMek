@@ -14,15 +14,16 @@ public class HashService: IHashService
         Type commandType,
         int turn,
         string phase,
-        Guid? unitId = null)
+        Guid? unitId = null,
+        int attempt = 0)
     {
         // Build the input string for hashing
-        var input = $"{gameId}:{playerId}:{unitId?.ToString() ?? "null"}:{phase}:{turn}:{commandType.Name}";
+        var input = $"{gameId}:{playerId}:{unitId?.ToString() ?? "null"}:{phase}:{turn}:{commandType.Name}:{attempt}";
 
         // Compute SHA256 hash
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
 
-        // Take first 16 bytes to create a GUID
+        // Take the first 16 bytes to create a GUID
         return new Guid(hash[..16]);
     }
 }
