@@ -470,7 +470,7 @@ public class MovementState : IUiState
         {
             // Check if the unit is no longer prone (standup was successful)
             if (_selectedPath?.MovementType == null ||
-                _selectedUnit is not Mech { IsProne: false } mech) return;
+                _selectedUnit is not Mech { IsProne: false, Position: not null } mech) return;
 
             if (mech.GetMovementPoints(_selectedPath.MovementType) < 1)
             {
@@ -480,6 +480,10 @@ public class MovementState : IUiState
             }
             
             _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
+            _selectedPath = new MovementPath([
+                new PathSegment(mech.Position, mech.Position, 0)],
+                _selectedPath.MovementType);
+            _builder.SetMovementPath(_selectedPath);
             HighlightReachableHexes();
             TransitionTo(new SelectingTargetHexStep(this));
         }
