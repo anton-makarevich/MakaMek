@@ -150,8 +150,14 @@ public class MovementState : IUiState
         var direction = _viewModel.AvailableDirections?.FirstOrDefault();
         if (direction == null) return; 
         var path = _possibleDirections[direction.Value];
-        if (_viewModel.MovementPath == null || _viewModel.MovementPath.Last().To != path.Destination) return;
-        
+        if (_viewModel.MovementPath == null || _viewModel.MovementPath.Last().To != path.Destination)
+        {
+            if (_selectedUnit?.Position == null) return;
+            path = MovementPath.CreateStandingStillPath(_selectedUnit.Position);
+            _builder.SetMovementType(MovementType.StandingStill);
+            _builder.SetMovementPath(path);
+        }
+
         CompleteMovement();
     }
 

@@ -494,4 +494,52 @@ public class BattleMapExtensionsTests
             }
         }
     }
+    
+    [Fact]
+    public void GetReachableHexesForPosition_ShouldIncludeStartHex_WhenMovementTypeIsWalk()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        const int movementPoints = 5;
+        var friendlyUnitsCoordinates = new HashSet<HexCoordinates>(){ startPosition.Coordinates };
+
+        // Act
+        var reachabilityData = map.GetReachableHexesForPosition(
+            startPosition,
+            movementPoints,
+            canMoveBackward: false,
+            movementType: MovementType.Walk,
+            new HashSet<HexCoordinates>(),
+            friendlyUnitsCoordinates);
+        
+        // Assert
+        reachabilityData.ForwardReachableHexes.ShouldContain(startPosition.Coordinates);
+        reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
+    }
+    
+    [Fact]
+    public void GetReachableHexesForPosition_ShouldNotIncludeStartHex_WhenMovementTypeIsNotWalk()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        const int movementPoints = 5;
+        var friendlyUnitsCoordinates = new HashSet<HexCoordinates>(){ startPosition.Coordinates };
+
+        // Act
+        var reachabilityData = map.GetReachableHexesForPosition(
+            startPosition,
+            movementPoints,
+            canMoveBackward: false,
+            movementType: MovementType.Run,
+            new HashSet<HexCoordinates>(),
+            friendlyUnitsCoordinates);
+        
+        // Assert
+        reachabilityData.ForwardReachableHexes.ShouldNotContain(startPosition.Coordinates);
+        reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
+    }
 }
