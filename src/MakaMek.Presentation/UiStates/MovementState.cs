@@ -246,7 +246,7 @@ public class MovementState : IUiState
         }
     }
 
-    public string ActionLabel => !IsActionRequired ? string.Empty : _step.AtionLabel;
+    public string ActionLabel => !IsActionRequired ? string.Empty : _step.ActionLabel;
 
     public bool IsActionRequired =>
         this.CanHumanPlayerAct() &&
@@ -525,7 +525,7 @@ public class MovementState : IUiState
     private interface IMovementStep
     {
         MovementStep Step { get; }
-        string AtionLabel { get; }
+        string ActionLabel { get; }
         void HandleMovementTypeSelection(MovementType movementType);
         void HandleHexSelection(Hex hex);
         void HandleFacingSelection(HexDirection direction);
@@ -542,7 +542,7 @@ public class MovementState : IUiState
         }
 
         public abstract MovementStep Step { get; }
-        public abstract string AtionLabel { get; }
+        public abstract string ActionLabel { get; }
         public virtual void HandleMovementTypeSelection(MovementType movementType) { }
         public virtual void HandleHexSelection(Hex hex) { }
         public virtual void HandleFacingSelection(HexDirection direction) { }
@@ -553,14 +553,14 @@ public class MovementState : IUiState
     {
         public SelectingUnitStep(MovementState state) : base(state) { }
         public override MovementStep Step => MovementStep.SelectingUnit;
-        public override string AtionLabel => State._viewModel.LocalizationService.GetString("Action_SelectUnitToMove");
+        public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectUnitToMove");
     }
 
     private sealed class SelectingMovementTypeStep : MovementStepBase
     {
         public SelectingMovementTypeStep(MovementState state) : base(state) { }
         public override MovementStep Step => MovementStep.SelectingMovementType;
-        public override string AtionLabel => State._viewModel.LocalizationService.GetString("Action_SelectMovementType");
+        public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectMovementType");
 
         public override void HandleMovementTypeSelection(MovementType movementType)
         {
@@ -590,7 +590,7 @@ public class MovementState : IUiState
     {
         public SelectingTargetHexStep(MovementState state) : base(state) { }
         public override MovementStep Step => MovementStep.SelectingTargetHex;
-        public override string AtionLabel => State._viewModel.LocalizationService.GetString("Action_SelectTargetHex");
+        public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectTargetHex");
 
         public override void HandleHexSelection(Hex hex)
         {
@@ -602,7 +602,7 @@ public class MovementState : IUiState
     {
         public SelectingDirectionStep(MovementState state) : base(state) { }
         public override MovementStep Step => MovementStep.SelectingDirection;
-        public override string AtionLabel => State._viewModel.LocalizationService.GetString("Action_SelectFacingDirection");
+        public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectFacingDirection");
 
         public override void HandleHexSelection(Hex hex)
         {
@@ -640,7 +640,7 @@ public class MovementState : IUiState
     {
         public ConfirmMovementStep(MovementState state) : base(state) { }
         public override MovementStep Step => MovementStep.ConfirmMovement;
-        public override string AtionLabel => GetActionLabel();
+        public override string ActionLabel => GetActionLabel();
 
         private string GetActionLabel()
         {
@@ -659,7 +659,7 @@ public class MovementState : IUiState
 
         public override void HandleHexSelection(Hex hex)
         {
-            // Reset selection if clicked outside reachable hexes during confirmation step
+            // Reset selection if clicked outside reachable hexes during the confirmation step
             // This matches the behavior in HandleTargetHexSelection and SelectingDirectionStep
             if (State._reachabilityData != null && !State._reachabilityData.Value.IsHexReachable(hex.Coordinates))
             {
@@ -687,7 +687,7 @@ public class MovementState : IUiState
     {
         public SelectingStandingUpDirectionStep(MovementState state) : base(state) { }
         public override MovementStep Step => MovementStep.SelectingStandingUpDirection;
-        public override string AtionLabel => State._viewModel.LocalizationService.GetString("Action_SelectFacingDirection");
+        public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectFacingDirection");
 
         public override void HandleFacingSelection(HexDirection direction)
         {
@@ -699,6 +699,6 @@ public class MovementState : IUiState
     {
         public CompletedStep(MovementState state) : base(state) { }
         public override MovementStep Step => MovementStep.Completed;
-        public override string AtionLabel => string.Empty;
+        public override string ActionLabel => string.Empty;
     }
 }

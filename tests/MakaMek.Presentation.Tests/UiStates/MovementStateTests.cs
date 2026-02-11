@@ -733,7 +733,7 @@ public class MovementStateTests
         _sut.HandleHexSelection(unreachableHex!);
 
         // Assert
-        _battleMapViewModel.SelectedUnit.ShouldBe(proneMech); // Selection should be reset
+        _battleMapViewModel.SelectedUnit.ShouldBe(proneMech); // Selection should not be reset
         _battleMapViewModel.Game.BattleMap.GetHexes()
             .Any(h => h.IsHighlighted)
             .ShouldBeTrue();
