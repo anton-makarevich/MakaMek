@@ -204,6 +204,8 @@ public class MovementState : IUiState
         }
 
         TransitionTo(new SelectingDirectionStep(this));
+        
+        // TODO: the code below doesn't belong to the method
 
         // Use the extension method to find all possible paths to the target hex
         var startPosition = _selectedPath.Destination;
@@ -306,7 +308,7 @@ public class MovementState : IUiState
                     // Check if this is a minimum movement situation
                     if (mech.IsMinimumMovement)
                     {
-                        // Minimum movement case: single "Attempt Standup" button, automatically use running
+                        // Minimum movement case: single "Attempt Standup" button
                         proneActions.Add(new StateAction(
                             _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
                             true,
@@ -486,6 +488,7 @@ public class MovementState : IUiState
             _builder.SetMovementPath(_selectedPath);
             HighlightReachableHexes();
             TransitionTo(new SelectingTargetHexStep(this));
+            _viewModel.NotifyStateChanged();
         }
     }
 
@@ -514,6 +517,7 @@ public class MovementState : IUiState
             }
             
             TransitionTo(new SelectingMovementTypeStep(this));
+            _viewModel.NotifyStateChanged();
         }
     }
 
