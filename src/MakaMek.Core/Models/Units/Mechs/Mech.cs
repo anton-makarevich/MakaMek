@@ -466,7 +466,7 @@ public class Mech : Unit
     public bool CanRun {
         get
         {
-            var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed || p.IsBlownOff);
+            var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
             if (destroyedLegs > 0) return false;
             return true;
         }
