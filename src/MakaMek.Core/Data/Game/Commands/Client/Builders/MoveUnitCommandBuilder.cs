@@ -6,22 +6,15 @@ namespace Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandBuilder(gameId, playerId)
 {
     private Guid? _unitId;
-    private MovementType? _movementType;
     private MovementPath? _movementPath;
 
     public override bool CanBuild => 
         _unitId != null 
-        && _movementType != null 
         && _movementPath != null;
 
     public void SetUnit(IUnit unit)
     {
         _unitId = unit.Id;
-    }
-
-    public void SetMovementType(MovementType movementType)
-    {
-        _movementType = movementType;
     }
 
     public void SetMovementPath(MovementPath movementPath)
@@ -31,7 +24,7 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
 
     public MoveUnitCommand? Build()
     {
-        if (_unitId == null || _movementType == null || _movementPath == null)
+        if (_unitId == null || _movementPath == null)
             return null;
 
         return new MoveUnitCommand
@@ -39,7 +32,7 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
             GameOriginId = GameId,
             PlayerId = PlayerId,
             UnitId = _unitId.Value,
-            MovementType = _movementType.Value,
+            MovementType = _movementPath.MovementType,
             MovementPath = _movementPath.ToData()
         };
     }
@@ -47,7 +40,6 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
     public void Reset()
     {
         _unitId = null;
-        _movementType = null;
         _movementPath = null;
     }
 }

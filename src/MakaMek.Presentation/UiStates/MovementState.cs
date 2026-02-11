@@ -155,7 +155,6 @@ public class MovementState : IUiState
         {
             if (_selectedUnit?.Position == null) return;
             path = MovementPath.CreateStandingStillPath(_selectedUnit.Position);
-            _builder.SetMovementType(MovementType.StandingStill);
             _builder.SetMovementPath(path);
         }
 
@@ -428,7 +427,7 @@ public class MovementState : IUiState
                 new PathSegment(_selectedUnit.Position, _selectedUnit.Position, 0)],
                 movementType);
             // Ensure the builder has the movement type set
-            _builder.SetMovementType(movementType);
+            _builder.SetMovementPath(_selectedPath);
 
             TransitionTo(new SelectingStandingUpDirectionStep(this));
             _viewModel.ShowDirectionSelector(_selectedUnit.Position.Coordinates, Enum.GetValues<HexDirection>());
@@ -471,10 +470,9 @@ public class MovementState : IUiState
         {
             // Check if the unit is no longer prone (standup was successful)
             if (_selectedPath?.MovementType == null ||
-                _selectedUnit is not Mech { IsProne: false } mech
-                || mech.GetMovementPoints(_selectedPath.MovementType) <= 0) return;
+                _selectedUnit is not Mech { IsProne: false } mech) return;
 
-            if (mech.GetMovementPoints(_selectedPath.MovementType) <= 1)
+            if (mech.GetMovementPoints(_selectedPath.MovementType) < 1)
             {
                 // No more movement possible, just confirm
                 CompleteMovement();
@@ -521,8 +519,6 @@ public class MovementState : IUiState
         if (_viewModel.Game?.PhaseStepState?.ActivePlayer == null) return;
         if (mech.Position == null || !mech.IsProne) return;
 
-        // Set up for prone facing change movement
-        _builder.SetMovementType(MovementType.Walk);
         _movementPoints = mech.GetMovementPoints(MovementType.Walk);
 
         // Calculate maximum rotation steps based on available movement points
@@ -533,6 +529,11 @@ public class MovementState : IUiState
 
         var currentFacing = mech.Facing;
         if (currentFacing == null) return;
+        
+        _selectedPath = new MovementPath([
+            new PathSegment(mech.Position, mech.Position, 0)],
+            MovementType.Walk);
+        _builder.SetMovementPath(_selectedPath);
 
         void AddToPossibleDirections(HexDirection direction, int cost)
         {
@@ -605,7 +606,6 @@ public class MovementState : IUiState
             if (State._selectedUnit?.Position == null) return;
             if (State.CurrentMovementStep != MovementStep.SelectingMovementType) return;
             
-            State._builder.SetMovementType(movementType);
             if (movementType == MovementType.StandingStill)
             {
                 // For standing still, we create an empty movement path
