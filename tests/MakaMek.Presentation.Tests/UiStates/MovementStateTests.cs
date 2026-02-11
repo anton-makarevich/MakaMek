@@ -1779,7 +1779,8 @@ public class MovementStateTests
     {
         // Arrange
         var mech = _unit1 as Mech;
-        mech!.SetProne();
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        mech.SetProne();
         _sut.HandleUnitSelection(mech);
 
         // Act & Assert
