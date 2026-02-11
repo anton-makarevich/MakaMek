@@ -1633,4 +1633,132 @@ public class MovementStateTests
         // Assert
         actionLabel.ShouldBe(string.Empty); // Standing still completes movement immediately
     }
+
+    [Fact]
+    public void ConfirmMovementStep_ResetsSelection_WhenClickingOutsideReachableHexes_WithRemainingMPs()
+    {
+        // Arrange
+        var unit = _battleMapViewModel.Units.First();
+        var startPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Top);
+        unit.Deploy(startPosition);
+        var unitHex = _game.BattleMap!.GetHex(unit.Position!.Coordinates)!;
+        _sut.HandleHexSelection(unitHex);
+        _sut.HandleUnitSelection(unit);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        var reachableHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
+        _sut.HandleHexSelection(reachableHex);
+        _sut.HandleFacingSelection(HexDirection.Top);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+
+        var unreachableHex = _battleMapViewModel.Game!.BattleMap!.GetHex(new HexCoordinates(1, 11))!;
+
+        // Act
+        _sut.HandleHexSelection(unreachableHex);
+
+        // Assert
+        _battleMapViewModel.SelectedUnit.ShouldBeNull();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+        _battleMapViewModel.Game.BattleMap.GetHexes()
+            .Any(h => h.IsHighlighted)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ConfirmMovementStep_ResetsSelection_WhenClickingOutsideReachableHexes_WithNoRemainingMPs()
+    {
+        // Arrange
+        var unit = _battleMapViewModel.Units.First();
+        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        unit.Deploy(startPosition);
+        var unitHex = _game.BattleMap!.GetHex(unit.Position!.Coordinates)!;
+        _sut.HandleHexSelection(unitHex);
+        _sut.HandleUnitSelection(unit);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        // Move to a hex that uses all walking MPs (8 hexes to use all 8 walking MPs)
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 9))!;
+        _sut.HandleHexSelection(targetHex);
+        _sut.HandleFacingSelection(HexDirection.Bottom);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+
+        var unreachableHex = new Hex(new HexCoordinates(10, 10));
+
+        // Act
+        _sut.HandleHexSelection(unreachableHex);
+
+        // Assert
+        _battleMapViewModel.SelectedUnit.ShouldBeNull();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+    }
+
+    [Fact]
+    public void ConfirmMovementStep_ResetsSelection_WhenClickingOutsideReachableHexes_ForJump()
+    {
+        // Arrange
+        var unit = _battleMapViewModel.Units.First();
+        var startPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        unit.Deploy(startPosition);
+        var unitHex = _game.BattleMap!.GetHex(unit.Position!.Coordinates)!;
+        _sut.HandleHexSelection(unitHex);
+        _sut.HandleUnitSelection(unit);
+        _sut.HandleMovementTypeSelection(MovementType.Jump);
+
+        var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
+        _sut.HandleHexSelection(targetHex);
+        _sut.HandleFacingSelection(HexDirection.Top);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+
+        var unreachableHex = new Hex(new HexCoordinates(10, 10));
+
+        // Act
+        _sut.HandleHexSelection(unreachableHex);
+
+        // Assert
+        _battleMapViewModel.SelectedUnit.ShouldBeNull();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+    }
+
+    [Fact]
+    public void ConfirmMovementStep_ShouldNotResetSelection_WhenClickingOutsideReachableHexes_ButInPostStandupMovement()
+    {
+        // Arrange
+        var position = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        var proneMech = _battleMapViewModel.Units.First() as Mech;
+        _pilotingSkillCalculator.GetPsrBreakdown(proneMech!, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+        proneMech!.Deploy(position);
+        proneMech.AssignPilot(_pilot);
+        proneMech.SetProne();
+        var unitHex = _game.BattleMap!.GetHex(proneMech.Position!.Coordinates)!;
+        _sut.HandleHexSelection(unitHex);
+        _sut.HandleUnitSelection(proneMech);
+
+        var walkStandupAction = _sut.GetAvailableActions().First(a => a.Label.StartsWith("Walk"));
+        walkStandupAction.OnExecute();
+        _sut.HandleFacingSelection(HexDirection.Bottom);
+        proneMech.StandUp(HexDirection.Bottom);
+        _sut.ResumeMovementAfterStandup();
+
+        // Move to confirm step
+        var reachableHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
+        _sut.HandleHexSelection(reachableHex);
+        _sut.HandleFacingSelection(HexDirection.Top);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+
+        var unreachableHex = _battleMapViewModel.Game!.BattleMap!.GetHex(new HexCoordinates(1, 11))!;
+
+        // Act
+        _sut.HandleHexSelection(unreachableHex);
+
+        // Assert
+        _battleMapViewModel.SelectedUnit.ShouldBe(proneMech); // Selection should NOT be reset
+        _battleMapViewModel.Game.BattleMap.GetHexes()
+            .Any(h => h.IsHighlighted)
+            .ShouldBeTrue(); // Hexes should still be highlighted
+    }
 }
