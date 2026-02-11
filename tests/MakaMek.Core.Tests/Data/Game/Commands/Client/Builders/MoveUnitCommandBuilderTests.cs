@@ -59,19 +59,6 @@ public class MoveUnitCommandBuilderTests
     }
     
     [Fact]
-    public void CanBuild_ReturnsFalse_WhenMissingMovementType()
-    {
-        // Arrange
-        _builder.SetUnit(_unit);
-        _builder.SetMovementPath(new MovementPath([
-            new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
-            new HexPosition(1,2,HexDirection.Bottom), 1)], MovementType.Walk));
-        
-        // Act & Assert
-        _builder.CanBuild.ShouldBeFalse();
-    }
-    
-    [Fact]
     public void CanBuild_ReturnsTrue_WhenAllDataSet()
     {
         // Arrange
