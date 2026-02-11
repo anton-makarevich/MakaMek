@@ -62,7 +62,7 @@
                          HorizontalAlignment="Center"/>
                 <TextBlock Grid.Row="0" Grid.Column="2"
                            Classes="labelLarge"
-                         Text="Distance"
+                         Text="Traversed"
                          HorizontalAlignment="Center"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0"
