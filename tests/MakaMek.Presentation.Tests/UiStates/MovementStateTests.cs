@@ -19,7 +19,6 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
@@ -41,7 +40,6 @@ public class MovementStateTests
     private readonly Player _player;
     private readonly Hex _hex1;
     private readonly BattleMapViewModel _battleMapViewModel;
-    private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IPilot _pilot = Substitute.For<IPilot>();
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
@@ -305,9 +303,19 @@ public class MovementStateTests
     public void Constructor_ShouldThrow_IfActivePlayerNull()
     {
         // Arrange
-        SetPhase(PhaseNames.WeaponsAttack);
+        var gameWithNullPlayer = Substitute.For<IClientGame>();
+        gameWithNullPlayer.PhaseStepState.Returns((PhaseStepState?)null);
+
+        var imageService = Substitute.For<IImageService>();
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+        var viewModel = new BattleMapViewModel(imageService, _localizationService, dispatcherService, _rulesProvider)
+            {
+                Game = gameWithNullPlayer
+            };
+
         // Act & Assert
-        Should.Throw<InvalidOperationException>(() => new MovementState(_battleMapViewModel));
+        Should.Throw<InvalidOperationException>(() => new MovementState(viewModel));
     }
 
     [Fact]
@@ -383,12 +391,12 @@ public class MovementStateTests
     }
     
     [Fact]
-    public void HandleFacingSelection_ShouldPublishCommand_WhenInSelectingStandingUpDirectionStep()
+    public void HandleFacingSelection_ShouldCallTryStandupUnit_WhenInSelectingStandingUpDirectionStep()
     {
         // Arrange
         SetPhase(PhaseNames.Movement);
         SetActivePlayer();
-        
+
         var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
         var unit = _battleMapViewModel.Units.First() as Mech;
         unit!.Deploy(position);
@@ -402,12 +410,12 @@ public class MovementStateTests
             });
         _sut.HandleUnitSelection(unit);
         _sut.GetAvailableActions().First(a => a.Label.Contains("Walk")).OnExecute();
-        
+
         // Act
         _sut.HandleFacingSelection(HexDirection.BottomLeft);
-        
+
         // Assert
-        _commandPublisher.Received().PublishCommand(Arg.Is<TryStandupCommand>(cmd =>
+        _game.Received().TryStandupUnit(Arg.Is<TryStandupCommand>(cmd =>
             cmd.UnitId == unit.Id && cmd.NewFacing == HexDirection.BottomLeft));
         _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeFalse();
     }
@@ -1183,7 +1191,7 @@ public class MovementStateTests
         standupAction.OnExecute();
         
         // Assert
-        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<TryStandupCommand>());
+        _game.DidNotReceive().TryStandupUnit(Arg.Any<TryStandupCommand>());
     }
 
     [Fact]
