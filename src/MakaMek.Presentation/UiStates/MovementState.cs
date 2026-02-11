@@ -311,7 +311,7 @@ public class MovementState : IUiState
                         proneActions.Add(new StateAction(
                             _viewModel.LocalizationService.GetString("Action_AttemptStandup") + probabilityText,
                             true,
-                            () => AttemptStandup(MovementType.Run)));
+                            () => AttemptStandup(MovementType.Walk)));
                     }
                     else
                     {
@@ -415,7 +415,7 @@ public class MovementState : IUiState
         }
     }
 
-    // New method to handle standup attempts
+    // A method to handle standup attempts
     private void AttemptStandup(MovementType movementType)
     {
         lock (_stateLock)
