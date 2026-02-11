@@ -1766,7 +1766,7 @@ public class BattleMapViewModelTests
         // Act
         var result = _sut.PlayerActionLabel;
         
-        // Assert - we expect action label for End phase
+        // Assert - we expect an action label for the End phase
         result.ShouldBe("End turn");
     }
 
@@ -1895,6 +1895,98 @@ public class BattleMapViewModelTests
         // Assert
         var highlightedHexes = game.BattleMap!.GetHexes().Where(h => h.IsHighlighted).ToList();
         highlightedHexes.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public void ProcessMechFall_ShouldCallResumeMovementAfterFall_WhenInMovementStateWithMatchingUnit()
+    {
+        // Arrange
+        var playerId = Guid.NewGuid();
+        var player = new Player(playerId, "Player1", PlayerControlType.Human);
+        var mechData = MechFactoryTests.CreateDummyMechData();
+        mechData.Id = Guid.NewGuid();
+        var game = CreateClientGame();
+        game.JoinGameWithUnits(player, [mechData], []);
+        game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain())));
+        _sut.Game = game;
+
+        game.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            Units = [mechData],
+            PlayerName = player.Name,
+            GameOriginId = Guid.NewGuid(),
+            Tint = "#FF0000",
+            PilotAssignments = [],
+            IdempotencyKey = _idempotencyKey
+        });
+
+        game.HandleCommand(new ChangePhaseCommand
+        {
+            Phase = PhaseNames.Movement,
+            GameOriginId = Guid.NewGuid()
+        });
+
+        game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+
+        // Deploy and select a unit to enter MovementState
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _sut.Units.First() as Mech;
+        var pilot = Substitute.For<IPilot>();
+        pilot.IsConscious.Returns(true);
+        unit!.AssignPilot(pilot);
+        unit.Deploy(position);
+        // Unit starts standing
+        
+        _sut.HandleHexSelection(game.BattleMap!.GetHexes().First(h => h.Coordinates == position.Coordinates));
+        
+        // Mock Psr for Standup (needed if we end up checking standup availability)
+        game.PilotingSkillCalculator.GetPsrBreakdown(unit, PilotingSkillRollType.StandupAttempt)
+            .Returns(new PsrBreakdown
+            {
+                BasePilotingSkill = 4,
+                Modifiers = []
+            });
+
+        // Verify we're in MovementState
+        var movementState = _sut.CurrentState as MovementState;
+        movementState.ShouldNotBeNull();
+        _sut.SelectedUnit.ShouldBe(unit);
+        
+        // Select Movement Type (e.g., Walk) to initialize _selectedPath
+        var action = movementState.GetAvailableActions()
+            .First(a => a.Label.StartsWith("Walk"));
+        action.OnExecute();
+
+        var fallCommand = new MechFallCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            LevelsFallen = 0,
+            WasJumping = false,
+            DamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 0),
+                new DiceResult(1),
+                HitDirection.Front
+            )
+        };
+
+        // Act
+        game.HandleCommand(fallCommand);
+
+        // Assert
+        _localizationService.GetString("Action_StayProne").Returns("StayProne");
+
+        // Verify that we have the "StayProne" action, which signifies we are handling a prone unit in SelectingMovementTypeStep
+        var actions = movementState.GetAvailableActions();
+        actions.ShouldContain(a => a.Label.Contains("StayProne"));
     }
     
     [Fact]
