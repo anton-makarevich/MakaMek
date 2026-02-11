@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -472,6 +473,14 @@ public class MovementState : IUiState
             if (_selectedPath?.MovementType == null ||
                 _selectedUnit is not Mech { IsProne: false } mech
                 || mech.GetMovementPoints(_selectedPath.MovementType) <= 0) return;
+
+            if (mech.GetMovementPoints(_selectedPath.MovementType) <= 1)
+            {
+                // No more movement possible, just confirm
+                CompleteMovement();
+                return;
+            }
+            
             _isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
             HighlightReachableHexes();
             TransitionTo(new SelectingTargetHexStep(this));
@@ -482,7 +491,26 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_selectedUnit is not Mech { IsProne: true }) return;
+            if (_selectedUnit is not Mech { IsProne: true, Position: not null } mech)
+            {
+                Game?.Logger.LogWarning("Unit is not prone after fall");
+                return;
+            }
+
+            if (!mech.CanStandup())
+            {
+                // Cannot stand up, complete the turn
+                if (_selectedPath == null)
+                {
+                    Game?.Logger.LogWarning("No movement path after fall");
+                    return;
+                }
+
+                _builder.SetMovementPath(_selectedPath);
+                CompleteMovement();
+                return;
+            }
+            
             TransitionTo(new SelectingMovementTypeStep(this));
         }
     }

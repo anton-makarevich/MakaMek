@@ -511,8 +511,9 @@ public class Mech : Unit
         return gyro?.Hits ==1;
     }
 
-    public void SetProne()
+    public void SetProne(HexDirection? facing = null)
     {
+        if (facing.HasValue && Position != null) Position = Position with { Facing = facing.Value };
         Status |= UnitStatus.Prone;
     }
 

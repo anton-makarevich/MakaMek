@@ -261,7 +261,7 @@ public abstract class BaseGame : IGame
         // Apply falling to the unit using the falling data from the command if present
         if (fallCommand.DamageData is not { HitLocations.HitLocations: var hits }) return;
         mech?.ApplyDamage(hits, fallCommand.DamageData.FallDirection);
-        mech?.SetProne();
+        mech?.SetProne(fallCommand.DamageData.FacingAfterFall);
         if (fallCommand.IsPilotTakingDamage)
         {
             mech?.Pilot?.Hit();

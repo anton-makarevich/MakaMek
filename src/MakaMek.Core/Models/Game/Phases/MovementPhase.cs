@@ -80,7 +80,6 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
             Game.OnMechStandUp(standUpCommand.Value);
             Game.CommandPublisher.PublishCommand(standUpCommand);
         }
-        
     }
 
     private void ProcessJumpWithDamage(Unit? unit)

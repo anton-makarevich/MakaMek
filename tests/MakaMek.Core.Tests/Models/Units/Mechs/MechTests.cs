@@ -273,6 +273,20 @@ public class MechTests
         (mech.Status & UnitStatus.Prone).ShouldBe(UnitStatus.Prone);
         mech.IsProne.ShouldBeTrue();
     }
+    
+    [Fact]
+    public void SetProne_ChangesFacing_WhenProvidedAndDeployed()
+    {
+        // Arrange
+        var mech = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        mech.Deploy(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top));
+
+        // Act
+        mech.SetProne(HexDirection.Bottom);
+
+        // Assert
+        mech.Position!.Facing.ShouldBe(HexDirection.Bottom);
+    }
 
     [Fact]
     public void StandUp_RemovesProneStatus()
