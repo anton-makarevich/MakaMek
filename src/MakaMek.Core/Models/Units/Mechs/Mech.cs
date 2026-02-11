@@ -467,8 +467,7 @@ public class Mech : Unit
         get
         {
             var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
-            if (destroyedLegs > 0) return false;
-            return true;
+            return destroyedLegs <= 0;
         }
     }
     
