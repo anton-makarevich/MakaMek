@@ -1,11 +1,8 @@
 using System.Reactive.Concurrency;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -14,7 +11,6 @@ using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
@@ -22,7 +18,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Tests.Models.Map;
@@ -39,11 +34,8 @@ public class MovementStateTests
 {
     private readonly IToHitCalculator _toHitCalculator = Substitute.For<IToHitCalculator>();
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator = Substitute.For<IPilotingSkillCalculator>();
-    private readonly IConsciousnessCalculator _consciousnessCalculator = Substitute.For<IConsciousnessCalculator>();
-    private readonly IHeatEffectsCalculator _heatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     private readonly MovementState _sut;
-    private readonly ClientGame _game;
-    private readonly UnitData _unitData;
+    private readonly IClientGame _game;
     private readonly Unit _unit1;
     private readonly Unit _unit2;
     private readonly Player _player;
@@ -54,12 +46,11 @@ public class MovementStateTests
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
-    private readonly IHashService _hashService = Substitute.For<IHashService>();
 
     public MovementStateTests()
     {
         var imageService = Substitute.For<IImageService>();
-        
+
         // Mock localization service responses
         _localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
         _localizationService.GetString("Action_SelectMovementType").Returns("Select movement type");
@@ -76,16 +67,17 @@ public class MovementStateTests
         _localizationService.GetString("MovementType_Jump").Returns("Jump");
         _localizationService.GetString("Action_AttemptStandup").Returns("Attempt Standup");
         _localizationService.GetString("Action_ChangeFacing").Returns("Change Facing | MP: {0}");
-        
+
         var dispatcherService = Substitute.For<IDispatcherService>();
         dispatcherService.Scheduler.Returns(Scheduler.Immediate);
-        
+
          _battleMapViewModel = new BattleMapViewModel(imageService,
              _localizationService,
              dispatcherService,
              _rulesProvider);
         var playerId = Guid.NewGuid();
-        
+        var playerId2 = Guid.NewGuid();
+
         _pilot.IsConscious.Returns(true);
         var equipment = new List<ComponentData>
                 {
@@ -109,50 +101,45 @@ public class MovementStateTests
                         SpecificData = new EngineStateData(EngineType.Fusion, 160)
                     }
                 };
-        _unitData = MechFactoryTests.CreateDummyMechData(equipment,true);
-        
+        var unitData = MechFactoryTests.CreateDummyMechData(equipment,true);
+
         var mechFactory = new MechFactory(
             _rulesProvider,
             _componentProvider,
             _localizationService);
-        _unit1 = mechFactory.Create(_unitData);
-        _unit2 = mechFactory.Create(_unitData);
+        _unit1 = mechFactory.Create(unitData);
+        _unit2 = mechFactory.Create(unitData);
         _unit1.AssignPilot(_pilot);
-        
+
         // Create two adjacent hexes
         _hex1 = new Hex(new HexCoordinates(1, 1));
-        
-        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
+
+        // Create a real battle map
+        IBattleMap battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2,11, new ClearTerrain()));
-         _player = new Player(playerId, "Player1", PlayerControlType.Human);
-        _game = new ClientGame(_rulesProvider,
-            mechFactory,
-            _commandPublisher,
-            _toHitCalculator,
-            _pilotingSkillCalculator,
-            _consciousnessCalculator,
-            _heatEffectsCalculator,
-            Substitute.For<IBattleMapFactory>(),
-            _hashService,
-            Substitute.For<ILogger<ClientGame>>());
-        
-        var idempotencyKey = Guid.NewGuid();
-        _hashService.ComputeCommandIdempotencyKey(
-            Arg.Any<Guid>(),
-            Arg.Any<Guid>(),
-            Arg.Any<Type>(),
-            Arg.Any<int>(),
-            Arg.Any<string>(),
-            Arg.Any<Guid?>())
-            .Returns(idempotencyKey);
-        
-        _game.JoinGameWithUnits(_player,[],[]);
-        _game.SetBattleMap(battleMap);
-        
+
+        // Create players with units
+        _player = new Player(playerId, "Player1", PlayerControlType.Human);
+        _player.AddUnit(_unit1);
+
+        var player2 = new Player(playerId2, "Player2", PlayerControlType.Human);
+        player2.AddUnit(_unit2);
+
+        // Create mock IClientGame
+        _game = Substitute.For<IClientGame>();
+        _game.BattleMap.Returns(battleMap);
+        _game.Players.Returns(new List<IPlayer> { _player, player2 });
+        _game.AlivePlayers.Returns(new List<IPlayer> { _player, player2 });
+        _game.PilotingSkillCalculator.Returns(_pilotingSkillCalculator);
+        _game.ToHitCalculator.Returns(_toHitCalculator);
+        _game.RulesProvider.Returns(_rulesProvider);
+        _game.TurnPhase.Returns(PhaseNames.Movement);
+        _game.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
+        _game.CanActivePlayerAct.Returns(true);
+        _game.LocalPlayers.Returns(new List<Guid> { playerId });
+
         _battleMapViewModel.Game = _game;
-        AddPlayerUnits(idempotencyKey);
-        SetActivePlayer();
         _sut = new MovementState(_battleMapViewModel);
     }
 
@@ -163,7 +150,7 @@ public class MovementStateTests
         _sut.ActionLabel.ShouldBe("Select unit to move");
         _sut.IsActionRequired.ShouldBeTrue();
     }
-    
+
     [Fact]
     public void InitialState_CannotExecutePlayerAction()
     {
@@ -171,59 +158,21 @@ public class MovementStateTests
         _sut.CanExecutePlayerAction.ShouldBeFalse();
     }
 
-    private void AddPlayerUnits(Guid joinCommandIdempotencyKey)
-    {
-        var playerId2 = Guid.NewGuid();
-        _game.HandleCommand(new JoinGameCommand
-        {
-            PlayerName = "Player1",
-            Units = [_unitData],
-            Tint = "#FF0000",
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = _player.Id,
-            PilotAssignments = [],
-            IdempotencyKey = joinCommandIdempotencyKey
-        });
-        _game.HandleCommand(new JoinGameCommand
-        {
-            PlayerName = "Player2",
-            Units = [_unitData],
-            Tint = "#FFFF00",
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId2,
-            PilotAssignments = []
-        });
-        _game.HandleCommand(new UpdatePlayerStatusCommand
-        {
-            PlayerStatus = PlayerStatus.Ready,
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = _player.Id
-        });
-        _game.HandleCommand(new UpdatePlayerStatusCommand
-        {
-            PlayerStatus = PlayerStatus.Ready,
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = playerId2
-        });
-    }
-    private void SetActivePlayer()
-    {
-        _game.HandleCommand(new ChangeActivePlayerCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = _player.Id,
-            UnitsToPlay = 1
-        });
-    }
-    
     private void SetPhase(PhaseNames phase)
     {
-        _game.HandleCommand(new ChangePhaseCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            Phase = phase,
-        });
+        _game.TurnPhase.Returns(phase);
+        _game.PhaseStepState.Returns(phase == PhaseNames.Start
+            ? null
+            : new PhaseStepState(phase, _player, 1));
     }
+
+    private void SetActivePlayer()
+    {
+        _game.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
+        _game.CanActivePlayerAct.Returns(true);
+    }
+
+
 
     [Fact]
     public void HandleUnitSelection_TransitionsToMovementTypeSelection()
@@ -1069,7 +1018,7 @@ public class MovementStateTests
         pathAfterFirstLeg.ShouldNotBeNull();
         pathAfterFirstLeg.Last().To.Coordinates.ShouldBe(firstTargetHex.Coordinates);
 
-        // Act - click another reachable hex while in confirmation step
+        // Act - click another reachable hex while in the confirmation step
         var nextTargetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 3))!;
         _sut.HandleHexSelection(nextTargetHex);
 

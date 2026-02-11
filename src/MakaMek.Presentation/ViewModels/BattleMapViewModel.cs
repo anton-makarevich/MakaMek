@@ -25,7 +25,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public class BattleMapViewModel : BaseViewModel
 {
-    private ClientGame? _game;
+    private IClientGame? _game;
     private IDisposable? _gameSubscription;
     private IDisposable? _commandSubscription;
     private IUnit? _selectedUnit;
@@ -146,7 +146,7 @@ public class BattleMapViewModel : BaseViewModel
         }
     }
     
-    public ClientGame? Game
+    public IClientGame? Game
     {
         get => _game;
         set

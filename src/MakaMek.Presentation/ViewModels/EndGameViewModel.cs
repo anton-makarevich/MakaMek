@@ -15,7 +15,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public class EndGameViewModel : BaseViewModel
 {
     private readonly ILocalizationService _localizationService;
-    private ClientGame? _game;
+    private IClientGame? _game;
     private GameEndReason _endReason;
 
     public EndGameViewModel(ILocalizationService localizationService)
@@ -27,7 +27,7 @@ public class EndGameViewModel : BaseViewModel
     /// <summary>
     /// Initialize the view model with the game and end reason
     /// </summary>
-    public void Initialize(ClientGame game, GameEndReason endReason)
+    public void Initialize(IClientGame game, GameEndReason endReason)
     {
         _game = game;
         _endReason = endReason;
