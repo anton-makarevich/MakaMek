@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Utils;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -220,6 +221,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         
         // Extract UnitId from the command if it has one
         var unitId = GetUnitIdFromCommand(command);
+        var attempt = GetCommandAttempt(command);
 
         // Compute idempotency key
         var idempotencyKey = _hashService.ComputeCommandIdempotencyKey
@@ -228,7 +230,8 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             typeof(T),
             Turn,
             TurnPhase.ToString(),
-            unitId);
+            unitId,
+            attempt);
 
         // Check if this command is already pending
         if (_pendingCommands.TryGetValue(idempotencyKey, out var pendingCommand))
@@ -332,6 +335,17 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     private static Guid? GetUnitIdFromCommand(IClientCommand command)
     {
         return command is IClientUnitCommand unitCommand ? unitCommand.UnitId : null;
+    }
+    
+    private int GetCommandAttempt(IClientCommand command)
+    {
+        if (command is not TryStandupCommand standupCommand) return 0;
+        var unit = Players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == standupCommand.UnitId);
+        if (unit is Mech mech)
+            return mech.StandupAttempts;
+        return 0;
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -39,9 +40,8 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         // Find the unit
         var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId) as Mech;
 
-        var broadcastCommand = moveCommand;
-        broadcastCommand.GameOriginId = Game.Id;
         Game.OnMoveUnit(moveCommand);
+        var broadcastCommand = moveCommand with { GameOriginId = Game.Id };
         Game.CommandPublisher.PublishCommand(broadcastCommand);
         
         // Check if PSR is required for jumping with damaged gyro
@@ -54,9 +54,17 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         // Find the unit
         var player = Game.Players.FirstOrDefault(p => p.Id == tryStandUpCommand.PlayerId);
 
-        if (player?.Units.FirstOrDefault(u => u.Id == tryStandUpCommand.UnitId) is not Mech unit) return;
+        if (player?.Units.FirstOrDefault(u => u.Id == tryStandUpCommand.UnitId) is not Mech unit)
+        {
+            // TODO: Should return error command
+            Game.Logger.LogWarning("Unit not found");
+            return;
+        }
+        
+        var broadcastCommand = tryStandUpCommand with { GameOriginId = Game.Id };
+        Game.CommandPublisher.PublishCommand(broadcastCommand);
 
-        // Check if unit can stand up (has sufficient MP, pilot is conscious, etc.)
+        // Check if the unit can stand up (has sufficient MP, pilot is conscious, etc.)
         if (!unit.CanStandup() || unit.Position == null)
         {
             return; // Cannot stand up
