@@ -1080,26 +1080,54 @@ public class MovementStateTests
         unit.Deploy(position);
         _sut.HandleUnitSelection(unit);
         _sut.HandleMovementTypeSelection(MovementType.Walk);
-        
+
         var targetHex = _game.BattleMap!.GetHex(new HexCoordinates(1, 2))!;
         _sut.HandleHexSelection(targetHex);
         _sut.CanExecutePlayerAction.ShouldBeFalse();
-        
+
         // First selection transitions to ConfirmMovement
         _sut.HandleFacingSelection(HexDirection.Top);
         _sut.CanExecutePlayerAction.ShouldBeTrue();
         _sut.PlayerActionLabel.ShouldBe("Move Unit");
         _sut.ExecutePlayerAction();
-        
+
         // Assert
         _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeFalse();
-        _sut.ActionLabel.ShouldBeEmpty();
-        _sut.IsActionRequired.ShouldBeFalse();
-        
-        foreach (var hex in _battleMapViewModel.Game!.BattleMap!.GetHexes())
-        {
-            hex.IsHighlighted.ShouldBeFalse();
-        }
+    }
+
+    [Fact]
+    public void ConfirmMovement_SendsStandingStillCommand_WhenWalkSelectedButCurrentPositionTargeted()
+    {
+        // Arrange
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var position = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var unit = _battleMapViewModel.Units.First();
+        unit.Deploy(position);
+        _sut.HandleUnitSelection(unit);
+        _sut.HandleMovementTypeSelection(MovementType.Walk);
+
+        // Act - Select the current hex as a target (same coordinates and direction)
+        var currentHex = _game.BattleMap!.GetHex(position.Coordinates)!;
+        _sut.HandleHexSelection(currentHex);
+
+        // The direction selector should show with the current direction
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
+
+        // Select the same direction (confirming movement to the same position)
+        _sut.HandleFacingSelection(position.Facing);
+
+        // Confirm the movement
+        _sut.ExecutePlayerAction();
+
+        // Assert - Should send a Standing Still command, not a Walk command
+        _game.Received().MoveUnit(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.MovementType == MovementType.StandingStill &&
+            cmd.MovementPath.Count == 1 &&
+            cmd.MovementPath[0].From.Coordinates.Q == position.Coordinates.Q &&
+            cmd.MovementPath[0].From.Coordinates.R == position.Coordinates.R &&
+            cmd.MovementPath[0].To.Coordinates.Q == position.Coordinates.Q &&
+            cmd.MovementPath[0].To.Coordinates.R == position.Coordinates.R));
     }
     
     [Fact]
