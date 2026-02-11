@@ -496,21 +496,15 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
-            if (_selectedUnit is not Mech { IsProne: true, Position: not null } mech)
+            if (_selectedUnit is not Mech { IsProne: true, Position: not null } mech || _selectedPath == null)
             {
-                Game?.Logger.LogWarning("Unit is not prone after fall");
-                return;
+                var exception = new InvalidOperationException("Unit is not prone after fall or no movement path");
+                Game?.Logger.LogError(exception, "Unit is not prone after fall or no movement path");
+                throw exception;
             }
 
             if (!mech.CanStandup())
             {
-                // Cannot stand up, complete the turn
-                if (_selectedPath == null)
-                {
-                    Game?.Logger.LogWarning("No movement path after fall");
-                    return;
-                }
-
                 _builder.SetMovementPath(_selectedPath);
                 CompleteMovement();
                 return;
