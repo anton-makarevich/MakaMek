@@ -478,6 +478,15 @@ public class MovementState : IUiState
         }
     }
 
+    public void ResumeMovementAfterFall()
+    {
+        lock (_stateLock)
+        {
+            if (_selectedUnit is not Mech { IsProne: true }) return;
+            TransitionTo(new SelectingMovementTypeStep(this));
+        }
+    }
+
     // New method to handle prone facing change
     private void HandleProneFacingChange(Mech mech)
     {
