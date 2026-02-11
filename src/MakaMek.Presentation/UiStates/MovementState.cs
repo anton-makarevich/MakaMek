@@ -604,6 +604,16 @@ public class MovementState : IUiState
         public override MovementStep Step => MovementStep.SelectingDirection;
         public override string AtionLabel => State._viewModel.LocalizationService.GetString("Action_SelectFacingDirection");
 
+        public override void HandleHexSelection(Hex hex)
+        {
+            // Reset selection if clicked outside reachable hexes during direction selection
+            // This matches the behavior in HandleTargetHexSelection
+            if (State._reachabilityData != null && !State._reachabilityData.Value.IsHexReachable(hex.Coordinates))
+            {
+                State.ResetUnitSelection();
+            }
+        }
+
         public override void HandleFacingSelection(HexDirection direction)
         {
             if (State.CurrentMovementStep != MovementStep.SelectingDirection) return;
