@@ -906,8 +906,10 @@ public class BattleMapTests
         hexData4.TerrainTypes.ShouldContain(MakaMekTerrains.HeavyWoods);
     }
     
-    [Fact]
-    public void FindPath_ShouldCacheResult()
+    [Theory]
+    [InlineData(PathFindingMode.Shortest)]
+    [InlineData(PathFindingMode.Longest)]
+    public void FindPath_ShouldCacheResult(PathFindingMode pathFindingMode)
     {
         // Arrange
         var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
@@ -915,14 +917,56 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
 
         // Act 1
-        var path1 = map.FindPath(start, target, MovementType.Walk, 10);
+        var path1 = map.FindPath(start, target, MovementType.Walk, 10, null, pathFindingMode);
         path1.ShouldNotBeNull();
         
         // Act 2
-        var path2 = map.FindPath(start, target, MovementType.Walk, 10);
+        var path2 = map.FindPath(start, target, MovementType.Walk, 10, null, pathFindingMode);
         
         // Assert
         path2.ShouldBeSameAs(path1);
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_ShouldCacheResult()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+
+        // Act 1 - Find the longest path first time
+        var path1 = map.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
+        path1.ShouldNotBeNull();
+        
+        // Act 2 - Find the longest path a second time, should return a cached result
+        var path2 = map.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
+        
+        // Assert
+        path2.ShouldBeSameAs(path1);
+    }
+
+    [Fact]
+    public void FindPath_ShortAndLongModes_UseDifferentCaches()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+
+        // Act
+        var shortestPath = map.FindPath(start, target, MovementType.Walk, 10);
+        var longestPath = map.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
+        
+        // Assert
+        shortestPath.ShouldNotBeNull();
+        longestPath.ShouldNotBeNull();
+        
+        // The paths should be different instances since they use different caches
+        shortestPath.ShouldNotBeSameAs(longestPath);
+        
+        // The longest path should have equal or more hexes traveled
+        longestPath.HexesTraveled.ShouldBeGreaterThanOrEqualTo(shortestPath.HexesTraveled);
     }
 
     [Fact]
