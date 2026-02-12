@@ -73,15 +73,22 @@ public class Bot : IBot
                 break;
             case MechStandUpCommand standUpCommand:
                 // After standup, we need to decide what to do next
-                if (_clientGame.TurnPhase == PhaseNames.Movement
-                    && _clientGame.PhaseStepState?.ActivePlayer.Id == PlayerId
-                    && _clientGame.PhaseStepState?.ActivePlayer.Units.Any(u => u.Id == standUpCommand.UnitId) == true )
-                {
-                    SetStateActiveUnitId(standUpCommand.UnitId);
-                    Task.Run(MakeDecision, _cts.Token);
-                }
+                ContinueAfterStandUpOrFall(standUpCommand.UnitId);
+                break;
+            case MechFallCommand fallCommand:    
+                // After (failed) standup, we need to decide what to do next
+                ContinueAfterStandUpOrFall(fallCommand.UnitId);
                 break;
         }
+    }
+
+    private void ContinueAfterStandUpOrFall(Guid unitId)
+    {
+        if (_clientGame.TurnPhase != PhaseNames.Movement
+            || _clientGame.PhaseStepState?.ActivePlayer.Id != PlayerId
+            || _clientGame.PhaseStepState?.ActivePlayer.Units.Any(u => u.Id == unitId) != true) return;
+        SetStateActiveUnitId(unitId);
+        Task.Run(MakeDecision, _cts.Token);
     }
 
     private void SetStateActiveUnitId(Guid? unitId)
