@@ -638,12 +638,7 @@ public class MovementState : IUiState
 
         public override void HandleHexSelection(Hex hex)
         {
-            // Reset selection if clicked outside reachable hexes during direction selection
-            // This matches the behavior in HandleTargetHexSelection
-            if (State._reachabilityData != null && !State._reachabilityData.Value.IsHexReachable(hex.Coordinates))
-            {
-                State.ResetUnitSelection();
-            }
+            State.HandleTargetHexSelection(hex);
         }
 
         public override void HandleFacingSelection(HexDirection direction)
