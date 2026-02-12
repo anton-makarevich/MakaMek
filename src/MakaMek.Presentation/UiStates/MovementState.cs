@@ -191,8 +191,8 @@ public class MovementState : IUiState
     private void HandleTargetHexSelection(Hex hex)
     {
         if (_selectedUnit?.Position == null
-            || _viewModel.Game == null
             || _selectedPath?.MovementType == null
+            || Game == null
             || _reachabilityData == null) return;
 
         // Reset selection if clicked outside reachable hexes during target hex selection
@@ -202,15 +202,11 @@ public class MovementState : IUiState
             ResetUnitSelection();
             return;
         }
-
-        TransitionTo(new SelectingDirectionStep(this));
         
-        // TODO: the code below doesn't belong to the method
-
         // Use the extension method to find all possible paths to the target hex
         var startPosition = _selectedPath.Destination;
         _movementPoints = GetRemainingMovementPoints();
-        _possibleDirections = _viewModel.Game.BattleMap?.GetPathsToHexWithAllFacings(
+        _possibleDirections = Game.BattleMap?.GetPathsToHexWithAllFacings(
             startPosition,
             hex.Coordinates,
             _selectedPath.MovementType,
@@ -218,13 +214,7 @@ public class MovementState : IUiState
             _reachabilityData.Value,
             _prohibitedHexes) ?? [];
 
-        // Show direction selector if there are any possible directions
-        if (_possibleDirections.Count != 0)
-        {
-            _viewModel.ShowDirectionSelector(hex.Coordinates, _possibleDirections.Select(kv=>kv.Key).ToList());
-        }
-
-        _viewModel.NotifyStateChanged();
+        TransitionTo(new SelectingDirectionStep(this, hex.Coordinates));
     }
     
     private void CompleteMovement()
@@ -557,9 +547,7 @@ public class MovementState : IUiState
             AddToPossibleDirections(rotatedDirectionCcw, steps);
         }
 
-        TransitionTo(new SelectingDirectionStep(this));
-        _viewModel.ShowDirectionSelector(mech.Position.Coordinates, _possibleDirections.Keys);
-        _viewModel.NotifyStateChanged();
+        TransitionTo(new SelectingDirectionStep(this, mech.Position.Coordinates));
     }
 
     private interface IMovementStep
@@ -639,7 +627,12 @@ public class MovementState : IUiState
 
     private sealed class SelectingDirectionStep : MovementStepBase
     {
-        public SelectingDirectionStep(MovementState state) : base(state) { }
+        public SelectingDirectionStep(MovementState state, HexCoordinates targetHex) : base(state)
+        {
+            if (State._possibleDirections.Count == 0) return;
+            State._viewModel.ShowDirectionSelector(targetHex, State._possibleDirections.Keys);
+            State._viewModel.NotifyStateChanged();
+        }
         public override MovementStep Step => MovementStep.SelectingDirection;
         public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectFacingDirection");
 
