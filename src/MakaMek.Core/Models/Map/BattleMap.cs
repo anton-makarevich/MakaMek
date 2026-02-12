@@ -98,8 +98,8 @@ public class BattleMap(int width, int height) : IBattleMap
             // If coordinates changed, it's a movement
             if (from.Coordinates != to.Coordinates)
             {
-                var hex = GetHex(to.Coordinates);
-                segmentCost = hex!.MovementCost;
+                var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
+                segmentCost = hex.MovementCost;
             }
 
             segments.Add(new PathSegment(from, to, segmentCost));

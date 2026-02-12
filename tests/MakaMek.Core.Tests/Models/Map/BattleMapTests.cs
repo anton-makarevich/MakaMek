@@ -1,3 +1,4 @@
+using System.Reflection;
 using Shouldly;
 using Sanet.MakaMek.Core.Exceptions;
 using Sanet.MakaMek.Core.Models.Map;
@@ -821,10 +822,8 @@ public class BattleMapTests
         // Clear cache to force recalculation
         map.ClearLosCache();
 
-        // Act
+        // Act & Assert
         var losAfterChange = map.HasLineOfSight(from, to);
-
-        // Assert
         losAfterChange.ShouldBeFalse("LOS should be blocked after adding forest and clearing cache");
     }
 
@@ -1092,5 +1091,45 @@ public class BattleMapTests
         path.ShouldNotBeNull();
         path.TotalCost.ShouldBeLessThanOrEqualTo(tightBudget);
         path.HexesTraveled.ShouldBeGreaterThan(0);
+    }
+    
+    [Fact]
+    public void ConvertPathToSegments_WithInvalidHex_ThrowsWrongHexException()
+    {
+        // Arrange
+        var map = new BattleMap(3, 3);
+            
+        // Add hexes for 3x3 map
+        for (var q = 1; q <= 3; q++)
+        {
+            for (var r = 1; r <= 3; r++)
+            {
+                var hex = new Hex(new HexCoordinates(q, r));
+                hex.AddTerrain(new ClearTerrain());
+                map.AddHex(hex);
+            }
+        }
+            
+        // Create a path that includes an invalid coordinate outside the map
+        var pathWithInvalidHex = new List<HexPosition>
+        {
+            new(new HexCoordinates(1, 3), HexDirection.Top),     // Valid hex on map
+            new(new HexCoordinates(1, 5), HexDirection.Top)      // Invalid hex outside map
+        };
+
+        // Act & Assert
+        var ex = Should.Throw<TargetInvocationException>(() => 
+        {
+            // Use reflection to call the private ConvertPathToSegments method
+            var method = typeof(BattleMap).GetMethod("ConvertPathToSegments", 
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            method!.Invoke(map, [pathWithInvalidHex]);
+        });
+
+        // The inner exception should be WrongHexException
+        ex.InnerException.ShouldBeOfType<WrongHexException>();
+        var wrongHexEx = (WrongHexException)ex.InnerException!;
+        wrongHexEx.Coordinates.ShouldBe(new HexCoordinates(1, 5));
+        wrongHexEx.Message.ShouldContain("Hex not found");
     }
 }
