@@ -20,7 +20,28 @@ public class MovementPath : IEquatable<MovementPath>
                 .Concat(Segments.Select(s => s.To.Coordinates))
                 .Distinct()
                 .ToList();
-        HexesTraveled = Math.Max(0, Hexes.Count - 1);
+        // Calculate HexesTraveled based on the last leg of movement
+        var lastSegment = Segments[^1];
+        var lastLegSegments = new List<PathSegment> { lastSegment };
+        
+        // Iterate backwards from the second to the last segment
+        for (var i = Segments.Count - 2; i >= 0; i--)
+        {
+            var segment = Segments[i];
+            if (segment.IsReversed != lastSegment.IsReversed)
+            {
+                break;
+            }
+            lastLegSegments.Insert(0, segment);
+        }
+
+        var hexesInLastLeg = new List<HexCoordinates> { lastLegSegments[0].From.Coordinates }
+            .Concat(lastLegSegments.Select(s => s.To.Coordinates))
+            .Distinct()
+            .ToList();
+
+        HexesTraveled = Math.Max(0, hexesInLastLeg.Count - 1);
+        
         MovementType = movementType;
         IsJump = movementType == MovementType.Jump;
         TotalCost = Segments.Sum(s => s.Cost);
@@ -75,7 +96,8 @@ public class MovementPath : IEquatable<MovementPath>
         var reversedSegments = Segments.Select(segment => new PathSegment(
             segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
             segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
-            segment.Cost
+            segment.Cost,
+            !segment.IsReversed
         )).ToList();
         return new MovementPath(reversedSegments, MovementType);
     }
@@ -89,7 +111,7 @@ public class MovementPath : IEquatable<MovementPath>
         if (Destination != path.Start)
             throw new ArgumentException("Paths are not continuous", nameof(path));
 
-        // If current path has only one 0-cost segment and start equals destination, return the new path
+        // If the current path has only one 0-cost segment and start equals destination, return the new path
         if (Segments is [{ Cost: 0 }] && Start == Destination)
             return path;
 

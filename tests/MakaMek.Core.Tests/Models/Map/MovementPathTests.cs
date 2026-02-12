@@ -450,4 +450,96 @@ public class MovementPathTests
         // Assert
         result.Segments.Count.ShouldBe(3);
     }
+    
+    [Fact]
+    public void ReverseFacing_ShouldToggleIsReversed()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                1,
+                false) // Initially forward
+        };
+        
+        var originalPath = new MovementPath(segments, MovementType.Walk);
+        
+        // Act
+        var reversedPath = originalPath.ReverseFacing();
+        
+        // Assert
+        reversedPath.Segments[0].IsReversed.ShouldBeTrue();
+        
+        // Act again (reverse back)
+        var doubleReversed = reversedPath.ReverseFacing();
+        
+        // Assert
+        doubleReversed.Segments[0].IsReversed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HexesTraveled_ShouldCountOnlyLastLeg_WhenDirectionChanges()
+    {
+        // Arrange
+        // Leg 1: Move Backward 2 hexes (Cost 2, 2 hexes traveled)
+        var backwardSegments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                1,
+                true),
+            new(
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                1,
+                true)
+        };
+        var backwardPath = new MovementPath(backwardSegments, MovementType.Walk);
+
+        // Leg 2: Move Forward 1 hex (Cost 1, 1 hex traveled)
+        // Starting from where backward path ended
+        var forwardSegments = new List<PathSegment> // IsReversed defaults to false
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), // Note: Facing doesn't matter for this test logic, but keeping it consistent
+                new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+                1)
+        };
+        var forwardPath = new MovementPath(forwardSegments, MovementType.Walk);
+
+        // Act
+        var combinedPath = backwardPath.Append(forwardPath);
+
+        // Assert
+        combinedPath.Segments.Count.ShouldBe(3);
+        // HexesTraveled should be 1 (only the forward leg)
+        // If it counted all, it would be 3.
+        combinedPath.HexesTraveled.ShouldBe(1);
+    }
+    
+    [Fact]
+    public void HexesTraveled_ShouldCountAll_WhenNoDirectionChange()
+    {
+        // Arrange
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                1,
+                false),
+            new(
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                1,
+                false)
+        };
+        var path = new MovementPath(segments, MovementType.Walk);
+
+        // Assert
+        path.HexesTraveled.ShouldBe(2);
+    }
 }
