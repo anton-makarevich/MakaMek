@@ -56,6 +56,58 @@ public class BattleMap(int width, int height) : IBattleMap
     }
 
     /// <summary>
+    /// Creates a turning path when start and target are in the same hex
+    /// </summary>
+    private static MovementPath? CreateTurningPath(HexPosition start, HexPosition target, int maxMovementPoints, MovementType movementType)
+    {
+        var turningSteps = start.GetTurningSteps(target.Facing).ToList();
+        if (turningSteps.Count > maxMovementPoints)
+            return null;
+
+        var segments = new List<PathSegment>();
+
+        if (turningSteps.Count == 0)
+        {
+            segments.Add(new PathSegment(start, target, 0));
+        }
+        else
+        {
+            var currentPos = start;
+            foreach (var step in turningSteps)
+            {
+                segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
+                currentPos = step;
+            }
+        }
+
+        return new MovementPath(segments, movementType);
+    }
+
+    /// <summary>
+    /// Converts a list of hex positions to path segments
+    /// </summary>
+    private List<PathSegment> ConvertPathToSegments(List<HexPosition> path)
+    {
+        var segments = new List<PathSegment>();
+        for (var i = 0; i < path.Count - 1; i++)
+        {
+            var from = path[i];
+            var to = path[i + 1];
+            var segmentCost = 1; // Default cost for turning
+
+            // If coordinates changed, it's a movement
+            if (from.Coordinates != to.Coordinates)
+            {
+                var hex = GetHex(to.Coordinates);
+                segmentCost = hex!.MovementCost;
+            }
+
+            segments.Add(new PathSegment(from, to, segmentCost));
+        }
+        return segments;
+    }
+
+    /// <summary>
     /// Finds the shortest path between two positions (original behavior)
     /// </summary>
     private MovementPath? FindShortestPath(HexPosition start,
@@ -79,28 +131,8 @@ public class BattleMap(int width, int height) : IBattleMap
         // If start and target are in the same hex, just return turning segments
         if (start.Coordinates == target.Coordinates)
         {
-            var turningSteps = start.GetTurningSteps(target.Facing).ToList();
-            if (turningSteps.Count > maxMovementPoints)
-                return null;
-
-            var segments = new List<PathSegment>();
-
-            if (turningSteps.Count == 0)
-            {
-                segments.Add(new PathSegment(start, target, 0));
-            }
-            else
-            {
-                var currentPos = start;
-                foreach (var step in turningSteps)
-                {
-                    segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
-                    currentPos = step;
-                }
-            }
-
-            var path = new MovementPath(segments, movementType);
-            if (useCache) _movementPathCache.Add(path);
+            var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
+            if (path != null && useCache) _movementPathCache.Add(path);
             return path;
         }
 
@@ -118,22 +150,7 @@ public class BattleMap(int width, int height) : IBattleMap
             if (current.Coordinates == target.Coordinates && current.Facing == target.Facing)
             {
                 // Convert path to segments
-                var segments = new List<PathSegment>();
-                for (var i = 0; i < path.Count - 1; i++)
-                {
-                    var from = path[i];
-                    var to = path[i + 1];
-                    var segmentCost = 1; // Default cost for turning
-
-                    // If coordinates changed, it's a movement
-                    if (from.Coordinates != to.Coordinates)
-                    {
-                        var hex = GetHex(to.Coordinates);
-                        segmentCost = hex!.MovementCost;
-                    }
-
-                    segments.Add(new PathSegment(from, to, segmentCost));
-                }
+                var segments = ConvertPathToSegments(path);
                 var result = new MovementPath(segments, movementType);
                 if (useCache) _movementPathCache.Add(result);
                 return result;
@@ -208,27 +225,7 @@ public class BattleMap(int width, int height) : IBattleMap
         // If start and target are in the same hex, just return turning segments
         if (start.Coordinates == target.Coordinates)
         {
-            var turningSteps = start.GetTurningSteps(target.Facing).ToList();
-            if (turningSteps.Count > maxMovementPoints)
-                return null;
-
-            var segments = new List<PathSegment>();
-
-            if (turningSteps.Count == 0)
-            {
-                segments.Add(new PathSegment(start, target, 0));
-            }
-            else
-            {
-                var currentPos = start;
-                foreach (var step in turningSteps)
-                {
-                    segments.Add(new PathSegment(currentPos, step, 1)); // Cost 1 for each turn
-                    currentPos = step;
-                }
-            }
-
-            return new MovementPath(segments, movementType);
+            return CreateTurningPath(start, target, maxMovementPoints, movementType);
         }
 
         // Track the best path found so far (highest hexes traveled)
@@ -250,22 +247,7 @@ public class BattleMap(int width, int height) : IBattleMap
             if (current.Coordinates == target.Coordinates && current.Facing == target.Facing)
             {
                 // Convert path to segments
-                var segments = new List<PathSegment>();
-                for (var i = 0; i < path.Count - 1; i++)
-                {
-                    var from = path[i];
-                    var to = path[i + 1];
-                    var segmentCost = 1; // Default cost for turning
-
-                    // If coordinates changed, it's a movement
-                    if (from.Coordinates != to.Coordinates)
-                    {
-                        var hex = GetHex(to.Coordinates);
-                        segmentCost = hex!.MovementCost;
-                    }
-
-                    segments.Add(new PathSegment(from, to, segmentCost));
-                }
+                var segments = ConvertPathToSegments(path);
                 var candidatePath = new MovementPath(segments, movementType);
 
                 // Update best path if this one has more hexes traveled
