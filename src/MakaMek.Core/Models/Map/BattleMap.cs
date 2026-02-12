@@ -239,7 +239,7 @@ public class BattleMap(int width, int height) : IBattleMap
         if (start.Coordinates == target.Coordinates)
         {
             var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
-            if (path != null && useCache) _movementPathCache.Add(path);
+            if (path != null && useCache) _movementLongPathCache.Add(path);
             return path;
         }
 
