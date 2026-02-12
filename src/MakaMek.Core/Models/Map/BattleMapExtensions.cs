@@ -157,6 +157,7 @@ public static class BattleMapExtensions
         /// <param name="movementPoints">Available movement points</param>
         /// <param name="reachabilityData">Reachability data containing forward and backward reachable hexes</param>
         /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through</param>
+        /// <param name="pathfindingMode">The pathfinding strategy to use (shortest or longest path)</param>
         /// <returns>Dictionary mapping each valid facing direction to the path that reaches that facing</returns>
         public Dictionary<HexDirection, MovementPath> GetPathsToHexWithAllFacings(
             HexPosition startPosition,
@@ -164,12 +165,13 @@ public static class BattleMapExtensions
             MovementType movementType,
             int movementPoints,
             UnitReachabilityData reachabilityData,
-            IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
+            IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
+            PathfindingMode pathfindingMode = PathfindingMode.Shortest)
         {
             var possibleDirections = new Dictionary<HexDirection, MovementPath>();
             var isForwardReachable = reachabilityData.IsForwardReachable(targetHex);
             var isBackwardReachable = reachabilityData.IsBackwardReachable(targetHex);
-    
+
             foreach (var direction in HexDirectionExtensions.AllDirections)
             {
                 var targetPos = new HexPosition(targetHex, direction);
@@ -178,7 +180,7 @@ public static class BattleMapExtensions
                 // Try forward movement (or Jump, which ignores reachability)
                 if (movementType == MovementType.Jump || isForwardReachable)
                 {
-                    path = map.FindPath(startPosition, targetPos, movementType, movementPoints, prohibitedHexes);
+                    path = map.FindPath(startPosition, targetPos, movementType, movementPoints, prohibitedHexes, pathfindingMode);
                 }
 
                 // Try backward movement for Walk only
@@ -186,8 +188,8 @@ public static class BattleMapExtensions
                 {
                     var oppositeStartPos = startPosition.GetOppositeDirectionPosition();
                     var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
-            
-                    path = map.FindPath(oppositeStartPos, oppositeTargetPos, movementType, movementPoints, prohibitedHexes)
+
+                    path = map.FindPath(oppositeStartPos, oppositeTargetPos, movementType, movementPoints, prohibitedHexes, pathfindingMode)
                         ?.ReverseFacing();
                 }
 

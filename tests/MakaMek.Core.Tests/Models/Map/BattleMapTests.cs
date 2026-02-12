@@ -933,7 +933,7 @@ public class BattleMapTests
         var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
-        var prohibited = new HashSet<HexCoordinates> { new HexCoordinates(5, 5) }; // Prohibited hex (irrelevant to a path but triggers cache bypass)
+        var prohibited = new HashSet<HexCoordinates> { new(5, 5) }; // Prohibited hex (irrelevant to a path but triggers cache bypass)
         
         // Act 1
         var path1 = map.FindPath(start, target, MovementType.Walk, 10, prohibited);
@@ -957,11 +957,159 @@ public class BattleMapTests
         // Act 1
         var path1 = map.FindPath(start, target, MovementType.Jump, 5);
         path1.ShouldNotBeNull();
-        
+
         // Act 2
         var path2 = map.FindPath(start, target, MovementType.Jump, 5);
-        
+
         // Assert
         path2.ShouldBeSameAs(path1);
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_MaximizesHexesTraveled()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.Top);
+
+        // Act - Find paths with both modes
+        var shortestPath = map.FindPath(start, target, MovementType.Walk, 10);
+        var longestPath = map.FindPath(start, target, MovementType.Walk, 10, null, PathfindingMode.Longest);
+
+        // Assert
+        shortestPath.ShouldNotBeNull();
+        longestPath.ShouldNotBeNull();
+        longestPath.HexesTraveled.ShouldBeGreaterThanOrEqualTo(shortestPath.HexesTraveled);
+        longestPath.TotalCost.ShouldBeLessThanOrEqualTo(10);
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_RespectsMovementPointBudget()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+        const int maxMovementPoints = 5;
+
+        // Act
+        var path = map.FindPath(start, target, MovementType.Walk, maxMovementPoints, null, PathfindingMode.Longest);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBeLessThanOrEqualTo(maxMovementPoints);
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_SameHex_ReturnsTurningSegments()
+    {
+        // Arrange
+        var map = new BattleMap(2, 2);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        map.AddHex(hex);
+        var start = new HexPosition(hex.Coordinates, HexDirection.Top);
+        var target = new HexPosition(hex.Coordinates, HexDirection.Bottom);
+
+        // Act
+        var path = map.FindPath(start, target, MovementType.Walk, 3, null, PathfindingMode.Longest);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.Segments.Count.ShouldBe(3);
+        path.HexesTraveled.ShouldBe(0);
+        path.TotalCost.ShouldBe(3);
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_WithProhibitedHexes_AvoidsProhibitedAreas()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.Top);
+        var prohibited = new HashSet<HexCoordinates> { new(2, 1) };
+
+        // Act
+        var path = map.FindPath(start, target, MovementType.Walk, 10, prohibited, PathfindingMode.Longest);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.Hexes.ShouldNotContain(prohibited.First());
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_WithMixedTerrain_ConsidersTerrainCosts()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(4, 2, new SingleTerrainGenerator(4, 2, new ClearTerrain()));
+
+        // Add heavy woods hex that costs more
+        var heavyWoodsHex = map.GetHex(new HexCoordinates(2, 1))!;
+        heavyWoodsHex.RemoveTerrain(MakaMekTerrains.Clear);
+        heavyWoodsHex.AddTerrain(new HeavyWoodsTerrain());
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.TopRight);
+
+        // Act
+        var path = map.FindPath(start, target, MovementType.Walk, 10, null, PathfindingMode.Longest);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBeLessThanOrEqualTo(10);
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_ReturnsNull_WhenTargetUnreachable()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        const int insufficientMovementPoints = 2;
+
+        // Act
+        var path = map.FindPath(start, target, MovementType.Walk, insufficientMovementPoints, null, PathfindingMode.Longest);
+
+        // Assert
+        path.ShouldBeNull();
+    }
+
+    [Fact]
+    public void FindPath_ShortestMode_MaintainsBackwardCompatibility()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
+
+        // Act - Test default parameter (Shortest)
+        var pathDefault = map.FindPath(start, target, MovementType.Walk, 10);
+        var pathExplicitShortest = map.FindPath(start, target, MovementType.Walk, 10);
+
+        // Assert
+        pathDefault.ShouldNotBeNull();
+        pathExplicitShortest.ShouldNotBeNull();
+        pathDefault.TotalCost.ShouldBe(pathExplicitShortest.TotalCost);
+        pathDefault.HexesTraveled.ShouldBe(pathExplicitShortest.HexesTraveled);
+    }
+
+    [Fact]
+    public void FindPath_LongestMode_WithTightBudget_FindsOptimalPath()
+    {
+        // Arrange
+        var map = BattleMapFactory.GenerateMap(3, 3, new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight);
+        const int tightBudget = 3;
+
+        // Act
+        var path = map.FindPath(start, target, MovementType.Walk, tightBudget, null, PathfindingMode.Longest);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBeLessThanOrEqualTo(tightBudget);
+        path.HexesTraveled.ShouldBeGreaterThan(0);
     }
 }

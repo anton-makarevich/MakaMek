@@ -18,7 +18,12 @@ public interface IBattleMap
     /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
-    MovementPath? FindPath(HexPosition start, HexPosition target, MovementType movementType, int maxMovementPoints, IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
+    MovementPath? FindPath(HexPosition start,
+        HexPosition target,
+        MovementType movementType,
+        int maxMovementPoints,
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
+        PathfindingMode pathfindingMode = PathfindingMode.Shortest);
 
     /// <summary>
     /// Gets all valid hexes that can be reached with given movement points, considering facing
