@@ -213,6 +213,7 @@ public class BattleMap(int width, int height) : IBattleMap
 
     /// <summary>
     /// Finds the longest path that maximizes hexes traversed within the movement budget
+    /// The method does not guarantee to find the actually longest path, but it's good enough for the purpose.
     /// </summary>
     private MovementPath? FindLongestPath(HexPosition start,
         HexPosition target,
@@ -250,7 +251,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 var segments = ConvertPathToSegments(path);
                 var candidatePath = new MovementPath(segments, movementType);
 
-                // Update best path if this one has more hexes traveled
+                // Update the best path if this one has more hexes traveled
                 if (candidatePath.HexesTraveled > bestHexesTraveled)
                 {
                     bestPath = candidatePath;
@@ -288,7 +289,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 if (totalCost > maxMovementPoints)
                     continue;
 
-                // For longest path, allow revisiting if we have the same cost but more hexes traveled
+                // For the longest path, allow revisiting if we have the same cost but more hexes traveled
                 var nextKey = (nextCoord, requiredFacing);
                 if (visited.TryGetValue(nextKey, out var visitedState))
                 {
