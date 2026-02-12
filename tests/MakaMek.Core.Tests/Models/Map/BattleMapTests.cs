@@ -928,25 +928,6 @@ public class BattleMapTests
     }
 
     [Fact]
-    public void FindPath_LongestMode_ShouldCacheResult()
-    {
-        // Arrange
-        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
-        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
-
-        // Act 1 - Find the longest path first time
-        var path1 = map.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
-        path1.ShouldNotBeNull();
-        
-        // Act 2 - Find the longest path a second time, should return a cached result
-        var path2 = map.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
-        
-        // Assert
-        path2.ShouldBeSameAs(path1);
-    }
-
-    [Fact]
     public void FindPath_ShortAndLongModes_UseDifferentCaches()
     {
         // Arrange

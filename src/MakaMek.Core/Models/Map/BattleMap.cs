@@ -224,11 +224,10 @@ public class BattleMap(int width, int height) : IBattleMap
     {
         prohibitedHexes ??= new HashSet<HexCoordinates>();
         var useCache = prohibitedHexes.Count == 0;
-        var isJump = movementType == MovementType.Jump;
 
         if (useCache)
         {
-            var cachedPath = _movementLongPathCache.Get(start, target, isJump);
+            var cachedPath = _movementLongPathCache.Get(start, target, false);
             if (cachedPath != null)
             {
                 return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
