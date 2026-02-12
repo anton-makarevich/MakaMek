@@ -561,7 +561,7 @@ public class BotTests : IDisposable
         var unitId = Guid.NewGuid(); // Unit ID
         _player.Units.Returns(new List<IUnit>()); // Bot has no units
 
-        var standUpCommand = new MechFallCommand
+        var fallCommand = new MechFallCommand
         {
             GameOriginId = _clientGame.Id,
             UnitId = unitId, // Some other unit
@@ -573,12 +573,50 @@ public class BotTests : IDisposable
         _phaseSubject.OnNext(PhaseNames.Movement);
 
         // Act
-        _commandSubject.OnNext(standUpCommand);
+        _commandSubject.OnNext(fallCommand);
 
         // Assert
         // wait for bg task to complete
         await Task.Delay(100);
         await movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+    }
+    
+    [Fact]
+    public async Task OnMechFallCommand_WhenNotMovementPhase_ShouldNotMakeDecision()
+    {
+        // Arrange
+        const PhaseNames phase = PhaseNames.WeaponsAttack;
+        var decisionEngine = Substitute.For<IBotDecisionEngine>();
+        decisionEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        _decisionEngineProvider.GetEngineForPhase(phase).Returns(decisionEngine);
+
+        _clientGame.TurnPhase.Returns(phase);
+        _clientGame.PhaseStepState.Returns(new PhaseStepState(phase, _player, 1));
+        
+        // Setup unit belonging to bot
+        var unitId = Guid.NewGuid();
+        var botUnit = Substitute.For<IUnit>();
+        botUnit.Id.Returns(unitId);
+        _player.Units.Returns(new List<IUnit> { botUnit });
+
+        var fallCommand = new MechFallCommand
+        {
+            GameOriginId = _clientGame.Id,
+            UnitId = unitId,
+            Timestamp = DateTime.UtcNow,
+            DamageData = null
+        };
+
+        // Set up the decision engine
+        _phaseSubject.OnNext(phase);
+
+        // Act
+        _commandSubject.OnNext(fallCommand);
+
+        // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
+        await decisionEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
     }
 
     public void Dispose()
