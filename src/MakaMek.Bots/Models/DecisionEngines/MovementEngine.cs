@@ -203,7 +203,8 @@ public class MovementEngine : IBotDecisionEngine
                     movementType,
                     unit.GetMovementPoints(movementType),
                     reachabilityData,
-                    occupiedHexes);
+                    occupiedHexes,
+                    PathFindingMode.Longest);
 
                 reachablePaths.AddRange(paths.Values);
             }
