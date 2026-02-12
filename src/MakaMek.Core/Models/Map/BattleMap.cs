@@ -292,8 +292,8 @@ public class BattleMap(int width, int height) : IBattleMap
                 var nextKey = (nextCoord, requiredFacing);
                 if (visited.TryGetValue(nextKey, out var visitedState))
                 {
-                    // Skip if we've visited with lower cost or same cost but more hexes
-                    if (visitedState.cost < totalCost || (visitedState.cost == totalCost && visitedState.hexesTraveled >= newHexesTraveled))
+                    // Skip only if we've visited with both lower-or-equal cost AND more-or-equal hexes
+                    if (visitedState.cost <= totalCost && visitedState.hexesTraveled >= newHexesTraveled)
                         continue;
                 }
 
