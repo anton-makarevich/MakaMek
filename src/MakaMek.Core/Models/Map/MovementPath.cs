@@ -20,7 +20,37 @@ public class MovementPath : IEquatable<MovementPath>
                 .Concat(Segments.Select(s => s.To.Coordinates))
                 .Distinct()
                 .ToList();
-        HexesTraveled = Math.Max(0, Hexes.Count - 1);
+        // Calculate HexesTraveled based on the last leg of movement
+        // "If the target moved backward and forward in the turn... base the movement modifier on the
+        // number of hexes moved from the hex in which the unit last reversed its movement."
+        if (Segments.Count > 0)
+        {
+            var lastSegment = Segments[^1];
+            var lastLegSegments = new List<PathSegment> { lastSegment };
+            
+            // Iterate backwards from the second to last segment
+            for (var i = Segments.Count - 2; i >= 0; i--)
+            {
+                var segment = Segments[i];
+                if (segment.IsReversed != lastSegment.IsReversed)
+                {
+                    break;
+                }
+                lastLegSegments.Insert(0, segment);
+            }
+
+            var hexesInLastLeg = new List<HexCoordinates> { lastLegSegments[0].From.Coordinates }
+                .Concat(lastLegSegments.Select(s => s.To.Coordinates))
+                .Distinct()
+                .ToList();
+
+            HexesTraveled = Math.Max(0, hexesInLastLeg.Count - 1);
+        }
+        else
+        {
+            HexesTraveled = 0;
+        }
+
         MovementType = movementType;
         IsJump = movementType == MovementType.Jump;
         TotalCost = Segments.Sum(s => s.Cost);
@@ -75,7 +105,8 @@ public class MovementPath : IEquatable<MovementPath>
         var reversedSegments = Segments.Select(segment => new PathSegment(
             segment.From with { Facing = segment.From.Facing.GetOppositeDirection() },
             segment.To with { Facing = segment.To.Facing.GetOppositeDirection() },
-            segment.Cost
+            segment.Cost,
+            !segment.IsReversed
         )).ToList();
         return new MovementPath(reversedSegments, MovementType);
     }
