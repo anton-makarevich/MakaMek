@@ -1077,25 +1077,6 @@ public class BattleMapTests
     }
 
     [Fact]
-    public void FindPath_ShortestMode_MaintainsBackwardCompatibility()
-    {
-        // Arrange
-        var map = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain()));
-        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
-        var target = new HexPosition(new HexCoordinates(3, 3), HexDirection.Bottom);
-
-        // Act - Test default parameter (Shortest)
-        var pathDefault = map.FindPath(start, target, MovementType.Walk, 10);
-        var pathExplicitShortest = map.FindPath(start, target, MovementType.Walk, 10);
-
-        // Assert
-        pathDefault.ShouldNotBeNull();
-        pathExplicitShortest.ShouldNotBeNull();
-        pathDefault.TotalCost.ShouldBe(pathExplicitShortest.TotalCost);
-        pathDefault.HexesTraveled.ShouldBe(pathExplicitShortest.HexesTraveled);
-    }
-
-    [Fact]
     public void FindPath_LongestMode_WithTightBudget_FindsOptimalPath()
     {
         // Arrange
