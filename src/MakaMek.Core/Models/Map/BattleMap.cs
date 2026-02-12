@@ -44,14 +44,14 @@ public class BattleMap(int width, int height) : IBattleMap
         MovementType movementType,
         int maxMovementPoints,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
-        PathfindingMode pathfindingMode = PathfindingMode.Shortest)
+        PathFindingMode pathFindingMode = PathFindingMode.Shortest)
     {
         if (movementType == MovementType.Jump)
         {
             return FindJumpPath(start, target, maxMovementPoints);
         }
 
-        return pathfindingMode == PathfindingMode.Shortest
+        return pathFindingMode == PathFindingMode.Shortest
             ? FindShortestPath(start, target, movementType, maxMovementPoints, prohibitedHexes)
             : FindLongestPath(start, target, movementType, maxMovementPoints, prohibitedHexes);
     }

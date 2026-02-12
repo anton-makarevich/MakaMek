@@ -23,7 +23,7 @@ public interface IBattleMap
         MovementType movementType,
         int maxMovementPoints,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
-        PathfindingMode pathfindingMode = PathfindingMode.Shortest);
+        PathFindingMode pathFindingMode = PathFindingMode.Shortest);
 
     /// <summary>
     /// Gets all valid hexes that can be reached with given movement points, considering facing

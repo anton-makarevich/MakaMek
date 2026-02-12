@@ -200,7 +200,7 @@ public class MovementEngineTests
         var pathSegment = new PathSegment(unit.Position!, targetPosition, 1);
         var movementPath = new MovementPath([pathSegment], MovementType.Walk);
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathfindingMode.Longest)
+            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest)
             .Returns(movementPath);
         
         // Mock position evaluator
@@ -408,7 +408,7 @@ public class MovementEngineTests
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
         var pathSegment = new PathSegment(mech.Position!, targetPosition, 1);
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathfindingMode.Longest)
+            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest)
             .Returns(callInfo => new MovementPath([pathSegment], callInfo.ArgAt<MovementType>(2)));
         
         // Track which movement types were evaluated
@@ -460,7 +460,7 @@ public class MovementEngineTests
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
         var pathSegment = new PathSegment(mech.Position!, targetPosition, 1);
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathfindingMode.Longest)
+            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest)
             .Returns(callInfo => new MovementPath([pathSegment], callInfo.ArgAt<MovementType>(2)));
         
         // Mock evaluator to score Jump highest
@@ -520,10 +520,10 @@ public class MovementEngineTests
         var pathSegment1 = new PathSegment(mech.Position!, targetPosition1, 1);
         var pathSegment2 = new PathSegment(mech.Position!, targetPosition2, 2);
         _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition1, MovementType.Walk,
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathfindingMode.Longest)
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest)
             .Returns(callInfo => new MovementPath([pathSegment1], callInfo.ArgAt<MovementType>(2)));
         _battleMap.FindPath(Arg.Any<HexPosition>(), targetPosition2, Arg.Any<MovementType>(),
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathfindingMode.Longest)
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest)
             .Returns(callInfo => new MovementPath([pathSegment2], callInfo.ArgAt<MovementType>(2)));
         
         // Mock evaluator to score options according to test data
@@ -589,7 +589,7 @@ public class MovementEngineTests
         var path2 = new MovementPath([pathSegment2A, pathSegment2B], MovementType.Walk);
 
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathfindingMode.Longest)
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest)
             .Returns(callInfo =>
             {
                 var destination = callInfo.ArgAt<HexPosition>(1);
@@ -649,7 +649,7 @@ public class MovementEngineTests
         var path2 = new MovementPath([pathSegment2], MovementType.Walk);
 
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), MovementType.Walk,
-                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathfindingMode.Longest)
+                Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest)
             .Returns(callInfo =>
             {
                 var destination = callInfo.ArgAt<HexPosition>(1);
@@ -753,7 +753,7 @@ public class MovementEngineTests
         var movementPath = new MovementPath([pathSegment], MovementType.Walk);
         
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathfindingMode.Longest)
+            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest)
             .Returns(movementPath);
         
         // Mock evaluator to throw an unexpected exception (this must come AFTER battle map setup)
@@ -786,7 +786,7 @@ public class MovementEngineTests
         var movementPath = new MovementPath([pathSegment], MovementType.Walk);
         
         _battleMap.FindPath(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<MovementType>(),
-            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathfindingMode.Longest)
+            Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), PathFindingMode.Longest)
             .Returns(movementPath);
         
         var positionScore = new PositionScore

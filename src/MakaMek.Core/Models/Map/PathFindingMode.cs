@@ -3,7 +3,7 @@ namespace Sanet.MakaMek.Core.Models.Map;
 /// <summary>
 /// Defines the pathfinding strategy to use when finding paths between hexes
 /// </summary>
-public enum PathfindingMode
+public enum PathFindingMode
 {
     /// <summary>
     /// Finds the shortest path to the destination (default behavior).

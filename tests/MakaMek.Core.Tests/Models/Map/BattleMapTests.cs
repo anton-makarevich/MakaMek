@@ -974,7 +974,7 @@ public class BattleMapTests
 
         // Act - Find paths with both modes
         var shortestPath = map.FindPath(start, target, MovementType.Walk, 10);
-        var longestPath = map.FindPath(start, target, MovementType.Walk, 10, null, PathfindingMode.Longest);
+        var longestPath = map.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
 
         // Assert
         shortestPath.ShouldNotBeNull();
@@ -993,7 +993,7 @@ public class BattleMapTests
         const int maxMovementPoints = 5;
 
         // Act
-        var path = map.FindPath(start, target, MovementType.Walk, maxMovementPoints, null, PathfindingMode.Longest);
+        var path = map.FindPath(start, target, MovementType.Walk, maxMovementPoints, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1011,7 +1011,7 @@ public class BattleMapTests
         var target = new HexPosition(hex.Coordinates, HexDirection.Bottom);
 
         // Act
-        var path = map.FindPath(start, target, MovementType.Walk, 3, null, PathfindingMode.Longest);
+        var path = map.FindPath(start, target, MovementType.Walk, 3, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1030,7 +1030,7 @@ public class BattleMapTests
         var prohibited = new HashSet<HexCoordinates> { new(2, 1) };
 
         // Act
-        var path = map.FindPath(start, target, MovementType.Walk, 10, prohibited, PathfindingMode.Longest);
+        var path = map.FindPath(start, target, MovementType.Walk, 10, prohibited, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1052,7 +1052,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.TopRight);
 
         // Act
-        var path = map.FindPath(start, target, MovementType.Walk, 10, null, PathfindingMode.Longest);
+        var path = map.FindPath(start, target, MovementType.Walk, 10, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1069,7 +1069,7 @@ public class BattleMapTests
         const int insufficientMovementPoints = 2;
 
         // Act
-        var path = map.FindPath(start, target, MovementType.Walk, insufficientMovementPoints, null, PathfindingMode.Longest);
+        var path = map.FindPath(start, target, MovementType.Walk, insufficientMovementPoints, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldBeNull();
@@ -1085,7 +1085,7 @@ public class BattleMapTests
         const int tightBudget = 3;
 
         // Act
-        var path = map.FindPath(start, target, MovementType.Walk, tightBudget, null, PathfindingMode.Longest);
+        var path = map.FindPath(start, target, MovementType.Walk, tightBudget, null, PathFindingMode.Longest);
 
         // Assert
         path.ShouldNotBeNull();
