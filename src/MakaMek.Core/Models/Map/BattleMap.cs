@@ -12,6 +12,7 @@ public class BattleMap(int width, int height) : IBattleMap
     private readonly Dictionary<HexCoordinates, Hex> _hexes = new();
     private readonly LineOfSightCache _losCache = new();
     private readonly MovementPathCache _movementPathCache = new();
+    private readonly MovementPathCache _movementLongPathCache = new();
 
     public int Width { get; } = width;
     public int Height { get; } = height;
@@ -222,11 +223,24 @@ public class BattleMap(int width, int height) : IBattleMap
         IReadOnlySet<HexCoordinates>? prohibitedHexes)
     {
         prohibitedHexes ??= new HashSet<HexCoordinates>();
+        var useCache = prohibitedHexes.Count == 0;
+        var isJump = movementType == MovementType.Jump;
+
+        if (useCache)
+        {
+            var cachedPath = _movementLongPathCache.Get(start, target, isJump);
+            if (cachedPath != null)
+            {
+                return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
+            }
+        }
 
         // If start and target are in the same hex, just return turning segments
         if (start.Coordinates == target.Coordinates)
         {
-            return CreateTurningPath(start, target, maxMovementPoints, movementType);
+            var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
+            if (path != null && useCache) _movementPathCache.Add(path);
+            return path;
         }
 
         // Track the best path found so far (highest hexes traveled)
@@ -317,6 +331,11 @@ public class BattleMap(int width, int height) : IBattleMap
                     frontier.Enqueue((nextPos, newPath, totalCost, newHexesTraveled), priority);
                 }
             }
+        }
+
+        if (bestPath != null && useCache)
+        {
+            _movementLongPathCache.Add(bestPath);
         }
 
         return bestPath;
