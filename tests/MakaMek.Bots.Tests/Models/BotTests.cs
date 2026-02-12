@@ -387,7 +387,7 @@ public class BotTests : IDisposable
         _clientGame.Id.Returns(expectedGameId);
         _clientGame.Turn.Returns(initialTurnNumber);
 
-        // Set up initial phase and make first decision to establish initial state
+        // Set up the initial phase and make the first decision to establish the initial state
         _phaseSubject.OnNext(PhaseNames.Movement);
         _phaseStepChanges.OnNext(new PhaseStepState(PhaseNames.Movement, _player, 1));
         await Task.Delay(100);
@@ -507,6 +507,116 @@ public class BotTests : IDisposable
         // wait for bg task to complete
         await Task.Delay(100);
         await movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+    }
+    
+    [Fact]
+    public async Task OnMechFallCommand_WhenUnitBelongsToBot_ShouldMakeDecision()
+    {
+        // Arrange
+        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+
+        _clientGame.TurnPhase.Returns(PhaseNames.Movement);
+        _clientGame.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
+        
+        // Setup unit belonging to bot
+        var unitId = Guid.NewGuid();
+        var botUnit = Substitute.For<IUnit>();
+        botUnit.Id.Returns(unitId);
+        _player.Units.Returns(new List<IUnit> { botUnit });
+
+        var fallCommand = new MechFallCommand
+        {
+            GameOriginId = _clientGame.Id,
+            UnitId = unitId,
+            Timestamp = DateTime.UtcNow,
+            DamageData = null
+        };
+
+        // Set up the decision engine
+        _phaseSubject.OnNext(PhaseNames.Movement);
+
+        // Act
+        _commandSubject.OnNext(fallCommand);
+
+        // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
+        await movementEngine.Received(1).MakeDecision(_player, Arg.Is<ITurnState>(ts => ts.PhaseActiveUnitId == unitId));
+    }
+
+    [Fact]
+    public async Task OnMechFallCommand_WhenUnitDoesNotBelongToBot_ShouldNotMakeDecision()
+    {
+        // Arrange
+        var movementEngine = Substitute.For<IBotDecisionEngine>();
+        movementEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        _decisionEngineProvider.GetEngineForPhase(PhaseNames.Movement).Returns(movementEngine);
+
+        _clientGame.TurnPhase.Returns(PhaseNames.Movement);
+        _clientGame.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
+
+        // Set up a unit NOT belonging to bot
+        var unitId = Guid.NewGuid(); // Unit ID
+        _player.Units.Returns(new List<IUnit>()); // Bot has no units
+
+        var fallCommand = new MechFallCommand
+        {
+            GameOriginId = _clientGame.Id,
+            UnitId = unitId, // Some other unit
+            Timestamp = DateTime.UtcNow,
+            DamageData = null
+        };
+
+        // Set up the decision engine
+        _phaseSubject.OnNext(PhaseNames.Movement);
+
+        // Act
+        _commandSubject.OnNext(fallCommand);
+
+        // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
+        await movementEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
+    }
+    
+    [Fact]
+    public async Task OnMechFallCommand_WhenNotMovementPhase_ShouldNotMakeDecision()
+    {
+        // Arrange
+        const PhaseNames phase = PhaseNames.WeaponsAttack;
+        var decisionEngine = Substitute.For<IBotDecisionEngine>();
+        decisionEngine.MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>()).Returns(Task.CompletedTask);
+        _decisionEngineProvider.GetEngineForPhase(phase).Returns(decisionEngine);
+
+        _clientGame.TurnPhase.Returns(phase);
+        _clientGame.PhaseStepState.Returns(new PhaseStepState(phase, _player, 1));
+        
+        // Setup unit belonging to bot
+        var unitId = Guid.NewGuid();
+        var botUnit = Substitute.For<IUnit>();
+        botUnit.Id.Returns(unitId);
+        _player.Units.Returns(new List<IUnit> { botUnit });
+
+        var fallCommand = new MechFallCommand
+        {
+            GameOriginId = _clientGame.Id,
+            UnitId = unitId,
+            Timestamp = DateTime.UtcNow,
+            DamageData = null
+        };
+
+        // Set up the decision engine
+        _phaseSubject.OnNext(phase);
+
+        // Act
+        _commandSubject.OnNext(fallCommand);
+
+        // Assert
+        // wait for bg task to complete
+        await Task.Delay(100);
+        await decisionEngine.DidNotReceive().MakeDecision(Arg.Any<IPlayer>(), Arg.Any<ITurnState>());
     }
 
     public void Dispose()
