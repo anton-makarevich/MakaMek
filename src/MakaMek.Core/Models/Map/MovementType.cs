@@ -1,4 +1,4 @@
-namespace Sanet.MakaMek.Core.Models.Units;
+namespace Sanet.MakaMek.Core.Models.Map;
 
 public enum MovementType
 {
