@@ -71,7 +71,7 @@ public class HexCoordinatesTests
     [InlineData(1, 1, 2, 1, 1)] // Same row but shifted
     [InlineData(1, 1, 4, 4, 5)] // Larger distance
     [InlineData(1, 1, 1, 1, 0)] // Same hex
-    [InlineData(2, 2, 4, 2, 2)] // Horizontal line on even row
+    [InlineData(2, 2, 4, 2, 2)] // Horizontal line on an even row
     [InlineData(1, 1, 3, 3, 3)]
     [InlineData(2, 2, 2, 5, 3)]
     [InlineData(1, 1, 5, 5, 6)]
@@ -161,36 +161,6 @@ public class HexCoordinatesTests
         // Verify that all hexes at exactly range distance are included
         var hexesAtRange = hexesInRange.Where(h => center.DistanceTo(h) == range);
         hexesAtRange.Count().ShouldBe(6 * range); // Each range adds 6 more hexes
-    }
-
-    [Fact]
-    public void X_CalculatesCorrectPixelPosition()
-    {
-        // Arrange & Act
-        var hex1 = new HexCoordinates(0, 0);
-        var hex2 = new HexCoordinates(1, 0);
-        var hex3 = new HexCoordinates(2, 0);
-
-        // Assert
-        hex1.H.ShouldBe(0);
-        hex2.H.ShouldBe(75); // 100 * 0.75
-        hex3.H.ShouldBe(150); // 200 * 0.75
-    }
-
-    [Fact]
-    public void Y_CalculatesCorrectPixelPosition()
-    {
-        // Arrange & Act
-        var hex1 = new HexCoordinates(0, 0); // Even Q
-        var hex2 = new HexCoordinates(0, 1); // Even Q
-        var hex3 = new HexCoordinates(1, 0); // Odd Q
-        var hex4 = new HexCoordinates(1, 1); // Odd Q
-
-        // Assert
-        hex1.V.ShouldBe(0);
-        hex2.V.ShouldBe(HexCoordinates.HexHeight);
-        hex3.V.ShouldBe( -HexCoordinates.HexHeight*0.5);  // Offset for odd Q
-        hex4.V.ShouldBe(HexCoordinates.HexHeight*0.5);  // Height - 0.5*Height offset for odd Q
     }
     
     [Fact]
@@ -1363,7 +1333,7 @@ public class HexCoordinatesTests
     [InlineData(5, 5, 7, 5, HexDirection.Top, FiringArc.Rear, false)]      // Target to the right (outside forward arc)
     [InlineData(5, 5, 6, 6, HexDirection.Top, FiringArc.Rear, true)]          // Target in back-right
     [InlineData(5, 5, 4, 6, HexDirection.Top, FiringArc.Rear, true)]          // Target in back-left
-    [InlineData(5, 5, 6, 4, HexDirection.Bottom, FiringArc.Left, true)]       // Target in rear arc when facing bottom
+    [InlineData(5, 5, 6, 4, HexDirection.Bottom, FiringArc.Left, true)]       // Target in the rear arc when facing bottom
     [InlineData(5, 5, 5, 4, HexDirection.Bottom, FiringArc.Rear, true)]       // Target directly behind when facing bottom
     [InlineData(5, 5, 5, 6, HexDirection.Bottom, FiringArc.Front, true)]     // Target directly in front when facing bottom
     public void IsInFiringArc_ReturnsExpectedResult(int centerQ, int centerR, int targetQ, int targetR, 

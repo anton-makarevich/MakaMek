@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.Presentation.Models.Map;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
@@ -61,7 +62,7 @@ public class PathSegmentViewModelTests
         sut.From.ShouldBe(from);
         sut.To.ShouldBe(to);
         sut.EndX.ShouldBe(sut.StartX + 75); // One hex to the right
-        sut.EndY.ShouldBe(sut.StartY + 43.3,0.1); // Half hex to the bottom
+        sut.EndY.ShouldBe(sut.StartY + 43.3,0.1); // Half-hex to the bottom
     }
 
     [Fact]
