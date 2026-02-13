@@ -21,6 +21,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Avalonia.Browser" Version="11.3.12" />
+        <PackageReference Include="Microsoft.DotNet.HotReload.WebAssembly.Browser" Version="10.0.103" />
     </ItemGroup>
 
     <ItemGroup>
