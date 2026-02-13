@@ -22,6 +22,7 @@ using Sanet.MakaMek.Avalonia.Utils;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Presentation.Models.Map;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -60,8 +61,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 .TryFindResource("ContrastingForegroundConverter") as ContrastingForegroundConverter;
 
             IsHitTestVisible = false;
-            Width = HexCoordinates.HexWidth;
-            Height = HexCoordinates.HexHeight;
+            Width = HexCoordinatesPresentationExtensions.HexWidth;
+            Height = HexCoordinatesPresentationExtensions.HexHeight;
 
             _unitImage = new Image
             {

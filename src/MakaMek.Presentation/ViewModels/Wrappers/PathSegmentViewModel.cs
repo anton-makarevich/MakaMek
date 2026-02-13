@@ -1,6 +1,7 @@
 using System.Numerics;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MVVM.Core.ViewModels;
+using Sanet.MakaMek.Presentation.Models.Map;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
@@ -25,8 +26,8 @@ public class PathSegmentViewModel : BaseViewModel
     public double FromY => From.Coordinates.V;
 
     // Relative coordinates for path drawing (center of control is at From position)
-    public double StartX => HexCoordinates.HexWidth;
-    public double StartY => HexCoordinates.HexHeight;
+    public double StartX => HexCoordinatesPresentationExtensions.HexWidth;
+    public double StartY => HexCoordinatesPresentationExtensions.HexHeight;
     
     public double EndX => IsTurn 
         ? StartX + TurnLength * Math.Sin((int)To.Facing * Math.PI / 3)

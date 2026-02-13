@@ -7,11 +7,12 @@ using SkiaSharp;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Sanet.MakaMek.Presentation.Models.Map;
 
 namespace Sanet.MakaMek.Avalonia.Services;
 
 /// <summary>
-/// Skia-based implementation of map preview renderer
+/// Skia-based implementation of a map preview renderer
 /// </summary>
 public class SkiaMapPreviewRenderer : IMapPreviewRenderer
 {
@@ -38,8 +39,8 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
 
             var width = map.Width;
             var height = map.Height;
-            const double hexWidth = HexCoordinates.HexWidth;
-            const double hexHeight = HexCoordinates.HexHeight;
+            const double hexWidth = HexCoordinatesPresentationExtensions.HexWidth;
+            const double hexHeight = HexCoordinatesPresentationExtensions.HexHeight;
 
             // Map bounds in hex units
             var mapUnitWidth = width * 0.75f;
@@ -50,7 +51,7 @@ public class SkiaMapPreviewRenderer : IMapPreviewRenderer
             var previewHeight = Math.Max(1, (int)(mapUnitHeight * hexHeight * scale));
 
             // Dot diameter
-            var dotDiameter = (float)(HexCoordinates.HexWidth * scale * 0.95);
+            var dotDiameter = (float)(HexCoordinatesPresentationExtensions.HexWidth * scale * 0.95);
 
             var imageInfo = new SKImageInfo(previewWidth, previewHeight);
             using var surface = SKSurface.Create(imageInfo);

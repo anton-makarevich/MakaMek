@@ -12,8 +12,8 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Presentation.Models.Map;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MVVM.Views.Avalonia;
 
@@ -88,8 +88,8 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         // Ensure DirectionSelector stays on top
         MapCanvas.Children.Add(directionSelector);
         
-        MapCanvas.Width = maxH + 2*HexCoordinates.HexWidth;
-        MapCanvas.Height = maxV + 3*HexCoordinates.HexHeight; //this is a bit of a workaround to fit the menu
+        MapCanvas.Width = maxH + 2*HexCoordinatesPresentationExtensions.HexWidth;
+        MapCanvas.Height = maxV + 3*HexCoordinatesPresentationExtensions.HexHeight; //this is a bit of a workaround to fit the menu
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)

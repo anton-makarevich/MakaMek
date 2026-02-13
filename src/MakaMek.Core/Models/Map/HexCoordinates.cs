@@ -4,14 +4,10 @@ using Sanet.MakaMek.Core.Exceptions;
 namespace Sanet.MakaMek.Core.Models.Map;
 
 /// <summary>
-/// Represents coordinates in a hexagonal grid using axial coordinate system
+/// Represents coordinates in a hexagonal grid using an axial coordinate system
 /// </summary>
 public record HexCoordinates
 {
-    public const double HexWidth = 100;
-    public const double HexHeight = 86.6;
-    private const double HexHorizontalSpacing = HexWidth * 0.75;
-
     /// <summary>
     /// Q coordinate (column)
     /// </summary>
@@ -31,16 +27,6 @@ public record HexCoordinates
     public int X { get; }
     public int Y { get; }
     public int Z { get; }
-    
-    /// <summary>
-    /// Gets the X coordinate in pixels for rendering
-    /// </summary>
-    public double H => Q * HexHorizontalSpacing;
-
-    /// <summary>
-    /// Gets the Y coordinate in pixels for rendering
-    /// </summary>
-    public double V => R * HexHeight - (Q % 2 == 0 ? 0 : HexHeight * 0.5);
 
     public HexCoordinates(HexCoordinateData data) : this(data.Q, data.R) { }
     public HexCoordinates(int q, int r)
@@ -125,7 +111,7 @@ public record HexCoordinates
 
     /// <summary>
     /// Returns all hex coordinates within the specified range (inclusive)
-    /// Requires optimisation to remove DistanceTo
+    /// Requires optimization to remove DistanceTo
     /// </summary>
     public IEnumerable<HexCoordinates> GetCoordinatesInRange(int range)
     {
@@ -225,7 +211,7 @@ public record HexCoordinates
         var leftTotal = leftToNext + leftToTarget;
         var rightTotal = rightToNext + rightToTarget;
 
-        const double epsilon = 0.05; //Adjusting epsilon we can control how close the line
+        const double epsilon = 0.05; //Adjusting epsilon, we can control how close the line
                                      //should be to the "corners" of the hexes    
         
         // First check if left path's total distance is equal or better
@@ -234,7 +220,7 @@ public record HexCoordinates
             // If left total equals main total, we have two options
             if (Math.Abs(leftTotal - mainTotal) < epsilon)
             {
-                // If distances to next are equal, it's a divided line
+                // If distances to the next are equal, it's a divided line
                 var areEqual = Math.Abs(leftToNext - mainToNext) < epsilon;
                 return (leftNext, mainNext, areEqual);
             }
@@ -242,7 +228,7 @@ public record HexCoordinates
             // If left total equals right total, we have two options
             if (Math.Abs(leftTotal - rightTotal) < epsilon)
             {
-                // If distances to next are equal, it's a divided line
+                // If distances to the next are equal, it's a divided line
                 var areEqual = Math.Abs(leftToNext - rightToNext) < epsilon;
                 return (leftNext, rightNext, areEqual);
             }
@@ -250,13 +236,13 @@ public record HexCoordinates
             return (leftNext, null, false);
         }
 
-        // Then check if right path's total distance equals main
+        // Then check if the right path's total distance equals the main
         if (rightTotal <= mainTotal + epsilon)
         {
             // If right total equals main total, we have two options
             if (Math.Abs(rightTotal - mainTotal) < epsilon)
             {
-                // If distances to next are equal, it's a divided line
+                // If distances to the next are equal, it's a divided line
                 var areEqual = Math.Abs(rightToNext - mainToNext) < epsilon;
                 return (rightNext, mainNext, areEqual);
             }
@@ -281,7 +267,7 @@ public record HexCoordinates
         // Convert cube coordinates difference to angle
         var angle = Math.Atan2(3.0 / 2 * dx, -Math.Sqrt(3) * (dz + dx / 2.0));
         
-        // Convert angle to direction (0-5)
+        // Convert angle to a direction (0-5)
         var dir = (int)Math.Round(angle / (Math.PI / 3));
         
         // Normalize to 0-5 range
@@ -385,9 +371,9 @@ public record HexCoordinates
         {
             // Forward arc: -60° to +60° inclusive
             FiringArc.Front => degrees <= 60 + epsilon,
-            // Left arc: -60° to -120° exclusive of forward boundary but inclusive of rear boundary
+            // Left arc: -60° to -120° exclusive of the forward boundary but inclusive of the rear boundary
             FiringArc.Left => degrees is > 60 + epsilon and <= 120 + epsilon && cross > 0,
-            // Right arc: +60° to +120° exclusive of forward boundary but inclusive of rear boundary
+            // Right arc: +60° to +120° exclusive of the forward boundary but inclusive of the rear boundary
             FiringArc.Right => degrees is > 60 + epsilon and <= 120 + epsilon && cross < 0,
             // Rear arc: +120° to +180° exclusive 
             FiringArc.Rear => degrees is > 120 + epsilon and <= 180 + epsilon,

@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Presentation.Models.Map;
 
 namespace Sanet.MakaMek.Avalonia.Controls
 {
@@ -14,8 +15,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
         { 
             InitializeComponent();
             IsHitTestVisible = false;
-            Width = HexCoordinates.HexWidth*1.65;
-            Height = HexCoordinates.HexHeight*1.9;
+            Width = HexCoordinatesPresentationExtensions.HexWidth*1.65;
+            Height = HexCoordinatesPresentationExtensions.HexHeight*1.9;
         }
         
         public static readonly StyledProperty<ICommand?> DirectionSelectedCommandProperty =
