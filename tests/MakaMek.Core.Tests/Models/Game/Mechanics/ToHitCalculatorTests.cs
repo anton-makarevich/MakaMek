@@ -5,18 +5,18 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
@@ -29,6 +29,7 @@ public class ToHitCalculatorTests
     private Unit? _target;
     private readonly Weapon _weapon;
     private readonly MechFactory _mechFactory;
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public ToHitCalculatorTests()
     {
@@ -90,7 +91,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(8, 2), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new HeavyWoodsTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new HeavyWoodsTerrain()));
 
         // Act
         var result = _sut.GetToHitNumber(_attacker!, _target!, _weapon, map);
@@ -106,7 +107,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(1,1), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(10, 10), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         _rules.GetRangeModifier(WeaponRange.OutOfRange,Arg.Any<int>(), Arg.Any<int>()).Returns(ToHitBreakdown.ImpossibleRoll);
 
         // Act
@@ -123,7 +124,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         _rules.GetTerrainToHitModifier((MakaMekTerrains.LightWoods)).Returns(1);
 
         // Act
@@ -141,7 +142,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new HeavyWoodsTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new HeavyWoodsTerrain()));
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
@@ -158,7 +159,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
@@ -175,7 +176,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         _attacker!.UnassignPilot();
 
         // Act & Assert
@@ -189,7 +190,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         _rules.GetTerrainToHitModifier((MakaMekTerrains.LightWoods)).Returns(1);
 
         // Act
@@ -215,7 +216,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 4), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new LightWoodsTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new LightWoodsTerrain()));
         _rules.GetTerrainToHitModifier((MakaMekTerrains.LightWoods)).Returns(1);
 
         // Act
@@ -241,7 +242,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         _attacker!.ApplyHeat(new HeatData
         {
             MovementHeatSources = [],
@@ -273,7 +274,7 @@ public class ToHitCalculatorTests
         // Arrange
         var attackerData = MechFactoryTests.CreateDummyMechData();
         var attacker = _mechFactory.Create(attackerData);
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Act & Assert
         Should.Throw<Exception>(() => _sut.GetToHitNumber(attacker, _target!, _weapon, map));
@@ -287,7 +288,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         
         // Setup rules for a secondary target modifier
         _rules.GetSecondaryTargetModifier(true).Returns(expectedModifier);
@@ -312,7 +313,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(5, 5), HexDirection.Top),
             new HexPosition(new HexCoordinates(7, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         
         // Setup rules for a secondary target modifier
         _rules.GetSecondaryTargetModifier(false).Returns(expectedModifier);
@@ -336,7 +337,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Act
         var breakdown = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
@@ -356,7 +357,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
@@ -372,7 +373,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         
         // Damage sensors once
         var sensors = _attacker!.GetAllComponents<Sensors>().First();
@@ -394,7 +395,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map, true, PartLocation.Head);
@@ -421,7 +422,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map, true, targetLocation);
@@ -440,7 +441,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
@@ -457,7 +458,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Damage sensors to create another modifier
         var sensors = _attacker!.GetAllComponents<Sensors>().First();
@@ -480,7 +481,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var baseBreakdown = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
 
@@ -516,7 +517,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var baseBreakdown = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
 
@@ -537,9 +538,9 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
-        // Create breakdown with existing aimed shot modifier
+        // Create a breakdown with the existing aimed shot modifier
         var breakdownWithAimedShot = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map, true, PartLocation.Head);
 
         // Act - add different aimed shot modifier
@@ -559,7 +560,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         // Damage sensors to create another modifier
         var sensors = _attacker!.GetAllComponents<Sensors>().First();
@@ -583,7 +584,7 @@ public class ToHitCalculatorTests
         SetupAttackerAndTarget(
             new HexPosition(new HexCoordinates(2,2), HexDirection.Bottom),
             new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom));
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var baseBreakdown = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
 
@@ -607,7 +608,7 @@ public class ToHitCalculatorTests
         var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
         SetupAttackerAndTarget(attackerPosition, targetPosition); // we still need it to mount weapons
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var scenario = AttackScenario.FromHypothetical(
             attackerGunnery: 4,
@@ -636,7 +637,7 @@ public class ToHitCalculatorTests
         var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom); 
         SetupAttackerAndTarget(attackerPosition, targetPosition);
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var heatModifier = new HeatRollModifier { Value = 2, HeatLevel = 15 };
         var scenario = AttackScenario.FromHypothetical(
@@ -672,7 +673,7 @@ public class ToHitCalculatorTests
         // Arrange
         var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var scenario = AttackScenario.FromHypothetical(
             attackerGunnery: 4,
@@ -704,7 +705,7 @@ public class ToHitCalculatorTests
         // Arrange
         var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
         var targetPosition = new HexPosition(new HexCoordinates(2, 5), HexDirection.Bottom);
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10,
+        var map = BattleMapFactory.GenerateMap(10, 10,
             new SingleTerrainGenerator(10, 10, new ClearTerrain()));
 
         var scenario = AttackScenario.FromHypothetical(

@@ -13,9 +13,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Factory;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -26,10 +23,12 @@ using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
@@ -51,6 +50,7 @@ public class WeaponsAttackStateTests
     private readonly MechFactory _mechFactory;
     private readonly IPilot _pilot = Substitute.For<IPilot>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public WeaponsAttackStateTests()
     {
@@ -94,7 +94,7 @@ public class WeaponsAttackStateTests
             Arg.Any<Guid?>())
             .Returns(idempotencyKey);
         
-        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
+        var battleMap = BattleMapFactory.GenerateMap(
             11, 11,
             new SingleTerrainGenerator(11, 11, new ClearTerrain()));
         _player = new Player(playerId, "Player1", PlayerControlType.Human);

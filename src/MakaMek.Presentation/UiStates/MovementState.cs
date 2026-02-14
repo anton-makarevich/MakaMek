@@ -2,11 +2,12 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
@@ -16,7 +17,7 @@ public class MovementState : IUiState
     private readonly BattleMapViewModel _viewModel;
     private readonly MoveUnitCommandBuilder _builder;
     private IUnit? _selectedUnit;
-    private UnitReachabilityData? _reachabilityData;
+    private ReachabilityData? _reachabilityData;
     private readonly IReadOnlySet<HexCoordinates> _prohibitedHexes;
     private readonly IReadOnlySet<HexCoordinates> _friendlyUnitsCoordinates;
     private int _movementPoints;

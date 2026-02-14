@@ -1,12 +1,13 @@
 using System;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
 using SkiaSharp;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.Models.Map;
 
 namespace Sanet.MakaMek.Avalonia.Services;

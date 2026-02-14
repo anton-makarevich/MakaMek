@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
@@ -16,9 +15,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Factory;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -26,12 +22,15 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.Generators;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly.ShouldlyExtensionMethods;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
@@ -45,6 +44,7 @@ public class ClientGameTests
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly Guid _idempotencyKey = Guid.NewGuid();
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     
     private const int CommandAckTimeout = 300;
     public ClientGameTests()
@@ -58,7 +58,7 @@ public class ClientGameTests
             Arg.Any<Guid?>())
             .Returns(_idempotencyKey);
         
-        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
+        var battleMap = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         _commandPublisher = Substitute.For<ICommandPublisher>();
         IMechFactory mechFactory = new MechFactory(
             _rulesProvider,
@@ -1592,7 +1592,7 @@ public class ClientGameTests
         var localPlayer2 = new Player(Guid.NewGuid(), "LocalPlayer2", PlayerControlType.Human);
         
         // Create a new client game with local players
-        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
+        var battleMap = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var clientGame = new ClientGame(_rulesProvider, 
             new MechFactory(
@@ -1690,7 +1690,7 @@ public class ClientGameTests
         var player3Unit = unitData with { Id = Guid.NewGuid() };
         
         // Create a new client game with local players
-        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
+        var battleMap = BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5,5, new ClearTerrain()));
         var commandPublisher = Substitute.For<ICommandPublisher>();
         var rulesProvider = new ClassicBattletechRulesProvider();
         var mechFactory = new MechFactory(
@@ -1906,7 +1906,7 @@ public class ClientGameTests
             }
         ];
         
-        var newBattleMap = BattleMapTests.BattleMapFactory.CreateFromData(mapData);
+        var newBattleMap = BattleMapFactory.CreateFromData(mapData);
         
         _mapFactory.CreateFromData(Arg.Is<List<HexData>>(data => 
             data.Count == mapData.Count)).Returns(newBattleMap);

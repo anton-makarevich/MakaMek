@@ -10,8 +10,6 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
@@ -19,10 +17,12 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
@@ -44,6 +44,7 @@ public class MovementStateTests
     private readonly IRulesProvider _rulesProvider = new ClassicBattletechRulesProvider();
     private readonly IComponentProvider _componentProvider = new ClassicBattletechComponentProvider();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public MovementStateTests()
     {
@@ -113,7 +114,7 @@ public class MovementStateTests
         _hex1 = new Hex(new HexCoordinates(1, 1));
 
         // Create a real battle map
-        IBattleMap battleMap = BattleMapTests.BattleMapFactory.GenerateMap(
+        IBattleMap battleMap = BattleMapFactory.GenerateMap(
             2, 11,
             new SingleTerrainGenerator(2,11, new ClearTerrain()));
 

@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Map.Models;
+
 namespace Sanet.MakaMek.Core.Services;
 
 using Models.Map;

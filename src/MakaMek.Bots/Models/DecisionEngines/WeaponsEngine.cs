@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 

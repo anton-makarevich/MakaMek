@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Shouldly;
 

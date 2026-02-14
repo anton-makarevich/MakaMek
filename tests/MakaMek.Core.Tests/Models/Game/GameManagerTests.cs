@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Services.Logging;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 

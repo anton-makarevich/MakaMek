@@ -24,6 +24,7 @@
     </ItemGroup>
     
     <ItemGroup>
+      <ProjectReference Include="..\MakaMek.Map\MakaMek.Map.csproj" />
       <ProjectReference Include="..\MakaMek.SourceGenerators\MakaMek.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 

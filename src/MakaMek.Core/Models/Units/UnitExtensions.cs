@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Units;
 

@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Units;
 

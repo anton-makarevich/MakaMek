@@ -1,6 +1,7 @@
 ﻿using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics;
 

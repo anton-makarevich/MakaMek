@@ -9,11 +9,11 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -24,6 +24,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
     private readonly Guid _player1Id = Guid.NewGuid();
     private readonly Guid _player2Id = Guid.NewGuid();
     private readonly IGamePhase _mockNextPhase;
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public InitiativePhaseTests()
     {
@@ -306,7 +307,7 @@ public class InitiativePhaseTests : GamePhaseTestsBase
     public void HandleCommand_WhenTieOccurs_ShouldOnlyReRollTiedPlayers()
     {
         // Arrange
-        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(10, 10,
+        var battleMap = BattleMapFactory.GenerateMap(10, 10,
             new SingleTerrainGenerator(10,10, new ClearTerrain()));
         var mockPhaseManager = Substitute.For<IPhaseManager>();
         var mockNextPhase = Substitute.For<IGamePhase>();

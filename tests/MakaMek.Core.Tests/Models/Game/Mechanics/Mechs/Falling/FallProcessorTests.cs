@@ -6,16 +6,16 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
-using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
@@ -28,7 +28,7 @@ public class FallProcessorTests
 
     private readonly IGame _game = Substitute.For<IGame>();
     private readonly Mech _testMech;
-    private readonly BattleMap _map = BattleMapTests.BattleMapFactory.GenerateMap(10, 10,
+    private readonly BattleMap _map = new BattleMapFactory().GenerateMap(10, 10,
         new SingleTerrainGenerator(10,10, new ClearTerrain()));
     private readonly Guid _gameId = Guid.NewGuid();
 
@@ -73,11 +73,11 @@ public class FallProcessorTests
         // Arrange
         var componentHits = SetupCriticalHits(MakaMekComponent.Gyro, 3);
 
-        // Setup piloting skill calculator to return a PSR breakdown with modifiers
+        // Set up a piloting skill calculator to return a PSR breakdown with modifiers,
         // Assuming base piloting skill 4, +3 for Gyro Hit = Target Number 7
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
 
-        // Setup piloting skill calculator for pilot damage
+        // Set up a piloting skill calculator for pilot damage,
         // Assuming base piloting skill 4, +3 for Pilot Damage = Target Number 7
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage");
         
@@ -85,7 +85,7 @@ public class FallProcessorTests
         SetupRollResult(false, PilotingSkillRollType.GyroHit);
         SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall);
 
-        // Setup falling damage calculator
+        // Set up a falling damage calculator
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(
                 Arg.Any<Unit>(),
@@ -164,7 +164,7 @@ public class FallProcessorTests
         gyro.Hit();
         gyro.Hit();
     
-        // Setup falling damage calculator
+        // Set up a falling damage calculator
         var fallingDamageData = GetFallingDamageData();
     
         _mockFallingDamageCalculator.CalculateFallingDamage(
@@ -511,7 +511,7 @@ public class FallProcessorTests
         // BasePilotingSkill = 4. With modifierValue = 3, TargetNumber = 7.
         SetupPsrFor(PilotingSkillRollType.GyroHit, 3, "Damaged Gyro");
         
-        // Setup PilotDamageFromFall PSR to fail.
+        // Set up a PilotDamageFromFall PSR to fail.
         // BasePilotingSkill = 4. With modifierValue = 3, TargetNumber = 7.
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 3, "Pilot taking damage"); 
 
@@ -564,14 +564,14 @@ public class FallProcessorTests
     public void ProcessPotentialFall_ShouldReturnCommandWithFailedLlaPsrAndPilotDamagePsr_WhenLlaPsrFails()
     {
         // Arrange
-        // The FallProcessor uses FallInducingCriticalsMap which maps MakaMekComponent.LowerLegActuator.
+        // The FallProcessor uses FallInducingCriticalsMap, which maps MakaMekComponent.LowerLegActuator.
         var componentHits = SetupCriticalHits(MakaMekComponent.LowerLegActuator, 1); 
 
-        // Setup LLA Hit PSR to fail.
+        // Set up LLA Hit PSR to fail.
         // BasePilotingSkill = 4. LLA Hit Mod +1 (from memory/typical rules). TargetNumber = 5.
         SetupPsrFor(PilotingSkillRollType.LowerLegActuatorHit, 1, "Lower Leg Actuator Hit");
         
-        // Setup PilotDamageFromFall PSR.
+        // Set up PilotDamageFromFall PSR.
         // BasePilotingSkill = 4. No specific modifier for this example. TargetNumber = 4.
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall"); 
 
@@ -623,14 +623,14 @@ public class FallProcessorTests
     public void ProcessPotentialFall_ShouldReturnCommandWithFailedUlaPsrAndPilotDamagePsr_WhenUlaPsrFails()
     {
         // Arrange
-        // The FallProcessor uses FallInducingCriticalsMap which maps MakaMekComponent.UpperLegActuator.
+        // The FallProcessor uses FallInducingCriticalsMap, which maps MakaMekComponent.UpperLegActuator.
         var componentHits = SetupCriticalHits(MakaMekComponent.UpperLegActuator, 1); 
 
-        // Setup ULA Hit PSR to fail.
+        // Set up ULA Hit PSR to fail.
         // BasePilotingSkill = 4. ULA Hit Mod +1 (from memory/typical rules). TargetNumber = 5.
         SetupPsrFor(PilotingSkillRollType.UpperLegActuatorHit, 1, "Upper Leg Actuator Hit");
         
-        // Setup PilotDamageFromFall PSR.
+        // Set up PilotDamageFromFall PSR.
         // BasePilotingSkill = 4. No specific modifier for this example. TargetNumber = 4.
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall"); 
 
@@ -722,11 +722,11 @@ public class FallProcessorTests
         // Arrange
         var componentHits = SetupCriticalHits(MakaMekComponent.Hip, 1); // Hip actuator hit
 
-        // Setup Hip Actuator Hit PSR to fail.
+        // Set up Hip Actuator Hit PSR to fail.
         // BasePilotingSkill = 4. Hip Actuator Hit Mod +2. TargetNumber = 6.
         SetupPsrFor(PilotingSkillRollType.HipActuatorHit, 2, "Hip Actuator Hit");
 
-        // Setup PilotDamageFromFall PSR.
+        // Set up PilotDamageFromFall PSR.
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
 
         // Dice rolls: Hip Actuator PSR (fails), PilotDamage PSR (succeeds)
@@ -804,11 +804,11 @@ public class FallProcessorTests
         // Arrange
         var componentHits = SetupCriticalHits(MakaMekComponent.FootActuator, 1); // Foot actuator hit
 
-        // Setup Foot Actuator Hit PSR to fail.
+        // Set up Foot Actuator Hit PSR to fail.
         // BasePilotingSkill = 4. Foot Actuator Hit Mod +1. TargetNumber = 5.
         SetupPsrFor(PilotingSkillRollType.FootActuatorHit, 1, "Foot Actuator Hit");
 
-        // Setup PilotDamageFromFall PSR.
+        // Set up PilotDamageFromFall PSR.
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage from fall");
 
         // Dice rolls: Foot Actuator PSR (fails), PilotDamage PSR (succeeds)
@@ -850,7 +850,7 @@ public class FallProcessorTests
         // Arrange
         var componentHits = SetupCriticalHits(MakaMekComponent.FootActuator, 1); // Foot actuator hit
 
-        // Setup Foot Actuator Hit PSR to succeed.
+        // Set up Foot Actuator Hit PSR to succeed.
         // BasePilotingSkill = 4. Foot Actuator Hit Mod +1. TargetNumber = 5.
         SetupPsrFor(PilotingSkillRollType.FootActuatorHit, 1, "Foot Actuator Hit");
 
@@ -896,7 +896,7 @@ public class FallProcessorTests
         
         SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall); // For pilot damage PSR
         
-        // Setup falling damage calculator
+        // Set up a falling damage calculator
         var fallingDamageData = GetFallingDamageData();
         
         _mockFallingDamageCalculator.CalculateFallingDamage(
@@ -1141,11 +1141,11 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.HeavyDamage, 0, "Heavy Damage");
         SetupRollResult(true, PilotingSkillRollType.HeavyDamage); // PSR succeeds
 
-        // Setup piloting skill calculator for pilot damage from fall (for leg destroyed)
+        // Set up a piloting skill calculator for pilot damage from fall (for leg destroyed)
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 5, "Pilot taking damage");
         SetupRollResult(false, PilotingSkillRollType.PilotDamageFromFall);
 
-        // Setup falling damage calculator
+        // Set up a falling damage calculator
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(
                 Arg.Any<Unit>(),
@@ -1182,11 +1182,11 @@ public class FallProcessorTests
         SetupPsrFor(PilotingSkillRollType.HeavyDamage, 0, "Heavy Damage");
         SetupRollResult(true, PilotingSkillRollType.HeavyDamage);
 
-        // Setup pilot damage PSR for leg destroyed
+        // Set up a pilot damage PSR for leg destroyed
         SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 5, "Pilot taking damage");
         SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
 
-        // Setup falling damage
+        // Set up falling damage
         var fallingDamageData = GetFallingDamageData();
         _mockFallingDamageCalculator.CalculateFallingDamage(
                 Arg.Any<Unit>(),
@@ -1197,10 +1197,7 @@ public class FallProcessorTests
         // Apply heavy damage
         for (int i = 0; i < 20; i++)
         {
-            _testMech.ApplyDamage(new List<LocationHitData>
-            {
-                CreateHitDataForLocation(PartLocation.CenterTorso, 1, [], [7])
-            }, HitDirection.Front);
+            _testMech.ApplyDamage([CreateHitDataForLocation(PartLocation.CenterTorso, 1, [], [7])], HitDirection.Front);
         }
 
         // Act

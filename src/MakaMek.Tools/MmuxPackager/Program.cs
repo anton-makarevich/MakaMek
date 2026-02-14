@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Units;
 using System.IO.Compression;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Map.Models;
 
 namespace MakaMek.Tools.MmuxPackager;
 

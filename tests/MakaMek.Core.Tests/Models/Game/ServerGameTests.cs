@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -14,13 +13,14 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game;
 
@@ -29,10 +29,11 @@ public class ServerGameTests
     private readonly ServerGame _sut;
     private readonly ICommandPublisher _commandPublisher = Substitute.For<ICommandPublisher>();
     private readonly IDiceRoller _diceRoller= Substitute.For<IDiceRoller>();
-    private readonly MtfDataProvider _mtfDataProvider = new MtfDataProvider(new ClassicBattletechComponentProvider());
+    private readonly MtfDataProvider _mtfDataProvider = new(new ClassicBattletechComponentProvider());
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     public ServerGameTests()
     {
-        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5,
+        var battleMap = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5,5, new ClearTerrain()));
         
         var rulesProvider = Substitute.For<IRulesProvider>();
@@ -374,7 +375,7 @@ public class ServerGameTests
     public void SetBattleMap_ShouldPublishSetBattleMapCommand_WhenCalled()
     {
         // Arrange
-        var battleMap = BattleMapTests.BattleMapFactory.GenerateMap(5, 5,
+        var battleMap = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         _commandPublisher.ClearReceivedCalls();
         

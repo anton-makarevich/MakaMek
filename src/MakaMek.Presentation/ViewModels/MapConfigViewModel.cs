@@ -2,11 +2,11 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Factory;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -20,7 +20,6 @@ public class MapConfigViewModel : BindableBase, IDisposable
     private object? _previewImage;
     private readonly IMapPreviewRenderer _previewRenderer;
     private readonly IBattleMapFactory _mapFactory;
-    private readonly ILogger _logger;
     private readonly IDisposable? _previewSubscription;
     private readonly Subject<MapParameterChange> _mapParametersChanged = new();
 
@@ -28,18 +27,18 @@ public class MapConfigViewModel : BindableBase, IDisposable
     {
         _previewRenderer = previewRenderer;
         _mapFactory = mapFactory;
-        _logger = logger;
+        var logger1 = logger;
 
         // Subscribe with debouncing
         _previewSubscription = _mapParametersChanged
             .Throttle(TimeSpan.FromMilliseconds(300))
-            .Subscribe( (mapParameterChange) =>
+            .Subscribe( (_) =>
             {
-                UpdateMapAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error updating map"));
+                UpdateMapAsync().SafeFireAndForget(ex => logger1.LogError(ex, "Error updating map"));
             });
 
         // Generate an initial map and preview
-        UpdateMapAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error generating initial map"));
+        UpdateMapAsync().SafeFireAndForget(ex => logger1.LogError(ex, "Error generating initial map"));
     }
 
     public string MapWidthLabel => "Map Width";

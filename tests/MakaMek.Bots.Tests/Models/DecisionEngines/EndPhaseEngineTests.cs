@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Engines;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Map.Models;
 using Shouldly;
 
 namespace Sanet.MakaMek.Bots.Tests.Models.DecisionEngines;

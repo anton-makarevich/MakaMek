@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Factory;
 using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
 

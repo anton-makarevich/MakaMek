@@ -6,7 +6,6 @@ using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
@@ -14,17 +13,17 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Map.Factory;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
@@ -57,6 +56,7 @@ public class StartNewGameViewModelTests
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ILogger<StartNewGameViewModel> _vmLogger = Substitute.For<ILogger<StartNewGameViewModel>>();
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public StartNewGameViewModelTests()
     {
@@ -97,7 +97,7 @@ public class StartNewGameViewModelTests
         // Set up server game ID
         _gameManager.ServerGameId.Returns(_serverGameId);
 
-        var map = BattleMapTests.BattleMapFactory.GenerateMap(5, 5,
+        var map = BattleMapFactory.GenerateMap(5, 5,
             new SingleTerrainGenerator(5, 5, new ClearTerrain()));
         _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>()).Returns(map);
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
@@ -500,7 +500,7 @@ public class StartNewGameViewModelTests
         // Set player status to Joined so they can set ready
         localPlayerVm.Player.Status = PlayerStatus.Joined;
         localPlayerVm.RefreshStatus();
-        // Add player to client game
+        // Add a player to the client game
         _sut.LocalGame.ShouldNotBeNull();
         _sut.LocalGame?.HandleCommand(new JoinGameCommand
         {

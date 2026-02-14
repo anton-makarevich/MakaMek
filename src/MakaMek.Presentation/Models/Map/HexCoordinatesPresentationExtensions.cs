@@ -1,4 +1,5 @@
 ﻿using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Presentation.Models.Map;
 
