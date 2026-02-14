@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Presentation.Models.Map;
 using Shouldly;

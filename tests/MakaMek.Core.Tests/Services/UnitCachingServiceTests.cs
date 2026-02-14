@@ -8,6 +8,8 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services;
 using Shouldly;
 using NSubstitute;
+using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Tests.Services;
 

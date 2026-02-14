@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Sanet.MakaMek.Map</AssemblyName>
+        <RootNamespace>Sanet.MakaMek.Map</RootNamespace>
+        <Description>An Attempt of Classic BattleTech game implementation. Map Logic</Description>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <None Include="../../README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <!-- Debug target to print properties -->
+    <Target Name="PrintProperties" BeforeTargets="Build">
+        <Message Importance="high" Text="Project: $(MSBuildProjectName)" />
+        <Message Importance="high" Text="Version: $(Version)" />
+        <Message Importance="high" Text="Authors: $(Authors)" />
+        <Message Importance="high" Text="Company: $(Company)" />
+    </Target>
+</Project>

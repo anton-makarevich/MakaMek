@@ -1,4 +1,6 @@
 name: MakaMek Bots Library
+permissions:
+  contents: read
 on:
   push:
     branches:

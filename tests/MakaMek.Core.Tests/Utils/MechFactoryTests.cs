@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Map.Models;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Utils;

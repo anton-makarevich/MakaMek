@@ -1,6 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Map.Data;
 
 namespace Sanet.MakaMek.Core.Data.Units;
 

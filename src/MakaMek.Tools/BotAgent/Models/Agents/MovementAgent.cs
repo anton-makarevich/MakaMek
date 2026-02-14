@@ -7,6 +7,8 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
 namespace Sanet.MakaMek.Tools.BotAgent.Models.Agents;

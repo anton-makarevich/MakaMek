@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Tools.BotContainer.Models.Data.Mcp;
 using Sanet.MakaMek.Tools.BotContainer.Services;
 

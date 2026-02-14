@@ -6,11 +6,11 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Map.Terrains;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Tests.Models.Map;
 using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Core.Utils.Generators;
+using Sanet.MakaMek.Map.Factories;
+using Sanet.MakaMek.Map.Generators;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
@@ -20,6 +20,7 @@ public class BattleTechPhaseManagerTests
     private readonly BattleTechPhaseManager _sut;
     private readonly ServerGame _game;
     private readonly IMechFactory _mechFactory = Substitute.For<IMechFactory>();
+    private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public BattleTechPhaseManagerTests()
     {
@@ -38,7 +39,7 @@ public class BattleTechPhaseManagerTests
             Substitute.For<ILogger<ServerGame>>(),
             _sut // phaseManager
         );
-        _game.SetBattleMap(BattleMapTests.BattleMapFactory.GenerateMap(5,5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
+        _game.SetBattleMap(BattleMapFactory.GenerateMap(5,5, new SingleTerrainGenerator(5,5, new ClearTerrain())));
     }
 
     [Fact]

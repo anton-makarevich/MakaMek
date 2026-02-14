@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Services.Localization;
 using Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Map.Models;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Game.Commands.Server;

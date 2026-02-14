@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Models.Logger;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 

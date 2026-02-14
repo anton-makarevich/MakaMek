@@ -1,5 +1,6 @@
 using System.Numerics;
 using Sanet.MakaMek.Core.Models.Map;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MVVM.Core.ViewModels;
 using Sanet.MakaMek.Presentation.Models.Map;
 

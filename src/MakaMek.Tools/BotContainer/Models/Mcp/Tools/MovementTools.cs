@@ -1,9 +1,8 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
-using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Map;
 using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Tools.BotContainer.Models.Data.Mcp;
 using Sanet.MakaMek.Tools.BotContainer.Services;
 

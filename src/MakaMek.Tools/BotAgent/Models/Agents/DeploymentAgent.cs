@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Map;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Tools.BotAgent.Services.LlmProviders;
 
 namespace Sanet.MakaMek.Tools.BotAgent.Models.Agents;
