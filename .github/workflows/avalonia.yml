@@ -1,4 +1,6 @@
 name: MakaMek Avalonia Library
+permissions:
+  contents: read
 on:
   push:
     branches:

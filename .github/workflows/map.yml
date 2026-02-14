@@ -1,4 +1,6 @@
 name: MakaMek Map Library
+permissions:
+  contents: read
 on:
   push:
     branches:

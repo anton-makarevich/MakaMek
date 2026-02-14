@@ -1,4 +1,6 @@
 name: MakaMek Core Library
+permissions:
+  contents: read
 on:
   push:
     branches:
