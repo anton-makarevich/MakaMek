@@ -27,6 +27,7 @@ using Sanet.MakaMek.Presentation.Models.Map;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Avalonia.Controls
 {

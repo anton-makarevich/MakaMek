@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Presentation.Models.Map;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Services;
 using Sanet.MVVM.Views.Avalonia;
 
 namespace Sanet.MakaMek.Avalonia.Views;

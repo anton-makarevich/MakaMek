@@ -1,20 +1,22 @@
-using System;
 using System.Collections.Concurrent;
-using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Sanet.MakaMek.Core.Services;
 
-namespace Sanet.MakaMek.Avalonia.Services;
+namespace Sanet.MakaMek.Services.Avalonia;
 
 public class AvaloniaAssetImageService : IImageService<Bitmap>
 {
     private readonly ConcurrentDictionary<string, Bitmap?> _cache = new();
-    private const string AssetsBasePath = "avares://Sanet.MakaMek.Avalonia/Assets";
+    private readonly string _assetsBasePath;
+
+    public AvaloniaAssetImageService(string assetsBasePath)
+    {
+        _assetsBasePath = assetsBasePath;
+    }
 
     public Task<Bitmap?> GetImage(string assetType, string assetName)
     {
-        var path = $"{AssetsBasePath}/{assetType.ToLower()}/{assetName.ToLower()}.png";
+        var path = $"{_assetsBasePath}/{assetType.ToLower()}/{assetName.ToLower()}.png";
         return Task.FromResult(_cache.GetOrAdd(path, LoadImage));
     }
 
@@ -23,7 +25,7 @@ public class AvaloniaAssetImageService : IImageService<Bitmap>
         try
         {
             var uri = new Uri(path);
-            var asset =AssetLoader.Open(uri);
+            var asset = AssetLoader.Open(uri);
             return new Bitmap(asset);
         }
         catch

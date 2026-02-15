@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 

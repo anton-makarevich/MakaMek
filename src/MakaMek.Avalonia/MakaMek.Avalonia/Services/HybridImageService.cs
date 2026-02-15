@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
-using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Services;
+using Sanet.MakaMek.Services.Avalonia;
 
 namespace Sanet.MakaMek.Avalonia.Services;
 

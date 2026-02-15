@@ -21,6 +21,7 @@
     <ItemGroup>
       <ProjectReference Include="..\MakaMek.Bots\MakaMek.Bots.csproj" />
       <ProjectReference Include="..\MakaMek.Core\MakaMek.Core.csproj" />
+      <ProjectReference Include="..\MakaMek.Services\MakaMek.Services.csproj" />
     </ItemGroup>
 
     <!-- Debug target to print properties -->

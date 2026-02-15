@@ -38,6 +38,8 @@
       <ProjectReference Include="..\..\MakaMek.Bots\MakaMek.Bots.csproj" />
       <ProjectReference Include="..\..\MakaMek.Core\MakaMek.Core.csproj" />
       <ProjectReference Include="..\..\MakaMek.Presentation\MakaMek.Presentation.csproj" />
+      <ProjectReference Include="..\..\MakaMek.Services\MakaMek.Services.csproj" />
+      <ProjectReference Include="..\MakaMek.Services.Avalonia\MakaMek.Services.Avalonia.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,0 +1,61 @@
+name: MakaMek Services Avalonia Library
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/MakaMek.Services/**'
+      - 'src/MakaMek.Avalonia/MakaMek.Services.Avalonia/**'
+      - '.github/workflows/services-avalonia.yml'
+  pull_request:
+    paths:
+      - 'src/MakaMek.Services/**'
+      - 'src/MakaMek.Avalonia/MakaMek.Services.Avalonia/**'
+      - '.github/workflows/services-avalonia.yml'
+
+  workflow_dispatch:
+env:
+  NuGetDirectory: ${{ github.workspace }}/nuget
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Restore dependencies
+        run: dotnet restore src/MakaMek.Avalonia/MakaMek.Services.Avalonia/MakaMek.Services.Avalonia.csproj
+
+      - name: Build Services Avalonia
+        run: dotnet build src/MakaMek.Avalonia/MakaMek.Services.Avalonia/MakaMek.Services.Avalonia.csproj --configuration Release --no-restore
+  
+  publish-nuget:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Create nuget packages
+        run: |
+          dotnet pack src/MakaMek.Avalonia/MakaMek.Services.Avalonia/MakaMek.Services.Avalonia.csproj --configuration Release --output ${{ env.NuGetDirectory }}
+
+      - name: Publish NuGet package
+        run: |
+          for file in "${{ env.NuGetDirectory }}"/*.nupkg; do
+            dotnet nuget push "$file" --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done

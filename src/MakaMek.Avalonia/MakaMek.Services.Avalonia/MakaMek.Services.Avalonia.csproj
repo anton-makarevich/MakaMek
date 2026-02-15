@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Sanet.MakaMek.Services.Avalonia</AssemblyName>
+        <RootNamespace>Sanet.MakaMek.Services.Avalonia</RootNamespace>
+        <Description>Avalonia-specific service implementations for MakaMek</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="../../../README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="11.3.12" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\MakaMek.Services\MakaMek.Services.csproj" />
+    </ItemGroup>
+
+</Project>

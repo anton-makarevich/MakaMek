@@ -17,6 +17,8 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Services;
+using Sanet.MakaMek.Services.Avalonia;
 using Sanet.Transport.Rx;
 
 namespace Sanet.MakaMek.Avalonia.DI;
@@ -44,7 +46,8 @@ public static class CoreServices
             });
 
             // Register both image services
-            services.AddSingleton<AvaloniaAssetImageService>();
+            services.AddSingleton<AvaloniaAssetImageService>(_ =>
+                new AvaloniaAssetImageService("avares://Sanet.MakaMek.Avalonia/Assets"));
             services.AddSingleton<CachedImageService>();
 
             // Register a hybrid service that routes to the appropriate underlying service
