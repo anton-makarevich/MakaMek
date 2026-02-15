@@ -2,17 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Presentation.Models.Map;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
@@ -22,41 +18,16 @@ namespace Sanet.MakaMek.Avalonia.Views;
 
 public partial class BattleMapView : BaseView<BattleMapViewModel>
 {
-    private Point _lastPointerPosition;
-    private readonly TranslateTransform _mapTranslateTransform = new();
-    private readonly ScaleTransform _mapScaleTransform = new() { ScaleX = 1, ScaleY = 1 };
-    private const double MinScale = 0.5;
-    private const double MaxScale = 2.0;
-    private const double ScaleStep = 0.1;
-    private const int SelectionThresholdMilliseconds = 250; // Time to distinguish selection vs. pan
-    private bool _isManipulating;
-    private bool _isZooming;
-    private bool _isPressed;
-    private CancellationTokenSource _manipulationTokenSource;
     private List<UnitControl>? _unitControls;
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackControl> _weaponAttackControls = [];
-    private Point? _clickPosition;
     private HexControl? _selectedHex;
 
     public BattleMapView()
     {
         InitializeComponent();
-        
-        var transformGroup = new TransformGroup();
-        transformGroup.Children.Add(_mapScaleTransform);
-        transformGroup.Children.Add(_mapTranslateTransform);
-        MapCanvas.RenderTransform = transformGroup;
-        
-        MapCanvas.PointerPressed += OnPointerPressed;
-        MapCanvas.PointerMoved += OnPointerMoved;
-        MapCanvas.PointerReleased += OnPointerReleased;
-        MapCanvas.PointerWheelChanged += OnPointerWheelChanged;
-        
-        var pinchGestureRecognizer = new PinchGestureRecognizer();
-        MapCanvas.GestureRecognizers.Add(pinchGestureRecognizer);
-        MapCanvas.AddHandler(Gestures.PinchEvent, OnPinchChanged);
-        MapCanvas.AddHandler(Gestures.PinchEndedEvent, OnPinchEnded);
+
+        MapCanvas.ContentClicked += OnMapContentClicked;
     }
 
     private void RenderMap(IGame game, IImageService<Bitmap> imageService)
@@ -93,117 +64,39 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         MapCanvas.Height = maxV + 3*HexCoordinatesPresentationExtensions.HexHeight; //this is a bit of a workaround to fit the menu
     }
 
-    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    private void OnMapContentClicked(object? sender, Point clickPosition)
     {
-        if (_isZooming) return;
-        _lastPointerPosition = e.GetPosition(this);
-        
-        _isManipulating = false; // Reset manipulation flag
-
-        // Start a timer to determine if this is a manipulation
-        _manipulationTokenSource = new CancellationTokenSource();
-        Task.Delay(SelectionThresholdMilliseconds, _manipulationTokenSource.Token)
-            .ContinueWith(t =>
-            {
-                if (!t.IsCanceled)
-                {
-                    _isManipulating = true; // Set the flag if the delay completes
-                }
-            }, TaskScheduler.Current);
-        _isPressed = true;
-    }
-
-    private void OnPointerReleased(object? sender, PointerReleasedEventArgs? e)
-    {
-        // Cancel the manipulation timer
-        _manipulationTokenSource.Cancel();
-
-        if (!_isManipulating)
+        // Handle DirectionSelector interaction
+        if (DirectionSelector.IsVisible)
         {
-            if (!_isPressed) return;
-            _isPressed = false;
-            
-            _clickPosition = e?.GetPosition(MapCanvas);
-            if (!_clickPosition.HasValue) return;
-
-            // Handle DirectionSelector interaction
-            if (DirectionSelector.IsVisible)
+            if (DirectionSelector.Bounds.Contains(clickPosition))
             {
-                if (DirectionSelector.Bounds.Contains(_clickPosition.Value))
-                {
-                    var directionSelectorPosition = _clickPosition.Value - DirectionSelector.Bounds.Position;
-                    if (DirectionSelector.HandleInteraction(directionSelectorPosition)) return;
-                }
-            }
-
-            // Handle UnitControl interactions
-            if (_unitControls != null)
-            {
-                foreach (var unit in _unitControls)
-                {
-                    if (!unit.ActionButtons.Bounds.Contains(_clickPosition.Value)) continue;
-                    var unitPosition = _clickPosition.Value - unit.ActionButtons.Bounds.Position;
-                    if (unit.HandleInteraction(unitPosition)) return;
-                }
-            }
-
-            // If no controls were interacted with, handle hex selection
-            _selectedHex = MapCanvas.Children
-                .OfType<HexControl>()
-                .FirstOrDefault(h => h.IsPointInside(_clickPosition.Value));
-
-            if (_selectedHex != null && ViewModel!=null)
-            {
-                // Assign the hex coordinates to the ViewModel's unit position
-                ViewModel?.HandleHexSelection(_selectedHex.Hex);
+                var directionSelectorPosition = clickPosition - DirectionSelector.Bounds.Position;
+                if (DirectionSelector.HandleInteraction(directionSelectorPosition)) return;
             }
         }
-    }
-    
 
-    private void OnPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (_isZooming) return;
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-        var position = e.GetPosition(this);
-        var delta = position - _lastPointerPosition;
-        _lastPointerPosition = position;
-        
-        _mapTranslateTransform.X += delta.X;
-        _mapTranslateTransform.Y += delta.Y;
-    }
-    
-    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
-    {
-        var delta = e.Delta.Y * ScaleStep;
-        ApplyZoom(1 + delta, e.GetPosition(MapCanvas));
-    }
-    
-    private void OnPinchChanged(object? sender, PinchEventArgs e)
-    {
-        _isManipulating = true;
-        _isZooming = true;
-        ApplyZoom(e.Scale, e.ScaleOrigin);
-    }
-    
-    private void OnPinchEnded(object? sender, PinchEndedEventArgs e)
-    {
-        _isManipulating = false;
-        _isZooming = false;
-        MapCanvas.RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
-    }
-    
-    private void ApplyZoom(double scaleFactor, Point origin)
-    {
-        if (origin.X < 0 || origin.Y < 0) return;
-        if (origin.X > MapCanvas.Width || origin.Y > MapCanvas.Height) return;
-        
-        var newScale = _mapScaleTransform.ScaleX * scaleFactor;
-        if (newScale is < MinScale or > MaxScale) return;
-    
-        MapCanvas.RenderTransformOrigin = new RelativePoint(origin, RelativeUnit.Absolute);
-        _mapScaleTransform.ScaleX = newScale;
-        _mapScaleTransform.ScaleY = newScale;
+        // Handle UnitControl interactions
+        if (_unitControls != null)
+        {
+            foreach (var unit in _unitControls)
+            {
+                if (!unit.ActionButtons.Bounds.Contains(clickPosition)) continue;
+                var unitPosition = clickPosition - unit.ActionButtons.Bounds.Position;
+                if (unit.HandleInteraction(unitPosition)) return;
+            }
+        }
+
+        // If no controls were interacted with, handle hex selection
+        _selectedHex = MapCanvas.Children
+            .OfType<HexControl>()
+            .FirstOrDefault(h => h.IsPointInside(clickPosition));
+
+        if (_selectedHex != null && ViewModel!=null)
+        {
+            // Assign the hex coordinates to the ViewModel's unit position
+            ViewModel?.HandleHexSelection(_selectedHex.Hex);
+        }
     }
 
     protected override void OnViewModelSet()
@@ -274,11 +167,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
 
     private void CenterMap(object? sender, RoutedEventArgs e)
     {
-        _mapTranslateTransform.X = 0;
-        _mapTranslateTransform.Y = 0;
-        _mapScaleTransform.ScaleX = 1;
-        _mapScaleTransform.ScaleY = 1;
-        MapCanvas.RenderTransformOrigin = new RelativePoint(new Point(0.5, 0.5), RelativeUnit.Relative);
+        MapCanvas.CenterMap();
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)

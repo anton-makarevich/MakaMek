@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
+             xmlns:mapControls="clr-namespace:Sanet.MakaMek.Avalonia.Controls;assembly=Sanet.MakaMek.Avalonia.Controls"
              xmlns:templatedControls="clr-namespace:Sanet.MakaMek.Avalonia.Views.TemplatedControls"
              xmlns:behaviors="clr-namespace:Sanet.MakaMek.Avalonia.Behaviors"
              xmlns:viewModels1="clr-namespace:Sanet.MakaMek.Presentation.ViewModels;assembly=Sanet.MakaMek.Presentation"
@@ -13,8 +14,8 @@
     <UserControl.Resources>
     </UserControl.Resources>
     <Grid>
-        <Canvas x:Name="MapCanvas" 
-                Background="Transparent">
+        <mapControls:HexMap x:Name="MapCanvas"
+                            Background="Transparent">
             <controls:DirectionSelector
                 x:Name="DirectionSelector"
                 IsVisible="{Binding IsDirectionSelectorVisible}"
@@ -22,7 +23,7 @@
                 Position="{Binding DirectionSelectorPosition}"
                 DirectionSelectedCommand="{Binding DirectionSelectedCommand}"
                 Foreground="{Binding ActivePlayerTint}"/>
-        </Canvas>
+        </mapControls:HexMap>
         
         <Grid x:Name="TurnStatus"
             Height="50"
