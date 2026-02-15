@@ -18,8 +18,26 @@ env:
   NuGetDirectory: ${{ github.workspace }}/nuget
   
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Restore dependencies
+        run: dotnet restore src/MakaMek.Services/MakaMek.Services.csproj
+
+      - name: Build Services
+        run: dotnet build src/MakaMek.Services/MakaMek.Services.csproj --configuration Release --no-restore
+  
   publish-nuget:
     runs-on: ubuntu-latest
+    needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
