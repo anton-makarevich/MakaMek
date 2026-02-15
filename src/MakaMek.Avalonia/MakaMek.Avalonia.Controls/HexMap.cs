@@ -14,6 +14,7 @@ public class HexMap : Canvas
     private readonly TranslateTransform _mapTranslateTransform = new();
     private readonly ScaleTransform _mapScaleTransform = new() { ScaleX = 1, ScaleY = 1 };
     private const int SelectionThresholdMilliseconds = 250; // Time to distinguish selection vs. pan
+    private const double DragThresholdPixels = 3.0; 
     private bool _isManipulating;
     private bool _isZooming;
     private bool _isPressed;
@@ -67,6 +68,8 @@ public class HexMap : Canvas
         _isManipulating = false; // Reset manipulation flag
 
         // Start a timer to determine if this is a manipulation
+        _manipulationTokenSource?.Cancel();
+        _manipulationTokenSource?.Dispose();
         _manipulationTokenSource = new CancellationTokenSource();
         Task.Delay(SelectionThresholdMilliseconds, _manipulationTokenSource.Token)
             .ContinueWith(t =>
@@ -75,7 +78,7 @@ public class HexMap : Canvas
                 {
                     _isManipulating = true; // Set the flag if the delay completes
                 }
-            }, TaskScheduler.Current);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         _isPressed = true;
     }
 
@@ -106,6 +109,12 @@ public class HexMap : Canvas
         var delta = position - _lastPointerPosition;
         _lastPointerPosition = position;
 
+        if (!_isManipulating && (Math.Abs(delta.X) > DragThresholdPixels || Math.Abs(delta.Y) > DragThresholdPixels))
+        {
+            _isManipulating = true;
+            _manipulationTokenSource?.Cancel();
+        }
+
         _mapTranslateTransform.X += delta.X;
         _mapTranslateTransform.Y += delta.Y;
     }
@@ -133,7 +142,7 @@ public class HexMap : Canvas
     private void ApplyZoom(double scaleFactor, Point origin)
     {
         if (origin.X < 0 || origin.Y < 0) return;
-        if (origin.X > Width || origin.Y > Height) return;
+        if (origin.X > Bounds.Width || origin.Y > Bounds.Height) return;
 
         var newScale = _mapScaleTransform.ScaleX * scaleFactor;
         if (newScale < MinScale || newScale > MaxScale) return;
