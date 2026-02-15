@@ -115,6 +115,7 @@ public class HexMap : Canvas
             _manipulationTokenSource?.Cancel();
         }
 
+        if (!_isManipulating) return;
         _mapTranslateTransform.X += delta.X;
         _mapTranslateTransform.Y += delta.Y;
     }
