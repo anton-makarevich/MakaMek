@@ -9,7 +9,8 @@ MakaMek is an open-source tactical combat game featuring giant walking war machi
 ![MakaMek](docs/screenshots/win/251013.png)
 
 ## Implementation Phases
-### Phase 0. Game foundation ✅
+<details>
+  <summary>Phase 0. Game foundation ✅</summary>
 Complete as of v0.46.5. Allows to complete games locally and over the LAN.
 - [MVP Product Requirements Document (PRD)](docs/MakaMek-MVP-PRD.md) - Detailed requirements and specifications for the Minimum Viable Product
 - [MVP Gap Analysis](docs/MakaMek-MVP-Gap-Analysis(0.42.27).md) - Current implementation status against MVP requirements (as of v0.42.27)
@@ -26,9 +27,11 @@ Complete as of v0.46.5. Allows to complete games locally and over the LAN.
 - Hex map generator (and previewer) with the simplest terrain types (clear, light and heavy wood) ([MegaMek](https://megamek.org/)'s assets) without levels 
 - Cross-platform support (Windows, Linux, macOS, Web, Android, iOS)
 - Prototype UI built with AvaloniaUI
-- Importing mechs defined in MegaMek's MTF format (Level 1 equipment only), 173 mech variants are supported at the moment
+- Importing mechs defined in MegaMek's MTF format (Level 1 equipment only), 199 mech variants are supported at the moment
+</details>
 
-### Phase 1. Bot framework ✅
+<details>
+  <summary>Phase 1. Bot framework ✅</summary>
 Complete as of v0.50.7. Combat against AI opponents
 - [Bot Player System - Product Requirements Document (PRD)](docs/architecture/bot-player-system-prd.md) - Detailed requirements and specifications for the Bot Player System
 - [Bot Player System - Implementation Roadmap](docs/architecture/bot-player-system-implementation-roadmap.md) - High-level plan for implementing the bot player system
@@ -42,6 +45,15 @@ Complete as of v0.50.7. Combat against AI opponents
 
 #### Experimental
 An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with dedicated decision engines, multiple agents and tools.
+
+</details>
+
+### Phase 2. Support of map Levels and extended terrain types 🚧
+#### Planned
+- Support of map Levels
+- Support of water and rough terrain types
+- Support of roads and paved areas
+- [Map Editor](https://github.com/anton-makarevich/MakaMek.MapEditor) (separate project)
 
 ### Future Phases
 - Support of map Levels and extended terrain types
@@ -114,7 +126,7 @@ The source code for this project is licensed under the GNU General Public Licens
 Some art and assets used in this project—specifically unit and terrain images—are taken from the ([MegaMek Data Repository](https://github.com/MegaMek/mm-data/)). These materials are used as-is without any modifications and are distributed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License ([https://creativecommons.org/licenses/by-nc-sa/4.0/](https://creativecommons.org/licenses/by-nc-sa/4.0/)).
 The assets are located in the `data` folder and are supposed to be distributed separately as downloadable content.
 
-If you have any concerns regarding the usage of any of these assets, please reach out to me at: anton.makarevich@gmail.com
+If you have any concerns regarding the usage of these assets, please reach out to me at: anton.makarevich@gmail.com
 
 ## Acknowledgments
 
