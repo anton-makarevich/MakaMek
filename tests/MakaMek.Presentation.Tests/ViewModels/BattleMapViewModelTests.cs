@@ -32,6 +32,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Models;
 using Sanet.MVVM.Core.Services;
 using Shouldly;

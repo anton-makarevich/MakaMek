@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.Models.Map;
+using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 

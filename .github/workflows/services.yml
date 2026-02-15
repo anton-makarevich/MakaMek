@@ -1,0 +1,41 @@
+name: MakaMek Services Library
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/MakaMek.Services/**'
+      - '.github/workflows/services.yml'
+  pull_request:
+    paths:
+      - 'src/MakaMek.Services/**'
+      - '.github/workflows/services.yml'
+
+  workflow_dispatch:
+env:
+  NuGetDirectory: ${{ github.workspace }}/nuget
+  
+jobs:
+  publish-nuget:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Create nuget packages
+        run: |
+          dotnet pack src/MakaMek.Services/MakaMek.Services.csproj --configuration Release --output ${{ env.NuGetDirectory }}
+
+      - name: Publish NuGet package
+        run: |
+          for file in "${{ env.NuGetDirectory }}"/*.nupkg; do
+            dotnet nuget push "$file" --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
