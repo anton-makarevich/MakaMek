@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
@@ -72,13 +73,13 @@ public class HexMap : Canvas
         _manipulationTokenSource?.Dispose();
         _manipulationTokenSource = new CancellationTokenSource();
         Task.Delay(SelectionThresholdMilliseconds, _manipulationTokenSource.Token)
-            .ContinueWith(t =>
+            .ContinueWith(_ =>
             {
-                if (!t.IsCanceled)
+                Dispatcher.UIThread.Post(() =>
                 {
                     _isManipulating = true; // Set the flag if the delay completes
-                }
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+                });
+            });
         _isPressed = true;
     }
 
