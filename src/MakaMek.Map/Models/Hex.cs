@@ -28,6 +28,15 @@ public class Hex
     {
         _terrains.Remove(terrainId);
     }
+    
+    public void ReplaceTerrains(List<Terrain> terrains)
+    {
+        _terrains.Clear();
+        foreach (var terrain in terrains)
+        {
+            AddTerrain(terrain);
+        }
+    }
 
     public bool HasTerrain(MakaMekTerrains terrainId) => _terrains.ContainsKey(terrainId);
 

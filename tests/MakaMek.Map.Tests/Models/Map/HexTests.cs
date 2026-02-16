@@ -59,6 +59,23 @@ public class HexTests
         hex.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeFalse();
         hex.GetTerrain(MakaMekTerrains.HeavyWoods).ShouldBeNull();
     }
+    
+    [Fact]
+    public void ReplaceTerrains_ReplacesAllTerrainInHex()
+    {
+        // Arrange
+        var hex = new Hex(new HexCoordinates(0, 0));
+        hex.AddTerrain(new HeavyWoodsTerrain());
+        hex.AddTerrain(new LightWoodsTerrain());
+
+        // Act  
+        hex.ReplaceTerrains([new ClearTerrain()]);
+
+        // Assert
+        hex.HasTerrain(MakaMekTerrains.Clear).ShouldBeTrue();
+        hex.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeFalse();
+        hex.HasTerrain(MakaMekTerrains.LightWoods).ShouldBeFalse();
+    }
 
     [Fact]
     public void GetTerrains_ReturnsAllTerrains()
