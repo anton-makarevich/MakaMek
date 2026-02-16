@@ -78,7 +78,7 @@ public class HexMap : Canvas
                 {
                     _isManipulating = true; // Set the flag if the delay completes
                 }
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+            }, TaskScheduler.Current);
         _isPressed = true;
     }
 
