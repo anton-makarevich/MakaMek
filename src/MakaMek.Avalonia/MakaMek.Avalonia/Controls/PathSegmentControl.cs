@@ -3,7 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
-using Sanet.MakaMek.Presentation.Models.Map;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
@@ -19,8 +19,8 @@ public class PathSegmentControl : Panel
     {
         _segment = segment;
 
-        Width = HexCoordinatesPresentationExtensions.HexWidth * 2;
-        Height = HexCoordinatesPresentationExtensions.HexHeight * 2;
+        Width = HexCoordinatesPixelExtensions.HexWidth * 2;
+        Height = HexCoordinatesPixelExtensions.HexHeight * 2;
         var path = new Path
         {
             Stroke = new SolidColorBrush(color),
@@ -33,8 +33,8 @@ public class PathSegmentControl : Panel
         Children.Add(path);
         
         // Position control so that From coordinates are at its center
-        SetValue(Canvas.LeftProperty, _segment.FromX - HexCoordinatesPresentationExtensions.HexWidth*0.5);
-        SetValue(Canvas.TopProperty, _segment.FromY - HexCoordinatesPresentationExtensions.HexHeight*0.5);
+        SetValue(Canvas.LeftProperty, _segment.FromX - HexCoordinatesPixelExtensions.HexWidth*0.5);
+        SetValue(Canvas.TopProperty, _segment.FromY - HexCoordinatesPixelExtensions.HexHeight*0.5);
     }
 
     private Geometry CreatePathGeometry()

@@ -1,9 +1,6 @@
-﻿using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Map.Models;
+﻿namespace Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Presentation.Models.Map;
-
-public static class HexCoordinatesPresentationExtensions
+public static class HexCoordinatesPixelExtensions
 {
     public const double HexWidth = 100;
     public const double HexHeight = 86.6;

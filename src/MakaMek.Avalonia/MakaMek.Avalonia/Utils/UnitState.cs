@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.UiStates;
-using Sanet.MakaMek.Presentation.Models.Map;
 
 namespace Sanet.MakaMek.Avalonia.Utils;
 
