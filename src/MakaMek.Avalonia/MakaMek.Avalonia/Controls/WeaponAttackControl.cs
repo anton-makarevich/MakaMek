@@ -3,7 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Presentation.Models.Map;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
@@ -18,8 +18,8 @@ public class WeaponAttackControl : Control
     public WeaponAttackControl(WeaponAttackViewModel viewModel)
     {
         _viewModel = viewModel;
-        _from = new Point(viewModel.From.H + HexCoordinatesPresentationExtensions.HexWidth * 0.5, viewModel.From.V + HexCoordinatesPresentationExtensions.HexHeight * 0.5);
-        _to = new Point(viewModel.To.H + HexCoordinatesPresentationExtensions.HexWidth * 0.5, viewModel.To.V + HexCoordinatesPresentationExtensions.HexHeight * 0.5);
+        _from = new Point(viewModel.From.H + HexCoordinatesPixelExtensions.HexWidth * 0.5, viewModel.From.V + HexCoordinatesPixelExtensions.HexHeight * 0.5);
+        _to = new Point(viewModel.To.H + HexCoordinatesPixelExtensions.HexWidth * 0.5, viewModel.To.V + HexCoordinatesPixelExtensions.HexHeight * 0.5);
         _color = new SolidColorBrush(Color.Parse(viewModel.AttackerTint));
     }
 

@@ -1,7 +1,7 @@
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
-namespace Sanet.MakaMek.Map.Tests.Models.Map.Terrains;
+namespace Sanet.MakaMek.Map.Tests.Models.Terrains;
 
 public class ClearTerrainTests
 {

@@ -1,11 +1,9 @@
-﻿using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Presentation.Models.Map;
+﻿using Sanet.MakaMek.Map.Models;
 using Shouldly;
 
-namespace Sanet.MakaMek.Presentation.Tests.Models.Map;
+namespace Sanet.MakaMek.Map.Tests.Models;
 
-public class HexCoordinatesPresentationExtensionsTests
+public class HexCoordinatesPixelExtensionsTests
 {
     [Fact]
     public void X_CalculatesCorrectPixelPosition()
@@ -32,8 +30,8 @@ public class HexCoordinatesPresentationExtensionsTests
 
         // Assert
         hex1.V.ShouldBe(0);
-        hex2.V.ShouldBe(HexCoordinatesPresentationExtensions.HexHeight);
-        hex3.V.ShouldBe( -HexCoordinatesPresentationExtensions.HexHeight*0.5);  // Offset for odd Q
-        hex4.V.ShouldBe(HexCoordinatesPresentationExtensions.HexHeight*0.5);  // Height - 0.5*Height offset for odd Q
+        hex2.V.ShouldBe(HexCoordinatesPixelExtensions.HexHeight);
+        hex3.V.ShouldBe( -HexCoordinatesPixelExtensions.HexHeight*0.5);  // Offset for odd Q
+        hex4.V.ShouldBe(HexCoordinatesPixelExtensions.HexHeight*0.5);  // Height - 0.5*Height offset for odd Q
     }
 }

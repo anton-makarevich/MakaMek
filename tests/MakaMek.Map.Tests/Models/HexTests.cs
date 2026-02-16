@@ -2,7 +2,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
-namespace Sanet.MakaMek.Map.Tests.Models.Map;
+namespace Sanet.MakaMek.Map.Tests.Models;
 
 public class HexTests
 {

@@ -5,7 +5,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
-namespace Sanet.MakaMek.Map.Tests.Models.Map.Factory;
+namespace Sanet.MakaMek.Map.Tests.Factories;
 
 public class BattleMapFactoryTests
 {
