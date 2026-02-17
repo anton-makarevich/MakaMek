@@ -25,6 +25,8 @@ public class HexControl : Panel
 
     private const double DefaultStrokeThickness = 2;
     private const double HighlightStrokeThickness = 3;
+    
+    private IDisposable? _hexSubscription;
 
     private static Points GetHexPoints()
     {
@@ -78,11 +80,11 @@ public class HexControl : Panel
         Children.Add(label);
         
         // Create an observable that polls the hex's state
-        Observable
+        _hexSubscription = Observable
             .Interval(TimeSpan.FromMilliseconds(16)) // ~60fps
             .Select(_ => _hex.IsHighlighted)
             .DistinctUntilChanged()
-            .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
+            .ObserveOn(SynchronizationContext.Current!) // Ensure events are processed on the UI thread
             .Subscribe(_ => Highlight(_hex.IsHighlighted ? HexHighlightType.Selected : HexHighlightType.None));
         
         // Set position
@@ -159,5 +161,11 @@ public class HexControl : Panel
     public async Task Render()
     {
         await UpdateTerrainImage();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _hexSubscription?.Dispose();
+        base.OnDetachedFromVisualTree(e);
     }
 }
