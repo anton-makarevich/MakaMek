@@ -77,7 +77,7 @@ public class HexControl : Panel
         Children.Add(_hexPolygon);
         Children.Add(label);
         
-        // Create an observable that polls the unit's position
+        // Create an observable that polls the hex's state
         Observable
             .Interval(TimeSpan.FromMilliseconds(16)) // ~60fps
             .Select(_ => _hex.IsHighlighted)
@@ -89,7 +89,7 @@ public class HexControl : Panel
         SetValue(Canvas.LeftProperty, hex.Coordinates.H);
         SetValue(Canvas.TopProperty, hex.Coordinates.V);
 
-        UpdateTerrainImage().SafeFireAndForget();
+        Render().SafeFireAndForget();
     }
     public Hex Hex => _hex;
     
@@ -127,5 +127,10 @@ public class HexControl : Panel
     {
         // Check if the point is within the bounds
         return Bounds.Contains(point);
+    }
+    
+    public async Task Render()
+    {
+        await UpdateTerrainImage();
     }
 }
