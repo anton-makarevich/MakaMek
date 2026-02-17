@@ -14,7 +14,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AsyncAwaitBestPractices" Version="10.0.0" />
     <PackageReference Include="Avalonia" Version="11.3.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
+    <PackageReference Include="System.Reactive" Version="6.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\MakaMek.Map\MakaMek.Map.csproj" />
+    <ProjectReference Include="..\..\MakaMek.Services\MakaMek.Services.csproj" />
+  </ItemGroup>
 </Project>

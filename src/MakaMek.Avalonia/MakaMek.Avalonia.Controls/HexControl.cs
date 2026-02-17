@@ -1,8 +1,4 @@
-using System;
-using System.Linq;
 using System.Reactive.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,8 +6,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Services;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Services;
 
@@ -31,6 +26,8 @@ public class HexControl : Panel
 
     private const double DefaultStrokeThickness = 2;
     private const double HighlightStrokeThickness = 3;
+    
+    private IDisposable? _hexSubscription;
 
     private static Points GetHexPoints()
     {
@@ -47,7 +44,7 @@ public class HexControl : Panel
         ]);
     }
 
-    public HexControl(Hex hex, IImageService<Bitmap> imageService)
+    public HexControl(Hex hex, IImageService<Bitmap> imageService, ILogger logger)
     {
         _hex = hex;
         _imageService = imageService;
@@ -83,19 +80,19 @@ public class HexControl : Panel
         Children.Add(_hexPolygon);
         Children.Add(label);
         
-        // Create an observable that polls the unit's position
-        Observable
+        // Create an observable that polls the hex's state
+        _hexSubscription = Observable
             .Interval(TimeSpan.FromMilliseconds(16)) // ~60fps
             .Select(_ => _hex.IsHighlighted)
             .DistinctUntilChanged()
-            .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
+            .ObserveOn(SynchronizationContext.Current!) // Ensure events are processed on the UI thread
             .Subscribe(_ => Highlight(_hex.IsHighlighted ? HexHighlightType.Selected : HexHighlightType.None));
         
         // Set position
         SetValue(Canvas.LeftProperty, hex.Coordinates.H);
         SetValue(Canvas.TopProperty, hex.Coordinates.V);
 
-        UpdateTerrainImage().SafeFireAndForget();
+        Render().SafeFireAndForget(ex => logger.LogError(ex, "Error rendering hex at {Q},{R}", hex.Coordinates.Q, hex.Coordinates.R));
     }
     public Hex Hex => _hex;
     
@@ -131,7 +128,45 @@ public class HexControl : Panel
     
     public bool IsPointInside(Point point)
     {
-        // Check if the point is within the bounds
-        return Bounds.Contains(point);
+        // Transform the point from global coordinates to local control coordinates
+        var localPoint = point - new Point(Bounds.X, Bounds.Y);
+        
+        // Check if the local point is inside the hex polygon using the ray casting algorithm
+        return IsPointInPolygon(localPoint, _hexPolygon.Points);
+    }
+    
+    private static bool IsPointInPolygon(Point point, IList<Point> polygonPoints)
+    {
+        
+        if (polygonPoints.Count < 3) return false;
+        
+        var inside = false;
+        var j = polygonPoints.Count - 1;
+        
+        for (var i = 0; i < polygonPoints.Count; i++)
+        {
+            var pi = polygonPoints[i];
+            var pj = polygonPoints[j];
+            
+            if (pi.Y > point.Y != pj.Y > point.Y &&
+                point.X < (pj.X - pi.X) * (point.Y - pi.Y) / (pj.Y - pi.Y) + pi.X)
+            {
+                inside = !inside;
+            }
+            j = i;
+        }
+        
+        return inside;
+    }
+    
+    public async Task Render()
+    {
+        await UpdateTerrainImage();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _hexSubscription?.Dispose();
+        base.OnDetachedFromVisualTree(e);
     }
 }
