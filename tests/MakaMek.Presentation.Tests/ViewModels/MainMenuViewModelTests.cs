@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
 using Shouldly;
 
@@ -75,6 +76,7 @@ public class MainMenuViewModelTests
             Substitute.For<IBattleMapFactory>(),
             Substitute.For<IFileCachingService>(),
             Substitute.For<IMapPreviewRenderer>(),
+            Substitute.For<IMapResourceProvider>(),
             _hashService,
             Substitute.For<IBotManager>(),
             Substitute.For<ILogger<StartNewGameViewModel>>()

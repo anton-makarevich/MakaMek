@@ -13,6 +13,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Services;
 using Shouldly;
 
 namespace MakaMek.Avalonia.Tests.Views
@@ -52,6 +53,7 @@ namespace MakaMek.Avalonia.Tests.Views
                 Substitute.For<IBattleMapFactory>(),
                 cachingService,
                 Substitute.For<IMapPreviewRenderer>(),
+                Substitute.For<IMapResourceProvider>(),
                 Substitute.For<IHashService>(),
                 Substitute.For<IBotManager>(),
                 Substitute.For<ILogger<StartNewGameViewModel>>()

@@ -1,10 +1,13 @@
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Services;
 using Shouldly;
 
 namespace Sanet.MakaMek.Presentation.Tests.ViewModels;
@@ -14,13 +17,14 @@ public class MapConfigViewModelTests
     private readonly MapConfigViewModel _sut;
     private readonly IMapPreviewRenderer _previewRenderer = Substitute.For<IMapPreviewRenderer>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
+    private readonly IMapResourceProvider _mapResourceProvider = Substitute.For<IMapResourceProvider>();
     private readonly ILogger _logger = Substitute.For<ILogger>();
 
     public MapConfigViewModelTests()
     {
         _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>())
             .Returns(ci => new BattleMap(ci.ArgAt<int>(0), ci.ArgAt<int>(1)));
-        _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
+        _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
     }
 
     [Fact]
@@ -118,7 +122,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
             
         // Act - create a new instance
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
         
         // Allow any pending async operations to complete
         var i = 0;
@@ -134,6 +138,7 @@ public class MapConfigViewModelTests
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>());
+        sut.SelectedTabIndex = 1; // Switch to the Generate tab to access the generated map
         sut.Map.ShouldNotBeNull();
         sut.IsGenerating.ShouldBeFalse();
     }
@@ -149,7 +154,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
         
         // Allow any pending async operations to complete
         await Task.Delay(100);
@@ -172,7 +177,7 @@ public class MapConfigViewModelTests
             Task.FromResult<object?>(mockImage2));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
         var i = 0;
         while (sut.IsGenerating)
         {
@@ -210,7 +215,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(null));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
         var i = 0;
         while (sut.IsGenerating)
         {
@@ -221,8 +226,129 @@ public class MapConfigViewModelTests
 
         // Assert
         sut.PreviewImage.ShouldBeNull();
+        sut.SelectedTabIndex = 1; // Switch to the Generate tab to access the generated map
         sut.Map.ShouldNotBeNull();
         sut.IsGenerating.ShouldBeFalse();
     }
-}
 
+    [Fact]
+    public async Task LoadAvailableMapsAsync_PreselectsFirstMap()
+    {
+        // Arrange
+        var hexData = new List<HexData>
+        {
+            new()
+            {
+                Coordinates = new HexCoordinateData(1, 1),
+                TerrainTypes = [MakaMekTerrains.Clear],
+                Level = 0
+            }
+        };
+        _mapResourceProvider.GetAvailableMapsAsync()
+            .Returns(new List<(string Name, IList<HexData> HexData)>
+            {
+                ("Map1", hexData),
+                ("Map2", hexData)
+            });
+        var map = new BattleMap(5, 5);
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+
+        // Act
+        await sut.LoadAvailableMapsAsync();
+
+        // Assert
+        sut.SelectedMap.ShouldNotBeNull();
+        sut.SelectedMap.Name.ShouldBe("Map1");
+        sut.SelectedMap.IsSelected.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SelectMap_UpdatesSelectedMapAndDeselectsPrevious()
+    {
+        // Arrange
+        var hexData = new List<HexData>
+        {
+            new()
+            {
+                Coordinates = new HexCoordinateData(1, 1),
+                TerrainTypes = [MakaMekTerrains.Clear],
+                Level = 0
+            }
+        };
+        _mapResourceProvider.GetAvailableMapsAsync()
+            .Returns(new List<(string Name, IList<HexData> HexData)>
+            {
+                ("Map1", hexData),
+                ("Map2", hexData)
+            });
+        
+        var map = new BattleMap(5, 5);
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        await sut.LoadAvailableMapsAsync();
+
+        // Act
+        sut.SelectMap(sut.AvailableMaps[1]);
+
+        // Assert
+        sut.SelectedMap.ShouldBe(sut.AvailableMaps[1]);
+        sut.AvailableMaps[0].IsSelected.ShouldBeFalse();
+        sut.AvailableMaps[1].IsSelected.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Map_ReturnsSelectedMap_WhenTabIndexIsZero()
+    {
+        // Arrange
+        var hexData = new List<HexData>
+        {
+            new()
+            {
+                Coordinates = new HexCoordinateData(1, 1),
+                TerrainTypes = [MakaMekTerrains.Clear],
+                Level = 0
+            }
+        };
+        _mapResourceProvider.GetAvailableMapsAsync()
+            .Returns(new List<(string Name, IList<HexData> HexData)>
+            {
+                ("TestMap", hexData)
+            });
+        var map = new BattleMap(5, 5);
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        await sut.LoadAvailableMapsAsync();
+
+        // Act
+        sut.SelectedTabIndex = 0;
+
+        // Assert
+        sut.Map.ShouldBe(map);
+    }
+
+    [Fact]
+    public void Map_ReturnsGeneratedMap_WhenTabIndexIsOne()
+    {
+        // Act
+        _sut.SelectedTabIndex = 1;
+
+        // Assert
+        _sut.Map.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void SelectedTabIndex_DefaultsToZero()
+    {
+        _sut.SelectedTabIndex.ShouldBe(0);
+    }
+
+    [Fact]
+    public void AvailableMaps_InitiallyEmpty()
+    {
+        _sut.AvailableMaps.ShouldBeEmpty();
+    }
+}
