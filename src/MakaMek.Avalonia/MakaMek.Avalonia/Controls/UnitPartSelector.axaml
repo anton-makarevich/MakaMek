@@ -6,6 +6,7 @@
              xmlns:controls="clr-namespace:Sanet.MakaMek.Avalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="300"
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitPartSelector"
+             x:CompileBindings="True"
              x:DataType="viewModels:AimedShotLocationSelectorViewModel">
 
     <Grid ColumnDefinitions="*,*,*,*,*"

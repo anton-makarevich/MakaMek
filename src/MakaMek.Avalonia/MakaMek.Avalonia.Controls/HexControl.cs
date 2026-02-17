@@ -1,8 +1,4 @@
-using System;
-using System.Linq;
 using System.Reactive.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using AsyncAwaitBestPractices;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,8 +6,6 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Sanet.MakaMek.Core.Models.Map;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Services;
 
