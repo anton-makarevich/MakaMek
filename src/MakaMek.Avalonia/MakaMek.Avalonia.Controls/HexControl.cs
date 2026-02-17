@@ -91,7 +91,7 @@ public class HexControl : Panel
         SetValue(Canvas.LeftProperty, hex.Coordinates.H);
         SetValue(Canvas.TopProperty, hex.Coordinates.V);
 
-        Render().SafeFireAndForget();
+        Render().SafeFireAndForget(Console.WriteLine);
     }
     public Hex Hex => _hex;
     
