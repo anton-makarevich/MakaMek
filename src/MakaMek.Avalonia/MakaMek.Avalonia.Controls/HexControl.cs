@@ -125,8 +125,35 @@ public class HexControl : Panel
     
     public bool IsPointInside(Point point)
     {
-        // Check if the point is within the bounds
-        return Bounds.Contains(point);
+        // Transform the point from global coordinates to local control coordinates
+        var localPoint = point - new Point(Bounds.X, Bounds.Y);
+        
+        // Check if the local point is inside the hex polygon using the ray casting algorithm
+        return IsPointInPolygon(localPoint, _hexPolygon.Points);
+    }
+    
+    private static bool IsPointInPolygon(Point point, IList<Point> polygonPoints)
+    {
+        
+        if (polygonPoints.Count < 3) return false;
+        
+        var inside = false;
+        var j = polygonPoints.Count - 1;
+        
+        for (var i = 0; i < polygonPoints.Count; i++)
+        {
+            var pi = polygonPoints[i];
+            var pj = polygonPoints[j];
+            
+            if (pi.Y > point.Y != pj.Y > point.Y &&
+                point.X < (pj.X - pi.X) * (point.Y - pi.Y) / (pj.Y - pi.Y) + pi.X)
+            {
+                inside = !inside;
+            }
+            j = i;
+        }
+        
+        return inside;
     }
     
     public async Task Render()
