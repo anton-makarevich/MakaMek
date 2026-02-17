@@ -6,6 +6,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Services;
 
@@ -43,7 +44,7 @@ public class HexControl : Panel
         ]);
     }
 
-    public HexControl(Hex hex, IImageService<Bitmap> imageService)
+    public HexControl(Hex hex, IImageService<Bitmap> imageService, ILogger logger)
     {
         _hex = hex;
         _imageService = imageService;
@@ -91,7 +92,7 @@ public class HexControl : Panel
         SetValue(Canvas.LeftProperty, hex.Coordinates.H);
         SetValue(Canvas.TopProperty, hex.Coordinates.V);
 
-        Render().SafeFireAndForget(Console.WriteLine);
+        Render().SafeFireAndForget(ex => logger.LogError(ex, "Error rendering hex at {Q},{R}", hex.Coordinates.Q, hex.Coordinates.R));
     }
     public Hex Hex => _hex;
     
