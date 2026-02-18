@@ -17,7 +17,7 @@ public class SelectedItemToBrushConverter : IValueConverter
     /// Initializes the converter with the resources locator
     /// </summary>
     /// <param name="resourcesLocator">The resource locator to use</param>
-    public static void Initialize(IAvaloniaResourcesLocator resourcesLocator)
+    public static void Initialize(IAvaloniaResourcesLocator? resourcesLocator)
     {
         _resourcesLocator = resourcesLocator;
     }

@@ -63,7 +63,7 @@ public class SelectedItemToBrushConverterTests : IDisposable
     public void Convert_True_ReturnsFallbackColorWhenLocatorNotInitialized()
     {
         // Arrange
-        SelectedItemToBrushConverter.Initialize(null!);
+        SelectedItemToBrushConverter.Initialize(null);
         var sut = new SelectedItemToBrushConverter();
 
         // Act
