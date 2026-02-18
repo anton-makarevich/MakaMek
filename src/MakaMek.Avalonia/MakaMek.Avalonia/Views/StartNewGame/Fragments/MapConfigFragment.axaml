@@ -9,11 +9,11 @@
              x:DataType="viewModels1:MapConfigViewModel">
     <UserControl.Resources>
         <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
-        <converters:ISelectedItemToBrushConverter x:Key="BoolToBrushConverter"/>
+        <converters:ISelectedItemToBrushConverter x:Key="SelectedItemToBrushConverter"/>
     </UserControl.Resources>
     
     <TabControl SelectedIndex="{Binding SelectedTabIndex}">
-        <!-- Tab 1: Select Pre-existing Map -->
+        <!-- Tab 1: Select a Pre-existing Map -->
         <TabItem Header="Select Map">
             <Panel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -29,7 +29,7 @@
                                         BorderThickness="2"
                                         Cursor="Hand"
                                         BorderBrush="{Binding IsSelected, 
-                                            Converter={StaticResource BoolToBrushConverter}}"
+                                            Converter={StaticResource SelectedItemToBrushConverter}}"
                                         Background="#1A000000"
                                         PointerPressed="OnMapItemPressed">
                                     <StackPanel HorizontalAlignment="Center" Spacing="4">
