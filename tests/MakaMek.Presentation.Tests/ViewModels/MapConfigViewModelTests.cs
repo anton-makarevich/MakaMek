@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
@@ -116,10 +117,11 @@ public class MapConfigViewModelTests
     public async Task Constructor_GeneratesInitialPreview()
     {
         // Arrange - setup mock to return a completed task
+        var objectImage = new object();
         _previewRenderer.GeneratePreviewAsync(
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
-            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(new object()));
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(objectImage));
             
         // Act - create a new instance
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
@@ -252,6 +254,12 @@ public class MapConfigViewModelTests
             });
         var map = new BattleMap(5, 5);
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+        
+        var previewImage = new object();
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(previewImage));
 
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
 
@@ -259,6 +267,8 @@ public class MapConfigViewModelTests
         await sut.LoadAvailableMapsAsync();
 
         // Assert
+        sut.AvailableMaps.Count.ShouldBe(2);
+        sut.AvailableMaps[0].PreviewImage.ShouldBe(previewImage);
         sut.SelectedMap.ShouldNotBeNull();
         sut.SelectedMap.Name.ShouldBe("Map1");
         sut.SelectedMap.IsSelected.ShouldBeTrue();
@@ -350,5 +360,69 @@ public class MapConfigViewModelTests
     public void AvailableMaps_InitiallyEmpty()
     {
         _sut.AvailableMaps.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void IsLoadingMaps_DefaultsToFalse()
+    {
+        // Arrange
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+
+        // Assert
+        sut.IsLoadingMaps.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task LoadAvailableMapsAsync_HandlesException_AndSetsLoadingToFalse()
+    {
+        // Arrange
+        _mapResourceProvider.GetAvailableMapsAsync()
+            .ThrowsAsync(new InvalidOperationException("Test exception"));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+
+        // Act
+        await sut.LoadAvailableMapsAsync();
+
+        // Assert
+        sut.IsLoadingMaps.ShouldBeFalse();
+        sut.AvailableMaps.ShouldBeEmpty();
+        _logger.Received().Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            Arg.Any<InvalidOperationException>(),
+            Arg.Any<Func<object, Exception?, string>>()
+        );
+    }
+
+    [Fact]
+    public void Dispose_DisposesPreviewImage()
+    {
+        // Arrange
+        var mockDisposable = Substitute.For<IDisposable>();
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Any<BattleMap>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockDisposable));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+
+        // Act
+        sut.Dispose();
+
+        // Assert
+        mockDisposable.Received().Dispose();
+    }
+    
+    [Fact]
+    public void Dispose_CalledTwice_DoesNotThrow()
+    {
+        // Arrange
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+
+        // Act & Assert - Should not throw
+        sut.Dispose();
+        sut.Dispose(); // Calling twice should be safe
     }
 }

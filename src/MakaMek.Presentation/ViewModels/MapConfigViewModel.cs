@@ -190,6 +190,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     internal async Task LoadAvailableMapsAsync()
     {
         IsLoadingMaps = true;
+        AvailableMaps.Clear();
         try
         {
             var maps = await _mapResourceProvider.GetAvailableMapsAsync();
