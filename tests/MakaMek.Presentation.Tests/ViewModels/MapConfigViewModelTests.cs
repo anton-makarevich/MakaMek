@@ -397,7 +397,7 @@ public class MapConfigViewModelTests
     }
 
     [Fact]
-    public void Dispose_DisposesPreviewImage()
+    public async Task Dispose_DisposesPreviewImage()
     {
         // Arrange
         var mockDisposable = Substitute.For<IDisposable>();
@@ -405,14 +405,32 @@ public class MapConfigViewModelTests
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockDisposable));
+        var hexData = new List<HexData>
+        {
+            new()
+            {
+                Coordinates = new HexCoordinateData(1, 1),
+                TerrainTypes = [MakaMekTerrains.Clear],
+                Level = 0
+            }
+        };
+        _mapResourceProvider.GetAvailableMapsAsync()
+            .Returns(new List<(string Name, IList<HexData> HexData)>
+            {
+                ("TestMap", hexData)
+            });
+        var map = new BattleMap(5, 5);
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
 
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        
+        await sut.LoadAvailableMapsAsync();
 
         // Act
         sut.Dispose();
 
         // Assert
-        mockDisposable.Received().Dispose();
+        mockDisposable.Received(2).Dispose(); // one for the generated map, one for the available map
     }
     
     [Fact]
