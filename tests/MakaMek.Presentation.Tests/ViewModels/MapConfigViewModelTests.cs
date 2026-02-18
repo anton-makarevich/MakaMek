@@ -28,6 +28,16 @@ public class MapConfigViewModelTests
         _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
     }
 
+    private static IList<HexData> CreateSingleHexData() =>
+    [
+        new()
+        {
+            Coordinates = new HexCoordinateData(1, 1),
+            TerrainTypes = [MakaMekTerrains.Clear],
+            Level = 0
+        }
+    ];
+
     [Fact]
     public void Constructor_SetsDefaultValues()
     {
@@ -237,15 +247,7 @@ public class MapConfigViewModelTests
     public async Task LoadAvailableMapsAsync_PreselectsFirstMap()
     {
         // Arrange
-        var hexData = new List<HexData>
-        {
-            new()
-            {
-                Coordinates = new HexCoordinateData(1, 1),
-                TerrainTypes = [MakaMekTerrains.Clear],
-                Level = 0
-            }
-        };
+        var hexData = CreateSingleHexData();
         _mapResourceProvider.GetAvailableMapsAsync()
             .Returns(new List<(string Name, IList<HexData> HexData)>
             {
@@ -278,15 +280,7 @@ public class MapConfigViewModelTests
     public async Task SelectMap_UpdatesSelectedMapAndDeselectsPrevious()
     {
         // Arrange
-        var hexData = new List<HexData>
-        {
-            new()
-            {
-                Coordinates = new HexCoordinateData(1, 1),
-                TerrainTypes = [MakaMekTerrains.Clear],
-                Level = 0
-            }
-        };
+        var hexData = CreateSingleHexData();
         _mapResourceProvider.GetAvailableMapsAsync()
             .Returns(new List<(string Name, IList<HexData> HexData)>
             {
@@ -313,15 +307,7 @@ public class MapConfigViewModelTests
     public async Task Map_ReturnsSelectedMap_WhenTabIndexIsZero()
     {
         // Arrange
-        var hexData = new List<HexData>
-        {
-            new()
-            {
-                Coordinates = new HexCoordinateData(1, 1),
-                TerrainTypes = [MakaMekTerrains.Clear],
-                Level = 0
-            }
-        };
+        var hexData = CreateSingleHexData();
         _mapResourceProvider.GetAvailableMapsAsync()
             .Returns(new List<(string Name, IList<HexData> HexData)>
             {
@@ -343,6 +329,8 @@ public class MapConfigViewModelTests
     [Fact]
     public void Map_ReturnsGeneratedMap_WhenTabIndexIsOne()
     {
+        // GeneratedMap is set synchronously (before the first await) inside UpdateMapAsync,
+        // so this synchronous test is reliable without awaiting.
         // Act
         _sut.SelectedTabIndex = 1;
 
@@ -405,15 +393,7 @@ public class MapConfigViewModelTests
             Arg.Any<BattleMap>(),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockDisposable));
-        var hexData = new List<HexData>
-        {
-            new()
-            {
-                Coordinates = new HexCoordinateData(1, 1),
-                TerrainTypes = [MakaMekTerrains.Clear],
-                Level = 0
-            }
-        };
+        var hexData = CreateSingleHexData();
         _mapResourceProvider.GetAvailableMapsAsync()
             .Returns(new List<(string Name, IList<HexData> HexData)>
             {
