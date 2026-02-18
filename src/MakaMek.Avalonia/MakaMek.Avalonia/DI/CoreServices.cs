@@ -56,6 +56,9 @@ public static class CoreServices
             // Register map preview renderer
             services.AddSingleton<IMapPreviewRenderer, SkiaMapPreviewRenderer>();
 
+            // Register map resource provider for pre-existing maps
+            services.AddSingleton<IMapResourceProvider, EmbeddedMapResourceProvider>();
+
             services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
 
             services.AddSingleton<ILocalizationService, FakeLocalizationService>();

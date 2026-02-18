@@ -1,0 +1,2552 @@
+[
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 1,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 4
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 5
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 6
+    },
+    "TerrainTypes": [
+      2
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 14
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 15
+    },
+    "TerrainTypes": [
+      2
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 2,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 5
+    },
+    "TerrainTypes": [
+      2
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 6
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 15
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 3,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 4
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 5
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 4,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 5
+    },
+    "TerrainTypes": [
+      2
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 5,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 6,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 7,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 8,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 10
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 11
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 9,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 8
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 9
+    },
+    "TerrainTypes": [
+      2
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 10
+    },
+    "TerrainTypes": [
+      2
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 10,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 10
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 11
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 12
+    },
+    "TerrainTypes": [
+      1
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 11,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 10
+    },
+    "TerrainTypes": [
+      2
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 12,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 13,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 14,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 1
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 2
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 3
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 4
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 5
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 6
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 7
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 8
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 9
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 10
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 11
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 12
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 13
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 14
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 15
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 16
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  },
+  {
+    "Coordinates": {
+      "Q": 15,
+      "R": 17
+    },
+    "TerrainTypes": [
+      0
+    ],
+    "Level": 0
+  }
+]

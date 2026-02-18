@@ -19,6 +19,7 @@ using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
@@ -43,6 +44,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IBattleMapFactory mapFactory,
         IFileCachingService cachingService,
         IMapPreviewRenderer mapPreviewRenderer,
+        IMapResourceProvider mapResourceProvider,
         IHashService hashService,
         IBotManager botManager,
         ILogger<StartNewGameViewModel> logger)
@@ -64,7 +66,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager = gameManager;
         _mapFactory = mapFactory;
         _logger = logger;
-        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, logger);
+        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, logger);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
     }

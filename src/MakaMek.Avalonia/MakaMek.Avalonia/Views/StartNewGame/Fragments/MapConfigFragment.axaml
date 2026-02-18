@@ -9,58 +9,103 @@
              x:DataType="viewModels1:MapConfigViewModel">
     <UserControl.Resources>
         <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
+        <converters:SelectedItemToBrushConverter x:Key="SelectedItemToBrushConverter"/>
     </UserControl.Resources>
-    <UniformGrid
-        VerticalAlignment="Stretch"
-        HorizontalAlignment="Stretch"
-        Rows="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
-                        Path=Bounds.Size, 
-                        Converter={StaticResource AdaptiveGridConverter}, 
-                        ConverterParameter={x:Static converters:GridOrientation.Rows}}"
-        Columns="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
-                        Path=Bounds.Size, 
-                        Converter={StaticResource AdaptiveGridConverter}, 
-                        ConverterParameter={x:Static converters:GridOrientation.Columns}}"
-    >
-        <!-- Configuration Sliders -->
-        <StackPanel Classes="verticalSpaced">
-            <StackPanel Classes="formGroup">
-                <TextBlock Text="{Binding MapWidthLabel}" Classes="label"/>
-                <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                <TextBlock Text="{Binding MapWidth, StringFormat='Width: {0} hexes'}" Classes="bodySmall"/>
-            </StackPanel>
-
-            <StackPanel Classes="formGroup">
-                <TextBlock Text="{Binding MapHeightLabel}" Classes="label"/>
-                <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
-                <TextBlock Text="{Binding MapHeight, StringFormat='Height: {0} hexes'}" Classes="bodySmall"/>
-            </StackPanel>
-
-            <StackPanel Classes="formGroup">
-                <TextBlock Text="{Binding ForestCoverageLabel}" Classes="label"/>
-                <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" Classes="gameSlider"/>
-                <TextBlock Text="{Binding ForestCoverage, StringFormat='Forest Coverage: {0}%'}" Classes="bodySmall"/>
-            </StackPanel>
-
-            <StackPanel Classes="formGroup">
-                <TextBlock Text="{Binding LightWoodsLabel}" Classes="label"/>
-                <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
-                <TextBlock Text="{Binding LightWoodsPercentage, StringFormat='Light Woods: {0}%'}" Classes="bodySmall"/>
-            </StackPanel>
-        </StackPanel>
-
-        <!-- Map Preview -->
-        <Panel
-            VerticalAlignment="Top"
-            Margin="5"
-                >
-                <Image VerticalAlignment="Top" MaxWidth="300" Source="{Binding PreviewImage}"
-                       Stretch="Uniform"/>
+    
+    <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+        <!-- Tab 1: Select a Pre-existing Map -->
+        <TabItem Header="Select Map">
+            <Panel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding AvailableMaps}" Margin="8">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels1:MapPreviewItem">
+                                <Border Margin="8" Padding="8" CornerRadius="8"
+                                        BorderThickness="2"
+                                        Cursor="Hand"
+                                        BorderBrush="{Binding IsSelected, 
+                                            Converter={StaticResource SelectedItemToBrushConverter}}"
+                                        Background="#1A000000"
+                                        PointerPressed="OnMapItemPressed">
+                                    <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                        <Image Source="{Binding PreviewImage}" 
+                                               MaxWidth="200" MaxHeight="200"
+                                               Stretch="Uniform"/>
+                                        <TextBlock Text="{Binding Name}" 
+                                                   HorizontalAlignment="Center"
+                                                   Classes="bodySmall"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
                 <ProgressBar
-                    IsVisible="{Binding IsGenerating}"
-                    IsIndeterminate="True"/>
-        </Panel>
+                    IsVisible="{Binding IsLoadingMaps}"
+                    IsIndeterminate="True"
+                    VerticalAlignment="Top"/>
+            </Panel>
+        </TabItem>
         
-    </UniformGrid>
-</UserControl>
+        <!-- Tab 2: Generate Map -->
+        <TabItem Header="Generate Map">
+            <UniformGrid
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Rows="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
+                                Path=Bounds.Size, 
+                                Converter={StaticResource AdaptiveGridConverter}, 
+                                ConverterParameter={x:Static converters:GridOrientation.Rows}}"
+                Columns="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, 
+                                Path=Bounds.Size, 
+                                Converter={StaticResource AdaptiveGridConverter}, 
+                                ConverterParameter={x:Static converters:GridOrientation.Columns}}"
+            >
+                <!-- Configuration Sliders -->
+                <StackPanel Classes="verticalSpaced">
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{Binding MapWidthLabel}" Classes="label"/>
+                        <Slider Value="{Binding MapWidth}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                        <TextBlock Text="{Binding MapWidth, StringFormat='Width: {0} hexes'}" Classes="bodySmall"/>
+                    </StackPanel>
 
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{Binding MapHeightLabel}" Classes="label"/>
+                        <Slider Value="{Binding MapHeight}" Minimum="8" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True" Classes="gameSlider"/>
+                        <TextBlock Text="{Binding MapHeight, StringFormat='Height: {0} hexes'}" Classes="bodySmall"/>
+                    </StackPanel>
+
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{Binding ForestCoverageLabel}" Classes="label"/>
+                        <Slider Value="{Binding ForestCoverage}" Minimum="0" Maximum="50" TickFrequency="5" Classes="gameSlider"/>
+                        <TextBlock Text="{Binding ForestCoverage, StringFormat='Forest Coverage: {0}%'}" Classes="bodySmall"/>
+                    </StackPanel>
+
+                    <StackPanel Classes="formGroup">
+                        <TextBlock Text="{Binding LightWoodsLabel}" Classes="label"/>
+                        <Slider Value="{Binding LightWoodsPercentage}" Minimum="0" Maximum="100" TickFrequency="5" IsEnabled="{Binding IsLightWoodsEnabled}" Classes="gameSlider"/>
+                        <TextBlock Text="{Binding LightWoodsPercentage, StringFormat='Light Woods: {0}%'}" Classes="bodySmall"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Map Preview -->
+                <Panel
+                    VerticalAlignment="Top"
+                    Margin="5"
+                        >
+                        <Image VerticalAlignment="Top" MaxWidth="300" Source="{Binding PreviewImage}"
+                               Stretch="Uniform"/>
+                        <ProgressBar
+                            IsVisible="{Binding IsGenerating}"
+                            IsIndeterminate="True"/>
+                </Panel>
+                
+            </UniformGrid>
+        </TabItem>
+    </TabControl>
+</UserControl>

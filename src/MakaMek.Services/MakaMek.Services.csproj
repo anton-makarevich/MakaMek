@@ -13,4 +13,8 @@
         <None Include="../../README.md" Pack="true" PackagePath="" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\MakaMek.Map\MakaMek.Map.csproj" />
+    </ItemGroup>
+
 </Project>
