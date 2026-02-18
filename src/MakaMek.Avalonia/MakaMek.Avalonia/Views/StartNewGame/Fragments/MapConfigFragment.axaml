@@ -9,7 +9,7 @@
              x:DataType="viewModels1:MapConfigViewModel">
     <UserControl.Resources>
         <converters:AdaptiveGridConverter x:Key="AdaptiveGridConverter"/>
-        <converters:BoolToBrushConverter x:Key="BoolToBrushConverter"/>
+        <converters:ISelectedItemToBrushConverter x:Key="BoolToBrushConverter"/>
     </UserControl.Resources>
     
     <TabControl SelectedIndex="{Binding SelectedTabIndex}">

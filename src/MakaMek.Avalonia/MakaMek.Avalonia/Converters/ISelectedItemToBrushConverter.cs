@@ -9,7 +9,7 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// <summary>
 /// Converts a boolean to a brush - used for selection highlighting
 /// </summary>
-public class BoolToBrushConverter : IValueConverter
+public class ISelectedItemToBrushConverter : IValueConverter
 {
     private static IAvaloniaResourcesLocator? _resourcesLocator;
 
