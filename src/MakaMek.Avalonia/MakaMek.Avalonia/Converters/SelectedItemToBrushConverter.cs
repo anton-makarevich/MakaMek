@@ -28,7 +28,7 @@ public class SelectedItemToBrushConverter : IValueConverter
             return Brushes.Transparent;
 
         return value is true 
-            ? (_resourcesLocator?.TryFindResource("PrimaryBrush") ?? new SolidColorBrush(Color.Parse("#6B8E23")))
+            ? (_resourcesLocator?.TryFindResource("PrimaryBrush") as IBrush ?? new SolidColorBrush(Color.Parse("#6B8E23")))
             : Brushes.Transparent;
     }
 
