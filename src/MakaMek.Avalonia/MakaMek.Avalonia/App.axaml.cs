@@ -51,6 +51,7 @@ public partial class App : Application
         Converters.ComponentStatusBackgroundConverter.Initialize(avaloniaResourcesLocator);
         Converters.EventTypeToBackgroundConverter.Initialize(avaloniaResourcesLocator);
         Converters.ConsciousnessColorConverter.Initialize(avaloniaResourcesLocator);
+        Converters.BoolToBrushConverter.Initialize(avaloniaResourcesLocator);
 
         INavigationService navigationService;
 

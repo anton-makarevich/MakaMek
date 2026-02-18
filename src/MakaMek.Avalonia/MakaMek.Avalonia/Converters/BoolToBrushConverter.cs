@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Sanet.MakaMek.Avalonia.Services;
 
 namespace Sanet.MakaMek.Avalonia.Converters;
 
@@ -10,14 +11,25 @@ namespace Sanet.MakaMek.Avalonia.Converters;
 /// </summary>
 public class BoolToBrushConverter : IValueConverter
 {
-    public static readonly BoolToBrushConverter Instance = new();
+    private static IAvaloniaResourcesLocator? _resourcesLocator;
 
-    private static readonly IBrush SelectedBrush = new SolidColorBrush(Color.Parse("#6B8E23")); // PrimaryColor
-    private static readonly IBrush UnselectedBrush = Brushes.Transparent;
+    /// <summary>
+    /// Initializes the converter with the resources locator
+    /// </summary>
+    /// <param name="resourcesLocator">The resource locator to use</param>
+    public static void Initialize(IAvaloniaResourcesLocator resourcesLocator)
+    {
+        _resourcesLocator = resourcesLocator;
+    }
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        return value is true ? SelectedBrush : UnselectedBrush;
+        if (!targetType.IsAssignableTo(typeof(IBrush)))
+            return Brushes.Transparent;
+
+        return value is true 
+            ? (_resourcesLocator?.TryFindResource("PrimaryBrush") ?? new SolidColorBrush(Color.Parse("#6B8E23")))
+            : Brushes.Transparent;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
