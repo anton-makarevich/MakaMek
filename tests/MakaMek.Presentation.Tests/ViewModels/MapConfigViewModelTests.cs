@@ -430,7 +430,7 @@ public class MapConfigViewModelTests
         sut.Dispose();
 
         // Assert
-        mockDisposable.Received(2).Dispose(); // one for the generated map, one for the available map
+        mockDisposable.Received(3).Dispose(); // one for the generated map, one for the initially loaded available map and one for the reloaded map
     }
     
     [Fact]

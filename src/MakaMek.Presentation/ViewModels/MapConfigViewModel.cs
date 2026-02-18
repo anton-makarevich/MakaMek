@@ -190,7 +190,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     internal async Task LoadAvailableMapsAsync()
     {
         IsLoadingMaps = true;
-        AvailableMaps.Clear();
+        ClearAvailableMaps();
         try
         {
             var maps = await _mapResourceProvider.GetAvailableMapsAsync();
@@ -256,13 +256,19 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public void Dispose()
     {
         (_previewImage as IDisposable)?.Dispose();
+        ClearAvailableMaps();
+        _previewSubscription?.Dispose();
+        _mapParametersChanged.Dispose();
+        GC.SuppressFinalize(this);
+    }
+    
+    private void ClearAvailableMaps()
+    {
         foreach (var item in AvailableMaps)
         {
             (item.PreviewImage as IDisposable)?.Dispose();
         }
-        _previewSubscription?.Dispose();
-        _mapParametersChanged.Dispose();
-        GC.SuppressFinalize(this);
+        AvailableMaps.Clear();
     }
 }
 
