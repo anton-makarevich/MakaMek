@@ -44,14 +44,14 @@ public class MapConfigViewModel : BindableBase, IDisposable
             .Throttle(TimeSpan.FromMilliseconds(300))
             .Subscribe( (_) =>
             {
-                UpdateMapAsync().SafeFireAndForget(ex => logger.LogError(ex, "Error updating map"));
+                UpdateMapAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error updating map"));
             });
 
         // Generate an initial map and preview
-        UpdateMapAsync().SafeFireAndForget(ex => logger.LogError(ex, "Error generating initial map"));
+        UpdateMapAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error generating initial map"));
         
         // Load available pre-existing maps
-        LoadAvailableMapsAsync().SafeFireAndForget(ex => logger.LogError(ex, "Error loading available maps"));
+        LoadAvailableMapsAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available maps"));
     }
 
     public string MapWidthLabel => "Map Width";
