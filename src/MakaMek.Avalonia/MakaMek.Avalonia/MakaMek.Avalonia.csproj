@@ -54,11 +54,8 @@
 
     <ItemGroup>
       <None Remove="Resources\Maps\open-terain-1.json" />
-      <EmbeddedResource Include="Resources\Maps\open-terain-1.json" />
       <None Remove="Resources\Maps\open-terain-2.json" />
-      <EmbeddedResource Include="Resources\Maps\open-terain-2.json" />
       <None Remove="Resources\Maps\quick-start.json" />
-      <EmbeddedResource Include="Resources\Maps\quick-start.json" />
     </ItemGroup>
 
     <!-- Debug target to print properties -->

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services.ResourceProviders;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Services;
@@ -15,11 +15,13 @@ namespace Sanet.MakaMek.Avalonia.Services;
 /// </summary>
 public class EmbeddedMapResourceProvider : IMapResourceProvider
 {
+    private readonly ILogger<EmbeddedMapResourceProvider> _logger;
     private const string MapsResourcePrefix = "Resources.Maps";
     private readonly AssemblyResourceStreamProvider _streamProvider;
 
-    public EmbeddedMapResourceProvider()
+    public EmbeddedMapResourceProvider(ILogger<EmbeddedMapResourceProvider> logger)
     {
+        _logger = logger;
         _streamProvider = new AssemblyResourceStreamProvider("json", typeof(EmbeddedMapResourceProvider).Assembly);
     }
 
@@ -34,14 +36,21 @@ public class EmbeddedMapResourceProvider : IMapResourceProvider
 
         foreach (var resourceId in mapResourceIds)
         {
-            await using var stream = await _streamProvider.GetResourceStream(resourceId);
-            if (stream == null) continue;
+            try
+            {
+                await using var stream = await _streamProvider.GetResourceStream(resourceId);
+                if (stream == null) continue;
 
-            var hexData = await JsonSerializer.DeserializeAsync<List<HexData>>(stream);
-            if (hexData == null) continue;
+                var hexData = await JsonSerializer.DeserializeAsync<List<HexData>>(stream);
+                if (hexData == null) continue;
 
-            var name = ExtractMapName(resourceId);
-            maps.Add((name, hexData));
+                var name = ExtractMapName(resourceId);
+                maps.Add((name, hexData));
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(exception, "Error deserializing map data from {ResourceId}", resourceId);
+            }
         }
 
         return maps;
@@ -49,7 +58,6 @@ public class EmbeddedMapResourceProvider : IMapResourceProvider
 
     /// <summary>
     /// Extracts a human-readable map name from the fully qualified resource name.
-    /// e.g. "Sanet.MakaMek.Avalonia.Resources.Maps.quick-start.json" → "quick-start"
     /// </summary>
     private static string ExtractMapName(string resourceId)
     {
