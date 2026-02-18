@@ -10,13 +10,13 @@ namespace MakaMek.Avalonia.Tests.Converters;
 public class SelectedItemToBrushConverterTests : IDisposable
 {
     private readonly IAvaloniaResourcesLocator _resourcesLocator;
-    private readonly ISelectedItemToBrushConverter _sut;
+    private readonly SelectedItemToBrushConverter _sut;
 
     public SelectedItemToBrushConverterTests()
     {
         _resourcesLocator = Substitute.For<IAvaloniaResourcesLocator>();
-        ISelectedItemToBrushConverter.Initialize(_resourcesLocator);
-        _sut = new ISelectedItemToBrushConverter();
+        SelectedItemToBrushConverter.Initialize(_resourcesLocator);
+        _sut = new SelectedItemToBrushConverter();
     }
 
     [Fact]
@@ -63,8 +63,8 @@ public class SelectedItemToBrushConverterTests : IDisposable
     public void Convert_True_ReturnsFallbackColorWhenLocatorNotInitialized()
     {
         // Arrange
-        ISelectedItemToBrushConverter.Initialize(null!);
-        var sut = new ISelectedItemToBrushConverter();
+        SelectedItemToBrushConverter.Initialize(null!);
+        var sut = new SelectedItemToBrushConverter();
 
         // Act
         var result = sut.Convert(true, typeof(IBrush), null, CultureInfo.InvariantCulture) as SolidColorBrush;
@@ -117,6 +117,6 @@ public class SelectedItemToBrushConverterTests : IDisposable
 
     public void Dispose()
     {
-        ISelectedItemToBrushConverter.Initialize(null!);
+        SelectedItemToBrushConverter.Initialize(null!);
     }
 }
