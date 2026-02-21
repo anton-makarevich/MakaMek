@@ -521,7 +521,13 @@ public class MapConfigViewModelTests
         // Assert
         sut.AvailableMaps.Count.ShouldBe(0);
         sut.SelectedMap.ShouldBeNull();
-        _logger.Received(1).LogError(ex, "Error loading map from file");
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            ex,
+            Arg.Any<Func<object, Exception?, string>>()
+        );
     }
     
     [Fact]
