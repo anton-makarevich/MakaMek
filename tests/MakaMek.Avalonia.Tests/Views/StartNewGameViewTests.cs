@@ -54,6 +54,7 @@ namespace MakaMek.Avalonia.Tests.Views
                 cachingService,
                 Substitute.For<IMapPreviewRenderer>(),
                 Substitute.For<IMapResourceProvider>(),
+                Substitute.For<IFileService>(),
                 Substitute.For<IHashService>(),
                 Substitute.For<IBotManager>(),
                 Substitute.For<ILogger<StartNewGameViewModel>>()

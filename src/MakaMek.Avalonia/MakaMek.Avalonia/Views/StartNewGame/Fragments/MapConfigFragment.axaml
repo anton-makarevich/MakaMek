@@ -15,41 +15,48 @@
     <TabControl SelectedIndex="{Binding SelectedTabIndex}">
         <!-- Tab 1: Select a Pre-existing Map -->
         <TabItem Header="Select Map">
-            <Panel>
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding AvailableMaps}" Margin="8">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="viewModels1:MapPreviewItem">
-                                <Border Margin="8" Padding="8" CornerRadius="8"
-                                        BorderThickness="2"
-                                        Cursor="Hand"
-                                        BorderBrush="{Binding IsSelected, 
-                                            Converter={StaticResource SelectedItemToBrushConverter}}"
-                                        Background="#1A000000"
-                                        PointerPressed="OnMapItemPressed">
-                                    <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                        <Image Source="{Binding PreviewImage}" 
-                                               MaxWidth="200" MaxHeight="200"
-                                               Stretch="Uniform"/>
-                                        <TextBlock Text="{Binding Name}" 
-                                                   HorizontalAlignment="Center"
-                                                   Classes="bodySmall"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-                <ProgressBar
-                    IsVisible="{Binding IsLoadingMaps}"
-                    IsIndeterminate="True"
-                    VerticalAlignment="Top"/>
-            </Panel>
+            <Grid ColumnDefinitions="*,Auto">
+                    <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding AvailableMaps}" Margin="8">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="viewModels1:MapPreviewItem">
+                                    <Border Margin="8" Padding="8" CornerRadius="8"
+                                            BorderThickness="2"
+                                            Cursor="Hand"
+                                            BorderBrush="{Binding IsSelected, 
+                                                Converter={StaticResource SelectedItemToBrushConverter}}"
+                                            Background="#1A000000"
+                                            PointerPressed="OnMapItemPressed">
+                                        <StackPanel HorizontalAlignment="Center" Spacing="4">
+                                            <Image Source="{Binding PreviewImage}" 
+                                                   MaxWidth="200" MaxHeight="200"
+                                                   Stretch="Uniform"/>
+                                            <TextBlock Text="{Binding Name}" 
+                                                       HorizontalAlignment="Center"
+                                                       Classes="bodySmall"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                <ProgressBar Grid.Column="0"
+                             IsVisible="{Binding IsLoadingMaps}"
+                             IsIndeterminate="True"
+                             VerticalAlignment="Top"/>
+                <Button Grid.Column="1" 
+                        Command="{Binding LoadMapCommand}" 
+                        Content="Load Map from File" 
+                        HorizontalAlignment="Stretch" 
+                        HorizontalContentAlignment="Center"
+                        Margin="8"
+                        Classes="primary"/>
+            </Grid>
         </TabItem>
         
         <!-- Tab 2: Generate Map -->

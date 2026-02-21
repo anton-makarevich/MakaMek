@@ -2,11 +2,15 @@ using System.Collections.ObjectModel;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
+using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using System.Text.Json;
+using System.Windows.Input;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
@@ -24,6 +28,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     private readonly IMapPreviewRenderer _previewRenderer;
     private readonly IBattleMapFactory _mapFactory;
     private readonly IMapResourceProvider _mapResourceProvider;
+    private readonly IFileService _fileService;
     private readonly IDisposable? _previewSubscription;
     private readonly Subject<MapParameterChange> _mapParametersChanged = new();
     private readonly ILogger _logger;
@@ -32,12 +37,16 @@ public class MapConfigViewModel : BindableBase, IDisposable
         IMapPreviewRenderer previewRenderer,
         IBattleMapFactory mapFactory,
         IMapResourceProvider mapResourceProvider,
+        IFileService fileService,
         ILogger logger)
     {
         _previewRenderer = previewRenderer;
         _mapFactory = mapFactory;
         _mapResourceProvider = mapResourceProvider;
+        _fileService = fileService;
         _logger = logger;
+        
+        LoadMapCommand = new AsyncCommand(LoadMap);
 
         // Subscribe with debouncing
         _previewSubscription = _mapParametersChanged
@@ -182,6 +191,49 @@ public class MapConfigViewModel : BindableBase, IDisposable
             map.IsSelected = map == item;
         }
         SelectedMap = item;
+    }
+
+    public ICommand LoadMapCommand { get; }
+
+    private async Task LoadMap()
+    {
+        try
+        {
+            var (name, content) = await _fileService.OpenFileAsync("Select Map File");
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return;
+            }
+
+            var hexData = JsonSerializer.Deserialize<List<HexData>>(content);
+            if (hexData == null || hexData.Count == 0)
+            {
+                return;
+            }
+
+            var battleMap = _mapFactory.CreateFromData(hexData);
+            
+            var mapName = string.IsNullOrWhiteSpace(name) ? "Loaded Map" : name;
+            // Optionally remove extra extension if present
+            if (mapName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                mapName = mapName.Substring(0, mapName.Length - 5);
+            }
+
+            var item = new MapPreviewItem
+            {
+                Name = mapName,
+                Map = battleMap,
+                PreviewImage = await _previewRenderer.GeneratePreviewAsync(battleMap)
+            };
+
+            AvailableMaps.Add(item);
+            SelectMap(item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading map from file");
+        }
     }
 
     /// <summary>

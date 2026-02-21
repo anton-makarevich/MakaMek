@@ -2,6 +2,6 @@ namespace Sanet.MakaMek.Services;
 
 public interface IFileService
 {
-    Task SaveFileAsync(string title, string defaultFileName, string content);
-    Task<string?> OpenFileAsync(string title);
+    Task SaveFile(string title, string defaultFileName, string content);
+    Task<(string? Name, string? Content)> OpenFileAsync(string title);
 }

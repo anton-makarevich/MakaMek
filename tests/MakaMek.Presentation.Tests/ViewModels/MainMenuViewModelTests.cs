@@ -77,6 +77,7 @@ public class MainMenuViewModelTests
             Substitute.For<IFileCachingService>(),
             Substitute.For<IMapPreviewRenderer>(),
             Substitute.For<IMapResourceProvider>(),
+            Substitute.For<IFileService>(),
             _hashService,
             Substitute.For<IBotManager>(),
             Substitute.For<ILogger<StartNewGameViewModel>>()
