@@ -224,6 +224,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
             };
 
             AvailableMaps.Add(item);
+            SelectedTabIndex = 0;
             SelectMap(item);
         }
         catch (Exception ex)

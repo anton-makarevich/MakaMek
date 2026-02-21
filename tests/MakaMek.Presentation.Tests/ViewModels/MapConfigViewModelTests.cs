@@ -467,6 +467,8 @@ public class MapConfigViewModelTests
         sut.SelectedMap.ShouldNotBeNull();
         sut.SelectedMap!.Name.ShouldBe("TestMap");
         sut.SelectedMap.Map.ShouldBe(expectedMap);
+        sut.SelectedTabIndex = 0; // ensure Select Map tab is active
+        sut.Map.ShouldBe(expectedMap);
     }
 
     [Fact]
