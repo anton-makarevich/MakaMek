@@ -470,4 +470,59 @@ public class MapConfigViewModelTests
         sut.SelectedMap!.Name.ShouldBe("TestMap");
         sut.SelectedMap.Map.ShouldBe(expectedMap);
     }
+
+    [Fact]
+    public async Task LoadMapCommand_WhenFileContentIsEmpty_DoesNothing()
+    {
+        // Arrange
+        _fileService.OpenFile(Arg.Any<string>())
+            .Returns(Task.FromResult<(string? Name, string? Content)>(("TestMap.json", "   ")));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
+
+        // Act
+        await ((AsyncCommand)sut.LoadMapCommand).ExecuteAsync();
+
+        // Assert
+        sut.AvailableMaps.Count.ShouldBe(0);
+        sut.SelectedMap.ShouldBeNull();
+        _mapFactory.DidNotReceive().CreateFromData(Arg.Any<IList<HexData>>());
+    }
+
+    [Fact]
+    public async Task LoadMapCommand_WhenHexDataIsEmpty_DoesNothing()
+    {
+        // Arrange
+        _fileService.OpenFile(Arg.Any<string>())
+            .Returns(Task.FromResult<(string? Name, string? Content)>(("TestMap.json", "[]")));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
+
+        // Act
+        await ((AsyncCommand)sut.LoadMapCommand).ExecuteAsync();
+
+        // Assert
+        sut.AvailableMaps.Count.ShouldBe(0);
+        sut.SelectedMap.ShouldBeNull();
+        _mapFactory.DidNotReceive().CreateFromData(Arg.Any<IList<HexData>>());
+    }
+
+    [Fact]
+    public async Task LoadMapCommand_WhenOpenFileThrows_LogsErrorAndDoesNotThrow()
+    {
+        // Arrange
+        var ex = new InvalidOperationException("boom");
+        _fileService.OpenFile(Arg.Any<string>())
+            .Returns(_ => Task.FromException<(string? Name, string? Content)>(ex));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
+
+        // Act
+        await ((AsyncCommand)sut.LoadMapCommand).ExecuteAsync();
+
+        // Assert
+        sut.AvailableMaps.Count.ShouldBe(0);
+        sut.SelectedMap.ShouldBeNull();
+        _logger.Received(1).LogError(ex, "Error loading map from file");
+    }
 }
