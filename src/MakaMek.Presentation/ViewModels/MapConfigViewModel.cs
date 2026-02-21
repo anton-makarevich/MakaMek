@@ -212,13 +212,10 @@ public class MapConfigViewModel : BindableBase, IDisposable
             }
 
             var battleMap = _mapFactory.CreateFromData(hexData);
-            
-            var mapName = string.IsNullOrWhiteSpace(name) ? "Loaded Map" : name;
-            // Optionally remove extra extension if present
-            if (mapName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-            {
-                mapName = mapName.Substring(0, mapName.Length - 5);
-            }
+
+            var mapName = string.IsNullOrWhiteSpace(name)
+                ? "Loaded Map"
+                : Path.GetFileNameWithoutExtension(name);
 
             var item = new MapPreviewItem
             {
