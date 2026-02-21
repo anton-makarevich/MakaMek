@@ -267,7 +267,7 @@ public class MapConfigViewModelTests
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
 
         // Act
-        await sut.LoadAvailableMapsAsync();
+        await sut.LoadAvailableMaps();
 
         // Assert
         sut.AvailableMaps.Count.ShouldBe(2);
@@ -297,7 +297,7 @@ public class MapConfigViewModelTests
             _mapResourceProvider,
             _fileService,
             _logger);
-        await sut.LoadAvailableMapsAsync();
+        await sut.LoadAvailableMaps();
 
         // Act
         sut.SelectMap(sut.AvailableMaps[1]);
@@ -326,7 +326,7 @@ public class MapConfigViewModelTests
             _mapResourceProvider,
             _fileService,
             _logger);
-        await sut.LoadAvailableMapsAsync();
+        await sut.LoadAvailableMaps();
 
         // Act
         sut.SelectedTabIndex = 0;
@@ -379,7 +379,7 @@ public class MapConfigViewModelTests
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
 
         // Act
-        await sut.LoadAvailableMapsAsync();
+        await sut.LoadAvailableMaps();
 
         // Assert
         sut.IsLoadingMaps.ShouldBeFalse();
@@ -413,7 +413,7 @@ public class MapConfigViewModelTests
 
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
         
-        await sut.LoadAvailableMapsAsync();
+        await sut.LoadAvailableMaps();
 
         // Act
         sut.Dispose();
@@ -522,5 +522,23 @@ public class MapConfigViewModelTests
         sut.AvailableMaps.Count.ShouldBe(0);
         sut.SelectedMap.ShouldBeNull();
         _logger.Received(1).LogError(ex, "Error loading map from file");
+    }
+    
+    [Fact]
+    public async Task LoadMapCommand_WhenFileNameIsEmpty_UsesDefaultMapName()
+    {
+        // Arrange
+        _fileService.OpenFile(Arg.Any<string>())
+            .Returns(Task.FromResult<(string? Name, string? Content)>((null, "[{\"Coordinates\":{\"Q\":1,\"R\":1},\"TerrainTypes\":[0],\"Level\":0}]")));
+
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(new BattleMap(2, 2));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
+
+        // Act
+        await sut.LoadMapCommand.ExecuteAsync();
+
+        // Assert
+        sut.AvailableMaps.ShouldContain(m => m.Name == "Loaded Map");
     }
 }
