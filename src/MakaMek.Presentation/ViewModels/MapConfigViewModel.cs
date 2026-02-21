@@ -2,11 +2,14 @@ using System.Collections.ObjectModel;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
+using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using System.Text.Json;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
@@ -24,6 +27,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     private readonly IMapPreviewRenderer _previewRenderer;
     private readonly IBattleMapFactory _mapFactory;
     private readonly IMapResourceProvider _mapResourceProvider;
+    private readonly IFileService _fileService;
     private readonly IDisposable? _previewSubscription;
     private readonly Subject<MapParameterChange> _mapParametersChanged = new();
     private readonly ILogger _logger;
@@ -32,26 +36,30 @@ public class MapConfigViewModel : BindableBase, IDisposable
         IMapPreviewRenderer previewRenderer,
         IBattleMapFactory mapFactory,
         IMapResourceProvider mapResourceProvider,
+        IFileService fileService,
         ILogger logger)
     {
         _previewRenderer = previewRenderer;
         _mapFactory = mapFactory;
         _mapResourceProvider = mapResourceProvider;
+        _fileService = fileService;
         _logger = logger;
+        
+        LoadMapCommand = new AsyncCommand(LoadMap);
 
         // Subscribe with debouncing
         _previewSubscription = _mapParametersChanged
             .Throttle(TimeSpan.FromMilliseconds(300))
             .Subscribe( (_) =>
             {
-                UpdateMapAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error updating map"));
+                UpdateMap().SafeFireAndForget(ex => _logger.LogError(ex, "Error updating map"));
             });
 
         // Generate an initial map and preview
-        UpdateMapAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error generating initial map"));
+        UpdateMap().SafeFireAndForget(ex => _logger.LogError(ex, "Error generating initial map"));
         
         // Load available pre-existing maps
-        LoadAvailableMapsAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available maps"));
+        LoadAvailableMaps().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available maps"));
     }
 
     public string MapWidthLabel => "Map Width";
@@ -184,10 +192,51 @@ public class MapConfigViewModel : BindableBase, IDisposable
         SelectedMap = item;
     }
 
+    public IAsyncCommand LoadMapCommand { get; }
+
+    private async Task LoadMap()
+    {
+        try
+        {
+            var (name, content) = await _fileService.OpenFile("Select Map File");
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return;
+            }
+
+            var hexData = JsonSerializer.Deserialize<List<HexData>>(content);
+            if (hexData == null || hexData.Count == 0)
+            {
+                return;
+            }
+
+            var battleMap = _mapFactory.CreateFromData(hexData);
+
+            var mapName = string.IsNullOrWhiteSpace(name)
+                ? "Loaded Map"
+                : Path.GetFileNameWithoutExtension(name);
+
+            var item = new MapPreviewItem
+            {
+                Name = mapName,
+                Map = battleMap,
+                PreviewImage = await _previewRenderer.GeneratePreviewAsync(battleMap)
+            };
+
+            AvailableMaps.Add(item);
+            SelectedTabIndex = 0;
+            SelectMap(item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading map from file");
+        }
+    }
+
     /// <summary>
     /// Loads available pre-existing maps from the resource provider
     /// </summary>
-    internal async Task LoadAvailableMapsAsync()
+    internal async Task LoadAvailableMaps()
     {
         IsLoadingMaps = true;
         ClearAvailableMaps();
@@ -224,7 +273,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         }
     }
 
-    private async Task UpdateMapAsync()
+    private async Task UpdateMap()
     {
         try
         {

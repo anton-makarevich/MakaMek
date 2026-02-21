@@ -45,6 +45,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IFileCachingService cachingService,
         IMapPreviewRenderer mapPreviewRenderer,
         IMapResourceProvider mapResourceProvider,
+        IFileService fileService,
         IHashService hashService,
         IBotManager botManager,
         ILogger<StartNewGameViewModel> logger)
@@ -66,7 +67,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager = gameManager;
         _mapFactory = mapFactory;
         _logger = logger;
-        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, logger);
+        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
     }

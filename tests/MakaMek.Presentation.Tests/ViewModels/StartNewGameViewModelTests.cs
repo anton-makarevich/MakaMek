@@ -55,6 +55,7 @@ public class StartNewGameViewModelTests
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly IMapPreviewRenderer _mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
     private readonly IMapResourceProvider _mapResourceProvider = Substitute.For<IMapResourceProvider>();
+    private readonly IFileService _fileService = Substitute.For<IFileService>();
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ILogger<StartNewGameViewModel> _vmLogger = Substitute.For<ILogger<StartNewGameViewModel>>();
@@ -124,6 +125,7 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _mapResourceProvider,
+            _fileService,
             _hashService,
             _botManager,
             _vmLogger);
@@ -143,7 +145,7 @@ public class StartNewGameViewModelTests
     public async Task StartGameCommand_NavigatesToBattleMap()
     {
         await _sut.InitializeLobbyAndSubscribe();
-        _sut.MapConfig.SelectedTabIndex = 1; // Switch to Generate tab
+        _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
         await ((IAsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
         await _navigationService.Received(1).NavigateToViewModelAsync(_battleMapViewModel);
@@ -155,7 +157,7 @@ public class StartNewGameViewModelTests
     {
         // Arrange
         _navigationService.GetNewViewModel<BattleMapViewModel>().Returns((BattleMapViewModel?)null);
-        _sut.MapConfig.SelectedTabIndex = 1; // Switch to Generate tab so Map is non-null
+        _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab so the Map is non-null
         // Act & Assert
         (await Should.ThrowAsync<Exception>(async () => await ((IAsyncCommand)_sut.StartGameCommand)
             .ExecuteAsync())).Message.ShouldContain("BattleMapViewModel is not registered");
@@ -165,7 +167,7 @@ public class StartNewGameViewModelTests
     public async Task StartGameCommand_ShouldSetBattleMap()
     {
         await _sut.InitializeLobbyAndSubscribe();
-        _sut.MapConfig.SelectedTabIndex = 1; // Switch to Generate tab
+        _sut.MapConfig.SelectedTabIndex = 1; // Switch to the Generate tab
 
         await ((AsyncCommand)_sut.StartGameCommand).ExecuteAsync();
 
@@ -690,6 +692,7 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _mapResourceProvider,
+            _fileService,
             _hashService,
             _botManager,
             _vmLogger);
@@ -730,6 +733,7 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _mapResourceProvider,
+            _fileService,
             _hashService,
             _botManager,
             _vmLogger);
@@ -765,6 +769,7 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _mapResourceProvider,
+            _fileService,
             _hashService,
             _botManager,
             _vmLogger);
@@ -798,6 +803,7 @@ public class StartNewGameViewModelTests
             _cachingService,
             _mapPreviewRenderer,
             _mapResourceProvider,
+            _fileService,
             _hashService,
             _botManager,
             _vmLogger);

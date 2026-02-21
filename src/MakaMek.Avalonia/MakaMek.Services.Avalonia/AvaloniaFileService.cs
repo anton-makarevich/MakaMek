@@ -17,7 +17,7 @@ public class AvaloniaFileService : IFileService
         };
     }
 
-    public async Task SaveFileAsync(string title, string defaultFileName, string content)
+    public async Task SaveFile(string title, string defaultFileName, string content)
     {
         var topLevel = GetTopLevel();
         if (topLevel == null) return;
@@ -41,10 +41,10 @@ public class AvaloniaFileService : IFileService
         }
     }
 
-    public async Task<string?> OpenFileAsync(string title)
+    public async Task<(string? Name, string? Content)> OpenFile(string title)
     {
         var topLevel = GetTopLevel();
-        if (topLevel == null) return null;
+        if (topLevel == null) return (null, null);
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -58,11 +58,13 @@ public class AvaloniaFileService : IFileService
 
         if (files.Count >= 1)
         {
-            await using var stream = await files[0].OpenReadAsync();
+            var file = files[0];
+            await using var stream = await file.OpenReadAsync();
             using var reader = new StreamReader(stream);
-            return await reader.ReadToEndAsync();
+            var content = await reader.ReadToEndAsync();
+            return (file.Name, content);
         }
 
-        return null;
+        return (null, null);
     }
 }

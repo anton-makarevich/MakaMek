@@ -19,13 +19,14 @@ public class MapConfigViewModelTests
     private readonly IMapPreviewRenderer _previewRenderer = Substitute.For<IMapPreviewRenderer>();
     private readonly IBattleMapFactory _mapFactory = Substitute.For<IBattleMapFactory>();
     private readonly IMapResourceProvider _mapResourceProvider = Substitute.For<IMapResourceProvider>();
+    private readonly IFileService _fileService = Substitute.For<IFileService>();
     private readonly ILogger _logger = Substitute.For<ILogger>();
 
     public MapConfigViewModelTests()
     {
         _mapFactory.GenerateMap(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<ITerrainGenerator>())
             .Returns(ci => new BattleMap(ci.ArgAt<int>(0), ci.ArgAt<int>(1)));
-        _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
     }
 
     private static IList<HexData> CreateSingleHexData() =>
@@ -134,7 +135,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(objectImage));
             
         // Act - create a new instance
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
         
         // Allow any pending async operations to complete
         var i = 0;
@@ -166,7 +167,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(mockImage));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
         
         // Allow any pending async operations to complete
         await Task.Delay(100);
@@ -189,7 +190,7 @@ public class MapConfigViewModelTests
             Task.FromResult<object?>(mockImage2));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
         var i = 0;
         while (sut.IsGenerating)
         {
@@ -227,7 +228,7 @@ public class MapConfigViewModelTests
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(null));
 
         // Act
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
         var i = 0;
         while (sut.IsGenerating)
         {
@@ -263,10 +264,10 @@ public class MapConfigViewModelTests
             Arg.Any<int>(),
             Arg.Any<CancellationToken>()).Returns(Task.FromResult<object?>(previewImage));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
 
         // Act
-        await sut.LoadAvailableMapsAsync();
+        await sut.LoadAvailableMaps();
 
         // Assert
         sut.AvailableMaps.Count.ShouldBe(2);
@@ -291,8 +292,12 @@ public class MapConfigViewModelTests
         var map = new BattleMap(5, 5);
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
-        await sut.LoadAvailableMapsAsync();
+        var sut = new MapConfigViewModel(_previewRenderer,
+            _mapFactory,
+            _mapResourceProvider,
+            _fileService,
+            _logger);
+        await sut.LoadAvailableMaps();
 
         // Act
         sut.SelectMap(sut.AvailableMaps[1]);
@@ -316,8 +321,12 @@ public class MapConfigViewModelTests
         var map = new BattleMap(5, 5);
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
-        await sut.LoadAvailableMapsAsync();
+        var sut = new MapConfigViewModel(_previewRenderer,
+            _mapFactory,
+            _mapResourceProvider,
+            _fileService,
+            _logger);
+        await sut.LoadAvailableMaps();
 
         // Act
         sut.SelectedTabIndex = 0;
@@ -354,7 +363,7 @@ public class MapConfigViewModelTests
     public void IsLoadingMaps_DefaultsToFalse()
     {
         // Arrange
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
 
         // Assert
         sut.IsLoadingMaps.ShouldBeFalse();
@@ -367,10 +376,10 @@ public class MapConfigViewModelTests
         _mapResourceProvider.GetAvailableMapsAsync()
             .ThrowsAsync(new InvalidOperationException("Test exception"));
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
 
         // Act
-        await sut.LoadAvailableMapsAsync();
+        await sut.LoadAvailableMaps();
 
         // Assert
         sut.IsLoadingMaps.ShouldBeFalse();
@@ -402,9 +411,9 @@ public class MapConfigViewModelTests
         var map = new BattleMap(5, 5);
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
 
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
         
-        await sut.LoadAvailableMapsAsync();
+        await sut.LoadAvailableMaps();
 
         // Act
         sut.Dispose();
@@ -417,10 +426,127 @@ public class MapConfigViewModelTests
     public void Dispose_CalledTwice_DoesNotThrow()
     {
         // Arrange
-        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _logger);
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
 
         // Act & Assert - Should not throw
         sut.Dispose();
         sut.Dispose(); // Calling twice should be safe
+    }
+
+    [Fact]
+    public async Task LoadMapCommand_LoadsMapAndSelects()
+    {
+        // Arrange
+        const string mapJson = """
+                               [
+                               {
+                                 "Coordinates": {
+                                   "Q": 1,
+                                   "R": 1
+                                 },
+                                 "TerrainTypes": [
+                                   0
+                                 ],
+                                 "Level": 0
+                               }
+                               ]
+                               """;
+        const string fileName = "TestMap.json";
+        _fileService.OpenFile(Arg.Any<string>()).Returns(Task.FromResult<(string? Name, string? Content)>((fileName, mapJson)));
+        
+        var expectedMap = new BattleMap(2, 2);
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(expectedMap);
+        
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
+        
+        // Act
+        await sut.LoadMapCommand.ExecuteAsync();
+        
+        // Assert
+        sut.AvailableMaps.ShouldContain(m => m.Name == "TestMap"); // .json should be trimmed
+        sut.SelectedMap.ShouldNotBeNull();
+        sut.SelectedMap!.Name.ShouldBe("TestMap");
+        sut.SelectedMap.Map.ShouldBe(expectedMap);
+        sut.SelectedTabIndex = 0; // ensure Select Map tab is active
+        sut.Map.ShouldBe(expectedMap);
+    }
+
+    [Fact]
+    public async Task LoadMapCommand_WhenFileContentIsEmpty_DoesNothing()
+    {
+        // Arrange
+        _fileService.OpenFile(Arg.Any<string>())
+            .Returns(Task.FromResult<(string? Name, string? Content)>(("TestMap.json", "   ")));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
+
+        // Act
+        await sut.LoadMapCommand.ExecuteAsync();
+
+        // Assert
+        sut.AvailableMaps.Count.ShouldBe(0);
+        sut.SelectedMap.ShouldBeNull();
+        _mapFactory.DidNotReceive().CreateFromData(Arg.Any<IList<HexData>>());
+    }
+
+    [Fact]
+    public async Task LoadMapCommand_WhenHexDataIsEmpty_DoesNothing()
+    {
+        // Arrange
+        _fileService.OpenFile(Arg.Any<string>())
+            .Returns(Task.FromResult<(string? Name, string? Content)>(("TestMap.json", "[]")));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
+
+        // Act
+        await sut.LoadMapCommand.ExecuteAsync();
+
+        // Assert
+        sut.AvailableMaps.Count.ShouldBe(0);
+        sut.SelectedMap.ShouldBeNull();
+        _mapFactory.DidNotReceive().CreateFromData(Arg.Any<IList<HexData>>());
+    }
+
+    [Fact]
+    public async Task LoadMapCommand_WhenOpenFileThrows_LogsErrorAndDoesNotThrow()
+    {
+        // Arrange
+        var ex = new InvalidOperationException("boom");
+        _fileService.OpenFile(Arg.Any<string>())
+            .Returns(_ => Task.FromException<(string? Name, string? Content)>(ex));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
+
+        // Act
+        await sut.LoadMapCommand.ExecuteAsync();
+
+        // Assert
+        sut.AvailableMaps.Count.ShouldBe(0);
+        sut.SelectedMap.ShouldBeNull();
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<object>(),
+            ex,
+            Arg.Any<Func<object, Exception?, string>>()
+        );
+    }
+    
+    [Fact]
+    public async Task LoadMapCommand_WhenFileNameIsEmpty_UsesDefaultMapName()
+    {
+        // Arrange
+        _fileService.OpenFile(Arg.Any<string>())
+            .Returns(Task.FromResult<(string? Name, string? Content)>((null, "[{\"Coordinates\":{\"Q\":1,\"R\":1},\"TerrainTypes\":[0],\"Level\":0}]")));
+
+        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(new BattleMap(2, 2));
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
+
+        // Act
+        await sut.LoadMapCommand.ExecuteAsync();
+
+        // Assert
+        sut.AvailableMaps.ShouldContain(m => m.Name == "Loaded Map");
     }
 }
