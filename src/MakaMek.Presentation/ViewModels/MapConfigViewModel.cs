@@ -9,7 +9,6 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
 using System.Text.Json;
-using System.Windows.Input;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Services;
@@ -193,7 +192,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         SelectedMap = item;
     }
 
-    public ICommand LoadMapCommand { get; }
+    public IAsyncCommand LoadMapCommand { get; }
 
     private async Task LoadMap()
     {

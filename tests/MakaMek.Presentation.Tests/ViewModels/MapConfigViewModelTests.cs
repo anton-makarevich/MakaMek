@@ -1,4 +1,3 @@
-using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -461,8 +460,7 @@ public class MapConfigViewModelTests
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
         
         // Act
-        // Use IAsyncCommand interface method if needed, dynamic execution here
-        await ((AsyncCommand)sut.LoadMapCommand).ExecuteAsync();
+        await sut.LoadMapCommand.ExecuteAsync();
         
         // Assert
         sut.AvailableMaps.ShouldContain(m => m.Name == "TestMap"); // .json should be trimmed
@@ -481,7 +479,7 @@ public class MapConfigViewModelTests
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
 
         // Act
-        await ((AsyncCommand)sut.LoadMapCommand).ExecuteAsync();
+        await sut.LoadMapCommand.ExecuteAsync();
 
         // Assert
         sut.AvailableMaps.Count.ShouldBe(0);
@@ -499,7 +497,7 @@ public class MapConfigViewModelTests
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
 
         // Act
-        await ((AsyncCommand)sut.LoadMapCommand).ExecuteAsync();
+        await sut.LoadMapCommand.ExecuteAsync();
 
         // Assert
         sut.AvailableMaps.Count.ShouldBe(0);
@@ -518,7 +516,7 @@ public class MapConfigViewModelTests
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger);
 
         // Act
-        await ((AsyncCommand)sut.LoadMapCommand).ExecuteAsync();
+        await sut.LoadMapCommand.ExecuteAsync();
 
         // Assert
         sut.AvailableMaps.Count.ShouldBe(0);
