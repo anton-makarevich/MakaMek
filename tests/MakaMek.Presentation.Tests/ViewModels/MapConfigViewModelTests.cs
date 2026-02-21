@@ -453,7 +453,7 @@ public class MapConfigViewModelTests
                                ]
                                """;
         const string fileName = "TestMap.json";
-        _fileService.OpenFileAsync(Arg.Any<string>()).Returns(Task.FromResult<(string? Name, string? Content)>((fileName, mapJson)));
+        _fileService.OpenFile(Arg.Any<string>()).Returns(Task.FromResult<(string? Name, string? Content)>((fileName, mapJson)));
         
         var expectedMap = new BattleMap(2, 2);
         _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(expectedMap);

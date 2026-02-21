@@ -199,7 +199,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     {
         try
         {
-            var (name, content) = await _fileService.OpenFileAsync("Select Map File");
+            var (name, content) = await _fileService.OpenFile("Select Map File");
             if (string.IsNullOrWhiteSpace(content))
             {
                 return;

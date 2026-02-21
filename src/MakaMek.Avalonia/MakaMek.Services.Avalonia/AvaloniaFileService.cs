@@ -41,7 +41,7 @@ public class AvaloniaFileService : IFileService
         }
     }
 
-    public async Task<(string? Name, string? Content)> OpenFileAsync(string title)
+    public async Task<(string? Name, string? Content)> OpenFile(string title)
     {
         var topLevel = GetTopLevel();
         if (topLevel == null) return (null, null);
