@@ -363,6 +363,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     {
         _updateCts?.Cancel();
         _updateCts?.Dispose();
+        _updateCts = null;
 
         (_previewImage as IDisposable)?.Dispose();
         ClearAvailableMaps();
