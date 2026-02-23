@@ -606,36 +606,59 @@ public class MapConfigViewModelTests
     }
 
     [Fact]
-    public void LoadAvailableMaps_WhenPreviewGenerationFails_LogsErrorAndLeavesPreviewNull()
+    public async Task LoadAvailableMaps_WhenPreviewGenerationFails_LogsErrorAndLeavesPreviewNull()
     {
         // Arrange
-        var hexData = CreateSingleHexData();
+        var hexData1 = new List<HexData>
+        {
+            new()
+            {
+                Coordinates = new HexCoordinateData(1, 1),
+                TerrainTypes = [MakaMekTerrains.Clear],
+                Level = 0
+            }
+        };
+        
+        var hexData2 = new List<HexData>
+        {
+            new()
+            {
+                Coordinates = new HexCoordinateData(2, 2),
+                TerrainTypes = [MakaMekTerrains.Clear],
+                Level = 0
+            }
+        };
+        
         _mapResourceProvider.GetAvailableMapsAsync()
             .Returns(new List<(string Name, IList<HexData> HexData)>
             {
-                ("Map1", hexData),
-                ("Map2", hexData)
+                ("Map1", hexData1),
+                ("Map2", hexData2)
             });
         
-        var map = new BattleMap(5, 5);
-        _mapFactory.CreateFromData(Arg.Any<IList<HexData>>()).Returns(map);
+        var map1 = new BattleMap(5, 5);
+        var map2 = new BattleMap(6, 6);
         
-        var callCount = 0;
+        _mapFactory.CreateFromData(hexData1).Returns(map1);
+        _mapFactory.CreateFromData(hexData2).Returns(map2);
+        
         _previewRenderer.GeneratePreviewAsync(
-            Arg.Any<BattleMap>(),
+            Arg.Is<BattleMap>(x => x.Width == 5 && x.Height == 5),
             Arg.Any<int>(),
             Arg.Any<CancellationToken>())
-            .Returns(_ => 
-            {
-                callCount++;
-                // Fail on first call (Map1), succeed on second (Map2)
-                return callCount == 1 
-                    ? Task.FromException<object?>(new InvalidOperationException("Preview failed"))
-                    : Task.FromResult<object?>(new object());
-            });
+            .Returns(Task.FromException<object?>(new InvalidOperationException("Preview failed")));
+        
+        _previewRenderer.GeneratePreviewAsync(
+            Arg.Is<BattleMap>(x => x.Width == 6 && x.Height == 6),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object?>(new object()));
 
         var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
         
+        // Act
+        await sut.LoadAvailableMaps();
+
         // Assert
         sut.AvailableMaps.Count.ShouldBe(2);
         
