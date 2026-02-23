@@ -30,6 +30,7 @@ public class MapConfigViewModelTests
         
         // Configure dispatcher to execute actions immediately
         _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Func<Task>>());
+        _dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
         
         _sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
     }
