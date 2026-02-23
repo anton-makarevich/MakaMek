@@ -695,4 +695,78 @@ public class MapConfigViewModelTests
         sut.SelectedMap.ShouldBeNull();
         sut.IsLoadingMaps.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task UpdateMap_CancelsPreviousOperation_WhenCalledMultipleTimes()
+    {
+        // Arrange
+        var secondPreview = new object();
+        var cts1 = new CancellationTokenSource();
+
+        _previewRenderer.GeneratePreviewAsync(
+                Arg.Any<BattleMap>(),
+                Arg.Any<int>(),
+                Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var token = callInfo.ArgAt<CancellationToken>(2);
+                if (token == cts1.Token)
+                {
+                    token.Register(() => { }); // Simulate cancellation
+                    throw new OperationCanceledException();
+                }
+                return Task.FromResult<object?>(secondPreview);
+            });
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+
+        // Act - Trigger multiple rapid updates
+        sut.MapWidth = 20; // First update
+        await Task.Delay(10); // Small delay
+        sut.MapHeight = 25; // Second update (should cancel first)
+
+        // Wait for operations to complete
+        var i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 100) throw new TimeoutException("Operations timed out");
+        }
+
+        // Assert - Should complete successfully without throwing
+        sut.IsGenerating.ShouldBeFalse();
+        sut.PreviewImage.ShouldBe(secondPreview);
+    }
+
+    [Fact]
+    public void Dispose_CancelsPendingOperations()
+    {
+        // Arrange
+        var previewTask = new TaskCompletionSource<object?>();
+        _previewRenderer.GeneratePreviewAsync(
+                Arg.Any<BattleMap>(),
+                Arg.Any<int>(),
+                Arg.Any<CancellationToken>())
+            .Returns(previewTask.Task);
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        
+        // Trigger an update that will hang
+        sut.MapWidth = 20;
+        
+        // Allow some time for the operation to start
+        var i = 0;
+        while (!sut.IsGenerating && i < 50)
+        {
+            Task.Delay(10);
+            i++;
+        }
+
+        // Act
+        sut.Dispose();
+
+        // Assert - Should not throw and task should be canceled
+        previewTask.Task.IsCanceled.ShouldBeTrue();
+    }
 }
