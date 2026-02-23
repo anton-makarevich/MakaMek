@@ -67,7 +67,7 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         _gameManager = gameManager;
         _mapFactory = mapFactory;
         _logger = logger;
-        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger);
+        MapConfig = new MapConfigViewModel(mapPreviewRenderer, mapFactory, mapResourceProvider, fileService, logger, dispatcherService);
         AddPlayerCommand = new AsyncCommand(() => AddPlayer());
         AddBotCommand = new AsyncCommand(()=>AddPlayer(controlType: PlayerControlType.Bot));
     }
