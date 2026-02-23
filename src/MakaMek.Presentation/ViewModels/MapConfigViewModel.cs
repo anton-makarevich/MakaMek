@@ -31,19 +31,22 @@ public class MapConfigViewModel : BindableBase, IDisposable
     private readonly IDisposable? _previewSubscription;
     private readonly Subject<MapParameterChange> _mapParametersChanged = new();
     private readonly ILogger _logger;
+    private readonly IDispatcherService _dispatcherService;
 
     public MapConfigViewModel(
         IMapPreviewRenderer previewRenderer,
         IBattleMapFactory mapFactory,
         IMapResourceProvider mapResourceProvider,
         IFileService fileService,
-        ILogger logger)
+        ILogger logger,
+        IDispatcherService dispatcherService)
     {
         _previewRenderer = previewRenderer;
         _mapFactory = mapFactory;
         _mapResourceProvider = mapResourceProvider;
         _fileService = fileService;
         _logger = logger;
+        _dispatcherService = dispatcherService;
         
         LoadMapCommand = new AsyncCommand(LoadMap);
 
@@ -243,6 +246,8 @@ public class MapConfigViewModel : BindableBase, IDisposable
         try
         {
             var maps = await _mapResourceProvider.GetAvailableMapsAsync();
+            var tasks = new List<Task>();
+
             foreach (var (name, hexData) in maps)
             {
                 var battleMap = _mapFactory.CreateFromData(hexData);
@@ -250,18 +255,23 @@ public class MapConfigViewModel : BindableBase, IDisposable
                 {
                     Name = name,
                     Map = battleMap,
-                    // Generate preview
-                    PreviewImage = await _previewRenderer.GeneratePreviewAsync(battleMap)
+                    PreviewImage = null
                 };
 
                 AvailableMaps.Add(item);
+
+                // Create preview generation task
+                tasks.Add(GeneratePreviewAsync(item, battleMap));
             }
 
-            // Preselect the first item to avoid NREs
+            // Preselect the first item to avoid NREs - UI appears instantly
             if (AvailableMaps.Count > 0)
             {
                 SelectMap(AvailableMaps[0]);
             }
+
+            // Execute all preview generation in parallel
+            await Task.WhenAll(tasks);
         }
         catch (Exception ex)
         {
@@ -270,6 +280,23 @@ public class MapConfigViewModel : BindableBase, IDisposable
         finally
         {
             IsLoadingMaps = false;
+        }
+    }
+
+    /// <summary>
+    /// Generates a preview for a map item with error handling
+    /// </summary>
+    private async Task GeneratePreviewAsync(MapPreviewItem item, BattleMap battleMap)
+    {
+        try
+        {
+            var preview = await _previewRenderer.GeneratePreviewAsync(battleMap);
+            _dispatcherService.RunOnUIThread(() => item.PreviewImage = preview);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating preview for map '{MapName}'", item.Name);
+            // Leave PreviewImage as null on failure
         }
     }
 
