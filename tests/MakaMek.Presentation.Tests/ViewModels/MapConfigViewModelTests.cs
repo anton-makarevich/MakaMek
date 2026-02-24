@@ -744,7 +744,7 @@ public class MapConfigViewModelTests
     {
         // Arrange
         var previewTask = new TaskCompletionSource<object?>();
-        CancellationToken capturedToken = default;
+        CancellationToken capturedToken = CancellationToken.None;
         _previewRenderer.GeneratePreviewAsync(
                 Arg.Any<BattleMap>(),
                 Arg.Any<int>(),
@@ -770,7 +770,7 @@ public class MapConfigViewModelTests
         // Act
         sut.Dispose();
 
-        // Assert - the token passed to the renderer must be cancelled
+        // Assert - the token passed to the renderer must be canceled
         capturedToken.IsCancellationRequested.ShouldBeTrue();
     }
 }
