@@ -109,13 +109,6 @@ public class Hex : IDisposable
         _isHighlightedSubject.OnCompleted();
         _isHighlightedSubject.Dispose();
         _disposed = true;
-    }
-
-    /// <summary>
-    /// Finalizer to ensure resources are cleaned up
-    /// </summary>
-    ~Hex()
-    {
-        Dispose();
+        GC.SuppressFinalize(this);
     }
 }
