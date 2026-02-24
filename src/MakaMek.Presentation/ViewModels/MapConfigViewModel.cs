@@ -307,7 +307,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         if (_updateCts is not null)
         {
             await _updateCts.CancelAsync();
-            _updateCts.Dispose();
+            _updateCts?.Dispose();
         }
 
         _updateCts = new CancellationTokenSource();
