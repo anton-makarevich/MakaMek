@@ -184,4 +184,50 @@ public class HexTests
         // Assert
         hex.MovementCost.ShouldBe(1);
     }
+
+    [Fact]
+    public void IsHighlightedChanged_ShouldEmit_WhenIsHighlightedChanges()
+    {
+        // Arrange
+        var hex = new Hex(new HexCoordinates(0, 0));
+        var emittedValues = new List<bool>();
+        
+        var subscription = hex.IsHighlightedChanged
+            .Subscribe(emittedValues.Add);
+
+        // Act
+        hex.IsHighlighted = true;
+        hex.IsHighlighted = false;
+        hex.IsHighlighted = true;
+
+        // Assert
+        emittedValues.Count.ShouldBe(3);
+        emittedValues[0].ShouldBeTrue();
+        emittedValues[1].ShouldBeFalse();
+        emittedValues[2].ShouldBeTrue();
+        subscription.Dispose();
+    }
+
+    [Fact]
+    public void IsHighlightedChanged_ShouldNotEmit_WhenValueIsSame()
+    {
+        // Arrange
+        var hex = new Hex(new HexCoordinates(0, 0));
+        var emittedValues = new List<bool>();
+        
+        var subscription = hex.IsHighlightedChanged
+            .Subscribe(emittedValues.Add);
+
+        // Act
+        hex.IsHighlighted = false; // Default value
+        hex.IsHighlighted = false; // Same value
+        hex.IsHighlighted = true;  // Different value
+        hex.IsHighlighted = true;  // Same value
+
+        // Assert
+        emittedValues.Count.ShouldBe(1);
+        emittedValues[0].ShouldBeTrue();
+        
+        subscription.Dispose();
+    }
 }
