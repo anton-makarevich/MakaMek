@@ -24,6 +24,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
 {
     private int _forestCoverage = 20;
     private object? _previewImage;
+    private CancellationTokenSource? _updateCts;
     private readonly IMapPreviewRenderer _previewRenderer;
     private readonly IBattleMapFactory _mapFactory;
     private readonly IMapResourceProvider _mapResourceProvider;
@@ -302,6 +303,16 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
     private async Task UpdateMap()
     {
+        // Cancel any previous update operation
+        if (_updateCts is not null)
+        {
+            await _updateCts.CancelAsync();
+            _updateCts?.Dispose();
+        }
+
+        _updateCts = new CancellationTokenSource();
+        var token = _updateCts.Token;
+
         try
         {
             ITerrainGenerator generator = ForestCoverage == 0
@@ -319,25 +330,48 @@ public class MapConfigViewModel : BindableBase, IDisposable
             var oldPreview = _previewImage as IDisposable;
             if (GeneratedMap != null)
             {
-                PreviewImage = await _previewRenderer.GeneratePreviewAsync(GeneratedMap);
-                oldPreview?.Dispose();
+                var newPreview = await _previewRenderer.GeneratePreviewAsync(GeneratedMap, cancellationToken: token);
+
+                // Only update if not cancelled and preview was generated
+                if (!token.IsCancellationRequested && newPreview != null)
+                {
+                    PreviewImage = newPreview;
+                    oldPreview?.Dispose();
+                }
+                else
+                {
+                    // Dispose the new preview if we got one but were canceled
+                    (newPreview as IDisposable)?.Dispose();
+                }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when a newer update cancels this one - ignore gracefully
         }
         finally
         {
-            IsGenerating = false;
+            // Only clear the flag if this operation wasn't cancelled
+            if (!token.IsCancellationRequested)
+            {
+                IsGenerating = false;
+            }
         }
     }
 
     public void Dispose()
     {
+        _updateCts?.Cancel();
+        _updateCts?.Dispose();
+        _updateCts = null;
+
         (_previewImage as IDisposable)?.Dispose();
         ClearAvailableMaps();
         _previewSubscription?.Dispose();
         _mapParametersChanged.Dispose();
         GC.SuppressFinalize(this);
     }
-    
+
     private void ClearAvailableMaps()
     {
         foreach (var item in AvailableMaps)

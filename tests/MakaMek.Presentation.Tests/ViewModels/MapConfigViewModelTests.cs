@@ -695,4 +695,82 @@ public class MapConfigViewModelTests
         sut.SelectedMap.ShouldBeNull();
         sut.IsLoadingMaps.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task UpdateMap_CancelsPreviousOperation_WhenCalledMultipleTimes()
+    {
+        // Arrange
+        var secondPreview = new object();
+        var callCount = 0;
+        var firstCallTcs = new TaskCompletionSource<object?>();
+
+        _previewRenderer.GeneratePreviewAsync(
+                Arg.Any<BattleMap>(),
+                Arg.Any<int>(),
+                Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var token = callInfo.ArgAt<CancellationToken>(2);
+                if (Interlocked.Increment(ref callCount) != 1) return Task.FromResult<object?>(secondPreview);
+                // Block the first call; resolve as canceled when the token fires
+                token.Register(() => firstCallTcs.TrySetCanceled(token));
+                return firstCallTcs.Task;
+
+            });
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+
+        // Act - Trigger multiple rapid updates
+        sut.MapWidth = 20; // First update
+        await Task.Delay(10); // Small delay
+        sut.MapHeight = 25; // Second update (should cancel first)
+
+        // Wait for operations to complete
+        var i = 0;
+        while (sut.IsGenerating)
+        {
+            await Task.Delay(10);
+            i++;
+            if (i > 100) throw new TimeoutException("Operations timed out");
+        }
+
+        // Assert - Should complete successfully without throwing
+        sut.IsGenerating.ShouldBeFalse();
+        sut.PreviewImage.ShouldBe(secondPreview);
+    }
+
+    [Fact]
+    public async Task Dispose_CancelsPendingOperations()
+    {
+        // Arrange
+        var previewTask = new TaskCompletionSource<object?>();
+        CancellationToken capturedToken = CancellationToken.None;
+        _previewRenderer.GeneratePreviewAsync(
+                Arg.Any<BattleMap>(),
+                Arg.Any<int>(),
+                Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                capturedToken = callInfo.ArgAt<CancellationToken>(2);
+                return previewTask.Task;
+            });
+
+        var sut = new MapConfigViewModel(_previewRenderer, _mapFactory, _mapResourceProvider, _fileService, _logger, _dispatcherService);
+        
+        // The constructor's UpdateMap() calls GeneratePreviewAsync synchronously before awaiting;
+        // capturedToken is set by the time the constructor returns.
+        // If for any reason it isn't set yet, wait briefly.
+        var i = 0;
+        while (capturedToken == CancellationToken.None && i < 50)
+        {
+            await Task.Delay(10);
+            i++;
+        }
+
+        // Act
+        sut.Dispose();
+
+        // Assert - the token passed to the renderer must be canceled
+        capturedToken.IsCancellationRequested.ShouldBeTrue();
+    }
 }
