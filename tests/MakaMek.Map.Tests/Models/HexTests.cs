@@ -192,7 +192,7 @@ public class HexTests
         var hex = new Hex(new HexCoordinates(0, 0));
         var emittedValues = new List<bool>();
         
-        var subscription = hex.IsHighlightedChanged
+        using var subscription = hex.IsHighlightedChanged
             .Subscribe(emittedValues.Add);
 
         // Act
@@ -205,7 +205,6 @@ public class HexTests
         emittedValues[0].ShouldBeTrue();
         emittedValues[1].ShouldBeFalse();
         emittedValues[2].ShouldBeTrue();
-        subscription.Dispose();
     }
 
     [Fact]
@@ -215,7 +214,7 @@ public class HexTests
         var hex = new Hex(new HexCoordinates(0, 0));
         var emittedValues = new List<bool>();
         
-        var subscription = hex.IsHighlightedChanged
+        using var subscription = hex.IsHighlightedChanged
             .Subscribe(emittedValues.Add);
 
         // Act
@@ -227,7 +226,66 @@ public class HexTests
         // Assert
         emittedValues.Count.ShouldBe(1);
         emittedValues[0].ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Dispose_ShouldCompleteSubjectAndDisposeIt()
+    {
+        // Arrange
+        var hex = new Hex(new HexCoordinates(0, 0));
+        var completedCalled = false;
+        var emittedValues = new List<bool>();
         
-        subscription.Dispose();
+        using var subscription = hex.IsHighlightedChanged
+            .Subscribe(
+                emittedValues.Add,
+                () => completedCalled = true);
+
+        // Act
+        hex.IsHighlighted = true; // Should emit before disposal
+        hex.Dispose();
+
+        // Assert
+        emittedValues.Count.ShouldBe(1);
+        emittedValues[0].ShouldBeTrue();
+        completedCalled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Dispose_ShouldNotEmitAfterDisposal()
+    {
+        // Arrange
+        var hex = new Hex(new HexCoordinates(0, 0));
+        var emittedValues = new List<bool>();
+        
+        using var subscription = hex.IsHighlightedChanged
+            .Subscribe(emittedValues.Add);
+
+        // Act
+        hex.Dispose();
+        
+        // This should not emit anything since the subject is disposed
+        hex.IsHighlighted = true;
+
+        // Assert
+        emittedValues.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Dispose_ShouldBeIdempotent()
+    {
+        // Arrange
+        var hex = new Hex(new HexCoordinates(0, 0));
+        var completedCalled = false;
+        
+        using var subscription = hex.IsHighlightedChanged
+            .Subscribe(_ => { }, () => completedCalled = true);
+
+        // Act
+        hex.Dispose();
+        hex.Dispose(); // Second call should not cause issues
+
+        // Assert
+        completedCalled.ShouldBeTrue();
     }
 }

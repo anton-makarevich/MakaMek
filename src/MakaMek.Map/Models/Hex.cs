@@ -8,7 +8,7 @@ namespace Sanet.MakaMek.Map.Models;
 /// <summary>
 /// Represents a single hex on the game map
 /// </summary>
-public class Hex
+public class Hex : IDisposable
 {
     public HexCoordinates Coordinates { get; }
     public int Level { get; private set; }
@@ -63,6 +63,7 @@ public class Hex
         : 1; // Default cost for empty hex
 
     private readonly Subject<bool> _isHighlightedSubject = new();
+    private bool _disposed;
 
     /// <summary>
     /// Observable that emits when the highlight state changes
@@ -79,6 +80,7 @@ public class Hex
         {
             if (field == value) return;
             field = value;
+            if (_disposed) return;
             _isHighlightedSubject.OnNext(value);
         }
     }
@@ -96,5 +98,24 @@ public class Hex
             TerrainTypes = GetTerrainTypes(),
             Level = Level
         };
+    }
+
+    /// <summary>
+    /// Disposes the Hex and completes the observable subject
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _isHighlightedSubject.OnCompleted();
+        _isHighlightedSubject.Dispose();
+        _disposed = true;
+    }
+
+    /// <summary>
+    /// Finalizer to ensure resources are cleaned up
+    /// </summary>
+    ~Hex()
+    {
+        Dispose();
     }
 }
