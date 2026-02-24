@@ -1,3 +1,5 @@
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.Terrains;
 
@@ -60,7 +62,26 @@ public class Hex
         ? _terrains.Values.Max(t => t.MovementCost)
         : 1; // Default cost for empty hex
 
-    public bool IsHighlighted { get; set; }
+    private readonly Subject<bool> _isHighlightedSubject = new();
+
+    /// <summary>
+    /// Observable that emits when the highlight state changes
+    /// </summary>
+    public IObservable<bool> IsHighlightedChanged => _isHighlightedSubject.AsObservable();
+
+    /// <summary>
+    /// Gets or sets whether this hex is highlighted
+    /// </summary>
+    public bool IsHighlighted
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            _isHighlightedSubject.OnNext(value);
+        }
+    }
 
     public MakaMekTerrains[] GetTerrainTypes()
     {
