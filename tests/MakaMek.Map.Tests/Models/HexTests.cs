@@ -13,80 +13,80 @@ public class HexTests
         var coords = new HexCoordinates(1, 2);
 
         // Act
-        var hex = new Hex(coords, 3);
+        var sut = new Hex(coords, 3);
 
         // Assert
-        hex.Coordinates.ShouldBe(coords);
-        hex.Level.ShouldBe(3);
+        sut.Coordinates.ShouldBe(coords);
+        sut.Level.ShouldBe(3);
     }
 
     [Fact]
     public void Constructor_DefaultLevel_IsZero()
     {
         // Arrange & Act
-        var hex = new Hex(new HexCoordinates(0, 0));
+        var sut = new Hex(new HexCoordinates(0, 0));
 
         // Assert
-        hex.Level.ShouldBe(0);
+        sut.Level.ShouldBe(0);
     }
 
     [Fact]
     public void AddTerrain_AddsTerrainToHex()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
+        var sut = new Hex(new HexCoordinates(0, 0));
         var heavyWoods = new HeavyWoodsTerrain();
 
         // Act
-        hex.AddTerrain(heavyWoods);
+        sut.AddTerrain(heavyWoods);
 
         // Assert
-        hex.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeTrue();
-        hex.GetTerrain(MakaMekTerrains.HeavyWoods).ShouldBe(heavyWoods);
+        sut.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeTrue();
+        sut.GetTerrain(MakaMekTerrains.HeavyWoods).ShouldBe(heavyWoods);
     }
 
     [Fact]
     public void RemoveTerrain_RemovesTerrainFromHex()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
-        hex.AddTerrain(new HeavyWoodsTerrain());
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddTerrain(new HeavyWoodsTerrain());
 
         // Act
-        hex.RemoveTerrain(MakaMekTerrains.HeavyWoods);
+        sut.RemoveTerrain(MakaMekTerrains.HeavyWoods);
 
         // Assert
-        hex.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeFalse();
-        hex.GetTerrain(MakaMekTerrains.HeavyWoods).ShouldBeNull();
+        sut.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeFalse();
+        sut.GetTerrain(MakaMekTerrains.HeavyWoods).ShouldBeNull();
     }
     
     [Fact]
     public void ReplaceTerrains_ReplacesAllTerrainInHex()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
-        hex.AddTerrain(new HeavyWoodsTerrain());
-        hex.AddTerrain(new LightWoodsTerrain());
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddTerrain(new HeavyWoodsTerrain());
+        sut.AddTerrain(new LightWoodsTerrain());
 
         // Act  
-        hex.ReplaceTerrains([new ClearTerrain()]);
+        sut.ReplaceTerrains([new ClearTerrain()]);
 
         // Assert
-        hex.HasTerrain(MakaMekTerrains.Clear).ShouldBeTrue();
-        hex.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeFalse();
-        hex.HasTerrain(MakaMekTerrains.LightWoods).ShouldBeFalse();
+        sut.HasTerrain(MakaMekTerrains.Clear).ShouldBeTrue();
+        sut.HasTerrain(MakaMekTerrains.HeavyWoods).ShouldBeFalse();
+        sut.HasTerrain(MakaMekTerrains.LightWoods).ShouldBeFalse();
     }
 
     [Fact]
     public void GetTerrains_ReturnsAllTerrains()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
+        var sut = new Hex(new HexCoordinates(0, 0));
         var heavyWoods = new HeavyWoodsTerrain();
-        hex.AddTerrain(heavyWoods);
+        sut.AddTerrain(heavyWoods);
 
         // Act
-        var terrains = hex.GetTerrains().ToList();
+        var terrains = sut.GetTerrains().ToList();
 
         // Assert
         terrains.Count.ShouldBe(1);
@@ -97,11 +97,11 @@ public class HexTests
     public void GetCeiling_ReturnsLevelPlusHighestTerrainHeight()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0), 2);
-        hex.AddTerrain(new HeavyWoodsTerrain());
+        var sut = new Hex(new HexCoordinates(0, 0), 2);
+        sut.AddTerrain(new HeavyWoodsTerrain());
 
         // Act
-        var ceiling = hex.GetCeiling();
+        var ceiling = sut.GetCeiling();
 
         // Assert
         ceiling.ShouldBe(4); // Base level (2) + terrain height (2)
@@ -111,10 +111,10 @@ public class HexTests
     public void GetCeiling_WithNoTerrain_ReturnsLevel()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0), 2);
+        var sut = new Hex(new HexCoordinates(0, 0), 2);
 
         // Act
-        var ceiling = hex.GetCeiling();
+        var ceiling = sut.GetCeiling();
 
         // Assert
         ceiling.ShouldBe(2);
@@ -124,83 +124,84 @@ public class HexTests
     public void MovementCost_WithNoTerrain_Returns1()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
+        var sut = new Hex(new HexCoordinates(0, 0));
 
         // Act & Assert
-        hex.MovementCost.ShouldBe(1);
+        sut.MovementCost.ShouldBe(1);
     }
 
     [Fact]
     public void MovementCost_WithSingleTerrain_ReturnsTerrainFactor()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
-        hex.AddTerrain(new LightWoodsTerrain()); // TerrainFactor = 2
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddTerrain(new LightWoodsTerrain()); // TerrainFactor = 2
 
         // Act & Assert
-        hex.MovementCost.ShouldBe(2);
+        sut.MovementCost.ShouldBe(2);
     }
 
     [Fact]
     public void MovementCost_WithMultipleTerrains_ReturnsHighestFactor()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
-        hex.AddTerrain(new ClearTerrain());      // TerrainFactor = 1
-        hex.AddTerrain(new LightWoodsTerrain()); // TerrainFactor = 2
-        hex.AddTerrain(new HeavyWoodsTerrain()); // TerrainFactor = 3
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddTerrain(new ClearTerrain());      // TerrainFactor = 1
+        sut.AddTerrain(new LightWoodsTerrain()); // TerrainFactor = 2
+        sut.AddTerrain(new HeavyWoodsTerrain()); // TerrainFactor = 3
 
         // Act & Assert
-        hex.MovementCost.ShouldBe(3);
+        sut.MovementCost.ShouldBe(3);
     }
 
     [Fact]
     public void MovementCost_AfterRemovingHighestTerrain_ReturnsNextHighestFactor()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
-        hex.AddTerrain(new LightWoodsTerrain()); // TerrainFactor = 2
-        hex.AddTerrain(new HeavyWoodsTerrain()); // TerrainFactor = 3
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddTerrain(new LightWoodsTerrain()); // TerrainFactor = 2
+        sut.AddTerrain(new HeavyWoodsTerrain()); // TerrainFactor = 3
 
         // Act
-        hex.RemoveTerrain(MakaMekTerrains.HeavyWoods);
+        sut.RemoveTerrain(MakaMekTerrains.HeavyWoods);
 
         // Assert
-        hex.MovementCost.ShouldBe(2);
+        sut.MovementCost.ShouldBe(2);
     }
 
     [Fact]
     public void MovementCost_AfterRemovingAllTerrain_Returns1()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
-        hex.AddTerrain(new LightWoodsTerrain());
-        hex.AddTerrain(new HeavyWoodsTerrain());
+        var sut = new Hex(new HexCoordinates(0, 0));
+        sut.AddTerrain(new LightWoodsTerrain());
+        sut.AddTerrain(new HeavyWoodsTerrain());
 
         // Act
-        hex.RemoveTerrain((MakaMekTerrains.LightWoods));
-        hex.RemoveTerrain(MakaMekTerrains.HeavyWoods);
+        sut.RemoveTerrain((MakaMekTerrains.LightWoods));
+        sut.RemoveTerrain(MakaMekTerrains.HeavyWoods);
 
         // Assert
-        hex.MovementCost.ShouldBe(1);
+        sut.MovementCost.ShouldBe(1);
     }
 
     [Fact]
     public void IsHighlightedChanged_ShouldEmit_WhenIsHighlightedChanges()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
+        var sut = new Hex(new HexCoordinates(0, 0));
         var emittedValues = new List<bool>();
         
-        using var subscription = hex.IsHighlightedChanged
+        using var subscription = sut.IsHighlightedChanged
             .Subscribe(emittedValues.Add);
 
         // Act
-        hex.IsHighlighted = true;
-        hex.IsHighlighted = false;
-        hex.IsHighlighted = true;
+        sut.IsHighlighted = true;
+        sut.IsHighlighted = false;
+        sut.IsHighlighted = true;
 
         // Assert
+        sut.IsHighlighted.ShouldBeTrue();
         emittedValues.Count.ShouldBe(3);
         emittedValues[0].ShouldBeTrue();
         emittedValues[1].ShouldBeFalse();
@@ -211,17 +212,17 @@ public class HexTests
     public void IsHighlightedChanged_ShouldNotEmit_WhenValueIsSame()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
+        var sut = new Hex(new HexCoordinates(0, 0));
         var emittedValues = new List<bool>();
         
-        using var subscription = hex.IsHighlightedChanged
+        using var subscription = sut.IsHighlightedChanged
             .Subscribe(emittedValues.Add);
 
         // Act
-        hex.IsHighlighted = false; // Default value
-        hex.IsHighlighted = false; // Same value
-        hex.IsHighlighted = true;  // Different value
-        hex.IsHighlighted = true;  // Same value
+        sut.IsHighlighted = false; // Default value
+        sut.IsHighlighted = false; // Same value
+        sut.IsHighlighted = true;  // Different value
+        sut.IsHighlighted = true;  // Same value
 
         // Assert
         emittedValues.Count.ShouldBe(1);
@@ -232,18 +233,18 @@ public class HexTests
     public void Dispose_ShouldCompleteSubjectAndDisposeIt()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
+        var sut = new Hex(new HexCoordinates(0, 0));
         var completedCalled = false;
         var emittedValues = new List<bool>();
         
-        using var subscription = hex.IsHighlightedChanged
+        using var subscription = sut.IsHighlightedChanged
             .Subscribe(
                 emittedValues.Add,
                 () => completedCalled = true);
 
         // Act
-        hex.IsHighlighted = true; // Should emit before disposal
-        hex.Dispose();
+        sut.IsHighlighted = true; // Should emit before disposal
+        sut.Dispose();
 
         // Assert
         emittedValues.Count.ShouldBe(1);
@@ -255,17 +256,17 @@ public class HexTests
     public void Dispose_ShouldNotEmitAfterDisposal()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
+        var sut = new Hex(new HexCoordinates(0, 0));
         var emittedValues = new List<bool>();
         
-        using var subscription = hex.IsHighlightedChanged
+        using var subscription = sut.IsHighlightedChanged
             .Subscribe(emittedValues.Add);
 
         // Act
-        hex.Dispose();
+        sut.Dispose();
         
         // This should not emit anything since the subject is disposed
-        hex.IsHighlighted = true;
+        sut.IsHighlighted = true;
 
         // Assert
         emittedValues.Count.ShouldBe(0);
@@ -275,15 +276,15 @@ public class HexTests
     public void Dispose_ShouldBeIdempotent()
     {
         // Arrange
-        var hex = new Hex(new HexCoordinates(0, 0));
+        var sut = new Hex(new HexCoordinates(0, 0));
         var completedCalled = false;
         
-        using var subscription = hex.IsHighlightedChanged
+        using var subscription = sut.IsHighlightedChanged
             .Subscribe(_ => { }, () => completedCalled = true);
 
         // Act
-        hex.Dispose();
-        hex.Dispose(); // Second call should not cause issues
+        sut.Dispose();
+        sut.Dispose(); // Second call should not cause issues
 
         // Assert
         completedCalled.ShouldBeTrue();
