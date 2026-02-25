@@ -100,7 +100,9 @@ public class BattleMap(int width, int height) : IBattleMap
             if (from.Coordinates != to.Coordinates)
             {
                 var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
-                segmentCost = hex.MovementCost;
+                var fromHex = GetHex(from.Coordinates);
+                var levelCost = fromHex != null ? Math.Abs(hex.Level - fromHex.Level) : 0;
+                segmentCost = hex.MovementCost + levelCost;
             }
 
             segments.Add(new PathSegment(from, to, segmentCost));
