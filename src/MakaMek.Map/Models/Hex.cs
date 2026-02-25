@@ -1,3 +1,5 @@
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.Terrains;
 
@@ -6,7 +8,7 @@ namespace Sanet.MakaMek.Map.Models;
 /// <summary>
 /// Represents a single hex on the game map
 /// </summary>
-public class Hex
+public class Hex : IDisposable
 {
     public HexCoordinates Coordinates { get; }
     public int Level { get; private set; }
@@ -60,7 +62,28 @@ public class Hex
         ? _terrains.Values.Max(t => t.MovementCost)
         : 1; // Default cost for empty hex
 
-    public bool IsHighlighted { get; set; }
+    private readonly Subject<bool> _isHighlightedSubject = new();
+    private bool _disposed;
+
+    /// <summary>
+    /// Observable that emits when the highlight state changes
+    /// </summary>
+    public IObservable<bool> IsHighlightedChanged => _isHighlightedSubject.AsObservable();
+
+    /// <summary>
+    /// Gets or sets whether this hex is highlighted
+    /// </summary>
+    public bool IsHighlighted
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            if (_disposed) return;
+            _isHighlightedSubject.OnNext(value);
+        }
+    }
 
     public MakaMekTerrains[] GetTerrainTypes()
     {
@@ -75,5 +98,17 @@ public class Hex
             TerrainTypes = GetTerrainTypes(),
             Level = Level
         };
+    }
+
+    /// <summary>
+    /// Disposes the Hex and completes the observable subject
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _isHighlightedSubject.OnCompleted();
+        _isHighlightedSubject.Dispose();
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

@@ -80,13 +80,14 @@ public class HexControl : Panel
         Children.Add(_hexPolygon);
         Children.Add(label);
         
-        // Create an observable that polls the hex's state
-        _hexSubscription = Observable
-            .Interval(TimeSpan.FromMilliseconds(16)) // ~60fps
-            .Select(_ => _hex.IsHighlighted)
-            .DistinctUntilChanged()
+        // Set initial highlight state
+        if (_hex.IsHighlighted)
+            Highlight(HexHighlightType.Selected);
+        
+        // Subscribe to highlight changes from the Hex model
+        _hexSubscription = _hex.IsHighlightedChanged
             .ObserveOn(SynchronizationContext.Current!) // Ensure events are processed on the UI thread
-            .Subscribe(_ => Highlight(_hex.IsHighlighted ? HexHighlightType.Selected : HexHighlightType.None));
+            .Subscribe(isHighlighted => Highlight(isHighlighted ? HexHighlightType.Selected : HexHighlightType.None));
         
         // Set position
         SetValue(Canvas.LeftProperty, hex.Coordinates.H);
