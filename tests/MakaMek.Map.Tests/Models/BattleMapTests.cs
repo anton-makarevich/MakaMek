@@ -1156,4 +1156,383 @@ public class BattleMapTests
         wrongHexEx.Coordinates.ShouldBe(new HexCoordinates(1, 5));
         wrongHexEx.Message.ShouldContain("Hex not found");
     }
+    
+    [Fact]
+    public void FindPath_WithLevelChange_AddsLevelCostToMovement()
+    {
+        // Arrange - Create a map with elevation changes
+        var map = new BattleMap(3, 2);
+        
+        // Hex (1,1) -> (2,1) -> (3,1) path
+        // (1,1) Q=1 (odd): BottomRight neighbor is (2,1)
+        // (2,1) Q=2 (even): TopRight neighbor is (3,1)
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 1);
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 2);
+        hex3.AddTerrain(new ClearTerrain());
+        map.AddHex(hex3);
+        
+        // Add hexes to make the map connected
+        for (var r = 1; r <= 2; r++)
+        {
+            var hex = new Hex(new HexCoordinates(1, r), level: r == 1 ? 0 : 1);
+            hex.AddTerrain(new ClearTerrain());
+            if (r > 1) map.AddHex(hex);
+        }
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.TopRight);
+
+        // Act - Find path with enough MP to cover terrain + level costs
+        // Cost: 1 (terrain) + 1 (level 0->1) + 1 (terrain) + 1 (level 1->2) = 4 MP
+        var path = map.FindPath(start, target, MovementType.Walk, 5, maxLevelChange: 2);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(4, "Path should cost 4 MP: 1 terrain + 1 level + 1 terrain + 1 level");
+    }
+
+    [Fact]
+    public void FindPath_WithLevelChangeDescending_AddsSymmetricLevelCost()
+    {
+        // Arrange - Create a map with elevation changes (descending)
+        var map = new BattleMap(3, 2);
+        
+        // Hex (1,1) -> (2,1) -> (3,1) path
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 2);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 1);
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 0);
+        hex3.AddTerrain(new ClearTerrain());
+        map.AddHex(hex3);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.TopRight);
+
+        // Act - Find path descending (level 2 -> 1 -> 0)
+        // Cost: 1 (terrain) + 1 (level 2->1) + 1 (terrain) + 1 (level 1->0) = 4 MP
+        var path = map.FindPath(start, target, MovementType.Walk, 5, maxLevelChange: 2);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(4, "Descending should cost same as ascending: 1 terrain + 1 level + 1 terrain + 1 level");
+    }
+
+    [Fact]
+    public void FindPath_WithTwoLevelChange_CostsTwoExtraMP()
+    {
+        // Arrange - Create a map with 2-level change in one step
+        var map = new BattleMap(2, 2);
+        
+        // (1,1) Q=1 (odd): BottomRight neighbor is (2,1)
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 2);
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        // Act - Move from level 0 to level 2 (2 level change)
+        // Cost: 1 (terrain) + 2 (level change) = 3 MP
+        var path = map.FindPath(start, target, MovementType.Walk, 5, maxLevelChange: 2);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(3, "Path should cost 3 MP: 1 terrain + 2 level change");
+    }
+
+    [Fact]
+    public void FindPath_WithMaxLevelChangeExceeded_SkipsHex()
+    {
+        // Arrange - Create a map with 3-level change (exceeds max of 2)
+        var map = new BattleMap(3, 2);
+        
+        // (1,1) Q=1 (odd): BottomRight neighbor is (2,1)
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 3); // 3 levels up - exceeds max
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 0);
+        hex3.AddTerrain(new ClearTerrain());
+        map.AddHex(hex3);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        // Act - Try to move to hex with 3-level change
+        var path = map.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 2);
+
+        // Assert
+        path.ShouldBeNull("Path should not exist when level change exceeds maximum");
+    }
+
+    [Fact]
+    public void FindPath_WithMaxLevelChange_RoutesAroundSteepHex()
+    {
+        // Arrange - Create a map where direct path has 3-level change
+        var map = new BattleMap(3, 3);
+        
+        // Build a connected map
+        for (var q = 1; q <= 3; q++)
+        {
+            for (var r = 1; r <= 3; r++)
+            {
+                var level = 0;
+                // Make (2,2) a steep hex (level 3)
+                if (q == 2 && r == 2) level = 3;
+                var hex = new Hex(new HexCoordinates(q, r), level: level);
+                hex.AddTerrain(new ClearTerrain());
+                map.AddHex(hex);
+            }
+        }
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(3, 2), HexDirection.BottomRight);
+
+        // Act - Path should go around the steep hex
+        var path = map.FindPath(start, target, MovementType.Walk, 10, maxLevelChange: 2);
+
+        // Assert
+        path.ShouldNotBeNull("Path should exist going around steep hex");
+        path.Hexes.ShouldNotContain(new HexCoordinates(2, 2), "Should not go through steep hex");
+    }
+
+    [Fact]
+    public void GetReachableHexes_WithLevelChange_LimitsReachability()
+    {
+        // Arrange - Create a map with elevation
+        var map = new BattleMap(3, 2);
+        
+        // (1,1) -> (2,1) -> (3,1) path
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 1);
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 2);
+        hex3.AddTerrain(new ClearTerrain());
+        map.AddHex(hex3);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        // Act - With limited MP, elevated hexes may be unreachable
+        // Hex 2: 1 terrain + 1 level = 2 MP
+        // Hex 3: 1+1 + 1+1 = 4 MP (through hex 2)
+        var reachable = map.GetReachableHexes(start, 3, maxLevelChange: 2).ToList();
+
+        // Assert
+        reachable.Count.ShouldBe(1, "Should reach hex 2 (2 MP) but not hex 3 (4 MP exceeds 3)");
+        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
+        reachable.ShouldNotContain(r => r.coordinates == new HexCoordinates(3, 1));
+    }
+
+    [Fact]
+    public void GetReachableHexes_WithSufficientMP_ClimbsToElevatedHexes()
+    {
+        // Arrange - Create a map with elevation
+        var map = new BattleMap(3, 2);
+        
+        // (1,1) -> (2,1) -> (3,1) path
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 1);
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 2);
+        hex3.AddTerrain(new ClearTerrain());
+        map.AddHex(hex3);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        // Act - With sufficient MP, all hexes reachable
+        var reachable = map.GetReachableHexes(start, 5, maxLevelChange: 2).ToList();
+
+        // Assert
+        reachable.Count.ShouldBe(2);
+        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
+        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(3, 1));
+    }
+
+    [Fact]
+    public void GetReachableHexes_WithMaxLevelChange_ExcludesSteepHexes()
+    {
+        // Arrange - Create a map with steep elevation
+        var map = new BattleMap(2, 2);
+        
+        // (1,1) Q=1 (odd): BottomRight neighbor is (2,1)
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 3); // 3-level change
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+
+        // Act - Max level change of 2 should exclude the 3-level hex
+        var reachable = map.GetReachableHexes(start, 10, maxLevelChange: 2).ToList();
+
+        // Assert
+        reachable.ShouldBeEmpty("No hexes reachable when level change exceeds maximum");
+    }
+
+    [Fact]
+    public void GetReachableHexes_WithZeroMaxLevelChange_OnlySameLevelHexes()
+    {
+        // Arrange - Create a map with mixed elevations
+        var map = new BattleMap(3, 2);
+        
+        // (1,1) Q=1 (odd): BottomRight neighbor is (2,1), Bottom neighbor is (1,2)
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 1); // Different level
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(1, 2), level: 0); // Same level (via Bottom direction)
+        hex3.AddTerrain(new ClearTerrain());
+        map.AddHex(hex3);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+
+        // Act - With maxLevelChange 0, only same-level hexes reachable
+        var reachable = map.GetReachableHexes(start, 10, maxLevelChange: 0).ToList();
+
+        // Assert
+        reachable.Count.ShouldBe(1);
+        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(1, 2));
+        reachable.ShouldNotContain(r => r.coordinates == new HexCoordinates(2, 1));
+    }
+
+    [Fact]
+    public void FindPath_WithNoMaxLevelChange_AllowsAnyLevelChange()
+    {
+        // Arrange - Create a map with steep elevation
+        var map = new BattleMap(2, 2);
+        
+        // (1,1) Q=1 (odd): BottomRight neighbor is (2,1)
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 5); // 5-level change
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        // Act - No maxLevelChange specified (null default)
+        var path = map.FindPath(start, target, MovementType.Walk, 10);
+
+        // Assert
+        path.ShouldNotBeNull("Path should exist when no max level change restriction");
+        path.TotalCost.ShouldBe(6, "Cost: 1 terrain + 5 level change");
+    }
+    
+    [Fact]
+    public void GetJumpReachableHexes_IgnoresLevelChanges()
+    {
+        // Arrange - Create a map with varying elevations
+        var map = new BattleMap(3, 1);
+        
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 5); // High elevation
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 3);
+        hex3.AddTerrain(new ClearTerrain());
+        map.AddHex(hex3);
+
+        var start = new HexCoordinates(1, 1);
+
+        // Act - Jump ignores level changes
+        var reachable = map.GetJumpReachableHexes(start, 2).ToList();
+
+        // Assert
+        reachable.Count.ShouldBe(2, "Both hexes should be reachable by jump regardless of level");
+        reachable.ShouldContain(new HexCoordinates(2, 1));
+        reachable.ShouldContain(new HexCoordinates(3, 1));
+    }
+
+    [Fact]
+    public void FindJumpPath_IgnoresLevelCosts()
+    {
+        // Arrange - Create a map with elevation change
+        var map = new BattleMap(2, 1);
+        
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 5); // 5-level difference
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act - Jump should cost 1 MP regardless of level
+        var path = map.FindPath(start, target, MovementType.Jump, 1);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(1, "Jump should cost 1 MP per hex, ignoring level changes");
+    }
+
+    [Fact]
+    public void FindJumpPath_CanTraverseAnyLevelChange()
+    {
+        // Arrange - Create a map with extreme elevation change
+        var map = new BattleMap(2, 1);
+        
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 10); // 10-level difference
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act - Jump can traverse any level change
+        var path = map.FindPath(start, target, MovementType.Jump, 1);
+
+        // Assert
+        path.ShouldNotBeNull("Jump should be able to traverse any level change");
+    }
 }
