@@ -627,25 +627,14 @@ public class BattleMapExtensionsTests
     public void GetReachableHexesForPosition_BackwardMovement_OnlySameLevelHexes()
     {
         // Arrange - Create a map where all adjacent hexes have different levels
-        var map = new BattleMap(4, 1);
+        var map = new BattleMapFactory().GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
         
-        var hex1 = new Hex(new HexCoordinates(1, 1), level: 1);
-        hex1.AddTerrain(new ClearTerrain());
-        map.AddHex(hex1);
+        var raisedHex = new Hex(new HexCoordinates(2, 2), level: 1);
+        raisedHex.AddTerrain(new ClearTerrain());
+        map.AddHex(raisedHex);
         
-        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
-        hex2.AddTerrain(new ClearTerrain());
-        map.AddHex(hex2);
-        
-        var hex3 = new Hex(new HexCoordinates(3, 1), level: 2);
-        hex3.AddTerrain(new ClearTerrain());
-        map.AddHex(hex3);
-        
-        var hex4 = new Hex(new HexCoordinates(4, 1), level: 0);
-        hex4.AddTerrain(new ClearTerrain());
-        map.AddHex(hex4);
-
-        var startPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight);
+        var startPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
 
         // Act
         var reachabilityData = map.GetReachableHexesForPosition(
@@ -657,13 +646,9 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>());
 
         // Assert
-        // Forward: all hexes reachable (level changes within max 2)
-        reachabilityData.ForwardReachableHexes.Count.ShouldBeGreaterThan(0);
-        
-        // Backward: only hex 4 (same level 0) reachable
-        reachabilityData.BackwardReachableHexes.ShouldContain(new HexCoordinates(4, 1));
-        reachabilityData.BackwardReachableHexes.ShouldNotContain(new HexCoordinates(1, 1));
-        reachabilityData.BackwardReachableHexes.ShouldNotContain(new HexCoordinates(3, 1));
+        // Backward: (2,2) is not reachable
+        reachabilityData.BackwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 2));
+        reachabilityData.BackwardReachableHexes.Count.ShouldBe(8);
     }
 
     [Fact]
