@@ -547,24 +547,17 @@ public class BattleMapExtensionsTests
     #region Level Change Tests
 
     [Fact]
-    public void GetReachableHexesForPosition_ForwardMovement_RespectsMaxLevelChange2()
+    public void GetReachableHexesForPosition_ForwardMovement_RespectsMaxLevelChange()
     {
-        // Arrange - Create a map with elevation
-        var map = new BattleMap(3, 1);
-        
-        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
-        hex1.AddTerrain(new ClearTerrain());
-        map.AddHex(hex1);
-        
-        var hex2 = new Hex(new HexCoordinates(2, 1), level: 3); // 3-level change exceeds max of 2
+        // Arrange
+        var map = new BattleMapFactory().GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+
+        var hex2 = new Hex(new HexCoordinates(2, 2), level: 3); // 3-level change exceeds the max of 2
         hex2.AddTerrain(new ClearTerrain());
         map.AddHex(hex2);
         
-        var hex3 = new Hex(new HexCoordinates(3, 1), level: 0);
-        hex3.AddTerrain(new ClearTerrain());
-        map.AddHex(hex3);
-
-        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight);
+        var startPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
 
         // Act - Forward movement should respect max level change of 2
         var reachabilityData = map.GetReachableHexesForPosition(
@@ -576,57 +569,15 @@ public class BattleMapExtensionsTests
             new HashSet<HexCoordinates>());
 
         // Assert
-        reachabilityData.ForwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 1), 
+        reachabilityData.ForwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 2), 
             "Hex with 3-level change should not be reachable for forward movement");
-        reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(3, 1), 
-            "Same-level hex should be reachable");
-    }
-
-    [Fact]
-    public void GetReachableHexesForPosition_BackwardMovement_ProhibitsLevelChanges()
-    {
-        // Arrange - Create a map with elevation
-        var map = new BattleMap(3, 1);
-        
-        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
-        hex1.AddTerrain(new ClearTerrain());
-        map.AddHex(hex1);
-        
-        var hex2 = new Hex(new HexCoordinates(2, 1), level: 1); // 1-level change
-        hex2.AddTerrain(new ClearTerrain());
-        map.AddHex(hex2);
-        
-        var hex3 = new Hex(new HexCoordinates(3, 1), level: 0); // Same level
-        hex3.AddTerrain(new ClearTerrain());
-        map.AddHex(hex3);
-
-        var startPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.TopRight);
-
-        // Act - Backward movement with maxLevelChange 0
-        var reachabilityData = map.GetReachableHexesForPosition(
-            startPosition,
-            movementPoints: 10,
-            canMoveBackward: true,
-            movementType: MovementType.Walk,
-            new HashSet<HexCoordinates>(),
-            new HashSet<HexCoordinates>());
-
-        // Assert
-        // Forward: both adjacent hexes reachable (level changes within max 2)
-        reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(1, 1));
-        reachabilityData.ForwardReachableHexes.ShouldContain(new HexCoordinates(3, 1));
-        
-        // Backward: only same-level hex reachable (level change 0)
-        reachabilityData.BackwardReachableHexes.ShouldNotContain(new HexCoordinates(1, 1), 
-            "Hex with 1-level change should not be reachable for backward movement");
-        reachabilityData.BackwardReachableHexes.ShouldContain(new HexCoordinates(3, 1), 
-            "Same-level hex should be reachable for backward movement");
+        reachabilityData.ForwardReachableHexes.Count.ShouldBe(8);
     }
 
     [Fact]
     public void GetReachableHexesForPosition_BackwardMovement_OnlySameLevelHexes()
     {
-        // Arrange - Create a map where all adjacent hexes have different levels
+        // Arrange
         var map = new BattleMapFactory().GenerateMap(3, 3,
             new SingleTerrainGenerator(3, 3, new ClearTerrain()));
         
