@@ -184,7 +184,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 var currentHex = GetHex(current.Coordinates);
                 var levelCost = currentHex != null ? Math.Abs(hex.Level - currentHex.Level) : 0;
                 
-                // Skip if level change exceeds maximum allowed
+                // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
                     continue;
 
@@ -311,7 +311,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 var currentHex = GetHex(current.Coordinates);
                 var levelCost = currentHex != null ? Math.Abs(hex.Level - currentHex.Level) : 0;
                 
-                // Skip if level change exceeds maximum allowed
+                // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
                     continue;
 
@@ -401,7 +401,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 var currentHex = GetHex(current.Coordinates);
                 var levelCost = currentHex != null ? Math.Abs(neighborHex.Level - currentHex.Level) : 0;
                 
-                // Skip if level change exceeds maximum allowed
+                // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
                     continue;
                 

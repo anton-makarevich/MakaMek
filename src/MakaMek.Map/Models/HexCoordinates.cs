@@ -276,11 +276,6 @@ public record HexCoordinates
     
     public HexCoordinateData ToData() => new(Q, R);
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Q, R);
-    }
-
     public override string ToString()
     {
         return $"{Q:D2}{R:D2}";
@@ -380,4 +375,6 @@ public record HexCoordinates
             _ => throw new ArgumentException("Invalid arc", nameof(arc))
         };
     }
+
+    public override int GetHashCode() => HashCode.Combine(Q, R);
 }
