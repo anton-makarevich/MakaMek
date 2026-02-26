@@ -1370,8 +1370,9 @@ public class BattleMapTests
         // Act - With sufficient MP, all hexes reachable
         var reachable = map.GetReachableHexes(start, 5, maxLevelChange: 2).ToList();
 
-        // Assert
-        reachable.Count.ShouldBe(2);
+        // Assert - Start hex is included (cost 0), plus hex 2 (2 MP) and hex 3 (4 MP)
+        reachable.Count.ShouldBe(3);
+        reachable.ShouldContain(r => r.coordinates == new HexCoordinates(1, 1));
         reachable.ShouldContain(r => r.coordinates == new HexCoordinates(2, 1));
         reachable.ShouldContain(r => r.coordinates == new HexCoordinates(3, 1));
     }
