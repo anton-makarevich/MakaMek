@@ -43,7 +43,8 @@ public class BattleMap(int width, int height) : IBattleMap
         MovementType movementType,
         int maxMovementPoints,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
-        PathFindingMode pathFindingMode = PathFindingMode.Shortest)
+        PathFindingMode pathFindingMode = PathFindingMode.Shortest,
+        int? maxLevelChange = null)
     {
         if (movementType == MovementType.Jump)
         {
@@ -51,8 +52,8 @@ public class BattleMap(int width, int height) : IBattleMap
         }
 
         return pathFindingMode == PathFindingMode.Shortest
-            ? FindShortestPath(start, target, movementType, maxMovementPoints, prohibitedHexes)
-            : FindLongestPath(start, target, movementType, maxMovementPoints, prohibitedHexes);
+            ? FindShortestPath(start, target, movementType, maxMovementPoints, prohibitedHexes, maxLevelChange)
+            : FindLongestPath(start, target, movementType, maxMovementPoints, prohibitedHexes, maxLevelChange);
     }
 
     /// <summary>
@@ -99,7 +100,9 @@ public class BattleMap(int width, int height) : IBattleMap
             if (from.Coordinates != to.Coordinates)
             {
                 var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
-                segmentCost = hex.MovementCost;
+                var fromHex = GetHex(from.Coordinates);
+                var levelCost = fromHex != null ? Math.Abs(hex.Level - fromHex.Level) : 0;
+                segmentCost = hex.MovementCost + levelCost;
             }
 
             segments.Add(new PathSegment(from, to, segmentCost));
@@ -114,7 +117,8 @@ public class BattleMap(int width, int height) : IBattleMap
         HexPosition target,
         MovementType movementType,
         int maxMovementPoints,
-        IReadOnlySet<HexCoordinates>? prohibitedHexes)
+        IReadOnlySet<HexCoordinates>? prohibitedHexes,
+        int? maxLevelChange = null)
     {
         prohibitedHexes??= new HashSet<HexCoordinates>();
         var useCache = prohibitedHexes.Count == 0;
@@ -176,8 +180,16 @@ public class BattleMap(int width, int height) : IBattleMap
                 var nextPos = new HexPosition(nextCoord, requiredFacing);
                 newPath.Add(nextPos);
 
-                // Calculate total cost including terrain
-                var totalCost = currentCost + hex.MovementCost + turningCost;
+                // Calculate level change cost and validate max level change
+                var currentHex = GetHex(current.Coordinates);
+                var levelCost = currentHex != null ? Math.Abs(hex.Level - currentHex.Level) : 0;
+                
+                // Skip if level change exceeds the maximum allowed
+                if (levelCost > maxLevelChange)
+                    continue;
+
+                // Calculate total cost including terrain and level change
+                var totalCost = currentCost + hex.MovementCost + turningCost + levelCost;
 
                 if (totalCost > maxMovementPoints)
                     continue;
@@ -219,7 +231,8 @@ public class BattleMap(int width, int height) : IBattleMap
         HexPosition target,
         MovementType movementType,
         int maxMovementPoints,
-        IReadOnlySet<HexCoordinates>? prohibitedHexes)
+        IReadOnlySet<HexCoordinates>? prohibitedHexes,
+        int? maxLevelChange = null)
     {
         prohibitedHexes ??= new HashSet<HexCoordinates>();
         var useCache = prohibitedHexes.Count == 0;
@@ -294,8 +307,16 @@ public class BattleMap(int width, int height) : IBattleMap
                 var nextPos = new HexPosition(nextCoord, requiredFacing);
                 newPath.Add(nextPos);
 
-                // Calculate total cost including terrain
-                var totalCost = currentCost + hex.MovementCost + turningCost;
+                // Calculate level change cost and validate max level change
+                var currentHex = GetHex(current.Coordinates);
+                var levelCost = currentHex != null ? Math.Abs(hex.Level - currentHex.Level) : 0;
+                
+                // Skip if level change exceeds the maximum allowed
+                if (levelCost > maxLevelChange)
+                    continue;
+
+                // Calculate total cost including terrain and level change
+                var totalCost = currentCost + hex.MovementCost + turningCost + levelCost;
                 var newHexesTraveled = hexesTraveled + 1;
 
                 if (totalCost > maxMovementPoints)
@@ -345,7 +366,8 @@ public class BattleMap(int width, int height) : IBattleMap
     public IEnumerable<(HexCoordinates coordinates, int cost)> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
-        IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
+        int? maxLevelChange = null)
     {
         var visited = new Dictionary<(HexCoordinates coords, HexDirection facing), int>();
         var bestCosts = new Dictionary<HexCoordinates, int>();
@@ -375,8 +397,16 @@ public class BattleMap(int width, int height) : IBattleMap
                 // Calculate turning cost from current facing
                 var turningCost = current.GetTurningCost(requiredFacing);
                 
-                // Calculate total cost including turning and movement
-                var totalCost = currentCost + neighborHex.MovementCost + turningCost;
+                // Calculate level change cost and validate max level change
+                var currentHex = GetHex(current.Coordinates);
+                var levelCost = currentHex != null ? Math.Abs(neighborHex.Level - currentHex.Level) : 0;
+                
+                // Skip if level change exceeds the maximum allowed
+                if (levelCost > maxLevelChange)
+                    continue;
+                
+                // Calculate total cost including turning, movement, and level change
+                var totalCost = currentCost + neighborHex.MovementCost + turningCost + levelCost;
                 
                 if (totalCost > maxMovementPoints) // Exceeds movement points
                     continue;

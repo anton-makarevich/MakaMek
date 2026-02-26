@@ -543,4 +543,161 @@ public class BattleMapExtensionsTests
         reachabilityData.ForwardReachableHexes.ShouldNotContain(startPosition.Coordinates);
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
     }
+
+    #region Level Change Tests
+
+    [Fact]
+    public void GetReachableHexesForPosition_ForwardMovement_RespectsMaxLevelChange()
+    {
+        // Arrange
+        var map = new BattleMapFactory().GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+
+        var hex2 = new Hex(new HexCoordinates(2, 2), level: 3); // 3-level change exceeds the max of 2
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+        
+        var startPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
+
+        // Act - Forward movement should respect max level change of 2
+        var reachabilityData = map.GetReachableHexesForPosition(
+            startPosition,
+            movementPoints: 10,
+            canMoveBackward: false,
+            movementType: MovementType.Walk,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
+
+        // Assert
+        reachabilityData.ForwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 2), 
+            "Hex with 3-level change should not be reachable for forward movement");
+        reachabilityData.ForwardReachableHexes.Count.ShouldBe(8);
+    }
+
+    [Fact]
+    public void GetReachableHexesForPosition_BackwardMovement_OnlySameLevelHexes()
+    {
+        // Arrange
+        var map = new BattleMapFactory().GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        
+        var raisedHex = new Hex(new HexCoordinates(2, 2), level: 1);
+        raisedHex.AddTerrain(new ClearTerrain());
+        map.AddHex(raisedHex);
+        
+        var startPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var reachabilityData = map.GetReachableHexesForPosition(
+            startPosition,
+            movementPoints: 10,
+            canMoveBackward: true,
+            movementType: MovementType.Walk,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
+
+        // Assert
+        // Backward: (2,2) is not reachable
+        reachabilityData.BackwardReachableHexes.ShouldNotContain(new HexCoordinates(2, 2));
+        reachabilityData.BackwardReachableHexes.Count.ShouldBe(8);
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_ForwardMovement_RespectsMaxLevelChange2()
+    {
+        // Arrange - Create a map with steep elevation
+        var map = new BattleMap(2, 1);
+        
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 3); // 3-level change
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+
+        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight);
+        var targetHex = new HexCoordinates(2, 1);
+        var reachabilityData = new ReachabilityData([], []); // Not reachable due to level restriction
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Walk,
+            movementPoints: 10,
+            reachabilityData);
+
+        // Assert
+        paths.ShouldBeEmpty("No paths should exist when hex is not reachable due to level change");
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_BackwardMovement_ProhibitsLevelChanges()
+    {
+        // Arrange - Create a map with elevation
+        var map = new BattleMap(2, 1);
+        
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 1); // 1-level change
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+
+        var startPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+        var targetHex = new HexCoordinates(1, 1);
+        
+        // Target is backward and has level change
+        var reachabilityData = new ReachabilityData([], [targetHex]);
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Walk,
+            movementPoints: 10,
+            reachabilityData);
+
+        // Assert - No paths because backward movement can't change levels
+        paths.ShouldBeEmpty("No backward paths should exist when target has different level");
+    }
+
+    [Fact]
+    public void GetReachableHexesForPosition_JumpMovement_IgnoresLevelChanges()
+    {
+        // Arrange - Create a map with extreme elevation
+        var map = new BattleMap(3, 1);
+        
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        map.AddHex(hex1);
+        
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 10); // Extreme level change
+        hex2.AddTerrain(new ClearTerrain());
+        map.AddHex(hex2);
+        
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 5);
+        hex3.AddTerrain(new ClearTerrain());
+        map.AddHex(hex3);
+
+        var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+
+        // Act - Jump ignores level changes
+        var reachabilityData = map.GetReachableHexesForPosition(
+            startPosition,
+            movementPoints: 2,
+            canMoveBackward: false,
+            movementType: MovementType.Jump,
+            new HashSet<HexCoordinates>(),
+            new HashSet<HexCoordinates>());
+
+        // Assert - Jump can reach all hexes within range regardless of level
+        reachabilityData.AllReachableHexes.ShouldContain(new HexCoordinates(2, 1));
+        reachabilityData.AllReachableHexes.ShouldContain(new HexCoordinates(3, 1));
+        reachabilityData.BackwardReachableHexes.ShouldBeEmpty();
+    }
+
+    #endregion
 }

@@ -22,7 +22,8 @@ public interface IBattleMap
         MovementType movementType,
         int maxMovementPoints,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
-        PathFindingMode pathFindingMode = PathFindingMode.Shortest);
+        PathFindingMode pathFindingMode = PathFindingMode.Shortest,
+        int? maxLevelChange = null);
 
     /// <summary>
     /// Gets all valid hexes that can be reached with given movement points, considering facing
@@ -30,7 +31,8 @@ public interface IBattleMap
     IEnumerable<(HexCoordinates coordinates, int cost)> GetReachableHexes(
         HexPosition start,
         int maxMovementPoints,
-        IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
+        int? maxLevelChange = null);
 
     /// <summary>
     /// Gets all valid hexes that can be reached with jumping movement, where each hex costs 1 MP
