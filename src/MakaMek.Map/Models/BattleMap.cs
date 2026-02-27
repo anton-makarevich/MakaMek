@@ -36,6 +36,21 @@ public class BattleMap(int width, int height) : IBattleMap
     }
 
     /// <summary>
+    /// Gets the level difference between two hexes by their coordinates
+    /// </summary>
+    /// <param name="firstHex">The first hex coordinates</param>
+    /// <param name="secondHex">The second hex coordinates</param>
+    /// <returns>The difference in levels (firstHex.Level - secondHex.Level)</returns>
+    /// <exception cref="ArgumentException">Thrown if either hex is not found on the map</exception>
+    public int GetLevelDifference(HexCoordinates firstHex, HexCoordinates secondHex)
+    {
+        var firstHexObj = GetHex(firstHex) ?? throw new ArgumentException($"Hex not found at coordinates {firstHex}", nameof(firstHex));
+        var secondHexObj = GetHex(secondHex) ?? throw new ArgumentException($"Hex not found at coordinates {secondHex}", nameof(secondHex));
+        
+        return firstHexObj.GetLevelDifference(secondHexObj);
+    }
+
+    /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
     public MovementPath? FindPath(HexPosition start,
@@ -101,7 +116,7 @@ public class BattleMap(int width, int height) : IBattleMap
             {
                 var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
                 var fromHex = GetHex(from.Coordinates);
-                var levelCost = fromHex != null ? Math.Abs(hex.Level - fromHex.Level) : 0;
+                var levelCost = fromHex != null ? Math.Abs(GetLevelDifference(from.Coordinates, to.Coordinates)) : 0;
                 segmentCost = hex.MovementCost + levelCost;
             }
 
@@ -181,8 +196,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 newPath.Add(nextPos);
 
                 // Calculate level change cost and validate max level change
-                var currentHex = GetHex(current.Coordinates);
-                var levelCost = currentHex != null ? Math.Abs(hex.Level - currentHex.Level) : 0;
+                var levelCost =  Math.Abs(GetLevelDifference(current.Coordinates, nextCoord));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -308,8 +322,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 newPath.Add(nextPos);
 
                 // Calculate level change cost and validate max level change
-                var currentHex = GetHex(current.Coordinates);
-                var levelCost = currentHex != null ? Math.Abs(hex.Level - currentHex.Level) : 0;
+                var levelCost = Math.Abs(GetLevelDifference(current.Coordinates, nextCoord));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)
@@ -398,8 +411,7 @@ public class BattleMap(int width, int height) : IBattleMap
                 var turningCost = current.GetTurningCost(requiredFacing);
                 
                 // Calculate level change cost and validate max level change
-                var currentHex = GetHex(current.Coordinates);
-                var levelCost = currentHex != null ? Math.Abs(neighborHex.Level - currentHex.Level) : 0;
+                var levelCost = Math.Abs(GetLevelDifference(current.Coordinates, neighborCoord));
                 
                 // Skip if level change exceeds the maximum allowed
                 if (levelCost > maxLevelChange)

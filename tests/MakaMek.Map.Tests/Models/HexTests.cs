@@ -273,6 +273,79 @@ public class HexTests
     }
 
     [Fact]
+    public void GetLevelDifference_ReturnsCorrectDifference()
+    {
+        // Arrange
+        var hex1 = new Hex(new HexCoordinates(1, 1), 5);
+        var hex2 = new Hex(new HexCoordinates(2, 2), 3);
+
+        // Act
+        var difference = hex1.GetLevelDifference(hex2);
+
+        // Assert
+        difference.ShouldBe(2); // 5 - 3 = 2
+    }
+
+    [Fact]
+    public void GetLevelDifference_ReturnsNegativeWhenOtherHexIsHigher()
+    {
+        // Arrange
+        var hex1 = new Hex(new HexCoordinates(1, 1), 2);
+        var hex2 = new Hex(new HexCoordinates(2, 2), 4);
+
+        // Act
+        var difference = hex1.GetLevelDifference(hex2);
+
+        // Assert
+        difference.ShouldBe(-2); // 2 - 4 = -2
+    }
+
+    [Fact]
+    public void GetLevelDifference_ReturnsZeroWhenLevelsAreEqual()
+    {
+        // Arrange
+        var hex1 = new Hex(new HexCoordinates(1, 1), 3);
+        var hex2 = new Hex(new HexCoordinates(2, 2), 3);
+
+        // Act
+        var difference = hex1.GetLevelDifference(hex2);
+
+        // Assert
+        difference.ShouldBe(0); // 3 - 3 = 0
+    }
+
+    [Fact]
+    public void GetLevelDifference_IsSymmetric()
+    {
+        // Arrange
+        var hex1 = new Hex(new HexCoordinates(1, 1), 6);
+        var hex2 = new Hex(new HexCoordinates(2, 2), 2);
+
+        // Act
+        var difference1 = hex1.GetLevelDifference(hex2);
+        var difference2 = hex2.GetLevelDifference(hex1);
+
+        // Assert
+        difference1.ShouldBe(4);  // 6 - 2 = 4
+        difference2.ShouldBe(-4); // 2 - 6 = -4
+        difference1.ShouldBe(-difference2);
+    }
+
+    [Fact]
+    public void GetLevelDifference_WorksWithNegativeLevels()
+    {
+        // Arrange
+        var hex1 = new Hex(new HexCoordinates(1, 1), -1);
+        var hex2 = new Hex(new HexCoordinates(2, 2), -3);
+
+        // Act
+        var difference = hex1.GetLevelDifference(hex2);
+
+        // Assert
+        difference.ShouldBe(2); // -1 - (-3) = 2
+    }
+
+    [Fact]
     public void Dispose_ShouldBeIdempotent()
     {
         // Arrange

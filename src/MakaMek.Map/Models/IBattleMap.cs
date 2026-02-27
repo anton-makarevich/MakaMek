@@ -15,6 +15,15 @@ public interface IBattleMap
     Hex? GetHex(HexCoordinates coordinates);
 
     /// <summary>
+    /// Gets the level difference between two hexes by their coordinates
+    /// </summary>
+    /// <param name="firstHex">The first hex coordinates</param>
+    /// <param name="secondHex">The second hex coordinates</param>
+    /// <returns>The difference in levels (firstHex.Level - secondHex.Level)</returns>
+    /// <exception cref="ArgumentException">Thrown if either hex is not found on the map</exception>
+    int GetLevelDifference(HexCoordinates firstHex, HexCoordinates secondHex);
+
+    /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
     MovementPath? FindPath(HexPosition start,
