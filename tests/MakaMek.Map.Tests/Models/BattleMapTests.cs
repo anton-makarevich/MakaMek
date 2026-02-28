@@ -111,13 +111,12 @@ public class BattleMapTests
     public void GetReachableHexes_WithMixedTerrain_ConsidersTerrainCosts()
     {
         // Arrange
-        var sut = new BattleMap(2, 2);
+        var sut = new BattleMapFactory().GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
 
         // Add clear terrain hex
-        var clearHex = new Hex(new HexCoordinates(2, 1));
-        clearHex.AddTerrain(new ClearTerrain());
-        sut.AddHex(clearHex);
+        var clearHex = sut.GetHex(new HexCoordinates(2, 1))!;
 
         // Add heavy woods hex
         var woodsHex = new Hex(new HexCoordinates(1, 2));
