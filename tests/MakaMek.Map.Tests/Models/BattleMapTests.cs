@@ -111,7 +111,7 @@ public class BattleMapTests
     public void GetReachableHexes_WithMixedTerrain_ConsidersTerrainCosts()
     {
         // Arrange
-        var sut = new BattleMapFactory().GenerateMap(2, 2,
+        var sut = BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
 

@@ -115,8 +115,8 @@ public class BattleMap(int width, int height) : IBattleMap
             if (from.Coordinates != to.Coordinates)
             {
                 var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
-                var fromHex = GetHex(from.Coordinates);
-                var levelCost = fromHex != null ? Math.Abs(GetLevelDifference(from.Coordinates, to.Coordinates)) : 0;
+                var fromHex = GetHex(from.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
+                var levelCost = fromHex.GetLevelDifference(hex);
                 segmentCost = hex.MovementCost + levelCost;
             }
 
