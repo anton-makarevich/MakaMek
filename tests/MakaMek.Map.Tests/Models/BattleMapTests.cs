@@ -401,7 +401,7 @@ public class BattleMapTests
         const int movementPoints = 2;
 
         // Prohibit some adjacent hexes
-        var prohibitedHexes = start.GetAdjacentCoordinates().Take(3).ToHashSet();
+        var prohibitedHexes = start.GetAllNeighbours().Take(3).ToHashSet();
 
         // Act
         var reachableHexes = sut.GetJumpReachableHexes(start, movementPoints, prohibitedHexes).ToList();

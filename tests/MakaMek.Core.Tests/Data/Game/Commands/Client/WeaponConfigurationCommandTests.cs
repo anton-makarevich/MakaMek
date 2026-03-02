@@ -102,7 +102,7 @@ public class WeaponConfigurationCommandTests
         // Arrange
         var command = CreateCommand();
         _unit.Deploy(new HexPosition(new HexCoordinates(1,1), HexDirection.Top));
-        var expectedHex = _unit.Position!.Coordinates.Neighbor(HexDirection.Bottom);
+        var expectedHex = _unit.Position!.Coordinates.GetNeighbour(HexDirection.Bottom);
 
         // Act
         var result = command.Render(_localizationService, _game);

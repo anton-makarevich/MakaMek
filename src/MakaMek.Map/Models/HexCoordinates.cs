@@ -63,7 +63,7 @@ public record HexCoordinates
         (-1, 0)  // Direction 5: top-left
     ];
 
-    public HexCoordinates Neighbor(HexDirection direction)
+    public HexCoordinates GetNeighbour(HexDirection direction)
     {
         var directions = (Q % 2 == 0) ? EvenRowDirections : OddRowDirections;
         var (dQ, dR) = directions[(int)direction % 6];
@@ -91,7 +91,7 @@ public record HexCoordinates
     /// <summary>
     /// Returns adjacent hex coordinates in all six directions
     /// </summary>
-    public IEnumerable<HexCoordinates> GetAdjacentCoordinates()
+    public IEnumerable<HexCoordinates> GetAllNeighbours()
     {
         var directions = (Q % 2 == 0) ? EvenRowDirections : OddRowDirections;
         foreach (var (dQ, dR) in directions)
@@ -193,9 +193,9 @@ public record HexCoordinates
     private (HexCoordinates next, HexCoordinates? additional, bool areEqual) GetNextHexInLine(HexCoordinates current, HexCoordinates target, int mainDir, int leftDir, int rightDir)
     {
         // Calculate vectors to potential next hexes
-        var mainNext = current.Neighbor((HexDirection)mainDir);
-        var leftNext = current.Neighbor((HexDirection)leftDir);
-        var rightNext = current.Neighbor((HexDirection)rightDir);
+        var mainNext = current.GetNeighbour((HexDirection)mainDir);
+        var leftNext = current.GetNeighbour((HexDirection)leftDir);
+        var rightNext = current.GetNeighbour((HexDirection)rightDir);
 
         // Calculate distances from this to next and from next to target
         var mainToNext = GetActualDistance(this, mainNext);

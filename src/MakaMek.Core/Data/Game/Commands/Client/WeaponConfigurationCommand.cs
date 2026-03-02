@@ -30,7 +30,7 @@ public record struct WeaponConfigurationCommand : IClientUnitCommand
                 localizationService.GetString("Command_WeaponConfiguration_TorsoRotation"),
                 player.Name,
                 unit.Model,
-                unit.Position!.Coordinates.Neighbor((HexDirection)Configuration.Value)),
+                unit.Position!.Coordinates.GetNeighbour((HexDirection)Configuration.Value)),
             WeaponConfigurationType.ArmsFlip => string.Format(
                 localizationService.GetString("Command_WeaponConfiguration_ArmsFlip"),
                 player.Name,

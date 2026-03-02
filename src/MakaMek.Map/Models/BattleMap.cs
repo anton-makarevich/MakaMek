@@ -176,7 +176,7 @@ public class BattleMap(int width, int height) : IBattleMap
             }
 
             // For each adjacent hex
-            foreach (var nextCoord in current.Coordinates.GetAdjacentCoordinates())
+            foreach (var nextCoord in current.Coordinates.GetAllNeighbours())
             {
                 var hex = GetHex(nextCoord);
                 if (hex == null || prohibitedHexes.Contains(nextCoord))
@@ -302,7 +302,7 @@ public class BattleMap(int width, int height) : IBattleMap
             }
 
             // For each adjacent hex
-            foreach (var nextCoord in current.Coordinates.GetAdjacentCoordinates())
+            foreach (var nextCoord in current.Coordinates.GetAllNeighbours())
             {
                 var hex = GetHex(nextCoord);
                 if (hex == null || prohibitedHexes.Contains(nextCoord))
@@ -397,7 +397,7 @@ public class BattleMap(int width, int height) : IBattleMap
             var currentCost = visited[(current.Coordinates, current.Facing)];
 
             // For each adjacent hex
-            foreach (var neighborCoord in current.Coordinates.GetAdjacentCoordinates())
+            foreach (var neighborCoord in current.Coordinates.GetAllNeighbours())
             {
                 // Skip if hex doesn't exist on a map or is prohibited
                 var neighborHex = GetHex(neighborCoord);
@@ -631,7 +631,7 @@ public class BattleMap(int width, int height) : IBattleMap
             while (remainingDistance > 0)
             {
                 // Find the next hex in the direction of the target
-                var neighbors = currentPosition.Coordinates.GetAdjacentCoordinates()
+                var neighbors = currentPosition.Coordinates.GetAllNeighbours()
                     .Where(IsOnMap)
                     .ToList();
 

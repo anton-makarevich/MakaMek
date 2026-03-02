@@ -111,7 +111,7 @@ public class HexCoordinatesTests
         var center = new HexCoordinates(2, 2);
 
         // Act
-        var neighbors = center.GetAdjacentCoordinates().ToList();
+        var neighbors = center.GetAllNeighbours().ToList();
 
         // Assert
         neighbors.Count.ShouldBe(6);
@@ -130,7 +130,7 @@ public class HexCoordinatesTests
         var center = new HexCoordinates(2, 3); // Using non-zero coordinates
 
         // Act
-        var neighbors = center.GetAdjacentCoordinates();
+        var neighbors = center.GetAllNeighbours();
 
         // Assert
         foreach (var neighbor in neighbors)

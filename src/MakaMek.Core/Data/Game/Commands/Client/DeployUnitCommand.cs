@@ -25,7 +25,7 @@ public record struct DeployUnitCommand : IClientUnitCommand
         if (unit == null) return string.Empty;
 
         var position = new HexCoordinates(Position);
-        var facingHex = position.Neighbor((HexDirection)Direction);
+        var facingHex = position.GetNeighbour((HexDirection)Direction);
 
         var localizedTemplate = localizationService.GetString("Command_DeployUnit"); 
         

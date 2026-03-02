@@ -116,7 +116,7 @@ public class ForestPatchesGeneratorTests
                 {
                     // Check adjacent hexes
                     var coords = new HexCoordinates(q, r);
-                    foreach (var neighbor in coords.GetAdjacentCoordinates())
+                    foreach (var neighbor in coords.GetAllNeighbours())
                     {
                         if (neighbor.Q is >= 1 and < width+1 &&
                             neighbor.R is >= 1 and < height+1)

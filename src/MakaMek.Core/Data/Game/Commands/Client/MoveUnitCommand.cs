@@ -21,7 +21,7 @@ public record struct MoveUnitCommand: IClientUnitCommand
         var position = MovementPath.Count>0 ? 
             MovementPath.Last().To
             : unit.Position.ToData();
-        var facingHex = new HexCoordinates(position.Coordinates).Neighbor((HexDirection)position.Facing);
+        var facingHex = new HexCoordinates(position.Coordinates).GetNeighbour((HexDirection)position.Facing);
         return string.Format(localizedTemplate,
             player?.Name,
             unit.Model,
