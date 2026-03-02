@@ -12,9 +12,9 @@ public class MovementPathCache
         _cache.Add(path);
     }
 
-    public MovementPath? Get(HexPosition start, HexPosition destination, bool isJump)
+    public MovementPath? Get(HexPosition start, HexPosition destination, bool isJump, int? maxLevelChange = null)
     {
-        var probe = new MovementPath(start, destination, isJump);
+        var probe = new MovementPath(start, destination, isJump, maxLevelChange);
         return _cache.TryGetValue(probe, out var cachedPath) 
             ? cachedPath 
             : null;

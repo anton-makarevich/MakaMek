@@ -140,7 +140,7 @@ public class BattleMap(int width, int height) : IBattleMap
 
         if (useCache)
         {
-            var cachedPath = _movementPathCache.Get(start, target, false);
+            var cachedPath = _movementPathCache.Get(start, target, false, maxLevelChange);
             if (cachedPath != null)
             {
                 return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
@@ -170,7 +170,7 @@ public class BattleMap(int width, int height) : IBattleMap
             {
                 // Convert path to segments
                 var segments = ConvertPathToSegments(path);
-                var result = new MovementPath(segments, movementType);
+                var result = new MovementPath(segments, movementType, maxLevelChange);
                 if (useCache) _movementPathCache.Add(result);
                 return result;
             }
@@ -253,7 +253,7 @@ public class BattleMap(int width, int height) : IBattleMap
 
         if (useCache)
         {
-            var cachedPath = _movementLongPathCache.Get(start, target, false);
+            var cachedPath = _movementLongPathCache.Get(start, target, false, maxLevelChange);
             if (cachedPath != null)
             {
                 return cachedPath.TotalCost <= maxMovementPoints ? cachedPath : null;
@@ -288,7 +288,7 @@ public class BattleMap(int width, int height) : IBattleMap
             {
                 // Convert path to segments
                 var segments = ConvertPathToSegments(path);
-                var candidatePath = new MovementPath(segments, movementType);
+                var candidatePath = new MovementPath(segments, movementType, maxLevelChange);
 
                 // Update the best path if this one has more hexes traveled
                 if (candidatePath.HexesTraveled > bestHexesTraveled)
