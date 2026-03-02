@@ -106,7 +106,7 @@ public class MovementPath : IEquatable<MovementPath>
             segment.Cost,
             !segment.IsReversed
         )).ToList();
-        return new MovementPath(reversedSegments, MovementType);
+        return new MovementPath(reversedSegments, MovementType, MaxLevelChange);
     }
 
     public MovementPath Append(MovementPath path)
@@ -123,7 +123,7 @@ public class MovementPath : IEquatable<MovementPath>
             return path;
 
         var combinedSegments = Segments.Concat(path.Segments).ToList();
-        return new MovementPath(combinedSegments, MovementType);
+        return new MovementPath(combinedSegments, MovementType, MaxLevelChange);
     }
     
     public MovementPath RemoveTrailingTurns()
@@ -136,7 +136,7 @@ public class MovementPath : IEquatable<MovementPath>
             segments.RemoveAt(segments.Count - 1);
         }
 
-        return new MovementPath(segments, MovementType);
+        return new MovementPath(segments, MovementType, MaxLevelChange);
     }
 
     public bool Equals(MovementPath? other)
