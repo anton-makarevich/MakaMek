@@ -1748,6 +1748,8 @@ public class BattleMapTests
         // Arrange
         var sut = BattleMapFactory.GenerateMap(2, 2,
             new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        // Make corner raised 
+        sut.AddHex(new Hex(new HexCoordinates(1, 1), level: 2));
         var cornerCoordinates = new HexCoordinates(1, 1);
 
         // Act
@@ -1755,10 +1757,13 @@ public class BattleMapTests
 
         // Assert
         // Corner hex has neighbors outside map boundaries - those should have elevation difference 0
-        // At least some edges should be at boundaries
         edges.Count.ShouldBe(6);
-        // All edges should be valid (no exceptions thrown)
-        edges.ShouldAllBe(e => e.ElevationDifference == 0);
+        edges
+            .Where(e => sut.GetHex(cornerCoordinates.GetNeighbour(e.Direction)) == null)
+            .ShouldAllBe(e => e.ElevationDifference == 0);
+        edges
+            .Where(e => sut.GetHex(cornerCoordinates.GetNeighbour(e.Direction)) != null)
+            .ShouldAllBe(e => e.ElevationDifference == 2);
     }
 
     [Fact]
