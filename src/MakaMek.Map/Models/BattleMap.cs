@@ -688,4 +688,33 @@ public class BattleMap(int width, int height) : IBattleMap
         return coordinates.Q >= 1 && coordinates.Q <= Width &&
                coordinates.R >= 1 && coordinates.R <= Height;
     }
+
+    /// <summary>
+    /// Gets the edge information for all 6 edges of a hex
+    /// </summary>
+    /// <param name="coordinates">The coordinates of the hex</param>
+    /// <returns>A list of HexEdge objects for all 6 directions. Returns empty list if hex doesn't exist.</returns>
+    public IReadOnlyList<HexEdge> GetHexEdges(HexCoordinates coordinates)
+    {
+        var hex = GetHex(coordinates);
+        if (hex == null)
+            return [];
+
+        var edges = new List<HexEdge>(6);
+        
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            var neighborCoords = coordinates.GetNeighbour(direction);
+            var neighborHex = GetHex(neighborCoords);
+            
+            // If neighbor doesn't exist (map boundary), treat as elevation difference 0
+            var elevationDifference = neighborHex != null 
+                ? hex.GetLevelDifference(neighborHex) 
+                : 0;
+            
+            edges.Add(new HexEdge(coordinates, direction, elevationDifference));
+        }
+        
+        return edges;
+    }
 }
