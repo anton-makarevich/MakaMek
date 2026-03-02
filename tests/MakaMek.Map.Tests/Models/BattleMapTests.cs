@@ -111,13 +111,12 @@ public class BattleMapTests
     public void GetReachableHexes_WithMixedTerrain_ConsidersTerrainCosts()
     {
         // Arrange
-        var sut = new BattleMap(2, 2);
+        var sut = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
 
         // Add clear terrain hex
-        var clearHex = new Hex(new HexCoordinates(2, 1));
-        clearHex.AddTerrain(new ClearTerrain());
-        sut.AddHex(clearHex);
+        var clearHex = sut.GetHex(new HexCoordinates(2, 1))!;
 
         // Add heavy woods hex
         var woodsHex = new Hex(new HexCoordinates(1, 2));
@@ -1543,5 +1542,119 @@ public class BattleMapTests
 
         // Assert
         path.ShouldNotBeNull("Jump should be able to traverse any level change");
+    }
+
+    [Fact]
+    public void GetLevelDifference_WithValidHexes_ReturnsCorrectDifference()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex1 = new Hex(new HexCoordinates(1, 1), 5);
+        var hex2 = new Hex(new HexCoordinates(2, 2), 3);
+        sut.AddHex(hex1);
+        sut.AddHex(hex2);
+
+        // Act
+        var difference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2));
+
+        // Assert
+        difference.ShouldBe(2); // 5 - 3 = 2
+    }
+
+    [Fact]
+    public void GetLevelDifference_WithNegativeDifference_ReturnsCorrectValue()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex1 = new Hex(new HexCoordinates(1, 1), 2);
+        var hex2 = new Hex(new HexCoordinates(2, 2), 6);
+        sut.AddHex(hex1);
+        sut.AddHex(hex2);
+
+        // Act
+        var difference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2));
+
+        // Assert
+        difference.ShouldBe(-4); // 2 - 6 = -4
+    }
+
+    [Fact]
+    public void GetLevelDifference_WithSameHex_ReturnsZero()
+    {
+        // Arrange
+        var sut = new BattleMap(1, 1);
+        var hex = new Hex(new HexCoordinates(1, 1), 4);
+        sut.AddHex(hex);
+
+        // Act
+        var difference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(1, 1));
+
+        // Assert
+        difference.ShouldBe(0); // 4 - 4 = 0
+    }
+
+    [Fact]
+    public void GetLevelDifference_WithNonExistentFirstHex_ThrowsArgumentException()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex2 = new Hex(new HexCoordinates(2, 2), 3);
+        sut.AddHex(hex2);
+
+        // Act & Assert
+        var exception = Should.Throw<ArgumentException>(() => 
+            sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2)));
+        exception.Message.ShouldContain("Hex not found at coordinates");
+        exception.ParamName.ShouldBe("firstHex");
+    }
+
+    [Fact]
+    public void GetLevelDifference_WithNonExistentSecondHex_ThrowsArgumentException()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex1 = new Hex(new HexCoordinates(1, 1), 5);
+        sut.AddHex(hex1);
+
+        // Act & Assert
+        var exception = Should.Throw<ArgumentException>(() => 
+            sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2)));
+        exception.Message.ShouldContain("Hex not found at coordinates");
+        exception.ParamName.ShouldBe("secondHex");
+    }
+
+    [Fact]
+    public void GetLevelDifference_IsConsistentWithDirectHexMethod()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex1 = new Hex(new HexCoordinates(1, 1), 7);
+        var hex2 = new Hex(new HexCoordinates(2, 2), 3);
+        sut.AddHex(hex1);
+        sut.AddHex(hex2);
+
+        // Act
+        var battleMapDifference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2));
+        var directDifference = hex1.GetLevelDifference(hex2);
+
+        // Assert
+        battleMapDifference.ShouldBe(directDifference);
+    }
+
+    [Fact]
+    public void GetLevelDifference_WorksWithNegativeLevels()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var hex1 = new Hex(new HexCoordinates(1, 1), -2);
+        var hex2 = new Hex(new HexCoordinates(2, 2), -5);
+        sut.AddHex(hex1);
+        sut.AddHex(hex2);
+
+        // Act
+        var difference = sut.GetLevelDifference(new HexCoordinates(1, 1), new HexCoordinates(2, 2));
+
+        // Assert
+        difference.ShouldBe(3); // -2 - (-5) = 3
     }
 }

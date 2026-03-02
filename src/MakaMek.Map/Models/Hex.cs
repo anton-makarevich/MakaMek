@@ -90,6 +90,16 @@ public class Hex : IDisposable
         return _terrains.Values.Select(t => t.Id).ToArray(); 
     }
     
+    /// <summary>
+    /// Gets the level difference between this hex and another hex
+    /// </summary>
+    /// <param name="hex">The other hex to compare with</param>
+    /// <returns>The difference in levels (this.Level - hex.Level)</returns>
+    public int GetLevelDifference(Hex hex)
+    {
+        return Level - hex.Level;
+    }
+
     public HexData ToData()
     {
         return new HexData
