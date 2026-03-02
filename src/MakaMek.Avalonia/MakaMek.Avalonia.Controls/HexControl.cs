@@ -17,6 +17,7 @@ public class HexControl : Panel
     private readonly Polygon _hexPolygon;
     private readonly Image _terrainImage;
     private readonly IImageService<Bitmap> _imageService;
+    private readonly ILogger _logger;
     private readonly Hex _hex;
     private IReadOnlyList<HexEdge>? _edges;
 
@@ -49,7 +50,8 @@ public class HexControl : Panel
     {
         _hex = hex;
         _imageService = imageService;
-        _edges = edges;
+        _logger = logger;
+        _edges = edges?.ToArray();
         Width = HexCoordinatesPixelExtensions.HexWidth;
         Height = HexCoordinatesPixelExtensions.HexHeight;
         
@@ -176,6 +178,7 @@ public class HexControl : Panel
         _edges = edges;
         // Future rendering of elevation differences will use _edges
         // For now, just store the data for later use
+        Render().SafeFireAndForget(ex => _logger.LogError(ex, "Error rendering hex at {Q},{R}", _hex.Coordinates.Q, _hex.Coordinates.R));
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
