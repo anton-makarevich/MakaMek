@@ -40,7 +40,8 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         
         foreach (var hex in game.BattleMap?.GetHexes()??[])
         {
-            var hexControl = new HexControl(hex, imageService, game.Logger);
+            var edges = game.BattleMap?.GetHexEdges(hex.Coordinates) ?? [];
+            var hexControl = new HexControl(hex, imageService, game.Logger, edges);
             MapCanvas.Children.Add(hexControl);
             if (hex.Coordinates.H > maxH) maxH = hex.Coordinates.H;
             if (hex.Coordinates.V > maxV) maxV = hex.Coordinates.V;

@@ -76,4 +76,11 @@ public interface IBattleMap
     void ClearLosCache();
 
     bool IsOnMap(HexCoordinates coordinates);
+
+    /// <summary>
+    /// Gets the edge information for all 6 edges of a hex
+    /// </summary>
+    /// <param name="coordinates">The coordinates of the hex</param>
+    /// <returns>A list of HexEdge objects for all 6 directions. Returns empty list if hex doesn't exist.</returns>
+    IReadOnlyList<HexEdge> GetHexEdges(HexCoordinates coordinates);
 }

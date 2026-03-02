@@ -1657,4 +1657,154 @@ public class BattleMapTests
         // Assert
         difference.ShouldBe(3); // -2 - (-5) = 3
     }
+
+    #region GetHexEdges Tests
+
+    [Fact]
+    public void GetHexEdges_ReturnsSixEdges()
+    {
+        // Arrange
+        var sut = BattleMapFactory.GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var coordinates = new HexCoordinates(2, 2);
+
+        // Act
+        var edges = sut.GetHexEdges(coordinates);
+
+        // Assert
+        edges.Count.ShouldBe(6);
+        edges.Select(e => e.Direction).ShouldBe(HexDirectionExtensions.AllDirections);
+    }
+
+    [Fact]
+    public void GetHexEdges_ReturnsCorrectCoordinates()
+    {
+        // Arrange
+        var sut = BattleMapFactory.GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var coordinates = new HexCoordinates(2, 2);
+
+        // Act
+        var edges = sut.GetHexEdges(coordinates);
+
+        // Assert
+        edges.ShouldAllBe(e => e.Coordinates == coordinates);
+    }
+
+    [Fact]
+    public void GetHexEdges_WithSameLevel_ReturnsZeroElevationDifference()
+    {
+        // Arrange
+        var sut = BattleMapFactory.GenerateMap(3, 3,
+            new SingleTerrainGenerator(3, 3, new ClearTerrain()));
+        var coordinates = new HexCoordinates(2, 2);
+
+        // Act
+        var edges = sut.GetHexEdges(coordinates);
+
+        // Assert
+        edges.ShouldAllBe(e => e.ElevationDifference == 0);
+    }
+
+    [Fact]
+    public void GetHexEdges_WithHigherNeighbor_ReturnsNegativeElevationDifference()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var centerHex = new Hex(new HexCoordinates(1, 1), 0);
+        var higherNeighbor = new Hex(new HexCoordinates(1, 2), 3);
+        sut.AddHex(centerHex);
+        sut.AddHex(higherNeighbor);
+
+        // Act
+        var edges = sut.GetHexEdges(new HexCoordinates(1, 1));
+
+        // Assert
+        var topEdge = edges.First(e => e.Direction == HexDirection.Bottom);
+        topEdge.ElevationDifference.ShouldBe(-3); // 0 - 3 = -3
+    }
+
+    [Fact]
+    public void GetHexEdges_WithLowerNeighbor_ReturnsPositiveElevationDifference()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        var centerHex = new Hex(new HexCoordinates(1, 1), 5);
+        var lowerNeighbor = new Hex(new HexCoordinates(1, 2), 2);
+        sut.AddHex(centerHex);
+        sut.AddHex(lowerNeighbor);
+
+        // Act
+        var edges = sut.GetHexEdges(new HexCoordinates(1, 1));
+
+        // Assert
+        var topEdge = edges.First(e => e.Direction == HexDirection.Bottom);
+        topEdge.ElevationDifference.ShouldBe(3); // 5 - 2 = 3
+    }
+
+    [Fact]
+    public void GetHexEdges_AtMapBoundary_ReturnsZeroElevationDifferenceForMissingNeighbors()
+    {
+        // Arrange
+        var sut = BattleMapFactory.GenerateMap(2, 2,
+            new SingleTerrainGenerator(2, 2, new ClearTerrain()));
+        var cornerCoordinates = new HexCoordinates(1, 1);
+
+        // Act
+        var edges = sut.GetHexEdges(cornerCoordinates);
+
+        // Assert
+        // Corner hex has neighbors outside map boundaries - those should have elevation difference 0
+        // At least some edges should be at boundaries
+        edges.Count.ShouldBe(6);
+        // All edges should be valid (no exceptions thrown)
+        edges.ShouldAllBe(e => e.ElevationDifference == 0);
+    }
+
+    [Fact]
+    public void GetHexEdges_WithNonExistentHex_ReturnsEmptyList()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 2);
+        sut.AddHex(new Hex(new HexCoordinates(1, 1)));
+        var nonExistentCoords = new HexCoordinates(2, 2);
+
+        // Act
+        var edges = sut.GetHexEdges(nonExistentCoords);
+
+        // Assert
+        edges.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetHexEdges_WithMixedElevations_ReturnsCorrectDifferences()
+    {
+        // Arrange
+        var sut = new BattleMap(3, 3);
+        var centerHex = new Hex(new HexCoordinates(2, 2), 3);
+        sut.AddHex(centerHex);
+
+        // Add neighbors with different levels
+        var topNeighbor = new Hex(new HexCoordinates(2, 1), 5);    // Higher
+        var bottomNeighbor = new Hex(new HexCoordinates(2, 3), 1); // Lower
+        var topRightNeighbor = new Hex(new HexCoordinates(3, 1), 3); // Same
+        sut.AddHex(topNeighbor);
+        sut.AddHex(bottomNeighbor);
+        sut.AddHex(topRightNeighbor);
+
+        // Act
+        var edges = sut.GetHexEdges(new HexCoordinates(2, 2));
+
+        // Assert
+        var topEdge = edges.First(e => e.Direction == HexDirection.Top);
+        topEdge.ElevationDifference.ShouldBe(-2); // 3 - 5 = -2
+
+        var bottomEdge = edges.First(e => e.Direction == HexDirection.Bottom);
+        bottomEdge.ElevationDifference.ShouldBe(2); // 3 - 1 = 2
+
+        var topRightEdge = edges.First(e => e.Direction == HexDirection.TopRight);
+        topRightEdge.ElevationDifference.ShouldBe(0); // 3 - 3 = 0
+    }
+
+    #endregion
 }

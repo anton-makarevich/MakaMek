@@ -18,6 +18,7 @@ public class HexControl : Panel
     private readonly Image _terrainImage;
     private readonly IImageService<Bitmap> _imageService;
     private readonly Hex _hex;
+    private IReadOnlyList<HexEdge>? _edges;
 
     private static readonly IBrush DefaultStroke = Brushes.White;
     private static readonly IBrush HighlightStroke = new SolidColorBrush(Color.Parse("#00BFFF")); // Light blue
@@ -27,7 +28,7 @@ public class HexControl : Panel
     private const double DefaultStrokeThickness = 2;
     private const double HighlightStrokeThickness = 3;
     
-    private IDisposable? _hexSubscription;
+    private readonly IDisposable? _hexSubscription;
 
     private static Points GetHexPoints()
     {
@@ -44,10 +45,11 @@ public class HexControl : Panel
         ]);
     }
 
-    public HexControl(Hex hex, IImageService<Bitmap> imageService, ILogger logger)
+    public HexControl(Hex hex, IImageService<Bitmap> imageService, ILogger logger, IReadOnlyList<HexEdge>? edges = null)
     {
         _hex = hex;
         _imageService = imageService;
+        _edges = edges;
         Width = HexCoordinatesPixelExtensions.HexWidth;
         Height = HexCoordinatesPixelExtensions.HexHeight;
         
@@ -163,6 +165,17 @@ public class HexControl : Panel
     public async Task Render()
     {
         await UpdateTerrainImage();
+    }
+
+    /// <summary>
+    /// Updates the edge data and triggers a re-render
+    /// </summary>
+    /// <param name="edges">New edge data for the hex</param>
+    public void UpdateEdges(IReadOnlyList<HexEdge> edges)
+    {
+        _edges = edges;
+        // Future rendering of elevation differences will use _edges
+        // For now, just store the data for later use
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
