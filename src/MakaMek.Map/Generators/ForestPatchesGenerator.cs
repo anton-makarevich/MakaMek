@@ -81,7 +81,7 @@ public class ForestPatchesGenerator : ITerrainGenerator
             while (hexesToAdd.Count > 0 && patchHexes.Count < patchSize)
             {
                 var current = hexesToAdd.Dequeue();
-                foreach (var neighbor in current.GetAdjacentCoordinates())
+                foreach (var neighbor in current.GetAllNeighbours())
                 {
                     // Skip if outside map bounds
                     if (neighbor.Q < 1 || neighbor.Q >= _width+1 ||

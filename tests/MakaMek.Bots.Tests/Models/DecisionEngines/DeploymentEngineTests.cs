@@ -217,7 +217,7 @@ public class DeploymentEngineTests
         
         var deployPos = new HexCoordinates(command.Position);
         var enemyPos = new HexCoordinates(3, 3);
-        var directionHex = deployPos.Neighbor((HexDirection)command.Direction);
+        var directionHex = deployPos.GetNeighbour((HexDirection)command.Direction);
         var lineToEnemy = deployPos.LineTo(enemyPos);
         
         // The direction should point to one of the hexes in the line of sight
@@ -251,7 +251,7 @@ public class DeploymentEngineTests
         
         var deployPos = new HexCoordinates(command.Position);
         var mapCenter = new HexCoordinates(3, 3); // (5+1)/2 = 3
-        var directionHex = deployPos.Neighbor((HexDirection)command.Direction);
+        var directionHex = deployPos.GetNeighbour((HexDirection)command.Direction);
         var lineToCenter = deployPos.LineTo(mapCenter);
         
         // The direction should point to one of the hexes in the line of sight
@@ -303,7 +303,7 @@ public class DeploymentEngineTests
         var nearestEnemyPos = distanceToNear <= distanceToFar ? nearEnemyPos : farEnemyPos;
         
         // Verify the direction points toward the nearest enemy
-        var directionHex = deployPos.Neighbor((HexDirection)command.Direction);
+        var directionHex = deployPos.GetNeighbour((HexDirection)command.Direction);
         var lineToNearest = deployPos.LineTo(nearestEnemyPos);
         
         lineToNearest.Any(segment => 
