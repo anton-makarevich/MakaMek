@@ -125,4 +125,68 @@ public class MovementPathCacheTests
         _sut.Clear();
         _sut.Get(start, dest, false).ShouldBeNull();
     }
+    
+    [Fact]
+    public void Cache_ShouldDifferentiateByMaxLevelChange()
+    {
+        var start = new HexPosition(1, 1, HexDirection.Top);
+        var dest = new HexPosition(2, 2, HexDirection.Bottom);
+        
+        // Path with no level constraint
+        var noConstraintSegments = new List<PathSegment> { new(start, dest, 2) };
+        var noConstraintPath = new MovementPath(noConstraintSegments, MovementType.Walk, null);
+        
+        // Path with maxLevelChange = 1
+        var level1Segments = new List<PathSegment> { new(start, dest, 3) };
+        var level1Path = new MovementPath(level1Segments, MovementType.Walk, 1);
+        
+        // Path with maxLevelChange = 2
+        var level2Segments = new List<PathSegment> { new(start, dest, 4) };
+        var level2Path = new MovementPath(level2Segments, MovementType.Walk, 2);
+        
+        _sut.Add(noConstraintPath);
+        _sut.Add(level1Path);
+        _sut.Add(level2Path);
+        
+        _sut.Get(start, dest, false, null).ShouldBe(noConstraintPath);
+        _sut.Get(start, dest, false, 1).ShouldBe(level1Path);
+        _sut.Get(start, dest, false, 2).ShouldBe(level2Path);
+    }
+    
+    [Fact]
+    public void Get_ShouldReturnNull_WhenMaxLevelChangeDoesNotMatch()
+    {
+        var start = new HexPosition(1, 1, HexDirection.Top);
+        var dest = new HexPosition(2, 2, HexDirection.Bottom);
+        
+        // Only add path with maxLevelChange = 1
+        var segments = new List<PathSegment> { new(start, dest, 2) };
+        var path = new MovementPath(segments, MovementType.Walk, 1);
+        
+        _sut.Add(path);
+        
+        // Should not find path with different maxLevelChange
+        _sut.Get(start, dest, false, null).ShouldBeNull();
+        _sut.Get(start, dest, false, 2).ShouldBeNull();
+        
+        // Should find path with matching maxLevelChange
+        _sut.Get(start, dest, false, 1).ShouldBe(path);
+    }
+    
+    [Fact]
+    public void GetHashCode_And_Equals_ShouldDifferentiateByMaxLevelChange()
+    {
+        var start = new HexPosition(1, 1, HexDirection.Top);
+        var dest = new HexPosition(2, 2, HexDirection.Bottom);
+        
+        var pathNoConstraint = new MovementPath([new PathSegment(start, dest, 1)], MovementType.Walk, null);
+        var pathLevel1 = new MovementPath([new PathSegment(start, dest, 1)], MovementType.Walk, 1);
+        var pathLevel2 = new MovementPath([new PathSegment(start, dest, 1)], MovementType.Walk, 2);
+        
+        pathNoConstraint.Equals(pathLevel1).ShouldBeFalse("Paths with different maxLevelChange should not be equal");
+        pathLevel1.Equals(pathLevel2).ShouldBeFalse("Paths with different maxLevelChange should not be equal");
+        
+        pathNoConstraint.GetHashCode().ShouldNotBe(pathLevel1.GetHashCode());
+        pathLevel1.GetHashCode().ShouldNotBe(pathLevel2.GetHashCode());
+    }
 }

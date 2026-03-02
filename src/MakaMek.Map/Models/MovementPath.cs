@@ -4,7 +4,7 @@ namespace Sanet.MakaMek.Map.Models;
 
 public class MovementPath : IEquatable<MovementPath>
 {
-    public MovementPath(IEnumerable<PathSegment> segments, MovementType movementType)
+    public MovementPath(IEnumerable<PathSegment> segments, MovementType movementType, int? maxLevelChange = null)
     {
         Segments = segments.ToList();
         if (Segments.Count == 0)
@@ -43,6 +43,7 @@ public class MovementPath : IEquatable<MovementPath>
         
         MovementType = movementType;
         IsJump = movementType == MovementType.Jump;
+        MaxLevelChange = maxLevelChange;
         TotalCost = Segments.Sum(s => s.Cost);
         TurnsTaken = Segments.Count(s => s.From.Facing != s.To.Facing);
         StraightLineDistance = Start.Coordinates.DistanceTo(Destination.Coordinates);
@@ -56,11 +57,12 @@ public class MovementPath : IEquatable<MovementPath>
     /// <summary>
     /// Constructor for cache lookups
     /// </summary>
-    internal MovementPath(HexPosition start, HexPosition destination, bool isJump)
+    internal MovementPath(HexPosition start, HexPosition destination, bool isJump, int? maxLevelChange = null)
     {
         Start = start;
         Destination = destination;
         IsJump = isJump;
+        MaxLevelChange = maxLevelChange;
         Segments = [];
         Hexes = [];
     }
@@ -81,6 +83,12 @@ public class MovementPath : IEquatable<MovementPath>
 
     private bool IsJump { get; }
     
+    /// <summary>
+    /// Maximum level change constraint used when finding this path.
+    /// Used as part of cache key to ensure paths with different level constraints are cached separately.
+    /// </summary>
+    private int? MaxLevelChange { get; }
+    
     public IReadOnlyList<HexCoordinates> Hexes { get; } 
     
     public IReadOnlyList<PathSegmentData> ToData() => Segments.Select(s => s.ToData()).ToList();
@@ -98,7 +106,7 @@ public class MovementPath : IEquatable<MovementPath>
             segment.Cost,
             !segment.IsReversed
         )).ToList();
-        return new MovementPath(reversedSegments, MovementType);
+        return new MovementPath(reversedSegments, MovementType, MaxLevelChange);
     }
 
     public MovementPath Append(MovementPath path)
@@ -115,7 +123,7 @@ public class MovementPath : IEquatable<MovementPath>
             return path;
 
         var combinedSegments = Segments.Concat(path.Segments).ToList();
-        return new MovementPath(combinedSegments, MovementType);
+        return new MovementPath(combinedSegments, MovementType, MaxLevelChange);
     }
     
     public MovementPath RemoveTrailingTurns()
@@ -128,7 +136,7 @@ public class MovementPath : IEquatable<MovementPath>
             segments.RemoveAt(segments.Count - 1);
         }
 
-        return new MovementPath(segments, MovementType);
+        return new MovementPath(segments, MovementType, MaxLevelChange);
     }
 
     public bool Equals(MovementPath? other)
@@ -137,7 +145,8 @@ public class MovementPath : IEquatable<MovementPath>
         if (ReferenceEquals(this, other)) return true;
         return EqualityComparer<HexPosition?>.Default.Equals(Start, other.Start) 
                && EqualityComparer<HexPosition?>.Default.Equals(Destination, other.Destination) 
-               && IsJump == other.IsJump;
+               && IsJump == other.IsJump
+               && MaxLevelChange == other.MaxLevelChange;
     }
 
     public override bool Equals(object? obj)
@@ -149,7 +158,7 @@ public class MovementPath : IEquatable<MovementPath>
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Start, Destination, IsJump);
+        return HashCode.Combine(Start, Destination, IsJump, MaxLevelChange);
     }
     
     public static MovementPath CreateStandingStillPath(HexPosition position)

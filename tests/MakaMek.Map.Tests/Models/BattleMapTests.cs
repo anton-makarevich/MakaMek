@@ -1657,9 +1657,7 @@ public class BattleMapTests
         // Assert
         difference.ShouldBe(3); // -2 - (-5) = 3
     }
-
-    #region GetHexEdges Tests
-
+    
     [Fact]
     public void GetHexEdges_ReturnsSixEdges()
     {
@@ -1711,7 +1709,7 @@ public class BattleMapTests
     {
         // Arrange
         var sut = new BattleMap(2, 2);
-        var centerHex = new Hex(new HexCoordinates(1, 1), 0);
+        var centerHex = new Hex(new HexCoordinates(1, 1));
         var higherNeighbor = new Hex(new HexCoordinates(1, 2), 3);
         sut.AddHex(centerHex);
         sut.AddHex(higherNeighbor);
@@ -1810,6 +1808,4 @@ public class BattleMapTests
         var topRightEdge = edges.First(e => e.Direction == HexDirection.TopRight);
         topRightEdge.ElevationDifference.ShouldBe(0); // 3 - 3 = 0
     }
-
-    #endregion
 }
