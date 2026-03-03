@@ -21,7 +21,7 @@ public class TerrainCachingService : ITerrainAssetService
     private readonly ConcurrentDictionary<string, ImmutableSortedSet<int>> _variantCache = new();
     private readonly IEnumerable<IResourceStreamProvider> _streamProviders;
     private readonly ILogger<TerrainCachingService> _logger;
-    private readonly Lock _initializationLock = new();
+    private readonly SemaphoreSlim _initializationLock = new(1, 1);
     
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -169,11 +169,15 @@ public class TerrainCachingService : ITerrainAssetService
     {
         if (_isInitialized) return;
 
-        lock (_initializationLock)
+        await _initializationLock.WaitAsync();
+        try
         {
-            if (_isInitialized) return;
-            LoadTerrainFromStreamProviders().GetAwaiter().GetResult();
+            await LoadTerrainFromStreamProviders();
             _isInitialized = true;
+        }
+        finally
+        {
+            _initializationLock.Release();
         }
     }
 
