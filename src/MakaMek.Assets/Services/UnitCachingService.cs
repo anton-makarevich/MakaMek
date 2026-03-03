@@ -1,15 +1,15 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Core.Services;
+namespace Sanet.MakaMek.Assets.Services;
 
 /// <summary>
 /// Service for caching unit data and images loaded from various sources including MMUX packages

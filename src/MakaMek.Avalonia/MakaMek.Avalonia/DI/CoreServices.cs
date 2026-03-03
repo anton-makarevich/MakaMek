@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
@@ -29,8 +30,8 @@ public static class CoreServices
     {
         public void RegisterServices()
         {
-            // Register unit caching service with stream providers
-            services.AddSingleton<IUnitCachingService,UnitCachingService>(sp =>
+            // Register unit caching service with stream providers (from MakaMek.Assets)
+            services.AddSingleton<IUnitCachingService>(sp =>
             {
                 var cachingService = sp.GetRequiredService<IFileCachingService>();
                 var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
@@ -45,13 +46,35 @@ public static class CoreServices
                 return new UnitCachingService(streamProviders, loggerFactory);
             });
 
+            // Register terrain caching service with stream providers
+            services.AddSingleton<ITerrainAssetService>(sp =>
+            {
+                var cachingService = sp.GetRequiredService<IFileCachingService>();
+                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                var streamProviders = new List<IResourceStreamProvider>
+                {
+                    new GitHubResourceStreamProvider("mmtx",
+                        "https://api.github.com/repos/anton-makarevich/MakaMek/contents/data/terrains",
+                        cachingService,
+                        loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
+                    )
+                };
+                return new TerrainCachingService(streamProviders, loggerFactory);
+            });
+
             // Register both image services
             services.AddSingleton<AvaloniaAssetImageService>(_ =>
                 new AvaloniaAssetImageService("avares://Sanet.MakaMek.Avalonia/Assets"));
             services.AddSingleton<CachedImageService>();
 
             // Register a hybrid service that routes to the appropriate underlying service
-            services.AddSingleton<IImageService, HybridImageService>();
+            services.AddSingleton<IImageService>(sp =>
+            {
+                var avaloniaService = sp.GetRequiredService<AvaloniaAssetImageService>();
+                var cachedService = sp.GetRequiredService<CachedImageService>();
+                var terrainService = sp.GetService<ITerrainAssetService>();
+                return new HybridImageService(avaloniaService, cachedService, terrainService);
+            });
 
             // Register map preview renderer
             services.AddSingleton<IMapPreviewRenderer, SkiaMapPreviewRenderer>();
